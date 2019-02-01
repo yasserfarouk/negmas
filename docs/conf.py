@@ -27,7 +27,6 @@ from negmas import *
 from negmas.situated import *
 from negmas.apps.scml import *
 
-# import guzzle_sphinx_theme
 import sphinx_rtd_theme
 import recommonmark.parser
 
@@ -49,7 +48,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_autodoc_annotation',
               'sphinx_autodoc_typehints',
               'sphinx.ext.autosummary',
-              'guzzle_sphinx_theme',
               'sphinx_automodapi.automodapi',
               'sphinx.ext.intersphinx',
               'sphinx_automodapi.smart_resolver',

@@ -1,4 +1,5 @@
 -i https://pypi.python.org/simple
+alabaster==0.7.12
 appnope==0.1.0 ; sys_platform == 'darwin'
 argh==0.26.2
 atomicwrites==1.2.1
