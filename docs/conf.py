@@ -20,7 +20,7 @@
 #
 import os
 import sys
-# sys.path.insert(0, os.path.abspath('..')) # only import from installed version using pip install -e
+sys.path.insert(0, os.path.abspath('..')) # only import from installed version using pip install -e
 
 import negmas
 from negmas import *
@@ -178,7 +178,7 @@ latex_elements = {
 # [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'negmas.tex',
-     u'negmas Documentation',
+     u'NegMAS Documentation',
      u'Yasser Mohammad', 'manual'),
 ]
 
@@ -189,7 +189,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (master_doc, 'negmas',
-     u'negmas Documentation',
+     u'NegMAS Documentation',
      [author], 1)
 ]
 
@@ -201,7 +201,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'negmas',
-     u'negmas Documentation',
+     u'NegMAS Documentation',
      author,
      'negmas',
      'Situated Simultaneous Negotiations Library.',
