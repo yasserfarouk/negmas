@@ -126,4 +126,4 @@ scripts/logs
 .eggs
 .eggs/*
 .pyre_configuration
-
+/.travis.yml
