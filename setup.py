@@ -37,7 +37,7 @@ setup(
         ],
     },
     install_requires=setup_requirements,
-    license="GPL2 license",
+    license="License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     long_description=readme,
     include_package_data=True,
     keywords='negmas negotiate negotiation mas multi-agent simulation',
