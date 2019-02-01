@@ -1,0 +1,338 @@
+{
+    "initial_wallet_balance": 1e6,
+    "n_steps": 1000000,
+    "time_limit": 3000,
+    "neg_n_steps": 100,
+    "neg_time_limit": 180,
+    "minimum_balance": 0.0,
+    "interest_rate": null,
+    "max_allowed_breach_level": null,
+    "breach_processing": 1,
+    "meeting_strategy": 1,
+
+    "products": [
+        {
+            "name": "silicon",
+            "catalog_price": 1.0
+        },
+        {
+            "name": "iron",
+            "catalog_price": 0.5
+        },
+        {
+            "name": "copper",
+            "catalog_price": 0.25
+        },
+        {
+            "name": "plastic",
+            "catalog_price": 0.3
+        },
+        {
+            "name": "minerals",
+            "catalog_price": 6.0
+        },
+        {
+            "name": "cpu",
+            "catalog_price": null
+        },
+        {
+            "name": "ram",
+            "catalog_price": null
+        },
+        {
+            "name": "timer",
+            "catalog_price": null
+        },
+        {
+            "name": "gpu",
+            "catalog_price": null
+        },
+        {
+            "name": "rom",
+            "catalog_price": null
+        },
+        {
+            "name": "motherboard",
+            "catalog_price": null
+        },
+        {
+            "name": "monitor",
+            "catalog_price": null
+        },
+        {
+            "name": "keyboard",
+            "catalog_price": null
+        },
+        {
+            "name": "mouse",
+            "catalog_price": null
+        },
+        {
+            "name": "case",
+            "catalog_price": null
+        },
+        {
+            "name": "pc",
+            "catalog_price": null
+        },
+        {
+            "name": "phone",
+            "catalog_price": null
+        },
+        {
+            "name": "tablet",
+            "catalog_price": null
+        }
+    ],
+    "processes": [
+        {
+            "name": "make_cpu_1",
+            "inputs": [
+                [
+                    "silicon",
+                    3,
+                    0.0
+                ],
+                [
+                    "copper",
+                    4,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "cpu",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_cpu_2",
+            "inputs": [
+                [
+                    "silicon",
+                    5,
+                    0.0
+                ],
+                [
+                    "copper",
+                    2,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "cpu",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_ram_1",
+            "inputs": [
+                [
+                    "silicon",
+                    2,
+                    0.0
+                ],
+                [
+                    "copper",
+                    5,
+                    0.0
+                ],
+                [
+                    "iron",
+                    1,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "ram",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_ram_2",
+            "inputs": [
+                [
+                    "silicon",
+                    3,
+                    0.0
+                ],
+                [
+                    "copper",
+                    3,
+                    0.0
+                ],
+                [
+                    "iron",
+                    2,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "ram",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_rom_1",
+            "inputs": [
+                [
+                    "silicon",
+                    2,
+                    0.0
+                ],
+                [
+                    "copper",
+                    5,
+                    0.0
+                ],
+                [
+                    "iron",
+                    2,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "rom",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_rom_2",
+            "inputs": [
+                [
+                    "silicon",
+                    3,
+                    0.0
+                ],
+                [
+                    "copper",
+                    3,
+                    0.0
+                ],
+                [
+                    "iron",
+                    3,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "rom",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_monitor_1",
+            "inputs": [
+                [
+                    "silicon",
+                    3,
+                    0.0
+                ],
+                [
+                    "copper",
+                    3,
+                    0.0
+                ],
+                [
+                    "iron",
+                    2,
+                    0.0
+                ],
+                [
+                    "minerals",
+                    1,
+                    0.0
+                ],
+                [
+                    "ram",
+                    1,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "ram",
+                    1,
+                    1.0
+                ]
+            ]
+        },
+        {
+            "name": "make_monitor_2",
+            "inputs": [
+                [
+                    "silicon",
+                    5,
+                    0.0
+                ],
+                [
+                    "copper",
+                    1,
+                    0.0
+                ],
+                [
+                    "minerals",
+                    1,
+                    0.0
+                ],
+                [
+                    "ram",
+                    1,
+                    0.0
+                ]
+            ],
+            "outputs": [
+                [
+                    "ram",
+                    1,
+                    1.0
+                ]
+            ]
+        }
+    ],
+    "factories": [
+        {
+            "max_storage": 10000,
+            "lines": {
+                "l1": {
+                    "name": "l1",
+                    "profiles": {
+                        "make_cpu1": {
+                            "n_steps": 5,
+                            "cost": 10
+                        },
+                        "make_cpu2": {
+                            "n_steps": 4,
+                            "cost": 12
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "consumers": [
+
+    ],
+    "raw_material_generators": [
+
+    ],
+
+    "factory_managers": null
+}

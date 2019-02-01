@@ -1,0 +1,64 @@
+<utility_space> 
+<objective name="SmartEnergyGrid" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="06-09" index="1" etype="discrete" type="discrete"> 
+<item evaluation="100" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="73" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="41" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="23" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="13" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="09-19" index="2" etype="discrete" type="discrete"> 
+<item evaluation="81" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="77" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="69" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="63" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="59" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="19-22" index="3" etype="discrete" type="discrete"> 
+<item evaluation="100" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="91" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="71" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="41" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="24" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="22-06" index="4" etype="discrete" type="discrete"> 
+<item evaluation="31" index="1" value="0 kW,"> 
+</item> 
+<item evaluation="29" index="2" value="25 kW,"> 
+</item> 
+<item evaluation="27" index="3" value="50 kW,"> 
+</item> 
+<item evaluation="23" index="4" value="75 kW,"> 
+</item> 
+<item evaluation="19" index="5" value="100 kW,"> 
+</item> 
+</issue> 
+<weight index="1" value="0.30491088663549915"> 
+</weight> 
+<weight index="2" value="0.20247333137820162"> 
+</weight> 
+<weight index="3" value="0.2945737310559914"> 
+</weight> 
+<weight index="4" value="0.1980420509303079"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

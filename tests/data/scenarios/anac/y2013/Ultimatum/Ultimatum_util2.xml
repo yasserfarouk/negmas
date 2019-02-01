@@ -1,0 +1,28 @@
+<utility_space> 
+<objective index="0" description="" name="Ultimatum" type="objective" etype="objective"> 
+<issue index="1" name="Issue1" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="A" evaluation="5"> 
+</item> 
+<item index="2" value="B" evaluation="10"> 
+</item> 
+<item index="3" value="C" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="2" name="Issue2" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="X" evaluation="5"> 
+</item> 
+<item index="2" value="Y" evaluation="10"> 
+</item> 
+<item index="3" value="Z" evaluation="100"> 
+</item> 
+</issue> 
+<weight index="1" value="0.5974622532484141"> 
+</weight> 
+<weight index="2" value="0.40253774675158593"> 
+</weight> 
+</objective> 
+<discount_factor value="0.05"> 
+</discount_factor> 
+<reservation value="0.1"> 
+</reservation> 
+</utility_space> 

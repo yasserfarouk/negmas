@@ -1,0 +1,64 @@
+<negotiation_template number_of_sessions="1"> 
+<agent utility_space="" name="" class=""> 
+</agent> 
+<agent utility_space="" name="" class=""> 
+</agent> 
+<utility_space number_of_issues="5"> 
+<objective index="0" description="" name="GroceryDomain" type="objective" etype="objective"> 
+<issue index="1" name="Bread type" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Baguette"> 
+</item> 
+<item index="2" value="Crackers"> 
+</item> 
+<item index="3" value="Croissants"> 
+</item> 
+<item index="4" value="Plain bread"> 
+</item> 
+</issue> 
+<issue index="2" name="Fruit" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Apples"> 
+</item> 
+<item index="2" value="Bananas"> 
+</item> 
+<item index="3" value="Cherries"> 
+</item> 
+<item index="4" value="Grapes"> 
+</item> 
+<item index="5" value="Pears"> 
+</item> 
+</issue> 
+<issue index="3" name="Snacks" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Chocolate bars"> 
+</item> 
+<item index="2" value="Doughnuts"> 
+</item> 
+<item index="3" value="Nachos"> 
+</item> 
+<item index="4" value="Popcorn"> 
+</item> 
+</issue> 
+<issue index="4" name="Spreads" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Cheese"> 
+</item> 
+<item index="2" value="Jam"> 
+</item> 
+<item index="3" value="Peanut butter"> 
+</item>
+<item index="4" value="Sandwichspread"> 
+</item>
+</issue>
+<issue index="5" name="Vegetables" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Beans"> 
+</item> 
+<item index="2" value="Broccoli"> 
+</item> 
+<item index="3" value="Leek"> 
+</item>
+<item index="4" value="Potatoes"> 
+</item>
+<item index="5" value="Spinach"> 
+</item>
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

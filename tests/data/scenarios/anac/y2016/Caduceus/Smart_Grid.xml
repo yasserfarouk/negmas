@@ -1,0 +1,38 @@
+<negotiation_template> 
+<utility_space number_of_issues="3"> 
+<objective name="Smart_Grid" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Price" index="1" etype="discrete" type="discrete"> 
+<item index="1" value="0-10 cent"> 
+</item> 
+<item index="2" value="10-20 cent"> 
+</item> 
+<item index="3" value="20-30 cent"> 
+</item> 
+<item index="4" value="30-40 cent"> 
+</item> 
+<item index="5" value="40-50 cent"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Amount" index="2" etype="discrete" type="discrete"> 
+<item index="1" value="0-50 kw"> 
+</item> 
+<item index="2" value="50-100 kw"> 
+</item> 
+<item index="3" value="100-150 kw"> 
+</item> 
+<item index="4" value="150-200 kw"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Time" index="3" etype="discrete" type="discrete"> 
+<item index="1" value="00-06"> 
+</item> 
+<item index="2" value="06-12"> 
+</item> 
+<item index="3" value="12-18"> 
+</item> 
+<item index="4" value="18-00"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

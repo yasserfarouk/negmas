@@ -1,0 +1,80 @@
+<negotiation_template> 
+<utility_space number_of_issues="8"> 
+<objective index="0" description="" name="Politics" type="objective" etype="objective"> 
+<issue index="1" name="Social Security" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="no welfare and no health insurance"> 
+</item> 
+<item index="2" value="welfare and no health insurance"> 
+</item> 
+<item index="3" value="no welfare and health insurance"> 
+</item> 
+<item index="4" value="welfare and health insurance"> 
+</item> 
+</issue> 
+<issue index="2" name="Labor tax" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low labor tax"> 
+</item> 
+<item index="2" value="Medium labor tax"> 
+</item> 
+<item index="3" value="High labor tax"> 
+</item> 
+</issue> 
+<issue index="3" name="Environmental tax" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Low tax"> 
+</item> 
+<item index="2" value="Medium tax"> 
+</item> 
+<item index="3" value="High tax"> 
+</item> 
+</issue> 
+<issue index="4" name="Usage of army" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="No army"> 
+</item> 
+<item index="2" value="Army just for defence"> 
+</item> 
+<item index="3" value="Army for peace mission"> 
+</item> 
+<item index="4" value="Army for offencive missions"> 
+</item> 
+</issue> 
+<issue index="5" name="Immigration policy" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Closed borders"> 
+</item> 
+<item index="2" value="Just refugees"> 
+</item> 
+<item index="3" value="Just people from the EU"> 
+</item> 
+<item index="4" value="People from the EU and refugees"> 
+</item> 
+<item index="5" value="Open borders"> 
+</item> 
+</issue> 
+<issue index="6" name="Stay or leave EU" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="stay"> 
+</item> 
+<item index="2" value="leave"> 
+</item> 
+</issue> 
+<issue index="7" name="National or globalized economy" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Only dependent on national products"> 
+</item> 
+<item index="2" value="Mostly dependent on national products, but some export"> 
+</item> 
+<item index="3" value="somewhat dependent on export"> 
+</item> 
+<item index="4" value="mostly dependent on export"> 
+</item> 
+</issue> 
+<issue index="8" name="Drug policy" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="All drugs legal"> 
+</item> 
+<item index="2" value="Softdrugs legal"> 
+</item> 
+<item index="3" value="Softdrugs tolerated"> 
+</item> 
+<item index="4" value="All drugs illegal"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

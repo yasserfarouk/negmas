@@ -1,0 +1,60 @@
+<utility_space> 
+<objective index="0" description="" name="DogChoosing-ReuthLiron" type="objective" etype="objective"> 
+<issue index="1" name="Furry" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Short_fur" evaluation="5"> 
+</item> 
+<item index="2" value="Medium_fur" evaluation="5"> 
+</item> 
+<item index="3" value="Long_fur" evaluation="5"> 
+</item> 
+</issue> 
+<issue index="2" name="Size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Small" evaluation="5"> 
+</item> 
+<item index="2" value="Medium" evaluation="2"> 
+</item> 
+<item index="3" value="Big" evaluation="8"> 
+</item> 
+</issue> 
+<issue index="3" name="Calm-Playful" vtype="discrete" type="discrete" etype="discrete">
+<item index="1" value="Calm"  evaluation="8"> 
+</item> 
+<item index="2" value="Playful" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="4" name="Independent-Needy" vtype="discrete" type="discrete" etype="discrete">
+<item index="1" value="Independent" evaluation="3"> 
+</item> 
+<item index="2" value="numb" evaluation="2"> 
+</item> 
+<item index="3" value="Needy" evaluation="1">
+</item> 
+</issue> 
+<issue index="5" name="Color" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="White" evaluation="8"> 
+</item> 
+<item index="2" value="Black" evaluation="2"> 
+</item> 
+<item index="3" value="Brown" evaluation="2"> 
+</item> 
+<item index="4" value="Golden" evaluation="2"> 
+</item> 
+<item index="5" value="Spotted" evaluation="2"> 
+</item> 
+</issue> 
+<weight index="1" value="0.011135461955165585"> 
+</weight> 
+<weight index="2" value="0.4532644675153723"> 
+</weight> 
+<weight index="3" value="0.03613097142159056"> 
+</weight> 
+<weight index="4" value="0.03312134112837398"> 
+</weight> 
+<weight index="5" value="0.4663477579794975"> 
+</weight> 
+</objective> 
+<discount_factor value="0.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

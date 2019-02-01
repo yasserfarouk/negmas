@@ -1,0 +1,62 @@
+<negotiation_template>
+<utility_space number_of_issues="1">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+    <issue etype="discrete" index="1" name="0" type="discrete" vtype="discrete">
+        <item index="1" value="0" cost="0" description="0">
+        </item>
+        <item index="2" value="1" cost="0" description="1">
+        </item>
+        <item index="3" value="2" cost="0" description="2">
+        </item>
+        <item index="4" value="3" cost="0" description="3">
+        </item>
+        <item index="5" value="4" cost="0" description="4">
+        </item>
+        <item index="6" value="5" cost="0" description="5">
+        </item>
+        <item index="7" value="6" cost="0" description="6">
+        </item>
+        <item index="8" value="7" cost="0" description="7">
+        </item>
+        <item index="9" value="8" cost="0" description="8">
+        </item>
+        <item index="10" value="9" cost="0" description="9">
+        </item>
+        <item index="11" value="10" cost="0" description="10">
+        </item>
+        <item index="12" value="11" cost="0" description="11">
+        </item>
+        <item index="13" value="12" cost="0" description="12">
+        </item>
+        <item index="14" value="13" cost="0" description="13">
+        </item>
+        <item index="15" value="14" cost="0" description="14">
+        </item>
+        <item index="16" value="15" cost="0" description="15">
+        </item>
+        <item index="17" value="16" cost="0" description="16">
+        </item>
+        <item index="18" value="17" cost="0" description="17">
+        </item>
+        <item index="19" value="18" cost="0" description="18">
+        </item>
+        <item index="20" value="19" cost="0" description="19">
+        </item>
+        <item index="21" value="20" cost="0" description="20">
+        </item>
+        <item index="22" value="21" cost="0" description="21">
+        </item>
+        <item index="23" value="22" cost="0" description="22">
+        </item>
+        <item index="24" value="23" cost="0" description="23">
+        </item>
+        <item index="25" value="24" cost="0" description="24">
+        </item>
+        <item index="26" value="25" cost="0" description="25">
+        </item>
+        <item index="27" value="26" cost="0" description="26">
+        </item>
+    </issue>
+</objective>
+</utility_space>
+</negotiation_template>

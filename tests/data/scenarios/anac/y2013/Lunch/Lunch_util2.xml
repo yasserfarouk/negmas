@@ -1,0 +1,80 @@
+<utility_space> 
+<objective index="0" description="" name="Lunch" type="objective" etype="objective"> 
+<issue index="1" name="salad" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="green" evaluation="100"> 
+</item> 
+<item index="2" value="potato" evaluation="23"> 
+</item> 
+<item index="3" value="caesar" evaluation="50"> 
+</item> 
+<item index="4" value="sea" evaluation="32"> 
+</item> 
+</issue> 
+<issue index="2" name="soup" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="corn(ice)" evaluation="32"> 
+</item> 
+<item index="2" value="corn(hot)" evaluation="40"> 
+</item> 
+<item index="3" value="onion" evaluation="100"> 
+</item> 
+<item index="4" value="miso" evaluation="50"> 
+</item> 
+</issue> 
+<issue index="3" name="carbohydrate" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="rice" evaluation="60"> 
+</item> 
+<item index="2" value="bread(roll)" evaluation="55"> 
+</item> 
+<item index="3" value="bread(rye)" evaluation="32"> 
+</item> 
+<item index="4" value="bread(french)" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="4" name="main" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="beef" evaluation="40"> 
+</item> 
+<item index="2" value="pork" evaluation="100"> 
+</item> 
+<item index="3" value="chicken" evaluation="50"> 
+</item> 
+<item index="4" value="fish" evaluation="12"> 
+</item> 
+</issue> 
+<issue index="5" name="drink" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="coke" evaluation="9"> 
+</item> 
+<item index="2" value="tea" evaluation="45"> 
+</item> 
+<item index="3" value="green tea" evaluation="100"> 
+</item> 
+<item index="4" value="apple" evaluation="60"> 
+</item> 
+<item index="5" value="orange" evaluation="55"> 
+</item> 
+</issue> 
+<issue index="6" name="dessert" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="cake" evaluation="54"> 
+</item> 
+<item index="2" value="sherbet" evaluation="30"> 
+</item> 
+<item index="3" value="ice cream" evaluation="100"> 
+</item> 
+</issue> 
+<weight index="1" value="0.16105383045335958"> 
+</weight> 
+<weight index="2" value="0.14531559044733128"> 
+</weight> 
+<weight index="3" value="0.2973677735022806"> 
+</weight> 
+<weight index="4" value="0.28231718478248424"> 
+</weight> 
+<weight index="5" value="0.05800126271707925"> 
+</weight> 
+<weight index="6" value="0.05594435809746513"> 
+</weight> 
+</objective> 
+<discount_factor value="0.5"> 
+</discount_factor> 
+<reservation value="0.8"> 
+</reservation> 
+</utility_space> 

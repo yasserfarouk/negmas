@@ -1,0 +1,64 @@
+<negotiation_template> 
+<utility_space number_of_issues="5"> 
+<objective name="University" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Study" index="1" etype="discrete" type="discrete"> 
+<item index="1" value="TI"> 
+</item> 
+<item index="2" value="TW"> 
+</item> 
+<item index="3" value="EE"> 
+</item> 
+<item index="4" value="TBM"> 
+</item> 
+<item index="5" value="WB"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Faculty" index="2" etype="discrete" type="discrete"> 
+<item index="1" value="EWI"> 
+</item> 
+<item index="2" value="3ME"> 
+</item> 
+<item index="3" value="TPM"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Job Prospect" index="3" etype="discrete" type="discrete"> 
+<item index="1" value="Manager"> 
+</item> 
+<item index="2" value="Developer"> 
+</item> 
+<item index="3" value="Jobless"> 
+</item> 
+<item index="4" value="Engineer"> 
+</item> 
+<item index="5" value="CEO"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Housing" index="4" etype="discrete" type="discrete"> 
+<item index="1" value="House"> 
+</item> 
+<item index="2" value="Under the bridge"> 
+</item> 
+<item index="3" value="Single Room"> 
+</item> 
+<item index="4" value="Studio"> 
+</item> 
+<item index="5" value="Parents"> 
+</item> 
+<item index="6" value="Cave"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Partime Job" index="5" etype="discrete" type="discrete"> 
+<item index="1" value="None"> 
+</item> 
+<item index="2" value="Supermarket"> 
+</item> 
+<item index="3" value="Catering"> 
+</item> 
+<item index="4" value="Fastfood Restaurant"> 
+</item> 
+<item index="5" value="Restaurant"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

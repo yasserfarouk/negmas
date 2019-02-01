@@ -1,0 +1,90 @@
+<utility_space number_of_issues="5">
+	<objective index="1" etype="objective" type="objective"
+		description="" name="Car">
+		<weight index="2" value="0.31" />
+		<weight index="3" value="0.31" />
+		<weight index="4" value="0.08" />
+		<weight index="5" value="0.12" />
+		<weight index="6" value="0.18" />
+		<issue index="2" name="CD player" etype="discrete">
+			<item index="1" value="good" evaluation="100" />
+			<item index="2" value="fairly good" evaluation="80" />
+			<item index="3" value="standard" evaluation="75" />
+			<item index="4" value="meager" evaluation="70" />
+			<item index="5" value="none" evaluation="0" />
+			<similarity_function weight="0.6">
+				<criteria_function  weight="1">
+					<item index="1" value="good" evaluation="1"/>
+					<item index="2" value="fairly good" evaluation="0.8"/>
+					<item index="3" value="standard" evaluation="0.6"/>
+					<item index="4" value="meager" evaluation="0.4"/>
+					<item index="5" value="none" evaluation="0.2"/>
+					<item index="6" value="unspecified" evaluation="0"/>			
+				</criteria_function>
+			</similarity_function>
+		</issue>
+		<issue index="3" name="Extra speakers" etype="discrete">
+			<item index="1" value="good" evaluation="100" />
+			<item index="2" value="fairly good" evaluation="95" />
+			<item index="3" value="standard" evaluation="90" />
+			<item index="4" value="meager" evaluation="20" />
+			<item index="5" value="none" evaluation="0" />
+		<similarity_function weight="0.2">
+			<criteria_function  weight="1">
+				<item index="1" value="good" evaluation="1"/>
+				<item index="2" value="fairly good" evaluation="0.8"/>
+				<item index="3" value="standard" evaluation="0.6"/>
+				<item index="4" value="meager" evaluation="0.4"/>
+				<item index="5" value="none" evaluation="0.2"/>
+				<item index="6" value="unspecified" evaluation="0"/>			
+			</criteria_function>
+		</similarity_function>
+
+		</issue>
+		<issue index="4" name="Airconditioning" etype="discrete">
+			<item index="1" value="good" evaluation="97" />
+			<item index="2" value="fairly good" evaluation="98" />
+			<item index="3" value="standard" evaluation="99" />
+			<item index="4" value="meager" evaluation="100" />
+			<item index="5" value="none" evaluation="0" />
+		<similarity_function weight="0.2">
+			<criteria_function  weight="1">
+				<item index="1" value="good" evaluation="1"/>
+				<item index="2" value="fairly good" evaluation="0.8"/>
+				<item index="3" value="standard" evaluation="0.6"/>
+				<item index="4" value="meager" evaluation="0.4"/>
+				<item index="5" value="none" evaluation="0.2"/>
+				<item index="6" value="unspecified" evaluation="0"/>			
+			</criteria_function>
+		</similarity_function>
+
+		</issue>
+		<issue index="5" name="Tow hedge" etype="discrete">
+			<item index="1" value="good" evaluation="97" />
+			<item index="2" value="fairly good" evaluation="98" />
+			<item index="3" value="standard" evaluation="99" />
+			<item index="4" value="meager" evaluation="100" />
+			<item index="5" value="none" evaluation="0" />
+		<similarity_function weight="0.9">
+			<criteria_function  weight="1">
+				<item index="1" value="good" evaluation="1"/>
+				<item index="2" value="fairly good" evaluation="0.8"/>
+				<item index="3" value="standard" evaluation="0.6"/>
+				<item index="4" value="meager" evaluation="0.4"/>
+				<item index="5" value="none" evaluation="0.2"/>
+				<item index="6" value="unspecified" evaluation="0"/>			
+			</criteria_function>
+		</similarity_function>
+
+		</issue>
+		<issue index="6" name="Price" etype="real" type="real">
+			<range lowerbound="16000" upperbound="22666" />
+			<evaluator ftype="linear" parameter1="-0.00015"
+				parameter0="3.4" />
+			<similarity_function weight="0.5">			
+				<criteria_function type="faratin" weight="1" parameter1="0.1" parameter0="1"/>			
+			</similarity_function>
+
+		</issue>
+	</objective>
+</utility_space>

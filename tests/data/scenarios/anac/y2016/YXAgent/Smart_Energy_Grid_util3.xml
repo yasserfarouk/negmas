@@ -1,0 +1,66 @@
+<utility_space> 
+<objective name="Smart_Energy_Grid" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Electric Vehicle" index="1" etype="discrete" type="discrete"> 
+<item evaluation="76" index="1" value="Tesla Model S P90D "> 
+</item> 
+<item evaluation="42" index="2" value="Honda Fit EV"> 
+</item> 
+<item evaluation="38" index="3" value="Nissan Leaf"> 
+</item> 
+<item evaluation="31" index="4" value="Toyota RAV4 EV"> 
+</item> 
+<item evaluation="78" index="5" value="Mitsubishi i-MiEV"> 
+</item> 
+<item evaluation="31" index="6" value="Ford Focus Electric"> 
+</item> 
+<item evaluation="89" index="7" value="Fiat 500e"> 
+</item> 
+<item evaluation="34" index="8" value="Kia Soul EV"> 
+</item> 
+<item evaluation="36" index="9" value="BMW i3"> 
+</item> 
+<item evaluation="56" index="10" value="Chevrolet Spark EV"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Battery Capacity" index="2" etype="discrete" type="discrete"> 
+<item evaluation="10" index="1" value="20KW/KG"> 
+</item> 
+<item evaluation="13" index="2" value="30KW/KG"> 
+</item> 
+<item evaluation="17" index="3" value="60KW/KG"> 
+</item> 
+<item evaluation="20" index="4" value="70KW/KG"> 
+</item> 
+<item evaluation="25" index="5" value="100KW/KG"> 
+</item> 
+</issue> 
+<issue vtype="integer" lowerbound="1" upperbound="17" name="Charging Speed" index="3" etype="integer" type="integer"> 
+<evaluator ftype="linear" offset="0.6" slope="0.025"> 
+</evaluator> 
+</issue> 
+<issue vtype="discrete" name="Weather Condition" index="4" etype="discrete" type="discrete"> 
+<item evaluation="20" index="1" value="Sunny"> 
+</item> 
+<item evaluation="35" index="2" value="Partly Sunny"> 
+</item> 
+<item evaluation="10" index="3" value="Windy"> 
+</item> 
+<item evaluation="9" index="4" value="Rainy"> 
+</item> 
+<item evaluation="3" index="5" value="Isolated T-Storms"> 
+</item> 
+</issue> 
+<weight index="1" value="0.17829860676182976"> 
+</weight> 
+<weight index="2" value="0.296367034259102"> 
+</weight> 
+<weight index="3" value="0.3782920283134138"> 
+</weight> 
+<weight index="4" value="0.14704233066565445"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

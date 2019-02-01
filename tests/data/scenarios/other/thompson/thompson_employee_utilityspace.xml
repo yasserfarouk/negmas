@@ -1,0 +1,117 @@
+<utility_space> 
+<objective index="0" etype="objective" type="objective" description="" name="Employment"> 
+<issue index="1" name="Signing bonus" vtype="discrete" etype="discrete"> 
+	<item index="1" value="10%" evaluation="100"> 
+	</item> 
+	<item index="2" value="8%" evaluation="75"> 
+	</item> 
+	<item index="3" value="6%" evaluation="50">
+	</item>
+	<item index="4" value="4%" evaluation="25">
+	</item>
+	<item index="5" value="2%" evaluation="0"></item>
+	<similarity_function weight="0.2">
+		<criteria_function  weight="1">
+		       	<item index="1" value="10%" evaluation="0"/>
+			<item index="2" value="8%" evaluation="0.25"/>
+			<item index="3" value="6%" evaluation="0.5"/>
+			<item index="4" value="4%" evaluation="0.75"/>
+			<item index="5" value="2%" evaluation="1"/>
+		</criteria_function>
+	</similarity_function>
+
+</issue> 
+<issue index="2" vtype="discrete" etype="discrete" name="Job assignment"> 
+	<item index="1" value="Division A" evaluation="0">
+	</item>
+	<item index="2" value="Division B" evaluation="25">
+	</item>
+	<item index="3" value="Division C" evaluation="50">
+	</item>
+	<item index="4" value="Division D" evaluation="75">
+	</item>
+	<item index="5" value="Division E" evaluation="100"></item>
+	<similarity_function weight="0.2">
+		<criteria_function  weight="1">
+		       	<item index="1" value="Division A" evaluation="0"/>
+			<item index="2" value="Division B" evaluation="0.25"/>
+			<item index="3" value="Division C" evaluation="0.5"/>
+			<item index="4" value="Division D" evaluation="0.75"/>
+			<item index="5" value="Division E" evaluation="1"/>
+		</criteria_function>
+	</similarity_function>
+
+</issue> 
+<issue index="3" vtype="discrete"  etype="discrete" name="Moving expense coverage"> 
+	<item index="1" value="100%" evaluation="100">
+	</item>
+	<item index="2" value="90%" evaluation="75">
+	</item>
+	<item index="3" value="80%" evaluation="50">
+	</item>
+	<item index="4" value="70%" evaluation="25">
+	</item>
+	<item index="5" value="60%" evaluation="0">
+	</item>
+	<similarity_function weight="0.2">
+		<criteria_function  weight="1">
+		       	<item index="1" value="100%" evaluation="0"/>
+			<item index="2" value="90%" evaluation="0.25"/>
+			<item index="3" value="80%" evaluation="0.5"/>
+			<item index="4" value="70%" evaluation="0.75"/>
+			<item index="5" value="60%" evaluation="1"/>
+		</criteria_function>
+	</similarity_function>
+
+</issue> 
+<issue index="4" vtype="discrete" etype="discrete" name="Insurance coverage"> 
+	<item index="1" value="100%" evaluation="100">
+	</item>
+	<item index="2" value="80%" evaluation="75">
+	</item>
+	<item index="3" value="60%" evaluation="50">
+	</item>
+	<item index="4" value="20%" evaluation="25">
+	</item>
+	<item index="5" value="0%" evaluation="0">
+	</item>
+	<similarity_function weight="0.2">
+		<criteria_function  weight="1">
+		       	<item index="1" value="100%" evaluation="0"/>
+			<item index="2" value="80%" evaluation="0.25"/>
+			<item index="3" value="60%" evaluation="0.5"/>
+			<item index="4" value="20%" evaluation="0.75"/>
+			<item index="5" value="0%" evaluation="1"/>
+		</criteria_function>
+	</similarity_function>
+
+
+</issue> 
+<issue index="5" vtype="discrete" etype="discrete" name="Salary">
+	<item index="1" value="$40,000" evaluation="100"></item>
+	<item index="2" value="$38,000" evaluation="75"></item>
+	<item index="3" value="$36,000" evaluation="50"></item>
+	<item index="4" value="$34,000" evaluation="25"></item>
+	<item index="5" value="$32,000" evaluation="0"></item>
+	<similarity_function weight="0.2">
+		<criteria_function  weight="1">
+		       	<item index="1" value="$40,000" evaluation="0"/>
+			<item index="2" value="$38,000" evaluation="0.25"/>
+			<item index="3" value="$36,000" evaluation="0.5"/>
+			<item index="4" value="$34,000" evaluation="0.75"/>
+			<item index="5" value="$32,000" evaluation="1"/>
+		</criteria_function>
+	</similarity_function>
+
+
+</issue> 
+ 
+ 
+	<weight index="1" value="0.41"></weight>
+	<weight index="2" value="0.08"></weight>
+	<weight index="3" value="0.28"></weight>
+	<weight index="4" value="0.06"></weight>
+	<weight index="5" value="0.17"></weight>
+</objective>
+</utility_space> 
+ 

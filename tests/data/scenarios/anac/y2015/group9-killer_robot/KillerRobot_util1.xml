@@ -1,0 +1,76 @@
+<utility_space> 
+<objective index="0" description="" name="KillerRobot" type="objective" etype="objective"> 
+<issue index="1" name="Torso" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Humanoid" evaluation="2"> 
+</item> 
+<item index="2" value="Block" evaluation="3"> 
+</item> 
+<item index="3" value="Spherical" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="2" name="Propulsion" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Legs" evaluation="3"> 
+</item> 
+<item index="2" value="Wheel" evaluation="1"> 
+</item> 
+<item index="3" value="Tracks" evaluation="2"> 
+</item> 
+<item index="4" value="Hover" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="3" name="Guns" lowerbound="1" upperbound="10" vtype="integer" type="integer" etype="integer"> 
+<evaluator slope="-0.044444444444444446" offset="1.0" ftype="linear"> 
+</evaluator> 
+</issue> 
+<issue index="4" name="GunType" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Bullets" evaluation="1"> 
+</item> 
+<item index="2" value="Railgun" evaluation="3"> 
+</item> 
+<item index="3" value="Laser" evaluation="2"> 
+</item> 
+<item index="4" value="Plasma" evaluation="5"> 
+</item> 
+<item index="5" value="Soundwave" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="5" name="Color" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Red" evaluation="4"> 
+</item> 
+<item index="2" value="Green" evaluation="3"> 
+</item> 
+<item index="3" value="Blue" evaluation="5"> 
+</item> 
+<item index="4" value="Yellow" evaluation="2"> 
+</item> 
+<item index="5" value="Purple" evaluation="1"> 
+</item> 
+<item index="6" value="White" evaluation="6"> 
+</item> 
+<item index="7" value="Black" evaluation="8"> 
+</item> 
+<item index="8" value="Silver" evaluation="7"> 
+</item> 
+</issue> 
+<issue index="6" name="Height (m)" lowerbound="1" upperbound="50" vtype="integer" type="integer" etype="integer"> 
+<evaluator slope="-0.012244897959183673" offset="1.0" ftype="linear"> 
+</evaluator> 
+</issue> 
+<weight index="1" value="0.22035198775630468"> 
+</weight> 
+<weight index="2" value="0.1612674898274903"> 
+</weight> 
+<weight index="3" value="0.06113094952802134"> 
+</weight> 
+<weight index="4" value="0.16216554312686268"> 
+</weight> 
+<weight index="5" value="0.23003625568900224"> 
+</weight> 
+<weight index="6" value="0.1650477740723188"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

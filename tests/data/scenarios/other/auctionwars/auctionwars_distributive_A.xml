@@ -1,0 +1,27 @@
+<utility_space number_of_issues="0">
+  <objective index="0" etype="objective" type="objective" description="" name="AuctionWarsDomain">
+  
+    <weight index="1" value="0.72"/>
+    <weight index="2" value="0.24"/>
+    <weight index="3" value="0.04"/>
+   
+	<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Records">
+	<item index="1" value="0" cost="0" description="0 records" evaluation="0"></item>
+	<item index="2" value="1" cost="0" description="1 record" evaluation="30"></item>
+	<item index="3" value="2" cost="0" description="2 records" evaluation="60"></item>
+	<item index="4" value="3" cost="0" description="3 records" evaluation="90"></item>
+	</issue>
+	
+	<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="Lamps">
+	<item index="1" value="0" cost="0" description="0 lamps" evaluation="0"></item>
+	<item index="2" value="1" cost="0" description="1 lamp" evaluation="15"></item>
+	<item index="3" value="2" cost="0" description="2 lamps" evaluation="30"></item>
+	</issue>
+			
+	<issue index="3" etype="discrete" type="discrete" vtype="discrete"	name="Painting">
+	<item index="1" value="0" cost="0" description="0 paintings" evaluation="0"></item>
+	<item index="2" value="1" cost="0" description="1 painting" evaluation="5"></item>
+	</issue>
+
+  </objective>
+</utility_space>

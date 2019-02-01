@@ -1,0 +1,62 @@
+<negotiation_template number_of_sessions="1"> 
+<agent utility_space="Side_A_utility.xml" class="agents.QOAgent" name="Side_A"> 
+</agent> 
+<agent utility_space="Side_B_utility.xml" class="agents.UIAgent" name="Side_B"> 
+</agent> 
+<utility_space number_of_issues="0"> 
+<objective index="0" description="" name="root" type="objective" etype="objective"> 
+<issue index="1" name="Salary" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="7,000 NIS"> 
+</item> 
+<item index="2" value="12,000 NIS"> 
+</item> 
+<item index="3" value="20,000 NIS"> 
+</item> 
+</issue> 
+<issue index="2" name="Job Description" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="QA"> 
+</item> 
+<item index="2" value="Programmer"> 
+</item> 
+<item index="3" value="Team Manager"> 
+</item> 
+<item index="4" value="Project Manager"> 
+</item> 
+</issue> 
+<issue index="3" name="Leased Car" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Without leased car"> 
+</item> 
+<item index="2" value="With leased car"> 
+</item> 
+<item index="3" value="No agreement"> 
+</item> 
+</issue> 
+<issue index="4" name="Pension Fund" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0%"> 
+</item> 
+<item index="2" value="10%"> 
+</item> 
+<item index="3" value="20%"> 
+</item> 
+<item index="4" value="No agreement"> 
+</item> 
+</issue> 
+<issue index="5" name="Promotion Possibilities" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Slow promotion track"> 
+</item> 
+<item index="2" value="Fast promotion track"> 
+</item> 
+<item index="3" value="No agreement"> 
+</item> 
+</issue> 
+<issue index="6" name="Working Hours" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="10 hours"> 
+</item> 
+<item index="2" value="9 hours"> 
+</item> 
+<item index="3" value="8 hours"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

@@ -1,0 +1,41 @@
+<negotiation_template number_of_sessions="1">
+	<agent class="agents.SlavaAgent" name="seller" utility_space="planes_seller_utility.xml">
+	</agent>
+	<agent class="agents.UIAgent" name="buyer" utility_space="planes_buyer_utility.xml">
+	</agent>
+	<utility_space number_of_issues="0">
+		<objective index="0" etype="objective" type="objective"
+			description="" name="PlanesDomain">
+			<issue index="1" etype="discrete" type="discrete" vtype="discrete"
+				name="Plane">
+				<item index="1" value="Piper" cost="300" description="Small plane">
+				</item>
+				<item index="2" value="Aircraft4" cost="1000" description="Middle plane">
+				</item>
+				<item index="3" value="Boing747" cost="1900" description="Big plane">
+				</item>
+				<similarity_function type="binary" weight="0.333333"/>
+			</issue>
+			<issue index="2" etype="discrete" type="discrete" vtype="discrete"
+				name="Engine">
+				<item index="1" value="Rocket" cost="0" description="The old engine">
+				</item>
+				<item index="2" value="Jet" cost="500" description="Good engine">
+				</item>
+				<item index="3" value="Turbo" cost="1000" description="Best engine">
+				</item>
+				<similarity_function type="binary" weight="0.333333"/>
+			</issue>
+			<issue index="3" etype="discrete" type="discrete" vtype="discrete"
+				name="Technology">
+				<item index="1" value="Old radio" cost="200" description="Old radio">
+				</item>
+				<item index="2" value="Regular computer" cost="400" description="Stantard control system">
+				</item>
+				<item index="3" value="Super computer" cost="900" description="Fast, reliable and strong control system">
+				</item>
+				<similarity_function type="binary" weight="0.33333"/>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template> 

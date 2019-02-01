@@ -1,0 +1,102 @@
+<negotiation_template> 
+<utility_space number_of_issues="8"> 
+<objective index="0" description="" name="smart_ energy_ grids" type="objective" etype="objective"> 
+<issue index="1" name="0000-0300" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="2" name="0300-0600" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="3" name="0600-0900" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="4" name="0900-1200" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="5" name="1200-1500" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="6" name="1500-1800" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="7" name="1800-2100" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+<issue index="8" name="2100-0000" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0kW"> 
+</item> 
+<item index="2" value="25kW"> 
+</item> 
+<item index="3" value="50kW"> 
+</item> 
+<item index="4" value="75kW"> 
+</item> 
+<item index="5" value="100kW"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

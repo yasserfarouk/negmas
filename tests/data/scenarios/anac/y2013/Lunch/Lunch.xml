@@ -1,0 +1,66 @@
+<negotiation_template> 
+<utility_space number_of_issues="6"> 
+<objective index="0" description="" name="Lunch" type="objective" etype="objective"> 
+<issue index="1" name="salad" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="green"> 
+</item> 
+<item index="2" value="potato"> 
+</item> 
+<item index="3" value="caesar"> 
+</item> 
+<item index="4" value="sea"> 
+</item> 
+</issue> 
+<issue index="2" name="soup" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="corn(ice)"> 
+</item> 
+<item index="2" value="corn(hot)"> 
+</item> 
+<item index="3" value="onion"> 
+</item> 
+<item index="4" value="miso"> 
+</item> 
+</issue> 
+<issue index="3" name="carbohydrate" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="rice"> 
+</item> 
+<item index="2" value="bread(roll)"> 
+</item> 
+<item index="3" value="bread(rye)"> 
+</item> 
+<item index="4" value="bread(french)"> 
+</item> 
+</issue> 
+<issue index="4" name="main" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="beef"> 
+</item> 
+<item index="2" value="pork"> 
+</item> 
+<item index="3" value="chicken"> 
+</item> 
+<item index="4" value="fish"> 
+</item> 
+</issue> 
+<issue index="5" name="drink" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="coke"> 
+</item> 
+<item index="2" value="tea"> 
+</item> 
+<item index="3" value="green tea"> 
+</item> 
+<item index="4" value="apple"> 
+</item> 
+<item index="5" value="orange"> 
+</item> 
+</issue> 
+<issue index="6" name="dessert" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="cake"> 
+</item> 
+<item index="2" value="sherbet"> 
+</item> 
+<item index="3" value="ice cream"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

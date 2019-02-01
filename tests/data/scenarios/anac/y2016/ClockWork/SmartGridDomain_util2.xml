@@ -1,0 +1,48 @@
+<utility_space> 
+<objective name="SmartGridDomain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Price Level" index="1" etype="discrete" type="discrete"> 
+<item evaluation="100" index="1" value="Price 1"> 
+</item> 
+<item evaluation="250" index="2" value="Price 2"> 
+</item> 
+<item evaluation="150" index="3" value="Price 3"> 
+</item> 
+<item evaluation="50" index="4" value="Price 4"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="ContractDuration" index="2" etype="discrete" type="discrete"> 
+<item evaluation="50" index="1" value="5 Years"> 
+</item> 
+<item evaluation="200" index="2" value="2 Years"> 
+</item> 
+<item evaluation="300" index="3" value="1 Year"> 
+</item> 
+<item evaluation="150" index="4" value="6 Months"> 
+</item> 
+<item evaluation="100" index="5" value="1 Month"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="EnergyDelivered" index="3" etype="discrete" type="discrete"> 
+<item evaluation="350" index="1" value="Energy Amount 1"> 
+</item> 
+<item evaluation="300" index="2" value="Energy Amount 2"> 
+</item> 
+<item evaluation="250" index="3" value="Energy Amount 3"> 
+</item> 
+<item evaluation="200" index="4" value="Energy Amount 4"> 
+</item> 
+<item evaluation="50" index="5" value="Energy Amount 5"> 
+</item> 
+</issue> 
+<weight index="1" value="0.377622930851405"> 
+</weight> 
+<weight index="2" value="0.25105585910144107"> 
+</weight> 
+<weight index="3" value="0.371321210047154"> 
+</weight> 
+</objective> 
+<discount_factor value="0.6"> 
+</discount_factor> 
+<reservation value="0.4"> 
+</reservation> 
+</utility_space> 

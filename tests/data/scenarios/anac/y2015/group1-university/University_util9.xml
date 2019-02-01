@@ -1,0 +1,76 @@
+<utility_space> 
+<objective name="University" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Study" index="1" etype="discrete" type="discrete"> 
+<item evaluation="3" index="1" value="TI"> 
+</item> 
+<item evaluation="2" index="2" value="TW"> 
+</item> 
+<item evaluation="1" index="3" value="EE"> 
+</item> 
+<item evaluation="2" index="4" value="TBM"> 
+</item> 
+<item evaluation="3" index="5" value="WB"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Faculty" index="2" etype="discrete" type="discrete"> 
+<item evaluation="1" index="1" value="EWI"> 
+</item> 
+<item evaluation="3" index="2" value="3ME"> 
+</item> 
+<item evaluation="1" index="3" value="TPM"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Job Prospect" index="3" etype="discrete" type="discrete"> 
+<item evaluation="1" index="1" value="Manager"> 
+</item> 
+<item evaluation="2" index="2" value="Developer"> 
+</item> 
+<item evaluation="5" index="3" value="Jobless"> 
+</item> 
+<item evaluation="2" index="4" value="Engineer"> 
+</item> 
+<item evaluation="1" index="5" value="CEO"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Housing" index="4" etype="discrete" type="discrete"> 
+<item evaluation="1" index="1" value="House"> 
+</item> 
+<item evaluation="2" index="2" value="Under the bridge"> 
+</item> 
+<item evaluation="5" index="3" value="Single Room"> 
+</item> 
+<item evaluation="2" index="4" value="Studio"> 
+</item> 
+<item evaluation="2" index="5" value="Parents"> 
+</item> 
+<item evaluation="1" index="6" value="Cave"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Partime Job" index="5" etype="discrete" type="discrete"> 
+<item evaluation="1" index="1" value="None"> 
+</item> 
+<item evaluation="2" index="2" value="Supermarket"> 
+</item> 
+<item evaluation="5" index="3" value="Catering"> 
+</item> 
+<item evaluation="2" index="4" value="Fastfood Restaurant"> 
+</item> 
+<item evaluation="1" index="5" value="Restaurant"> 
+</item> 
+</issue> 
+<weight index="1" value="0.18004901852501665"> 
+</weight> 
+<weight index="2" value="0.20433516602125087"> 
+</weight> 
+<weight index="3" value="0.20527279325465406"> 
+</weight> 
+<weight index="4" value="0.20320471317620828"> 
+</weight> 
+<weight index="5" value="0.20713830902287014"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 

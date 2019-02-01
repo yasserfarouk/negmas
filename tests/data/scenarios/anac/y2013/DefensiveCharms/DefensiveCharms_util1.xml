@@ -1,0 +1,40 @@
+<utility_space> 
+<objective index="0" description="" name="Defensive Charms" type="objective" etype="objective"> 
+<issue index="1" name="Barriers" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Age Line" evaluation="2"> 
+</item> 
+<item index="2" value="Salvio Hexia" evaluation="5"> 
+</item> 
+<item index="3" value="Impervius" evaluation="10"> 
+</item> 
+</issue> 
+<issue index="2" name="Shields" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Protego" evaluation="10"> 
+</item> 
+<item index="2" value="Protego Maxima" evaluation="8"> 
+</item> 
+<item index="3" value="Protego Duo" evaluation="6"> 
+</item> 
+<item index="4" value="Protego Horibilis" evaluation="4"> 
+</item> 
+</issue> 
+<issue index="3" name="Warnings" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Cave Inimicum" evaluation="10"> 
+</item> 
+<item index="2" value="Colloportus" evaluation="5"> 
+</item> 
+<item index="3" value="Muffliato" evaluation="2"> 
+</item> 
+</issue> 
+<weight index="1" value="0.5"> 
+</weight> 
+<weight index="2" value="0.3"> 
+</weight> 
+<weight index="3" value="0.2"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.7"> 
+</reservation> 
+</utility_space> 

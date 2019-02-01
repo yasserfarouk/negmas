@@ -1,0 +1,37 @@
+
+<negotiation_template>
+<utility_space number_of_issues="30">
+<objective description="" etype="objective" index="0" name="root" type="objective">
+   <issue etype="integer" index="1"  name="c1-i30" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="2"  name="c1-i29" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="3"  name="c1-i28" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="4"  name="c1-i27" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="5"  name="c1-i26" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="6"  name="c1-i25" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="7"  name="c1-i24" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="8"  name="c1-i23" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="9"  name="c1-i22" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="10"  name="c1-i21" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="11"  name="c1-i20" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="12"  name="c1-i19" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="13"  name="c1-i18" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="14"  name="c1-i17" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="15"  name="c1-i16" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="16"  name="c1-i15" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="17"  name="c1-i14" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="18"  name="c1-i13" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="19"  name="c1-i12" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="20"  name="c1-i11" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="21"  name="c1-i10" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="22"  name="c1-i9" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="23"  name="c1-i8" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="24"  name="c1-i7" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="25"  name="c1-i6" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="26"  name="c1-i5" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="27"  name="c1-i4" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="28"  name="c1-i3" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="29"  name="c1-i2" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+   <issue etype="integer" index="30"  name="c1-i1" type="integer" vtype="integer" lowerbound="0" upperbound="9"/>
+</objective>
+</utility_space>
+</negotiation_template>

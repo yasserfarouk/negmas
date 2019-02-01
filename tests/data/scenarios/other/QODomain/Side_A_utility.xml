@@ -1,0 +1,68 @@
+<utility_space> 
+<objective index="0" description="" name="root" type="objective" etype="objective"> 
+<issue index="1" name="Salary" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="7,000 NIS" cost="0.0" evaluation="8"> 
+</item> 
+<item index="2" value="12,000 NIS" cost="0.0" evaluation="6"> 
+</item> 
+<item index="3" value="20,000 NIS" cost="0.0" evaluation="3"> 
+</item> 
+</issue> 
+<issue index="2" name="Job Description" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="QA" cost="0.0" evaluation="4"> 
+</item> 
+<item index="2" value="Programmer" cost="0.0" evaluation="6"> 
+</item> 
+<item index="3" value="Team Manager" cost="0.0" evaluation="4"> 
+</item> 
+<item index="4" value="Project Manager" cost="0.0" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="3" name="Leased Car" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Without leased car" cost="0.0" evaluation="6"> 
+</item> 
+<item index="2" value="With leased car" cost="0.0" evaluation="1"> 
+</item> 
+<item index="3" value="No agreement" cost="0.0" evaluation="3"> 
+</item> 
+</issue> 
+<issue index="4" name="Pension Fund" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="0%" cost="0.0" evaluation="4"> 
+</item> 
+<item index="2" value="10%" cost="0.0" evaluation="5"> 
+</item> 
+<item index="3" value="20%" cost="0.0" evaluation="4"> 
+</item> 
+<item index="4" value="No agreement" cost="0.0" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="5" name="Promotion Possibilities" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Slow promotion track" cost="0.0" evaluation="4"> 
+</item> 
+<item index="2" value="Fast promotion track" cost="0.0" evaluation="4"> 
+</item> 
+<item index="3" value="No agreement" cost="0.0" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="6" name="Working Hours" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="10 hours" cost="0.0" evaluation="8"> 
+</item> 
+<item index="2" value="9 hours" cost="0.0" evaluation="6"> 
+</item> 
+<item index="3" value="8 hours" cost="0.0" evaluation="3"> 
+</item> 
+</issue> 
+<weight index="1" value="0.20"> 
+</weight> 
+<weight index="2" value="0.20"> 
+</weight> 
+<weight index="3" value="0.10"> 
+</weight> 
+<weight index="4" value="0.10"> 
+</weight> 
+<weight index="5" value="0.10"> 
+</weight> 
+<weight index="6" value="0.30"> 
+</weight> 
+</objective> 
+</utility_space> 

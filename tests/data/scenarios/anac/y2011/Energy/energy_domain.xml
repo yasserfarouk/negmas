@@ -1,0 +1,62 @@
+<negotiation_template number_of_sessions="1">
+	<utility_space number_of_issues="8">
+		<objective index="0" etype="objective" type="objective" description="" name="Energy">
+			<issue index="1" etype="discrete" type="discrete" name="0000-0300">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="2" etype="discrete" type="discrete" name="0300-0600">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="3" etype="discrete" type="discrete" name="0600-0900">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="4" etype="discrete" type="discrete" name="0900-1200">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="5" etype="discrete" type="discrete" name="1200-1500">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="6" etype="discrete" type="discrete" name="1500-1800">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="7" etype="discrete" type="discrete" name="1800-2100">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+			<issue index="8" etype="discrete" type="discrete" name="2100-0000">
+				<item index="1" value="0 kW"></item>
+				<item index="2" value="25 kW"></item>
+				<item index="3" value="50 kW"></item>
+				<item index="4" value="75 kW"></item>
+				<item index="5" value="100 kW"></item>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template>

@@ -1,0 +1,58 @@
+<negotiation_template> 
+<utility_space number_of_issues="6"> 
+<objective index="0" description="" name="KillerRobot" type="objective" etype="objective"> 
+<issue index="1" name="Torso" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Humanoid"> 
+</item> 
+<item index="2" value="Block"> 
+</item> 
+<item index="3" value="Spherical"> 
+</item> 
+</issue> 
+<issue index="2" name="Propulsion" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Legs"> 
+</item> 
+<item index="2" value="Wheel"> 
+</item> 
+<item index="3" value="Tracks"> 
+</item> 
+<item index="4" value="Hover"> 
+</item> 
+</issue> 
+<issue index="3" name="Guns" lowerbound="1" upperbound="10" vtype="integer" type="integer" etype="integer"> 
+</issue> 
+<issue index="4" name="GunType" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Bullets"> 
+</item> 
+<item index="2" value="Railgun"> 
+</item> 
+<item index="3" value="Laser"> 
+</item> 
+<item index="4" value="Plasma"> 
+</item> 
+<item index="5" value="Soundwave"> 
+</item> 
+</issue> 
+<issue index="5" name="Color" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Red"> 
+</item> 
+<item index="2" value="Green"> 
+</item> 
+<item index="3" value="Blue"> 
+</item> 
+<item index="4" value="Yellow"> 
+</item> 
+<item index="5" value="Purple"> 
+</item> 
+<item index="6" value="White"> 
+</item> 
+<item index="7" value="Black"> 
+</item> 
+<item index="8" value="Silver"> 
+</item> 
+</issue> 
+<issue index="6" name="Height (m)" lowerbound="1" upperbound="50" vtype="integer" type="integer" etype="integer"> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

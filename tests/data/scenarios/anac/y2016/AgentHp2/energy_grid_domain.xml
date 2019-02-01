@@ -1,0 +1,22 @@
+<negotiation_template> 
+<utility_space number_of_issues="8"> 
+<objective name="energy_grid_domain" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="integer" lowerbound="8" upperbound="14" name="0:00-2:59 prices [cents/kWh]" index="1" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="3:00-5:59 prices [cents/kWh]" index="2" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="6:00-8:59 prices [cents/kWh]" index="3" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="9:00-11:59 prices [cents/kWh]" index="4" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="12:00-14:59 prices [cents/kWh]" index="5" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="15:00-17:59 prices [cents/kWh]" index="6" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="18:00-20:59 prices [cents/kWh]" index="7" etype="integer" type="integer"> 
+</issue>
+<issue vtype="integer" lowerbound="8" upperbound="14" name="21:00-23:59 prices [cents/kWh]" index="8" etype="integer" type="integer"> 
+</issue>
+</objective> 
+</utility_space> 
+</negotiation_template> 

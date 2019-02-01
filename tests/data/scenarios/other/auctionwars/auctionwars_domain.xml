@@ -1,0 +1,29 @@
+<negotiation_template number_of_sessions="1">
+	<utility_space number_of_issues="0">
+		<objective index="0" etype="objective" type="objective"
+			description="" name="AuctionWarsDomain">
+			
+			<issue index="1" etype="discrete" type="discrete" vtype="discrete"
+				name="Records">
+				<item index="1" value="0" cost="0" description="0 records"></item>
+				<item index="2" value="1" cost="0" description="1 record"></item>
+				<item index="3" value="2" cost="0" description="2 records"></item>
+				<item index="4" value="3" cost="0" description="3 records"></item>
+			</issue>
+			
+			<issue index="2" etype="discrete" type="discrete" vtype="discrete"
+				name="Lamps">
+				<item index="1" value="0" cost="0" description="0 lamps"></item>
+				<item index="2" value="1" cost="0" description="1 lamp"></item>
+				<item index="3" value="2" cost="0" description="2 lamps"></item>
+			</issue>
+			
+			<issue index="3" etype="discrete" type="discrete" vtype="discrete"
+				name="Painting">
+				<item index="1" value="0" cost="0" description="0 paintings"></item>
+				<item index="2" value="1" cost="0" description="1 painting"></item>
+			</issue>
+			
+		</objective>
+	</utility_space>
+</negotiation_template> 

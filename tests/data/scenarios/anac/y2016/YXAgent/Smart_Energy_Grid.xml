@@ -1,0 +1,54 @@
+<negotiation_template> 
+<utility_space number_of_issues="4"> 
+<objective name="Smart_Energy_Grid" index="0" description="" etype="objective" type="objective"> 
+<issue vtype="discrete" name="Electric Vehicle" index="1" etype="discrete" type="discrete"> 
+<item index="1" value="Tesla Model S P90D "> 
+</item> 
+<item index="2" value="Honda Fit EV"> 
+</item> 
+<item index="3" value="Nissan Leaf"> 
+</item> 
+<item index="4" value="Toyota RAV4 EV"> 
+</item> 
+<item index="5" value="Mitsubishi i-MiEV"> 
+</item> 
+<item index="6" value="Ford Focus Electric"> 
+</item> 
+<item index="7" value="Fiat 500e"> 
+</item> 
+<item index="8" value="Kia Soul EV"> 
+</item> 
+<item index="9" value="BMW i3"> 
+</item> 
+<item index="10" value="Chevrolet Spark EV"> 
+</item> 
+</issue> 
+<issue vtype="discrete" name="Battery Capacity" index="2" etype="discrete" type="discrete"> 
+<item index="1" value="20KW/KG"> 
+</item> 
+<item index="2" value="30KW/KG"> 
+</item> 
+<item index="3" value="60KW/KG"> 
+</item> 
+<item index="4" value="70KW/KG"> 
+</item> 
+<item index="5" value="100KW/KG"> 
+</item> 
+</issue> 
+<issue vtype="integer" lowerbound="1" upperbound="17" name="Charging Speed" index="3" etype="integer" type="integer"> 
+</issue> 
+<issue vtype="discrete" name="Weather Condition" index="4" etype="discrete" type="discrete"> 
+<item index="1" value="Sunny"> 
+</item> 
+<item index="2" value="Partly Sunny"> 
+</item> 
+<item index="3" value="Windy"> 
+</item> 
+<item index="4" value="Rainy"> 
+</item> 
+<item index="5" value="Isolated T-Storms"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

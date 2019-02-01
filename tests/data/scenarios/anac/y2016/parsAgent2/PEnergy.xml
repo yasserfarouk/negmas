@@ -1,0 +1,72 @@
+<negotiation_template> 
+<utility_space number_of_issues="3"> 
+<objective index="0" description="" name="PEnergy" type="objective" etype="objective"> 
+<issue index="1" name="Price" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="10"> 
+</item> 
+<item index="2" value="20"> 
+</item> 
+<item index="3" value="40"> 
+</item> 
+<item index="4" value="50"> 
+</item> 
+<item index="5" value="60"> 
+</item> 
+<item index="6" value="70"> 
+</item> 
+<item index="7" value="80"> 
+</item> 
+<item index="8" value="90"> 
+</item> 
+<item index="9" value="100"> 
+</item> 
+</issue> 
+<issue index="2" name="Size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="10kW"> 
+</item> 
+<item index="2" value="20kW"> 
+</item> 
+<item index="3" value="30kW"> 
+</item> 
+<item index="4" value="35kW"> 
+</item> 
+<item index="5" value="40kW"> 
+</item> 
+<item index="6" value="55kW"> 
+</item> 
+<item index="7" value="60kW"> 
+</item> 
+<item index="8" value="70kW"> 
+</item> 
+<item index="9" value="75kW"> 
+</item> 
+<item index="10" value="80kW"> 
+</item> 
+<item index="11" value="85kW"> 
+</item> 
+<item index="12" value="90kW"> 
+</item> 
+<item index="13" value="95kW"> 
+</item> 
+<item index="14" value="100kW"> 
+</item> 
+<item index="15" value="120kW"> 
+</item> 
+<item index="16" value="150kW"> 
+</item> 
+<item index="17" value="300kW"> 
+</item> 
+</issue> 
+<issue index="3" name="Transfer" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="method1"> 
+</item> 
+<item index="2" value="method2"> 
+</item> 
+<item index="3" value="method3"> 
+</item> 
+<item index="4" value="method4"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

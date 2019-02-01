@@ -1,0 +1,102 @@
+<negotiation_template> 
+<utility_space number_of_issues="16"> 
+<objective index="0" description="" name="Domain16" type="objective" etype="objective"> 
+<issue index="1" name="a" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="a1"> 
+</item> 
+<item index="2" value="a2"> 
+</item> 
+</issue> 
+<issue index="2" name="b" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="b1"> 
+</item> 
+<item index="2" value="b2"> 
+</item> 
+</issue> 
+<issue index="3" name="c" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="c1"> 
+</item> 
+<item index="2" value="c2"> 
+</item> 
+</issue> 
+<issue index="4" name="d" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="d1"> 
+</item> 
+<item index="2" value="d2"> 
+</item> 
+</issue> 
+<issue index="5" name="e" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="e1"> 
+</item> 
+<item index="2" value="e2"> 
+</item> 
+</issue> 
+<issue index="6" name="g" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="g1"> 
+</item> 
+<item index="2" value="g2"> 
+</item> 
+</issue> 
+<issue index="7" name="f" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="f1"> 
+</item> 
+<item index="2" value="f2"> 
+</item> 
+</issue> 
+<issue index="8" name="h" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="h1"> 
+</item> 
+<item index="2" value="h2"> 
+</item> 
+</issue> 
+<issue index="9" name="i" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="i1"> 
+</item> 
+<item index="2" value="i2"> 
+</item> 
+</issue> 
+<issue index="10" name="j" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="j1"> 
+</item> 
+<item index="2" value="j2"> 
+</item> 
+</issue> 
+<issue index="11" name="k" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="k1"> 
+</item> 
+<item index="2" value="k2"> 
+</item> 
+</issue> 
+<issue index="12" name="l" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="l1"> 
+</item> 
+<item index="2" value="l2"> 
+</item> 
+</issue> 
+<issue index="13" name="m" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="m1"> 
+</item> 
+<item index="2" value="m2"> 
+</item> 
+</issue> 
+<issue index="14" name="n" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="n1"> 
+</item> 
+<item index="2" value="n2"> 
+</item> 
+</issue> 
+<issue index="15" name="o" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="o1"> 
+</item> 
+<item index="2" value="o2"> 
+</item> 
+</issue> 
+<issue index="16" name="p" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="p1"> 
+</item> 
+<item index="2" value="p2"> 
+</item> 
+</issue> 
+</objective> 
+</utility_space> 
+</negotiation_template> 

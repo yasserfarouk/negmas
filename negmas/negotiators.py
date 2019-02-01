@@ -1,0 +1,357 @@
+"""This module defines the interfaces to all negotiation agents (negotiators) in the platform.
+
+Few examples of negotiation agents are provided  in.sample.agent to make the
+interface more concrete. In general a user of the platform can implement a new
+agent by inheriting from one of the negotiators provided here and/or implement the
+functions specified (in languages with Duck typing like python inheretance is
+not needed).
+
+
+"""
+import math
+from abc import ABC
+from copy import copy
+from typing import Optional, List, Tuple, Iterable, Union
+from typing import TYPE_CHECKING, Dict, Any, Callable
+
+from negmas.common import *
+from negmas.events import Notifiable, Notification
+from negmas.utilities import make_discounted_ufun
+
+if TYPE_CHECKING:
+    from negmas.outcomes import Outcome
+    from negmas.utilities import UtilityValue, UtilityFunction
+
+__all__ = [
+    'Negotiator',  # Most abstract kind of agent
+    'NegotiatorProxy',
+    'AspirationMixin',
+]
+
+
+class Negotiator(NamedObject, Notifiable, ABC):
+    r"""Abstract negotiation agent. Base class for all negotiators
+
+     Args:
+
+            name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
+
+        Returns:
+            bool: True if participating in the given negotiation (or any negotiation if it was None)
+
+        Remarks:
+
+    """
+
+    def __init__(self, name: str = None, ufun: Optional['UtilityFunction'] = None) -> None:
+        self._capabilities = {'enter': True, 'leave': True}
+        super().__init__(name=name)
+        self.add_capabilities({'evaluate': True, 'compare': True})
+        self.mechanism_id = None
+        self.mechanism_info = None
+        self.initial_info = None
+        self.initial_state = None
+        self.utility_function = ufun
+        self._init_utility = ufun
+        self.role = None
+        self.offerable_outcomes = None
+
+    def _dissociate(self):
+        self.mechanism_id = None
+        self.mechanism_info = None
+        self.initial_info = None
+        self.utility_function = self._init_utility
+        self.role = None
+
+    def isin(self, negotiation_id: Optional[str]) -> bool:
+        """Is that agent participating in the given negotiation?
+        Tests if the agent is participating in the given negotiation.
+
+        Args:
+
+            negotiation_id (Optional[str]): The negotiation ID tested. If
+             None, it means ANY negotiation
+
+        Returns:
+            bool: True if participating in the given negotiation (or any
+                negotiation if it was None)
+
+        """
+        return self.mechanism_id == negotiation_id
+
+    @property
+    def ufun(self) -> Callable[['Outcome'], Optional['UtilityValue']]:
+        """
+        The utility function in the given negotiation. 
+        
+        Remarks:
+            - If no utility_function is internally stored, `ufun` still returns a valid callable that returns None 
+              for everything.
+            - This is what you should always call to get the utility of a given outcome.
+            - ufun(None) gives the `reserved_value` of this agent.
+        """
+        if self.utility_function is not None:
+            return self.utility_function
+        else:
+            return lambda x: None
+
+    @property
+    def reserved_value(self):
+        """Reserved value is what the agent gets if no agreement is reached in the negotiation."""
+        if self.utility_function is None:
+            return None
+        if self.utility_function.reserved_value is not None:
+            return self.utility_function.reserved_value
+        return self.utility_function(None)
+
+    @property
+    def capabilities(self) -> Dict[str, Any]:
+        """Agent capabilities"""
+        return self._capabilities
+
+    def add_capabilities(self, capabilities: dict) -> None:
+        """Adds named capabilities to the agent.
+
+        Args:
+            capabilities: The capabilities to be added as a dict
+
+        Returns:
+            None
+
+        Remarks:
+            It is the responsibility of the caller to be really capable of added capabilities.
+
+        """
+        if hasattr(self, '_capabilities'):
+            self._capabilities.update(capabilities)
+        else:
+            self._capabilities = capabilities        
+
+    # CALL BACKS
+
+    def on_enter(self, info: MechanismInfo, state: MechanismState
+                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent'
+                 , cost_per_round: float = None
+                 , power_per_round: float = None
+                 , discount_per_round: float = None
+                 , cost_per_relative_time: float = None
+                 , power_per_relative_time: float = None
+                 , discount_per_relative_time: float = None
+                 , cost_per_real_time: float = None
+                 , power_per_real_time: float = None
+                 , discount_per_real_time: float = None
+                 , dynamic_reservation: bool = True
+                 , **kwargs) -> bool:
+        """
+        Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
+
+        Args:
+            info  (MechanismInfo): The negotiation.
+            state (MechanismState): The current state of the negotiation
+            ufun (UtilityFunction): The ufun function to use before any discounting.
+            role (str): role of the agent.
+            cost_per_round: Will be multiplied by the round number and subtracted from the ufun value
+            discount_per_round: Will be raised to the round number power and multiplied by the ufun value
+            cost_per_relative_time: Will be multiplied by the relative time (0-1) and subtracted from the ufun value
+            discount_per_relative_time: Will be raised to the relative time power and multiplied by the ufun
+            cost_per_real_time: Will be multiplied by the real time (0-infinity) and subtracted from the ufun value
+            discount_per_real_time: Will be raised to the real time power and multiplied by the ufun value
+            power_per_real_time: A power to raise the cost to before applying it to ufun value
+            power_per_relative_time: A power to raise the cost to before applying it to ufun value
+            power_per_round: A power to raise the cost to before applying it to ufun value
+            dynamic_reservation: If True the same discount and cost roles will be applied to the reserved value
+            **kwargs:
+
+        Returns:
+            bool indicating whether or not the agent accepts to enter.
+            If False is returned it will not enter the negotiation
+
+        """
+        if self.mechanism_id is not None:
+            return False
+        self.role = role
+        self.mechanism_id = info.id
+        self.mechanism_info = info
+        self.initial_info = copy(info)
+        self.initial_state = state
+        if ufun is not None:
+            self.utility_function = make_discounted_ufun(ufun=ufun, info=info
+                                                         , cost_per_round=cost_per_round
+                                                         , power_per_round=power_per_round
+                                                         , discount_per_round=discount_per_round
+                                                         , cost_per_relative_time=cost_per_relative_time
+                                                         , power_per_relative_time=power_per_relative_time
+                                                         , discount_per_relative_time=discount_per_relative_time
+                                                         , cost_per_real_time=cost_per_real_time
+                                                         , power_per_real_time=power_per_real_time
+                                                         , discount_per_real_time=discount_per_real_time
+                                                         , dynamic_reservation=dynamic_reservation
+                                                         )
+        if self.utility_function:
+            self.utility_function.info = info
+        return True
+
+    def on_negotiation_start(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation start
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action.
+
+        """
+
+    def on_round_start(self, state: MechanismState) -> None:
+        """A call back called at each negotiation round start
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action.
+
+        """
+
+    def on_mechanism_error(self, state: MechanismState) -> None:
+        """
+        A call back called whenever an error happens in the mechanism. The error and its explanation are accessible in
+        `state`
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+
+    def on_round_end(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation round end
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+
+    def on_leave(self, state: MechanismState) -> None:
+        """A call back called after leaving a negotiation.
+
+        Args:
+            state: `MechanismState` giving current state of the negotiation.
+
+        Remarks:
+            - **MUST** call the baseclass `on_leave` using `super`() if you are going to override this.
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+        self._dissociate()
+
+    def on_negotiation_end(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation end
+
+        Args:
+            state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+
+        """
+
+    def on_notification(self, notification: Notification, notifier: str):
+        if notifier != self.mechanism_id:
+            raise ValueError(f'Notification is coming from unknown {notifier}')
+        if notification.type == 'negotiation_start':
+            self.on_negotiation_start(state=notification.data)
+        elif notification.type == 'round_start':
+            self.on_round_start(state=notification.data)
+        elif notification.type == 'round_end':
+            self.on_round_end(state=notification.data)
+        elif notification.type == 'negotiation_end':
+            self.on_negotiation_end(state=notification.data)
+
+    def __str__(self):
+        return f'{self.name}'
+
+    def compare(
+        self,
+        first: 'Outcome',
+        second: 'Outcome',
+    ) -> Optional['UtilityValue']:
+        """
+        Compares two offers using the `ufun`
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+
+        Returns:
+            UtilityValue: An estimate of the differences between the two outcomes. It can be a real number between -1, 1
+            or a probability distribution over the same range.
+        """
+        if self.utility_function is None:
+            return None
+        return self.utility_function.compare(first, second)
+
+
+NegotiatorProxy = Negotiator
+"""A negotiator stands as a proxy for itself"""
+
+
+class AspirationMixin:
+    """Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class."""
+
+    def aspiration_init(self
+                        , max_aspiration: float, aspiration_type: Union[str, int, float], above_reserved_value=True):
+        """
+
+        Args:
+            max_aspiration:
+            aspiration_type:
+            above_reserved_value:
+        """
+        self.add_capabilities({'aspiration': True})
+        self.max_aspiration = max_aspiration
+        self.aspiration_type = aspiration_type
+        self.e = 1.0
+        if isinstance(aspiration_type, int):
+            self.e = float(aspiration_type)
+        elif isinstance(aspiration_type, float):
+            self.e = aspiration_type
+        elif aspiration_type == 'boulware':
+            self.e = 4.0
+        elif aspiration_type == 'linear':
+            self.e = 1.0
+        elif aspiration_type == 'conceder':
+            self.e = 0.25
+        else:
+            raise ValueError(f'Unknown aspiration type {aspiration_type}')
+        self.max_aspiration = max_aspiration
+        self.above_reserved = above_reserved_value
+
+    def aspiration(self, t: float) -> float:
+        """
+        The aspiration level
+
+        Args:
+            t: relative time (a number between zero and one)
+
+        Returns:
+            aspiration level
+        """
+        if self.e < 1e-7:
+            return 0.0
+        pmin = self.reserved_value if self.above_reserved and self.reserved_value is not None else 0.0
+        return pmin + (self.max_aspiration - pmin) * (1.0 - math.pow(t, self.e))

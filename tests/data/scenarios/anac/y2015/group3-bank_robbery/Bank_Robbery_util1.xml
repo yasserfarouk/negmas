@@ -1,0 +1,36 @@
+<utility_space> 
+<objective index="0" description="" name="Bank Robbery" type="objective" etype="objective"> 
+<issue index="1" name="Roles" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Driver" evaluation="8"> 
+</item> 
+<item index="2" value="Hostage Taker" evaluation="1"> 
+</item> 
+<item index="3" value="Money Grabber" evaluation="1"> 
+</item> 
+</issue> 
+<issue index="2" name="Escape Plan" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Car" evaluation="6"> 
+</item> 
+<item index="2" value="Hellicopter" evaluation="2"> 
+</item> 
+<item index="3" value="Horse" evaluation="2"> 
+</item> 
+</issue> 
+<issue index="3" name="Money Split" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="Proportional to Performance" evaluation="8"> 
+</item> 
+<item index="2" value="Equally" evaluation="2"> 
+</item> 
+</issue> 
+<weight index="1" value="0.5000620591183125"> 
+</weight> 
+<weight index="2" value="0.30245423795028675"> 
+</weight> 
+<weight index="3" value="0.19748370293140075"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.2"> 
+</reservation> 
+</utility_space> 

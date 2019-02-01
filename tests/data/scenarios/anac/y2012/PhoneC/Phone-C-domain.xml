@@ -1,0 +1,41 @@
+
+<negotiation_template number_of_sessions="1">
+  <agent utility_space="" name="" class=""> </agent>
+  <agent utility_space="" name="" class=""> </agent>
+  <utility_space number_of_issues="0">
+    <objective index="0" description="" name="Phone" type="objective" etype="objective">
+      <issue index="1" name="Brand" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="HP" ></item>
+        <item index="2" value="Motorola" ></item>
+        <item index="3" value="Nokia" ></item>
+        <item index="4" value="Apple" ></item>
+      </issue>
+      <issue index="2" name="Color" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="White" ></item>
+        <item index="2" value="Grey" ></item>
+        <item index="3" value="Black" ></item>
+        <item index="4" value="Silver" ></item>
+        <item index="5" value="Red" ></item>
+      </issue>
+      <issue index="3" name="Operating System" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="Windows Mobile" ></item>
+        <item index="2" value="Android" ></item>
+        <item index="3" value="Apple" ></item>
+        <item index="4" value="BlackBerry" ></item>
+      </issue>
+      <issue index="4" name="Memory" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="510M" ></item>
+        <item index="2" value="1G" ></item>
+        <item index="3" value="2G" ></item>
+        <item index="4" value="4G" ></item>
+      </issue>
+      <issue index="5" name="Screen Resolution" vtype="discrete" type="discrete" etype="discrete">
+        <item index="1" value="240*400" ></item>
+        <item index="2" value="480*800" ></item>
+        <item index="3" value="600*1024" ></item>
+        <item index="4" value="800*1280" ></item>
+        <item index="5" value="1280*1280" ></item>
+      </issue>
+    </objective>
+  </utility_space>
+</negotiation_template>

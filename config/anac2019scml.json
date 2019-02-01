@@ -1,0 +1,407 @@
+{
+    "initial_wallet_balances": 1e6,
+    "n_steps": 1000,
+    "time_limit": 60,
+    "negotiation_speed_multiplier": 10,
+    "neg_n_steps": 50,
+    "neg_time_limit": 3,
+    "minimum_balance": 0,
+    "interest_rate": null,
+    "interest_max": null,
+    "max_allowed_breach_level": null,
+    "catalog_profit": 0.15,
+    "avg_process_cost_is_public": true,
+    "catalog_prices_are_public": true,
+    "breach_processing:BreachProcessing": 1,
+    "breach_penalty_society": 1.0,
+    "breach_penalty_society_min": 2.0,
+    "breach_penalty_victim": 0.0,
+    "breach_move_max_product": true,
+    "money_resolution": 0.01,
+    "premium": 0.1,
+    "premium_time_increment": 0.1,
+    "premium_breach_increment": 0.1,
+    "default_signing_delay": 0,
+    "allow_immediate_negotiations": true,
+    "transportation_delay:int": 1,
+    "loan_installments": 1,
+    "log_file_name": null,
+    "name": null,
+    "products": [
+        {
+            "name": "silicon",
+            "catalog_price": "1.0",
+            "production_level": 0
+        },
+        {
+            "name": "copper",
+            "catalog_price": "2.0",
+            "production_level": 0
+        },
+        {
+            "name": "iron",
+            "catalog_price": "0.5",
+            "production_level": 0
+        },
+        {
+            "name": "minerals",
+            "catalog_price": "20.0",
+            "production_level": 0
+        },
+        {
+            "name": "memory",
+            "production_level": 1
+        },
+        {
+            "name": "cpu",
+            "production_level": 1
+        },
+        {
+            "name": "chipset",
+            "production_level": 1
+        },
+        {
+            "name": "network-card",
+            "production_level": 2
+        },
+        {
+            "name": "sound-card",
+            "production_level": 2
+        },
+        {
+            "name": "gpu",
+            "production_level": 2
+        },
+        {
+            "name": "phone",
+            "production_level": 3
+        },
+        {
+            "name": "watch",
+            "production_level": 3
+        },
+        {
+            "name": "pc",
+            "production_level": 3
+        }
+    ],
+    "processes": [
+        {
+            "name": "memory-1",
+            "inputs": [
+                {
+                    "product": "silicon",
+                    "quantity": 1
+                },{
+                    "product": "copper",
+                    "quantity": 2
+                },{
+                    "product": "minerals",
+                    "quantity": 2
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "memory",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "memory-2",
+            "inputs": [
+                {
+                    "product": "silicon",
+                    "quantity": 1
+                },{
+                    "product": "copper",
+                    "quantity": 3
+                },{
+                    "product": "minerals",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "memory",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "cpu-1",
+            "inputs": [
+                {
+                    "product": "silicon",
+                    "quantity": 3
+                },{
+                    "product": "copper",
+                    "quantity": 2
+                },{
+                    "product": "minerals",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "cpu",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "cpu-2",
+            "inputs": [
+                {
+                    "product": "silicon",
+                    "quantity": 4
+                },{
+                    "product": "copper",
+                    "quantity": 1
+                },{
+                    "product": "minerals",
+                    "quantity": 3
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "cpu",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "chipset-1",
+            "inputs": [
+                {
+                    "product": "silicon",
+                    "quantity": 1
+                },{
+                    "product": "copper",
+                    "quantity": 2
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "chipset",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "network-card-1",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 2
+                },{
+                    "product": "chipset",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "network-card",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "sound-card-1",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 1
+                },{
+                    "product": "chipset",
+                    "quantity": 1
+                },{
+                    "product": "cpu",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "sound-card",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "gpu-1",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 10
+                },{
+                    "product": "chipset",
+                    "quantity": 5
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "gpu",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "gpu-2",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 20
+                },{
+                    "product": "chipset",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "gpu",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "phone-1",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 2
+                },{
+                    "product": "cpu",
+                    "quantity": 2
+                },{
+                    "product": "sound-card",
+                    "quantity": 1
+                },{
+                    "product": "network-card",
+                    "quantity": 1
+                },{
+                    "product": "iron",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "phone",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "phone-2",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 3
+                },{
+                    "product": "cpu",
+                    "quantity": 2
+                },{
+                    "product": "sound-card",
+                    "quantity": 1
+                },{
+                    "product": "iron",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "phone",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "watch-1",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 1
+                },{
+                    "product": "cpu",
+                    "quantity": 1
+                },{
+                    "product": "sound-card",
+                    "quantity": 1
+                },{
+                    "product": "iron",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "watch",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "watch-2",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 1
+                },{
+                    "product": "cpu",
+                    "quantity": 1
+                },{
+                    "product": "iron",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "watch",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "pc-1",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 2
+                },{
+                    "product": "cpu",
+                    "quantity": 4
+                },{
+                    "product": "sound-card",
+                    "quantity": 1
+                },{
+                    "product": "gpu",
+                    "quantity": 1
+                },{
+                    "product": "iron",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "pc",
+                    "quantity": 1
+                }
+            ]
+        },{
+            "name": "pc-2",
+            "inputs": [
+                {
+                    "product": "memory",
+                    "quantity": 4
+                },{
+                    "product": "cpu",
+                    "quantity": 2
+                },{
+                    "product": "sound-card",
+                    "quantity": 1
+                },{
+                    "product": "gpu",
+                    "quantity": 1
+                },{
+                    "product": "iron",
+                    "quantity": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "product": "pc",
+                    "quantity": 1
+                }
+            ]
+        }
+    ],
+    "factories": [],
+    "consumers": [],
+    "miners": [],
+    "factory_managers": null,
+}

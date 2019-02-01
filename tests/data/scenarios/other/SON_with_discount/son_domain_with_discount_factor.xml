@@ -1,0 +1,30 @@
+<negotiation_template number_of_sessions="1">
+	<agent utility_space="jennings_example2_agent_B.xml" name="Buyer"
+		class="SimpleAgent">
+	</agent>
+	<agent utility_space="jennings_example2_agent_A.xml" name="Dealer"
+		class="SimpleAgent">
+	</agent>
+	<utility_space number_of_issues="4">
+		<objective index="1" etype="objective" type="objective"
+			description="" name="SON">
+			<issue index="2" name="Price" vtype="real" type="real">
+				<range lowerbound="0" upperbound="1"></range>
+			</issue>
+			<issue index="3" name="Quality" vtype="real" type="real">
+				<range lowerbound="0" upperbound="1"></range>
+			</issue>
+			<issue index="4" name="Time" vtype="real" type="real">
+				<range lowerbound="0" upperbound="1"></range>
+			</issue>
+			<issue index="5" name="Penalty" vtype="real" type="real">
+				<range lowerbound="0" upperbound="1"></range>
+			</issue>
+		</objective>
+		<discount_factor>
+			<value>1</value>
+		</discount_factor>
+
+	</utility_space>
+
+</negotiation_template>

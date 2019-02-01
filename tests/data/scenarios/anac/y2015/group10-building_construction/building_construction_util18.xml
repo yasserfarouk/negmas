@@ -1,0 +1,70 @@
+<utility_space> 
+<objective index="0" description="" name="building_construction" type="objective" etype="objective"> 
+<issue index="1" name="yard_size" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="large" evaluation="10"> 
+</item> 
+<item index="2" value="medium" evaluation="20"> 
+</item> 
+<item index="3" value="small" evaluation="70"> 
+</item> 
+<item index="4" value="none" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="2" name="windows" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="single glazing" evaluation="100"> 
+</item> 
+<item index="2" value="double glazing" evaluation="60"> 
+</item> 
+</issue> 
+<issue index="3" name="architecture_style" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="modern" evaluation="0"> 
+</item> 
+<item index="2" value="common" evaluation="100"> 
+</item> 
+<item index="3" value="old_fashioned" evaluation="30"> 
+</item> 
+</issue> 
+<issue index="4" name="mortgage_needed" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="small" evaluation="0"> 
+</item> 
+<item index="2" value="medium" evaluation="0"> 
+</item> 
+<item index="3" value="large" evaluation="20"> 
+</item> 
+</issue> 
+<issue index="5" name="construction_time" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="short" evaluation="10"> 
+</item> 
+<item index="2" value="medium" evaluation="20"> 
+</item> 
+<item index="3" value="long" evaluation="100"> 
+</item> 
+</issue> 
+<issue index="6" name="internet_connection" vtype="discrete" type="discrete" etype="discrete"> 
+<item index="1" value="satellite" evaluation="100"> 
+</item> 
+<item index="2" value="phone_line" evaluation="90"> 
+</item> 
+<item index="3" value="cable" evaluation="40"> 
+</item> 
+<item index="4" value="fiberglass" evaluation="10"> 
+</item> 
+</issue> 
+<weight index="1" value="0.10423955664891503"> 
+</weight> 
+<weight index="2" value="0.14815837516501162"> 
+</weight> 
+<weight index="3" value="0.1782823113473574"> 
+</weight> 
+<weight index="4" value="0.02105837406167161"> 
+</weight> 
+<weight index="5" value="0.5032568845789279"> 
+</weight> 
+<weight index="6" value="0.045004498198116506"> 
+</weight> 
+</objective> 
+<discount_factor value="1.0"> 
+</discount_factor> 
+<reservation value="0.0"> 
+</reservation> 
+</utility_space> 
