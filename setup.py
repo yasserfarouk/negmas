@@ -24,7 +24,7 @@ setup(
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GPL2 License',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
@@ -37,7 +37,7 @@ setup(
         ],
     },
     install_requires=setup_requirements,
-    license="License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    license="GNU General Public License v2 (GPLv2)",
     long_description=readme,
     include_package_data=True,
     keywords='negmas negotiate negotiation mas multi-agent simulation',
