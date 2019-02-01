@@ -1,5 +1,4 @@
 -i https://pypi.python.org/simple
-alabaster==0.7.12
 appnope==0.1.0 ; sys_platform == 'darwin'
 argh==0.26.2
 atomicwrites==1.2.1
@@ -8,14 +7,9 @@ autopep8==1.4.3
 babel==2.6.0
 backcall==0.1.0
 bleach==3.1.0
-bottle==0.12.16
 bumpversion==0.5.3
-certifi==2018.11.29
-chardet==3.0.4
-clizy==1.0.1
 commonmark==0.8.1
 coverage==4.5.2
-cprofilev==1.0.7
 cycler==0.10.0
 decorator==4.3.2
 defusedxml==0.5.0
@@ -32,16 +26,12 @@ ipykernel==5.1.0
 ipython-genutils==0.2.0
 ipython[notebook]==7.2.0
 ipywidgets==7.4.2
-isort==4.3.4
 jedi==0.13.2
 jinja2==2.10
 jsonschema==2.6.0
 jupyter-client==5.2.4
-jupyter-contrib-core==0.3.3
 jupyter-core==4.4.0
-jupyter-nbextensions-configurator==0.4.1
 kiwisolver==1.0.1
-line-profiler==2.1.2
 markupsafe==1.1.0
 matplotlib==3.0.2
 mccabe==0.6.1
@@ -60,13 +50,12 @@ pandoc==1.0.2
 pandocfilters==1.4.2
 parso==0.3.2
 pathtools==0.1.2
-pbr==5.1.2
 pep8==1.7.1
 pexpect==4.6.0 ; sys_platform != 'win32'
 pickleshare==0.7.5
-pipenv-to-requirements==0.6.1
 pipenv==2018.11.26
 pipreqs==0.4.9
+pkginfo==1.5.0.1
 pluggy==0.8.1
 ply==3.11
 pockets==0.7.2
@@ -86,12 +75,12 @@ python-dateutil==2.7.5
 pytz==2018.9
 pyyaml==3.13
 pyzmq==17.1.2
+readme-renderer==24.0
 recommonmark==0.5.0
-req==1.0.0
+requests-toolbelt==0.9.1
 requests==2.21.0
 send2trash==1.5.0
 six==1.12.0
-snakeviz==1.0.0
 snowballstemmer==1.2.1
 sphinx-autodoc-annotation==1.0.post1
 sphinx-autodoc-typehints==1.6.0
@@ -108,11 +97,12 @@ texext==0.6.1
 toml==0.10.0
 tornado==5.1.1
 tox==3.7.0
+tqdm==4.30.0
 traitlets==4.3.2
+twine==1.12.1
 typed-ast==1.2.0
 typeshed==0.0.1
 urllib3==1.24.1
-vermin==0.4.10
 virtualenv-clone==0.5.1
 virtualenv==16.3.0
 watchdog==0.9.0

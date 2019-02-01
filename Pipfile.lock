@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8b46ebab69b180e473a00d6f801455c7120c84ad0e5732e3f57f94eb42708d25"
+            "sha256": "900c840967328ab45e9aa52631f8dee4c4851494df2ab539741c950aa2e9599f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -342,13 +342,6 @@
             ],
             "version": "==3.1.0"
         },
-        "bottle": {
-            "hashes": [
-                "sha256:9c310da61e7df2b6ac257d8a90811899ccb3a9743e77e947101072a2e3186726",
-                "sha256:ca43beafbdccabbe31b758a4f34d1e44985a9b9539516775208b2b0f903eafa0"
-            ],
-            "version": "==0.12.16"
-        },
         "bumpversion": {
             "hashes": [
                 "sha256:6744c873dd7aafc24453d8b6a1a0d6d109faf63cd0cd19cb78fd46e74932c77e",
@@ -370,13 +363,6 @@
                 "sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"
             ],
             "version": "==3.0.4"
-        },
-        "clizy": {
-            "hashes": [
-                "sha256:cd16ff9345bedad4204c07933c50fc516c9246a9b777c8cb082d27c2d1cad7d4"
-            ],
-            "index": "pypi",
-            "version": "==1.0.1"
         },
         "commonmark": {
             "hashes": [
@@ -421,13 +407,6 @@
             ],
             "index": "pypi",
             "version": "==4.5.2"
-        },
-        "cprofilev": {
-            "hashes": [
-                "sha256:8791748b1f3d3468c2c927c3fd5f905080b84d8f2d217ca764b7d9d7a1fb9a77"
-            ],
-            "index": "pypi",
-            "version": "==1.0.7"
         },
         "cycler": {
             "hashes": [
@@ -549,15 +528,6 @@
             ],
             "version": "==7.4.2"
         },
-        "isort": {
-            "hashes": [
-                "sha256:1153601da39a25b14ddc54955dbbacbb6b2d19135386699e2ad58517953b34af",
-                "sha256:b9c40e9750f3d77e6e4d441d8b0266cf555e7cdabdcff33c4fd06366ca761ef8",
-                "sha256:ec9ef8f4a9bc6f71eec99e1806bfa2de401650d996c59330782b89a5555c1497"
-            ],
-            "index": "pypi",
-            "version": "==4.3.4"
-        },
         "jedi": {
             "hashes": [
                 "sha256:571702b5bd167911fe9036e5039ba67f820d6502832285cde8c881ab2b2149fd",
@@ -586,26 +556,12 @@
             ],
             "version": "==5.2.4"
         },
-        "jupyter-contrib-core": {
-            "hashes": [
-                "sha256:1ec81e275a8f5858d56b0c4c6cd85335aa8e915001b8657fe51c620c3cdde50f",
-                "sha256:e65bc0e932ff31801003cef160a4665f2812efe26a53801925a634735e9a5794"
-            ],
-            "version": "==0.3.3"
-        },
         "jupyter-core": {
             "hashes": [
                 "sha256:927d713ffa616ea11972534411544589976b2493fc7e09ad946e010aa7eb9970",
                 "sha256:ba70754aa680300306c699790128f6fbd8c306ee5927976cbe48adacf240c0b7"
             ],
             "version": "==4.4.0"
-        },
-        "jupyter-nbextensions-configurator": {
-            "hashes": [
-                "sha256:e5e86b5d9d898e1ffb30ebb08e4ad8696999f798fef3ff3262d7b999076e4e83"
-            ],
-            "index": "pypi",
-            "version": "==0.4.1"
         },
         "kiwisolver": {
             "hashes": [
@@ -639,13 +595,6 @@
                 "sha256:f923406e6b32c86309261b8195e24e18b6a8801df0cfc7814ac44017bfcb3939"
             ],
             "version": "==1.0.1"
-        },
-        "line-profiler": {
-            "hashes": [
-                "sha256:efa66e9e3045aa7cb1dd4bf0106e07dec9f80bc781a993fbaf8162a36c20af5c"
-            ],
-            "index": "pypi",
-            "version": "==2.1.2"
         },
         "markupsafe": {
             "hashes": [
@@ -835,13 +784,6 @@
             ],
             "version": "==0.1.2"
         },
-        "pbr": {
-            "hashes": [
-                "sha256:a7953f66e1f82e4b061f43096a4bcc058f7d3d41de9b94ac871770e8bdd831a2",
-                "sha256:d717573351cfe09f49df61906cd272abaa759b3e91744396b804965ff7bff38b"
-            ],
-            "version": "==5.1.2"
-        },
         "pep8": {
             "hashes": [
                 "sha256:b22cfae5db09833bb9bd7c8463b53e1a9c9b39f12e304a8d0bba729c501827ee",
@@ -873,14 +815,6 @@
             ],
             "index": "pypi",
             "version": "==2018.11.26"
-        },
-        "pipenv-to-requirements": {
-            "hashes": [
-                "sha256:c20f905dfe4d93bc41486a36b87cf479f2d6b30b006649b57af68a0ab6bd48a8",
-                "sha256:d3d633c213d2fae0d2dceec26c9c67fdbeb48b56eeee66c9b2153c20cd0ba306"
-            ],
-            "index": "pypi",
-            "version": "==0.6.1"
         },
         "pipreqs": {
             "hashes": [
@@ -1084,13 +1018,6 @@
             "index": "pypi",
             "version": "==0.5.0"
         },
-        "req": {
-            "hashes": [
-                "sha256:9ee30b71347cef7dba1eb4a0132586b88828d8249cf2f7e606de5ac44810367e"
-            ],
-            "index": "pypi",
-            "version": "==1.0.0"
-        },
         "requests": {
             "hashes": [
                 "sha256:502a824f31acdacb3a35b6690b5fbf0bc41d63a24a45c4004352b0242707598e",
@@ -1118,14 +1045,6 @@
                 "sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73"
             ],
             "version": "==1.12.0"
-        },
-        "snakeviz": {
-            "hashes": [
-                "sha256:5fe23667708a4ed04047abfbf209675a8488ea6ea8c038d7de06d8a083fb3531",
-                "sha256:7fd7e27396330319f22ae0944eabf05e5620c5a0088deb3c9a5be8a628da7797"
-            ],
-            "index": "pypi",
-            "version": "==1.0.0"
         },
         "snowballstemmer": {
             "hashes": [
@@ -1310,13 +1229,6 @@
                 "sha256:de9529817c93f27c8ccbfead6985011db27bd0ddfcdb2d86f3f663385c6a9c22"
             ],
             "version": "==1.24.1"
-        },
-        "vermin": {
-            "hashes": [
-                "sha256:028f85a280d1db03b8746086d7b0b9d3867ef843aa60cc64faec6605319d7ac7"
-            ],
-            "index": "pypi",
-            "version": "==0.4.10"
         },
         "virtualenv": {
             "hashes": [
