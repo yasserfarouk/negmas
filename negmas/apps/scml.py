@@ -5,14 +5,24 @@ Participants need to provide a class inherited from `FactoryManager` that implem
 
 Participants can optionally override any other methods of this class or implement new `NegotiatorUtility` class.
 
-Remarks:
-
-    - When immediate negotiations is true, negotiatiosn start in the same step they are registered in (they may also end
-      in that step). That entails that requesting a negotaition may result in new contracts immediately
 
 Simulation steps:
 
-
+    1. prepare custom stats (call `_pre_step_stats`)
+    1. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
+    1. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotaitions and creating
+       contracts for any resulting agreements
+    1. run all `ActiveEntity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then
+       `Miner` s
+    1. execute contracts that are executable at this time-step handling any breaches
+    1. Custom Simulation Steps:
+        1. Deliver any products that are in transportation
+        1. step all factories (`Factory` objects) running any prescheduled commands
+        1. Apply interests and pay loans
+        1. remove expried `CFP` s
+    1. remove any negotiations that are completed!
+    1. update basic stats
+    1. update custom stats (call `_post_step_stats`)
 
 
 """
@@ -863,6 +873,7 @@ class SCMLAgent(Agent, ABC):
         self.transportation_delay: int = 0
         self.products: List[Product] = []
         self.processes: List[Process] = []
+        self.interesting_products: List[int] = []
 
     def attach(self, factory: 'Factory'):
         self.factory = factory
@@ -875,6 +886,7 @@ class SCMLAgent(Agent, ABC):
         super().init()
         # noinspection PyUnresolvedReferences
         self.products = self.awi.products  # type: ignore
+        self.interesting_products = [_.id for _ in self.products]
         # noinspection PyUnresolvedReferences
         self.processes = self.awi.processes  # type: ignore
         self.negotiation_speed_multiple = self.awi.bulletin_board.read('settings', 'negotiation_speed_multiple')
@@ -916,6 +928,9 @@ class SCMLAgent(Agent, ABC):
 
     def on_new_cfp(self, cfp: 'CFP') -> None:
         """Called whenever a new CFP is published"""
+
+    def on_remove_cfp(self, cfp: 'CFP') -> None:
+        """Called whenever an existing CFP is about to be removed"""
 
     @abstractmethod
     def confirm_loan(self, loan: Loan) -> bool:
@@ -1656,6 +1671,7 @@ class Consumer(SCMLAgent, ConfigReader):
             self.factory = Factory(products=self.products, processes=self.processes)
         if self.consumption_horizon is None:
             self.consumption_horizon = self.awi.n_steps
+        self.interesting_products = list(self.profiles.keys())
 
     def set_profiles(self, profiles: Dict[int, ConsumptionProfile]):
         self.profiles = profiles if profiles is not None else dict()
@@ -1829,6 +1845,7 @@ class Miner(SCMLAgent, ConfigReader):
         super().init()
         if self.factory is None:
             self.factory = Factory(products=self.products, processes=self.processes)
+        self.interesting_products = list(self.profiles.keys())
 
     def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
                                , state: MechanismState) -> None:
@@ -1838,7 +1855,7 @@ class Miner(SCMLAgent, ConfigReader):
         thiscfp = self.awi.bulletin_board.query(section='cfps', query=cfp.id, query_keys=True)
         if cfp.publisher != self.id and thiscfp is not None and len(thiscfp) > 0 \
              and self.n_neg_trials[cfp.id] < self.n_retrials:
-            self.awi._world.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
+            self.awi.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
             self.on_new_cfp(cfp=annotation['cfp'])
 
     def set_profiles(self, profiles: Dict[int, MiningProfile]):
@@ -2344,6 +2361,8 @@ class FactoryManager(SCMLAgent, ConfigReader, ABC):
         super().init()
         if self.scheduler:
             self.scheduler.init()
+        self.interesting_products = list(self.factory.producing.keys())
+        self.interesting_products += list(self.factory.consuming.keys())
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
@@ -2459,7 +2478,7 @@ class GreedyFactoryManager(FactoryManager):
         thiscfp = self.awi.bulletin_board.query(section='cfps', query=cfp.id, query_keys=True)
         if cfp.publisher != self.id and thiscfp is not None and len(thiscfp) > 0 \
             and self.n_neg_trials[cfp.id] < self.n_retrials:
-            self.awi._world.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
+            self.awi.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
             self.on_new_cfp(cfp=annotation['cfp'])
 
     def _execute_schedule(self, schedule: ScheduleInfo, contract: Contract) -> None:
@@ -3535,15 +3554,18 @@ class SCMLWorld(World):
         # -------------------
         cfps = self.bulletin_board.query(section='cfps', query=None)
         if cfps is not None:
-            new_cfps = dict()
+            # new_cfps = dict()
+            toremove = []
             for key, cfp in cfps.items():
                 # we remove CFP with a max_time less than *or equal* to current step as all processing for current step
                 # should already be complete by now
                 if cfp.max_time <= self.current_step:
-                    continue
-                new_cfps[key] = cfp
+                    toremove.append(key)
+                # new_cfps[key] = cfp
+            for key in toremove:
+                self.bulletin_board.remove(section='cfps', query=key, query_keys=True)
             # noinspection PyProtectedMember
-            self.bulletin_board._data['cfps'] = new_cfps
+            # self.bulletin_board._data['cfps'] = new_cfps
 
     def _pre_step_stats(self):
         # noinspection PyProtectedMember
@@ -3907,10 +3929,16 @@ class SCMLWorld(World):
         Returns:
             None
         """
-        if event.type == 'new_record':
-            if event.data['section'] == 'cfps':
-                for m in itertools.chain(self.miners, self.factory_managers, self.consumers):  # type: ignore
-                    m.on_new_cfp(event.data['value'])
+        if event.type == 'new_record' and event.data['section'] == 'cfps':
+            cfp = event.data['value']
+            for m in itertools.chain(self.miners, self.factory_managers, self.consumers):  # type: ignore
+                if m.id != cfp.publisher and cfp.product in m.interesting_products:
+                    m.on_new_cfp(cfp)
+        elif event.type == 'will_remove_record' and event.data['section'] == 'cfps':
+            for m in itertools.chain(self.miners, self.factory_managers, self.consumers):  # type: ignore
+                cfp = event.data['value']
+                if m.id != cfp.publisher and cfp.product in m.interesting_products:
+                    m.on_remove_cfp(cfp)
 
     def _contract_record(self, contract: Contract) -> Dict[str, Any]:
         c = {

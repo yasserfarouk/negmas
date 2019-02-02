@@ -4,9 +4,25 @@
 The `Agent` class encapsulates the managing entity that creates negotiators to engage in negotiations within a world
 `Simulation` in order to maximize its own total utility.
 
-
 Remarks:
-    -
+
+    - When immediate negotiations is true, negotiatiosn start in the same step they are registered in (they may also end
+      in that step). That entails that requesting a negotaition may result in new contracts immediately
+
+
+Simulation steps:
+
+    1. prepare custom stats (call `_pre_step_stats`)
+    1. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
+    1. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotaitions and creating
+       contracts for any resulting agreements
+    1. run all `ActiveEntity` objects registered (i.e. all agents) in the predefined `simulation_order`.
+    1. execute contracts that are executable at this time-step handling any breaches
+    1. allow custom simulation steps to run (call `_simulation_step`)
+    1. remove any negotiations that are completed!
+    1. update basic stats
+    1. update custom stats (call `_post_step_stats`)
+
 
 """
 import itertools
