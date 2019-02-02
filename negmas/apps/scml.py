@@ -3,8 +3,17 @@ The implementation file for all entities needed for ANAC-SCML 2019.
 
 Participants need to provide a class inherited from `FactoryManager` that implements all of its abstract functions.
 
-Participants can optionally override any other methods of this class or implement new `TotalUtility` and
-`NegotiatorUtility` classes.
+Participants can optionally override any other methods of this class or implement new `NegotiatorUtility` class.
+
+Remarks:
+
+    - When immediate negotiations is true, negotiatiosn start in the same step they are registered in (they may also end
+      in that step). That entails that requesting a negotaition may result in new contracts immediately
+
+Simulation steps:
+
+
+
 
 """
 import functools
@@ -869,7 +878,7 @@ class SCMLAgent(Agent, ABC):
         # noinspection PyUnresolvedReferences
         self.processes = self.awi.processes  # type: ignore
         self.negotiation_speed_multiple = self.awi.bulletin_board.read('settings', 'negotiation_speed_multiple')
-        self.immediate_negotiations = self.negotiation_speed_multiple is None or self.negotiation_speed_multiple < 1
+        self.immediate_negotiations = self.awi.bulletin_board.read('settings', 'immediate_negotiations')
         self.transportation_delay = self.awi.bulletin_board.read(section='settings', key='transportation_delay')
 
     def can_expect_agreement(self, cfp: 'CFP'):
@@ -881,7 +890,7 @@ class SCMLAgent(Agent, ABC):
         Returns:
 
         """
-        return cfp.max_time >= self.awi.current_step + 1 - int(self.immediate_negotiations)
+        return cfp.max_time >= self.awi.current_step + 1 - int(self.immediate_negotiations) #@todo check that this is correct now
 
     def before_joining_negotiation(self, initiator: str, partners: List[str], issues: List[Issue]
                                    , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
@@ -2601,7 +2610,7 @@ class GreedyFactoryManager(FactoryManager):
         if len(needs) < 1:
             return True
         for need in needs:
-            if need.quantity_to_buy > 0 and need.step < step - 1 + int(self.immediate_negotiations):
+            if need.quantity_to_buy > 0 and need.step < step + 1 - int(self.immediate_negotiations): #@todo check this
                 return False
         return True
 
@@ -2825,6 +2834,7 @@ class SCMLWorld(World):
                  , default_signing_delay=0
                  , transportation_delay: int = 1
                  , loan_installments=1
+                 , start_negotiations_immediately=False
                  , log_file_name=None
                  , name: str = None):
         """
@@ -2870,6 +2880,7 @@ class SCMLWorld(World):
                          , neg_n_steps=neg_n_steps, neg_time_limit=neg_time_limit, breach_processing=breach_processing
                          , log_file_name=log_file_name, awi_type='negmas.apps.scml.SCMLAWI'
                          , default_signing_delay=default_signing_delay
+                         , start_negotiations_immediately=start_negotiations_immediately
                          , name=name)
         global g_products, g_processes
         self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
@@ -2898,7 +2909,7 @@ class SCMLWorld(World):
         self.bulletin_board.record(section='settings', key='breach_penalty_society', value=breach_penalty_society)
         self.bulletin_board.record(section='settings', key='breach_penalty_victim', value=breach_penalty_victim)
         self.bulletin_board.record(section='settings', key='immediate_negotiations'
-                                   , value=negotiation_speed is None)
+                                   , value=start_negotiations_immediately)
         self.bulletin_board.record(section='settings', key='negotiation_speed_multiple'
                                    , value=negotiation_speed)
         self.bulletin_board.record(section='settings', key='negotiation_n_steps', value=neg_n_steps)

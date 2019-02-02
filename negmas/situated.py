@@ -5,6 +5,9 @@ The `Agent` class encapsulates the managing entity that creates negotiators to e
 `Simulation` in order to maximize its own total utility.
 
 
+Remarks:
+    -
+
 """
 import itertools
 import math
@@ -576,6 +579,7 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
                  , mechanisms: Dict[str, Dict[str, Any]] = None
                  , screen_log: bool = False
                  , awi_type: str = 'negmas.apps.scml.AgentWorldInterface'
+                 , start_negotiations_immediately: bool = False
                  , name=None
                  ):
         """
@@ -616,6 +620,7 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
         self.__n_contracts_concluded = 0
         self.saved_contracts: List[Dict[str, Any]] = []
         self.agents: Dict[str, Agent] = {}
+        self.immediate_negotiations = start_negotiations_immediately
         self.loginfo(f'{self.name}: World Created')
 
     def loginfo(self, s: str) -> None:
@@ -884,7 +889,7 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
 
     def _register_negotiation(self, mechanism_name, mechanism_params, roles, caller, partners
                               , annotation
-                              , issues, req_id, start_next_step=True) -> Optional[NegotiationInfo]:
+                              , issues, req_id, run_to_completion=False) -> Optional[NegotiationInfo]:
         """Registers a negotiation and returns the list of rejectors if any or None"""
         factory = MechanismFactory(world=self, mechanism_name=mechanism_name, mechanism_params=mechanism_params
                                    , issues=issues, req_id=req_id, caller=caller, partners=partners
@@ -896,8 +901,23 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
         if neg.mechanism is None:
             return neg
         self.__n_negotiations += 1
-        if start_next_step:
+        if run_to_completion:
+            pass
+        else:
             self.negotiations[neg.mechanism.uuid] = neg
+            if self.immediate_negotiations:
+                mechanism = neg.mechanism
+                puuid = mechanism.uuid
+                result = mechanism.step()
+                agreement, is_broken = result.agreement, result.broken
+                if agreement is not None or is_broken:  # or not mechanism.running:
+                    negotiation = self.negotiations.get(puuid, None)
+                    if agreement is None:
+                        self._register_failed_negotiation(mechanism, negotiation)
+                    else:
+                        self._register_contract(mechanism, negotiation)
+                    if negotiation:
+                        del self.negotiations[mechanism.uuid]
         # self.loginfo(
         #    f'{caller.id} request was accepted')
         return neg
@@ -937,7 +957,7 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
         neg = self._register_negotiation(mechanism_name=mechanism_name, mechanism_params=mechanism_params
                                          , roles=roles, caller=caller
                                          , partners=partners, annotation=annotation, issues=issues
-                                         , req_id=req_id, start_next_step=True)
+                                         , req_id=req_id, run_to_completion=False)
         success = neg is not None and neg.mechanism is not None
 
         return success
@@ -974,7 +994,7 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
         contract = None
         neg = self._register_negotiation(mechanism_name=mechanism_name, mechanism_params=mechanism_params, roles=roles
                                          , caller=caller, partners=partners, annotation=annotation, issues=issues
-                                         , req_id=None, start_next_step=False)
+                                         , req_id=None, run_to_completion=True)
         if neg and neg.mechanism:
             mechanism = neg.mechanism
             mechanism.run()
