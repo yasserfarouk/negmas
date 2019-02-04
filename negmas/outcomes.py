@@ -751,26 +751,32 @@ class Issue(NamedObject):
 
         """
         n_total = num_outcomes(issues)
-        if n_total is not None and n_total < n_outcomes and fail_if_not_enough and not with_replacement:
+        if n_total is not None and n_outcomes is not None and n_total < n_outcomes \
+            and fail_if_not_enough and not with_replacement:
             raise ValueError(f'Cannot sample {n_outcomes} from a total of possible {n_total} outcomes')
-        samples = []
-        for issue in issues:
-            samples.append(issue.rand_outcomes(n=n_outcomes, with_replacement=True, fail_if_not_enough=True))
-        values = []
-        for i in range(n_outcomes):
-            values.append([s[i] for s in samples])
-        if not with_replacement:
-            tmp_values = []
-            for value in values:
-                tmp_values.append(tuple(value))
-            tmp_values = set(tmp_values)
-            remaining = n_outcomes - len(tmp_values)
-            n_max = 10
-            while remaining < 0 and i < n_max:
-                tmp_values = tmp_values.union(set(cls.sample(issues=issues, n_tmp_values=remaining, astype=tuple
-                                                     , with_replacement=True, fail_if_not_enough=False)))
-                i += 1
-            values = list(tmp_values)
+        if n_total is not None and n_outcomes is None:
+            values = enumerate_outcomes(issues=issues, keep_issue_names=False)
+        elif n_total is None and n_outcomes is None:
+            raise ValueError(f'Cannot sample unknown number of outcomes from continuous outcome spaces')
+        else:
+            samples = []
+            for issue in issues:
+                samples.append(issue.rand_outcomes(n=n_outcomes, with_replacement=True, fail_if_not_enough=True))
+            values = []
+            for i in range(n_outcomes):
+                values.append([s[i] for s in samples])
+            if not with_replacement:
+                tmp_values = []
+                for value in values:
+                    tmp_values.append(tuple(value))
+                tmp_values = set(tmp_values)
+                remaining = n_outcomes - len(tmp_values)
+                n_max_trials, i = 10, 0
+                while remaining < 0 and i < n_max_trials:
+                    tmp_values = tmp_values.union(set(cls.sample(issues=issues, n_outcomes=remaining, astype=tuple
+                                                         , with_replacement=True, fail_if_not_enough=False)))
+                    i += 1
+                values = list(tmp_values)
 
         outcomes = []
         for value in values:
