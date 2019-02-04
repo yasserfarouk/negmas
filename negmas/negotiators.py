@@ -351,6 +351,8 @@ class AspirationMixin:
         Returns:
             aspiration level
         """
+        if t is None:
+            raise ValueError(f'Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!')
         if self.e < 1e-7:
             return 0.0
         pmin = self.reserved_value if self.above_reserved and self.reserved_value is not None else 0.0
