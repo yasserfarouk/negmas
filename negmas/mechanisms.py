@@ -3,6 +3,7 @@
 
 
 """
+import itertools
 import math
 import pprint
 import time
@@ -25,6 +26,8 @@ from negmas.negotiators import Negotiator
 __all__ = [
     'Mechanism',
     'MechanismProxy',
+    'Protocol',
+    'ProtocolProxy',
     'MechanismRoundResult',
 ]
 
@@ -212,6 +215,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
         Args:
             n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
+            and *100* if any of the issues was continuous
             astype: A type to cast the resulting outcomes to.
 
         Returns:
@@ -222,8 +226,14 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         if self.outcomes is not None:
             return self.outcomes
         if self.__discrete_outcomes is None:
-            self.__discrete_outcomes = Issue.sample(issues=self.issues, n_outcomes=n_max, astype=astype
+            if all(issue.is_discrete() for issue in self.issues):
+                self.__discrete_outcomes = Issue.sample(issues=self.issues, n_outcomes=n_max, astype=astype
                                                     , with_replacement=False, fail_if_not_enough=False)
+            else:
+                self.__discrete_outcomes = Issue.sample(issues=self.issues
+                                                        , n_outcomes=n_max if n_max is not None else 100
+                                                        , astype=astype, with_replacement=False
+                                                        , fail_if_not_enough=False)
         return self.__discrete_outcomes
 
     def random_outcomes(self, n: int = 1, astype: Type[Outcome] = dict) -> List['Outcome']:
@@ -683,13 +693,13 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         })
         return self._state_factory(**current_state)
 
-    def pareto_frontier(self, n_discretization=10, sort_by_welfare=True, consider_costs=False) \
+    def pareto_frontier(self, n_max=None, sort_by_welfare=True, consider_costs=False) \
         -> Tuple[List[Tuple[float]], List['Outcome']]:
         ufuns = self._get_ufuns(consider_costs=consider_costs)
-        frontier, indices = pareto_frontier(ufuns=ufuns, n_discretization=n_discretization
+        frontier, indices = pareto_frontier(ufuns=ufuns, n_discretization=None
                                             , sort_by_welfare=sort_by_welfare
-                                            , outcomes=self.info.outcomes)
-        return frontier, [self.info.outcomes[_] for _ in indices]
+                                            , outcomes=self.discrete_outcomes(n_max=n_max))
+        return frontier, [self.discrete_outcomes(n_max=n_max)[_] for _ in indices]
 
     def __str__(self):
         d = self.__dict__.copy()
@@ -700,89 +710,92 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
     def _get_ufuns(self, consider_costs=False):
         ufuns = []
         for a in self.negotiators:
-            if 'Elicitor' in a.__class__.__name__:
-                if consider_costs:
-                    ufuns.append(a.user.ufun)
-                else:
-                    ufuns.append(a.user.utility_function)
+            if consider_costs:
+                ufuns.append(a.ufun)
             else:
-                if consider_costs:
-                    ufuns.append(a.ufun)
-                else:
-                    ufuns.append(a.utility_function)
+                ufuns.append(a.utility_function)
         return ufuns
 
-    def plot(self, consider_costs=False):
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib.gridspec as gridspec
-            if len(self.negotiators) > 2:
-                print('Cannot visualize negotiations with more than 2 negotiators')
-            else:
-                # has_front = int(len(self.outcomes[0]) <2)
-                has_front = 1
-                n_agents = len(self.negotiators)
-                history = pd.DataFrame(data=[_[1] for _ in self.history])
-                history['time'] = [_[0].time for _ in self.history]
-                history['relative_time'] = [_[0].relative_time for _ in self.history]
-                history['step'] = [_[0].step for _ in self.history]
-                history = history.loc[~history.offer.isnull(), :]
-                ufuns = self._get_ufuns(consider_costs=consider_costs)
-                outcomes = self.outcomes
+    def plot(self, consider_costs=False, plot_utils=True, plot_outcomes=True):
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+        if len(self.negotiators) > 2:
+            print('Cannot visualize negotiations with more than 2 negotiators')
+        else:
+            # has_front = int(len(self.outcomes[0]) <2)
+            has_front = 1
+            n_agents = len(self.negotiators)
+            history = pd.DataFrame(data=[_.__dict__ for _ in self.history])
+            # history['time'] = [_.time for _ in self.history]
+            # history['relative_time'] = [_.relative_time for _ in self.history]
+            # history['step'] = [_.step for _ in self.history]
+            history = history.loc[~history.current_offer.isnull(), :]
+            ufuns = self._get_ufuns(consider_costs=consider_costs)
+            outcomes = self.outcomes
 
-                utils = [tuple(f(o) for f in ufuns) for o in outcomes]
-                agent_names = [a.__class__.__name__ + ':' + a.name for a in self.negotiators]
-                history['offer_index'] = [outcomes.index(_) for _ in history.offer]
-                frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
-                frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
-                fig_util, fig_outcome = plt.figure(), plt.figure()
-                gs_util = gridspec.GridSpec(n_agents, has_front + 1)
-                gs_outcome = gridspec.GridSpec(n_agents, has_front + 1)
-                axs_util, axs_outcome = [], []
+            utils = [tuple(f(o) for f in ufuns) for o in outcomes]
+            agent_names = [a.name for a in self.negotiators]
+            history['offer_index'] = [outcomes.index(_) for _ in history.current_offer]
+            frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
+            frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
+            if plot_utils:
+                fig_util = plt.figure()
+            if plot_outcomes:
+                fig_outcome = plt.figure()
+            gs_util = gridspec.GridSpec(n_agents, has_front + 1) if plot_utils else None
+            gs_outcome = gridspec.GridSpec(n_agents, has_front + 1) if plot_outcomes else None
+            axs_util, axs_outcome = [], []
 
-                agent_names_for_legends = [
-                    agent_names[a].split(":")[0].replace('Negotiator', '').replace('Elicitor', '')
-                    for a in range(n_agents)]
-                if agent_names_for_legends[0] == agent_names_for_legends[1]:
-                    agent_names_for_legends = [
-                        agent_names[a].split(":")[0].replace('Negotiator', '').replace('Elicitor', '')
-                        + agent_names[a].split(":")[1] for a in range(n_agents)]
-
-                for a in range(n_agents):
-                    if a == 0:
+            for a in range(n_agents):
+                if a == 0:
+                    if plot_utils:
                         axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
+                    if plot_outcomes:
                         axs_outcome.append(fig_outcome.add_subplot(gs_outcome[a, has_front]))
-                    else:
+                else:
+                    if plot_utils:
                         axs_util.append(fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0]))
+                    if plot_outcomes:
                         axs_outcome.append(fig_outcome.add_subplot(gs_outcome[a, has_front], sharex=axs_outcome[0]))
-                    axs_util[-1].set_ylabel(agent_names_for_legends[a])
-                    axs_outcome[-1].set_ylabel(agent_names_for_legends[a])
-                for a, (au, ao) in enumerate(zip(axs_util, axs_outcome)):
-                    h = history.loc[history.offerer == agent_names[a], ['relative_time', 'offer_index', 'offer']]
-                    h['utility'] = h.offer.apply(ufuns[a])
-                    ao.plot(h.relative_time, h.offer_index)
+                if plot_utils:
+                    axs_util[-1].set_ylabel(agent_names[a])
+                if plot_outcomes:
+                    axs_outcome[-1].set_ylabel(agent_names[a])
+            for a, (au, ao) in enumerate(zip(itertools.chain(axs_util, itertools.repeat(None))
+                , itertools.chain(axs_outcome, itertools.repeat(None)))):
+                if au is None and ao is None:
+                    break
+                h = history.loc[history.current_offerer == self.negotiators[a].id, ['relative_time', 'offer_index'
+                                                                            , 'current_offer']]
+                h['utility'] = h['current_offer'].apply(ufuns[a])
+                if plot_outcomes:
+                    ao.plot(h.relative_time, h['offer_index'])
+                if plot_utils:
                     au.plot(h.relative_time, h.utility)
                     au.set_ylim(0.0, 1.0)
 
-                if has_front:
+            if has_front:
+                if plot_utils:
                     axu = fig_util.add_subplot(gs_util[:, 0])
-                    axu.scatter([_[0] for _ in utils], [_[1] for _ in utils], label='outcomes', color='yellow'
+                    axu.scatter([_[0] for _ in utils], [_[1] for _ in utils], label='outcomes', color='gray'
                                 , marker='s', s=20)
+                if plot_outcomes:
                     axo = fig_outcome.add_subplot(gs_outcome[:, 0])
-                    clrs = ('blue', 'green')
+                clrs = ('blue', 'green')
+                if plot_utils:
                     for a in range(n_agents):
-                        h = history.loc[history.offerer == agent_names[a], ['relative_time', 'offer_index', 'offer']]
-                        h['u0'] = h.offer.apply(ufuns[0])
-                        h['u1'] = h.offer.apply(ufuns[1])
-
-                        axu.scatter(h.u0, h.u1, color=clrs[a],
-                                    label=f'{agent_names_for_legends[a]}')
+                        h = history.loc[history.current_offerer == self.negotiators[a].id, ['relative_time', 'offer_index'
+                                                                                            , 'current_offer']]
+                        h['u0'] = h['current_offer'].apply(ufuns[0])
+                        h['u1'] = h['current_offer'].apply(ufuns[1])
+                        axu.scatter(h.u0, h.u1, color=clrs[a], label=f'{agent_names[a]}')
+                if plot_outcomes:
                     steps = sorted(history.step.unique().tolist())
                     aoffers = [[], []]
                     for step in steps[::2]:
                         offrs = []
                         for a in range(n_agents):
-                            a_offer = history.loc[(history.offerer == agent_names[a]) &
+                            a_offer = history.loc[(history.current_offerer == agent_names[a]) &
                                                   ((history.step == step) | (history.step == step + 1)), 'offer_index']
                             if len(a_offer) > 0:
                                 offrs.append(a_offer.values[-1])
@@ -792,22 +805,20 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                     axo.scatter(aoffers[0], aoffers[1], color=clrs[0],
                                 label=f'offers')
 
-                    if self.state.agreement is not None:
+                if self.state.agreement is not None:
+                    if plot_utils:
                         axu.scatter([ufuns[0](self.state.agreement)], [ufuns[1](self.state.agreement)]
-                                    , color='black', marker='*', s=120, label='SCMLAgreement')
+                                , color='black', marker='*', s=120, label='SCMLAgreement')
+                    if plot_outcomes:
                         axo.scatter([outcomes.index(self.state.agreement)], [outcomes.index(self.state.agreement)]
-                                    , color='black', marker='*', s=120, label='SCMLAgreement')
+                                , color='black', marker='*', s=120, label='SCMLAgreement')
+
+                if plot_utils:
                     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
                     axu.scatter(f1, f2, label='frontier', color='red', marker='x')
-                    axo.scatter(frontier_outcome_indices, frontier_outcome_indices, color='red', marker='x'
-                                , label='frontier')
                     axu.legend()
-                    axo.legend()
-                    axo.set_xlabel(agent_names_for_legends[0])
-                    axo.set_ylabel(agent_names_for_legends[1])
-
-                    axu.set_xlabel(agent_names_for_legends[0] + ' utility')
-                    axu.set_ylabel(agent_names_for_legends[1] + ' utility')
+                    axu.set_xlabel(agent_names[0] + ' utility')
+                    axu.set_ylabel(agent_names[1] + ' utility')
                     if self.agreement is not None:
                         pareto_distance = 1e9
                         cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
@@ -818,10 +829,17 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                         axu.text(0, 0.95, f'Pareto-distance={pareto_distance:5.2}', verticalalignment='top'
                                  , transform=axu.transAxes)
 
+                if plot_outcomes:
+                    axo.scatter(frontier_outcome_indices, frontier_outcome_indices, color='red', marker='x'
+                                , label='frontier')
+                    axo.legend()
+                    axo.set_xlabel(agent_names[0])
+                    axo.set_ylabel(agent_names[1])
+
+            if plot_utils:
                 fig_util.show()
+            if plot_outcomes:
                 fig_outcome.show()
-        except:
-            pass
 
     def round(self) -> MechanismRoundResult:
         """ Implements a single step of the mechanism. Override this!
@@ -839,3 +857,9 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
 MechanismProxy = Mechanism
 """A mechanism is a proxy of itself"""
+
+Protocol = Mechanism
+"""An alias for `Mechanism`"""
+
+ProtocolProxy = MechanismProxy
+"""An alias for `MechanismProxy`"""
