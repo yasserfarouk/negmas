@@ -38,28 +38,33 @@ Main Features
 This platform was designed with both flexibility and scalability in mind. The key features of the NegMAS package are:
 
 #. The public API is decoupled from internal details allowing for scalable implementations of the same interaction
-   protocols. Supports both bilateral and multilateral negotiations. Supports agents engaging in multiple concurrent
-   negotiations. Provides support for inter-negotiation synchronization.
-#. The package provides multiple levels of abstraction in the specifications of the computational blocks required for
-   negotiation allowing for gradual exposition to the subject.
+   protocols.
+#. Supports agents engaging in multiple concurrent negotiations.
+#. Provides support for inter-negotiation synchronization either through coupled utility functions or through central
+   *control* agents.
 #. The package provides sample negotiators that can be used as templates for more complex negotiators.
 #. The package supports both mediated and unmediated negotiations.
-#. Novel negotiation protocols can be added to the package as easily as adding novel negotiators.
+#. Supports both bilateral and multilateral negotiations.
+#. Novel negotiation protocols and simulated *worlds* can be added to the package as easily as adding novel negotiators.
 #. Allows for non-traditional negotiation scenarios including dynamic entry/exit from the negotiation.
+#. A large variety of built in utility functions.
+#. Utility functions can be active dynamic entities which allows the system to model a much wider range of dynamic ufuns
+   compared with existing packages.
+#. A distributed system with the same interface and industrial-strength implementation is being created allowing agents
+   developed for NegMAS to be seemingly employed in real-world business operations.
 
 Basic Use cases
 ===============
 
-To use negmas in a project::
+To use negmas in a project
 
 .. code-block:: python
 
     import negmas
 
-
 The package was designed for many uses cases. On one extreme, it can be used by an end user who is interested in running
 one of the built-in negotiation protocols. On the other extreme, it can be used to develop novel kinds of negotiation
-agents and negotiation protocols.
+agents, negotiation protocols, multi-agent simulations (usually involving situated negotiations), etc.
 
 Running existing negotiators/negotiation protocols
 --------------------------------------------------
@@ -114,11 +119,11 @@ Developing a novel negotiation protocol is actually even simpler:
         def __init__(self):
             super().__init__()
 
-        def round(self):
+        def step_(self):
             # one step of the protocol
             pass
 
-By implementing the single `round()` function, a new protocol is created. New negotiators can be added to the
+By implementing the single `step_()` function, a new protocol is created. New negotiators can be added to the
 negotiation using `add()` and removed using `remove()`. See the documentation for a full description of
 `Mechanism` available functionality out of the box [Alternatively you can use `Protocol` instead of `Mechanism`].
 

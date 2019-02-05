@@ -54,9 +54,9 @@ Mechanism
       ~Mechanism.random_outcomes
       ~Mechanism.remove
       ~Mechanism.remove_requirements
-      ~Mechanism.round
       ~Mechanism.run
       ~Mechanism.step
+      ~Mechanism.step_
 
    .. rubric:: Attributes Documentation
 
@@ -102,6 +102,6 @@ Mechanism
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
    .. automethod:: run
    .. automethod:: step
+   .. automethod:: step_

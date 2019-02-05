@@ -54,9 +54,9 @@ ProtocolProxy
       ~ProtocolProxy.random_outcomes
       ~ProtocolProxy.remove
       ~ProtocolProxy.remove_requirements
-      ~ProtocolProxy.round
       ~ProtocolProxy.run
       ~ProtocolProxy.step
+      ~ProtocolProxy.step_
 
    .. rubric:: Attributes Documentation
 
@@ -102,6 +102,6 @@ ProtocolProxy
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
    .. automethod:: run
    .. automethod:: step
+   .. automethod:: step_

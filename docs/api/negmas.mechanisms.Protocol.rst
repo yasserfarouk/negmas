@@ -54,9 +54,9 @@ Protocol
       ~Protocol.random_outcomes
       ~Protocol.remove
       ~Protocol.remove_requirements
-      ~Protocol.round
       ~Protocol.run
       ~Protocol.step
+      ~Protocol.step_
 
    .. rubric:: Attributes Documentation
 
@@ -102,6 +102,6 @@ Protocol
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
    .. automethod:: run
    .. automethod:: step
+   .. automethod:: step_

@@ -54,9 +54,9 @@ MechanismProxy
       ~MechanismProxy.random_outcomes
       ~MechanismProxy.remove
       ~MechanismProxy.remove_requirements
-      ~MechanismProxy.round
       ~MechanismProxy.run
       ~MechanismProxy.step
+      ~MechanismProxy.step_
 
    .. rubric:: Attributes Documentation
 
@@ -102,6 +102,6 @@ MechanismProxy
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
    .. automethod:: run
    .. automethod:: step
+   .. automethod:: step_

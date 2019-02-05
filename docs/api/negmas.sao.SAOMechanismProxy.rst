@@ -12,10 +12,10 @@ SAOMechanismProxy
 
       ~SAOMechanismProxy.extra_state
       ~SAOMechanismProxy.on_negotiation_start
-      ~SAOMechanismProxy.round
+      ~SAOMechanismProxy.step_
 
    .. rubric:: Methods Documentation
 
    .. automethod:: extra_state
    .. automethod:: on_negotiation_start
-   .. automethod:: round
+   .. automethod:: step_
