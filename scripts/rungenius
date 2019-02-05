@@ -10,9 +10,9 @@ external_path = pathlib.Path(os.path.dirname(__file__)) / '..' / 'external' / 'g
 @click.option('--path', '-p', default=external_path, help='Path to genius-8.0.4.jar with embedded NegLoader')
 @click.option('--port', '-r', default=0, help='Port to run the NegLoader on. Pass 0 for the default value')
 @click.option('--force/--no-force', default=False, help='Force trial even if an earlier instance exists')
-def run(path, port, force):
+def cli(path, port, force):
     negmas.init_genius_connection(path=path, port=port, force=force)
 
 
 if __name__ == '__main__':
-    run()
+    cli()

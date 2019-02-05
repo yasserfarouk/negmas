@@ -16,8 +16,7 @@ requirements = ['Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'jobl
 
 setup_requirements = ['pytest-runner', ]
 
-test_requirements = ['pytest', ]
-
+test_requirements = ['pytest', ] + requirements
 setup(
     author="Yasser Mohammad",
     author_email='yasserfarouk@gmail.com',
@@ -30,23 +29,26 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     description='A library for situated automated negotiations',
-    entry_points={
-        'console_scripts': [
-            'rungenius=negmas.scripts.rungenius.cli',
-            'scml=negmas.scripts.scml.cli',
-        ],
-    },
+    #entry_points={
+    #    'console_scripts': [
+    #        'rungenius=scripts.rungenius.cli',
+    #        'scml=scripts.scml.cli',
+    #    ],
+    #},
+    scripts=['scripts/rungenius', 'scripts/scml'],
     install_requires=requirements,
+    python_requires='>=3.6',
     license="GNU General Public License v2 (GPLv2)",
     long_description=readme,
     include_package_data=True,
     keywords='NegMAS negmas negotiate negotiation mas multi-agent simulation',
     name='negmas',
     packages=find_packages(include=['negmas']),
-    setup_requires=setup_requirements,
+    # setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
     version='0.1.6',
     zip_safe=False,
 )
+

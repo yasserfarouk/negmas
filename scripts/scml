@@ -32,7 +32,7 @@ from negmas.helpers import humanize_time
 @click.option('--retrials', default=1, help='The number of times an agent re-tries on failed negotiations')
 @click.option('--use-consumer', default=True, help='Use internal consumer object in factory negmas')
 @click.option('--insurance', default=-1, help='Use insurance against partner in factory negmas')
-def run(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, consumption, transport, time, neg_time
+def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, consumption, transport, time, neg_time
         , neg_steps, sign, guaranteed, lines, retrials, use_consumer, insurance):
     neg_speedup = neg_speedup if neg_speedup is not None and neg_speedup > 0 else None
     world = SCMLWorld.single_path_world(log_file_name='', n_steps=steps
@@ -111,4 +111,4 @@ def run(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, consu
 
 
 if __name__ == '__main__':
-    run()
+    cli()
