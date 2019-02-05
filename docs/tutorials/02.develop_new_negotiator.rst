@@ -1,0 +1,11 @@
+
+Develop a new negotiator
+------------------------
+
+TBD
+
+.. only:: builder_html
+
+    Download :download:`Notebook<notebooks/02.develop_new_negotiator.ipynb>`.
+
+

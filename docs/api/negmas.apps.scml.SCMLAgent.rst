@@ -28,6 +28,7 @@ SCMLAgent
       ~SCMLAgent.on_negotiation_request
       ~SCMLAgent.on_new_cfp
       ~SCMLAgent.on_production_failure
+      ~SCMLAgent.on_remove_cfp
       ~SCMLAgent.on_renegotiation_request
       ~SCMLAgent.step
 
@@ -49,5 +50,6 @@ SCMLAgent
    .. automethod:: on_negotiation_request
    .. automethod:: on_new_cfp
    .. automethod:: on_production_failure
+   .. automethod:: on_remove_cfp
    .. automethod:: on_renegotiation_request
    .. automethod:: step

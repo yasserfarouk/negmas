@@ -228,8 +228,8 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['not to be', '20190201-112617wL56nGisto be20190201-112617WgNZq6IT'],
-     ['to be', '20190201-112617tgUe52Rvnot to be20190201-112617JgwBuNO6'],
+    [['not to be', '20190203-085645wL56nGisto be20190203-085645WgNZq6IT'],
+     ['to be', '20190203-085645tgUe52Rvnot to be20190203-085645JgwBuNO6'],
      [3, 19],
      [0.47700977655271704, 1.86630992777164]]
 
@@ -372,11 +372,11 @@ Now you can use objects of MyOutcome as normal outcomes
 
 .. parsed-literal::
 
-    MyOutcome(problem='not to be', price=0.5040797866062117, quantity=3)
-    MyOutcome(problem='not to be', price=1.9238490827158539, quantity=2)
-    MyOutcome(problem='to be', price=1.4070378361931715, quantity=2)
-    MyOutcome(problem='not to be', price=0.8478977370081173, quantity=4)
-    MyOutcome(problem='not to be', price=2.7861607038149945, quantity=3)
+    MyOutcome(problem='to be', price=1.0848388916904823, quantity=0)
+    MyOutcome(problem='to be', price=1.8906644944040263, quantity=0)
+    MyOutcome(problem='not to be', price=1.2102407956353904, quantity=0)
+    MyOutcome(problem='not to be', price=2.957644296190988, quantity=1)
+    MyOutcome(problem='not to be', price=2.847064181581488, quantity=0)
 
 
 The *sample* function created objects of type MyOutcome that can be
@@ -391,9 +391,9 @@ accessed using either the dot notation or as a dict
 
 .. parsed-literal::
 
-    0.5040797866062117
-    0.5040797866062117
-    0.5040797866062117
+    1.0848388916904823
+    1.0848388916904823
+    1.0848388916904823
 
 
 OutcomeType is intended to be used as a syntactic sugar around your
@@ -921,12 +921,30 @@ module for more details
 
 .. code:: ipython3
 
-    print(negmas.utilities.__all__)
+    from pprint import pprint
+    pprint(negmas.utilities.__all__)
 
 
 .. parsed-literal::
 
-    ['UtilityDistribution', 'UtilityValue', 'UtilityFunction', 'UtilityFunctionProxy', 'ConstUFun', 'LinDiscountedUFun', 'ExpDiscountedUFun', 'MappingUtilityFunction', 'LinearUtilityAggregationFunction', 'NonLinearUtilityAggregationFunction', 'HyperRectangleUtilityFunction', 'NonlinearHyperRectangleUtilityFunction', 'ComplexWeightedUtilityFunction', 'ComplexNonlinearUtilityFunction', 'IPUtilityFunction', 'pareto_frontier', 'make_discounted_ufun', 'normalize']
+    ['UtilityDistribution',
+     'UtilityValue',
+     'UtilityFunction',
+     'UtilityFunctionProxy',
+     'ConstUFun',
+     'LinDiscountedUFun',
+     'ExpDiscountedUFun',
+     'MappingUtilityFunction',
+     'LinearUtilityAggregationFunction',
+     'NonLinearUtilityAggregationFunction',
+     'HyperRectangleUtilityFunction',
+     'NonlinearHyperRectangleUtilityFunction',
+     'ComplexWeightedUtilityFunction',
+     'ComplexNonlinearUtilityFunction',
+     'IPUtilityFunction',
+     'pareto_frontier',
+     'make_discounted_ufun',
+     'normalize']
 
 
 Negotiators

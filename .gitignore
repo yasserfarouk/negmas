@@ -127,3 +127,5 @@ scripts/logs
 .eggs/*
 .pyre_configuration
 /.travis.yml
+/scratch/*
+/scratch

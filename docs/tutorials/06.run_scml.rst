@@ -1,0 +1,11 @@
+
+Run a session of the SCML world
+-------------------------------
+
+TBD
+
+.. only:: builder_html
+
+    Download :download:`Notebook<notebooks/06.run_scml.ipynb>`.
+
+

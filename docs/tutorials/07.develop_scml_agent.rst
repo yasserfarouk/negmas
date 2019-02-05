@@ -1,0 +1,11 @@
+
+Develop a factory manager (agent) for the SCML world
+----------------------------------------------------
+
+TBD
+
+.. only:: builder_html
+
+    Download :download:`Notebook<notebooks/07.develop_scml_agent.ipynb>`.
+
+

@@ -1,0 +1,11 @@
+
+Develop a new agent (for your simulation)
+-----------------------------------------
+
+TBD
+
+.. only:: builder_html
+
+    Download :download:`Notebook<notebooks/05.develop_new_agent.ipynb>`.
+
+
