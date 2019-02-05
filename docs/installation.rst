@@ -64,6 +64,9 @@ and *rungenius*. To test your installation, run the following commands:
 This will start a service that allows NegMAS to use Genius_. After this process starts, you can run the tests normally
 using:
 
+
+.. code-block:: console
+
     $ python -m pytest --cov=negmas --pyargs negmas
 
 Notice that this test will report coverage for test files as well. That is not ideal. To exclude such files from the
