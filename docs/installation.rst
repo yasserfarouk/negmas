@@ -49,3 +49,25 @@ Once you have a copy of the source, you can install it with:
 
 .. _Github repo: https://github.com/yasserfarouk/negmas
 .. _tarball: https://github.com/yasserfarouk/negmas/tarball/master
+
+
+[Optional] Post Installation
+----------------------------
+
+After installation, two new commands will be added to your environment (hopefully it is a virtual environment): *scml*
+and *rungenius*. To test your installation, run the following commands:
+
+.. code-block:: console
+
+    $ rungenius
+
+This will start a service that allows NegMAS to use Genius_. After this process starts, you can run the tests normally
+using:
+
+    $ python -m pytest --cov=negmas --pyargs negmas
+
+Notice that this test will report coverage for test files as well. That is not ideal. To exclude such files from the
+report you will need to use a .coveragerc file as described in Coverage_.
+
+.. _Genius: http://ii.tudelft.nl/genius
+.. _Coverage: https://pytest-cov.readthedocs.io/en/latest/config.html

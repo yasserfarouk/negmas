@@ -301,9 +301,9 @@ negotiation time:
 
 Given the longer negotiation time, the buyer and the seller can both
 take a tougher stance conceding as slowly as possible and as a result
-the actually acheive a point exatly on the pareto-front. Moreover, this
-point happens to maximze the *welfare* defined as the sum of the utility
-received by both partners.
+the actually achieve a point exactly on the pareto-front. Moreover, this
+point happens to maximize the *welfare* defined as the sum of the
+utility received by both partners.
 
 
 .. only:: builder_html

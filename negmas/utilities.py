@@ -31,6 +31,7 @@ from typing import MutableMapping, Mapping, Union, Optional, Any, Sequence, Call
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pkg_resources
 
 from negmas.common import NamedObject
 from negmas.common import MechanismInfo
@@ -142,7 +143,8 @@ class UtilityFunction(ABC, NamedObject):
         Examples:
 
             >>> from negmas import UtilityFunction
-            >>> u, d = UtilityFunction.from_genius(file_name = '../tests/data/Laptop/Laptop-C-prof1.xml')
+            >>> u, d = UtilityFunction.from_genius(file_name = pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml'))
             >>> u.__class__.__name__
             'LinearUtilityAggregationFunction'
             >>> u.reserved_value
@@ -178,12 +180,15 @@ class UtilityFunction(ABC, NamedObject):
 
             >>> from negmas import UtilityFunction
             >>> from negmas import load_genius_domain
-            >>> _, _, issues = load_genius_domain(domain_file_name='../tests/data/Laptop/Laptop-C-domain.xml'
+            >>> _, _, issues = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
+            ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
             ...             , keep_issue_names=False)
-            >>> u, discount = UtilityFunction.from_genius(file_name = '../tests/data/Laptop/Laptop-C-prof1.xml'
+            >>> u, discount = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
+            ...                                             , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
             ...             , keep_issue_names=False)
             >>> UtilityFunction.to_genius(u=u, issues=issues, discount_factor=discount
-            ...     , file_name = '../tests/data/LaptopConv/Laptop-C-prof1.xml')
+            ...     , file_name = pkg_resources.resource_filename('negmas'
+            ...                                             , resource_name='tests/data/LaptopConv/Laptop-C-prof1.xml'))
 
         Remarks:
             See ``to_xml_str`` for all the parameters
@@ -249,44 +254,52 @@ class UtilityFunction(ABC, NamedObject):
 
                 Examples:
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=False, normalize_utility=True, keep_issue_names=False, keep_value_names=True)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...                                      , 'r').read(), force_single_issue=False
+                    ... , normalize_utility=True, keep_issue_names=False, keep_value_names=True)
                     >>> assert abs(u(('Dell', '60 Gb', "19'' LCD")) - 0.599329436957658) < 0.1
                     >>> assert abs(u(('HP', '80 Gb', "20'' LCD")) - 0.6342209804130308) < 0.01
                     >>> assert abs(u(('HP', '60 Gb', "19'' LCD")) - 1.0) < 0.0001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=True, normalize_utility=False)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...                                      , 'r').read()
+                    ...                                      , force_single_issue=True, normalize_utility=False)
                     >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 21.987727736172488) < 0.000001
                     >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 22.68559475583014) < 0.000001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=True, keep_issue_names=False, keep_value_names=False, normalize_utility=False)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...                                      , 'r').read(), force_single_issue=True
+                    ... , keep_issue_names=False, keep_value_names=False, normalize_utility=False)
                     >>> assert abs(u((0,)) - 21.987727736172488) < 0.000001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=False, normalize_utility=False)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...                 , 'r').read(), force_single_issue=False, normalize_utility=False)
                     >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 21.987727736172488) < 0.000001
                     >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 22.68559475583014) < 0.000001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=True, normalize_utility=True)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...                                      , 'r').read()
+                    ...                                      , force_single_issue=True, normalize_utility=True)
                     >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 0.599329436957658) < 0.1
                     >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 0.6342209804130308) < 0.01
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=True, keep_issue_names=False, keep_value_names=False, normalize_utility=True)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...                                      , 'r').read(), force_single_issue=True
+                    ... , keep_issue_names=False, keep_value_names=False, normalize_utility=True)
                     >>> assert abs(u((0,)) - 0.599329436957658) < 0.1
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open('../tests/data/Laptop/Laptop-C-prof1.xml', 'r').read()
-                    ... , force_single_issue=False, normalize_utility=True)
+                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                    ...         , 'r').read(), force_single_issue=False, normalize_utility=True)
                     >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 0.599329436957658) < 0.1
                     >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 0.6342209804130308) < 0.01
                     >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 1.0) < 0.0001
-
-
-
-
 
         """
         root = ET.fromstring(xml_str)

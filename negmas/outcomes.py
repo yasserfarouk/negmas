@@ -35,6 +35,7 @@ from typing import Optional, Collection, List, Generator, Iterable, Sequence, Un
 from typing import Tuple, Mapping, Dict, Any
 
 import numpy as np
+import pkg_resources
 from dataclasses import dataclass, fields
 
 
@@ -213,9 +214,12 @@ class Issue(NamedObject):
 
                 Examples:
 
-                    >>> issues, _ = Issue.from_genius(file_name = '../tests/data/Laptop/Laptop-C-domain.xml')
-                    >>> Issue.to_genius(issues=issues, file_name = '../tests/data/LaptopConv/Laptop-C-domain.xml')
-                    >>> issues2, _ = Issue.from_genius(file_name = '../tests/data/LaptopConv/Laptop-C-domain.xml')
+                    >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+                    >>> Issue.to_genius(issues=issues, file_name = pkg_resources.resource_filename('negmas'
+                    ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
+                    >>> issues2, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+                    ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
                     >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
                     Dell Macintosh HP
                     60 Gb 80 Gb 120 Gb
@@ -227,13 +231,16 @@ class Issue(NamedObject):
 
                     - Forcing Single outcome
 
-                    >>> issues, _ = Issue.from_genius(file_name = '../tests/data/Laptop/Laptop-C-domain.xml'
+                    >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
                     ...     , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
                     >>> print(list(issues[0].all))
                     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
                     >>> Issue.to_genius(issues=issues, enumerate_integer=True
-                    ...     , file_name = '../tests/data/LaptopConv/Laptop-C-domain.xml')
-                    >>> issues3, _ = Issue.from_genius(file_name = '../tests/data/LaptopConv/Laptop-C-domain.xml')
+                    ...     , file_name = pkg_resources.resource_filename('negmas'
+                    ...                                   , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
+                    >>> issues3, _ = Issue.from_genius(file_name=pkg_resources.resource_filename('negmas'
+                    ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
                     >>> print([list(issue.all) for issue in issues3])
                     [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26']]
 
@@ -270,7 +277,9 @@ class Issue(NamedObject):
 
                 Examples:
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/Laptop/Laptop-C-domain.xml', 'r').read()
+                    >>> domain_file_name = pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
                     >>> issue = issues[0]
                     >>> print(issue.cardinality())
@@ -278,7 +287,7 @@ class Issue(NamedObject):
                     >>> print(list(issue.all))
                     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/Laptop/Laptop-C-domain.xml', 'r').read()
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=True, keep_value_names=False, keep_issue_names=True)
                     >>> print(issues[0].name)
                     Laptop-Harddisk-External Monitor
@@ -287,7 +296,7 @@ class Issue(NamedObject):
                     >>> print(list(issues[0].all))
                     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/Laptop/Laptop-C-domain.xml', 'r').read()
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=True, keep_value_names=True, keep_issue_names=False)
                     >>> issue = issues[0]
                     >>> print(issue.cardinality())
@@ -299,7 +308,7 @@ class Issue(NamedObject):
                     Dell+80 Gb+19'' LCD
                     Dell+80 Gb+20'' LCD
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/Laptop/Laptop-C-domain.xml', 'r').read()
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=False, keep_issue_names=False, keep_value_names=True)
                     >>> type(issues)
                     <class 'list'>
@@ -312,7 +321,7 @@ class Issue(NamedObject):
                     60 Gb 80 Gb 120 Gb
                     19'' LCD 20'' LCD 23'' LCD
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/Laptop/Laptop-C-domain.xml', 'r').read()
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=False, keep_issue_names=True, keep_value_names=True)
                     >>> len(issues)
                     3
@@ -326,7 +335,7 @@ class Issue(NamedObject):
                     19'' LCD 20'' LCD 23'' LCD
 
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/Laptop/Laptop-C-domain.xml', 'r').read()
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
                     >>> len(issues)
                     3
@@ -337,7 +346,9 @@ class Issue(NamedObject):
                     >>> print([_.cardinality() for _ in issues])
                     [3, 3, 3]
 
-                    >>> issues, _ = Issue.from_xml_str(open('../tests/data/fuzzyagent/single_issue_domain.xml', 'r').read()
+                    >>> domain_file_name = pkg_resources.resource_filename('negmas'
+                    ...                              , resource_name='tests/data/fuzzyagent/single_issue_domain.xml')
+                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
                     ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
                     >>> len(issues)
                     1
@@ -465,7 +476,8 @@ class Issue(NamedObject):
 
                 Examples:
 
-                    >>> issues, _ = Issue.from_genius(file_name = '../tests/data/Laptop/Laptop-C-domain.xml')
+                    >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
                     >>> print([_.name for _ in issues])
                     ['Laptop', 'Harddisk', 'External Monitor']
 

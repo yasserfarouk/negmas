@@ -1,31 +1,20 @@
 .. negmas documentation master file, created by
-   sphinx-quickstart on 2019-01-31 20:34:21.731194
+   sphinx-quickstart on 2019-02-05 19:20:00.270354
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to NegMAS's documentation!
-==================================
+Welcome to negmas's documentation!
+============================================
 
-.. include:: ./readme.rst
+.. include:: ../README.rst
 
+Table of Contents
+=================
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: -1   
 
-   installation
-   overview
-   tutorials
-   base_modules
-   application_modules
-   helper_modules
-   api
-   contributing
-   authors
-   history
+   references
+   indices
 
-Indices and tables
-==================
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 
