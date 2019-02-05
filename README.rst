@@ -84,8 +84,8 @@ Using the package for negotiation can be as simple as the following code snippet
 In this snippet, we created a mechanism session with an outcome-space of *10* discrete outcomes that would run for *10*
 steps. Five agents with random utility functions are then created and *added* to the session. Finally the session is
 *run* to completion. The agreement (if any) can then be accessed through the *state* member of the session. The library
-provides several analytic and visualization tools to inspect negotiations. See the first tutorial for
-`Running a Negotiation`_ for more details.
+provides several analytic and visualization tools to inspect negotiations. See the first tutorial on
+*Running a Negotiation* for more details.
 
 Developing a negotiator
 -----------------------
@@ -142,6 +142,8 @@ One of the main
 
 Acknowledgement
 ---------------
+
 .. _Genius: http://ii.tudelft.nl/genius
+
 NegMAS tests use scenarios used in ANAC 2010 to ANAC 2018 competitions obtained from the Genius_ Platform. These domains
 can be found in the tests/data and notebooks/data folders.
