@@ -579,25 +579,26 @@ class TestGreedyScheduler:
                 s = initial * np.ones(total)
                 s[total - 1] += selling_price
                 for q in range(quantity):
-                    s[-n_steps * (q + 1) - 2:] -= total_cost
+                    s[-n_steps * (q + 1) - 1:] -= total_cost
                 return s.tolist()
 
             def _expected_storage(n_needed, n_steps=profile.n_steps, total=t+1):
                 s = np.zeros(total)
                 for q in range(quantity):
-                    s[-n_steps * (q + 1) - 2:] -= n_needed
+                    s[-n_steps * (q + 1) - 1:] -= n_needed
                 return s.tolist()
 
-            def _expected_output(total=t+1):
+            def _expected_output(total=t+1, n_steps=profile.n_steps):
                 s = np.zeros(total)
-                s[-quantity - 1: -1] = 1
+                for q in range(quantity):
+                    s[-n_steps * q - 1:] += 1
                 s[-1] = 0
                 return s.tolist()
 
             def _expected_line(total=t+1, n_steps=profile.n_steps):
                 s = -1 * np.ones(total)
                 for q in range(quantity):
-                    s[-n_steps * (q + 1) - 2:-2] = 0
+                    s[-n_steps * (q + 1) - 1:-1] = 0
                 return s.tolist()
 
             expected_balance = _expected_balance()
@@ -606,15 +607,22 @@ class TestGreedyScheduler:
             expected_total_storage = expected_storage.sum(axis=0)
             expected_line_schedule = _expected_line()
 
-            print(f'q={quantity}')
-            pprint([str(_) for _ in info.needs])
-            pprint(expected_line_schedule)
-            pprint(factory.predicted_balance)
-            pprint(expected_balance)
-            pprint(factory.predicted_storage)
-            pprint(expected_storage)
-            pprint({k.id: v for k, v in factory.schedule.items()})
-            print(f'total_cost: {total_cost}, selling_price: {selling_price}, production_time: {production_time}')
+            # print(f'q={quantity}')
+            # pprint([str(_) for _ in info.needs])
+            # print('expected')
+            # pprint(expected_line_schedule)
+            # print('real')
+            # pprint({k.id: v for k, v in factory.schedule.items()})
+            # print('expected')
+            # pprint(expected_balance)
+            # print('real')
+            # pprint(factory.predicted_balance)
+            # print('expected')
+            # pprint(expected_storage)
+            # print('real')
+            # pprint(factory.predicted_storage)
+            #
+            # print(f'total_cost: {total_cost}, selling_price: {selling_price}, production_time: {production_time}')
         else:
             expected_line_schedule = scheduler.managed_factory.schedule[
                                          list(scheduler.managed_factory.lines.values())[0]][: t + 1]

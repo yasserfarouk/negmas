@@ -2273,12 +2273,10 @@ class GreedyScheduler(Scheduler):
                         continue
                     lengths, locs = lengths[indices], locs[indices]
                     if self.strategy == 'earliest':
-                        # find the first location that fits the required production time
                         loc = locs[0, :]
                     elif self.strategy == 'latest':
-                        # there is a max storage, produce as need the deadline as possible
                         loc = locs[-1, :] - 1
-                        loc[0] = loc[1] - t_production
+                        loc[0] = loc[1] - t_production + 1
                     elif self.strategy == 'shortest':
                         sorted_lengths = sorted(zip(range(len(lengths)), lengths), key=lambda x: x[1])
                         loc = locs[sorted_lengths[0][0], :]
