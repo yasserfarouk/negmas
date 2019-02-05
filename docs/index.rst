@@ -6,10 +6,11 @@
 Welcome to NegMAS's documentation!
 ==================================
 
+.. include:: ./readme.rst
+
 .. toctree::
    :maxdepth: 2
 
-   readme
    installation
    overview
    tutorials
