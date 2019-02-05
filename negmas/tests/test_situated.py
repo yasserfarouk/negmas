@@ -134,4 +134,4 @@ def test_config_reader_with_a_world_with_enum():
 
 
 if __name__ == '__main__':
-    pytest.main('--capture=sys ' + __file__)
+    pytest.main(args=[__file__])

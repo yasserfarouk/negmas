@@ -300,4 +300,4 @@ def test_same_utility_leads_to_agreement():
 
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)
+    pytest.main(args=[__file__])

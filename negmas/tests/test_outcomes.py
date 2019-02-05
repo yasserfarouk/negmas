@@ -85,4 +85,4 @@ def test_outcome_constraint():
     # r = OutcomeSpace(r1)
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)
+    pytest.main(args=[__file__])

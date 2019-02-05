@@ -31,4 +31,4 @@ def test_a_session():
 
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)
+    pytest.main(args=[__file__])

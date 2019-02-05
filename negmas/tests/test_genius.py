@@ -1,52 +1,33 @@
 import os
 import numpy as np
+import pkg_resources
 import pytest
 import pathlib
 from hypothesis import given, settings
 import hypothesis.strategies as st
-from negmas import Negotiator, ToughNegotiator, MappingUtilityFunction, SAOMechanism, \
-    AspirationNegotiator, OnlyBestNegotiator
-from pprint import pprint
-from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from_folder
 
-dom_folder = pathlib.Path(os.path.dirname(__file__)) /'data' / 'scenarios' / 'anac' / 'y2010' / 'Travel'
-dom = pathlib.Path(os.path.dirname(__file__)) / 'data' / 'scenarios' / 'anac' / 'y2010' / 'Travel' / 'travel_domain.xml'
-util1 = pathlib.Path(os.path.dirname(__file__))/ 'data' / 'scenarios' / 'anac' / 'y2010' / 'Travel' / 'travel_chox.xml'
-util2 = pathlib.Path(os.path.dirname(__file__))/ 'data' / 'scenarios' / 'anac' / 'y2010' / 'Travel' / 'travel_fanny.xml'
+from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from_folder, init_genius_connection
 
-
-@pytest.fixture()
-def dummyagent():
-    class MyNegotiator(Negotiator):
-
-        def ufun(self, negotiation_id=None):
-            return None
-
-        def respond_(self, state, offer):
-            return None
-
-        def isin(self, negotiation_id):
-            return False
-
-        def evaluate(self, offer):
-            return 0.0
-
-        def propose_(self, state):
-            return None
-
-        def enter(self, negotiation, ufun):
-            return False
-
-    return MyNegotiator()
+dom_folder = pathlib.Path(pkg_resources.resource_filename('negmas'
+                                                          , resource_name='tests/data/scenarios/anac/y2010/Travel'))
+dom = dom_folder / 'travel_domain.xml'
+util1 = dom_folder / 'travel_chox.xml'
+util2 = dom_folder / 'travel_fanny.xml'
 
 
-def test_agent_has_good_name(dummyagent):
-    x = dummyagent
+@pytest.fixture(scope='module')
+def init_genius():
+    try:
+        init_genius_connection(pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar'))
+    except:
+        pass
 
-    assert x.isin(None) is False
+
+def test_init_genius(init_genius):
+    pass
 
 
-def test_genius_agent():
+def test_genius_agent(init_genius):
     p, _, issues = load_genius_domain_from_folder(dom_folder
                                       , agent_factories=[
             lambda: GeniusNegotiator(java_class_name='agents.anac.y2015.Atlas3.Atlas3'
@@ -80,7 +61,7 @@ def test_genius_agent():
     assert len(u1) > 0
 
 
-def test_genius_agent_step_limit():
+def test_genius_agent_step_limit(init_genius):
     p, _, issues = load_genius_domain_from_folder(dom_folder
                                       , agent_factories=[
             lambda: GeniusNegotiator(java_class_name='agents.anac.y2015.Atlas3.Atlas3'
@@ -109,7 +90,7 @@ def test_genius_agent_step_limit():
     # print(p.state)
 
 
-def test_genius_agent_step_long_session():
+def test_genius_agent_step_long_session(init_genius):
     a1 = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3"
                           , domain_file_name=dom, utility_file_name=util1)
     a2 = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3"
@@ -140,7 +121,7 @@ def test_genius_agent_step_long_session():
     assert len(u1) > 4
 
 
-def test_genius_agent_same_utility():
+def test_genius_agent_same_utility(init_genius):
     from negmas import GeniusNegotiator, load_genius_domain
     dom = dom_folder / 'travel_domain.xml'
     util1 = dom_folder / 'travel_chox.xml'
@@ -180,8 +161,8 @@ class TestGeniusAgentSessions:
     def prepare(self, utils=(1, 1), single_issue=True, keep_issue_names=True,
                 keep_value_names=True):
         from negmas import convert_genius_domain_from_folder
-        src = '/'.join(__file__.split('/')[:-1]) + '/data/Laptop'
-        dst = '/'.join(__file__.split('/')[:-1]) + '/data/LaptopConv1D'
+        src = pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
+        dst = pkg_resources.resource_filename('negmas', resource_name='tests/data/LaptopConv1D')
         if single_issue:
             assert convert_genius_domain_from_folder(src_folder_name=src
                                                      , dst_folder_name=dst
@@ -212,7 +193,7 @@ class TestGeniusAgentSessions:
         neg.add(agentx)
         return neg
 
-    def test_genius_agents_can_run_on_converted_single_issue_ufun1(self):
+    def test_genius_agents_can_run_on_converted_single_issue_ufun1(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(1.0, 1.0)]
         state = neg.run()
@@ -221,7 +202,7 @@ class TestGeniusAgentSessions:
 #        assert len(neg.history) <= 3
         assert neg.agreement == {'Laptop-Harddisk-External Monitor': "HP+60 Gb+19'' LCD"}
 
-    def test_genius_agents_can_run_on_converted_single_issue_ufun2(self):
+    def test_genius_agents_can_run_on_converted_single_issue_ufun2(self, init_genius):
         neg = self.prepare(utils=(2, 2), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(1.0, 1.0)]
         state = neg.run()
@@ -229,7 +210,7 @@ class TestGeniusAgentSessions:
         assert len(neg.history) <= 3
         assert neg.agreement == {'Laptop-Harddisk-External Monitor': "Macintosh+80 Gb+19'' LCD"}
 
-    def test_genius_agents_can_run_on_converted_single_issue(self):
+    def test_genius_agents_can_run_on_converted_single_issue(self, init_genius):
         neg = self.prepare(utils=(1, 2), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(0.7715533992081258, 0.8450562871935449),
                                                                 (0.5775524426410947, 1.0),
@@ -241,7 +222,7 @@ class TestGeniusAgentSessions:
         # assert len(neg.history) >= 2
         assert neg.agreement is not None
 
-    def test_genius_agents_can_run_on_converted_multiple_issues(self):
+    def test_genius_agents_can_run_on_converted_multiple_issues(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
         true_frontier = [(1.0, 1.0)]
@@ -254,7 +235,7 @@ class TestGeniusAgentSessions:
         assert neg.agreement is not None
         assert neg.agreement == {'Laptop': 'HP', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}
 
-    def test_genius_agents_can_run_on_converted_multiple_issues_no_names(self):
+    def test_genius_agents_can_run_on_converted_multiple_issues_no_names(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=False, keep_issue_names=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
         true_frontier = [(1.0, 1.0)]
@@ -267,7 +248,7 @@ class TestGeniusAgentSessions:
         assert neg.agreement is not None
         assert neg.agreement == ('HP', '60 Gb', "19'' LCD")
 
-    def test_genius_agent_example(self):
+    def test_genius_agent_example(self, init_genius):
         agent_name1 = 'agents.anac.y2015.Atlas3.Atlas3'
         agent_name2 = 'agents.anac.y2015.Atlas3.Atlas3'
         single_issue = False
@@ -275,8 +256,8 @@ class TestGeniusAgentSessions:
         utils = (1, 1)
 
         from negmas import convert_genius_domain_from_folder
-        src = '/'.join(__file__.split('/')[:-1]) + '/data/Laptop'
-        dst = '/'.join(__file__.split('/')[:-1]) + '/data/LaptopConv1D'
+        src = pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
+        dst = pkg_resources.resource_filename('negmas', resource_name='tests/data/LaptopConv1D')
         if single_issue:
             assert convert_genius_domain_from_folder(src_folder_name=src
                                                      , dst_folder_name=dst
@@ -314,11 +295,11 @@ class TestGeniusAgentSessions:
        single_issue=st.booleans(),
        keep_issue_names=st.booleans(),
        keep_value_names=st.booleans())
-def test_genius_agents_run_using_hypothesis(agent_name1, agent_name2, utils, single_issue
+def test_genius_agents_run_using_hypothesis(init_genius, agent_name1, agent_name2, utils, single_issue
                                             , keep_issue_names, keep_value_names):
     from negmas import convert_genius_domain_from_folder
-    src = '/'.join(__file__.split('/')[:-1]) + '/data/Laptop'
-    dst = '/'.join(__file__.split('/')[:-1]) + '/data/LaptopConv1D'
+    src = pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
+    dst = pkg_resources.resource_filename('negmas', resource_name='tests/data/LaptopConv1D')
     if single_issue:
         assert convert_genius_domain_from_folder(src_folder_name=src
                                                  , dst_folder_name=dst
@@ -349,42 +330,3 @@ def test_genius_agents_run_using_hypothesis(agent_name1, agent_name2, utils, sin
     # print(f'{agent_name1} <-> {agent_name2}', end = '')
     # print(f': {neg.run(timeout=1)}')
 
-
-def test_tough_asp_negotiator():
-        a1 = ToughNegotiator(dynamic_ufun=False)
-        a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type='conceder')
-        outcomes = [(_,) for _ in range(10)]
-        u1 = np.linspace(0.0, 1.0, len(outcomes))
-        u2 = 1.0 - u1
-        neg = SAOMechanism(outcomes=outcomes, n_steps=20)
-        neg.add(a1, ufun=u1)
-        neg.add(a2, ufun=u2)
-        neg.run()
-        a1offers = [s.current_offer for s in neg.history if s.current_offerer == a1.id]
-        a2offers = [s.current_offer for s in neg.history if s.current_offerer == a2.id]
-        assert a1.offerable_outcomes is None
-        if len(a1offers) > 0:
-            assert len(set(a1offers)) == 1 and a1offers[-1] == (9,)
-        assert len(set(a2offers)) >= 0
-
-
-def test_best_only_asp_negotiator():
-    a1 = OnlyBestNegotiator(dynamic_ufun=False, min_utility=0.9, top_fraction=0.1)
-    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type='conceder')
-    outcomes = [(_,) for _ in range(20)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
-    neg = SAOMechanism(outcomes=outcomes, n_steps=200)
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
-    neg.run()
-    a1offers = [s.current_offer for s in neg.history if s.current_offerer == a1.id]
-    a2offers = [s.current_offer for s in neg.history if s.current_offerer == a2.id]
-    assert a1.offerable_outcomes is None
-    if len(a1offers) > 0:
-        assert len(set(a1offers)) <= 2 and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9
-    assert len(set(a2offers)) >= 1
-
-
-if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)

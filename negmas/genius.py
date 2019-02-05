@@ -12,6 +12,7 @@ import time
 import typing
 from typing import Optional, List, Tuple, Sequence
 
+import pkg_resources
 from py4j.java_gateway import (
     JavaGateway, CallbackServerParameters, GatewayParameters)
 
@@ -261,25 +262,25 @@ party_based_negotiators = [
 ]
 
 
-def init_genius_connection(path: str = '../external/genius-8.0.4.jar', port: int = 0
-                           , force: bool = False
-                           ) -> None:
+def init_genius_connection(path: str = None, port: int = 0, force: bool = False) -> None:
     """Initializes a genius connection
 
     Examples:
 
-        #>>> init_genius_connection(port=35333)
-        #>>> a = GeniusNegotiator.random_negotiator()
-        #>>> a.java_uuid.startswith('agents')
-        #True
-        #>>> len(a.java_uuid)- len(a.java_class_name) == 36 # length of UUID
-        #True
+        # >>> init_genius_connection(port=35333)
+        # >>> a = GeniusNegotiator.random_negotiator()
+        # >>> a.java_uuid.startswith('agents')
+        # True
+        # >>> len(a.java_uuid)- len(a.java_class_name) == 36 # length of UUID
+        # True
 
     """
     global common_gateway
     global common_port
     global java_process
     global python_port
+    if path is None:
+        path = pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar')
     port = port if port > 0 else 25333
     if not force and common_gateway is not None and common_port == port:
         print('Java already initialized')
@@ -457,7 +458,8 @@ class GeniusNegotiator(SAONegotiator):
         Examples:
 
             >>> from negmas import SAOMechanism
-            >>> dom_folder = pathlib.Path(os.path.dirname(__file__))/'..' /'tests'/'data'/'scenarios'/'anac'/'y2010'
+            >>> dom_folder = pathlib.Path(pkg_resources.resource_filename('negmas'
+            ...             , resource_name='tests/data/scenarios/anac/y2010'))
             >>> dom_folder = dom_folder / 'Travel'
             >>> dom = str(dom_folder / 'travel_domain.xml')
             >>> util1 = str(dom_folder / 'travel_chox.xml')

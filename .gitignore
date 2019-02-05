@@ -116,8 +116,8 @@ notebooks/*.nbconvert.ipynb
 .pytest_cache
 .pytest_cache/*
 logs/*
-tests/logs/*
-tests/logs
+negmas/tests/logs/*
+negmas/tests/logs
 notebooks/logs/*
 notebooks/logs
 scripts/logs

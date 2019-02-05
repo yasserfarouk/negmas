@@ -87,4 +87,4 @@ def test_issue_generation_multiples():
 
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)
+    pytest.main(args=[__file__])

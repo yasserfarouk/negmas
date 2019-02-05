@@ -2,6 +2,7 @@ from pprint import pprint
 from typing import List, Dict
 
 import numpy as np
+import pkg_resources
 import pytest
 
 from negmas.apps.scml import *
@@ -63,7 +64,7 @@ from negmas.situated import Contract
 
 
 def logdir():
-    return '/'.join(__file__.split('/')[:-1])
+    return pkg_resources.resource_filename('negmas', resource_name='tests')
 
 
 def test_can_run_a_random_tiny_scml_world():
@@ -286,7 +287,7 @@ def sample_factory(sample_profile, sample_processes, sample_products):
 
 
 class TestLine:
-    
+
     def test_creation(self, sample_line):
         print(len(sample_line.processes))
         print(len(sample_line.i2p))

@@ -12,11 +12,11 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
-                , 'dataclasses', 'inflect', 'stringcase', 'pyyaml', 'tabulate', 'progressbar2']
+                , 'dataclasses', 'inflect', 'stringcase', 'pyyaml', 'tabulate', 'progressbar2', 'pytest']
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = requirements
 
-test_requirements = ['pytest', ] + requirements
+test_requirements = requirements
 setup(
     author="Yasser Mohammad",
     author_email='yasserfarouk@gmail.com',
@@ -44,7 +44,7 @@ setup(
     keywords='NegMAS negmas negotiate negotiation mas multi-agent simulation',
     name='negmas',
     packages=find_packages(),
-    # setup_requires=setup_requirements,
+    setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',

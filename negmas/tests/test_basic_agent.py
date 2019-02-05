@@ -25,4 +25,4 @@ def test_basic_agent_has_good_name():
 
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)
+    pytest.main(args=[__file__])

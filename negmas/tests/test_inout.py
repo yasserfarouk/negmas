@@ -1,6 +1,7 @@
 from os import walk
 import os
 
+import pkg_resources
 import pytest
 
 from negmas import load_genius_domain_from_folder, AspirationNegotiator
@@ -8,7 +9,7 @@ from negmas import load_genius_domain_from_folder, AspirationNegotiator
 
 @pytest.fixture
 def scenarios_folder():
-    return '/'.join(__file__.split('/')[:-1]) + '/data/scenarios'
+    return pkg_resources.resource_filename('negmas', resource_name='tests/data/scenarios')
 
 
 def test_importing_file_without_exceptions(scenarios_folder):
@@ -52,8 +53,8 @@ def test_importing_all_single_issue_without_exceptions(capsys, scenarios_folder)
 def test_convert_dir_keep_names(tmpdir):
     from negmas import convert_genius_domain_from_folder
     dst = tmpdir.mkdir("sub")
-    src = '/'.join(__file__.split('/')[:-1]) + '/data/Laptop'
-    dst = '/'.join(__file__.split('/')[:-1]) + '/data/LaptopConv'
+    src = pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
+    dst = pkg_resources.resource_filename('negmas', resource_name='tests/data/LaptopConv')
     assert convert_genius_domain_from_folder(src_folder_name=src
                                       , dst_folder_name=dst
                                       , force_single_issue=True
@@ -71,8 +72,8 @@ def test_convert_dir_keep_names(tmpdir):
 def test_convert_dir_no_names(tmpdir):
     from negmas import convert_genius_domain_from_folder
     dst = tmpdir.mkdir("sub")
-    src = '/'.join(__file__.split('/')[:-1]) + '/data/Laptop'
-    dst = '/'.join(__file__.split('/')[:-1]) + '/data/LaptopConv'
+    src = pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
+    dst = pkg_resources.resource_filename('negmas', resource_name='tests/data/LaptopConv')
 
     assert convert_genius_domain_from_folder(src_folder_name=src
                                              , dst_folder_name=dst
@@ -89,7 +90,7 @@ def test_convert_dir_no_names(tmpdir):
 
 
 def test_simple_run_with_aspiration_agents():
-    file_name = '/'.join(__file__.split('/')[:-1]) + '/data/Laptop'
+    file_name = pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
     assert os.path.exists(file_name)
     mechanism, agents, issues = load_genius_domain_from_folder(
         file_name, n_steps=100, time_limit=30

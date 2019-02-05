@@ -7,6 +7,7 @@ import shutil
 from typing import List, Optional, Tuple, Union, Dict, Callable, Iterable
 
 import numpy as np
+import pkg_resources
 
 from negmas.generics import ivalues
 
@@ -245,7 +246,7 @@ def load_genius_domain_from_folder(folder_name: str
 
     Examples:
 
-        >>> folder_name = os.path.abspath('/'.join(__file__.split('/')[:-2])+'/tests/data/10issues')
+        >>> folder_name = pkg_resources.resource_filename('negmas', resource_name='tests/data/10issues')
         >>> mechanism, negotiators, issues = load_genius_domain_from_folder(folder_name
         ...                             , force_single_issue=False, keep_issue_names=False
         ...                             , keep_value_names=False, normalize_utilities=False)
@@ -267,7 +268,7 @@ def load_genius_domain_from_folder(folder_name: str
 
         Try loading and running a domain with predetermined agents:
         >>> mechanism, agents, issues = load_genius_domain_from_folder(
-        ...                             '/'.join(__file__.split('/')[:-2])+'/tests/data/Laptop'
+        ...                             pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
         ...                             , agent_factories=AspirationNegotiator
         ...                             , force_single_issue=True, keep_issue_names=False
         ...                             , keep_value_names=False)
@@ -276,7 +277,8 @@ def load_genius_domain_from_folder(folder_name: str
         (9,)
 
 
-        >>> mechanism, negotiators, issues = load_genius_domain_from_folder('/'.join(__file__.split('/')[:-2])+'/tests/data/Laptop')
+        >>> mechanism, negotiators, issues = load_genius_domain_from_folder(
+        ...                             pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop'))
 
         >>> len(issues), len(negotiators)
         (3, 2)
@@ -284,7 +286,8 @@ def load_genius_domain_from_folder(folder_name: str
         >>> [type(a['ufun']) for a in negotiators]
         [<class 'negmas.utilities.LinearUtilityAggregationFunction'>, <class 'negmas.utilities.LinearUtilityAggregationFunction'>]
 
-        >>> mechanism, negotiators, issues = load_genius_domain_from_folder('/'.join(__file__.split('/')[:-2])+'/tests/data/Laptop'
+        >>> mechanism, negotiators, issues = load_genius_domain_from_folder(
+        ...                             pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
         ...                             , force_single_issue=True, keep_issue_names=False
         ...                             , keep_value_names=False)
         >>> len(issues), len(negotiators)

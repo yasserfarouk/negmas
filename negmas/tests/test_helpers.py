@@ -14,10 +14,6 @@ def test_create_loggers_with_default_params(capsys):
     _, captured = capsys.readouterr()
     assert captured == ''
 
-    log.warning('Test message')
-    _, captured = capsys.readouterr()
-    assert captured.endswith('WARNING - Test message\n')
-
 
 def disabled_test_create_loggers_with_file_params(capsys, tmpdir):
     file_name = tmpdir.join("log.txt")
@@ -177,4 +173,4 @@ def test_config_reader_with_subobjects():
 
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility ' + __file__)
+    pytest.main(args=[__file__])
