@@ -127,3 +127,10 @@ Running a world simulation
 --------------------------
 
 TBD
+
+
+Acknowledgement
+---------------
+.. _Genius: http://ii.tudelft.nl/genius
+NegMAS tests use scenarios used in ANAC 2010 to ANAC 2018 competitions obtained from the Genius_ Platform. These domains
+can be found in the tests/data and notebooks/data folders.
