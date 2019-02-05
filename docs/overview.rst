@@ -1036,7 +1036,7 @@ provide the following basic functionalities:
    agents to engage in the negotiation. All of this is controlled
    through parameters to the protocol initializer.
 -  provide the basic flow of protcols so that new protcols can be
-   implemented by just overriding a single ``step_()`` function.
+   implemented by just overriding a single ``round()`` function.
 -  provide basic callbacks that can be extended by new protocols.
 
    .. raw:: html
@@ -1086,7 +1086,7 @@ You can create a new protocol by overriding a single function in the
             self.current_offerer = None
             self.n_accepting_agents = 0
     
-        def step_(self):
+        def round(self):
             end_negotiation = False
             n_agents = len(self.negotiators)
             accepted = False
