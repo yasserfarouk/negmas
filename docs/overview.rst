@@ -1086,7 +1086,7 @@ You can create a new protocol by overriding a single function in the
             self.current_offerer = None
             self.n_accepting_agents = 0
     
-        def round(self):
+        def step_(self):
             end_negotiation = False
             n_agents = len(self.negotiators)
             accepted = False
