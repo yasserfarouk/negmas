@@ -37,20 +37,21 @@ Remarks about timing:
 
     - The order of events within a single time-step are as follows:
 
-        #. Scheduled negotiation conclusions which may lead new negotiations if they are done on `on_contract_concluded`
-           or `on_negotiation_failure`.
+        #. Contracts scheduled to be signed are signed.
+        #. Scheduled negotiations run for the predefined number of steps. Any negotiation that result in a contract or 
+           fail may trigger other negotiations.
         #. If `immediate_negotiations`, some of the newly added negotiations may be concluded/failed.
-        #. Contract signing for any concluded negotiations.
-        #. Contract executions including conclusion of any re-negotiations and breach handling. Notice that if
-           re-negotiation leads to new contracts, these will be concluded and signed immediately at this step. Please
+        #. Any newly concluded contracts that are to be signed at this step are signed
+        #. Contracts are executed including full execution of any re-negotiations and breaches are handled. Notice that 
+           if re-negotiation leads to new contracts, these will be concluded and signed immediately at this step. Please
            note the following about contract execution:
 
-           - products are moved from the seller's storage to a temporary *truck* as long as they are available at the
+           - Products are moved from the seller's storage to a temporary *truck* as long as they are available at the
              time of contract execution. Because contract execution happens *before* actual production, outputs from
              production processes *CANNOT* be sold at the same time-step.
 
         #. Production is executed on all factories. For a `Process` to start/continue on a `Line`, all its inputs
-           required at this time-step **MUST** be available in storage of the corresponding factory *by this pint*.
+           required at this time-step **MUST** be available in storage of the corresponding factory *by this point*.
            This implies that it is impossible for any processes to start at time-step *0* except if initial storage was
            nonzero. `FactoryManager` s are informed about processes that cannot start due to storage or fund shortage
            (or cannot continue due to storage shortage) through an `on_production_failure` call.
