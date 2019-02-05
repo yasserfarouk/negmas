@@ -12,7 +12,8 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
-                , 'dataclasses', 'inflect', 'stringcase', 'pyyaml', 'tabulate', 'progressbar2', 'pytest']
+                , 'dataclasses', 'inflect', 'stringcase', 'pyyaml', 'tabulate', 'progressbar2', 'pytest', 'hypothesis'
+                , 'pytest-cov']
 
 setup_requirements = requirements
 

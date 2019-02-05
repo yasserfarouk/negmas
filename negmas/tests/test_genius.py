@@ -18,7 +18,8 @@ util2 = dom_folder / 'travel_fanny.xml'
 @pytest.fixture(scope='module')
 def init_genius():
     try:
-        init_genius_connection(pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar'))
+        # init_genius_connection(pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar'))
+        pass
     except:
         pass
 

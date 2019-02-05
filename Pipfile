@@ -20,6 +20,7 @@ tabulate = "*"
 "progressbar2" = "*"
 click = "*"
 pytest = "*"
+hypothesis = "*"
 
 [dev-packages]
 "pep8" = "*"

@@ -287,12 +287,14 @@ def init_genius_connection(path: str = None, port: int = 0, force: bool = False)
         return
     path = os.path.abspath(os.path.expanduser(path))
     try:
-        java_process = subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
+        subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
             f'java -jar {path} --die-on-exit {port}'
             , shell=True)
     except FileNotFoundError:
         print(os.getcwd(), flush=True)
         raise FileNotFoundError([os.getcwd(), path])
+    except:
+        pass
     time.sleep(0.5)
     gateway = JavaGateway(gateway_parameters=GatewayParameters(port=port),
                           callback_server_parameters=CallbackServerParameters(port=0))

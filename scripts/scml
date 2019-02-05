@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from functools import partial
 from pprint import pprint, pformat
 from time import perf_counter
 import progressbar
@@ -9,6 +10,8 @@ from tabulate import tabulate
 
 from negmas.apps.scml import *
 from negmas.helpers import humanize_time
+
+click.option = partial(click.option, show_default=True)
 
 
 @click.command()

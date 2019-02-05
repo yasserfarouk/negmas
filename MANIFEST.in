@@ -3,10 +3,10 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
+include negmas/external/*.jar
+global-include *.jar
+graft external
+graft tests
+graft negmas/external
+graft negmas/tests
 
-recursive-include tests *
-recursive-include data *
-recursive-include external *
-recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
