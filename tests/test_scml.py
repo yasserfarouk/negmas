@@ -286,6 +286,7 @@ def sample_factory(sample_profile, sample_processes, sample_products):
 
 
 class TestLine:
+    
     def test_creation(self, sample_line):
         print(len(sample_line.processes))
         print(len(sample_line.i2p))
@@ -348,7 +349,7 @@ class TestLine:
         storage = {sample_products[0].id: 10, sample_products[1].id: 10, sample_products[2].id: 0}
         sample_line.schedule_job(j0)
         for t in range(n_steps):
-            result = sample_line.step(t, storage=storage)
+            result = sample_line.step(t, storage=storage, wallet=1000)
             assert result is not None
             # print(t, result)
             if t == t0:
@@ -375,7 +376,7 @@ class TestLine:
         storage = {sample_products[0].id: 0, sample_products[1].id: 0, sample_products[2].id: 0}
         sample_line.schedule_job(j0)
         for t in range(n_steps):
-            result = sample_line.step(t, storage=storage)
+            result = sample_line.step(t, storage=storage, wallet=1000)
             if t == t0:
                 assert isinstance(result, ProductionFailure)
             else:
@@ -628,4 +629,4 @@ class TestGreedyScheduler:
 
 
 if __name__ == '__main__':
-    pytest.main('-cutoff_utility --capture=sys' + __file__)
+    pytest.main(args=[__file__])

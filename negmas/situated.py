@@ -1,28 +1,28 @@
 """This module defines the base classes for worlds within which multiple agents engage in situated negotiations
 
-
 The `Agent` class encapsulates the managing entity that creates negotiators to engage in negotiations within a world
 `Simulation` in order to maximize its own total utility.
 
 Remarks:
+--------
 
-    - When immediate negotiations is true, negotiatiosn start in the same step they are registered in (they may also end
-      in that step). That entails that requesting a negotaition may result in new contracts immediately
-
+    - When immediate_negotiations is true, negotiations start in the same step they are registered in (they may also end
+      in that step) and `negotiation_speed_multiple` steps of it are conducted. That entails that requesting a
+      negotiation may result in new contracts in the same time-step only of `immediate_negotiations` is true.
 
 Simulation steps:
+-----------------
 
-    1. prepare custom stats (call `_pre_step_stats`)
-    1. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
-    1. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotaitions and creating
+    #. prepare custom stats (call `_pre_step_stats`)
+    #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
+    #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating
        contracts for any resulting agreements
-    1. run all `ActiveEntity` objects registered (i.e. all agents) in the predefined `simulation_order`.
-    1. execute contracts that are executable at this time-step handling any breaches
-    1. allow custom simulation steps to run (call `_simulation_step`)
-    1. remove any negotiations that are completed!
-    1. update basic stats
-    1. update custom stats (call `_post_step_stats`)
-
+    #. run all `ActiveEntity` objects registered (i.e. all agents) in the predefined `simulation_order`.
+    #. execute contracts that are executable at this time-step handling any breaches
+    #. allow custom simulation steps to run (call `_simulation_step`)
+    #. remove any negotiations that are completed!
+    #. update basic stats
+    #. update custom stats (call `_post_step_stats`)
 
 """
 import itertools
@@ -1018,7 +1018,7 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
                 contract = None
                 self._register_failed_negotiation(mechanism=mechanism, negotiation=neg)
             else:
-                contract = self._register_contract(mechanism=mechanism, negotiation=neg)
+                contract = self._register_contract(mechanism=mechanism, negotiation=neg, force_signature_now=True)
         return contract
 
     def _log_header(self):
@@ -1026,12 +1026,15 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
             return f'{self.name} (not started)'
         return f'{self.current_step}/{self.n_steps} [{self.relative_time:0.00}]'
 
-    def _register_contract(self, mechanism, negotiation) -> Optional[Contract]:
+    def _register_contract(self, mechanism, negotiation, force_signature_now=False) -> Optional[Contract]:
         if mechanism.agreement is None or negotiation is None:
             return None
         signed_at = None
         partners = negotiation.partners
-        signing_delay = mechanism.agreement.get('signing_delay', self.default_signing_delay)
+        if force_signature_now:
+            signing_delay = 0
+        else:
+            signing_delay = mechanism.agreement.get('signing_delay', self.default_signing_delay)
         contract = Contract(
             partners=list(_.id for _ in partners),
             annotation=negotiation.annotation,
@@ -1414,148 +1417,3 @@ class PassThroughAlternatingOffersNegotiator(SAONegotiator):
 
     def __getattr__(self, item):
         return getattr(self.parent, item)
-
-
-class WorldGenerator:
-    """Generates worlds for a tournament"""
-    def __init__(self, world_class: Union[str, World], base_config: Union[str, Dict[str, Any]]
-                 , variations: Optional[Dict[str, List[Any]]]=None):
-        """
-
-        Args:
-            world_class: Type of the world (class name)
-            base_config:
-            variations:
-        """
-        if isinstance(world_class, str):
-            world_class_t: World = get_class(class_name=world_class, scope=globals())
-        else:
-            world_class_t = world_class
-        self.world_class = world_class_t
-        self.config = world_class_t.read_config(config=base_config)
-
-        if variations is None:
-             variations = dict()
-        self.variations = variations
-        n = 1
-        for vals in self.variations.values():
-            n *= len(vals)
-        self.__len = n
-        self.config_variations = zip(variations.keys(), variations.values())
-
-    def __len__(self):
-        """The number of worlds that can be generated"""
-        return self.__len
-
-    def __iter__(self):
-        config = self.config.copy()
-        for pairs in itertools.product(self.config_variations):
-            for n, v in pairs:
-                names = n.split('/')
-                if len(names) == 1:
-                    config[n] = v
-                else:
-                    vparam = config
-                    for name in names[:-1]:
-                        vparam = vparam[name]
-                    vparam[names[-1]] = v
-            yield self.world_class.from_config(config=config, ignore_children=False, try_parsing_children=True
-                                               , scope=globals())
-
-
-def iter_sample_fast(iterator: Iterator, n: int) -> Iterable:
-    results = []
-    # Fill in the first samplesize elements:
-    try:
-        for _ in range(n):
-            results.append(next(iterator))
-    except StopIteration:
-        raise ValueError("Sample larger than population.")
-    random.shuffle(results)  # Randomize their positions
-    for i, v in enumerate(iterator, n):
-        r = random.randint(0, i)
-        if r < n:
-            results[r] = v  # at a decreasing rate, replace random items
-    return results
-
-
-class Tournament:
-    """Controls a full tournament"""
-
-    def __init__(self, world_class: Union[str, World], base_config: Union[str, Dict[str, Any]]
-                 , variations: Optional[Dict[str, List[Any]]]
-                 , competitors: Tuple[str]
-                 , builtins: Tuple[str]
-                 , tournament_type: str = 'one_vs_all' # other options: one_vs_one, one_vs_builtin
-                 , n_runs_per_variation: int = 1
-                 , n_max_runs: Optional[int] = None
-                 , n_concurrent_runs: Optional[int] = None
-                 ):
-        """
-
-        Args:
-            world_class:
-            base_config:
-            variations:
-            competitors:
-            builtins:
-            tournament_type:
-            n_runs_per_variation:
-            n_max_runs:
-            n_concurrent_runs:
-        """
-        self.generator = WorldGenerator(world_class=world_class, base_config=base_config, variations=variations)
-        self.competitors = competitors
-        self.builtins = builtins
-        self.type = tournament_type
-        self.n_per_variation = n_runs_per_variation
-        self.n_max = n_max_runs
-        self.n_concurrent = n_concurrent_runs if n_concurrent_runs is not None else multiprocessing.cpu_count()
-        n = 1
-        m = len(self.competitors)
-        if self.type in ('one_vs_all', 'ova'):
-            n *= math.factorial(m)
-        elif self.type in ('one_vs_one', 'ovo'):
-            n *= m * (m - 1)
-        elif self.type in ('one_vs_builtins', 'ovb'):
-            n *= m
-        n_per_assignment = len(self.generator) * self.n_per_variation
-        n_total = n * n_per_assignment
-        # can run all possibilities
-        self.__len = n_total
-        if self.type in ('one_vs_all', 'ova'):
-            self.assignments = itertools.permutations(self.competitors)
-        elif self.type in ('one_vs_one', 'ovo'):
-            self.assignments = ((c1, c2) for c1 in competitors for c2 in competitors if c1 != c2)
-        elif self.type in ('one_vs_builtins', 'ovb'):
-            self.assignments = ((c,) for c in competitors)
-        if self.n_max is not None and n_total > self.n_max:
-            self.assignments = (_ for _ in iter_sample_fast(self.assignments, self.n_max // n_per_assignment))
-        self.runs = ((a, w, i) for i in range(self.n_per_variation) for w in self.generator for a in self.assignments)
-        self.scores: Dict[str, List[float]] = defaultdict(list)
-        for c in self.competitors:
-            self.scores[c] = []
-
-    def __len__(self) -> int:
-        return self.__len
-
-    def assign(self, world: World, builtins: Tuple[Agent], competitors: Tuple[Agent]) -> World:
-        return world
-
-    def evaluate(self, world: World, agent_id: str) -> float:
-        return 0.0
-
-    def __iter__(self):
-        for i, (competitors, world, _) in enumerate(self.runs):
-            agents = tuple(instantiate(c) for c in competitors)
-            agent_ids = dict(zip(competitors, (a.id for a in agents)))
-            world = self.assign(world=world, builtins=tuple(instantiate(b) for b in self.builtins)
-                                , competitors=agents)
-            world.run()
-            for c, aid in agent_ids:
-                self.scores[c].append(self.evaluate(world=world, agent_id=aid))
-            yield
-
-    def run(self) -> None:
-        for _ in self:
-            pass

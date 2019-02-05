@@ -22,53 +22,44 @@ either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulation
 Introduction
 ============
 
-This package was designed to help advance the state-of-art in negotiation research by providing an easy-to-use yet powerful platform for autonomous negotiation. It grew out of the NEC-AIST collaborative laboratory project.
+This package was designed to help advance the state-of-art in negotiation research by providing an easy-to-use yet
+powerful platform for autonomous negotiation targeting situated simultaneous negotiations.
+It grew out of the NEC-AIST collaborative laboratory project.
 
-The main purpose of this package is to provide the public interface to be used in the implementation of the negotiation platform. Because of that, no attempts were made to optimize the internal implementation of sample negotiators. Moreover, the package is trying to follow best-practice in Python library design but that does not constraint implementations if carried out in different languages from utilizing these languages’ best practices as well even by modifying the provided interface.
+By *situated* negotiations, we mean those for which utility functions are not pre-ordained by fiat but are a natural
+result of a simulated business-like process.
+
+By *simultaneous* negotiations, we mean sessions of dependent negotiations for which the utility value of an agreement
+of one session is affected by what happens in other sessions.
 
 Main Features
 =============
 
-This platform was designed with both flexability and scalability in mind. The key features of the negmas package are:
+This platform was designed with both flexibility and scalability in mind. The key features of the NegMAS package are:
 
-1. The public API is decoupled from internal details allowing for scalable implementations of the same interaction
-   protocols. Supports both bilateral and multilateral negotiations. Supports negotiators engaging in multiple concurrent
+#. The public API is decoupled from internal details allowing for scalable implementations of the same interaction
+   protocols. Supports both bilateral and multilateral negotiations. Supports agents engaging in multiple concurrent
    negotiations. Provides support for inter-negotiation synchronization.
-
-1. The package provides multiple levels of abstraction in the specifications of the computaitonal blocks required for
+#. The package provides multiple levels of abstraction in the specifications of the computational blocks required for
    negotiation allowing for gradual exposition to the subject.
-
-1. There is always a single base class for every type of entity in the negotiation (e.g. Negotiator. Protocol, etc).
-   Different options are implemented via Mixins increasing the flexibility of the system.
-
-The package provides sample negotiators that can be used as templates for more complex negotiators.
-The package allows for both mediated and unmediated negotiations.
-Novel negotiation protocols can be added to the package as easily as adding novel negotiators.
-Allows for non-traditional negotiation scenarios including dynamic entry/exit from the negotiation.
-Has built-in support for experimenting with elicitation protocols for both single and multi-issue auctions.
-
-
-What else is provided?
-----------------------
-
-* **Name Resolution** The package supports name resolution for finding partners using the `YellowPages` class.
-* **Taking Initiative** Any `Negotiator` (including `Negotiator` s) can create `Protocol` s and
-  invite other `Negotiator` s to it. The Moderator negotiator need not be around.
-* **Elicitation** Utility elicitation is supported through the `elicitors` module and sample elicitors
-  are available in the `sample.elicitors` module.
-
+#. The package provides sample negotiators that can be used as templates for more complex negotiators.
+#. The package supports both mediated and unmediated negotiations.
+#. Novel negotiation protocols can be added to the package as easily as adding novel negotiators.
+#. Allows for non-traditional negotiation scenarios including dynamic entry/exit from the negotiation.
 
 Basic Use cases
 ===============
 
 To use negmas in a project::
 
+.. code-block:: python
+
     import negmas
+
 
 The package was designed for many uses cases. On one extreme, it can be used by an end user who is interested in running
 one of the built-in negotiation protocols. On the other extreme, it can be used to develop novel kinds of negotiation
-negotiators and negotiation protocols. This section gives some examples of both kinds of usages. Please refer to the full
-documentation for more concrete examples.
+agents and negotiation protocols.
 
 Running existing negotiators/negotiation protocols
 --------------------------------------------------
@@ -78,38 +69,37 @@ Using the package for negotiation can be as simple as the following code snippet
 .. code-block:: python
 
     from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
-    neg = SAOMechanism(outcomes=10)
-    agents = [AspirationNegotiator() for _ in range(5)]
-    for agent in agents:
-        neg.add(agent, ufun = MappingUtilityFunction(lambda x: rand() * x[0]))
-    neg.run()
+    session = SAOMechanism(outcomes=10, n_steps=100)
+    negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
+    for negotiator in negotiators:
+        session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
+
+    session.run()
 
 Developing a negotiator
-------------------------
+-----------------------
 
 Developing a novel negotiator slightly more difficult by is still doable in few lines of code:
 
 .. code-block:: python
 
     from negmas.negotiators import Negotiator
-    class MyAwsomeNegotiator(Negotiator, MultiNegotiationsMixin):
+    class MyAwsomeNegotiator(Negotiator):
         def __init__(self):
             # initialize the parents
             Negotiator.__init__(self)
             MultiNegotiationsMixin.__init__(self)
 
-        def respond(self, offer, negotiation = None):
+        def respond_(self, offer, state):
             # decide what to do when receiving an offer @ that negotiation
             pass
 
-        def propose(self, n=1, negotiation=None):
+        def propose_(self, state):
             # proposed the required number of proposals (or less) @ that negotiation
             pass
 
-By just implementing `respond()` and `propose()`. This negotiator is now capable of engaging in multiple
-concurrent negotiations. It can access all the negotiations it is involved in using ``self.negotiations``
-and can enter and leave negotiations (if allowed by the protocol) using `enter()` and `leave()`.
-See the documentation of `Negotiator` for a full description of available functionality out of the box.
+By just implementing `respond_()` and `propose_()`. This negotiator is now capable of engaging in alternating offers
+negotiations. See the documentation of `Negotiator` for a full description of available functionality out of the box.
 
 Developing a negotiation protocol
 ---------------------------------
@@ -121,13 +111,19 @@ Developing a novel negotiation protocol is actually even simpler:
     from negmas.mechanisms import Mechanism
 
     class MyNovelProtocol(Mechanism):
-        def __init__(self, n_steps, n_outcomes):
-            super().__init__(n_steps=n_steps, n_outcomes=n_outcomes)
+        def __init__(self):
+            super().__init__()
 
-        def step(self):
+        def round(self):
             # one step of the protocol
             pass
 
-By implementing the single `step()` function, a new protocol is created. New negotiators can be added to the
+By implementing the single `round()` function, a new protocol is created. New negotiators can be added to the
 negotiation using `add()` and removed using `remove()`. See the documentation for a full description of
-`Protocol` available functionality out of the box.
+`Mechanism` available functionality out of the box [Alternatively you can use `Protocol` instead of `Mechanism`].
+
+
+Running a world simulation
+--------------------------
+
+TBD

@@ -5,24 +5,79 @@ Participants need to provide a class inherited from `FactoryManager` that implem
 
 Participants can optionally override any other methods of this class or implement new `NegotiatorUtility` class.
 
-
 Simulation steps:
+-----------------
 
-    1. prepare custom stats (call `_pre_step_stats`)
-    1. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
-    1. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotaitions and creating
+    #. prepare custom stats (call `_pre_step_stats`)
+    #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
+    #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotaitions and creating
        contracts for any resulting agreements
-    1. run all `ActiveEntity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then
+    #. run all `ActiveEntity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then
        `Miner` s
-    1. execute contracts that are executable at this time-step handling any breaches
-    1. Custom Simulation Steps:
-        1. Deliver any products that are in transportation
-        1. step all factories (`Factory` objects) running any prescheduled commands
-        1. Apply interests and pay loans
-        1. remove expried `CFP` s
-    1. remove any negotiations that are completed!
-    1. update basic stats
-    1. update custom stats (call `_post_step_stats`)
+    #. execute contracts that are executable at this time-step handling any breaches
+    #. Custom Simulation Steps:
+        #. step all factories (`Factory` objects) running any prescheduled commands
+        #. Apply interests and pay loans
+        #. remove expired `CFP` s
+        #. Deliver any products that are in transportation
+    #. remove any negotiations that are completed!
+    #. update basic stats
+    #. update custom stats (call `_post_step_stats`)
+
+Remarks about re-negotiation on breaches:
+-----------------------------------------
+
+    - The victim is asked first to specify the negotiation agenda (issues) then the perpetrator
+    - renegotiations for breaches run immediately to completion independent from settings of
+      `negotiation_speed_multiplier` and `immediate_negotiations`. That include conclusion and signing of any resulting
+      agreements.
+
+Remarks about timing:
+-------------------------
+
+    - The order of events within a single time-step are as follows:
+
+        #. Scheduled negotiation conclusions which may lead new negotiations if they are done on `on_contract_concluded`
+           or `on_negotiation_failure`.
+        #. If `immediate_negotiations`, some of the newly added negotiations may be concluded/failed.
+        #. Contract signing for any concluded negotiations.
+        #. Contract executions including conclusion of any re-negotiations and breach handling. Notice that if
+           re-negotiation leads to new contracts, these will be concluded and signed immediately at this step. Please
+           note the following about contract execution:
+
+           - products are moved from the seller's storage to a temporary *truck* as long as they are available at the
+             time of contract execution. Because contract execution happens *before* actual production, outputs from
+             production processes *CANNOT* be sold at the same time-step.
+
+        #. Production is executed on all factories. For a `Process` to start/continue on a `Line`, all its inputs
+           required at this time-step **MUST** be available in storage of the corresponding factory *by this pint*.
+           This implies that it is impossible for any processes to start at time-step *0* except if initial storage was
+           nonzero. `FactoryManager` s are informed about processes that cannot start due to storage or fund shortage
+           (or cannot continue due to storage shortage) through an `on_production_failure` call.
+        #. Outputs of the `Process` are generated at *the end* of the corresponding time-step. It is immediately moved
+           to storage. Because outputs are generated at the *end* of the step and inputs are consumed at the beginning,
+           a factory cannot use outputs of a process as inputs to another process that starts at the same time-step.
+        #. Products are moved from the temporary *truck* to the buyer's storage after the `transportation_delay` have
+           passed at the *end* of the time-step. Transportation completes at the *end* of the time-step no matter
+           what is the value for `transportation_delay`. This means that if a `FactoryManager` believes
+           that it can produce some product at time *t*, it should never contract to sell it before *t+d + 1* where
+           *d* is the `transporation_delay` (the *1* comes from the fact that contract execution happens *before*
+           production). Even for a zero transportation delay, you cannot produce something and sell it in the same
+           time-step. Moreover, the buyer should never use the product to be delivered at time *t* as an input to a
+           production process that needs it before step *t+1*.
+
+
+Remarks about ANAC 2019 SCML League:
+------------------------------------
+
+    Given the information above, and settings for the ANAC 2019 SCML you can confirm for yourself that the following
+    rules are all correct:
+
+        #. No agents except miners should contract on delivery at time *0*.
+        #. `FactoryManager` s should never sign contracts to sell the output of their production with delivery at *t*
+           except if this production starts at step *t* and the contract is signed no later than than *t-1*.
+        #. If not all inputs are available in storage, `FactoryManager` s should never sign contracts to sell the output
+           of production with delivery at *t* later than *t-2* (and that is optimistic).
 
 
 """
@@ -476,7 +531,7 @@ class Line:
         FactoryStatusUpdate.combine_sets(self._state.updates, results)
         return results
 
-    def _run(self, t: int, process: Process, override=True) -> Optional[Dict[int, FactoryStatusUpdate]]:
+    def _simulate_run(self, t: int, process: Process, override=True) -> Optional[Dict[int, FactoryStatusUpdate]]:
         """running is executed at the beginning of the step t
 
         Args:
@@ -532,7 +587,7 @@ class Line:
             if current_command == self._state.commands[current - 1]:
                 # that is a running process, stop it
                 # @todo if the process has not produced any outcomes, then cancel it
-                update_set = self._stop(current)
+                update_set = self._simulate_stop(current)
             else:
                 # that is a new process that is to be started. Do not start it
                 update_set = self._cancel_running_command(current_command)
@@ -547,7 +602,7 @@ class Line:
         FactoryStatusUpdate.combine_sets(self._state.updates, updates)
         return updates
 
-    def _pause(self, t: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
+    def _simulate_pause(self, t: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
         """pausing is executed at the end of the step
 
         Args:
@@ -567,7 +622,7 @@ class Line:
         """
         raise NotImplementedError('Pause is not implemented')
 
-    def _resume(self, t: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
+    def _simulate_resume(self, t: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
         """resumption is executed at the end of the step (starting next step count down)
 
 
@@ -588,7 +643,7 @@ class Line:
         """
         raise NotImplementedError('Resume is not implemented')
 
-    def _stop(self, t: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
+    def _simulate_stop(self, t: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
         """stopping is executed at the beginning of the current step
 
         Args:
@@ -652,13 +707,13 @@ class Line:
         if command == 'run':
             if process is None:
                 raise ValueError('Cannot run an unspecified process')
-            result = self._run(t=t, process=process, override=True)
+            result = self._simulate_run(t=t, process=process, override=True)
         elif command == 'pause':
-            result = self._pause(t=t)
+            result = self._simulate_pause(t=t)
         elif command == 'resume':
-            result = self._resume(t=t)
+            result = self._simulate_resume(t=t)
         elif command == 'stop':
-            result = self._stop(t=t)
+            result = self._simulate_stop(t=t)
         return result
 
     def init_schedule(self, n_steps: int, jobs: Dict[int, List[Job]] = None, override=True) -> bool:
@@ -720,7 +775,7 @@ class Line:
             job.updates = result
         return result
 
-    def step(self, t: int, storage: Dict[int, int]) -> Union[FactoryStatusUpdate, ProductionFailure]:
+    def step(self, t: int, storage: Dict[int, int], wallet: float) -> Union[FactoryStatusUpdate, ProductionFailure]:
         """
         Steps the line to the time-step `t` assuming that it is already stepped to time-step t-1 given the storage
 
@@ -747,6 +802,9 @@ class Line:
         missing_inputs = []
         missing_money = 0
         failed = False
+        if updates.balance < 0 and wallet < -updates.balance:
+            failed = True
+            missing_money = -updates.balance - wallet
         for product_id, quantity in updates.storage.items():
             if storage.get(product_id, 0) < -quantity:
                 failed = True
@@ -1173,7 +1231,7 @@ class Factory:
         failures = []
         for line in self.lines.values():
             # step the current production process
-            results = line.step(t=t, storage=self._state.storage)
+            results = line.step(t=t, storage=self._state.storage, wallet=self._state.wallet)
             if isinstance(results, ProductionFailure):
                 failures.append(results)
             else:
@@ -3515,21 +3573,6 @@ class SCMLWorld(World):
         # for factory, job in self.standing_jobs.get(self.current_step, []):
         #    factory.schedule_job(job=job, end=self.n_steps)
 
-        # finish transportation
-        # ---------------------
-        transports = self._transport.get(self.current_step, [])
-        for transport in transports:
-            manager, product_id, q = transport
-            manager.factory_state.storage[product_id] += q
-
-        # run factories
-        # -------------
-        for factory in self.factories:
-            failures = factory.step(t=self.current_step)
-            if len(failures) > 0:
-                self.logdebug(f'{factory.manager.name}\'s failed @ {[(_.line, _.command) for _ in failures]}')
-                factory.manager.on_production_failure(failures)
-
         # apply interests and pay loans
         # -----------------------------
         for agent, loans in self.loans.items():
@@ -3549,6 +3592,21 @@ class SCMLWorld(World):
                     loan.total += penalty
                     loan.installment += penalty / loan.n_installments
                     agent.factory_state.loans += penalty
+
+        # run factories
+        # -------------
+        for factory in self.factories:
+            failures = factory.step(t=self.current_step)
+            if len(failures) > 0:
+                self.logdebug(f'{factory.manager.name}\'s failed @ {[(_.line, _.command) for _ in failures]}')
+                factory.manager.on_production_failure(failures)
+
+        # finish transportation
+        # ---------------------
+        transports = self._transport.get(self.current_step, [])
+        for transport in transports:
+            manager, product_id, q = transport
+            manager.factory_state.storage[product_id] += q
 
         # remove expired CFPs
         # -------------------

@@ -21,6 +21,8 @@ __all__ = [
     'SAOState',
     'SAOMechanism',
     'SAOMechanismProxy',
+    'SAOProtocol',
+    'SAOProtocolProxy',
     'SAONegotiatorProxy',
     'SAONegotiator',
     'RandomNegotiator',
@@ -1005,4 +1007,12 @@ class SimpleTitForTatNegotiator(SAONegotiator):
 
 
 SAOMechanismProxy = SAOMechanism
+"""A proxy to a `SAOMechanism` object"""
+
 SAONegotiatorProxy = SAONegotiator
+"""A proxy to an `SAONegotiator` object"""
+
+SAOProtocol = SAOMechanism
+"""A proxy to a `SAOMechanism object"""
+
+SAOProtocolProxy = SAOMechanismProxy
