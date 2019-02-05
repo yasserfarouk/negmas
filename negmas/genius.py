@@ -15,7 +15,7 @@ from typing import Optional, List, Tuple, Sequence
 from py4j.java_gateway import (
     JavaGateway, CallbackServerParameters, GatewayParameters)
 
-from negmas import SAONegotiator, make_discounted_ufun
+from negmas import SAONegotiator, make_discounted_ufun, get_domain_issues
 from negmas import ResponseType, load_genius_domain
 from negmas.common import *
 from negmas.utilities import UtilityFunction
@@ -329,21 +329,18 @@ class GeniusNegotiator(SAONegotiator):
         self.domain_file_name = str(domain_file_name)
         self.utility_file_name = str(utility_file_name)
         self._my_last_offer = None
-        self.domain = None
         self.keep_issue_names = keep_issue_names
         self.utility_function, self.discount = None, None
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
-            self.domain, _, self.issues = load_genius_domain(domain_file_name=domain_file_name
-                                                             , keep_issue_names=True
-                                                             , keep_value_names=True
-                                                             )
+            self.issues = get_domain_issues(domain_file_name=domain_file_name, keep_issue_names=True
+                                            , keep_value_names=True)
             self.issue_names = [_.name for _ in self.issues]
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         if utility_file_name is not None:
-            self.utility_function, self.discount = UtilityFunction.from_genius(utility_file_name,
-                                                                      keep_issue_names=keep_issue_names
-                                                                      , keep_value_names=keep_value_names)
+            self.utility_function, self.discount = UtilityFunction.from_genius(utility_file_name
+                                                                               , keep_issue_names=keep_issue_names
+                                                                               , keep_value_names=keep_value_names)
         self.base_utility = self.utility_function
         pass
 

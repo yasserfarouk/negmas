@@ -16,6 +16,7 @@ __all__ = [
     'convert_genius_domain_from_folder',
     'convert_genius_domain',
     'find_domain_and_utility_files',
+    'get_domain_issues',
 ]
 
 import xml.etree.ElementTree as ET
@@ -24,6 +25,52 @@ from negmas import Issue, enumerate_outcomes, make_discounted_ufun
 from negmas import Negotiator
 from negmas import UtilityFunction
 from negmas import SAOMechanism, AspirationNegotiator
+
+
+def get_domain_issues(domain_file_name: str
+                       , force_single_issue=False
+                       , max_n_outcomes: int = 1e6
+                       , n_discretization: Optional[int] = None
+                       , keep_issue_names=True
+                       , keep_value_names=True
+                       , safe_parsing=False
+                       ) -> Union[Dict[str, Issue], List[Issue]]:
+    """
+    Returns the issues of a given XML domain (Genius Format)
+
+    Args:
+        domain_file_name:
+        force_single_issue:
+        max_n_outcomes:
+        n_discretization:
+        keep_issue_names:
+        keep_value_names:
+        safe_parsing:
+
+    Returns:
+        List or Dict of issues
+
+    """
+    issues, issues_details, mechanism = None, None, None
+    if domain_file_name is not None:
+        domain_file_name = str(domain_file_name)
+        issues_details, _ = Issue.from_genius(domain_file_name, force_single_issue=False
+                                              , keep_issue_names=True, keep_value_names=True, safe_parsing=safe_parsing
+                                              , n_discretization=n_discretization)
+        if force_single_issue:
+            issues, _ = Issue.from_genius(domain_file_name, force_single_issue=force_single_issue
+                                          , keep_issue_names=keep_issue_names
+                                          , keep_value_names=keep_value_names
+                                          , max_n_outcomes=max_n_outcomes
+                                          , n_discretization=n_discretization)
+            if issues is None:
+                return []
+        else:
+            issues, _ = Issue.from_genius(domain_file_name, force_single_issue=force_single_issue
+                                          , keep_issue_names=keep_issue_names, keep_value_names=keep_value_names,
+                                          safe_parsing=safe_parsing
+                                          , n_discretization=n_discretization)
+    return issues if not force_single_issue else [issues]
 
 
 def load_genius_domain(domain_file_name: str
