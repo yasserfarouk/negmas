@@ -43,12 +43,12 @@ setup(
     include_package_data=True,
     keywords='NegMAS negmas negotiate negotiation mas multi-agent simulation',
     name='negmas',
-    packages=find_packages(include=['negmas']),
+    packages=find_packages(),
     # setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.6',
+    version='0.1.7',
     zip_safe=False,
 )
 
