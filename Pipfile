@@ -62,6 +62,7 @@ sphinxcontrib-napoleon = "*"
 sphinx-automodapi = "*"
 sphinx-autodoc-annotation = "*"
 twine = "*"
+jupyter-contrib-nbextensions = {file = "https://github.com/ipython-contrib/jupyter_contrib_nbextensions/tarball/master"}
 
 [requires]
 python_version = "3.6"

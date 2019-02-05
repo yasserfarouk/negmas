@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "72c5865dccb9d01b7e203faadab0cf121451d491e7afd41f3718fa45523277ca"
+            "sha256": "813012a4b00f37edda2e1e8c9140467f0acde172d925f0ec888bb03fe18d2c31"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -96,12 +96,10 @@
         },
         "hypothesis": {
             "hashes": [
-                "sha256:102007f511c9dc4a94b27f714ac9c0d5f93dd7102a02390ff9b8c545b3d7fd0e",
-                "sha256:2187928e96bab144b89c6c19d08d61dc247bb1623e58e31bec1da7f71381fa9e",
-                "sha256:fba7d76b5181aeafc4abb2361ac7d87080e92ef6aafdf1b5d4692f937bc280e4"
+                "sha256:406a5f4a1681345d6fa4ac3e8496ab317c13396c51fa942fd2e611977f6a9434"
             ],
             "index": "pypi",
-            "version": "==4.5.0"
+            "version": "==4.5.1"
         },
         "inflect": {
             "hashes": [
@@ -525,12 +523,10 @@
         },
         "hypothesis": {
             "hashes": [
-                "sha256:102007f511c9dc4a94b27f714ac9c0d5f93dd7102a02390ff9b8c545b3d7fd0e",
-                "sha256:2187928e96bab144b89c6c19d08d61dc247bb1623e58e31bec1da7f71381fa9e",
-                "sha256:fba7d76b5181aeafc4abb2361ac7d87080e92ef6aafdf1b5d4692f937bc280e4"
+                "sha256:406a5f4a1681345d6fa4ac3e8496ab317c13396c51fa942fd2e611977f6a9434"
             ],
             "index": "pypi",
-            "version": "==4.5.0"
+            "version": "==4.5.1"
         },
         "idna": {
             "hashes": [
@@ -606,6 +602,9 @@
                 "sha256:c44411eb1463ed77548bc2d5ec0d744c9b81c4a542d9637c7a52824e2121b987"
             ],
             "version": "==5.2.4"
+        },
+        "jupyter-contrib-nbextensions": {
+            "file": "https://github.com/ipython-contrib/jupyter_contrib_nbextensions/tarball/master"
         },
         "jupyter-core": {
             "hashes": [
