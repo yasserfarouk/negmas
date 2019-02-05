@@ -1,10 +1,13 @@
 #!/usr/bin/env python
-import negmas
 import click
-import os, pathlib
+import pkg_resources
 
-external_path = pathlib.Path(os.path.dirname(__file__)) / '..' / 'external' / 'genius-8.0.4.jar'
+import negmas
 
+external_path = pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar')
+
+
+# pathlib.Path(os.path.dirname(__file__)) / '..' / 'external' / 'genius-8.0.4.jar'
 
 @click.command()
 @click.option('--path', '-p', default=external_path, help='Path to genius-8.0.4.jar with embedded NegLoader')
