@@ -54,7 +54,7 @@ Mechanism
       ~Mechanism.random_outcomes
       ~Mechanism.remove
       ~Mechanism.remove_requirements
-      ~Mechanism.round
+      ~Mechanism.step_
       ~Mechanism.run
       ~Mechanism.step
 
@@ -102,6 +102,6 @@ Mechanism
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
+   .. automethod:: step_
    .. automethod:: run
    .. automethod:: step

@@ -12,10 +12,10 @@ SAOProtocol
 
       ~SAOProtocol.extra_state
       ~SAOProtocol.on_negotiation_start
-      ~SAOProtocol.round
+      ~SAOProtocol.step_
 
    .. rubric:: Methods Documentation
 
    .. automethod:: extra_state
    .. automethod:: on_negotiation_start
-   .. automethod:: round
+   .. automethod:: step_

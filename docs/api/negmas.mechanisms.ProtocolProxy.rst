@@ -54,7 +54,7 @@ ProtocolProxy
       ~ProtocolProxy.random_outcomes
       ~ProtocolProxy.remove
       ~ProtocolProxy.remove_requirements
-      ~ProtocolProxy.round
+      ~ProtocolProxy.step_
       ~ProtocolProxy.run
       ~ProtocolProxy.step
 
@@ -102,6 +102,6 @@ ProtocolProxy
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
+   .. automethod:: step_
    .. automethod:: run
    .. automethod:: step

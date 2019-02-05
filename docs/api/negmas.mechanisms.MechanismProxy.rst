@@ -54,7 +54,7 @@ MechanismProxy
       ~MechanismProxy.random_outcomes
       ~MechanismProxy.remove
       ~MechanismProxy.remove_requirements
-      ~MechanismProxy.round
+      ~MechanismProxy.step_
       ~MechanismProxy.run
       ~MechanismProxy.step
 
@@ -102,6 +102,6 @@ MechanismProxy
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
+   .. automethod:: step_
    .. automethod:: run
    .. automethod:: step

@@ -106,7 +106,7 @@ class SAOMechanism(Mechanism):
             , n_acceptances=self._n_accepting,
         )
 
-    def round(self) -> MechanismRoundResult:
+    def step_(self) -> MechanismRoundResult:
         n_agents = len(self.negotiators)
         accepted = False
         negotiator = self.negotiators[self._current_negotiator]

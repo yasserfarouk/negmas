@@ -54,7 +54,7 @@ Protocol
       ~Protocol.random_outcomes
       ~Protocol.remove
       ~Protocol.remove_requirements
-      ~Protocol.round
+      ~Protocol.step_
       ~Protocol.run
       ~Protocol.step
 
@@ -102,6 +102,6 @@ Protocol
    .. automethod:: random_outcomes
    .. automethod:: remove
    .. automethod:: remove_requirements
-   .. automethod:: round
+   .. automethod:: step_
    .. automethod:: run
    .. automethod:: step

@@ -13,7 +13,7 @@ class MyMechanism(Mechanism):
                          , dynamic_entry=dynamic_entry)
         self.current = 0
 
-    def round(self) -> MechanismRoundResult:
+    def step_(self) -> MechanismRoundResult:
         # r = random.random()
         # if r > 1.0 / self.n_steps:
         #    return None, False, None

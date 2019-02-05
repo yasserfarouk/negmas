@@ -611,7 +611,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
         for agent in self._agents:
             agent.on_round_start(state=self.state)
-        result = self.round()
+        result = self.step_()
         self._error, self._error_details = result.error, result.error_details
         if self._error:
             self.on_mechanism_error()
@@ -841,7 +841,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             if plot_outcomes:
                 fig_outcome.show()
 
-    def round(self) -> MechanismRoundResult:
+    def step_(self) -> MechanismRoundResult:
         """ Implements a single step of the mechanism. Override this!
 
         Returns:
