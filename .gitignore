@@ -129,3 +129,5 @@ scripts/logs
 /.travis.yml
 /scratch/*
 /scratch
+docs/_build
+docs/_build/*
