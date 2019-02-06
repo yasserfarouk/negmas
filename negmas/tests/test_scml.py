@@ -1,3 +1,4 @@
+import copy
 from pprint import pprint
 from typing import List, Dict
 
@@ -267,10 +268,14 @@ def sample_processes(sample_products) -> List[Process]:
                                              InputOutput(sample_products[1].id, quantity=3, step=0.0)}
                     , outputs={InputOutput(sample_products[2].id, quantity=1, step=1.0)}
                     , historical_cost=1, production_level=sample_products[1].production_level)
-        , Process(id=1, name='p1', inputs={InputOutput(sample_products[1].id, quantity=2, step=0.0),
+            , Process(id=1, name='p1', inputs={InputOutput(sample_products[1].id, quantity=2, step=0.0),
                                            InputOutput(sample_products[2].id, quantity=3, step=0.0)}
                   , outputs={InputOutput(sample_products[3].id, quantity=1, step=1.0)}
                   , historical_cost=1, production_level=sample_products[2].production_level)
+            , Process(id=2, name='p2', inputs={InputOutput(sample_products[2].id, quantity=2, step=0.0),
+                                           InputOutput(sample_products[3].id, quantity=3, step=0.0)}
+                  , outputs={InputOutput(sample_products[4].id, quantity=1, step=1.0)}
+                  , historical_cost=1, production_level=sample_products[3].production_level)
             ]
 
 
@@ -291,17 +296,134 @@ def sample_line(sample_profiles, sample_processes) -> Line:
 
 
 @pytest.fixture
-def sample_factory(sample_profile, sample_processes, sample_products):
-    return Factory(lines=[Line(profiles=sample_profile, processes=sample_processes)]
+def sample_factory(sample_profiles, sample_processes, sample_products):
+    return Factory(lines=[Line(profiles=sample_profiles, processes=sample_processes)]
                    , products=sample_products, processes=sample_processes)
+
+
+class TestFactory:
+
+    def test_creation(self, sample_factory):
+        assert len(sample_factory.lines) == 1
+        for id, line in sample_factory.lines.items():
+            assert line.id == id
+            assert len(line.i2p) == len(line.processes) == 3
+
+    def test_init_state(self, sample_factory, sample_products):
+        storage = {0: 10, 1: 10, 2: 0}
+        sample_factory.init_state(wallet=100, storage=storage)
+        assert sample_factory.state.wallet == 100
+        assert sample_factory.state.storage == storage
+
+    def test_init_state_empty(self, sample_factory, sample_products):
+        sample_factory.init_state()
+        assert sample_factory.state.wallet == 0.0
+        assert sample_factory.state.storage == {}
+
+    def test_init_schedule(self, sample_factory, sample_products):
+        sample_factory.init_schedule(n_steps=20, initial_storage=dict(zip((_.id for _ in sample_products)
+                                                                          , range(len(sample_products))))
+                                     , initial_balance=10)
+        assert np.all(sample_factory.predicted_balance == 10)
+        assert np.all(sample_factory.predicted_total_storage == sum(range(len(sample_products))))
+        assert np.all(sample_factory.predicted_reserved_storage == 0)
+        assert len(sample_factory.predicted_balance) == 20
+
+    @pytest.mark.parametrize('n_steps', [1, 5, 9, 18, 20])
+    def test_smaller_schedule(self, sample_factory, sample_products, n_steps):
+        sample_factory.init_schedule(n_steps=20, initial_storage=dict(zip((_.id for _ in sample_products)
+                                                                          , range(len(sample_products))))
+                                     , initial_balance=10)
+        sample_factory.n_steps = n_steps
+        assert np.all(sample_factory.predicted_balance == 10)
+        assert np.all(sample_factory.predicted_total_storage == sum(range(len(sample_products))))
+        assert np.all(sample_factory.predicted_reserved_storage == 0)
+        assert len(sample_factory.predicted_balance) == n_steps
+
+    @pytest.mark.parametrize('n_steps', [31, 35, 39, 38, 20])
+    def test_longer_schedule(self, sample_factory, sample_products, n_steps):
+        sample_factory.init_schedule(n_steps=20, initial_storage=dict(zip((_.id for _ in sample_products)
+                                                                          , range(len(sample_products))))
+                                     , initial_balance=10)
+        sample_factory.n_steps = n_steps
+        assert np.all(sample_factory.predicted_balance == 10)
+        assert np.all(sample_factory.predicted_total_storage == sum(range(len(sample_products))))
+        assert np.all(sample_factory.predicted_reserved_storage == 0)
+        assert len(sample_factory.predicted_balance) == n_steps
+
+    def test_init_schedule_with_defaults(self, sample_line, sample_processes, sample_products):
+
+        storage = {sample_products[0].id: 10, sample_products[1].id: 10, sample_products[2].id: 0}
+        t0 = 4
+        p = sample_processes[0]
+        factory = Factory(products=sample_products, processes=sample_processes, lines=[sample_line])
+        factory.init_state(wallet=10, storage=storage)
+        factory.init_schedule(n_steps=20)
+        assert np.all(factory.predicted_balance == 10)
+        assert np.all(factory.predicted_total_storage == 20)
+        assert np.all(factory.predicted_reserved_storage == 0)
+        assert len(factory.predicted_balance) == 20
+
+    @pytest.mark.parametrize('initial_balance,p0storage'
+        , [(1000, 10), (1000, 2), (0, 10), (0, 2)]
+        , ids=['enough money and inputs', 'missing input', 'missing money', 'missing both'])
+    def test_stepping(self, sample_line, sample_processes, sample_products, initial_balance, p0storage):
+
+        n_steps = 10
+        storage = {sample_products[0].id: p0storage, sample_products[1].id: 10, sample_products[2].id: 0}
+        t0 = 2
+        p = sample_processes[0]
+        factory = Factory(products=sample_products, processes=sample_processes, lines=[sample_line])
+        factory.init_state(wallet=initial_balance, storage=storage)
+        factory.init_schedule(n_steps=20)
+        for ln, l in factory.lines.items():
+            line_name, line = ln, l
+            break
+        t1 = t0 + line.profiles[p.id].n_steps
+
+        def enough_storage():
+            return all(storage[inp.product] >= inp.quantity for inp in p.inputs)
+
+        if initial_balance >= line.profiles[p.id].cost and enough_storage():
+            storage_minus_production = copy.copy(storage)
+            for inp in p.inputs:
+                storage_minus_production[inp.product] -= inp.quantity
+            final_storage = copy.copy(storage_minus_production)
+            for oup in p.outputs:
+                final_storage[oup.product] += oup.quantity
+            final_balance = initial_balance - line.profiles[p.id].cost
+        else:
+            final_storage = storage_minus_production = storage
+            final_balance = initial_balance
+
+        j0 = Job(process=p.id, time=t0, line_name=line_name, command='run', updates={}, contract=None)
+
+        factory.schedule_job(j0)
+        for t in range(n_steps):
+            # print(f'{t}>> wallet: {factory.state.wallet}, storage: {factory.state.storage}')
+            failures = factory.step(t)
+            if t == t0:
+                assert len(failures) == 2 - int(enough_storage()) - int(initial_balance > line.profiles[p.id].cost)
+            else:
+                assert len(failures) == 0
+            if t < t0:
+                assert factory.state.wallet == initial_balance
+                assert factory.state.storage == storage
+                assert factory.state.balance == factory.state.wallet
+            elif t1 > t >= t0:
+                assert factory.state.wallet == final_balance
+                assert factory.state.storage == storage_minus_production
+                assert factory.state.balance == factory.state.wallet
+            elif t >= t1:
+                assert factory.state.wallet == final_balance
+                assert factory.state.storage == final_storage
+                assert factory.state.balance == factory.state.wallet
 
 
 class TestLine:
 
     def test_creation(self, sample_line):
-        print(len(sample_line.processes))
-        print(len(sample_line.i2p))
-        assert len(sample_line.i2p) == len(sample_line.processes) == 2
+        assert len(sample_line.i2p) == len(sample_line.processes) == 3
 
     def test_init_schedule(self, sample_line):
         sample_line.init_schedule(n_steps=20)
@@ -390,6 +512,32 @@ class TestLine:
             result = sample_line.step(t, storage=storage, wallet=1000)
             if t == t0:
                 assert isinstance(result, ProductionFailure)
+                assert len(result.missing_inputs) > 0
+                assert result.missing_money == 0
+            else:
+                assert not isinstance(result, ProductionFailure) and result is not None
+                assert result.empty()
+                for k, v in result.storage.items():
+                    storage[k] += v
+        assert storage[sample_products[0].id] == 0
+        assert storage[sample_products[1].id] == 0
+        assert storage[sample_products[2].id] == 0
+
+    def test_line_stepping_with_balance_failure(self, sample_line, sample_processes, sample_products, sample_profiles):
+        n_steps = 20
+        sample_line.init_schedule(n_steps=n_steps)
+        t0 = 4
+        p = sample_processes[0]
+        t1 = t0 + sample_line.profiles[p.id].n_steps
+        j0 = Job(process=p.id, time=t0, line_name=sample_line.id, command='run', updates={}, contract=None)
+        storage = {sample_products[0].id: 0, sample_products[1].id: 0, sample_products[2].id: 0}
+        sample_line.schedule_job(j0)
+        for t in range(n_steps):
+            result = sample_line.step(t, storage=storage, wallet=sample_profiles[p.id].cost/2)
+            if t == t0:
+                assert isinstance(result, ProductionFailure)
+                assert result.missing_money == sample_profiles[p.id].cost/2
+                assert len(result.missing_inputs) > 0
             else:
                 assert not isinstance(result, ProductionFailure) and result is not None
                 assert result.empty()

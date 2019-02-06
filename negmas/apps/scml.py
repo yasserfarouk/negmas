@@ -1121,8 +1121,13 @@ class Factory:
     _state: FactoryState = field(default_factory=FactoryState)
     """The dyanmic state of the factory under control of the simulator"""
 
+    _updates: Dict[int, FactoryStatusUpdate] = field(default_factory=
+                                                    lambda: defaultdict(lambda: FactoryStatusUpdate(
+                                                        balance=0, storage={})))
+    """List of updates for scheduled Jobs"""
+
     _jobs: List[Job] = field(default_factory=list)
-    """The jobs to be executed for this factory"""
+    """Scheduled jobs"""
 
     lines: Dict[str, Line] = field(default_factory=dict)
     """Lines with their config if any"""
@@ -1237,7 +1242,7 @@ class Factory:
                 failures.append(results)
             else:
                 if results.balance != 0:
-                    self._state.wallet -= results.balance
+                    self._state.wallet += results.balance
                 if results.storage is not None:
                     for k, v in results.storage.items():
                         self.state.storage[k] += v
@@ -1313,6 +1318,13 @@ class Factory:
         self.predicted_balance[t:end] += updates.balance
         return True
 
+    def init_state(self, wallet: float = 0.0, storage: Dict[int, float] = None):
+        """Initializes the state of the factory"""
+        if storage is None:
+            storage = {}
+        self._state.wallet = wallet
+        self._state.storage = {k: v for k, v in storage.items()}
+
     def init_schedule(self, n_steps: int, initial_storage: Dict[int, int] = None, override: bool = True
                       , initial_balance: float = None, initial_jobs: List[Job] = None) -> bool:
         if initial_balance is None:
@@ -1345,7 +1357,7 @@ class Factory:
         Args:
             job:
             end:
-            overrride: if true, override any existing jobs
+            override: if true, override any existing jobs
 
         Returns:
 
@@ -1359,6 +1371,7 @@ class Factory:
         if end is None:
             end = self.n_scheduling_steps
         set_reserved = job.command == 'run'
+
         return all(self._apply_updates(updates=updates[t], t=t, end=end, set_reserved=set_reserved)
                    for t in sorted(updates.keys()))
 
