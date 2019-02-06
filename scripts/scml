@@ -15,7 +15,7 @@ click.option = partial(click.option, show_default=True)
 
 
 @click.command()
-@click.option('--steps', default=60, help='Number of steps.')
+@click.option('--steps', default=100, help='Number of steps.')
 @click.option('--levels', default=3, help='Number of intermediate production levels (processes). '
                                           '-1 means a single product and no factories.')
 @click.option('--neg-speedup', default=21, help='Negotiation Speedup.')

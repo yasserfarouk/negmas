@@ -273,6 +273,9 @@ class RunningCommandInfo:
     def n_steps(self) -> int:
         return self.end - self.beg
 
+    def __str__(self):
+        return f'{self.command} {self.process} [{self.beg}:{self.end}]'
+
 
 @dataclass
 class Job:
@@ -347,8 +350,9 @@ class FactoryStatusUpdate:
             del dst[i]
         return None
 
+    @property
     def empty(self):
-        return self.balance == 0 and len(self.storage) == 0
+        return self.balance == 0 and (len(self.storage) == 0 or sum(self.storage.values()) == 0)
 
     def __str__(self):
         return f'balance: {self.balance}, ' + \
@@ -411,6 +415,9 @@ class MissingInput:
     product: int
     quantity: int
 
+    def __str__(self):
+        return f'{self.product}: {self.quantity}'
+
 
 @dataclass
 class ProductionFailure:
@@ -423,6 +430,51 @@ class ProductionFailure:
     """The missing inputs if any with their quantities"""
     missing_money: float
     """The amount of money needed for production that is not available"""
+
+    def __str__(self):
+        s = f'{str(self.command)} failed: missing money {self.missing_money}, '
+        return s + f'missing inputs: {[str(_) for _ in self.missing_inputs]}'
+
+
+@dataclass
+class ProductionReport:
+    line: str
+    """ID of the line"""
+    started: Optional[RunningCommandInfo]
+    """Commands started"""
+    continuing: Optional[RunningCommandInfo]
+    """Command that is continuing"""
+    finished: Optional[RunningCommandInfo]
+    """Command finished"""
+    failure: Optional[ProductionFailure]
+    """Failures"""
+    updates: FactoryStatusUpdate
+    """Updates applied to the factory"""
+
+    @property
+    def failed(self):
+        return self.failure is not None
+
+    @property
+    def empty(self):
+        return self.started is None and self.finished is None and self.failure is None and self.updates.empty
+
+    def __str__(self):
+        if self.empty:
+            return ''
+        s = f'{self.line}: '
+        if self.failed:
+            s += f'{str(self.failure)} '
+        else:
+            if self.started is not None and self.finished is not None:
+                s += f'started/finished {str(self.started)} '
+            elif self.started is not None:
+                s += f'started {str(self.started)} '
+            elif self.finished is not None:
+                s += f'finished {str(self.finished)} '
+        if not self.updates.empty:
+            s += f'{str(self.updates)}'
+        return s
 
 
 @dataclass
@@ -577,7 +629,7 @@ class Line:
 
         # if I am not allowed to override, then this command has no effect and I return an empty status update
         if not override:
-            return FactoryStatusUpdate(balance=0, storage={})
+            return {}
 
         # requires some stopping and cancellation
         updates = defaultdict(lambda: FactoryStatusUpdate(balance=0, storage={}))
@@ -776,7 +828,7 @@ class Line:
             job.updates = result
         return result
 
-    def step(self, t: int, storage: Dict[int, int], wallet: float) -> Union[FactoryStatusUpdate, ProductionFailure]:
+    def step(self, t: int, storage: Dict[int, int], wallet: float) -> ProductionReport:
         """
         Steps the line to the time-step `t` assuming that it is already stepped to time-step t-1 given the storage
 
@@ -798,29 +850,39 @@ class Line:
         command = state.commands[t]
         if command is None:
             state.schedule[:t + 1] = INVALID_STEP
-            return updates
+            return ProductionReport(updates=updates, continuing=None, started=None, finished=None, failure=None
+                                    , line=self.id)
         process_index = command.process
         missing_inputs = []
         missing_money = 0
         failed = False
+        started = command if command.beg == t else None
+        finished = command if command.end == t + 1 else None
+        continuing = command if command.beg != t and command.end != t else None
         if updates.balance < 0 and wallet < -updates.balance:
             failed = True
             missing_money = -updates.balance - wallet
         for product_id, quantity in updates.storage.items():
             if storage.get(product_id, 0) < -quantity:
                 failed = True
-                missing_inputs.append(MissingInput(product=product_id, quantity=quantity))
+                missing_inputs.append(MissingInput(product=product_id, quantity=-quantity))
         if failed:
             failure = ProductionFailure(line=self.id, command=command, missing_money=missing_money
                                         , missing_inputs=missing_inputs)
-            self._cancel_running_command(command)
+            if t == command.beg:
+                self._cancel_running_command(command)
+            else:
+                self._simulate_stop(t=t)
             state.schedule[:t + 1] = INVALID_STEP
-            return failure
+            return ProductionReport(updates=FactoryStatusUpdate(balance=0, storage={})
+                                    , continuing=continuing, started=started, finished=finished, failure=failure
+                                    , line=self.id)
         state.current_process = process_index
         state.paused_at = 0  # @todo pause is disabled
         state.running_for = t - command.beg  # @todo pause is disabled
         state.schedule[:t + 1] = INVALID_STEP
-        return updates
+        return ProductionReport(updates=updates, continuing=continuing, started=started, finished=finished, failure=None
+                                , line=self.id)
 
     @property
     def state(self):
@@ -1122,8 +1184,8 @@ class Factory:
     """The dyanmic state of the factory under control of the simulator"""
 
     _updates: Dict[int, FactoryStatusUpdate] = field(default_factory=
-                                                    lambda: defaultdict(lambda: FactoryStatusUpdate(
-                                                        balance=0, storage={})))
+                                                     lambda: defaultdict(lambda: FactoryStatusUpdate(
+                                                         balance=0, storage={})))
     """List of updates for scheduled Jobs"""
 
     _jobs: List[Job] = field(default_factory=list)
@@ -1233,20 +1295,19 @@ class Factory:
         """Finds a line by its name"""
         return self.lines.get(name, None)
 
-    def step(self, t: int) -> List[ProductionFailure]:
-        failures = []
+    def step(self, t: int) -> List[ProductionReport]:
+        reports = []
         for line in self.lines.values():
             # step the current production process
-            results = line.step(t=t, storage=self._state.storage, wallet=self._state.wallet)
-            if isinstance(results, ProductionFailure):
-                failures.append(results)
-            else:
-                if results.balance != 0:
-                    self._state.wallet += results.balance
-                if results.storage is not None:
-                    for k, v in results.storage.items():
-                        self.state.storage[k] += v
-        return failures
+            report = line.step(t=t, storage=self._state.storage, wallet=self._state.wallet)
+            reports.append(report)
+            updates = report.updates
+            if updates.balance != 0:
+                self._state.wallet += updates.balance
+            if updates.storage is not None:
+                for k, v in updates.storage.items():
+                    self.state.storage[k] += v
+        return reports
 
     def update_fields(self):
         """Updates all dynamic fields (that are not initialized in __init__)."""
@@ -1308,7 +1369,7 @@ class Factory:
         """
         if updates is None:
             return False
-        if updates.empty():
+        if updates.empty:
             return True
         for k, v in updates.storage.items():
             if set_reserved and v < 0:
@@ -3172,12 +3233,12 @@ class SCMLWorld(World):
                 factories.append(factory)
                 negmas.append(manager)
 
-        if isinstance(consumption, tuple) and len(consumption) == 2:
-            consumption_schedule = np.random.randint(consumption[0], consumption[1], n_steps).tolist()
-        else:
-            consumption_schedule = consumption
+        def create_schedule():
+            if isinstance(consumption, tuple) and len(consumption) == 2:
+                return np.random.randint(consumption[0], consumption[1], n_steps).tolist()
+            return consumption
 
-        consumers = [Consumer(profiles={products[-1].id: ConsumptionProfile(cv=0, schedule=consumption_schedule)}
+        consumers = [Consumer(profiles={products[-1].id: ConsumptionProfile(cv=0, schedule=create_schedule())}
                               , name=f'c_{i}', **consumer_kwargs)
                      for i in range(n_consumers)]
 
@@ -3615,10 +3676,19 @@ class SCMLWorld(World):
         # run factories
         # -------------
         for factory in self.factories:
-            failures = factory.step(t=self.current_step)
+            reports = factory.step(t=self.current_step)
+            self.logdebug(f'Factory {factory.name}: money={factory.state.wallet}'
+                          f', storage={str(dict(factory.state.storage))}'
+                          f', loans={factory.state.loans}')
+            for report in reports:
+                if not report.empty:
+                    self.logdebug(f'PRODUCTION>> {factory.manager.name}: {str(report)}')
+            failures = []
+            for report in reports:
+                if report.failed:
+                    failures.append(report.failure)
             if len(failures) > 0:
-                self.logdebug(f'{factory.manager.name}\'s failed @ {[(_.line, _.command) for _ in failures]}')
-                factory.manager.on_production_failure(failures)
+                factory.manager.on_production_failure(failures=failures)
 
         # finish transportation
         # ---------------------
@@ -4087,7 +4157,7 @@ class SCMLWorld(World):
     def business_size(self) -> float:
         """The total business size defined as the total money transferred within the system"""
         return sum(self.stats["activity_level"])
-    
+
     @property
     def agreement_rate(self) -> float:
         """Fraction of negotiations ending in agreement and leading to signed contracts"""
@@ -4167,12 +4237,12 @@ def anac2019_world(n_intermediate_levels=3, n_miners=5, n_factories_per_level=5,
                                        , n_factories_per_level=n_factories_per_level
                                        , consumption=consumption
                                        , consumer_kwargs={'negotiator_type': negotiator_type
-                                                          , 'consumption_horizon': consumption_horizon}
+            , 'consumption_horizon': consumption_horizon}
                                        , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
                                        , factory_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
-                                                         , 'sign_only_guaranteed_contracts': guaranteed_contracts
-                                                         , 'use_consumer': use_consumer
-                                                         , 'max_insurance_premium': max_insurance_premium}
+            , 'sign_only_guaranteed_contracts': guaranteed_contracts
+            , 'use_consumer': use_consumer
+            , 'max_insurance_premium': max_insurance_premium}
                                        , transportation_delay=transportation_delay
                                        , time_limit=time_limit
                                        , neg_time_limit=neg_time_limit
