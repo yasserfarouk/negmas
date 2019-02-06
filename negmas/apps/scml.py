@@ -4097,15 +4097,15 @@ class SCMLWorld(World):
         return n_breaches / n_contracts if n_contracts else 0.0
 
 
-def anac2019_world(n_intermediate_levels=2, n_miners=4, n_factories_per_level=4, n_consumers=4, n_lines_per_factory=10
-                   , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=2
+def anac2019_world(n_intermediate_levels=3, n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
+                   , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=4
                    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-                   , transportation_delay=0, default_signing_delay=0
+                   , transportation_delay=0, default_signing_delay=1
                    , max_storage=None
-                   , consumption_horizon=10
-                   , consumption=(2, 6)
-                   , negotiation_speed=21, neg_time_limit=180, neg_n_steps=20
-                   , n_steps=60, time_limit=60 * 100
+                   , consumption_horizon=15
+                   , consumption=(3, 5)
+                   , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
+                   , n_steps=60, time_limit=60 * 90
                    , log_file_name: str = None
                    ):
     """

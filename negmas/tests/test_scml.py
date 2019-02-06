@@ -246,8 +246,10 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay_no_immediat
 #     data.to_csv(f'{logdir()}/contracts.csv')
 
 
-def test_anac2019():
-    world = anac2019_world(n_steps=10, consumption_horizon=10)
+@pytest.mark.parametrize('n_steps,consumption_horizon'
+        , [(10, 10), (60, 10)], ids=['short', 'default'])
+def test_anac2019(n_steps, consumption_horizon):
+    world = anac2019_world(n_steps=n_steps, consumption_horizon=consumption_horizon)
     world.run()
     assert world.business_size > 0.0
     assert world.breach_rate < 0.9
