@@ -87,7 +87,7 @@ import itertools
 import math
 import uuid
 from abc import ABC, abstractmethod
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from random import randint, random, sample, choices, gauss
 from typing import Dict, Iterable, Any, Callable, Set, Collection, Type
 from typing import List, Optional, Tuple, Union
@@ -128,8 +128,8 @@ __all__ = [
     'ScheduleInfo',
     'Scheduler',
     'GreedyScheduler',
+    'anac2019_world',
 ]
-
 
 g_last_product_id = 0
 g_last_process_id = 0
@@ -961,7 +961,8 @@ class SCMLAgent(Agent, ABC):
         Returns:
 
         """
-        return cfp.max_time >= self.awi.current_step + 1 - int(self.immediate_negotiations) #@todo check that this is correct now
+        return cfp.max_time >= self.awi.current_step + 1 - int(
+            self.immediate_negotiations)  # @todo check that this is correct now
 
     def before_joining_negotiation(self, initiator: str, partners: List[str], issues: List[Issue]
                                    , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
@@ -1103,7 +1104,6 @@ class ScheduleInfo:
             self.jobs.extend(other.jobs)
         if other.failed_contracts is not None:
             self.failed_contracts.extend(other.failed_contracts)
-
 
 
 @dataclass
@@ -1913,7 +1913,7 @@ class Miner(SCMLAgent, ConfigReader):
         super().on_negotiation_failure(partners=partners, annotation=annotation, mechanism=mechanism, state=state)
         thiscfp = self.awi.bulletin_board.query(section='cfps', query=cfp.id, query_keys=True)
         if cfp.publisher != self.id and thiscfp is not None and len(thiscfp) > 0 \
-             and self.n_neg_trials[cfp.id] < self.n_retrials:
+            and self.n_neg_trials[cfp.id] < self.n_retrials:
             self.awi.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
             self.on_new_cfp(cfp=annotation['cfp'])
 
@@ -2686,7 +2686,7 @@ class GreedyFactoryManager(FactoryManager):
         if len(needs) < 1:
             return True
         for need in needs:
-            if need.quantity_to_buy > 0 and need.step < step + 1 - int(self.immediate_negotiations): #@todo check this
+            if need.quantity_to_buy > 0 and need.step < step + 1 - int(self.immediate_negotiations):  # @todo check this
                 return False
         return True
 
@@ -3024,7 +3024,7 @@ class SCMLWorld(World):
         self.n_new_cfps = 0
         self._transport: Dict[int, List[Tuple[SCMLAgent, int, int]]] = defaultdict(list)
         # self.standing_jobs: Dict[int, List[Tuple[Factory, Job]]] = defaultdict(list)
-        
+
         for product in self.products:
             g_products[product.id] = product
         for process in self.processes:
@@ -3067,7 +3067,9 @@ class SCMLWorld(World):
                           , miner_kwargs=miner_kwargs, consumer_kwargs=consumer_kwargs, **kwargs)
 
     @classmethod
-    def single_path_world(cls, n_intermediate_levels=0, n_miners=1, n_factories_per_level=1, n_consumers=1, n_steps=10
+    def single_path_world(cls, n_intermediate_levels=0, n_miners=1, n_factories_per_level=1
+                          , n_consumers: Union[int, Tuple[int, int], List[int]] = 1
+                          , n_steps=10
                           , n_lines_per_factory=1
                           , log_file_name: str = None, negotiator_type: str = 'negmas.sao.AspirationNegotiator'
                           , max_storage=None
@@ -3142,12 +3144,12 @@ class SCMLWorld(World):
                 lines = []
                 for k in range(n_lines_per_factory):
                     lines.append(Line(id=f'l{level + 1}_{j}_{k}'
-                              , profiles={level: ManufacturingProfile(n_steps=n_steps_profile, cost=j + 1
-                                                                      , initial_pause_cost=0
-                                                                      , running_pause_cost=0
-                                                                      , resumption_cost=0
-                                                                      , cancellation_cost=0)}
-                              , processes=processes))
+                                      , profiles={level: ManufacturingProfile(n_steps=n_steps_profile, cost=j + 1
+                                                                              , initial_pause_cost=0
+                                                                              , running_pause_cost=0
+                                                                              , resumption_cost=0
+                                                                              , cancellation_cost=0)}
+                                      , processes=processes))
                 factory = Factory(name=f'f{level + 1}_{j}', max_storage=max_storage
                                   , lines=dict(zip((_.id for _ in lines), lines))
                                   , products=products, processes=processes)
@@ -3157,7 +3159,12 @@ class SCMLWorld(World):
                 factories.append(factory)
                 negmas.append(manager)
 
-        consumers = [Consumer(profiles={products[-1].id: ConsumptionProfile(cv=0, schedule=consumption)}
+        if isinstance(consumption, tuple) and len(consumption) == 2:
+            consumption_schedule = np.random.randint(consumption[0], consumption[1], n_steps).tolist()
+        else:
+            consumption_schedule = consumption
+
+        consumers = [Consumer(profiles={products[-1].id: ConsumptionProfile(cv=0, schedule=consumption_schedule)}
                               , name=f'c_{i}', **consumer_kwargs)
                      for i in range(n_consumers)]
 
@@ -4062,3 +4069,101 @@ class SCMLWorld(World):
 
     def _contract_size(self, contract: Contract) -> float:
         return contract.agreement['unit_price'] * contract.agreement['quantity']
+
+    @property
+    def business_size(self) -> float:
+        """The total business size defined as the total money transferred within the system"""
+        return sum(self.stats["activity_level"])
+    
+    @property
+    def agreement_rate(self) -> float:
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        n_negs = sum(self.stats["n_negotiations"])
+        n_contracts = len(self.saved_contracts)
+        return n_contracts / n_negs if n_negs != 0 else 0.0
+
+    @property
+    def contract_execution_fraction(self) -> float:
+        """Fraction of signed contracts successfully executed"""
+        n_executed = sum(self.stats['n_contracts_executed'])
+        n_contracts = len(self.saved_contracts)
+        return n_executed / n_contracts if n_contracts > 0 else 0.0
+
+    @property
+    def breach_rate(self) -> float:
+        """Fraction of signed contracts that led to breaches"""
+        n_breaches = sum(self.stats['n_breaches'])
+        n_contracts = len(self.saved_contracts)
+        return n_breaches / n_contracts if n_contracts else 0.0
+
+
+def anac2019_world(n_intermediate_levels=2, n_miners=4, n_factories_per_level=4, n_consumers=4, n_lines_per_factory=10
+                   , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=2
+                   , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
+                   , transportation_delay=0, default_signing_delay=0
+                   , max_storage=None
+                   , consumption_horizon=10
+                   , consumption=(2, 6)
+                   , negotiation_speed=21, neg_time_limit=180, neg_n_steps=20
+                   , n_steps=60, time_limit=60 * 100
+                   , log_file_name: str = None
+                   ):
+    """
+    Creates a world compatible with the ANAC 2019 competition. Note that
+
+    Args:
+        n_intermediate_levels: The number of intermediate products
+        n_miners: number of miners of the single raw material
+        n_factories_per_level: number of factories at every production level
+        n_consumers: number of consumers of the final product
+        n_steps: number of simulation steps
+        n_lines_per_factory: number of lines in each factory
+        negotiation_speed: The number of negotiation steps per simulation step. None means infinite
+        default_signing_delay: The number of simulation between contract conclusion and signature
+        neg_n_steps: The maximum number of steps of a single negotiation (that is double the number of rounds)
+        neg_time_limit: The total time-limit of a single negotiation
+        time_limit: The total time-limit of the simulation
+        transportation_delay: The transportation delay
+        n_retrials: The number of retrials the `Miner` and `GreedyFactoryManager` will try if negotiations fail
+        max_insurance_premium: The maximum insurance premium accepted by `GreedyFactoryManager` (-1 to disable)
+        use_consumer: If true, the `GreedyFactoryManager` will use an internal consumer for buying its needs
+        guaranteed_contracts: If true, the `GreedyFactoryManager` will only sign contracts that it can guaratnee not to
+        break.
+        consumption_horizon: The number of steps for which `Consumer` publishes `CFP` s
+        consumption: The consumption schedule will be sampled from a uniform distribution with these limits inclusive
+        log_file_name: File name to store the logs
+        negotiator_type: The negotiation factory used to create all negotiators
+        max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
+
+
+    Returns:
+        SCMLWorld ready to run
+
+    Remarks:
+
+        - Every production level n has one process only that takes n steps to complete
+
+
+    """
+    max_insurance_premium = None if max_insurance_premium < 0 else max_insurance_premium
+    return SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=n_steps
+                                       , negotiation_speed=negotiation_speed
+                                       , n_intermediate_levels=n_intermediate_levels
+                                       , n_miners=n_miners
+                                       , n_consumers=n_consumers
+                                       , n_factories_per_level=n_factories_per_level
+                                       , consumption=consumption
+                                       , consumer_kwargs={'negotiator_type': negotiator_type
+                                                          , 'consumption_horizon': consumption_horizon}
+                                       , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
+                                       , factory_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
+                                                         , 'sign_only_guaranteed_contracts': guaranteed_contracts
+                                                         , 'use_consumer': use_consumer
+                                                         , 'max_insurance_premium': max_insurance_premium}
+                                       , transportation_delay=transportation_delay
+                                       , time_limit=time_limit
+                                       , neg_time_limit=neg_time_limit
+                                       , neg_n_steps=neg_n_steps
+                                       , default_signing_delay=default_signing_delay
+                                       , n_lines_per_factory=n_lines_per_factory
+                                       , max_storage=max_storage)

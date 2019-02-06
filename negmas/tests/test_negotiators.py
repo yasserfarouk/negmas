@@ -5,9 +5,10 @@ import pathlib
 from hypothesis import given, settings
 import hypothesis.strategies as st
 from negmas import Negotiator, ToughNegotiator, MappingUtilityFunction, SAOMechanism, \
-    AspirationNegotiator, OnlyBestNegotiator
+    AspirationNegotiator, OnlyBestNegotiator, Controller, SAOController
 from pprint import pprint
 
+from negmas.utilities import RandomUtilityFunction
 
 
 @pytest.fixture()
@@ -75,6 +76,26 @@ def test_best_only_asp_negotiator():
     if len(a1offers) > 0:
         assert len(set(a1offers)) <= 2 and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9
     assert len(set(a2offers)) >= 1
+
+
+def test_controller():
+    n_sessions = 5
+    c = SAOController(default_negotiator_type='negmas.sao.AspirationNegotiator'
+                   , default_negotiator_params={'aspiration_type': 'conceder'})
+    sessions = [SAOMechanism(outcomes=10, n_steps=10) for _ in range(n_sessions)]
+    for session in sessions:
+        session.add(AspirationNegotiator(aspiration_type='conceder')
+                    , ufun=RandomUtilityFunction(outcomes=session.outcomes))
+        session.add(c.create_negotiator(), ufun=RandomUtilityFunction(outcomes=session.outcomes))
+    completed = []
+    while len(completed) < n_sessions:
+        for i, session in enumerate(sessions):
+            if i in completed:
+                continue
+            state = session.step()
+            if state.broken or state.timedout or state.agreement is not None:
+                completed.append(i)
+    # we are just asserting that the controller runs
 
 
 if __name__ == '__main__':

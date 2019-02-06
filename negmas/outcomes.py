@@ -56,7 +56,8 @@ __all__ = [
     'outcome_range_is_valid',
     'outcome_range_is_complete',
     'outcome_in_range',
-    'enumerate_outcomes'
+    'enumerate_outcomes',
+    'sample_outcomes',
     # 'range_intersection',
     # 'range_union',
     # 'range_invert',

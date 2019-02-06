@@ -1,21 +1,17 @@
-import math
 import random
-from abc import ABC, abstractmethod
-from copy import deepcopy, copy
+from abc import abstractmethod
+from typing import Dict, Any, Callable
 from typing import Sequence, Optional, List, Tuple, Iterable, Union
-from typing import TYPE_CHECKING, Dict, Any, Callable
-from collections import namedtuple
 
 import numpy as np
 from dataclasses import dataclass
 
-from negmas import NamedObject, ResponseType, outcome_is_valid, make_discounted_ufun, MechanismRoundResult, \
-    Mechanism, Negotiator, AspirationMixin, UtilityValue
 from negmas.common import *
 from negmas.events import Notification
-from negmas.helpers import *
-from negmas.outcomes import sample_outcomes, Outcome
-from negmas.utilities import MappingUtilityFunction, normalize, UtilityFunction
+from negmas.mechanisms import MechanismRoundResult, Mechanism
+from negmas.negotiators import Negotiator, AspirationMixin, Controller
+from negmas.outcomes import sample_outcomes, Outcome, outcome_is_valid, ResponseType
+from negmas.utilities import MappingUtilityFunction, normalize, UtilityFunction, UtilityValue
 
 __all__ = [
     'SAOState',
@@ -33,6 +29,8 @@ __all__ = [
     'OnlyBestNegotiator',
     'SimpleTitForTatNegotiator',
     'NiceNegotiator',
+    'SAOController',
+    'SAOControllerProxy',
 ]
 
 
@@ -389,13 +387,13 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
     """
 
     def init_limited_outcomes(self,
-                 outcomes: Optional[Union[int, Iterable['Outcome']]] = None,
-                 acceptable_outcomes: Optional[Iterable['Outcome']] = None,
-                 acceptance_probabilities: Optional[Union[float, List[float]]] = None,
-                 proposable_outcomes: Optional[Iterable['Outcome']] = None,
-                 p_ending=0.0,
-                 p_no_response=0.0,
-                 ) -> None:
+                              outcomes: Optional[Union[int, Iterable['Outcome']]] = None,
+                              acceptable_outcomes: Optional[Iterable['Outcome']] = None,
+                              acceptance_probabilities: Optional[Union[float, List[float]]] = None,
+                              proposable_outcomes: Optional[Iterable['Outcome']] = None,
+                              p_ending=0.0,
+                              p_no_response=0.0,
+                              ) -> None:
         """Constructor
 
         Args:
@@ -426,9 +424,9 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
 
 class SAONegotiator(Negotiator):
     def __init__(self, assume_normalized=True, ufun: Optional[UtilityFunction] = None, name: Optional[str] = None
-                 , rational_proposal=True):
-        super().__init__(name=name, ufun=ufun)
-        self.assume_normalized = assume_normalized        
+                 , rational_proposal=True, parent: Controller = None):
+        super().__init__(name=name, ufun=ufun, parent=parent)
+        self.assume_normalized = assume_normalized
         self.__end_negotiation = False
         self.my_last_proposal: Optional['Outcome'] = None
         self.my_last_proposal_utility: float = None
@@ -539,7 +537,7 @@ class SAONegotiator(Negotiator):
         if utility is not None and self.ufun(offer) >= utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
-    
+
     # CALLBACK
     def on_partner_proposal(self, state: MechanismState, agent_id: str, offer: 'Outcome') -> None:
         """
@@ -606,22 +604,22 @@ class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
     def __init__(
         self,
         outcomes: Union[int, List['Outcome']],
-        name: str = None,
+        name: str = None, parent: Controller = None,
         reserved_value: float = 0.0,
         p_acceptance=0.15,
         p_rejection=0.25,
         p_ending=0.1,
         can_propose=True
     ) -> None:
-        super().__init__(name=name)
+        super().__init__(name=name, parent=parent)
         # noinspection PyCallByClass
-        self.init_ranodm_response( p_acceptance=p_acceptance, p_rejection=p_rejection, p_ending=p_ending)
+        self.init_ranodm_response(p_acceptance=p_acceptance, p_rejection=p_rejection, p_ending=p_ending)
         self.init_random_proposal()
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
         self.capabilities['propose'] = can_propose
         self.utility_function = MappingUtilityFunction(dict(zip(outcomes, np.random.rand(len(outcomes))))
-                                              , reserved_value=reserved_value)
+                                                       , reserved_value=reserved_value)
 
 
 # noinspection PyCallByClass
@@ -630,16 +628,15 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
     negotiation."""
 
     def __init__(
-        self,
-        name: str = None,
+        self, name: str = None
+        , parent: Controller = None,
         outcomes: Optional[Union[int, Iterable['Outcome']]] = None,
         acceptable_outcomes: Optional[List['Outcome']] = None,
         acceptance_probabilities: Optional[Union[float, List[float]]] = None,
         p_ending=0.0,
         p_no_response=0.0,
     ) -> None:
-        # noinspection PyCallByClass
-        super().__init__()
+        super().__init__(name=name, parent=parent)
         self.init_limited_outcomes(p_ending=p_ending, p_no_response=p_no_response
                                    , acceptable_outcomes=acceptable_outcomes
                                    , acceptance_probabilities=acceptance_probabilities, outcomes=outcomes)
@@ -655,15 +652,14 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
 
     def __init__(
         self,
-        name: str = None,
+        name: str = None, parent: Controller = None,
         outcomes: Optional[Union[int, Iterable['Outcome']]] = None,
         acceptable_outcomes: Optional[List['Outcome']] = None,
         acceptance_probabilities: Optional[List[float]] = None,
         p_ending=0.0,
         p_no_response=0.0,
     ) -> None:
-        SAONegotiator.__init__(self, name=name)
-        # noinspection PyCallByClass
+        SAONegotiator.__init__(self, name=name, parent=parent)
         self.init_limited_outcomes_acceptor(
             p_ending=p_ending,
             p_no_response=p_no_response,
@@ -682,9 +678,9 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
 
 
 class AspirationNegotiator(SAONegotiator, AspirationMixin):
-    def __init__(self, name=None, max_aspiration=0.95, aspiration_type='boulware'
+    def __init__(self, name=None, parent: Controller = None, max_aspiration=0.95, aspiration_type='boulware'
                  , dynamic_ufun=True, randomize_offer=False, can_propose=True, assume_normalized=True):
-        super().__init__(name=name, assume_normalized=assume_normalized)
+        super().__init__(name=name, assume_normalized=assume_normalized, parent=parent)
         self.aspiration_init(max_aspiration=max_aspiration, aspiration_type=aspiration_type)
         self.ordered_outcomes = []
         self.dynamic_ufun = dynamic_ufun
@@ -777,8 +773,8 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
 
 
 class ToughNegotiator(SAONegotiator):
-    def __init__(self, name=None, dynamic_ufun=True, can_propose=True):
-        super().__init__(name=name)
+    def __init__(self, name=None, parent: Controller = None, dynamic_ufun=True, can_propose=True):
+        super().__init__(name=name, parent=parent)
         self.best_outcome = None
         self.dynamic_ufun = dynamic_ufun
         self.add_capabilities(
@@ -826,11 +822,11 @@ class ToughNegotiator(SAONegotiator):
 
 
 class OnlyBestNegotiator(SAONegotiator):
-    def __init__(self, name=None, dynamic_ufun=True
+    def __init__(self, name=None, parent: Controller = None, dynamic_ufun=True
                  , min_utility=0.95, top_fraction=0.05, best_first=False
                  , probabilisic_offering=True, can_propose=True
                  ):
-        super().__init__(name=name)
+        super().__init__(name=name, parent=parent)
         self.best_outcome = []
         self.dynamic_ufun = dynamic_ufun
         self.top_fraction = top_fraction
@@ -941,9 +937,10 @@ class OnlyBestNegotiator(SAONegotiator):
 class SimpleTitForTatNegotiator(SAONegotiator):
     """Implements a generalized tit-for-tat strategy"""
 
-    def __init__(self, name: str = None, ufun: Optional['UtilityFunction'] = None, kindness=0.0
-                 , randomize_offer=False, initial_concession: Union[float, str]='min'):
-        super().__init__(name=name, ufun=ufun)
+    def __init__(self, name: str = None, parent: Controller = None
+                 , ufun: Optional['UtilityFunction'] = None, kindness=0.0
+                 , randomize_offer=False, initial_concession: Union[float, str] = 'min'):
+        super().__init__(name=name, ufun=ufun, parent=parent)
         self.received_utilities = []
         self.proposed_utility = None
         self.kindness = kindness
@@ -1006,6 +1003,21 @@ class SimpleTitForTatNegotiator(SAONegotiator):
         return self._outcome_at_utility(asp=asp, n=1)[0]
 
 
+class SAOController(Controller):
+
+    def propose_(self, negotiator_id: str, state: MechanismState) -> Optional['Outcome']:
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if negotiator is None:
+            raise ValueError(f'Unknown negotiator {negotiator_id}')
+        return self.call(negotiator, 'propose_', state=state)
+
+    def respond_(self, negotiator_id: str, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if negotiator is None:
+            raise ValueError(f'Unknown negotiator {negotiator_id}')
+        return self.call(negotiator, 'respond_', state=state,  offer=offer)
+
+
 SAOMechanismProxy = SAOMechanism
 """A proxy to a `SAOMechanism` object"""
 
@@ -1013,6 +1025,10 @@ SAONegotiatorProxy = SAONegotiator
 """A proxy to an `SAONegotiator` object"""
 
 SAOProtocol = SAOMechanism
-"""A proxy to a `SAOMechanism object"""
+"""An alias for `SAOMechanism object"""
 
 SAOProtocolProxy = SAOMechanismProxy
+"""A proxy to a protocol (Alias for `SAOMechanismProxy`)"""
+
+SAOControllerProxy = SAOController
+"""A proxy to a `SAOController` object"""

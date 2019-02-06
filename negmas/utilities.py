@@ -1128,131 +1128,6 @@ def make_discounted_ufun(ufun: 'UtilityFunction', info: 'MechanismInfo'
     return ufun
 
 
-class MappingUtilityFunction(UtilityFunction):
-    """Outcome mapping utility function.
-
-    This is the simplest possible utility function and it just maps a set of ``Outcome``s to a set of
-    ``UtilityValue``(s). It is only usable with single-issue negotiations. It can be constructed with wither a mapping
-    (e.g. a dirct) or a callable function.
-
-    Args:
-            mapping: Either a callable or a mapping from ``Outcome`` (dict) to ``UtilityValue``.
-            default: value returned for outcomes causing exception (e.g. invalid outcomes).
-            name: name of the utility function. If None a random name will be generated.
-
-    Eamples:
-
-        Single issue outcome case:
-
-        >>> issue =Issue(values=['to be', 'not to be'], name='THE problem')
-        >>> print(str(issue))
-        THE problem: ['to be', 'not to be']
-        >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
-        >>> print(list(map(f, ['to be', 'not to be'])))
-        [10.0, 0.0]
-        >>> f = MappingUtilityFunction(mapping={'to be':-10.0, 'not to be':10.0})
-        >>> print(list(map(f, ['to be', 'not to be'])))
-        [-10.0, 10.0]
-        >>> f = MappingUtilityFunction(lambda x: float(len(x)))
-        >>> print(list(map(f, ['to be', 'not to be'])))
-        [5.0, 9.0]
-
-        Multi issue case:
-
-        >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
-        ...           , Issue(5, 'quality')]
-        >>> print(list(map(str, issues)))
-        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: 5']
-        >>> f = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0)
-        >>> g = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0
-        ...     , default=-1000 )
-        >>> f({'price': 16.0}) is None
-        True
-        >>> g({'price': 16.0})
-        -1000
-        >>> f({'price': 16.0, 'delivery':  'delivered'})
-        16.0
-        >>> f({'price': 16.0, 'delivery':  'not delivered'})
-        -1.0
-
-    Remarks:
-        - If the mapping used failed on the outcome (for example because it is not a valid outcome), then the
-        ``default`` value given to the constructor (which defaults to None) will be returned.
-
-    """
-
-    def __init__(
-        self, mapping: OutcomeUtilityMapping, default=None, name: str = None,
-        reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
-    ) -> None:
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
-        self.mapping = mapping
-        self.default = default
-
-    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
-        # noinspection PyBroadException
-        if offer is None:
-            return self.reserved_value
-        try:
-            if isinstance(offer, dict) and isinstance(self.mapping, dict):
-                m = gmap(self.mapping, tuple(offer.values()))
-            else:
-                m = gmap(self.mapping, offer)
-        except Exception:
-            return self.default
-
-        return m
-
-    def xml(self, issues: List[Issue]) -> str:
-        """
-
-        Examples:
-
-            >>> issue =Issue(values=['to be', 'not to be'], name='THE problem')
-            >>> print(str(issue))
-            THE problem: ['to be', 'not to be']
-            >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
-            >>> print(list(map(f, ['to be', 'not to be'])))
-            [10.0, 0.0]
-            >>> print(f.xml([issue]))
-            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="THE problem">
-                <item index="1" value="to be"  cost="0"  evaluation="10.0" description="to be">
-                </item>
-                <item index="2" value="not to be"  cost="0"  evaluation="0.0" description="not to be">
-                </item>
-            </issue>
-            <weight index="1" value="1.0">
-            </weight>
-            <BLANKLINE>
-        """
-        if len(issues) > 1:
-            raise ValueError('Cannot call xml() on a mapping utility function with more than one issue')
-        if issues is not None:
-            issue_names = [_.name for _ in issues]
-            key = issue_names[0]
-        else:
-            key = '0'
-        output = f'<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="{key}">\n'
-        if isinstance(self.mapping, Callable):
-            for i, k in enumerate(issues[key].all):
-                if isinstance(k, tuple) or isinstance(k, list):
-                    k = '-'.join([str(_) for _ in k])
-                output += f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n' \
-                          f'    </item>\n'
-        else:
-            for i, (k, v) in enumerate(ienumerate(self.mapping)):
-                if isinstance(k, tuple) or isinstance(k, list):
-                    k = '-'.join([str(_) for _ in k])
-                output += f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n' \
-                          f'    </item>\n'
-        output += '</issue>\n'
-        output += '<weight index="1" value="1.0">\n</weight>\n'
-        return output
-
-    def __str__(self) -> str:
-        return f'mapping: {self.mapping}\ndefault: {self.default}'
-
-
 class LinearUtilityAggregationFunction(UtilityFunction):
     r"""A linear utility function for multi-issue negotiations.
 
@@ -1440,6 +1315,143 @@ class LinearUtilityAggregationFunction(UtilityFunction):
 
     def __str__(self):
         return f'u: {self.issue_utilities}\n w: {self.weights}'
+
+
+class MappingUtilityFunction(UtilityFunction):
+    """Outcome mapping utility function.
+
+    This is the simplest possible utility function and it just maps a set of ``Outcome``s to a set of
+    ``UtilityValue``(s). It is only usable with single-issue negotiations. It can be constructed with wither a mapping
+    (e.g. a dirct) or a callable function.
+
+    Args:
+            mapping: Either a callable or a mapping from ``Outcome`` (dict) to ``UtilityValue``.
+            default: value returned for outcomes causing exception (e.g. invalid outcomes).
+            name: name of the utility function. If None a random name will be generated.
+
+    Eamples:
+
+        Single issue outcome case:
+
+        >>> issue =Issue(values=['to be', 'not to be'], name='THE problem')
+        >>> print(str(issue))
+        THE problem: ['to be', 'not to be']
+        >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
+        >>> print(list(map(f, ['to be', 'not to be'])))
+        [10.0, 0.0]
+        >>> f = MappingUtilityFunction(mapping={'to be':-10.0, 'not to be':10.0})
+        >>> print(list(map(f, ['to be', 'not to be'])))
+        [-10.0, 10.0]
+        >>> f = MappingUtilityFunction(lambda x: float(len(x)))
+        >>> print(list(map(f, ['to be', 'not to be'])))
+        [5.0, 9.0]
+
+        Multi issue case:
+
+        >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
+        ...           , Issue(5, 'quality')]
+        >>> print(list(map(str, issues)))
+        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: 5']
+        >>> f = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0)
+        >>> g = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0
+        ...     , default=-1000 )
+        >>> f({'price': 16.0}) is None
+        True
+        >>> g({'price': 16.0})
+        -1000
+        >>> f({'price': 16.0, 'delivery':  'delivered'})
+        16.0
+        >>> f({'price': 16.0, 'delivery':  'not delivered'})
+        -1.0
+
+    Remarks:
+        - If the mapping used failed on the outcome (for example because it is not a valid outcome), then the
+        ``default`` value given to the constructor (which defaults to None) will be returned.
+
+    """
+
+    def __init__(
+        self, mapping: OutcomeUtilityMapping, default=None, name: str = None,
+        reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
+    ) -> None:
+        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        self.mapping = mapping
+        self.default = default
+
+    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
+        # noinspection PyBroadException
+        if offer is None:
+            return self.reserved_value
+        try:
+            if isinstance(offer, dict) and isinstance(self.mapping, dict):
+                m = gmap(self.mapping, tuple(offer.values()))
+            else:
+                m = gmap(self.mapping, offer)
+        except Exception:
+            return self.default
+
+        return m
+
+    def xml(self, issues: List[Issue]) -> str:
+        """
+
+        Examples:
+
+            >>> issue =Issue(values=['to be', 'not to be'], name='THE problem')
+            >>> print(str(issue))
+            THE problem: ['to be', 'not to be']
+            >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
+            >>> print(list(map(f, ['to be', 'not to be'])))
+            [10.0, 0.0]
+            >>> print(f.xml([issue]))
+            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="THE problem">
+                <item index="1" value="to be"  cost="0"  evaluation="10.0" description="to be">
+                </item>
+                <item index="2" value="not to be"  cost="0"  evaluation="0.0" description="not to be">
+                </item>
+            </issue>
+            <weight index="1" value="1.0">
+            </weight>
+            <BLANKLINE>
+        """
+        if len(issues) > 1:
+            raise ValueError('Cannot call xml() on a mapping utility function with more than one issue')
+        if issues is not None:
+            issue_names = [_.name for _ in issues]
+            key = issue_names[0]
+        else:
+            key = '0'
+        output = f'<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="{key}">\n'
+        if isinstance(self.mapping, Callable):
+            for i, k in enumerate(issues[key].all):
+                if isinstance(k, tuple) or isinstance(k, list):
+                    k = '-'.join([str(_) for _ in k])
+                output += f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n' \
+                          f'    </item>\n'
+        else:
+            for i, (k, v) in enumerate(ienumerate(self.mapping)):
+                if isinstance(k, tuple) or isinstance(k, list):
+                    k = '-'.join([str(_) for _ in k])
+                output += f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n' \
+                          f'    </item>\n'
+        output += '</issue>\n'
+        output += '<weight index="1" value="1.0">\n</weight>\n'
+        return output
+
+    def __str__(self) -> str:
+        return f'mapping: {self.mapping}\ndefault: {self.default}'
+
+
+class RandomUtilityFunction(MappingUtilityFunction):
+    """A random utility function for a discrete outcome space"""
+    def __init__(self, outcomes: List[Outcome]):
+        if len(outcomes) < 1:
+            raise ValueError('Cannot create a random utility function without outcomes')
+        if isinstance(outcomes[0], tuple):
+            pass
+        else:
+            outcomes = [tuple(o.keys()) for o in outcomes]
+        super().__init__(mapping=dict(zip(outcomes, np.random.rand(len(outcomes)))))
 
 
 class NonLinearUtilityAggregationFunction(UtilityFunction):

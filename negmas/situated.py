@@ -1383,37 +1383,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
             if negotiation:
                 del self.running_negotiations[mechanism_id]
 
-    def respond(self, negotiator: NegotiatorProxy, cntxt: Dict[str, Any], offer: 'Outcome'
-                , info: MechanismInfo, state: MechanismState) -> ResponseType:
-        """Will be called by pass-through negotiators whenever they are asked to respond to an offer"""
-        return ResponseType.NO_RESPONSE
-
-    def propose(self, negotiator: NegotiatorProxy, cntxt: Dict[str, Any], info: MechanismInfo
-                , state: MechanismState) -> Optional['Outcome']:
-        """Will be called by pass-through negotiators when asked to propose offers."""
-        return None
-
     def __str__(self):
         return f'{self.name}'
 
     __repr__ = __str__
-
-
-class PassThroughAlternatingOffersNegotiator(SAONegotiator):
-    """A negotiator that just passes through any calls to its parent `Agent` class."""
-
-    def __init__(self, parent: 'Agent', cntxt: dict, **kwargs):
-        super().__init__(**kwargs)
-        self.parent = parent
-        self.cntxt = cntxt
-
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
-        """Respond to an offer by passing it to the parent"""
-        return self.parent.respond(negotiator=self, cntxt=self.cntxt, info=self.mechanism_info,
-                                   state=state, offer=offer)
-
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
-        return self.parent.propose(negotiator=self, cntxt=self.cntxt, info=self.mechanism_info, state=state)
-
-    def __getattr__(self, item):
-        return getattr(self.parent, item)

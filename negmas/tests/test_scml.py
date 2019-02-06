@@ -246,6 +246,14 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay_no_immediat
 #     data.to_csv(f'{logdir()}/contracts.csv')
 
 
+def test_anac2019():
+    world = anac2019_world(n_steps=10, consumption_horizon=10)
+    world.run()
+    assert world.business_size > 0.0
+    assert world.breach_rate < 0.9
+    assert world.agreement_rate > 0.1
+
+
 @pytest.fixture
 def sample_products() -> List[Product]:
     return [Product(name=f'pr_{i}', catalog_price=i + 1, id=i, production_level=i, expires_in=0) for i in range(5)]

@@ -93,16 +93,15 @@ def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, consu
                              , 'n_neg_steps', 'concluded_at', 'cfp']]
         data = data.sort_values(['delivery_time'])
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
-        n_signed, n_breaches = sum(world.stats['n_contracts_signed']), sum(world.stats['n_breaches'])
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
         n_contracts = len(world.saved_contracts)
         print_and_log(f'{n_contracts} contracts :-) [N. Negotiations: {n_negs}'
-                      f', Agreement Rate: {n_contracts / n_negs if n_negs != 0 else 0: 0.0%}]')
-        print_and_log(f'Executed: {n_executed / n_signed:0.0%}'
-                      f', Breached: {n_breaches / n_signed:0.0%}'
+                      f', Agreement Rate: {world.agreement_rate: 0.0 %}]')
+        print_and_log(f'Executed: {world.contract_execution_fraction:0.0%}'
+                      f', Breached: {world.breach_rate:0.0%}'
                       f', N. Executed: {n_executed}'
-                      f', Business size: {sum(world.stats["activity_level"])}\n'
+                      f', Business size: {world.business_size}\n'
                       f'Winners: {[(_.name, _.factory.state.balance) for _ in world.winners]}'
                       f'Running Time {humanize_time(elapsed)}')
     else:
