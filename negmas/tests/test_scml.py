@@ -229,33 +229,6 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay_no_immediat
     assert sum(world.stats['n_breaches']) == 0, "No breaches"
     assert sum(world.stats['market_size']) == 0, "No change in the market size"
 
-    # data = pd.DataFrame(data=world.saved_contracts).loc[:, ["buyer", "seller", "product", "quantity", "delivery_time"
-    # , "unit_price", "penalty", "signing_delay", "concluded_at", "signed_at", "issues", "cfp"]]
-    # data.to_csv(f'{logdir()}/contracts.csv')
-
-
-# def test_can_run_a_no_factory_scml_world():
-#     world = SCMLWorld.random_small(log_file_name='', n_factories=0
-#                                    , n_production_levels=0
-#                                    , n_steps=100)
-#     world.run()
-#     print('')
-#     for key in sorted(world.stats.keys()):
-#         print(f'{key}:{world.stats[key]}')
-#     data = pd.DataFrame(data=world.saved_contracts).loc[:, ["buyer", "seller", "product", "quantity", "delivery_time"
-#     , "unit_price", "penalty", "signing_delay", "concluded_at", "signed_at", "issues", "cfp"]]
-#     data.to_csv(f'{logdir()}/contracts.csv')
-
-
-@pytest.mark.parametrize('n_steps,consumption_horizon'
-        , [(10, 10), (60, 10)], ids=['short', 'default'])
-def test_anac2019(n_steps, consumption_horizon):
-    world = anac2019_world(n_steps=n_steps, consumption_horizon=consumption_horizon)
-    world.run()
-    assert world.business_size > 0.0
-    assert world.breach_rate < 0.9
-    assert world.agreement_rate > 0.1
-
 
 @pytest.fixture
 def sample_products() -> List[Product]:
@@ -401,7 +374,11 @@ class TestFactory:
         factory.schedule_job(j0)
         for t in range(n_steps):
             # print(f'{t}>> wallet: {factory.state.wallet}, storage: {factory.state.storage}')
-            failures = factory.step(t)
+            reports = factory.step(t)
+            failures = []
+            for report in reports:
+                if report.failed:
+                    failures.append(report.failure)
             if t == t0:
                 assert len(failures) == 2 - int(enough_storage()) - int(initial_balance > line.profiles[p.id].cost)
             else:
@@ -482,7 +459,8 @@ class TestLine:
         storage = {sample_products[0].id: 10, sample_products[1].id: 10, sample_products[2].id: 0}
         sample_line.schedule_job(j0)
         for t in range(n_steps):
-            result = sample_line.step(t, storage=storage, wallet=1000)
+            report = sample_line.step(t, storage=storage, wallet=1000)
+            result = report.updates
             assert result is not None
             # print(t, result)
             if t == t0:
@@ -509,15 +487,15 @@ class TestLine:
         storage = {sample_products[0].id: 0, sample_products[1].id: 0, sample_products[2].id: 0}
         sample_line.schedule_job(j0)
         for t in range(n_steps):
-            result = sample_line.step(t, storage=storage, wallet=1000)
+            report = sample_line.step(t, storage=storage, wallet=1000)
             if t == t0:
-                assert isinstance(result, ProductionFailure)
-                assert len(result.missing_inputs) > 0
-                assert result.missing_money == 0
+                assert report.failure is not None
+                assert len(report.failure.missing_inputs) > 0
+                assert report.failure.missing_money == 0
             else:
-                assert not isinstance(result, ProductionFailure) and result is not None
-                assert result.empty()
-                for k, v in result.storage.items():
+                assert report.failure is None and report.updates is not None
+                assert report.updates.empty
+                for k, v in report.updates.storage.items():
                     storage[k] += v
         assert storage[sample_products[0].id] == 0
         assert storage[sample_products[1].id] == 0
@@ -533,15 +511,15 @@ class TestLine:
         storage = {sample_products[0].id: 0, sample_products[1].id: 0, sample_products[2].id: 0}
         sample_line.schedule_job(j0)
         for t in range(n_steps):
-            result = sample_line.step(t, storage=storage, wallet=sample_profiles[p.id].cost/2)
+            report = sample_line.step(t, storage=storage, wallet=sample_profiles[p.id].cost/2)
             if t == t0:
-                assert isinstance(result, ProductionFailure)
-                assert result.missing_money == sample_profiles[p.id].cost/2
-                assert len(result.missing_inputs) > 0
+                assert report.failure is not None
+                assert report.failure.missing_money == sample_profiles[p.id].cost/2
+                assert len(report.failure.missing_inputs) > 0
             else:
-                assert not isinstance(result, ProductionFailure) and result is not None
-                assert result.empty()
-                for k, v in result.storage.items():
+                assert not report.failed and report.updates is not None
+                assert report.updates.empty
+                for k, v in report.updates.storage.items():
                     storage[k] += v
         assert storage[sample_products[0].id] == 0
         assert storage[sample_products[1].id] == 0
