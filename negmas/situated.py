@@ -64,6 +64,7 @@ __all__ = [
     'Entity',
     'AgentWorldInterface',  # the interface though which an agent can interact with the world
     'NegotiationInfo',
+    'RenegotiationRequest',
 ]
 
 PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
@@ -107,7 +108,7 @@ class Contract(OutcomeType):
     """Object name"""
 
     def __str__(self):
-        return f'{", ".join(self.partners)} agreed on {self.agreement}'
+        return f'{", ".join(self.partners)} agreed on {str(self.agreement)}'
 
     def __hash__(self):
         """The hash depends only on the name"""
@@ -122,7 +123,7 @@ class Breach:
     """The agent committing the breach"""
     type: str
     """The type of the breach. Can be one of: `refusal`, `product`, `money`, `penalty`."""
-    victims: Set['Agent'] = field(default_factory=set)
+    victims: List['Agent'] = field(default_factory=list)
     """Specific victims of the breach. If not given all partners in the agreement (except perpetrator) are considered 
     victims"""
     level: float = 1.0
@@ -136,6 +137,9 @@ class Breach:
         """The hash depends only on the name"""
         return self.id.__hash__()
 
+    def __str__(self):
+        return f'Breach ({self.level} {self.type}) by {self.perpetrator.name} on {self.contract.id} at {self.step}'
+
 
 class BreachProcessing(Enum):
     """The way breaches are to be handled"""
@@ -145,6 +149,14 @@ class BreachProcessing(Enum):
     """The victim is asked to set the re-negotiation agenda then the perpetrator."""
     META_NEGOTIATION = 2
     """A meta negotiation is instantiated between victim and perpetrator to set re-negotiation issues."""
+
+
+@dataclass
+class RenegotiationRequest:
+    publisher: 'Agent'
+    partner: 'Agent'
+    issues: List[Issue]
+    annotation: Dict[str, Any] = field(default_factory=dict)
 
 
 class Entity(NamedObject):
@@ -230,7 +242,20 @@ class BulletinBoard(Entity, EventSource, ConfigReader, LoggerMixin):
             return sec
         if query_keys:
             return {k: v for k, v in sec.items() if re.match(str(query), k) is not None}
-        return {k: v for k, v in sec.items() if v.satisfies(query)}
+        return {k: v for k, v in sec.items() if BulletinBoard.satisfies(v, query)}
+
+    @classmethod
+    def satisfies(cls, value: Any, query: Any) -> bool:
+        method = getattr(value, 'satisfies', None)
+        if method is not None and isinstance(method, Callable):
+            return method(query)
+        if isinstance(value, dict) and isinstance(query, dict):
+            for k, v in query.items():
+                if value.get(k, None) != v:
+                    return False
+        else:
+            raise ValueError(f'Cannot check satisfaction of {type(query)} against value {type(value)}')
+        return True
 
     def read(self, section: str, key: str) -> Optional[Any]:
         """
@@ -575,7 +600,7 @@ class AgentWorldInterface:
         self._world.logerror(msg)
 
 
-class World(EventSink, ConfigReader, LoggerMixin, ABC):
+class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
 
@@ -848,6 +873,8 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
         self._stats['n_contracts_executed'].append(n_new_contract_executions)
         self._stats['n_contracts_cancelled'].append(n_cancelled)
         self._stats['n_breaches'].append(n_new_breaches)
+        self._stats['breach_level'].append(n_new_breaches / n_new_contract_executions
+                                           if n_new_contract_executions > 0 else -1)
         self._stats['n_contracts_signed'].append(self.__n_contracts_signed)
         self._stats['n_contracts_concluded'].append(self.__n_contracts_concluded)
         self._stats['n_negotiations'].append(self.__n_negotiations)
@@ -1056,9 +1083,12 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
             sign_status = "signed" if signed else "cancelled"
         else:
             sign_status = f"to be signed at {contract.to_be_signed_at}"
-        self.logdebug(f'Contract between {[_.name for _ in partners]}'
-                      f' with agreement {mechanism.agreement} on annotation {negotiation.annotation} '
-                      f'[{sign_status}]')
+        if negotiation.annotation is not None:
+            annot_ = dict(zip(negotiation.annotation.keys(), (str(_) for _ in negotiation.annotation.values())))
+        else:
+            annot_ = ''
+        self.logdebug(f'Contract [{sign_status}]: {[_.name for _ in partners]}'
+                      f' > {str(mechanism.agreement)} on annotation {annot_}')
         return contract
 
     def _register_failed_negotiation(self, mechanism, negotiation) -> None:
@@ -1171,29 +1201,61 @@ class World(EventSink, ConfigReader, LoggerMixin, ABC):
             - You must call super() implementation of this method before doing anything
 
         """
-        self.loginfo(
-            f'Contract {contract.id} between '
-            f'{contract.partners} is to be executed')
+        self.loginfo(f'Executing {str(contract)}')
         return set()
 
-    @abstractmethod
     def _process_breach(self, breach: Breach) -> bool:
-        """
-        Processes a breach in contract exeuction
+        self.loginfo(f'Breach by {str(breach.perpetrator)} against: {[str(_) for _ in breach.victims]}'
+                     f' for {str(breach.contract)}')
+        breach_resolved = False
 
-        Args:
-            breach:
+        if self.breach_processing == BreachProcessing.META_NEGOTIATION:
+            raise NotImplementedError('Meta negotiations are still not implemented')
+        elif self.breach_processing == BreachProcessing.VICTIM_THEN_PERPETRATOR:
+            contract, perpetrator = breach.contract, breach.perpetrator
+            partners = set(self.agents[_] for _ in contract.partners)
+            victims = partners - {perpetrator}  # type: ignore
 
-        Returns:
-            bool: Whether the breach was resolved
+            for victim in victims:
+                request = victim.on_breach_by_another(contract=contract, partner=perpetrator.id)
+                if request is not None and request.annotation is not None:
+                    responses = []
+                    for partner in partners - {victim}:  # type: ignore
+                        responses.append(partner.on_renegotiation_request(contract=contract
+                                                                          , partner=victim.id
+                                                                          , cfp=request.annotation['cfp']))
+                    if not all(responses):
+                        continue
+                    if not breach_resolved:
+                        partner_names = [_.id for _ in breach.victims + [breach.perpetrator]]
+                        breach_resolved = self.run_negotiation(caller=victim
+                                                               , issues=request.issues
+                                                               , partners=partner_names
+                                                               , roles=None
+                                                               , annotation=request.annotation
+                                                               , mechanism_name=None
+                                                               , mechanism_params=None) is not None
 
-        Remarks:
-            - You must call super() implementation of this method before doing anything and do not process the breach
-              if this super implementation resolved the breach
+            if len(victims) > 0:
+                request = perpetrator.on_breach_by_self(contract=contract, victims=[_.id for _ in victims])
+                if request is not None:
+                    responses = []
+                    for partner in partners - {perpetrator}:  # type: ignore
+                        responses.append(partner.on_renegotiation_request(contract=contract
+                                                                          , partner=perpetrator.id
+                                                                          , cfp=request.annotation['cfp']))
+                    if all(responses):
+                        if not breach_resolved:
+                            breach_resolved = self.run_negotiation(caller=perpetrator, issues=request.issues
+                                                                   , partners=breach.victims + [breach.perpetrator]
+                                                                   , roles=None
+                                                                   , annotation=request.annotation
+                                                                   , mechanism_name=None
+                                                                   , mechanism_params=None) is not None
 
-        """
-        self.loginfo(f'Breach committed by {breach.perpetrator} against: {breach.victims}'
-                     f' for contract {breach.contract}')
+        if breach_resolved:
+            return True
+        self._register_breach(breach)
         return False
 
     @abstractmethod
@@ -1387,3 +1449,21 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         return f'{self.name}'
 
     __repr__ = __str__
+
+    @abstractmethod
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
+        """Called when the agent is about to commit a breach"""
+
+    @abstractmethod
+    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+        """Called when a partner is about to cause a breach"""
+
+    @abstractmethod
+    def on_breach_meta_negotiation(self, contract: Contract, partner: str, issues: List[Issue]) \
+        -> Optional[NegotiatorProxy]:
+        """Called when a partner or self is about to cause a breach if the breach_processing setting is set to
+        start a meta negotiation. The agent should either return None or a negotiator"""
+
+    @abstractmethod
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        """Called to respond to a re-negotiation request"""

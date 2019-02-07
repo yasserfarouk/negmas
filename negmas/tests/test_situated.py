@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Dict, Any, Union, Callable, Set, Itera
 import pytest
 
 from negmas import Issue, AspirationNegotiator, LinearUtilityAggregationFunction, Mechanism, Negotiator, \
-    SAOMechanism, MechanismProxy
+    SAOMechanism, MechanismProxy, NegotiatorProxy, RenegotiationRequest
 from negmas.helpers import ConfigReader
 from negmas.situated import World, Agent, Action, Breach, Contract
 
@@ -68,6 +68,19 @@ class DummyWorld(World):
 
 
 class DummyAgent(Agent):
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
+        pass
+
+    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+        pass
+
+    def on_breach_meta_negotiation(self, contract: Contract, partner: str, issues: List[Issue]) -> Optional[
+        NegotiatorProxy]:
+        pass
+
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        pass
+
     def __init__(self, name=None):
         super().__init__(name=name)
         self.id = name

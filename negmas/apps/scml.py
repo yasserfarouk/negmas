@@ -10,7 +10,7 @@ Simulation steps:
 
     #. prepare custom stats (call `_pre_step_stats`)
     #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
-    #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotaitions and creating
+    #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating
        contracts for any resulting agreements
     #. run all `ActiveEntity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then
        `Miner` s
@@ -104,6 +104,7 @@ from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, OutcomeType, Outcome
 from negmas.sao import AspirationNegotiator
 from negmas.situated import Agent, Contract, World, Action, AgentWorldInterface, Breach, BreachProcessing
+from negmas.situated import RenegotiationRequest
 from negmas.utilities import UtilityFunctionProxy, UtilityValue, LinearUtilityAggregationFunction, normalize, \
     ComplexWeightedUtilityFunction, MappingUtilityFunction
 
@@ -911,16 +912,22 @@ class Line:
 
 @dataclass
 class Loan:
-    amount: float = 0.0
+    amount: float
     """Loan amount"""
-    total: float = 0.0
+    starts_at: int
+    """The time-step at which payment starts"""
+    total: float
     """The total to be paid including the amount + interests"""
-    interest: float = 0.0
+    interest: float
     """The interest rate per step"""
-    installment: float = 0.0
+    installment: float
     """The amount to be paid in one installment"""
-    n_installments: int = 1
+    n_installments: int
     """The number of installments"""
+
+    def __str__(self):
+        return f'{self.amount} @ {self.interest} paid in {self.n_installments} [{self.installment} each] ' \
+            f'for a total {self.total} [starts at {self.starts_at}]'
 
 
 @dataclass
@@ -955,14 +962,6 @@ class FactoryState:
                             , _balance_prediction=self._balance_prediction.copy()
                             , _storage_prediction=self._storage_prediction.copy()
                             , _reserved_storage=self._reserved_storage.copy())
-
-
-@dataclass
-class RenegotiationRequest:
-    publisher: 'SCMLAgent'
-    partner: 'SCMLAgent'
-    issues: List[Issue]
-    annotation: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -1068,24 +1067,6 @@ class SCMLAgent(Agent, ABC):
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         """Called when a prospective partner requests a negotiation to start"""
 
-    @abstractmethod
-    def on_breach_by_self(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
-        """Called when the agent is about to commit a breach"""
-
-    @abstractmethod
-    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
-        """Called when a partner is about to cause a breach"""
-
-    @abstractmethod
-    def on_breach_meta_negotiation(self, contract: Contract, partner: str, issues: List[Issue]) \
-        -> Optional[NegotiatorProxy]:
-        """Called when a partner or self is about to cause a breach if the breach_processing setting is set to
-        start a meta negotiation. The agent should either return None or a negotiator"""
-
-    @abstractmethod
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
-        """Called to respond to a re-negotiation request"""
-
     @property
     def factory_state(self):
         """Read only access to factory state"""
@@ -1116,6 +1097,247 @@ def zero_runs(a: np.array) -> np.array:
     if len(ranges) == 0 and a[0] == 0:
         return np.array([[0, len(a)]])
     return ranges
+
+
+class Bank(Agent):
+    """Represents a bank in the world"""
+
+    def __init__(self, minimum_balance: float, interest_rate: float
+                 , interest_max: float, balance_at_max_interest: float, installment_interest: float
+                 , time_increment: float, name: str = None):
+        super().__init__(name=name)
+        self.storage: Dict[int, int] = defaultdict(int)
+        self.wallet: float = 0.0
+        self.loans: Dict[SCMLAgent, List[Loan]] = defaultdict(list)
+        self.minimum_balance = minimum_balance
+        self.interest_rate = interest_rate
+        self.interest_max = interest_max
+        self.installment_interest = installment_interest
+        self.time_increment = time_increment
+        self.balance_at_max_interest = balance_at_max_interest
+        self.black_listed: Dict[str, float] = defaultdict(float)
+
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
+        raise ValueError('The bank does not receive callbacks')
+
+    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+        raise ValueError('The bank does not receive callbacks')
+
+    def on_breach_meta_negotiation(self, contract: Contract, partner: str
+                                   , issues: List[Issue]) -> Optional[NegotiatorProxy]:
+        raise ValueError('The bank does not receive callbacks')
+
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        raise ValueError('The bank does not receive callbacks')
+
+    def _evaluate_loan(self, agent: SCMLAgent, amount: float, n_installments: int, starts_at: int
+                       , installment_loan=False) -> Optional[Loan]:
+        """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
+        if agent.id in self.black_listed.keys():
+            return None
+        balance = agent.factory_state.balance
+
+        if self.interest_rate is None:
+            return None
+        interest = self.installment_interest if installment_loan else self.interest_rate
+
+        if balance < 0 and self.interest_max is not None:
+            interest += balance * (interest - self.interest_max) / self.balance_at_max_interest
+        interest += max(0, starts_at - self.awi.current_step) * self.time_increment
+        total = amount * (1 + interest) ** n_installments
+        installment = total / n_installments
+        if self.minimum_balance is not None and balance - total < - self.minimum_balance:
+            return None
+        return Loan(amount=amount, total=total, interest=interest
+                    , n_installments=n_installments, installment=installment, starts_at=starts_at)
+
+    def evaluate_loan(self, agent: SCMLAgent, amount: float, start_at: int, n_installments: int) -> Optional[Loan]:
+        """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
+        return self._evaluate_loan(agent=agent, amount=amount, n_installments=n_installments, installment_loan=False
+                                   , starts_at=start_at)
+
+    def _buy_loan(self, agent: SCMLAgent, loan: Loan, force=False) -> Optional[Loan]:
+        if loan is None:
+            return loan
+        if force or agent.confirm_loan(loan=loan):
+            self.loans[agent].append(loan)
+            self.awi.logdebug(f'Bank: {agent.name} borrowed {str(loan)}')
+            agent.factory_state.wallet += loan.amount
+            agent.factory_state.loans += loan.total
+            self.wallet -= loan.amount
+        return loan
+
+    def buy_loan(self, agent: SCMLAgent, amount: float, n_installments: int, force: bool = False) -> Optional[Loan]:
+        """Gives a loan of amount to agent at the interest calculated using `evaluate_loan`"""
+        loan = self.evaluate_loan(amount=amount, agent=agent, n_installments=n_installments
+                                  , start_at=self.awi.current_step)
+        return self._buy_loan(agent=agent, loan=loan, force=force)
+
+    def step(self):
+        """Takes payments from agents"""
+        # apply interests and pay loans
+        # -----------------------------
+        t = self.awi.current_step
+
+        # for every agent with loans
+        for agent, loans in self.loans.items():
+            keep = [True] * len(loans)  # a flag to tell whether a loan is to be kept for future processing
+            new_loans = []  # any new loans that may arise from failure to pay installments
+            for i, loan in enumerate(loans):
+                # if there are no remaining installments or I am in the grace period do not do anything
+                if loan.n_installments <= 0 or loan.starts_at > t:
+                    continue
+
+                # pay as much as possible from the agent's wallet (which may be zero)
+                wallet = agent.factory_state.wallet
+                payment = max(0, min(loan.installment, wallet))
+                loan.amount -= payment
+                agent.factory_state.wallet -= payment
+                agent.factory_state.loans -= payment
+                self.wallet += payment
+
+                if payment >= loan.installment:
+                    # reduce the number of remaining installments if needed
+                    loan.n_installments -= 1
+                else:
+                    # if the payment is not enough for the installment, try to get a new loan
+                    unavailable = loan.installment - payment
+                    new_loan = self._evaluate_loan(agent=agent, amount=unavailable, n_installments=1
+                                                   , installment_loan=True, starts_at=t + 1)
+                    if new_loan is None:
+                        # The agent does not have enough money and cannot get a new loan, blacklist it
+                        self.black_listed[agent.id] += unavailable
+                        self.awi.logdebug(f'Bank: {agent.name} blacklisted for {unavailable} (of {loan.installment})')
+                    else:
+                        # The agent does not have enough money but can pay the installment by getting a loan
+                        # we will get this loan later (the new_loans loop) so pre-pay it from the wallet
+                        new_loans.append(new_loan)
+                        self.awi.logdebug(f'Bank: {agent.name} payed an installment of {str(loan)} '
+                                          f'by a new loan {str(new_loan)}')
+                        loan.amount -= new_loan.amount
+                        agent.factory_state.wallet -= new_loan.amount
+                        agent.factory_state.loans -= new_loan.amount
+                        self.wallet += new_loan.amount
+                        loan.n_installments -= 1
+                        payment = loan.installment
+                # if the loan is completely paid, mark it for removal
+                if loan.n_installments <= 0:
+                    keep[i] = False
+                self.awi.logdebug(f'Bank: {agent.name} payed {payment} (of {loan.installment}) '
+                                  f'[{loan.n_installments} remain]')
+            # remove marked loans (that were completely paid)
+            self.loans[agent] = [l for i, l in enumerate(loans) if keep[i]]
+
+            # add new loans (that are needed to pay installments)
+            for loan in new_loans:
+                self._buy_loan(agent=agent, loan=loan, force=True)
+        # remove records of agents that paid all their loans
+        self.loans = {k: v for k, v in self.loans.items() if len(v) > 0}
+
+
+@dataclass
+class InsurancePolicy:
+    premium: float
+    contract: Contract
+    at_time: float
+    against: SCMLAgent
+
+
+class InsuranceCompany(Agent):
+    """Represents an insurance company in the world"""
+
+    def __init__(self, premium: float, premium_breach_increment: float, premium_time_increment: float
+                 , name: str = None):
+        super().__init__(name=name)
+        self.premium_breach_increment = premium_breach_increment
+        self.premium = premium
+        self.premium_time_increment = premium_time_increment
+        self.insured_contracts: Dict[Tuple[Contract, str], InsurancePolicy] = dict()
+        self.storage: Dict[int, int] = defaultdict(int)
+        self.wallet: float = 0.0
+
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
+        raise ValueError('The bank does not receive callbacks')
+
+    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+        raise ValueError('The bank does not receive callbacks')
+
+    def on_breach_meta_negotiation(self, contract: Contract, partner: str
+                                   , issues: List[Issue]) -> Optional[NegotiatorProxy]:
+        raise ValueError('The bank does not receive callbacks')
+
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        raise ValueError('The bank does not receive callbacks')
+
+    def evaluate_insurance(self, contract: Contract
+                           , insured: SCMLAgent, against: SCMLAgent, t: int = None) -> Optional[float]:
+        """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
+
+        Args:
+
+            contract: hypothetical contract
+            insured: The `SCMLAgent` I am ensuring against
+            t: time at which the policy is to be bought. If None, it means current step
+        """
+
+        # fail if no premium
+        if self.premium is None:
+            return None
+
+        # assume the insurance is to be bought now if needed
+        if t is None:
+            t = self.awi.current_step
+
+        # find the delay from contract signing. The more this is the more expensive the insurance will be
+        if contract.signed_at is None:
+            dt = 0
+        else:
+            dt = max(0, t - contract.signed_at)
+
+        # fail if the insurance is to be bought at or after the agreed upon delivery time
+        if t >= contract.agreement.get('time', -1):
+            return None
+
+        # find the total breach of the agent I am insuring against. The more this is, the more expensive the insurance
+        breaches = self.awi.bulletin_board.query(section='breaches', query={'perpetrator': against})
+        b = 0
+        if breaches is not None:
+            for _, breach in breaches.items():
+                b += breach.level
+        return (self.premium + b * self.premium_breach_increment) * (1 + self.premium_time_increment * dt)
+
+    def buy_insurance(self, contract: Contract, insured: SCMLAgent, against: SCMLAgent) -> Optional[InsurancePolicy]:
+        """Buys insurance for the contract by the premium calculated by the insurance company.
+
+        Remarks:
+            The agent can call `evaluate_insurance` to find the premium that will be used.
+        """
+        premium = self.evaluate_insurance(contract=contract, t=self.awi.current_step, insured=insured, against=against)
+        if premium is None or insured.factory_state.wallet < premium:
+            return None
+        insured.factory_state.wallet -= premium
+        policy = InsurancePolicy(contract=contract, at_time=self.awi.current_step, against=against, premium=premium)
+        self.insured_contracts[(contract, against.id)] = policy
+        return policy
+
+
+    def pay_insurance(self, contract: Contract, perpetrator: SCMLAgent) -> bool:
+        """
+
+        Args:
+            contract:
+            perpetrator:
+
+        Returns:
+
+        """
+        if (contract, perpetrator.id) in self.insured_contracts.keys():
+            del self.insured_contracts[(contract, perpetrator.id)]
+            return True
+        return False
+
+    def step(self):
+        """does nothing"""
 
 
 @dataclass
@@ -1882,14 +2104,14 @@ class Consumer(SCMLAgent, ConfigReader):
             , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
         if self.negotiator_type == AspirationNegotiator:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + partner
-                                              , aspiration_type='conceder')
+                                              , aspiration_type='boulware')
         else:
             negotiator = self.negotiator_type(name=self.name + '*' + partner)
         negotiator.name = self.name + '_' + partner
         negotiator.utility_function = ufun
         return negotiator
 
-    def on_breach_by_self(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
         raise ValueError('Consumers should never cause a breach')
 
     def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
@@ -2021,7 +2243,7 @@ class Miner(SCMLAgent, ConfigReader):
             , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
         if self.negotiator_type == AspirationNegotiator:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher
-                                              , dynamic_ufun=False, aspiration_type='conceder')
+                                              , dynamic_ufun=False, aspiration_type='boulware')
         else:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher)
         negotiator.utility_function = normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None)
@@ -2053,7 +2275,7 @@ class Miner(SCMLAgent, ConfigReader):
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         raise ValueError('Miners should never receive negotiation requests as they publish no CFPs')
 
-    def on_breach_by_self(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
         raise ValueError('Miners should never cause a breach')
 
     def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
@@ -2305,7 +2527,7 @@ class GreedyScheduler(Scheduler):
                 insurance = 0.0
             else:
                 insurance = self.awi.evaluate_insurance(contract=contract, t=self.awi.current_step)
-            if balances[t] >= p + insurance and \
+            if (insurance is None or balances[t] >= p * (1.0 + insurance)) and \
                 (factory.max_storage is None or np.max(total[t:]) <= factory.max_storage - q):
                 storage[pid, t:] += q
                 total[t:] += q
@@ -2498,7 +2720,7 @@ class FactoryManager(SCMLAgent, ConfigReader, ABC):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 
-    def on_breach_by_self(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
         return None
 
     def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
@@ -2587,7 +2809,7 @@ class GreedyFactoryManager(FactoryManager):
             return self.consumer.on_negotiation_request(cfp=cfp, partner=partner)
         else:
             if self.negotiator_type == AspirationNegotiator:
-                neg = self.negotiator_type(assume_normalized=True, aspiration_type='conceder'
+                neg = self.negotiator_type(assume_normalized=True, aspiration_type='boulware'
                                            , name=self.name + '*' + partner)
             else:
                 neg = self.negotiator_type(name=self.name + '*' + partner)
@@ -2620,10 +2842,12 @@ class GreedyFactoryManager(FactoryManager):
             if self.max_insurance_premium is not None and contract is not None:
                 premium = awi.evaluate_insurance(contract=contract)
                 if premium is not None:
-                    relative_premium = premium / (contract.agreement['unit_price'] * contract.agreement['quantity'])
-                    if relative_premium <= self.max_insurance_premium:
-                        awi.buy_insurance(contract=contract)
-                        self.factory.predicted_balance[self.awi.current_step:] -= premium
+                    total = contract.agreement['unit_price'] * contract.agreement['quantity']
+                    if total > 0:
+                        relative_premium = premium / total
+                        if relative_premium <= self.max_insurance_premium:
+                            awi.buy_insurance(contract=contract)
+                            self.factory.predicted_balance[self.awi.current_step:] -= premium
             for t, update in schedule.updates.items():
                 self.factory.predicted_balance[t:] -= update.balance
                 for product_id, q in update.storage.items():
@@ -2890,27 +3114,7 @@ class SnapshotRecord:
     n_negotiations: int
 
 
-@dataclass
-class InsurancePolicy:
-    premium: float
-    contract: Contract
-    at_time: float
-    against: SCMLAgent
-
-
 class SCMLAWI(AgentWorldInterface):
-
-    def evaluate_insurance(self, contract: Contract, t: int = None) -> Optional[float]:
-        """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
-
-        Args:
-
-            contract: hypothetical contract
-            t: time at which the policy is to be bought. If None, it means current step
-        """
-        self._world: SCMLWorld
-        self.agent: SCMLAgent
-        return self._world.evaluate_insurance(contract=contract, agent=self.agent, t=t)
 
     def register_cfp(self, cfp: CFP) -> None:
         """Registers a CFP"""
@@ -2927,6 +3131,18 @@ class SCMLAWI(AgentWorldInterface):
         if self.agent.id != cfp.publisher:
             return False
         return self._world.bulletin_board.remove(section='cfps', key=str(hash(cfp)))
+
+    def evaluate_insurance(self, contract: Contract, t: int = None) -> Optional[float]:
+        """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
+
+        Args:
+
+            contract: hypothetical contract
+            t: time at which the policy is to be bought. If None, it means current step
+        """
+        self._world: SCMLWorld
+        self.agent: SCMLAgent
+        return self._world.evaluate_insurance(contract=contract, agent=self.agent, t=t)
 
     def buy_insurance(self, contract: Contract) -> bool:
         """Buys insurance for the contract by the premium calculated by the insurance company.
@@ -2959,32 +3175,43 @@ class SCMLWorld(World):
                  , consumers: List[Consumer]
                  , miners: List[Miner]
                  , factory_managers: Optional[List[FactoryManager]] = None
-                 , initial_wallet_balances=1e6
-                 , n_steps=10000
-                 , time_limit=60 * 60
-                 , negotiation_speed=None
+                 # timing parameters
+                 , n_steps=60
+                 , time_limit=60 * 90
                  , neg_n_steps=100
                  , neg_time_limit=3 * 60
+                 , negotiation_speed=10
+                 # bank parameters
                  , minimum_balance=0
-                 , interest_rate=None
-                 , interest_max=None
+                 , interest_rate=0.1
+                 , interest_max=0.3
+                 , installment_interest=0.2
+                 , interest_time_increment=0.02
+                 , balance_at_max_interest=None
+                 # loan parameters
+                 , loan_installments=1
+                 # insurance company parameters
+                 , premium=0.1
+                 , premium_time_increment=0.1
+                 , premium_breach_increment=0.1
+                 # breach processing
                  , max_allowed_breach_level=None
+                 , breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR
+                 , breach_penalty_society=1.0
+                 , breach_penalty_society_min=0.0
+                 , breach_penalty_victim=0.0
+                 , breach_move_max_product=True
+                 # simulation parameters
+                 , initial_wallet_balances=1e6
+                 , money_resolution=0.5
+                 , default_signing_delay=0
+                 , transportation_delay: int = 1
+                 , transfer_delay: int = 0
+                 , start_negotiations_immediately=False
                  , catalog_profit=0.15
                  , avg_process_cost_is_public=True
                  , catalog_prices_are_public=True
-                 , breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR
-                 , breach_penalty_society=1.0
-                 , breach_penalty_society_min=2.0
-                 , breach_penalty_victim=0.0
-                 , breach_move_max_product=True
-                 , premium=0.1
-                 , money_resolution=0.5
-                 , premium_time_increment=0.1
-                 , premium_breach_increment=0.1
-                 , default_signing_delay=0
-                 , transportation_delay: int = 1
-                 , loan_installments=1
-                 , start_negotiations_immediately=False
+                 # general parameters
                  , log_file_name=None
                  , name: str = None):
         """
@@ -3033,11 +3260,9 @@ class SCMLWorld(World):
                          , start_negotiations_immediately=start_negotiations_immediately
                          , name=name)
         global g_products, g_processes
+        if balance_at_max_interest is None:
+            balance_at_max_interest = initial_wallet_balances
         self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
-        self.interest_max = interest_max
-        self.premium_time_increment = premium_time_increment
-        self.premium_breach_increment = premium_breach_increment
-        self.premium = premium
         self.bulletin_board.register_listener(event_type='new_record', listener=self)
         self.bulletin_board.register_listener(event_type='will_remove_record', listener=self)
         self.bulletin_board.add_section("cfps")
@@ -3050,7 +3275,6 @@ class SCMLWorld(World):
         self.breach_penalty_society = breach_penalty_society
         self.breach_move_max_product = breach_move_max_product
         self.breach_penalty_society_min = breach_penalty_society_min
-        self.interest_rate = interest_rate
         self.penalties = 0.0
         self.max_allowed_breach_level = max_allowed_breach_level
         self.catalog_profit = catalog_profit
@@ -3090,13 +3314,22 @@ class SCMLWorld(World):
             factory.manager = manager
             manager.factory = factory
 
+        self.bank = Bank(minimum_balance=minimum_balance, interest_rate=interest_rate, interest_max=interest_max
+                         , balance_at_max_interest=balance_at_max_interest, installment_interest=installment_interest
+                         , time_increment=interest_time_increment)
+        self.join(self.bank, simulation_priority=-1)
+        self.insurance_company = InsuranceCompany(premium=premium, premium_breach_increment=premium_breach_increment
+                                                  , premium_time_increment=premium_time_increment)
+        self.join(self.insurance_company)
+
         for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore
             agent.init()
-
-        self.loans: Dict[SCMLAgent, List[Loan]] = defaultdict(list)
-        self.insured_contracts: Dict[Tuple[Contract, SCMLAgent], InsurancePolicy] = dict()
         self.n_new_cfps = 0
         self._transport: Dict[int, List[Tuple[SCMLAgent, int, int]]] = defaultdict(list)
+        self._transfer: Dict[int, List[Tuple[SCMLAgent, float]]] = defaultdict(list)
+        self.transfer_delay = transfer_delay
+
+        self._n_production_failures = 0
         # self.standing_jobs: Dict[int, List[Tuple[Factory, Job]]] = defaultdict(list)
 
         for product in self.products:
@@ -3197,7 +3430,7 @@ class SCMLWorld(World):
         processes = []
         miners = [Miner(profiles={products[-1].id: MiningProfile(cv=0)}, name=f'm_{i}', **miner_kwargs)
                   for i in range(n_miners)]
-        factories, negmas = [], []
+        factories, managers = [], []
         n_steps_profile = 1
 
         def _s(x):
@@ -3231,7 +3464,7 @@ class SCMLWorld(World):
                                                , **factory_kwargs)
                 factory.manager = manager
                 factories.append(factory)
-                negmas.append(manager)
+                managers.append(manager)
 
         def create_schedule():
             if isinstance(consumption, tuple) and len(consumption) == 2:
@@ -3244,7 +3477,7 @@ class SCMLWorld(World):
 
         return SCMLWorld(products=products, processes=processes, factories=factories  # type: ignore
                          , consumers=consumers, miners=miners
-                         , factory_managers=negmas, initial_wallet_balances=1000, n_steps=n_steps
+                         , factory_managers=managers, initial_wallet_balances=1000, n_steps=n_steps
                          , minimum_balance=-100, interest_rate=0.1, interest_max=0.2, log_file_name=log_file_name
                          , negotiation_speed=negotiation_speed
                          , **kwargs)
@@ -3653,26 +3886,6 @@ class SCMLWorld(World):
         # for factory, job in self.standing_jobs.get(self.current_step, []):
         #    factory.schedule_job(job=job, end=self.n_steps)
 
-        # apply interests and pay loans
-        # -----------------------------
-        for agent, loans in self.loans.items():
-            for l in loans:
-                loan: Loan = l
-                if loan.n_installments <= 0:
-                    continue
-                wallet = agent.factory_state.wallet
-                payment = 0
-                if wallet > 0:
-                    payment = min(loan.installment, wallet)
-                    loan.amount -= payment
-                    agent.factory_state.wallet -= payment
-                if payment < loan.installment:
-                    unpaid = loan.installment - payment
-                    penalty = unpaid * ((1 + loan.interest) ** loan.n_installments)
-                    loan.total += penalty
-                    loan.installment += penalty / loan.n_installments
-                    agent.factory_state.loans += penalty
-
         # run factories
         # -------------
         for factory in self.factories:
@@ -3690,12 +3903,17 @@ class SCMLWorld(World):
             if len(failures) > 0:
                 factory.manager.on_production_failure(failures=failures)
 
-        # finish transportation
-        # ---------------------
+        # finish transportation and money transfer
+        # -----------------------------------------
         transports = self._transport.get(self.current_step, [])
         for transport in transports:
             manager, product_id, q = transport
             manager.factory_state.storage[product_id] += q
+
+        transfers = self._transfer.get(self.current_step, [])
+        for transfer in transfers:
+            manager, money = transfer
+            manager.factory_state.wallet += money
 
         # remove expired CFPs
         # -------------------
@@ -3718,6 +3936,7 @@ class SCMLWorld(World):
         # noinspection PyProtectedMember
         cfps = self.bulletin_board._data['cfps']
         self._stats['n_cfps_on_board_before'].append(len(cfps) if cfps else 0)
+        self._n_production_failures = 0
         pass
 
     def _post_step_stats(self):
@@ -3728,13 +3947,20 @@ class SCMLWorld(World):
         cfps = self.bulletin_board._data['cfps']
         self._stats['n_cfps_on_board_after'].append(len(cfps) if cfps else 0)
         market_size = 0
+        self._stats[f'_balance_bank'].append(self.bank.wallet)
+        self._stats[f'_balance_society'].append(self.penalties)
+        self._stats[f'_balance_insurance'].append(self.insurance_company.wallet)
+        self._stats[f'_storage_insurance'].append(sum(self.insurance_company.storage.values()))
+        internal_market_size = self.bank.wallet + self.penalties + self.insurance_company.wallet
         for a in itertools.chain(self.miners, self.consumers, self.factory_managers):
             self._stats[f'balance_{a.name}'].append(a.factory_state.balance)
             self._stats[f'storage_{a.name}'].append(sum(a.factory_state.storage.values()))
             market_size += a.factory_state.balance
         self._stats['market_size'].append(market_size)
+        self._stats['production_failures'].append(self._n_production_failures / len(self.factories)
+                                                  if len(self.factories) > 0 else 0)
+        self._stats['_market_size_total'].append(market_size + internal_market_size)
 
-    # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
     def _execute_contract(self, contract: Contract) -> Set[Breach]:
         super()._execute_contract(contract=contract)
         partners: Set[SCMLAgent]
@@ -3743,11 +3969,13 @@ class SCMLWorld(World):
         cfp = contract.annotation['cfp']  # type: ignore
         breaches = set()
         quantity, unit_price = agreement['quantity'], agreement['unit_price']
+
+        # find out the values for vicitm and social penalties
         penalty_victim = agreement.get('penalty', None)
         if penalty_victim is not None and self.breach_penalty_victim is not None:
             # there is a defined penalty, find its value
-            penalty_victim = (penalty_victim if penalty_victim is not None else 0.0) + \
-                             (self.breach_penalty_victim if self.breach_penalty_victim is not None else 0)
+            penalty_victim = penalty_victim if penalty_victim is not None else 0.0
+            penalty_victim += self.breach_penalty_victim if self.breach_penalty_victim is not None else 0.0
         penalty_society = self.breach_penalty_society
 
         # ask each partner to confirm the execution
@@ -3756,7 +3984,7 @@ class SCMLWorld(World):
                 self.logdebug(
                     f'{partner.name} refused execution og Contract {contract.id}')
                 breaches.add(Breach(contract=contract, perpetrator=partner  # type: ignore
-                                    , victims=partners - {partner}
+                                    , victims=list(partners - {partner})
                                     , level=1.0, type='refusal'))
         if len(breaches) > 0:
             return breaches
@@ -3767,91 +3995,138 @@ class SCMLWorld(World):
         seller: SCMLAgent
         buyer: SCMLAgent
         buyer, seller = self.agents[buyer_id], self.agents[seller_id]
-        product_breach = penalty_breach = money_breach = None
+        product_breach, money_breach, penalty_breach_victim, penalty_breach_society = None, None, None, None
         money = unit_price * quantity
 
         # check the seller
         available_quantity = seller.factory_state.storage.get(pind, 0) if not isinstance(seller, Miner) else quantity
         missing_quantity = max(0, quantity - available_quantity)
-        penalty_value, payable, paid_for_quantity = 0.0, 0.0, 0
         if missing_quantity > 0:
             product_breach = missing_quantity / quantity
             for penalty, is_victim in ((penalty_victim, True), (penalty_society, False)):
-                if penalty is not None:
-                    # if a penalty is defined in the contract try to take it from the seller
-                    penalty_value = penalty * product_breach
-                    if not is_victim:
-                        penalty_value = max(penalty_value,
-                                            self.breach_penalty_society_min
-                                            if self.breach_penalty_society_min is not None else 0)
-                    seller_balance = seller.factory_state.wallet
-                    # if the seller needs more than her wallet to pay the penalty, try a loan
-                    if seller_balance < penalty_value:
-                        self.buy_loan(agent=seller, amount=penalty_value - seller_balance
-                                      , n_installments=self.loan_installments)
+                if penalty is None:
+                    continue
+                # find out how much need to be paid for this penalty
+                penalty_value = penalty * product_breach
 
-                    # if the seller can pay the penalty then pay it and now there is no breach, otherwise pay as much as
-                    # possible
+                # society penalty may have a minimum. If so, make sure the penalty value is at least as large as that
+                if not is_victim and self.breach_penalty_society_min is not None:
+                    penalty_value = max(penalty_value, self.breach_penalty_society_min)
+
+                # that is how much money is available in the wallet right now. Notice that loans do not count
+                seller_balance = seller.factory_state.wallet
+
+                # if the seller needs more than what she has in her wallet to pay the penalty, try a loan
+                # Loans are mandatory for society penalty but the agent can refuse to pay a victim penalty
+                if seller_balance < penalty_value:
+                    self.bank.buy_loan(agent=seller, amount=penalty_value - seller_balance
+                                       , n_installments=self.loan_installments, force=not is_victim)
+
+                # if the seller can pay the penalty then pay it and now there is no breach, otherwise pay as much as
+                # possible. Notice that for society penalties, it should always be the case that the whole penalty
+                # value is available in the wallet by now as loans are forced.                
+
+                if seller.factory_state.wallet >= penalty_value:
+                    # if there is enough money then pay the whole penalty
+                    payable = penalty_value
                     missing_quantity_unpaid_for = 0
-                    if seller.factory_state.wallet >= penalty_value:
-                        payable = penalty_value
-                        if is_victim:
-                            missing_quantity_unpaid_for = 0
+                else:
+                    # if there is not enough money then pay enough for the maximum number of items that can be paid
+                    if unit_price == 0:
+                        paid_for_quantity = missing_quantity
                     else:
-                        if unit_price == 0:
-                            paid_for_quantity = missing_quantity
-                            payable = unit_price * paid_for_quantity
-                        else:
-                            paid_for_quantity = int(seller.factory_state.wallet / unit_price)
-                            payable = unit_price * paid_for_quantity
-                        if is_victim:
-                            missing_quantity_unpaid_for = missing_quantity - paid_for_quantity
-                    seller.factory_state.wallet -= payable
+                        paid_for_quantity = int(math.floor(seller.factory_state.wallet / unit_price))
+                    payable = unit_price * paid_for_quantity
+                    missing_quantity_unpaid_for = missing_quantity - paid_for_quantity
                     if is_victim:
-                        buyer.factory_state.wallet += payable
-                        # if we agreed on a penalty and the buyer paid it, then clear the product breach
-                        if missing_quantity_unpaid_for <= 0:
-                            product_breach = None
-                        else:
-                            missing_quantity = missing_quantity_unpaid_for
-                            product_breach = missing_quantity / quantity
+                        penalty_breach_victim = missing_quantity_unpaid_for / quantity
                     else:
-                        # if this is the society penalty, it does not affect the product_breach
-                        self.penalties += payable
+                        penalty_breach_society = missing_quantity_unpaid_for / quantity
 
-        # check the seller
+                # actually pay the payable amount
+                self.logdebug(f'Penalty: {seller.name} paid {payable} to {buyer.name if is_victim else "society"}')
+                seller.factory_state.wallet -= payable
+                if is_victim:
+                    buyer.factory_state.wallet += payable
+                    # if we agreed on a penalty and the buyer paid it, then clear the product breach
+                    if missing_quantity_unpaid_for <= 0:
+                        product_breach = None
+                    else:
+                        missing_quantity = missing_quantity_unpaid_for
+                        product_breach = missing_quantity / quantity
+                else:
+                    # if this is the society penalty, it does not affect the product_breach
+                    self.penalties += payable
+
+        # pay penalties if there are any. Notice that penalties apply only to to seller. It makes no sense to have a
+        # penalty on the buyer who already have no money to pay the contract value anyway.
+        if penalty_breach_society is not None:
+            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[]
+                                , level=penalty_breach_society, type='penalty_society', step=self.current_step))
+        if penalty_breach_victim is not None:
+            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
+                                , level=penalty_breach_victim, type='penalty_society', step=self.current_step))
+
+        # check the buyer
         available_money = buyer.factory_state.wallet if not isinstance(buyer, Consumer) else money
         missing_money = max(0.0, money - available_money)
         if missing_money > 0.0:
-            # if the buyer cannot pay, then offer him a loan
-            self.buy_loan(agent=buyer, amount=money - available_money, n_installments=self.loan_installments)
+            # if the buyer cannot pay, then offer him a loan. The loan is always optional
+            self.bank.buy_loan(agent=buyer, amount=money - available_money, n_installments=self.loan_installments)
             available_money = buyer.factory_state.wallet
             missing_money = max(0.0, money - available_money)
+
+        # if there is still missing money after the loan is offered, then create a breach
         if missing_money > 0.0:
             money_breach = missing_money / money
 
-        # apply insurances if they exist
-        if penalty_breach is not None:
-            breaches.add(Breach(contract=contract, perpetrator=seller, victims={buyer}
-                                , level=penalty_breach, type='penalty', step=self.current_step))
         if product_breach is not None:
-            if (contract, seller) in self.insured_contracts.keys():
-                seller.factory_state.storage[pind] = seller.factory_state.storage.get(pind, 0) + missing_quantity
-                del self.insured_contracts[(contract, seller)]
-            breaches.add(Breach(contract=contract, perpetrator=seller, victims={buyer}
+            # apply insurances if they exist
+            if self.insurance_company.pay_insurance(contract=contract, perpetrator=seller):
+                # if the buyer has an insurance against the seller for this contract, then just give him the missing
+                #  quantity and proceed as if the contract was for the remaining quantity. Notice that the breach on the
+                #  seller is already registered by this time.
+                self.logdebug(f'Insurance: {buyer.name} got {missing_quantity} of {self.products[pind].name} '
+                              f'from insurance')
+                buyer.factory_state.storage[pind] = seller.factory_state.storage.get(pind, 0) + missing_quantity
+                self.insurance_company.storage[pind] -= missing_quantity
+            # register the breach independent of insurance
+            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
                                 , level=product_breach, type='product', step=self.current_step))
+
+            # we will only transfer the remaining quantity.
+            quantity -= missing_quantity
+
         if money_breach is not None:
-            if (contract, buyer) in self.insured_contracts.keys():
-                buyer.factory_state.wallet += missing_money
-                del self.insured_contracts[(contract, buyer)]
-            breaches.add(Breach(contract=contract, perpetrator=buyer, victims={seller}
+            # apply insurances if they exist.
+            if self.insurance_company.pay_insurance(contract=contract, perpetrator=buyer):
+                # if the seller has an insurance against the buyer for this contract, then just give him the missing
+                #  money and proceed as if the contract was for the remaining amount. Notice that the breach on the
+                #  seller is already registered by this time.
+                self.logdebug(f'Insurance: {seller.name} got {missing_money} dollars from insurance')
+                seller.factory_state.wallet += missing_money
+                self.insurance_company.wallet += missing_money
+            breaches.add(Breach(contract=contract, perpetrator=buyer, victims=[seller]
                                 , level=money_breach, type='money', step=self.current_step))
+
+            # we will only transfer the remaining money.
+            money -= missing_money
 
         if len(breaches) > 0:
             self.logdebug(f'Contract {contract.id} has {len(breaches)} breaches:')
             for breach in breaches:
-                self.logdebug(f'{breach}')
-        self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
+                self.logdebug(f'{str(breach)}')
+
+        # confirm that the money and quantity match given the unit price.
+        if money > unit_price * quantity:
+            money = unit_price * quantity
+        if unit_price != 0.0 and quantity > math.floor(money / unit_price):
+            quantity = int(math.floor(money / unit_price))
+
+        if money > 0 or quantity > 0:
+            self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
+        else:
+            self.logdebug(f'Contract {contract.id} has no transfers')
         return breaches
 
     def _move_product(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
@@ -3876,68 +4151,34 @@ class SCMLWorld(World):
                     (buyer, product_id, available_quantity))
         if available_money > 0:
             buyer.factory_state.wallet -= available_money
-            seller.factory_state.wallet += available_money
+            if self.transfer_delay < 1:
+                seller.factory_state.wallet += available_money
+            else:
+                self._transfer[self.current_step + self.transfer_delay].append((seller, available_money))
 
-    def _process_breach(self, breach: Breach) -> bool:
-        if super()._process_breach(breach=breach):
-            return True
-        breach_resolved = False
+    def evaluate_insurance(self, contract: Contract, agent: SCMLAgent, t: int = None) -> Optional[float]:
+        """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
 
-        if self.breach_processing == BreachProcessing.META_NEGOTIATION:
-            raise NotImplementedError('Meta negotiations are still not implemented')
-        elif self.breach_processing == BreachProcessing.VICTIM_THEN_PERPETRATOR:
-            # noinspection PyUnusedLocal
-            perpetrator: SCMLAgent
-            # noinspection PyUnusedLocal
-            victim: SCMLAgent
-            # noinspection PyUnusedLocal
-            victims: Set[SCMLAgent]
-            contract, perpetrator = breach.contract, breach.perpetrator  # type: ignore
-            partners = set(self.agents[_] for _ in contract.partners)
-            victims = partners - {perpetrator}  # type: ignore
+        Args:
 
-            for victim in victims:
-                request = victim.on_breach_by_another(contract=contract, partner=perpetrator.id)
-                if request is not None and request.annotation is not None:
-                    responses = []
-                    # noinspection PyUnusedLocal
-                    partner: SCMLAgent
-                    for partner in partners - {victim}:  # type: ignore
-                        responses.append(partner.on_renegotiation_request(contract=contract
-                                                                          , partner=victim.id
-                                                                          , cfp=request.annotation['cfp']))
-                    if not all(responses):
-                        continue
-                    if not breach_resolved:
-                        partner_names = [_.id for _ in breach.victims.union({breach.perpetrator})]
-                        breach_resolved = self.run_negotiation(caller=victim
-                                                               , issues=request.issues
-                                                               , partners=partner_names
-                                                               , roles=None
-                                                               , annotation=request.annotation
-                                                               , mechanism_name=None
-                                                               , mechanism_params=None) is not None
+            contract: hypothetical contract
+            t: time at which the policy is to be bought. If None, it means current step
+        """
+        against = [self.agents[_] for _ in contract.partners if _ != agent.id]
+        if len(against) != 1:
+            raise ValueError('Cannot find partner while evaluating insurance')
+        return self.insurance_company.evaluate_insurance(contract=contract, insured=agent, against=against[0], t=t)
 
-            request = perpetrator.on_breach_by_self(contract=contract, partner=victim.id)
-            if request is not None:
-                responses = []
-                for partner in partners - {perpetrator}:  # type: ignore
-                    responses.append(partner.on_renegotiation_request(contract=contract
-                                                                      , partner=perpetrator.id
-                                                                      , cfp=request.annotation['cfp']))
-                if all(responses):
-                    if not breach_resolved:
-                        breach_resolved = self.run_negotiation(caller=perpetrator, issues=request.issues
-                                                               , partners=breach.victims.union({breach.perpetrator})
-                                                               , roles=None
-                                                               , annotation=request.annotation
-                                                               , mechanism_name=None
-                                                               , mechanism_params=None) is not None
+    def buy_insurance(self, contract: Contract, agent: SCMLAgent) -> bool:
+        """Buys insurance for the contract by the premium calculated by the insurance company.
 
-        if breach_resolved:
-            return True
-        self._register_breach(breach)
-        return False
+        Remarks:
+            The agent can call `evaluate_insurance` to find the premium that will be used.
+        """
+        against = [self.agents[_] for _ in contract.partners if _ != agent.id]
+        if len(against) != 1:
+            raise ValueError('Cannot find partner while evaluating insurance')
+        return self.insurance_company.buy_insurance(contract=contract, insured=agent, against=against[0]) is not None
 
     def run_negotiation(self, caller: "Agent"
                         , issues: Collection[Issue]
@@ -3981,79 +4222,6 @@ class SCMLWorld(World):
         return super().request_negotiation(req_id=req_id, caller=caller, issues=issues, annotation=annotation
                                            , partners=partners, roles=roles, mechanism_name=mechanism_name
                                            , mechanism_params=mechanism_params)
-
-    def evaluate_insurance(self, contract: Contract, agent: SCMLAgent, t: int = None) -> Optional[float]:
-        """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
-
-        Args:
-
-            contract: hypothetical contract
-            agent: The `SCMLAgent` I am ensuring against
-            t: time at which the policy is to be bought. If None, it means current step
-        """
-        if self.premium is None or contract.signed_at is None:
-            return None
-        if t is None:
-            t = self.current_step
-        dt = t - contract.signed_at
-        if dt > 0:
-            return None
-        other = [self.agents[_] for _ in contract.partners if _ != agent.id]
-        if len(other) != 1:
-            return None
-        other = other[0]
-        breaches = self.bulletin_board.query(section='breaches', query={'perpetrator': other})
-        b = 0
-        if breaches is not None:
-            for _, breach in breaches.items():
-                b += breach.level
-        return (self.premium + b * self.premium_breach_increment) * (1 + self.premium_time_increment * dt)
-
-    def buy_insurance(self, contract: Contract, agent: SCMLAgent) -> bool:
-        """Buys insurance for the contract by the premium calculated by the insurance company.
-
-        Remarks:
-            The agent can call `evaluate_insurance` to find the premium that will be used.
-        """
-        premium = self.evaluate_insurance(contract=contract, t=self.current_step, agent=agent)
-        if premium is None or agent.factory_state.wallet < premium:
-            return False
-        other = [self.agents[_] for _ in contract.partners if _ != agent.id]
-        if len(other) != 1:
-            return False
-        other = other[0]
-        agent.factory_state.wallet -= premium
-        if not isinstance(other, SCMLAgent):
-            raise ValueError('The partner must be an SCML agent')
-        self.insured_contracts[(contract, other)] = InsurancePolicy(contract=contract, at_time=self.current_step
-                                                                    , against=other, premium=premium)
-        return True
-
-    def evaluate_loan(self, agent: SCMLAgent, amount: float, n_installments: int) -> Optional[Loan]:
-        """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
-        balance = agent.factory_state.wallet
-        if self.minimum_balance is not None and agent.factory_state.balance - amount < - self.minimum_balance:
-            return None
-
-        if self.interest_rate is None:
-            return None
-        interest = self.interest_rate
-        if balance < 0 and self.interest_max is not None:
-            interest *= (1 + (self.interest_max - 1) / (-balance * interest))
-        total = amount * (1 + interest) ** n_installments
-        installment = total / n_installments
-        return Loan(amount=amount, total=total, interest=interest
-                    , n_installments=n_installments, installment=installment)
-
-    def buy_loan(self, agent: SCMLAgent, amount: float, n_installments: int):
-        """Gives a loan of amount to agent at the interest calculated using `evaluate_loan`"""
-
-        loan = self.evaluate_loan(amount=amount, agent=agent, n_installments=n_installments)
-        if loan is not None:
-            if agent.confirm_loan(loan=loan):
-                self.loans[agent].append(loan)
-                agent.factory_state.wallet += loan.amount
-                agent.factory_state.loans += loan.total
 
     @property
     def winners(self):

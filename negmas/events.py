@@ -28,18 +28,18 @@ class EventSource:
 
     def __init__(self):
         super().__init__()
-        self.sinks: Dict[str, list] = defaultdict(list)
+        self.__sinks: Dict[str, list] = defaultdict(list)
 
     def announce(self, event: Event):
         """Raises an event and informs all event sinks that are registerd for notifications
         on this event type"""
 
-        sinks = self.sinks.get(event.type, [])
+        sinks = self.__sinks.get(event.type, [])
         for sink in sinks:
             sink.on_event(event=event, sender=self)
 
     def register_listener(self, event_type: str, listener: "EventSink"):
-        self.sinks[event_type].append(listener)
+        self.__sinks[event_type].append(listener)
 
 
 class EventSink:

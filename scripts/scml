@@ -15,8 +15,8 @@ click.option = partial(click.option, show_default=True)
 
 
 @click.command()
-@click.option('--steps', default=100, help='Number of steps.')
-@click.option('--levels', default=3, help='Number of intermediate production levels (processes). '
+@click.option('--steps', default=60, help='Number of steps.')
+@click.option('--levels', default=2, help='Number of intermediate production levels (processes). '
                                           '-1 means a single product and no factories.')
 @click.option('--neg-speedup', default=21, help='Negotiation Speedup.')
 @click.option('--negotiator', default='negmas.sao.AspirationNegotiator',
@@ -28,13 +28,13 @@ click.option = partial(click.option, show_default=True)
 @click.option('--agents-per-level', default=5, help='Number of agents (miners/negmas.consumers) per production level')
 @click.option('--horizon', default=15, help='Consumption horizon.')
 @click.option('--transport', default=0, help='Transportation Delay.')
-@click.option('--time', default=None, help='Total time limit.')
-@click.option('--neg-time', default=None, help='Time limit per single negotiation')
+@click.option('--time', default=60*90, help='Total time limit.')
+@click.option('--neg-time', default=60*4, help='Time limit per single negotiation')
 @click.option('--neg-steps', default=20, help='Number of rounds per single negotiation')
 @click.option('--sign', default=1, help='The default delay between contract conclusion and signing')
 @click.option('--guaranteed', default=False
               , help='Whether to only sign contracts that are guaranteed not to cause breaches')
-@click.option('--lines', default=10, help='The number of lines per factory')
+@click.option('--lines', default=5, help='The number of lines per factory')
 @click.option('--retrials', default=5, help='The number of times an agent re-tries on failed negotiations')
 @click.option('--use-consumer', default=True, help='Use internal consumer object in factory managers')
 @click.option('--insurance', default=-1, help='Use insurance against partner in factory managers')
