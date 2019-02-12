@@ -1,0 +1,364 @@
+[0m2019-02-12 19:17:56 - DEBUG - section breaches added[0m
+[0m2019-02-12 19:17:56 - DEBUG - section stats added[0m
+[0m2019-02-12 19:17:56 - DEBUG - section settings added[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: SCMLWorld_6ebf9077-9f17-4502-b359-003e5ee4f904: World Created[0m
+[0m2019-02-12 19:17:56 - DEBUG - section cfps added[0m
+[0m2019-02-12 19:17:56 - DEBUG - section products added[0m
+[0m2019-02-12 19:17:56 - DEBUG - section processes added[0m
+[0m2019-02-12 19:17:56 - DEBUG - section raw_materials added[0m
+[0m2019-02-12 19:17:56 - DEBUG - section final_products added[0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: 1.0 at settings [breach_penalty_society][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: 0.0 at settings [breach_penalty_victim][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: False at settings [immediate_negotiations][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: 21 at settings [negotiation_speed_multiple][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: 20 at settings [negotiation_n_steps][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: 0 at settings [transportation_delay][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p0(cp:1.0) at products [p0(cp:1.0)][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p1(cp:2.0) at products [p1(cp:2.0)][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p2(cp:4.0) at products [p2(cp:4.0)][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p3(cp:7.0) at products [p3(cp:7.0)][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p1(cp:1) at processes [p1(cp:1)][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p2(cp:2) at processes [p2(cp:2)][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: p3(cp:3) at processes [p3(cp:3)][0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: m_0 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: m_1 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: m_2 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: m_3 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: m_4 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: c_0 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: c_1 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: c_2 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: c_3 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: c_4 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_1_0 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_1_1 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_2_0 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_2_1 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_2_2 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_2_3 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_3_0 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_3_1 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_3_2 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_3_3 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_3_4 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: greedy_3_5 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_3_0 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_2_1 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_1_2 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_1_3 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_1_4 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_3_5 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_2_6 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_3_7 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: my_2_8 joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: D0WN6Utd3TVauEmE joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [2e+01]: hKWgEL2lJx0SACER joined[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: 0 Negotiations/5 _entities[0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 0, u: (0, 14.0), q: (1, 4)) at cfps [a6f19c2d-bd6d-4da6-972d-91f1336820f4][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 1, u: (0, 14.0), q: (1, 4)) at cfps [b40adb2d-d339-4eb7-9b2b-dfc88ffbda96][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 2, u: (0, 14.0), q: (1, 3)) at cfps [8806ba91-7da7-4206-9063-2820e12a14de][0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 3, u: (0, 14.0), q: (1, 4)) at cfps [94c1f483-822a-4e04-996e-50b40e416cae][0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID c496e407-069a-436d-af51-6ad0393b569d)[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 5efa8303-289c-425b-9ff2-0b9d785186b4)[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 4, u: (0, 14.0), q: (1, 3)) at cfps [8adfe110-77bb-47f3-9443-c2507f994136][0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 239a73ca-ebdb-481a-b2a1-1689bcf992ec)[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID ffdf1705-f81a-4140-ad35-147968b7ee5f)[0m
+[32m2019-02-12 19:17:56 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:56 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 5, u: (0, 14.0), q: (1, 3)) at cfps [85f6a361-f9fa-4f58-a288-14f0498c885e][0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 5256e3cc-f500-4461-a6a8-d3ae731aee80)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 6e433d2f-9573-4944-9a62-c3d728fa201d)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:57 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 6, u: (0, 14.0), q: (1, 4)) at cfps [de51ba7c-c9ae-46f9-bcda-35a4b9f9e6c4][0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID ef6bc20a-94d7-4695-9552-d2d227c644b3)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 512fa7ee-b081-42d7-9c00-25fdee3df095)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:57 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 7, u: (0, 14.0), q: (1, 4)) at cfps [c217de70-9285-45f3-bb0f-d771af19219b][0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID fdd17aa8-2a76-42f2-abf9-5a6c510e437b)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 44564c84-f0f9-4a32-af7d-89e348d0d949)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:57 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 8, u: (0, 14.0), q: (1, 3)) at cfps [6c46a37f-9f6b-476d-a75e-83073cc06dbd][0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 073426d8-eda1-43d0-b66f-f5720db11583)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 308b63cc-b044-493e-beaf-761a83679b74)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:57 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 9, u: (0, 14.0), q: (1, 4)) at cfps [2412532f-f45e-4613-ab5b-04fd3ffebf44][0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID b6ddd4b4-92da-49eb-8206-21133512e186)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 942cb62b-e659-4c10-bfb6-bafa29d339e9)[0m
+[32m2019-02-12 19:17:57 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:57 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 10, u: (0, 14.0), q: (1, 3)) at cfps [16e47f3a-d563-4ecb-b369-971807262743][0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 42da2dab-b336-4d8e-9208-7703c3118bc1)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 3b638ced-4a86-4bf6-9a94-c9a539b38a93)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:58 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 11, u: (0, 14.0), q: (1, 4)) at cfps [b7eee881-8bee-4cf1-acfc-0dba51498a10][0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 0ee2d3ae-7bb1-4d18-94eb-3c0557e66fc2)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID aafa0a8c-5e8b-4450-9f67-a307c98756b3)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:58 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 12, u: (0, 14.0), q: (1, 4)) at cfps [18d262ba-6a9b-4fb7-8bc1-eae75824bf2d][0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID d31596a9-d8f7-4646-b0c8-7a35fe4b34e5)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID 952d9e7d-e813-49a3-a267-f30d97bf471a)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:58 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 13, u: (0, 14.0), q: (1, 4)) at cfps [2bda1663-20b7-45bb-b753-4c6fee3032fa][0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 885c1b04-f9a7-46db-9a54-08d49bef8abc)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID d5462a78-16dd-48c9-a65f-f7a1f745e244)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:58 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 14, u: (0, 14.0), q: (1, 3)) at cfps [c0ffffe3-f13e-4152-9609-5bc506dd88f5][0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID e3fdb58c-49ca-4442-a525-bdaa943aa4e2)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID d06e7899-cd90-4bee-968b-19fbd553addd)[0m
+[32m2019-02-12 19:17:58 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:58 - DEBUG - Record: c_0: buy p3(cp:7.0) (t: 15, u: (0, 14.0), q: (1, 3)) at cfps [143ee77a-0543-46ef-a2db-d917a27c1315][0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_4'] (ID 07155956-dcdb-4b07-a2bb-92ea05283a9f)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_0', 'greedy_3_5'] (ID fe842efe-9114-42e5-9005-027a11ebcd5f)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 0, u: (0, 14.0), q: (1, 4)) at cfps [1b8263f6-73ba-42ef-8c01-108f6f63d815][0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 1, u: (0, 14.0), q: (1, 3)) at cfps [05ef26df-dae9-4101-8726-c1321c6f5710][0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 2, u: (0, 14.0), q: (1, 4)) at cfps [c688d829-8e75-496f-99c4-6441cdaebe81][0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 3, u: (0, 14.0), q: (1, 4)) at cfps [cec4b37b-d89a-46be-a883-b85a9b9ab2ca][0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 8a96d96d-ee32-4f89-bb5d-fdf003dff6c9)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID c5ed2b2f-c189-4af1-8c0d-83c8467039b4)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 4, u: (0, 14.0), q: (1, 3)) at cfps [2a3e96e5-fbf6-41bc-9d60-9ce0a46f9fb0][0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 77038ae3-150c-4f14-b52c-61ad215b0f75)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 4f22b31a-b952-4cb1-83d9-88269dcc5ef9)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 5, u: (0, 14.0), q: (1, 3)) at cfps [d5e38cee-ddc0-43a4-b4cc-5536a4d71dbd][0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID bfffd715-37bd-4eb0-958b-064131130d33)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 12c3aef2-6486-4fbe-a9c5-0c0c6df7884a)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 6, u: (0, 14.0), q: (1, 3)) at cfps [327f2566-3bdb-4459-a3ca-c71cfd69550b][0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 3d984a0c-3294-447b-b180-95e624c66ecd)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 2a38863d-f4c2-474c-b97d-b4e05d2176c2)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 7, u: (0, 14.0), q: (1, 3)) at cfps [aa96e2ad-0bf0-4d8d-95dc-d556cc9b9cdb][0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 3d59068c-b2ba-47c5-a712-dc59d0984425)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID c5e92e2a-0dae-4bd2-9424-1b46d32aa61f)[0m
+[32m2019-02-12 19:17:59 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:17:59 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 8, u: (0, 14.0), q: (1, 3)) at cfps [fe4f5b18-645c-463c-bab2-b56ff5b84bf9][0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID e7af50e0-a24a-43cc-b34b-690931b0bbb3)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 60bc24e7-69d9-4cae-b687-175a0db21811)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:00 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 9, u: (0, 14.0), q: (1, 3)) at cfps [adfae6ca-9666-49c5-b2b6-ce296c6851a5][0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 43ffc2db-1715-4230-8750-13fac950c748)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 29e28a99-8a04-445b-9232-6e1935f082d3)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:00 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 10, u: (0, 14.0), q: (1, 3)) at cfps [0eab8f89-28c2-44a1-933e-df3cd84943e3][0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 7e6d7c16-b393-46d4-911c-a204d53150f5)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID c01f0fcd-67a8-4ae1-ad56-56e35f7d5c12)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:00 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 11, u: (0, 14.0), q: (1, 4)) at cfps [0d3d5fdd-c224-4b3d-8994-ac4dee8e5934][0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID cf61f6c9-8c91-4ee5-9dc9-4fce7f17b0e8)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 9b15fda5-34a5-4c0f-a8f4-92a187534758)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:00 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 12, u: (0, 14.0), q: (1, 4)) at cfps [e14ebea5-af15-4481-87a5-fb0666689074][0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 24805506-3f7e-4252-9d6a-aa8befaad5b9)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 7786902f-d444-430b-89e6-c9eb67514d54)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:00 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 13, u: (0, 14.0), q: (1, 3)) at cfps [4466884e-2ed7-48be-88e9-fa30f78e5766][0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 452874b8-40a2-42de-8494-6d6120fae2a2)[0m
+[32m2019-02-12 19:18:00 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID e280ab5f-9c17-4201-9083-04b731986fd9)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 14, u: (0, 14.0), q: (1, 3)) at cfps [9d7b7a7e-71cd-4be7-ada0-f414c2db8192][0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID b4f9c830-3d02-41be-9680-1dacaf0ad274)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 9d5a6afa-c4e9-4c91-b6de-721f5c626a0d)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_4: buy p3(cp:7.0) (t: 15, u: (0, 14.0), q: (1, 4)) at cfps [7cd2e8db-6f0e-48cf-af4a-5f1b84a8ab96][0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_4'] (ID 2c75af90-fe09-4c8e-b6c2-cc341327f19b)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_4', 'greedy_3_5'] (ID 3e280d59-8c07-45da-99b6-1599377590fe)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 0, u: (0, 14.0), q: (1, 3)) at cfps [427569b8-e202-40a8-8c4b-3e3c5c23ae7d][0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 1, u: (0, 14.0), q: (1, 3)) at cfps [00451e2b-e156-441f-b262-b268e39f03db][0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 2, u: (0, 14.0), q: (1, 4)) at cfps [afb9c61a-b51e-4926-b44d-683cfae9fda4][0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 3, u: (0, 14.0), q: (1, 3)) at cfps [f14f883a-5d5b-40e4-8330-785eeebfe6a0][0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 569d76b2-d468-42b0-9eca-ceba44630e6d)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 3182b19e-b729-4570-a654-70db0090d620)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 4, u: (0, 14.0), q: (1, 3)) at cfps [f5b4cdc9-6bfb-46c2-b633-a505cd9adb6d][0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 6259899a-ecf1-48db-84e8-297c2bfdfde4)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 2369a465-5028-4682-86a4-7580f765191e)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 5, u: (0, 14.0), q: (1, 4)) at cfps [8765c170-929b-4d95-a9dd-c6d3c7f35f78][0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 3f3e831f-8a89-434f-ac70-d1cbdb98ef2b)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 7e05bdbe-e938-4aa0-9588-3ecb5f838b5a)[0m
+[32m2019-02-12 19:18:01 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:01 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 6, u: (0, 14.0), q: (1, 4)) at cfps [166739b2-974f-420b-882f-6dc181dbccee][0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 31b5e964-7c78-4811-8214-6f85bd59d650)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 6e104d55-7ea1-45e3-8ac6-00d9c26d5a44)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:02 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 7, u: (0, 14.0), q: (1, 3)) at cfps [ba7afe5b-fe5d-4141-9d01-6767bb2bd034][0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 0056cc42-99f1-4e01-b922-9077115cec2b)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID f8c4eedc-db26-4241-99c8-bacd348913cc)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:02 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 8, u: (0, 14.0), q: (1, 3)) at cfps [55713084-0eb5-4947-aa6e-b751b0396e72][0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID d4af4c2e-82fe-4e44-aab0-d372d608a00d)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID d10b725e-9091-4d06-b640-9f1118d3f65b)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:02 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 9, u: (0, 14.0), q: (1, 4)) at cfps [0398c91e-4e64-4659-a936-8718164b133a][0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 00c058ea-1a06-4725-b211-e07114f68df4)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 681660d3-c41d-4c86-9364-057a71010b6b)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:02 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 10, u: (0, 14.0), q: (1, 3)) at cfps [eff05167-c860-4303-866e-62a6296d6ec0][0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 0cc51898-b2f9-4138-b9cc-32f24919e475)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID ad4e1afb-b716-4e29-9556-85438e765c5c)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:02 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 11, u: (0, 14.0), q: (1, 3)) at cfps [757271f3-0114-4404-938d-fea13bc2708c][0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID b7fec1ce-26ac-49c8-8d89-6ed0178a9f9c)[0m
+[32m2019-02-12 19:18:02 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 964e7fa8-52a0-43d3-b6c9-45cb42a24600)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 12, u: (0, 14.0), q: (1, 4)) at cfps [e55de0c7-948b-4537-87ec-bc4c9f407811][0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 8a3986e0-6303-4a0a-9d14-833a7703c370)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 86e8e4cf-05ac-4a33-a26d-e2ff1b2d3067)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 13, u: (0, 14.0), q: (1, 3)) at cfps [33f0f4f1-42be-47e8-acb8-4b19f533d1fa][0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 58747bc5-26bc-43f7-b02e-1cafe4b42826)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID b81c987d-727f-44db-bab2-7d59a1c979c8)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 14, u: (0, 14.0), q: (1, 4)) at cfps [a8a4e142-bd04-439b-a1e4-51380f2f3cf5][0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 0f7264cb-949e-44d6-97af-3538753b6302)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 63b9abb9-c7de-43be-9cc6-9ecd79a26c45)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_1: buy p3(cp:7.0) (t: 15, u: (0, 14.0), q: (1, 3)) at cfps [f48fcad4-96b7-4aee-84dc-7b6f72bdf2c7][0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_4'] (ID 20ad1aae-2643-4f7e-9e07-146559060738)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_1', 'greedy_3_5'] (ID 3c09c114-090e-4345-9ab6-4b71c52b2d48)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 0, u: (0, 14.0), q: (1, 4)) at cfps [8ee99a19-c248-4b42-8077-27f2ee484258][0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 1, u: (0, 14.0), q: (1, 3)) at cfps [eb1d8481-7649-4541-a1e3-be8a81a3978d][0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 2, u: (0, 14.0), q: (1, 4)) at cfps [49378580-ab8e-461a-8f12-eb67d437040d][0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 3, u: (0, 14.0), q: (1, 3)) at cfps [a40a97c9-83ff-4cc1-9344-19e23bdc9128][0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 0f012cbe-5712-4c52-af39-02e72634c7d1)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID bb501583-5e47-4379-be15-7f10e009df18)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:03 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 4, u: (0, 14.0), q: (1, 4)) at cfps [aa339f70-30a6-4ede-90ca-e1869c88cfcd][0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 45631a01-0bf6-450f-8da4-b372ed57bed5)[0m
+[32m2019-02-12 19:18:03 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID d6f0ad39-474a-4b92-8b55-378f74bd24f0)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:04 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 5, u: (0, 14.0), q: (1, 3)) at cfps [cdac225c-80e3-49cc-aa46-6db4bcb1ec34][0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID d51f155f-28b2-45f1-bece-6f7b7acf53c5)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID 456c1923-4eaa-45be-ae35-6640ddb24987)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:04 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 6, u: (0, 14.0), q: (1, 4)) at cfps [50e85fba-b1d2-4c0e-bd7a-632db1a24f90][0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 7ef20f29-15e7-42ec-8f3b-63e9a0beff39)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID 14cbe7a0-88e4-4662-b349-9b4d7f808158)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:04 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 7, u: (0, 14.0), q: (1, 4)) at cfps [37576fae-6cbb-4f34-9217-b067562d6aa8][0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 6d6b8e5c-34d7-43fa-a2cc-dba053007567)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID f17ff4a5-7202-4100-9a16-d3b913cfd2e3)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:04 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 8, u: (0, 14.0), q: (1, 3)) at cfps [a332e5c2-38a8-41cc-a128-7c6cc958a8b2][0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID c9be51c3-83db-4087-8037-95f320c8e59a)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID bc1ea4a1-b547-47db-8149-825a292ab083)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:04 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 9, u: (0, 14.0), q: (1, 4)) at cfps [c4bc59ee-ff2b-40d8-8f29-f37cc7ed81cb][0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 94af345f-4f82-4559-8b05-ec1aabbbc15e)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID f2965131-8021-4dcb-93f4-d722f8d4c8fd)[0m
+[32m2019-02-12 19:18:04 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:04 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 10, u: (0, 14.0), q: (1, 4)) at cfps [d6be219b-ba7f-458c-8d4e-7a3e1f411c33][0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID a718a9e8-e7f6-435f-8cf3-87842e930495)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID 4970cc62-c87b-4b55-9985-15eea28fb6da)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:05 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 11, u: (0, 14.0), q: (1, 3)) at cfps [030779de-f210-465c-b26b-0c27ab0191cc][0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 00cb8faa-8f92-4a26-9631-b7dd48b9beb8)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID dd7afa6d-72f2-456e-9350-ac1938b0be7d)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:05 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 12, u: (0, 14.0), q: (1, 3)) at cfps [754abfcb-779b-41d4-8c1c-700dfa717fbf][0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 2522fab1-cac4-40a1-9f5d-1a5c115010b7)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID 7b2bbd07-26ab-4c1e-8733-7b8a2b01e194)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:05 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 13, u: (0, 14.0), q: (1, 4)) at cfps [79062a8f-7335-4376-b6d5-1142d7bafe07][0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 2c01f86f-a632-46db-b90a-4ccd88b51203)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID 08b6231b-8b78-42f0-a0b9-6431079af72f)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:05 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 14, u: (0, 14.0), q: (1, 3)) at cfps [4281f795-7fc9-4bb1-b2e1-c4a924fce8d4][0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 0e49bf43-3f2f-4c42-b4ef-570e41593b93)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID 70d62d35-58e7-4450-928f-a2537b6692b4)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:05 - DEBUG - Record: c_2: buy p3(cp:7.0) (t: 15, u: (0, 14.0), q: (1, 3)) at cfps [43aef201-ed59-456d-81d1-ea1b15833bcb][0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_4'] (ID 3a268627-760f-42e3-9c7b-c5e6b1060f28)[0m
+[32m2019-02-12 19:18:05 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_2', 'greedy_3_5'] (ID bb986e35-a36c-44df-a266-e12181d1f5fa)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 0, u: (0, 14.0), q: (1, 4)) at cfps [b60257ff-48ae-46ea-96ec-965e2a4ab022][0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 1, u: (0, 14.0), q: (1, 3)) at cfps [b1c18584-d9ad-429b-b440-a716ad418954][0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 2, u: (0, 14.0), q: (1, 4)) at cfps [44be46fc-3b75-44fd-a698-9df1b7f49eb2][0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 3, u: (0, 14.0), q: (1, 3)) at cfps [4f687a6d-9d27-475e-8c1c-690206d7dd9d][0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID 46cb1416-6be1-4bed-a971-15dac48f9c95)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_5'] (ID 0766ed04-f807-4162-aafd-823dbc94117f)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 4, u: (0, 14.0), q: (1, 4)) at cfps [ad698dec-aa1b-4d82-a760-ab71dede8d74][0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID ab0be0d7-54ac-4d44-85b0-a052836c66ac)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_5'] (ID c01cc467-0a04-47f8-857b-0c1a728301a2)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 5, u: (0, 14.0), q: (1, 3)) at cfps [4fe1c830-855a-433d-8fee-baf286315e99][0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID 5d5b1794-05b1-4104-b833-c65b0a4164e4)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_5'] (ID e9564d96-07a8-43de-8229-b6ae9314765d)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 6, u: (0, 14.0), q: (1, 3)) at cfps [4245e45e-7ebb-4bd2-bc11-2f8f3ec9bb2a][0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID 09317d32-5e2e-43d2-be86-fd752c584b02)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_5'] (ID 2e94903c-b1e0-4712-b6ec-83f097bbb682)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 7, u: (0, 14.0), q: (1, 4)) at cfps [818a6dee-f616-4d1b-993b-ff47e0871a94][0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID 01bd113f-9996-4502-a05f-1852a655937d)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_5'] (ID 6079703a-b582-4fa0-af60-e53444c0a487)[0m
+[32m2019-02-12 19:18:06 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:06 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 8, u: (0, 14.0), q: (1, 4)) at cfps [91486ba9-25f0-4381-810a-8e025fe3c9e5][0m
+[32m2019-02-12 19:18:07 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID e2e50b98-2ef9-4994-94ce-88a1c7679810)[0m
+[32m2019-02-12 19:18:07 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m
+[32m2019-02-12 19:18:07 - INFO - 0/60 [0.02]: greedy_3_5 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_5'] (ID 2167da45-383a-4b4a-88f0-1da6e657f144)[0m
+[32m2019-02-12 19:18:07 - INFO - 0/60 [0.02]: greedy_3_5-64414524-2cd4-4426-9024-88328e3b1a85 request was accepted[0m
+[0m2019-02-12 19:18:07 - DEBUG - Record: c_3: buy p3(cp:7.0) (t: 9, u: (0, 14.0), q: (1, 4)) at cfps [340f74fe-da26-42da-a5d9-e6a2b9d44873][0m
+[32m2019-02-12 19:18:07 - INFO - 0/60 [0.02]: greedy_3_4 requested negmas.sao.SAOMechanism[None] with ['c_3', 'greedy_3_4'] (ID f5137379-a53f-454f-91a7-ea61b0ec1657)[0m
+[32m2019-02-12 19:18:07 - INFO - 0/60 [0.02]: greedy_3_4-527dc5d9-acf9-4898-8897-1770386f9ba0 request was accepted[0m

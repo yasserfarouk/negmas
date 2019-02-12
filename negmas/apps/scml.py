@@ -33,7 +33,7 @@ Remarks about re-negotiation on breaches:
       agreements.
 
 Remarks about timing:
--------------------------
+---------------------
 
     - The order of events within a single time-step are as follows:
 
@@ -66,6 +66,10 @@ Remarks about timing:
            production). Even for a zero transportation delay, you cannot produce something and sell it in the same
            time-step. Moreover, the buyer should never use the product to be delivered at time *t* as an input to a
            production process that needs it before step *t+1*.
+        #. When contracts are executed, the funds are deducted from the buyer's wallet at the *beginning* of the
+           simulation step and deposited in the seller's wallet at the *end* of that step (similar to what happens to
+           the products). This means that a factory manager cannot use funds it receives from sales at time *t* for
+           buying products before *t + 1*.
 
 
 Remarks about ANAC 2019 SCML League:
@@ -85,20 +89,27 @@ Remarks about ANAC 2019 SCML League:
 import functools
 import itertools
 import math
+import os
+import pathlib
+import traceback
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from random import randint, random, sample, choices, gauss
-from typing import Dict, Iterable, Any, Callable, Set, Collection, Type
+from concurrent.futures import as_completed, ProcessPoolExecutor
+from random import randint, random, sample, choices, gauss, shuffle
+from time import perf_counter
+from typing import Dict, Iterable, Any, Callable, Set, Collection, Type, Sequence
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+import pandas as pd
+from dask.distributed import Client
 from dataclasses import dataclass, field
 from numpy.random import dirichlet
 
 from negmas.common import NamedObject, MechanismState, MechanismInfo
 from negmas.events import Event, EventSource, Notification
-from negmas.helpers import ConfigReader, get_class
+from negmas.helpers import ConfigReader, get_class, snake_case, unique_name
 from negmas.mechanisms import MechanismProxy
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, OutcomeType, Outcome
@@ -1013,7 +1024,7 @@ class SCMLAgent(Agent, ABC):
         self.immediate_negotiations = self.awi.bulletin_board.read('settings', 'immediate_negotiations')
         self.transportation_delay = self.awi.bulletin_board.read(section='settings', key='transportation_delay')
 
-    def can_expect_agreement(self, cfp: 'CFP'):
+    def can_expect_agreement(self, cfp: 'CFP', margin: int):
         """
         Checks if it is possible in principle to get an agreement on this CFP by the time it becomes executable
         Args:
@@ -1022,8 +1033,7 @@ class SCMLAgent(Agent, ABC):
         Returns:
 
         """
-        return cfp.max_time >= self.awi.current_step + 1 - int(
-            self.immediate_negotiations)  # @todo check that this is correct now
+        return cfp.max_time >= self.awi.current_step + 1 - int(self.immediate_negotiations) + margin
 
     def before_joining_negotiation(self, initiator: str, partners: List[str], issues: List[Issue]
                                    , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
@@ -1115,7 +1125,7 @@ class Bank(Agent):
         self.installment_interest = installment_interest
         self.time_increment = time_increment
         self.balance_at_max_interest = balance_at_max_interest
-        self.black_listed: Dict[str, float] = defaultdict(float)
+        self.credit_rating: Dict[str, float] = defaultdict(float)
 
     def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
         raise ValueError('The bank does not receive callbacks')
@@ -1133,8 +1143,6 @@ class Bank(Agent):
     def _evaluate_loan(self, agent: SCMLAgent, amount: float, n_installments: int, starts_at: int
                        , installment_loan=False) -> Optional[Loan]:
         """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
-        if agent.id in self.black_listed.keys():
-            return None
         balance = agent.factory_state.balance
 
         if self.interest_rate is None:
@@ -1144,6 +1152,7 @@ class Bank(Agent):
         if balance < 0 and self.interest_max is not None:
             interest += balance * (interest - self.interest_max) / self.balance_at_max_interest
         interest += max(0, starts_at - self.awi.current_step) * self.time_increment
+        interest += self.credit_rating[agent.id]
         total = amount * (1 + interest) ** n_installments
         installment = total / n_installments
         if self.minimum_balance is not None and balance - total < - self.minimum_balance:
@@ -1206,7 +1215,7 @@ class Bank(Agent):
                                                    , installment_loan=True, starts_at=t + 1)
                     if new_loan is None:
                         # The agent does not have enough money and cannot get a new loan, blacklist it
-                        self.black_listed[agent.id] += unavailable
+                        self.credit_rating[agent.id] += unavailable
                         self.awi.logdebug(f'Bank: {agent.name} blacklisted for {unavailable} (of {loan.installment})')
                     else:
                         # The agent does not have enough money but can pay the installment by getting a loan
@@ -1316,10 +1325,10 @@ class InsuranceCompany(Agent):
         if premium is None or insured.factory_state.wallet < premium:
             return None
         insured.factory_state.wallet -= premium
+        self.wallet += premium
         policy = InsurancePolicy(contract=contract, at_time=self.awi.current_step, against=against, premium=premium)
         self.insured_contracts[(contract, against.id)] = policy
         return policy
-
 
     def pay_insurance(self, contract: Contract, perpetrator: SCMLAgent) -> bool:
         """
@@ -2217,7 +2226,7 @@ class Miner(SCMLAgent, ConfigReader):
         self.profiles = profiles if profiles is not None else dict()
 
     def _process_cfp(self, cfp: 'CFP'):
-        if not self.can_expect_agreement(cfp=cfp):
+        if not self.can_expect_agreement(cfp=cfp, margin=0):
             return
         profile = self.profiles.get(cfp.product, None)
         if profile is None:
@@ -2529,6 +2538,8 @@ class GreedyScheduler(Scheduler):
                 insurance = self.awi.evaluate_insurance(contract=contract, t=self.awi.current_step)
             if (insurance is None or balances[t] >= p * (1.0 + insurance)) and \
                 (factory.max_storage is None or np.max(total[t:]) <= factory.max_storage - q):
+                if insurance is not None and insurance > 0.0:
+                    balances[self.awi.current_step:] -= insurance
                 storage[pid, t:] += q
                 total[t:] += q
                 balances[t:] -= p
@@ -2753,24 +2764,15 @@ class FactoryManager(SCMLAgent, ConfigReader, ABC):
         return schedule.factory.predicted_balance[-1]
 
 
-# @dataclass
-# class ProductionInfo:
-#     process: Process
-#     cost: float
-#     n_steps: int
-#     lines: List[Line] = field(default_factory=lambda: defaultdict(list))
-
-
 class GreedyFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
 
-    def __init__(self, factory=None, name=None, optimism: float = 0.0, p_negotiation=0.25
-                 , negotiator_type='negmas.sao.AspirationNegotiator', single_sell_order: bool = False
-                 , n_retrials=0, use_consumer=False, reactive=True, sign_only_guaranteed_contracts=True
-                 , max_insurance_premium=None):
+    def __init__(self, factory=None, name=None, optimism: float = 0.0
+                 , negotiator_type='negmas.sao.AspirationNegotiator'
+                 , n_retrials=5, use_consumer=True, reactive=True, sign_only_guaranteed_contracts=False
+                 , riskiness=0.0, max_insurance_premium=None):
         super().__init__(factory=factory, name=name, negotiator_type=negotiator_type)
         self.optimism = optimism
-        self.p_negotiation = p_negotiation
         self.ufun_factory: Union[Type[NegotiatorUtility], Callable[[Any, Any], NegotiatorUtility]]
         if optimism < 1e-6:
             self.ufun_factory = PessimisticNegotiatorUtility
@@ -2779,7 +2781,6 @@ class GreedyFactoryManager(FactoryManager):
         else:
             self.ufun_factory: NegotiatorUtility = lambda agent, annotation: \
                 AveragingNegotiatorUtility(agent=agent, annotation=annotation, optimism=self.optimism)
-        self.single_sell_order = single_sell_order
         self.max_insurance_premium = max_insurance_premium
         self.n_retrials = n_retrials
         self.n_neg_trials: Dict[str, int] = defaultdict(int)
@@ -2788,6 +2789,8 @@ class GreedyFactoryManager(FactoryManager):
         self.reactive = reactive
         self.sign_only_guaranteed_contracts = sign_only_guaranteed_contracts
         self.contract_schedules: Dict[str, ScheduleInfo] = {}
+        self.riskiness = riskiness
+        self.negotiation_margin = int(round(n_retrials * riskiness))
 
     def init(self):
         super().init()
@@ -2907,7 +2910,9 @@ class GreedyFactoryManager(FactoryManager):
                 self.notify(negotiation.negotiator, Notification(type='ufun_modified', data=None))
 
     def _process_buy_cfp(self, cfp: 'CFP') -> None:
-        if self.factory is None or not self.can_expect_agreement(cfp=cfp) or not self.can_produce(cfp=cfp):
+        if self.factory is None or not self.can_expect_agreement(cfp=cfp, margin=self.negotiation_margin):
+            return
+        if not self.can_produce(cfp=cfp):
             return
         if self.negotiator_type == AspirationNegotiator:
             neg = self.negotiator_type(assume_normalized=True, name=self.name + '>' + cfp.publisher)
@@ -3383,6 +3388,9 @@ class SCMLWorld(World):
                           , factory_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None, consumption=1
                           , consumer_kwargs: Dict[str, Any] = None
                           , negotiation_speed: Optional[int] = None
+                          , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
+                          , n_greedy_per_level: int = 0
+                          , random_factory_manager_assignment: bool = True
                           , **kwargs):
         """
         Creates a very small world in which only one raw material and one final product. The production graph is a
@@ -3390,6 +3398,9 @@ class SCMLWorld(World):
 
         Args:
 
+            random_factory_manager_assignment: If true, the factory assignment is randomized
+            n_greedy_per_level: The number of `GreedyFactoryManager` objects guaranteed at every level
+            manager_types: A sequence of factory manager types to control the factories.
             consumption:
             n_intermediate_levels: The number of intermediate products
             n_miners: number of miners of the single raw material
@@ -3446,6 +3457,9 @@ class SCMLWorld(World):
             processes.append(p)
             products.append(new_product)
 
+        assignable_factories = []
+        greedy_factories = []
+
         for level in range(n_intermediate_levels + 1):
             for j in range(n_factories_per_level):
                 lines = []
@@ -3460,11 +3474,27 @@ class SCMLWorld(World):
                 factory = Factory(name=f'f{level + 1}_{j}', max_storage=max_storage
                                   , lines=dict(zip((_.id for _ in lines), lines))
                                   , products=products, processes=processes)
-                manager = GreedyFactoryManager(factory=factory, name=f'f{level + 1}_{j}', p_negotiation=1.0
-                                               , **factory_kwargs)
-                factory.manager = manager
                 factories.append(factory)
+                if j >= n_greedy_per_level:
+                    assignable_factories.append((factory, level))
+                else:
+                    greedy_factories.append(factory)
+
+            for j, factory in enumerate(greedy_factories):
+                manager_name = snake_case(GreedyFactoryManager.__name__.replace('FactoryManager', ''))
+                manager = GreedyFactoryManager(factory=factory, name=f'{manager_name}_{level + 1}_{j}',
+                                               **factory_kwargs)
+                factory.manager = manager
                 managers.append(manager)
+
+        if random_factory_manager_assignment:
+            shuffle(assignable_factories)
+
+        for j, ((factory, level), manager_type) in enumerate(zip(assignable_factories, itertools.cycle(manager_types))):
+            manager_name = snake_case(manager_type.__name__.replace('FactoryManager', ''))
+            manager = manager_type(factory=factory, name=f'{manager_name}_{level + 1}_{j}')
+            factory.manager = manager
+            managers.append(manager)
 
         def create_schedule():
             if isinstance(consumption, tuple) and len(consumption) == 2:
@@ -3870,14 +3900,6 @@ class SCMLWorld(World):
             return agent.factory_state.__dict__
         return {}
 
-    def _update_factory_balance(self, factory: Factory, value: float) -> None:
-        if abs(value) < 1e-10:
-            return
-        factory.state.wallet += value
-        if factory.state.wallet < self.minimum_balance:
-            if self.interest_rate is not None:
-                factory.state.wallet *= (1 + self.interest_rate)
-
     def _simulation_step(self):
         """A step of SCML simulation"""
 
@@ -4082,35 +4104,57 @@ class SCMLWorld(World):
 
         if product_breach is not None:
             # apply insurances if they exist
+            insured_quantity = 0
+            # register the breach independent of insurance
+            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
+                                , level=product_breach, type='product', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=seller):
                 # if the buyer has an insurance against the seller for this contract, then just give him the missing
                 #  quantity and proceed as if the contract was for the remaining quantity. Notice that the breach on the
                 #  seller is already registered by this time.
-                self.logdebug(f'Insurance: {buyer.name} got {missing_quantity} of {self.products[pind].name} '
-                              f'from insurance')
-                buyer.factory_state.storage[pind] = seller.factory_state.storage.get(pind, 0) + missing_quantity
-                self.insurance_company.storage[pind] -= missing_quantity
-            # register the breach independent of insurance
-            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
-                                , level=product_breach, type='product', step=self.current_step))
+
+                # the insurance company can give  as much as the buyer can buy even using a loan
+                buyer_deficit = missing_quantity * unit_price - buyer.factory_state.wallet
+                if buyer_deficit > 0:
+                    self.bank.buy_loan(agent=buyer, amount=buyer_deficit, n_installments=1)
+                if unit_price > 0:
+                    insured_quantity = min(missing_quantity, int(buyer.factory_state.wallet / unit_price))
+                else:
+                    insured_quantity = missing_quantity
+                self.logdebug(f'Insurance: {buyer.name} got {insured_quantity} of {self.products[pind].name} '
+                              f'from insurance ({missing_quantity} was missing')
+                buyer.factory_state.storage[pind] = seller.factory_state.storage.get(pind, 0) + insured_quantity
+                self.insurance_company.storage[pind] -= insured_quantity
+                buyer.factory_state.wallet -= insured_quantity * unit_price
+                self.insurance_company.wallet += insured_quantity * unit_price
 
             # we will only transfer the remaining quantity.
-            quantity -= missing_quantity
+            missing_quantity -= insured_quantity
+            quantity -= insured_quantity
 
         if money_breach is not None:
             # apply insurances if they exist.
+            insured_money = 0.0
+            breaches.add(Breach(contract=contract, perpetrator=buyer, victims=[seller]
+                                , level=money_breach, type='money', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=buyer):
                 # if the seller has an insurance against the buyer for this contract, then just give him the missing
                 #  money and proceed as if the contract was for the remaining amount. Notice that the breach on the
                 #  seller is already registered by this time.
-                self.logdebug(f'Insurance: {seller.name} got {missing_money} dollars from insurance')
-                seller.factory_state.wallet += missing_money
-                self.insurance_company.wallet += missing_money
-            breaches.add(Breach(contract=contract, perpetrator=buyer, victims=[seller]
-                                , level=money_breach, type='money', step=self.current_step))
+
+                # the insurance company will provide enough money to buy whatever actually exist of the contract in the
+                # seller's storage
+                insured_money = min(missing_money, seller.factory_state.storage[pind] * unit_price)
+                bought_quantity = insured_money / unit_price  # I never come here if unit_price is zero.
+                self.logdebug(f'Insurance: {seller.name} got {insured_money} dollars from insurance')
+                seller.factory_state.wallet += insured_money
+                self.insurance_company.wallet -= insured_money
+                seller.factory_state.storage[pind] -= bought_quantity
+                self.insurance_company.storage[pind] += bought_quantity
 
             # we will only transfer the remaining money.
-            money -= missing_money
+            money -= insured_money
+            missing_money -= insured_money
 
         if len(breaches) > 0:
             self.logdebug(f'Contract {contract.id} has {len(breaches)} breaches:')
@@ -4348,8 +4392,10 @@ class SCMLWorld(World):
         return n_breaches / n_contracts if n_contracts else 0.0
 
 
-def anac2019_world(n_intermediate_levels=3, n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
+def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
+                   , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
                    , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=4
+                   , competitors: Tuple[Union[str, Type[FactoryManager]]] = ()
                    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
                    , transportation_delay=0, default_signing_delay=1
                    , max_storage=None
@@ -4357,13 +4403,17 @@ def anac2019_world(n_intermediate_levels=3, n_miners=5, n_factories_per_level=5,
                    , consumption=(3, 5)
                    , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
                    , n_steps=60, time_limit=60 * 90
+                   , n_greedy_per_level: int = 2
+                   , random_factory_manager_assignment: bool = True
                    , log_file_name: str = None
                    ):
     """
     Creates a world compatible with the ANAC 2019 competition. Note that
 
     Args:
-        n_intermediate_levels: The number of intermediate products
+        n_intermediate:
+        n_greedy_per_level:
+        competitors: A list of class names for the competitors
         n_miners: number of miners of the single raw material
         n_factories_per_level: number of factories at every production level
         n_consumers: number of consumers of the final product
@@ -4396,25 +4446,299 @@ def anac2019_world(n_intermediate_levels=3, n_miners=5, n_factories_per_level=5,
 
 
     """
+    if n_factories_per_level == n_greedy_per_level and len(competitors) > 0:
+        raise ValueError(f'All factories in all levels are occupied by greedy_factory_managers')
+    if isinstance(n_intermediate, Iterable):
+        n_intermediate = list(n_intermediate)
+    else:
+        n_intermediate = [n_intermediate, n_intermediate]
     max_insurance_premium = None if max_insurance_premium < 0 else max_insurance_premium
-    return SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=n_steps
-                                       , negotiation_speed=negotiation_speed
-                                       , n_intermediate_levels=n_intermediate_levels
-                                       , n_miners=n_miners
-                                       , n_consumers=n_consumers
-                                       , n_factories_per_level=n_factories_per_level
-                                       , consumption=consumption
-                                       , consumer_kwargs={'negotiator_type': negotiator_type
+    n_competitors = len(competitors)
+    n_intermediate_levels_min = int(math.ceil(n_competitors / (n_factories_per_level - n_greedy_per_level))) - 1
+    if n_intermediate_levels_min > n_intermediate[1]:
+        raise ValueError(f'Need {n_intermediate_levels_min} intermediate levels to run {n_competitors} competitors')
+    n_intermediate[0] = max(n_intermediate_levels_min, n_intermediate[0])
+    competitors = [get_class(c) if isinstance(c, str) else c for c in competitors]
+    if len(competitors) < 1:
+        competitors.extend(GreedyFactoryManager)
+    world = SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=n_steps
+                                        , negotiation_speed=negotiation_speed
+                                        , n_intermediate_levels=randint(*n_intermediate)
+                                        , n_miners=n_miners
+                                        , n_consumers=n_consumers
+                                        , n_factories_per_level=n_factories_per_level
+                                        , consumption=consumption
+                                        , consumer_kwargs={'negotiator_type': negotiator_type
             , 'consumption_horizon': consumption_horizon}
-                                       , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
-                                       , factory_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
+                                        , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
+                                        , factory_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
             , 'sign_only_guaranteed_contracts': guaranteed_contracts
             , 'use_consumer': use_consumer
             , 'max_insurance_premium': max_insurance_premium}
-                                       , transportation_delay=transportation_delay
-                                       , time_limit=time_limit
-                                       , neg_time_limit=neg_time_limit
-                                       , neg_n_steps=neg_n_steps
-                                       , default_signing_delay=default_signing_delay
-                                       , n_lines_per_factory=n_lines_per_factory
-                                       , max_storage=max_storage)
+                                        , transportation_delay=transportation_delay
+                                        , time_limit=time_limit
+                                        , neg_time_limit=neg_time_limit
+                                        , neg_n_steps=neg_n_steps
+                                        , default_signing_delay=default_signing_delay
+                                        , n_lines_per_factory=n_lines_per_factory
+                                        , max_storage=max_storage
+                                        , manager_types=competitors
+                                        , n_greedy_per_level=n_greedy_per_level
+                                        , random_factory_manager_assignment=random_factory_manager_assignment)
+
+    return world
+
+
+def _run_world(world: SCMLWorld):
+    """Runs a world and returns stats"""
+    world.run()
+    return world.stats, world.name, world.log_file_name
+
+
+@dataclass
+class TournamentResults:
+    scores: pd.DataFrame
+    total_scores: pd.DataFrame
+    winner: str
+    winner_score: float
+    ttest: pd.DataFrame
+
+
+def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
+                        , randomize=True
+                        , n_runs: int = 10, tournament_path: str = './logs/tournaments'
+                        , total_timeout: Optional[int] = None
+                        , parallelism='local'
+                        , scheduler_ip: Optional[str] = None
+                        , scheduler_port: Optional[str] = None
+                        , n_intermediate: Tuple[int, int] = (1, 4)
+                        , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
+                        , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=4
+                        , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
+                        , transportation_delay=0, default_signing_delay=1
+                        , max_storage=None
+                        , consumption_horizon=15
+                        , consumption=(3, 5)
+                        , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
+                        , n_steps=60, time_limit=60 * 90
+                        , n_greedy_per_level: int = 2
+                        ) -> TournamentResults:
+    """
+    Runs a tournament
+
+    Args:
+
+        competitors: A list of class names for the competitors
+        randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
+        n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
+        the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
+        keep detailed logs
+        parallelism: Type of parallelism. Can be 'none' for serial, 'local' for parallel and 'dist' for distributed
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        n_intermediate:
+        n_greedy_per_level:
+        n_miners: number of miners of the single raw material
+        n_factories_per_level: number of factories at every production level
+        n_consumers: number of consumers of the final product
+        n_steps: number of simulation steps
+        n_lines_per_factory: number of lines in each factory
+        negotiation_speed: The number of negotiation steps per simulation step. None means infinite
+        default_signing_delay: The number of simulation between contract conclusion and signature
+        neg_n_steps: The maximum number of steps of a single negotiation (that is double the number of rounds)
+        neg_time_limit: The total time-limit of a single negotiation
+        time_limit: The total time-limit of the simulation
+        transportation_delay: The transportation delay
+        n_retrials: The number of retrials the `Miner` and `GreedyFactoryManager` will try if negotiations fail
+        max_insurance_premium: The maximum insurance premium accepted by `GreedyFactoryManager` (-1 to disable)
+        use_consumer: If true, the `GreedyFactoryManager` will use an internal consumer for buying its needs
+        guaranteed_contracts: If true, the `GreedyFactoryManager` will only sign contracts that it can guaratnee not to
+        break.
+        consumption_horizon: The number of steps for which `Consumer` publishes `CFP` s
+        consumption: The consumption schedule will be sampled from a uniform distribution with these limits inclusive
+        negotiator_type: The negotiation factory used to create all negotiators
+        max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
+
+    Returns:
+        scores as a dataframe
+
+    Remarks:
+
+        - Every production level n has one process only that takes n steps to complete
+
+
+    """
+    tournament_path = pathlib.Path(tournament_path) / unique_name('', add_time=True, rand_digits=0)
+    os.makedirs(str(tournament_path), exist_ok=True)
+    worlds = []
+    if randomize:
+        for i in range(n_runs):
+            shuffle(competitors)
+            log_file_name = str(
+                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/', ''))
+            worlds.append(anac2019_world(competitors=competitors
+                                         , log_file_name=log_file_name
+                                         , random_factory_manager_assignment=True
+                                         , n_intermediate=n_intermediate
+                                         , n_miners=n_miners
+                                         , n_factories_per_level=n_factories_per_level
+                                         , n_consumers=n_consumers
+                                         , n_lines_per_factory=n_lines_per_factory
+                                         , guaranteed_contracts=guaranteed_contracts
+                                         , use_consumer=use_consumer
+                                         , max_insurance_premium=max_insurance_premium
+                                         , n_retrials=n_retrials
+                                         , negotiator_type=negotiator_type
+                                         , transportation_delay=transportation_delay
+                                         , default_signing_delay=default_signing_delay
+                                         , max_storage=max_storage
+                                         , consumption_horizon=consumption_horizon
+                                         , consumption=consumption
+                                         , negotiation_speed=negotiation_speed
+                                         , neg_time_limit=neg_time_limit
+                                         , neg_n_steps=neg_n_steps
+                                         , n_steps=n_steps
+                                         , time_limit=time_limit
+                                         , n_greedy_per_level=n_greedy_per_level
+                                         ))
+
+    else:
+        c_list = list(itertools.permutations(competitors))
+        extra_runs = 0
+        if n_runs is not None:
+            if len(c_list) > n_runs:
+                print(f'Need {len(c_list)} permutations but allowed to only use {n_runs} of them')
+                c_list = shuffle(c_list)[:n_runs]
+            elif len(c_list) < n_runs:
+                extra_runs = n_runs - len(c_list)
+
+        for i, c in enumerate(c_list):
+            log_file_name = str(
+                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/', ''))
+            worlds.append(anac2019_world(competitors=c, log_file_name=log_file_name
+                                         , random_factory_manager_assignment=False
+                                         , n_intermediate=n_intermediate
+                                         , n_miners=n_miners
+                                         , n_factories_per_level=n_factories_per_level
+                                         , n_consumers=n_consumers
+                                         , n_lines_per_factory=n_lines_per_factory
+                                         , guaranteed_contracts=guaranteed_contracts
+                                         , use_consumer=use_consumer
+                                         , max_insurance_premium=max_insurance_premium
+                                         , n_retrials=n_retrials
+                                         , negotiator_type=negotiator_type
+                                         , transportation_delay=transportation_delay
+                                         , default_signing_delay=default_signing_delay
+                                         , max_storage=max_storage
+                                         , consumption_horizon=consumption_horizon
+                                         , consumption=consumption
+                                         , negotiation_speed=negotiation_speed
+                                         , neg_time_limit=neg_time_limit
+                                         , neg_n_steps=neg_n_steps
+                                         , n_steps=n_steps
+                                         , time_limit=time_limit
+                                         , n_greedy_per_level=n_greedy_per_level
+                                         ))
+            if extra_runs > 0:
+                for i in range(extra_runs):
+                    shuffle(competitors)
+                    log_file_name = str(
+                        tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/', ''))
+                    worlds.append(anac2019_world(competitors=competitors
+                                                 , log_file_name=log_file_name
+                                                 , random_factory_manager_assignment=True
+                                                 , n_intermediate=n_intermediate
+                                                 , n_miners=n_miners
+                                                 , n_factories_per_level=n_factories_per_level
+                                                 , n_consumers=n_consumers
+                                                 , n_lines_per_factory=n_lines_per_factory
+                                                 , guaranteed_contracts=guaranteed_contracts
+                                                 , use_consumer=use_consumer
+                                                 , max_insurance_premium=max_insurance_premium
+                                                 , n_retrials=n_retrials
+                                                 , negotiator_type=negotiator_type
+                                                 , transportation_delay=transportation_delay
+                                                 , default_signing_delay=default_signing_delay
+                                                 , max_storage=max_storage
+                                                 , consumption_horizon=consumption_horizon
+                                                 , consumption=consumption
+                                                 , negotiation_speed=negotiation_speed
+                                                 , neg_time_limit=neg_time_limit
+                                                 , neg_n_steps=neg_n_steps
+                                                 , n_steps=n_steps
+                                                 , time_limit=time_limit
+                                                 , n_greedy_per_level=n_greedy_per_level
+                                                 ))
+
+    scores = []
+    scores_file = str(tournament_path / 'scores.csv')
+
+    def _process_stats(stats: Dict[str, Any], world_name: str, file_name: str):
+        if file_name is not None:
+            with open(file_name, 'a') as f:
+                f.write('\nDONE SUCCESSFULLY\n')
+        for k, v in stats.items():
+            if not k.startswith('balance'):
+                continue
+            if k.endswith('insurance') or k.endswith('bank') or k[len('balance_'):].startswith('c_') \
+                or k[len('balance_'):].startswith('m_'):
+                continue
+            name_ = k[len('balance_'):]
+            type_ = '_'.join(name_.split('_')[:-2])
+            score = v[-1] - v[0]
+            scores.append({'name': name_, 'type': type_, 'score': score, 'log_file': file_name
+                              , 'world': world_name})
+        pd.DataFrame(data=scores).to_csv(scores_file, index_label='index')
+
+    if parallelism in ('serial', 'none'):
+        strt = perf_counter()
+        for world in worlds:
+            if total_timeout is not None and perf_counter() - strt > total_timeout:
+                break
+            try:
+                _process_stats(*_run_world(world))
+            except Exception as e:
+                print(traceback.format_exc())
+                print(e)
+    elif parallelism in ('local', 'parallel', 'processes'):
+        executor = ProcessPoolExecutor(max_workers=None)
+        future_results = []
+        for world in worlds:
+            future_results.append(executor.submit(_run_world, world))
+        for future in as_completed(future_results, timeout=total_timeout):
+            try:
+                _process_stats(*future.results())
+            except Exception as e:
+                print(traceback.format_exc())
+                print(e)
+    elif parallelism in ('dist', 'distributed', 'dask'):
+        client = Client(scheduler=f'{scheduler_ip}:{scheduler_port}' if scheduler_ip is not None else None)
+        future_results = []
+        for world in worlds:
+            future_results.append(client.submit(_run_world, world))
+        for future in as_completed(future_results, timeout=total_timeout):
+            try:
+                _process_stats(*future.results())
+            except Exception as e:
+                print(traceback.format_exc())
+                print(e)
+
+    scores = pd.DataFrame(data=scores)
+    scores = scores.loc[~scores['type'].isnull(), :]
+    scores = scores.loc[scores.type.str.len() > 0, :]
+    total_scores = scores.groupby(['type'])['score'].sum().sort_values(ascending=False)
+    winner = total_scores.index[0]
+    winner_score = total_scores.loc[winner]
+    types = list(scores['type'].unique())
+
+    ttest_results = []
+    for i, t1 in enumerate(types):
+        for j, t2 in enumerate(types[i+1:]):
+            from scipy.stats import ttest_ind
+            t, p = ttest_ind(scores[scores['type'] == t1].score, scores[scores['type'] == t2].score)
+            ttest_results.append({'a': t1, 'b': t2, 't': t, 'p': p})
+
+    return TournamentResults(scores=scores, total_scores=total_scores, winner=winner, winner_score=winner_score
+                             , ttest=pd.DataFrame(data=ttest_results))

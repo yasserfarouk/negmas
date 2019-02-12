@@ -10,6 +10,10 @@ SCMLWorld
 
    .. autosummary::
 
+      ~SCMLWorld.agreement_rate
+      ~SCMLWorld.breach_rate
+      ~SCMLWorld.business_size
+      ~SCMLWorld.contract_execution_fraction
       ~SCMLWorld.winners
 
    .. rubric:: Methods Summary
@@ -17,9 +21,7 @@ SCMLWorld
    .. autosummary::
 
       ~SCMLWorld.buy_insurance
-      ~SCMLWorld.buy_loan
       ~SCMLWorld.evaluate_insurance
-      ~SCMLWorld.evaluate_loan
       ~SCMLWorld.execute
       ~SCMLWorld.join
       ~SCMLWorld.on_contract_signed
@@ -39,14 +41,16 @@ SCMLWorld
 
    .. rubric:: Attributes Documentation
 
+   .. autoattribute:: agreement_rate
+   .. autoattribute:: breach_rate
+   .. autoattribute:: business_size
+   .. autoattribute:: contract_execution_fraction
    .. autoattribute:: winners
 
    .. rubric:: Methods Documentation
 
    .. automethod:: buy_insurance
-   .. automethod:: buy_loan
    .. automethod:: evaluate_insurance
-   .. automethod:: evaluate_loan
    .. automethod:: execute
    .. automethod:: join
    .. automethod:: on_contract_signed

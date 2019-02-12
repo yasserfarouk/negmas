@@ -31,6 +31,7 @@ Factory
       ~Factory.find_needs
       ~Factory.get_line
       ~Factory.init_schedule
+      ~Factory.init_state
       ~Factory.schedule_job
       ~Factory.step
       ~Factory.update_fields
@@ -56,6 +57,7 @@ Factory
    .. automethod:: find_needs
    .. automethod:: get_line
    .. automethod:: init_schedule
+   .. automethod:: init_state
    .. automethod:: schedule_job
    .. automethod:: step
    .. automethod:: update_fields

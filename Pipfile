@@ -21,6 +21,8 @@ tabulate = "*"
 click = "*"
 pytest = "*"
 hypothesis = "*"
+dask = "*"
+distributed = "*"
 
 [dev-packages]
 "pep8" = "*"

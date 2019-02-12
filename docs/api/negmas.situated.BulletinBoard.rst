@@ -15,6 +15,7 @@ BulletinBoard
       ~BulletinBoard.read
       ~BulletinBoard.record
       ~BulletinBoard.remove
+      ~BulletinBoard.satisfies
 
    .. rubric:: Methods Documentation
 
@@ -23,3 +24,4 @@ BulletinBoard
    .. automethod:: read
    .. automethod:: record
    .. automethod:: remove
+   .. automethod:: satisfies

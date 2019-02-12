@@ -870,11 +870,12 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
         # update stats
         # ------------
+        n_total_contracts = n_new_contract_executions + n_new_breaches
         self._stats['n_contracts_executed'].append(n_new_contract_executions)
         self._stats['n_contracts_cancelled'].append(n_cancelled)
         self._stats['n_breaches'].append(n_new_breaches)
-        self._stats['breach_level'].append(n_new_breaches / n_new_contract_executions
-                                           if n_new_contract_executions > 0 else -1)
+        self._stats['breach_level'].append(n_new_breaches / n_total_contracts
+                                           if n_total_contracts > 0 else -1)
         self._stats['n_contracts_signed'].append(self.__n_contracts_signed)
         self._stats['n_contracts_concluded'].append(self.__n_contracts_concluded)
         self._stats['n_negotiations'].append(self.__n_negotiations)

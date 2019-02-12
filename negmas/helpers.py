@@ -429,11 +429,11 @@ class LoggerMixin(object):
             file_name (str, optional): Defaults to None. File used for
 
         """
-        self.file_name = file_name
+        self.log_file_name = file_name
         if screen_log:
-            self.logger = create_loggers(self.file_name)
+            self.logger = create_loggers(self.log_file_name)
         else:
-            self.logger = create_loggers(self.file_name, screen_level=None)
+            self.logger = create_loggers(self.log_file_name, screen_level=None)
 
     def loginfo(self, s: str) -> None:
         """logs info-level information

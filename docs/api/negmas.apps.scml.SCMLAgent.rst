@@ -22,14 +22,10 @@ SCMLAgent
       ~SCMLAgent.confirm_contract_execution
       ~SCMLAgent.confirm_loan
       ~SCMLAgent.init
-      ~SCMLAgent.on_breach_by_another
-      ~SCMLAgent.on_breach_by_self
-      ~SCMLAgent.on_breach_meta_negotiation
       ~SCMLAgent.on_negotiation_request
       ~SCMLAgent.on_new_cfp
       ~SCMLAgent.on_production_failure
       ~SCMLAgent.on_remove_cfp
-      ~SCMLAgent.on_renegotiation_request
       ~SCMLAgent.step
 
    .. rubric:: Attributes Documentation
@@ -44,12 +40,8 @@ SCMLAgent
    .. automethod:: confirm_contract_execution
    .. automethod:: confirm_loan
    .. automethod:: init
-   .. automethod:: on_breach_by_another
-   .. automethod:: on_breach_by_self
-   .. automethod:: on_breach_meta_negotiation
    .. automethod:: on_negotiation_request
    .. automethod:: on_new_cfp
    .. automethod:: on_production_failure
    .. automethod:: on_remove_cfp
-   .. automethod:: on_renegotiation_request
    .. automethod:: step

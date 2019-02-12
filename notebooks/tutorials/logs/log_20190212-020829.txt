@@ -1,0 +1,168 @@
+[0m2019-02-12 02:08:29 - DEBUG - section breaches added[0m
+[0m2019-02-12 02:08:29 - DEBUG - section stats added[0m
+[0m2019-02-12 02:08:29 - DEBUG - section settings added[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: SCMLWorld_9f375583-49ce-488b-a9da-93bb1d685f1d: World Created[0m
+[0m2019-02-12 02:08:29 - DEBUG - section cfps added[0m
+[0m2019-02-12 02:08:29 - DEBUG - section products added[0m
+[0m2019-02-12 02:08:29 - DEBUG - section processes added[0m
+[0m2019-02-12 02:08:29 - DEBUG - section raw_materials added[0m
+[0m2019-02-12 02:08:29 - DEBUG - section final_products added[0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: 1.0 at settings [breach_penalty_society][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: 0.0 at settings [breach_penalty_victim][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: False at settings [immediate_negotiations][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: 21 at settings [negotiation_speed_multiple][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: 20 at settings [negotiation_n_steps][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: 0 at settings [transportation_delay][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p0(cp:1.0) at products [p0(cp:1.0)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p1(cp:2.0) at products [p1(cp:2.0)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p2(cp:4.0) at products [p2(cp:4.0)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p3(cp:7.0) at products [p3(cp:7.0)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p4(cp:11.0) at products [p4(cp:11.0)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p1(cp:1) at processes [p1(cp:1)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p2(cp:2) at processes [p2(cp:2)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p3(cp:3) at processes [p3(cp:3)][0m
+[0m2019-02-12 02:08:29 - DEBUG - Record: p4(cp:4) at processes [p4(cp:4)][0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: m_0 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: m_1 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: m_2 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: m_3 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: m_4 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: c_0 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: c_1 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: c_2 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: c_3 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: c_4 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f1_0 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f1_1 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f1_2 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f1_3 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f1_4 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f2_0 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f2_1 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f2_2 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f2_3 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f2_4 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f3_0 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f3_1 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f3_2 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f3_3 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f3_4 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f4_0 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f4_1 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f4_2 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f4_3 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: f4_4 joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: KT5uM2B7uoFCQtAe joined[0m
+[32m2019-02-12 02:08:29 - INFO - 0/60 [2e+01]: GKVzBxJMxiRweYkQ joined[0m
+[0m2019-02-12 02:09:02 - DEBUG - section breaches added[0m
+[0m2019-02-12 02:09:02 - DEBUG - section stats added[0m
+[0m2019-02-12 02:09:02 - DEBUG - section settings added[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: SCMLWorld_52334fa7-ce5b-40a1-9bab-86b7a8b09ee2: World Created[0m
+[0m2019-02-12 02:09:02 - DEBUG - section cfps added[0m
+[0m2019-02-12 02:09:02 - DEBUG - section products added[0m
+[0m2019-02-12 02:09:02 - DEBUG - section processes added[0m
+[0m2019-02-12 02:09:02 - DEBUG - section raw_materials added[0m
+[0m2019-02-12 02:09:02 - DEBUG - section final_products added[0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: 1.0 at settings [breach_penalty_society][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: 0.0 at settings [breach_penalty_victim][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: False at settings [immediate_negotiations][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: 21 at settings [negotiation_speed_multiple][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: 20 at settings [negotiation_n_steps][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: 0 at settings [transportation_delay][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p0(cp:1.0) at products [p0(cp:1.0)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p1(cp:2.0) at products [p1(cp:2.0)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p2(cp:4.0) at products [p2(cp:4.0)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p3(cp:7.0) at products [p3(cp:7.0)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p4(cp:11.0) at products [p4(cp:11.0)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p1(cp:1) at processes [p1(cp:1)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p2(cp:2) at processes [p2(cp:2)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p3(cp:3) at processes [p3(cp:3)][0m
+[0m2019-02-12 02:09:02 - DEBUG - Record: p4(cp:4) at processes [p4(cp:4)][0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: m_0 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: m_1 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: m_2 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: m_3 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: m_4 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: c_0 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: c_1 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: c_2 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: c_3 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: c_4 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f1_0 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f1_1 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f1_2 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f1_3 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f1_4 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f2_0 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f2_1 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f2_2 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f2_3 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f2_4 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f3_0 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f3_1 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f3_2 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f3_3 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f3_4 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f4_0 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f4_1 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f4_2 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f4_3 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: f4_4 joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: UBDwAJh4nFiXJuxC joined[0m
+[32m2019-02-12 02:09:02 - INFO - 0/60 [2e+01]: n0VIhVYplSXjPrSv joined[0m
+[0m2019-02-12 02:09:14 - DEBUG - section breaches added[0m
+[0m2019-02-12 02:09:14 - DEBUG - section stats added[0m
+[0m2019-02-12 02:09:14 - DEBUG - section settings added[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: SCMLWorld_078a5e58-eec1-439e-b8d0-80ec2c53f772: World Created[0m
+[0m2019-02-12 02:09:14 - DEBUG - section cfps added[0m
+[0m2019-02-12 02:09:14 - DEBUG - section products added[0m
+[0m2019-02-12 02:09:14 - DEBUG - section processes added[0m
+[0m2019-02-12 02:09:14 - DEBUG - section raw_materials added[0m
+[0m2019-02-12 02:09:14 - DEBUG - section final_products added[0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: 1.0 at settings [breach_penalty_society][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: 0.0 at settings [breach_penalty_victim][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: False at settings [immediate_negotiations][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: 21 at settings [negotiation_speed_multiple][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: 20 at settings [negotiation_n_steps][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: 0 at settings [transportation_delay][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p0(cp:1.0) at products [p0(cp:1.0)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p1(cp:2.0) at products [p1(cp:2.0)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p2(cp:4.0) at products [p2(cp:4.0)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p3(cp:7.0) at products [p3(cp:7.0)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p4(cp:11.0) at products [p4(cp:11.0)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p1(cp:1) at processes [p1(cp:1)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p2(cp:2) at processes [p2(cp:2)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p3(cp:3) at processes [p3(cp:3)][0m
+[0m2019-02-12 02:09:14 - DEBUG - Record: p4(cp:4) at processes [p4(cp:4)][0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: m_0 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: m_1 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: m_2 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: m_3 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: m_4 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: c_0 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: c_1 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: c_2 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: c_3 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: c_4 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f1_0 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f1_1 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f1_2 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f1_3 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f1_4 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f2_0 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f2_1 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f2_2 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f2_3 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f2_4 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f3_0 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f3_1 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f3_2 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f3_3 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f3_4 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f4_0 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f4_1 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f4_2 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f4_3 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: f4_4 joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: dFVSgEnSAqvPyQoQ joined[0m
+[32m2019-02-12 02:09:14 - INFO - 0/60 [2e+01]: PBkbPEe0LTWiwhhe joined[0m

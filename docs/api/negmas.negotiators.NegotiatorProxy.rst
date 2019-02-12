@@ -19,6 +19,7 @@ NegotiatorProxy
    .. autosummary::
 
       ~NegotiatorProxy.add_capabilities
+      ~NegotiatorProxy.before_death
       ~NegotiatorProxy.compare
       ~NegotiatorProxy.isin
       ~NegotiatorProxy.on_enter
@@ -39,6 +40,7 @@ NegotiatorProxy
    .. rubric:: Methods Documentation
 
    .. automethod:: add_capabilities
+   .. automethod:: before_death
    .. automethod:: compare
    .. automethod:: isin
    .. automethod:: on_enter

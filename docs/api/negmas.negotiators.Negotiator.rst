@@ -19,6 +19,7 @@ Negotiator
    .. autosummary::
 
       ~Negotiator.add_capabilities
+      ~Negotiator.before_death
       ~Negotiator.compare
       ~Negotiator.isin
       ~Negotiator.on_enter
@@ -39,6 +40,7 @@ Negotiator
    .. rubric:: Methods Documentation
 
    .. automethod:: add_capabilities
+   .. automethod:: before_death
    .. automethod:: compare
    .. automethod:: isin
    .. automethod:: on_enter

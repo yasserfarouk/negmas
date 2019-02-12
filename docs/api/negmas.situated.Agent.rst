@@ -12,6 +12,9 @@ Agent
 
       ~Agent.before_joining_negotiation
       ~Agent.init
+      ~Agent.on_breach_by_another
+      ~Agent.on_breach_by_self
+      ~Agent.on_breach_meta_negotiation
       ~Agent.on_contract_cancelled
       ~Agent.on_contract_signed
       ~Agent.on_event
@@ -19,15 +22,17 @@ Agent
       ~Agent.on_neg_request_rejected
       ~Agent.on_negotiation_failure
       ~Agent.on_negotiation_success
-      ~Agent.propose
+      ~Agent.on_renegotiation_request
       ~Agent.request_negotiation
-      ~Agent.respond
       ~Agent.sign_contract
 
    .. rubric:: Methods Documentation
 
    .. automethod:: before_joining_negotiation
    .. automethod:: init
+   .. automethod:: on_breach_by_another
+   .. automethod:: on_breach_by_self
+   .. automethod:: on_breach_meta_negotiation
    .. automethod:: on_contract_cancelled
    .. automethod:: on_contract_signed
    .. automethod:: on_event
@@ -35,7 +40,6 @@ Agent
    .. automethod:: on_neg_request_rejected
    .. automethod:: on_negotiation_failure
    .. automethod:: on_negotiation_success
-   .. automethod:: propose
+   .. automethod:: on_renegotiation_request
    .. automethod:: request_negotiation
-   .. automethod:: respond
    .. automethod:: sign_contract
