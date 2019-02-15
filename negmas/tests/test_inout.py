@@ -66,5 +66,6 @@ def test_simple_run_with_aspiration_agents():
         file_name, n_steps=100, time_limit=30
         , force_single_issue=True, keep_issue_names=False
         , keep_value_names=False, agent_factories=AspirationNegotiator)
+    assert mechanism is not None
     state = mechanism.run()
-    print(state)
+

@@ -1,4 +1,6 @@
 import os
+from typing import List
+
 import numpy as np
 import pytest
 import pathlib
@@ -87,7 +89,7 @@ def test_controller():
         session.add(AspirationNegotiator(aspiration_type='conceder')
                     , ufun=RandomUtilityFunction(outcomes=session.outcomes))
         session.add(c.create_negotiator(), ufun=RandomUtilityFunction(outcomes=session.outcomes))
-    completed = []
+    completed: List[int] = []
     while len(completed) < n_sessions:
         for i, session in enumerate(sessions):
             if i in completed:

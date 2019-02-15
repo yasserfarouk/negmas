@@ -36,7 +36,7 @@ def test_importing_all_single_issue_without_exceptions(capsys, scenarios_folder)
                                                               , max_n_outcomes=10000)
             except Exception as x:
                 print(f'Failed on {root}')
-                raise (x)
+                raise x
             nxt += 1
             success += domain is not None
             # print(f'{success:05}/{nxt:05}: {"Single " if domain is not None else "Multi--"}outcome: {root}', flush=True)

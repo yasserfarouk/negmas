@@ -53,7 +53,8 @@ def test_genius_agents_run_using_hypothesis(init_genius, agent_name1, agent_name
     neg, agent_info, issues = load_genius_domain_from_folder(base_folder
                                                              , keep_issue_names=keep_issue_names
                                                              , keep_value_names=keep_value_names)
-    # atlas = GeniusNegotiator.random_negotiator(
+    if neg is None:
+        raise ValueError(f'Failed to lead domain from {base_folder}')
     atlas = GeniusNegotiator(java_class_name=agent_name1,
                              domain_file_name=base_folder + '/Laptop-C-domain.xml'
                              , utility_file_name=base_folder + f'/Laptop-C-prof{utils[0]}.xml'

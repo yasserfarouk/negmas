@@ -70,10 +70,10 @@ __all__ = [
 OutcomeUtilityMapping = Union[
     Callable[
         [Union['Outcome', int, str, float]], 'UtilityValue'
-    ],  # type: ignore
+    ],
     Mapping[
         Union[Sequence, Mapping, int, str, float], 'UtilityValue'
-    ],  # type: ignore
+    ],
 ]
 OutcomeUtilityMappings = List[OutcomeUtilityMapping]
 """Maps from multi-issue or single-issue outcomes to Negotiator values."""
@@ -440,7 +440,7 @@ class UtilityFunction(ABC, NamedObject):
                             if mytype == 'real':
                                 raise ValueError(f'cannot specify item utilities for real type')
                             item_indx = int(item.attrib['index']) - 1
-                            item_name = item.attrib.get('value', None)
+                            item_name: str = item.attrib.get('value', None)
                             if item_name is None:
                                 continue
                             item_key = item_name if keep_value_names and item_name is not None else item_indx
@@ -2107,7 +2107,7 @@ def _pareto_frontier(points, eps=-1e-18, sort_by_welfare=False) -> Tuple[List[Tu
     Args:
         points: list of points
         eps: A (usually negative) small number to treat as zero during calculations
-        sort_by_welfare: If True, the resutls are sorted descendingly by total welfare
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
 
     Returns:
 
@@ -2142,7 +2142,8 @@ def _pareto_frontier(points, eps=-1e-18, sort_by_welfare=False) -> Tuple[List[Tu
                     else:
                         frontier[i] = (indices[p], current)
                 else:
-                    # neither current nor f dominate each other, append current only if it is not dominated by anything in frontier
+                    # neither current nor f dominate each other, append current only if it is not
+                    # dominated by anything in frontier
                     for j, (_, g) in enumerate(frontier[i + 1:]):
                         if np.all(current == g) or (np.any(g > current) and not np.any(current > g)):
                             break
@@ -2203,9 +2204,12 @@ def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[f
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
 
     """
+    u: List[float]
     u = [ufun(o) for o in outcomes]
     if infeasible_cutoff is not None:
-        u = [_ for _ in u if _ >= infeasible_cutoff]
+        u = [float(_) for _ in u if _ is not None and float(_) >= infeasible_cutoff]
+    else:
+        u = [float(_) for _ in u if _ is not None]
     if len(u) == 0:
         return ufun
     mx, mn = max(u), min(u)
@@ -2215,7 +2219,7 @@ def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[f
         if -epsilon <= mn <= 1 + epsilon:
             return ufun
         else:
-            r = ufun.reserved_value/mn if ufun.reserved_value else 0.0
+            r = float(ufun.reserved_value)/mn if ufun.reserved_value is not None and mn != 0.0 else 0.0
             if infeasible_cutoff is not None:
                 return ComplexNonlinearUtilityFunction(ufuns=[ufun],
                                                        combination_function=lambda x: infeasible_cutoff if x[0] is None

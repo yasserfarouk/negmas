@@ -9,7 +9,7 @@ from typing import List, Optional, Any, TYPE_CHECKING
 
 from dataclasses import dataclass, field, fields
 
-from negmas.helpers import snake_case, unique_name, Proxy
+from negmas.helpers import snake_case, unique_name
 
 if TYPE_CHECKING:
     from negmas.mechanisms import Mechanism
@@ -268,7 +268,7 @@ class NamedObject(object):
     @classmethod
     def create(cls, *args, **kwargs):
         """Creates an object and returns a proxy to it."""
-        return Proxy(obj=cls(*args, **kwargs))
+        return cls(*args, **kwargs)
 
     @property
     def name(self):

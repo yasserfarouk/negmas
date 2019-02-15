@@ -66,6 +66,7 @@ def test_possibilities(cissue, dissue, hamlet, bissue):
     assert len(list(hamlet.all)) == 5
     assert len(list(bissue.all)) == 2
 
+
 def test_issue_generation_defaults():
     options = ['a', 'b', 'c']
     issues = Issue.generate([(0.0, 1.0), options, 5])

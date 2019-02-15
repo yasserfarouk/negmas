@@ -28,7 +28,7 @@ Remarks about re-negotiation on breaches:
 -----------------------------------------
 
     - The victim is asked first to specify the negotiation agenda (issues) then the perpetrator
-    - renegotiations for breaches run immediately to completion independent from settings of
+    - re-negotiations for breaches run immediately to completion independent from settings of
       `negotiation_speed_multiplier` and `immediate_negotiations`. That include conclusion and signing of any resulting
       agreements.
 
@@ -62,7 +62,7 @@ Remarks about timing:
            passed at the *end* of the time-step. Transportation completes at the *end* of the time-step no matter
            what is the value for `transportation_delay`. This means that if a `FactoryManager` believes
            that it can produce some product at time *t*, it should never contract to sell it before *t+d + 1* where
-           *d* is the `transporation_delay` (the *1* comes from the fact that contract execution happens *before*
+           *d* is the `transportation_delay` (the *1* comes from the fact that contract execution happens *before*
            production). Even for a zero transportation delay, you cannot produce something and sell it in the same
            time-step. Moreover, the buyer should never use the product to be delivered at time *t* as an input to a
            production process that needs it before step *t+1*.
@@ -141,6 +141,7 @@ __all__ = [
     'Scheduler',
     'GreedyScheduler',
     'anac2019_world',
+    'anac2019_tournament',
 ]
 
 g_last_product_id = 0
@@ -847,11 +848,13 @@ class Line:
         Args:
             t:
             storage:
+            wallet:
 
         Returns:
             None: Failed to step because the storage is not enough
             FactoryStatueUpdate(storage=None): Nothing is running at this step
             FactoryStatueUpdate(storage!=None): can step and returns the updates to the storage and balance
+            :param wallet:
         """
         state = self._state
         updates = state.updates.get(t, None)
@@ -866,7 +869,7 @@ class Line:
                                     , line=self.id)
         process_index = command.process
         missing_inputs = []
-        missing_money = 0
+        missing_money = 0.0
         failed = False
         started = command if command.beg == t else None
         finished = command if command.end == t + 1 else None
@@ -1024,11 +1027,14 @@ class SCMLAgent(Agent, ABC):
         self.immediate_negotiations = self.awi.bulletin_board.read('settings', 'immediate_negotiations')
         self.transportation_delay = self.awi.bulletin_board.read(section='settings', key='transportation_delay')
 
-    def can_expect_agreement(self, cfp: 'CFP', margin: int):
+    def can_expect_agreement(self, cfp: 'CFP', margin: int) -> bool:
         """
         Checks if it is possible in principle to get an agreement on this CFP by the time it becomes executable
+
         Args:
-            cfp:
+            cfp: The call for proposals.
+            margin: Negotiations that would lead to contracts that are not at least margin steps away are not expected
+            to lead to agreement
 
         Returns:
 
@@ -1180,6 +1186,8 @@ class Bank(Agent):
         """Gives a loan of amount to agent at the interest calculated using `evaluate_loan`"""
         loan = self.evaluate_loan(amount=amount, agent=agent, n_installments=n_installments
                                   , start_at=self.awi.current_step)
+        if loan is None:
+            return None
         return self._buy_loan(agent=agent, loan=loan, force=force)
 
     def step(self):
@@ -1283,10 +1291,14 @@ class InsuranceCompany(Agent):
         """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
 
         Args:
-
             contract: hypothetical contract
-            insured: The `SCMLAgent` I am ensuring against
+            insured: The `SCMLAgent` to buy the insurance
+            against: The `SCMLAgent` against which the insurance is to be issued
             t: time at which the policy is to be bought. If None, it means current step
+
+        Returns:
+            float: the price of the insurance to be paid at the given time.
+
         """
 
         # fail if no premium
@@ -1610,7 +1622,7 @@ class Factory:
         self.predicted_balance[t:end] += updates.balance
         return True
 
-    def init_state(self, wallet: float = 0.0, storage: Dict[int, float] = None):
+    def init_state(self, wallet: float = 0.0, storage: Dict[int, int] = None):
         """Initializes the state of the factory"""
         if storage is None:
             storage = {}
@@ -1855,9 +1867,11 @@ class CFP(OutcomeType):
                             return [int(x[0])]
                         return [x[0]]
                 if isinstance(x[0], float) or isinstance(x[1], float):
+                    if self.money_resolution is None:
+                        raise ValueError(f'Cannot ensure list with no money resolution and a float tuple')
                     xs = (int(math.floor(x[0] / self.money_resolution))
-                          , int(math.floor(x[1] / self.money_resolution)))
-                    xs = list(_ * self.money_resolution for _ in range(xs[0], xs[1] + 1))
+                          , int((math.floor(x[1] + self.money_resolution) / self.money_resolution)))
+                    xs = list(_ * self.money_resolution for _ in range(xs[0], xs[1]))
                 elif isinstance(x[0], int):
                     xs = list(range(x[0], x[1] + 1))
                 else:
@@ -1883,7 +1897,8 @@ class CFP(OutcomeType):
 
         issues = [Issue(name='time', values=_values(self.time, ensure_list=True, ensure_int=True))
             , Issue(name='quantity', values=_values(self.quantity, ensure_list=True, ensure_int=True))
-            , Issue(name='unit_price', values=_values(self.unit_price, ensure_list=self.money_resolution is not None))]
+            , Issue(name='unit_price', values=_values(self.unit_price
+                                                      , ensure_list=self.money_resolution is not None))]
         if self.penalty is not None:
             issues.append(Issue(name='penalty'
                                 , values=_values(self.penalty, ensure_list=self.money_resolution is not None)))
@@ -2079,7 +2094,7 @@ class Consumer(SCMLAgent, ConfigReader):
         return True
 
     @staticmethod
-    def _qufun(outcome: Dict[str, Any], tau: float, profile: ConsumptionProfile):
+    def _qufun(outcome: Dict[str, Any], tau: float, profile: ConsumptionProfile) -> float:
         """The ufun value for quantity"""
         q, t = outcome['quantity'], outcome['time']
         y = profile.schedule_within(t)
@@ -2108,7 +2123,8 @@ class Consumer(SCMLAgent, ConfigReader):
         tau_q = pos_gauss(profile.tau_q, profile.cv)
         ufun = normalize(ComplexWeightedUtilityFunction(ufuns=[
             MappingUtilityFunction(mapping=lambda x: 1 - x['unit_price'] ** tau_u / beta_u)
-            , MappingUtilityFunction(mapping=functools.partial(Consumer._qufun, tau=tau_q, profile=profile))]
+            , MappingUtilityFunction(mapping=lambda x: functools.partial(Consumer._qufun, tau=tau_q
+                                                                         , profile=profile)(x))]
             , weights=[alpha_u, alpha_q], name=self.name + '_' + partner)
             , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
         if self.negotiator_type == AspirationNegotiator:
@@ -2459,9 +2475,10 @@ class GreedyScheduler(Scheduler):
         self.producing = {k: sorted(v, key=self._profile_sorter) for k, v in self.managed_factory.producing.items()}
 
     def _profile_sorter(self, info: ManufacturingInfo) -> Any:
-        vals = [field(info) for field in self.fields]
-        return tuple([vals[indx] for indx in self.field_order] + [info.line_name, info.process])
+        values = [field_(info) for field_ in self.fields]
+        return tuple([values[index] for index in self.field_order] + [info.line_name, info.process])
 
+    # noinspection PyMethodMayBeStatic
     def unit_time(self, info: ManufacturingInfo) -> float:
         return info.profile.n_steps / info.quantity
 
@@ -2479,6 +2496,7 @@ class GreedyScheduler(Scheduler):
     def total_unit_cost(self, info: ManufacturingInfo) -> float:
         return self.total_cost(info=info) / info.quantity
 
+    # noinspection PyMethodMayBeStatic
     def production_cost(self, info: ManufacturingInfo) -> float:
         return info.profile.cost
 
@@ -2532,6 +2550,7 @@ class GreedyScheduler(Scheduler):
         total = factory.predicted_total_storage
         if contract.annotation['buyer'] == self.manager_id:
             # I am a buyer
+            insurance = None
             if self.max_insurance_premium is None:
                 insurance = 0.0
             else:
@@ -2621,6 +2640,8 @@ class GreedyScheduler(Scheduler):
                     product_index = need.product
                     product = self.products[product_index]
                     catalog_price = product.catalog_price
+                    if catalog_price is None:
+                        raise ValueError(f'catalog price of {product.id} is unknown. Cannot proceed')
                     if catalog_price == 0 or need.quantity_to_buy <= 0:
                         continue
                     price = need.quantity_to_buy * catalog_price
@@ -2809,6 +2830,8 @@ class GreedyFactoryManager(FactoryManager):
 
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         if self.use_consumer:
+            if self.consumer is None:
+                raise ValueError('Cannot find the internal consumer to use. init() was not called most likely')
             return self.consumer.on_negotiation_request(cfp=cfp, partner=partner)
         else:
             if self.negotiator_type == AspirationNegotiator:
@@ -2823,12 +2846,16 @@ class GreedyFactoryManager(FactoryManager):
     def on_negotiation_success(self, contract: Contract, mechanism: MechanismInfo):
         super().on_negotiation_success(contract=contract, mechanism=mechanism)
         if self.use_consumer:
+            if self.consumer is None:
+                raise ValueError('Cannot find the internal consumer to use. init() was not called most likely')
             self.consumer.on_negotiation_success(contract, mechanism)
 
     def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
                                , state: MechanismState) -> None:
         super().on_negotiation_failure(partners=partners, annotation=annotation, mechanism=mechanism, state=state)
         if self.use_consumer:
+            if self.consumer is None:
+                raise ValueError('Cannot find the internal consumer to use. init() was not called most likely')
             self.consumer.on_negotiation_failure(partners, annotation, mechanism, state)
         cfp = annotation['cfp']
         thiscfp = self.awi.bulletin_board.query(section='cfps', query=cfp.id, query_keys=True)
@@ -3180,6 +3207,7 @@ class SCMLWorld(World):
                  , consumers: List[Consumer]
                  , miners: List[Miner]
                  , factory_managers: Optional[List[FactoryManager]] = None
+                 , assignments: Optional[Dict[str, str]] = None
                  # timing parameters
                  , n_steps=60
                  , time_limit=60 * 90
@@ -3228,6 +3256,7 @@ class SCMLWorld(World):
             consumers:
             miners:
             factory_managers:
+            assignments: A mapping from `FactoryManager` ids to corresponding `Factory` ids
             initial_wallet_balances:
             n_steps:
             time_limit:
@@ -3308,6 +3337,17 @@ class SCMLWorld(World):
         self.set_miners(miners)
         self.set_consumers(consumers)
         self.set_factory_managers(factory_managers)
+        if assignments is not None:
+            factory_dict = {_.id: _ for _ in self.factories}
+            for manager in self.factory_managers:
+                f_id = assignments.get(manager.id, None)
+                if f_id is None:
+                    continue
+                f = factory_dict.get(f_id, None)
+                if f is None:
+                    continue
+                manager.attach(factory=f)
+
         self.money_resolution = money_resolution
         # self._remove_processes_not_used_by_factories()
         # self._remove_products_not_used_by_processes()
@@ -3842,7 +3882,8 @@ class SCMLWorld(World):
         if factory_managers is None:
             factory_managers = []
         self.factory_managers = factory_managers
-        [self.join(f, simulation_priority=2) for f in factory_managers]
+        for f in factory_managers:
+            self.join(f, simulation_priority=2)
 
     def set_processes(self, processes: Collection[Process]):
         if processes is None:
@@ -4206,6 +4247,7 @@ class SCMLWorld(World):
         Args:
 
             contract: hypothetical contract
+            agent: the agent who is buying the insurance
             t: time at which the policy is to be bought. If None, it means current step
         """
         against = [self.agents[_] for _ in contract.partners if _ != agent.id]
@@ -4435,6 +4477,8 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
         log_file_name: File name to store the logs
         negotiator_type: The negotiation factory used to create all negotiators
         max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
+        random_factory_manager_assignment: If true factory managers will be assigned randomly to factories otherwise
+        they cycle over them in the order they are given.
 
 
     Returns:
@@ -4577,7 +4621,8 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
         for i in range(n_runs):
             shuffle(competitors)
             log_file_name = str(
-                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/', ''))
+                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/',
+                                                                                                                   ''))
             worlds.append(anac2019_world(competitors=competitors
                                          , log_file_name=log_file_name
                                          , random_factory_manager_assignment=True
@@ -4616,7 +4661,8 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
 
         for i, c in enumerate(c_list):
             log_file_name = str(
-                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/', ''))
+                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/',
+                                                                                                                   ''))
             worlds.append(anac2019_world(competitors=c, log_file_name=log_file_name
                                          , random_factory_manager_assignment=False
                                          , n_intermediate=n_intermediate
@@ -4642,10 +4688,11 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                                          , n_greedy_per_level=n_greedy_per_level
                                          ))
             if extra_runs > 0:
-                for i in range(extra_runs):
+                for j in range(extra_runs):
                     shuffle(competitors)
-                    log_file_name = str(
-                        tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/', ''))
+                    log_file_name = str(tournament_path / 'logs' / (unique_name(f'{j + len(c_list):05}'
+                                                                                , add_time=True, rand_digits=4) +
+                                                                    '.log').replace('/', ''))
                     worlds.append(anac2019_world(competitors=competitors
                                                  , log_file_name=log_file_name
                                                  , random_factory_manager_assignment=True
@@ -4735,7 +4782,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
 
     ttest_results = []
     for i, t1 in enumerate(types):
-        for j, t2 in enumerate(types[i+1:]):
+        for j, t2 in enumerate(types[i + 1:]):
             from scipy.stats import ttest_ind
             t, p = ttest_ind(scores[scores['type'] == t1].score, scores[scores['type'] == t2].score)
             ttest_results.append({'a': t1, 'b': t2, 't': t, 'p': p})

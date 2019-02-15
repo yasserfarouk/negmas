@@ -872,7 +872,7 @@ class Proxy:
 
 def get_class(class_name: str, module_name: str = None, scope: dict = None) -> Type:
     """Imports and creates a class object for the given class name"""
-    modules = []
+    modules: List[str] = []
     if module_name is not None:
         modules = module_name.split('.')
     modules += class_name.split('.')
