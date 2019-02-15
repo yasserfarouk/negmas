@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+*.*~
 # C extensions
 *.so
 tags
@@ -131,3 +131,4 @@ scripts/logs
 /scratch
 docs/_build
 docs/_build/*
+/.dmypy.json
