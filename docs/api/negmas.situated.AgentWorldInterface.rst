@@ -11,7 +11,7 @@ AgentWorldInterface
    .. autosummary::
 
       ~AgentWorldInterface.bulletin_board
-      ~AgentWorldInterface.current_step
+      ~AgentWorldInterface.next_step
       ~AgentWorldInterface.default_signing_delay
       ~AgentWorldInterface.n_steps
       ~AgentWorldInterface.relative_time
@@ -31,7 +31,7 @@ AgentWorldInterface
    .. rubric:: Attributes Documentation
 
    .. autoattribute:: bulletin_board
-   .. autoattribute:: current_step
+   .. autoattribute:: next_step
    .. autoattribute:: default_signing_delay
    .. autoattribute:: n_steps
    .. autoattribute:: relative_time

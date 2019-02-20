@@ -15,7 +15,7 @@ class DummyWorld(World):
     def _contract_finalization_time(self, contract: Contract) -> int:
         return self.current_step + 1
 
-    def _contract_executation_time(self, contract: Contract) -> int:
+    def _contract_execution_time(self, contract: Contract) -> int:
         return self.current_step
 
     def _contract_size(self, contract: Contract) -> float:
@@ -59,7 +59,7 @@ class DummyWorld(World):
     def execute(self, action: Action, agent: 'Agent', callback: Callable = None) -> bool:
         return True
 
-    def state(self, agent: 'Agent') -> dict:
+    def get_private_state(self, agent: 'Agent') -> Any:
         s = {'partners': [_ for _ in self.the_agents if _ is not agent]}
         return s
 

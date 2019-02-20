@@ -89,11 +89,10 @@ def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, min_c
                    f'steps: {steps}, horizon: {horizon}, time: {time}, levels: {levels}, agents_per_level: '
                    f'{agents_per_level}, lines: {lines}, guaranteed: {guaranteed}, negotiator: {negotiator}\n'
                    f'consumption: {consumption}'
-                   f', transport: {transport}, sign: {sign}, speedup: {neg_speedup}, neg_steps: {neg_steps}'
+                   f', transport_to: {transport}, sign: {sign}, speedup: {neg_speedup}, neg_steps: {neg_steps}'
                    f', retrials: {retrials}'
                    f', neg_time: {neg_time}\n'
                    f'==================================================')
-
 
     if len(world.saved_contracts) > 0:
         data = pd.DataFrame(world.saved_contracts)
@@ -110,7 +109,7 @@ def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, min_c
                       f', Breached: {world.breach_rate:0.0%}'
                       f', N. Executed: {n_executed}'
                       f', Business size: {world.business_size}\n'
-                      f'Winners: {[(_.name, _.factory.state.balance) for _ in world.winners]}'
+                      f'Winners: {[(_.name, world.a2f[_.id].balance) for _ in world.winners]}'
                       f'Running Time {humanize_time(elapsed)}')
     else:
         print_and_log('No contracts! :-(')

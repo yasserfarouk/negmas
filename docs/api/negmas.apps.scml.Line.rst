@@ -20,7 +20,7 @@ Line
 
       ~Line.copy
       ~Line.init_schedule
-      ~Line.schedule_job
+      ~Line.run_job
       ~Line.step
 
    .. rubric:: Attributes Documentation
@@ -33,5 +33,5 @@ Line
 
    .. automethod:: copy
    .. automethod:: init_schedule
-   .. automethod:: schedule_job
+   .. automethod:: run_job
    .. automethod:: step
