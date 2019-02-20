@@ -131,3 +131,4 @@ scripts/logs
 /scratch
 docs/_build
 docs/_build/*
+*~
