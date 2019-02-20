@@ -6,17 +6,10 @@ SCMLAgent
 .. autoclass:: SCMLAgent
    :show-inheritance:
 
-   .. rubric:: Attributes Summary
-
-   .. autosummary::
-
-      ~SCMLAgent.factory_state
-
    .. rubric:: Methods Summary
 
    .. autosummary::
 
-      ~SCMLAgent.attach
       ~SCMLAgent.before_joining_negotiation
       ~SCMLAgent.can_expect_agreement
       ~SCMLAgent.confirm_contract_execution
@@ -28,13 +21,8 @@ SCMLAgent
       ~SCMLAgent.on_remove_cfp
       ~SCMLAgent.step
 
-   .. rubric:: Attributes Documentation
-
-   .. autoattribute:: factory_state
-
    .. rubric:: Methods Documentation
 
-   .. automethod:: attach
    .. automethod:: before_joining_negotiation
    .. automethod:: can_expect_agreement
    .. automethod:: confirm_contract_execution

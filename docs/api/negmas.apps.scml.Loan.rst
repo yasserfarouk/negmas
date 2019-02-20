@@ -1,7 +1,7 @@
-Consumer
-========
+Loan
+====
 
 .. currentmodule:: negmas.apps.scml
 
-.. autoclass:: Consumer
+.. autoclass:: Loan
    :show-inheritance:

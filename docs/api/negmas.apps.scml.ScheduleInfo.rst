@@ -11,6 +11,7 @@ ScheduleInfo
    .. autosummary::
 
       ~ScheduleInfo.end
+      ~ScheduleInfo.start
       ~ScheduleInfo.valid
 
    .. rubric:: Methods Summary
@@ -22,6 +23,7 @@ ScheduleInfo
    .. rubric:: Attributes Documentation
 
    .. autoattribute:: end
+   .. autoattribute:: start
    .. autoattribute:: valid
 
    .. rubric:: Methods Documentation

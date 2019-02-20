@@ -18,7 +18,7 @@ FactoryManager
       ~FactoryManager.on_breach_meta_negotiation
       ~FactoryManager.on_event
       ~FactoryManager.on_renegotiation_request
-      ~FactoryManager.total_utility
+      ~FactoryManager.step
 
    .. rubric:: Methods Documentation
 
@@ -30,4 +30,4 @@ FactoryManager
    .. automethod:: on_breach_meta_negotiation
    .. automethod:: on_event
    .. automethod:: on_renegotiation_request
-   .. automethod:: total_utility
+   .. automethod:: step

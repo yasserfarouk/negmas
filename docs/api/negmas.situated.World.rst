@@ -21,6 +21,7 @@ World
    .. autosummary::
 
       ~World.execute
+      ~World.get_private_state
       ~World.join
       ~World.logdebug
       ~World.logerror
@@ -33,7 +34,6 @@ World
       ~World.run
       ~World.run_negotiation
       ~World.set_bulletin_board
-      ~World.state
       ~World.step
 
    .. rubric:: Attributes Documentation
@@ -47,6 +47,7 @@ World
    .. rubric:: Methods Documentation
 
    .. automethod:: execute
+   .. automethod:: get_private_state
    .. automethod:: join
    .. automethod:: logdebug
    .. automethod:: logerror
@@ -59,5 +60,4 @@ World
    .. automethod:: run
    .. automethod:: run_negotiation
    .. automethod:: set_bulletin_board
-   .. automethod:: state
    .. automethod:: step
