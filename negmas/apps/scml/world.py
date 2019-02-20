@@ -387,7 +387,7 @@ class SCMLWorld(World):
                                                          , cancellation_cost=0
                                                          , line=k, process=processes[level]))
                 factory = Factory(id=f'f{level + 1}_{j}', max_storage=max_storage, profiles=profiles
-                                  , initial_storage={})
+                                  , initial_storage={}, initial_wallet=initial_wallet_balances)
                 factories.append(factory)
                 if j >= n_greedy_per_level:
                     assignable_factories.append((factory, level))
@@ -1169,11 +1169,16 @@ class SCMLWorld(World):
 
     @property
     def winners(self):
-        """The winners of this world (factory maangers with maximum wallet balance"""
+        """The winners of this world (factory managers with maximum wallet balance"""
         if len(self.factory_managers) < 1:
             return []
-        balances = sorted(((self.a2f[_.id].balance, _) for _ in self.factory_managers), key=lambda x: x[0]
-                          , reverse=True)
+        if 0.0 in [self.a2f[_.id].initial_balance for _ in self.factory_managers]:
+            balances = sorted(((self.a2f[_.id].balance, _) for _ in self.factory_managers), key=lambda x: x[0]
+                              , reverse=True)
+        else:
+            balances = sorted(((self.a2f[_.id].balance / self.a2f[_.id].initial_balance, _)
+                               for _ in self.factory_managers), key=lambda x: x[0], reverse=True)
+
         max_balance = balances[0][0]
         return [_[1] for _ in balances if _[0] >= max_balance]
 

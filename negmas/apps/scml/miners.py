@@ -54,7 +54,7 @@ class Miner(SCMLAgent):
     """Base class of all miners"""
 
 
-class ReactiveMiner(Miner, ConfigReader):
+class ReactiveMiner(Miner):
     """Raw Material Generator"""
 
     def __init__(self, profiles: Dict[int, MiningProfile] = None, negotiator_type='negmas.sao.AspirationNegotiator'

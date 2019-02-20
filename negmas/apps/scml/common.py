@@ -735,7 +735,7 @@ class Loan:
             f'for a total {self.total} [starts at {self.starts_at}]'
 
 
-class SCMLAgent(Agent, ABC):
+class SCMLAgent(Agent):
     """The base for all SCM Agents"""
 
     # @todo remove negotiator_type from here and add it independently to consumer, miner, and greedy_factory_manager
@@ -888,6 +888,8 @@ class Factory:
     """Minimum allowed storage per product"""
     min_balance: int = 0
     """Minimum allowed balance"""
+    initial_balance: float = field(init=False, default=0.0)
+    """Initial balance of the factory"""
     _commands: np.array = field(init=False)
     """The production command currently running"""
     _storage: Dict[int, int] = field(default_factory=lambda: defaultdict(int), init=False)
@@ -925,6 +927,7 @@ class Factory:
             self._total_storage += v
         self._wallet = initial_wallet
         self._carried_updates = FactoryStatusUpdate.empty()
+        self.initial_balance = initial_wallet
 
     @property
     def n_lines(self):

@@ -85,7 +85,7 @@ class Consumer(SCMLAgent):
     pass
 
 
-class ScheduleDrivenConsumer(Consumer, ConfigReader):
+class ScheduleDrivenConsumer(Consumer):
     """Consumer class"""
 
     MAX_UNIT_PRICE = 1e5

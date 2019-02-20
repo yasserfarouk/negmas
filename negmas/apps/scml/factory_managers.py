@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 
-class FactoryManager(SCMLAgent, ConfigReader, ABC):
+class FactoryManager(SCMLAgent):
     """Base factory manager class that will be inherited by participant negmas in ANAC 2019"""
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = SlowFactorySimulator):

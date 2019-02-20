@@ -103,13 +103,15 @@ def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, min_c
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
         n_contracts = len(world.saved_contracts)
+        winners = [f'{_.name} gaining {world.a2f[_.id].balance / world.a2f[_.id].initial_balance - 1.0:0.0%}'
+                   for _ in world.winners]
         print_and_log(f'{n_contracts} contracts :-) [N. Negotiations: {n_negs}'
                       f', Agreement Rate: {world.agreement_rate:0.0%}]')
         print_and_log(f'Executed: {world.contract_execution_fraction:0.0%}'
                       f', Breached: {world.breach_rate:0.0%}'
                       f', N. Executed: {n_executed}'
                       f', Business size: {world.business_size}\n'
-                      f'Winners: {[(_.name, world.a2f[_.id].balance) for _ in world.winners]}'
+                      f'Winners: {winners}\n'
                       f'Running Time {humanize_time(elapsed)}')
     else:
         print_and_log('No contracts! :-(')

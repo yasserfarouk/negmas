@@ -20,7 +20,6 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..')) # only import from installed version using pip install -e
 
 import negmas
 from negmas import *
@@ -135,7 +134,7 @@ html_theme_options = {
     #'logo_only':
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
-    # 'titles_only': False
+    #'titles_only': True
 }
 
 # theme options for alabaster
@@ -201,7 +200,7 @@ texinfo_documents = [
     (master_doc, 'negmas',
      u'NegMAS Documentation',
      author,
-     'negmas',
+     'NegMAS',
      'Situated Simultaneous Negotiations Library.',
      'Miscellaneous'),
 ]
