@@ -14,6 +14,7 @@ Factory
       ~Factory.commands
       ~Factory.initial_balance
       ~Factory.initial_wallet
+      ~Factory.line_schedules
       ~Factory.loans
       ~Factory.max_storage
       ~Factory.min_balance
@@ -44,6 +45,7 @@ Factory
    .. autoattribute:: commands
    .. autoattribute:: initial_balance
    .. autoattribute:: initial_wallet
+   .. autoattribute:: line_schedules
    .. autoattribute:: loans
    .. autoattribute:: max_storage
    .. autoattribute:: min_balance

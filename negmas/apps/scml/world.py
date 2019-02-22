@@ -292,7 +292,7 @@ class SCMLWorld(World):
                           , miner_type: Union[str, Type[Miner]] = ReactiveMiner
                           , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
                           , max_storage=None
-                          , factory_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
+                          , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
                           , consumption: Union[int, Tuple[int, int]] = 1
                           , consumer_kwargs: Dict[str, Any] = None
                           , negotiation_speed: Optional[int] = None
@@ -324,7 +324,7 @@ class SCMLWorld(World):
             log_file_name: File name to store the logs
             negotiator_type: The negotiation factory used to create all negotiators
             max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
-            factory_kwargs: keyword arguments to be used for constructing factory negmas
+            manager_kwargs: keyword arguments to be used for constructing factory negmas
             consumer_kwargs: keyword arguments to be used for constructing consumers
             miner_kwargs: keyword arguments to be used for constructing miners
             negotiation_speed: The number of negotiation steps per simulation step. None means infinite
@@ -342,14 +342,14 @@ class SCMLWorld(World):
 
 
         """
-        if factory_kwargs is None:
-            factory_kwargs = {}
+        if manager_kwargs is None:
+            manager_kwargs = {}
         if consumer_kwargs is None:
             consumer_kwargs = {}
         if miner_kwargs is None:
             miner_kwargs = {}
         if negotiator_type is not None:
-            for args in (factory_kwargs, consumer_kwargs, miner_kwargs):
+            for args in (manager_kwargs, consumer_kwargs, miner_kwargs):
                 if 'negotiator_type' not in args.keys():
                     args['negotiator_type'] = negotiator_type
 
@@ -397,7 +397,7 @@ class SCMLWorld(World):
             for j, factory in enumerate(greedy_factories):
                 manager_name = snake_case(GreedyFactoryManager.__name__.replace('FactoryManager', ''))
                 manager = GreedyFactoryManager(name=f'{manager_name}_{level + 1}_{j}',
-                                               **factory_kwargs)
+                                               **manager_kwargs)
                 factory.manager = manager
                 managers.append(manager)
 
@@ -406,7 +406,10 @@ class SCMLWorld(World):
 
         for j, ((factory, level), manager_type) in enumerate(zip(assignable_factories, itertools.cycle(manager_types))):
             manager_name = snake_case(manager_type.__name__.replace('FactoryManager', ''))
-            manager = manager_type(name=f'{manager_name}_{level + 1}_{j}')
+            if manager_type == GreedyFactoryManager:
+                manager = manager_type(name=f'{manager_name}_{level + 1}_{j}', **manager_kwargs)
+            else:
+                manager = manager_type(name=f'{manager_name}_{level + 1}_{j}')
             factory.manager = manager
             managers.append(manager)
 
@@ -828,7 +831,7 @@ class SCMLWorld(World):
         transports = self._transport.get(self.current_step, [])
         for transport in transports:
             manager, product_id, q = transport
-            self.a2f[manager.id].transport_to({product_id: q})
+            self.a2f[manager.id].transport_to(product_id, q)
 
         transfers = self._transfer.get(self.current_step, [])
         for transfer in transfers:
@@ -919,6 +922,17 @@ class SCMLWorld(World):
         product_breach, money_breach, penalty_breach_victim, penalty_breach_society = None, None, None, None
         money = unit_price * quantity
 
+        # first we will try to blindly execute the contract and will fall back to the more complex algorithm checking
+        # all possibilities only if that failed
+        try:
+            if money > 0 or quantity > 0:
+                self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
+            else:
+                self.logdebug(f'Contract {contract.id} has no transfers')
+            return breaches
+        except ValueError:
+            pass
+
         # check the seller
         available_quantity = seller_factory.storage.get(pind, 0) if not isinstance(seller, Miner) else quantity
         missing_quantity = max(0, quantity - available_quantity)
@@ -993,7 +1007,7 @@ class SCMLWorld(World):
         missing_money = max(0.0, money - available_money)
         if missing_money > 0.0:
             # if the buyer cannot pay, then offer him a loan. The loan is always optional
-            self.bank.buy_loan(agent=buyer, amount=money - available_money, n_installments=self.loan_installments)
+            self.bank.buy_loan(agent=buyer, amount=missing_money, n_installments=self.loan_installments)
             available_money = buyer_factory.wallet
             missing_money = max(0.0, money - available_money)
 
@@ -1003,7 +1017,7 @@ class SCMLWorld(World):
 
         if product_breach is not None:
             # apply insurances if they exist
-            insured_quantity = 0
+            insured_quantity, ins = 0
             # register the breach independent of insurance
             breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
                                 , level=product_breach, type='product', step=self.current_step))
@@ -1012,28 +1026,30 @@ class SCMLWorld(World):
                 #  quantity and proceed as if the contract was for the remaining quantity. Notice that the breach on the
                 #  seller is already registered by this time.
 
-                # the insurance company can give  as much as the buyer can buy even using a loan
-                buyer_deficit = missing_quantity * unit_price - buyer_factory.wallet
-                if buyer_deficit > 0:
-                    self.bank.buy_loan(agent=buyer, amount=buyer_deficit, n_installments=1)
+                # the insurance company can give  as much as the buyer can buy. No loan is allowed here as the buyer was
+                # already offered a loan earlier because surely if they have a deficit they commited a funds breach
+                # buyer_deficit = missing_quantity * unit_price - buyer_factory.wallet
+                # if buyer_deficit > 0:
+                #     self.bank.buy_loan(agent=buyer, amount=buyer_deficit, n_installments=self.loan_installments)
                 if unit_price > 0:
                     insured_quantity = min(missing_quantity, int(buyer_factory.wallet / unit_price))
                 else:
                     insured_quantity = missing_quantity
                 self.logdebug(f'Insurance: {buyer.name} got {insured_quantity} of {self.products[pind].name} '
                               f'from insurance ({missing_quantity} was missing')
-                buyer_factory.storage[pind] = seller_factory.storage.get(pind, 0) + insured_quantity
-                self.insurance_company.storage[pind] -= insured_quantity
+                buyer_factory.transport_to(product=pind, quantity=insured_quantity)
                 buyer_factory.pay(insured_quantity * unit_price)
+                self.insurance_company.storage[pind] -= insured_quantity
                 self.insurance_company.wallet += insured_quantity * unit_price
 
             # we will only transfer the remaining quantity.
             missing_quantity -= insured_quantity
             quantity -= insured_quantity
+            money -= insured_quantity * unit_price
 
         if money_breach is not None:
             # apply insurances if they exist.
-            insured_money = 0.0
+            insured_money, bought_quantity = 0.0, 0
             breaches.add(Breach(contract=contract, perpetrator=buyer, victims=[seller]
                                 , level=money_breach, type='money', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=buyer):
@@ -1043,17 +1059,18 @@ class SCMLWorld(World):
 
                 # the insurance company will provide enough money to buy whatever actually exist of the contract in the
                 # seller's storage
-                insured_money = min(missing_money, seller_factory.storage[pind] * unit_price)
-                bought_quantity = insured_money / unit_price  # I never come here if unit_price is zero.
+                insured_money = min(missing_money, seller_factory.storage.get(pind, 0) * unit_price)
+                bought_quantity = int(insured_money // unit_price)  # I never come here if unit_price is zero.
                 self.logdebug(f'Insurance: {seller.name} got {insured_money} dollars from insurance')
                 seller_factory.receive(insured_money)
+                seller_factory.transport_from(product=pind, quantity=bought_quantity)
                 self.insurance_company.wallet -= insured_money
-                seller_factory.storage[pind] -= bought_quantity
                 self.insurance_company.storage[pind] += bought_quantity
 
             # we will only transfer the remaining money.
             money -= insured_money
             missing_money -= insured_money
+            quantity -= bought_quantity
 
         if len(breaches) > 0:
             self.logdebug(f'Contract {contract.id} has {len(breaches)} breaches:')
@@ -1061,6 +1078,7 @@ class SCMLWorld(World):
                 self.logdebug(f'{str(breach)}')
 
         # confirm that the money and quantity match given the unit price.
+        assert money == unit_price * quantity, f'invalid contract!! money {money}, quantity {quantity}, unit price {unit_price}'
         if money > unit_price * quantity:
             money = unit_price * quantity
         if unit_price != 0.0 and quantity > math.floor(money / unit_price):
@@ -1087,9 +1105,9 @@ class SCMLWorld(World):
                       f'{self.products[product_id].name} from {seller.name} '
                       f'to {buyer.name} for {money} (available {available_money}) dollars')
         if available_quantity > 0:
-            seller_factory.transport_from({product_id: quantity})
+            seller_factory.transport_from(product_id, available_quantity)
             if self.transportation_delay < 1:
-                buyer_factory.transport_to({product_id: quantity})
+                buyer_factory.transport_to(product_id, available_quantity)
             else:
                 self._transport[self.current_step + self.transportation_delay].append(
                     (buyer, product_id, available_quantity))

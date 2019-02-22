@@ -1,12 +1,11 @@
-import copy
+import itertools
 import itertools
 import math
 import sys
 import uuid
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections import defaultdict
 from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
-from typing import Sequence
 
 import numpy as np
 from dataclasses import dataclass, field, InitVar
@@ -16,10 +15,15 @@ from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue
 from negmas.situated import Contract, Agent
 
+INVALID_STEP = -1000
+NO_PRODUCTION = -1
+INVALID_UTILITY = -2000
+
 g_last_product_id = 0
 g_last_process_id = 0
 
 __all__ = ['Product', 'Process', 'InputOutput', 'RunningCommandInfo'
+    , 'INVALID_STEP', 'NO_PRODUCTION', 'INVALID_UTILITY'
     , 'ManufacturingProfile', 'ManufacturingProfileCompiled', 'ProductManufacturingInfo'
     , 'FactoryStatusUpdate', 'Job', 'ProductionNeed'
     , 'MissingInput', 'ProductionReport', 'ProductionFailure'
@@ -892,6 +896,7 @@ class Factory:
     """Initial balance of the factory"""
     _commands: np.array = field(init=False)
     """The production command currently running"""
+    _line_schedules: np.array = field(init=False)
     _storage: Dict[int, int] = field(default_factory=lambda: defaultdict(int), init=False)
     """Mapping from product index to the amount available in the inventory"""
     _total_storage: int = field(init=False, default=0)
@@ -920,6 +925,7 @@ class Factory:
             profile.line = mapping[profile.line]
         self._n_lines = len(given_lines)
         self._commands = np.array([RunningCommandInfo.do_nothing() for _ in range(self._n_lines)])
+        self._line_schedules = np.ones(self._n_lines, dtype=int) * NO_PRODUCTION
         self._storage = defaultdict(int)
         self._total_storage = 0
         for k, v in initial_storage.items():
@@ -930,90 +936,89 @@ class Factory:
         self.initial_balance = initial_wallet
 
     @property
-    def n_lines(self):
+    def n_lines(self) -> int:
         return self._n_lines
 
     @property
-    def commands(self):
+    def commands(self) -> np.array:
         return self._commands
 
     @property
-    def wallet(self):
+    def line_schedules(self) -> np.array:
+        return self._line_schedules
+
+    @property
+    def wallet(self) -> float:
         return self._wallet
 
     @property
-    def storage(self):
+    def storage(self) -> Dict[int, int]:
         return self._storage
 
     @property
-    def loans(self):
+    def loans(self) -> float:
         return self._loans
 
     @property
-    def total_storage(self):
+    def total_storage(self) -> int:
+        # assert len(self._storage) == 0 or min(self._storage.values()) >= self.min_storage, f'min {min(self._storage.values()) if len(self._storage) > 0 else 0} < {self.min_storage} storage {self._storage}'
+        # assert (len(self._storage) == 0 and self._total_storage == 0) or \
+        #     self._total_storage == sum(self._storage.values()), f'Total storage {self._total_storage} but the sum is {sum(self._storage.values())}'
         return self._total_storage
 
     @property
-    def balance(self):
+    def balance(self) -> float:
         """The total balance of the factory"""
         return self._wallet - self._loans
 
     @property
-    def next_step(self):
+    def next_step(self) -> int:
         return self._next_step
 
-    def add_loan(self, total: float) -> bool:
+    def add_loan(self, total: float) -> None:
         self._loans += total
-        return True
 
-    def receive(self, payment: float) -> bool:
-        self._wallet += payment
-        return True
+    def receive(self, payment: float) -> None:
+        self.pay(-payment)
 
-    def pay(self, payment: float) -> bool:
+    def pay(self, payment: float) -> None:
         if self._wallet - payment < self.min_balance:
-            return False
+            raise ValueError(f'Cannot pay {payment} as  we have only {self._wallet}')
         self._wallet -= payment
-        return True
 
-    def transport_to(self, inventory: Dict[int, int]) -> bool:
-        succeeded = True
-        total = self._total_storage
-        for k, v in inventory.items():
-            if self._storage[k] + v < self.min_balance:
-                succeeded = False
-                continue
-            if total + v > self.max_storage:
-                succeeded = False
-                continue
-            total += v
-            self._storage[k] += v
-            self._total_storage += v
-        return succeeded
+    def transport_to(self, product: int, quantity: int) -> None:
+        if self._storage[product] + quantity < self.min_storage:
+            raise ValueError(f'Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} '
+                             f'(min {self.min_storage}, max {self.max_storage})')
+        if self._total_storage + quantity > self.max_storage:
+            raise ValueError(f'Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} '
+                             f'(min {self.min_storage}, max {self.max_storage})')
+        self._storage[product] += quantity
+        self._total_storage += quantity
 
     # @todo Schedulers and simulators do not know about transportation or transfer delays. They should
     # @todo Factory buy and sell functions do not take transportation and transfer delays into account
 
-    def buy(self, product: int, quantity: int, price: int) -> bool:
+    def buy(self, product: int, quantity: int, price: int) -> None:
         if self._wallet < price or self._total_storage + quantity > self.max_storage:
-            return False
+            raise ValueError(f'Cannot buy {quantity} (total {self._total_storage}/{sum(self._storage.values())}) of '
+                             f'{product} for {price} (wallet {self._wallet} / balance {self.balance})')
         self._wallet -= price
         self._storage[product] += quantity
         self._total_storage += quantity
-        return True
 
-    def sell(self, product: int, quantity: int, price: int) -> bool:
+    def sell(self, product: int, quantity: int, price: int) -> None:
         if self._storage[product] < quantity + self.min_storage:
-            return False
+            raise ValueError(f'Cannot sell {quantity} (have {self._storage[product]}) of '
+                             f'{product} for {price} (wallet {self._wallet} / balance {self.balance})')
         self._storage[product] -= quantity
         self._total_storage -= quantity
         self._wallet += price
-        return True
 
-    def transport_from(self, inventory: Dict[int, int]) -> bool:
-        return self.transport_to({k: -v for k, v in inventory.items()})
+    def transport_from(self, product: int, quantity: int) -> None:
+        self.transport_to(product=product, quantity=-quantity)
 
-    def schedule(self, job: Job, override=True) -> bool:
+    def schedule(self, job: Job, override=False) -> None:
         """
         Schedules the given job at its `time` and `line` optionally overriding whatever was already scheduled
         Args:
@@ -1027,19 +1032,19 @@ class Factory:
         t, line, profile = job.time, job.line, self.profiles[job.profile]
         if job.action == 'run':
             line = profile.line
-        if t < self._next_step or line >= self._n_lines or line < 0:
-            return False
+        if t < self._next_step - 1 or line >= self._n_lines or line < 0:
+            raise ValueError(f'cannot schedule at time {t} (current {self._next_step - 1}) on line {line} '
+                             f'of {self._n_lines}')
         existing_job = self._jobs.get((t, line), None)
         if existing_job is None:
             self._jobs[(t, line)] = job
-            return True
+            return
         if existing_job.is_cancelling(job):
             del self._jobs[(t, line)]
-            return True
+            return
         if not override:
-            return False
+            raise ValueError(f'Job {str(existing_job)} is scheduled at {t} and overriding is not allowed')
         self._jobs[(t, line)] = job
-        return True
 
     def _apply_updates(self, updates: FactoryStatusUpdate) -> None:
         if updates.balance != 0.0:
@@ -1066,7 +1071,7 @@ class Factory:
         self._next_step += 1
         return reports
 
-    def _run(self, profile: ManufacturingProfile, override=True):
+    def _run(self, profile: ManufacturingProfile, override=True) -> None:
         """running is executed at the beginning of the step t
 
         Args:
@@ -1100,7 +1105,7 @@ class Factory:
         if not running_command.is_none:
             self._stop(line=profile.line)
         self._commands[line] = command
-        return
+        self._line_schedules[line] = process.id
 
     def _pause(self, line: int) -> None:
         """pausing is executed at the end of the step

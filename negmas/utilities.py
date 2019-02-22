@@ -70,10 +70,10 @@ __all__ = [
 OutcomeUtilityMapping = Union[
     Callable[
         [Union['Outcome', int, str, float]], 'UtilityValue'
-    ],  # type: ignore
+    ],
     Mapping[
         Union[Sequence, Mapping, int, str, float], 'UtilityValue'
-    ],  # type: ignore
+    ],
 ]
 OutcomeUtilityMappings = List[OutcomeUtilityMapping]
 """Maps from multi-issue or single-issue outcomes to Negotiator values."""

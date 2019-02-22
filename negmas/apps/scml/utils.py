@@ -106,7 +106,7 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
                                         , consumer_kwargs={'negotiator_type': negotiator_type
             , 'consumption_horizon': consumption_horizon}
                                         , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
-                                        , factory_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
+                                        , manager_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
             , 'sign_only_guaranteed_contracts': guaranteed_contracts
             , 'use_consumer': use_consumer
             , 'max_insurance_premium': max_insurance_premium}

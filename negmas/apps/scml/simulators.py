@@ -1,19 +1,38 @@
+import math
+import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Dict, List, List, Optional
-
+from typing import Dict, List, Optional
+from numba import jitclass
 import numpy as np
 from dataclasses import dataclass, field
-
-from .common import ManufacturingProfile, Job, Factory
-
-INVALID_STEP = -1000
-NO_PRODUCTION = -1
+from contextlib import contextmanager
+from .common import ManufacturingProfile, Job, Factory, NO_PRODUCTION
 
 __all__ = [
     'FactorySimulator',
-    'SlowFactorySimulator'
+    'SlowFactorySimulator',
+    'FastFactorySimulator',
+    'storage_as_array',
+    'transaction',
+    'temporary_transaction'
 ]
+
+
+def storage_as_array(storage: Dict[int, int], n_products: int) -> np.array:
+    """
+    Converts storage to an array
+    Args:
+        storage: A dictionary giving quantity for each product index
+        n_products: number of products (size of the resulting array)
+
+    Returns:
+
+    """
+    a = np.zeros(n_products)
+    for k, v in storage.items():
+        a[k] = v
+    return a
 
 
 class FactorySimulator(ABC):
@@ -22,7 +41,7 @@ class FactorySimulator(ABC):
     def __init__(self, initial_wallet: float, initial_storage: Dict[int, int], n_steps: int, n_products: int
                  , profiles: List[ManufacturingProfile], max_storage: Optional[int] = None):
         self._n_steps = n_steps
-        self._max_storage = max_storage
+        self._max_storage = max_storage if max_storage is not None else sys.maxsize
         self._initial_wallet = initial_wallet
         self._initial_storage = np.zeros(n_products)
         for k, v in initial_storage.items():
@@ -30,6 +49,9 @@ class FactorySimulator(ABC):
         self._profiles = profiles
         self._n_products = n_products
         self._reserved_storage = np.zeros(shape=(n_products, n_steps))
+
+    def _as_array(self, storage: Dict[int, int]):
+        return storage_as_array(storage=storage, n_products=self._n_products)
 
     # -----------------
     # FIXED PROPERTIES
@@ -68,15 +90,15 @@ class FactorySimulator(ABC):
     @abstractmethod
     def wallet_to(self, t: int) -> np.array:
         """
-        Returns the cash in wallet at time t
+        Returns the cash in wallet up to and including time t
         Args:
-            t: 
+            t:
 
         Returns:
 
         """
 
-    def wallet(self, t: int) -> float:
+    def wallet_at(self, t: int) -> float:
         return self.wallet_to(t)[-1]
 
     @abstractmethod
@@ -91,7 +113,7 @@ class FactorySimulator(ABC):
 
         """
 
-    def storage(self, t: int) -> np.array:
+    def storage_at(self, t: int) -> np.array:
         return self.storage_to(t)[:, -1]
 
     @abstractmethod
@@ -106,23 +128,23 @@ class FactorySimulator(ABC):
             - A `NO_PRODUCTION` value means no production, otherwise the index of the process being run
         """
 
-    def line_schedules(self, t: int) -> np.array:
+    def line_schedules_at(self, t: int) -> np.array:
         return self.line_schedules_to(t)[:, -1]
 
     def total_storage_to(self, t: int) -> np.array:
         return self.storage_to(t).sum(axis=0)
 
-    def total_storage(self, t: int) -> int:
+    def total_storage_at(self, t: int) -> int:
         return self.total_storage_to(t)[-1]
 
     def reserved_storage_to(self, t: int) -> np.array:
-        return self._reserved_storage[:, :t+1]
+        return self._reserved_storage[:, :t + 1]
 
-    def reserved_storage(self, t: int) -> np.array:
+    def reserved_storage_at(self, t: int) -> np.array:
         return self._reserved_storage[:, t]
 
-    def available_storage(self, t: int) -> np.array:
-        return self.storage(t) - self.reserved_storage(t)
+    def available_storage_at(self, t: int) -> np.array:
+        return self.storage_at(t) - self.reserved_storage_at(t)
 
     def available_storage_to(self, t: int) -> np.array:
         return self.storage_to(t) - self.reserved_storage_to(t)
@@ -139,7 +161,7 @@ class FactorySimulator(ABC):
 
         """
 
-    def loans(self, t: int) -> float:
+    def loans_at(self, t: int) -> float:
         """
         Returns loans at time t
         Args:
@@ -150,7 +172,7 @@ class FactorySimulator(ABC):
         """
         return self.loans_to(t)[-1]
 
-    def balance(self, t: int) -> float:
+    def balance_at(self, t: int) -> float:
         """
         Returns the balance fo the factory at time t
         Args:
@@ -159,11 +181,31 @@ class FactorySimulator(ABC):
         Returns:
 
         """
-        return self.wallet(t) - self.loans(t)
+        return self.wallet_at(t) - self.loans_at(t)
+
+    def balance_to(self, t: int) -> float:
+        """
+        Returns the balance fo the factory at times <= t
+        Args:
+            t:
+
+        Returns:
+
+        """
+        return self.wallet_to(t) - self.loans_to(t)
+
+    @property
+    @abstractmethod
+    def fixed_before(self):
+        """Gives the time before which the schedule is fixed"""
 
     # -------------------------
     # OPERATIONS (UPDATE STATE)
     # -------------------------
+
+    @abstractmethod
+    def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
+        """Sets the current state at the given time-step. It implicitly causes a fix_before(t + 1)"""
 
     @abstractmethod
     def add_loan(self, total: float, t: int) -> bool:
@@ -190,64 +232,84 @@ class FactorySimulator(ABC):
         return self.pay(-payment, t)
 
     @abstractmethod
-    def pay(self, payment: float, t: int) -> bool:
+    def pay(self, payment: float, t: int, ignore_money_shortage: bool = True) -> bool:
         """
         Simulate payment at time t
         
-        Args:
+        Args:            
             payment: 
-            t: 
+            t:
+            ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative 
 
         Returns:
 
         """
 
     @abstractmethod
-    def transport_to(self, inventory: Dict[int, int], t: int) -> bool:
+    def transport_to(self, product: int, quantity: int, t: int
+                     , ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
         """
         Simulates transporting products to/from storage at time t
-        Args:
-            inventory: 
-            t: 
+        
+        Args:            
+            product:
+            quantity:
+            t:
+            ignore_inventory_shortage: Ignore shortage in the `product` which may lead to negative storage[product]
+            ignore_space_shortage:  Ignore the limit on total storage which may lead to total_storage > max_storage
 
         Returns:
 
         """
 
     @abstractmethod
-    def buy(self, product: int, quantity: int, price: int, t: int) -> bool:
+    def buy(self, product: int, quantity: int, price: int, t: int
+            , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
         """
         Buy a given quantity of a product for a given price at some time t
+        
         Args:
             product:
             quantity:
             price:
             t: time
+            ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
+            ignore_space_shortage:  Ignore the limit on total storage which may lead to total_storage > max_storage
 
         Returns:
+            
+            - buy cannot ever have inventory shortage
 
         """
 
     @abstractmethod
-    def sell(self, product: int, quantity: int, price: int, t: int) -> bool:
+    def sell(self, product: int, quantity: int, price: int, t: int
+             , ignore_money_shortage: bool = True, ignore_inventory_shortage: bool = True) -> bool:
         """
         sell a given quantity of a product for a given price at some time t
+
         Args:
             product:
             quantity:
             price:
             t:
+            ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
+            ignore_inventory_shortage: Ignore shortage in the `product` which may lead to negative storage[product]
 
         Returns:
 
         """
 
     @abstractmethod
-    def schedule(self, job: Job, override=True) -> bool:
+    def schedule(self, job: Job, ignore_inventory_shortage=True, ignore_money_shortage=True, ignore_space_shortage=True
+                 , override=True) -> bool:
         """
         Simulates scheduling the given job at its `time` and `line` optionally overriding whatever was already scheduled
         Args:
             job:
+            ignore_inventory_shortage: If true shortages in inputs will be ignored
+            ignore_money_shortage: If true, shortage in money will be ignored
+            ignore_space_shortage: If true, shortage in space will be ignored
             override:
 
         Returns:
@@ -256,7 +318,7 @@ class FactorySimulator(ABC):
 
     def reserve(self, product: int, quantity: int, t: int) -> bool:
         """
-        Simulates reserving the given quantity of the given product at time t
+        Simulates reserving the given quantity of the given product at times >= t
         Args:
             product:
             quantity:
@@ -322,7 +384,7 @@ class FactorySimulator(ABC):
 
 
 @dataclass
-class Bookmark:
+class _Bookmark:
     id: int
     jobs: Dict[int, List[int]] = field(default_factory=lambda: defaultdict(list), init=False)
     buy_contracts: Dict[int, List[int]] = field(default_factory=lambda: defaultdict(list), init=False)
@@ -331,6 +393,15 @@ class Bookmark:
     loans_updates: Dict[int, float] = field(default_factory=lambda: defaultdict(float), init=False)
     storage_updates: Dict[int, Dict[int, int]] = field(default_factory=lambda: defaultdict(lambda: defaultdict(int))
                                                        , init=False)
+
+
+@dataclass
+class _State:
+    t: int
+    storage: np.array
+    wallet: float
+    loans: float
+    line_schedules: np.array
 
 
 class SlowFactorySimulator(FactorySimulator):
@@ -344,16 +415,44 @@ class SlowFactorySimulator(FactorySimulator):
           up operations
     """
 
+    def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
+        for i, s in enumerate(storage):
+            d = s - self.storage_at(t)[i]
+            if d == 0.0:
+                continue
+            self._storage_updates[t][i] += d
+        d = self.wallet_at(t) - wallet
+        if d != 0.0:
+            self._payment_updates[t] -= d
+        d = self.loans_at(t) - loans
+        if d != 0.0:
+            self._loans_updates[t] -= d
+        expected_schedules = self.line_schedules_at(t)
+        for i in range(self.n_lines):
+            expected, actual = expected_schedules[i], line_schedules[i]
+            if expected == actual:
+                continue
+            if expected == NO_PRODUCTION:
+                raise ValueError(f'Expected no production at time {t} on line {i} but actually process '
+                                 f'{actual} is running')
+            if expected != actual and actual != NO_PRODUCTION:
+                raise ValueError(f'Expected process {expected} at time {t} on line {i} but actually process '
+                                 f'{actual} is running')
+            self._line_schedules[i, t] = actual 
+        self.fix_before(t + 1)
+        self._saved_states[t].append(_State(t=t, storage=storage.copy(), wallet=wallet, loans=loans
+                                            , line_schedules=line_schedules.copy()))
+
     def delete_bookmark(self, bookmark_id: int) -> bool:
         if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
-            return False
+            raise ValueError(f'there is no active bookmark to delete')
         self._bookmarks, self._bookmarked_at = self._bookmarks[:-1], self._bookmarked_at[:-1]
         self._active_bookmark = self._bookmarks[-1] if len(self._bookmarks) > 0 else None
         self._active_bookmarked_at = self._bookmarked_at[-1] if len(self._bookmarked_at) > 0 else -1
         return True
 
     def bookmark(self) -> int:
-        bookmark = Bookmark(id=len(self._bookmarks))
+        bookmark = _Bookmark(id=len(self._bookmarks))
         self._bookmarks.append(bookmark)
         self._bookmarked_at.append(self._factory.next_step)
         self._active_bookmark = bookmark
@@ -362,7 +461,7 @@ class SlowFactorySimulator(FactorySimulator):
 
     def rollback(self, bookmark_id: int) -> bool:
         if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
-            return False
+            raise ValueError(f'there is no active bookmark to rollback')
         for t, payment in self._active_bookmark.payment_updates.items():
             self._payment_updates[t] += payment
         for t, payment in self._active_bookmark.loans_updates.items():
@@ -380,16 +479,12 @@ class SlowFactorySimulator(FactorySimulator):
 
         if self._factory.next_step != self._bookmarked_at:
             self.goto(self._active_bookmarked_at)
-
-        self._bookmarks, self._bookmarked_at = self._bookmarks[:-1], self._bookmarked_at[:-1]
-        self._active_bookmark = self._bookmarks[-1] if len(self._bookmarks) > 0 else None
-        self._active_bookmarked_at = self._bookmarked_at[-1] if len(self._bookmarked_at) > 0 else -1
         return True
 
     @property
     def final_balance(self) -> float:
         self.goto(self.n_steps - 1)
-        return self.balance(self.n_steps - 1)
+        return self.balance_at(self.n_steps - 1)
 
     @property
     def n_lines(self):
@@ -409,7 +504,7 @@ class SlowFactorySimulator(FactorySimulator):
                          , n_products=n_products, profiles=profiles, max_storage=max_storage)
         self._factory = Factory(initial_storage=initial_storage, initial_wallet=initial_wallet
                                 , profiles=profiles, max_storage=max_storage)
-        self._jobs: Dict[int, List[(Job, bool)]] = defaultdict(list)
+        self._jobs: Dict[int, List[(Job, bool, bool, bool, bool)]] = defaultdict(list)
         self._buy_contracts: Dict[int, List[(int, int, float)]] = defaultdict(list)
         self._sell_contracts: Dict[int, List[(int, int, float)]] = defaultdict(list)
         self._payment_updates: Dict[int, float] = defaultdict(float)
@@ -420,16 +515,11 @@ class SlowFactorySimulator(FactorySimulator):
         self._storage = np.zeros(shape=(n_products, n_steps))
         self._line_schedules = np.zeros(shape=(self._factory.n_lines, self._n_steps))
         self._fixed_before = 0
-        self._bookmarks: List[Bookmark] = []
-        self._active_bookmark: Optional[Bookmark] = None
+        self._bookmarks: List[_Bookmark] = []
+        self._active_bookmark: Optional[_Bookmark] = None
         self._active_bookmarked_at: int = -1
         self._bookmarked_at: List[int] = []
-
-    def _as_array(self, storage: Dict[int, int]) -> np.array:
-        a = np.zeros(self._n_products)
-        for k, v in storage.items():
-            a[k] = v
-        return a
+        self._saved_states: Dict[int, List[_State]] = defaultdict(list)
 
     def _update_state(self) -> None:
         t = self._factory.next_step - 1
@@ -449,15 +539,30 @@ class SlowFactorySimulator(FactorySimulator):
             self._factory.receive(payment=self._payment_updates.get(step, 0.0))
             self._factory.add_loan(total=self._loans_updates.get(step, 0.0))
             jobs = self._jobs.get(t, [])
-            for job, override in jobs:
-                self._factory.schedule(job=job, override=override)
+            for job, override, ignore_storage, ignore_money, ignore_space in jobs:
+                # @todo use ignore* here
+                try:
+                    self._factory.schedule(job=job, override=override)
+                except ValueError as err:
+                    print(err)
             contracts = self._buy_contracts.get(t, [])
             for product, quantity, price in contracts:
-                self._factory.buy(product=product, quantity=quantity, price=price)
+                try:
+                    self._factory.buy(product=product, quantity=quantity, price=price)
+                except ValueError as err:
+                    print(err)
             contracts = self._sell_contracts.get(t, [])
             for product, quantity, price in contracts:
-                self._factory.sell(product=product, quantity=quantity, price=price)
-            self._factory.transport_to(inventory=self._storage_updates.get(step, {}))
+                try:
+                    self._factory.sell(product=product, quantity=quantity, price=price)
+                except ValueError as err:
+                    print(err)
+            inventory = self._storage_updates.get(step, {})
+            for product, quantity in inventory.items():
+                try:
+                    self._factory.transport_to(product, quantity)
+                except ValueError as err:
+                    print(err)
             self._update_state()
 
     def goto(self, t: int) -> None:
@@ -484,12 +589,14 @@ class SlowFactorySimulator(FactorySimulator):
             if payment is not None:
                 self._factory.pay(payment)
             jobs = self._jobs.get(step, [])
-            for job, override in jobs:
+            for job, override, ignore_storage, ignore_money, ignore_space in jobs:
+                # @todo implement ignore_input_shortage inside the factory to use ignore_input_shortage here
                 self._factory.schedule(job=job, override=override)
             self._factory.step()
             inventory = self._storage_updates.get(step, None)
             if inventory is not None:
-                self._factory.transport_to(inventory)
+                for product, quantity in inventory.items():
+                    self._factory.transport_to(product, quantity)
             self._update_state()
 
     def wallet_to(self, t: int) -> np.array:
@@ -524,7 +631,7 @@ class SlowFactorySimulator(FactorySimulator):
             self._active_bookmark.loans_updates[t] += total
         return True
 
-    def pay(self, payment: float, t: int) -> bool:
+    def pay(self, payment: float, t: int, ignore_money_shortage: bool = True) -> bool:
         if t < self._fixed_before:
             raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
         self._payment_updates[t] += payment
@@ -532,28 +639,28 @@ class SlowFactorySimulator(FactorySimulator):
             self._active_bookmark.payment_updates[t] += payment
         return True
 
-    def transport_to(self, inventory: Dict[int, int], t: int) -> bool:
+    def transport_to(self, product: int, quantity: int, t: int, ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
         if t < self._fixed_before:
             raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
         s = self._storage_updates[t]
-        for k, v in inventory:
-            s[k] += v
+        s[product] += quantity
         if self._active_bookmark:
             s = self._active_bookmark.storage_updates[t]
-            for k, v in inventory:
-                s[k] += v
+            s[product] += quantity
         return True
 
-    def schedule(self, job: Job, override=True) -> bool:
+    def schedule(self, job: Job, ignore_inventory_shortage=True, ignore_money_shortage=True, ignore_space_shortage=True
+                 , override=True) -> bool:
         t = job.time
         if t < self._fixed_before:
             raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
-        self._jobs[t].append((job, override))
+        self._jobs[t].append((job, override, ignore_inventory_shortage, ignore_money_shortage, ignore_space_shortage))
         if self._active_bookmark:
             self._active_bookmark.jobs[t].append(len(self._jobs[t]))
         return True
 
-    def buy(self, product: int, quantity: int, price: int, t: int) -> bool:
+    def buy(self, product: int, quantity: int, price: int, t: int
+            , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
         if t < self._fixed_before:
             raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
         self._buy_contracts[t].append((product, quantity, price))
@@ -561,7 +668,7 @@ class SlowFactorySimulator(FactorySimulator):
             self._active_bookmark.buy_contracts[t].append(len(self._buy_contracts[t]))
         return True
 
-    def sell(self, product: int, quantity: int, price: int, t: int) -> bool:
+    def sell(self, product: int, quantity: int, price: int, t: int, ignore_money_shortage: bool = True, ignore_inventory_shortage: bool = True) -> bool:
         if t < self._fixed_before:
             raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
         self._sell_contracts[t].append((product, quantity, price))
@@ -569,427 +676,250 @@ class SlowFactorySimulator(FactorySimulator):
             self._active_bookmark.sell_contracts[t].append(len(self._sell_contracts[t]))
         return True
 
-#
-# @dataclass
-# class FastFactorySimulator(FactorySimulator):
-#     n_steps: int
-#     """The number of steps for which the factory is going to be running"""
-#     n_lines: int = field(init=False)
-#     """The number of lines in the factory, will be set using the `profiles` input"""
-#     costs: np.array
-#     """An n_lines*n_processes array giving the cost of running this process on this line"""
-#     cancellation_costs: np.array = field(init=False)
-#     """An n_lines*n_processes array giving the cost of cancelling this process on this line"""
-#     pause_initial_costs: np.array = field(init=False)
-#     """An n_lines*n_processes array giving the initial cost of pausing this process on this line"""
-#     pause_running_costs: np.array = field(init=False)
-#     """An n_lines*n_processes array giving the running cost of pausing this process on this line"""
-#     resume_costs: np.array = field(init=False)
-#     """An n_lines*n_processes array giving the cost of resuming this process on this line"""
-#     times: np.array = field(init=False)
-#     """An n_lines*n_processes array giving the running time of this process on this line"""
-#     schedule: np.array = field(init=False)
-#     """The schedule of lines as a n_lines*n_steps array giving the index of the process running at every timestep
-#      or NO_PRODUCTION if no process is running. The special value INVALID means that this time step cannot run anything
-#     """
-#
-#     jobs: Dict[int, List[Job]] = field(init=False, default_factory=defaultdict(lambda: list))
-#     """The jobs scheduled at every time-step"""
-#     current_step: int = field(init=False, default=0)
-#     """Current simulation step"""
-#
-#     profiles: InitVar[List[ManufacturingProfile]]
-#     """A list of profiles used to initialize the factory"""
-#     initial_storage: InitVar[Dict[int, int]]
-#     """Mapping from product index to the amount available in the inventory"""
-#     initial_wallet: InitVar[float]
-#     """Money available for purchases"""
-#
-#     max_storage: Optional[int] = None
-#     """Maximum storage allowed in this factory"""
-#     id: str = field(default_factory=lambda: str(uuid.uuid4()), init=True)
-#     """Object name"""
-#     manager: Optional['SCMLAgent'] = field(init=False, default=None)
-#     """The factory manager which is an object of the `FactoryManager` class that controls production."""
-#
-#     def wallet(self, t: int) -> float:
-#         pass
-#
-#     def storage(self, t: int) -> np.array:
-#         pass
-#
-#     def loans(self, t: int) -> float:
-#         pass
-#
-#     def add_loan(self, total: float, t: int) -> bool:
-#         pass
-#
-#     def receive(self, payment: float, t: int) -> bool:
-#         pass
-#
-#     def pay(self, payment: float, t: int) -> bool:
-#         pass
-#
-#     def transport(self, inventory: Dict[int, int], t: int) -> bool:
-#         pass
-#
-#     def __post_init__(self, profiles, initial_storage=None, initial_wallet=0.0):
-#         given_lines = sorted(list(set(p.line for p in profiles)))
-#         mapping = dict(zip(given_lines, range(len(given_lines))))
-#         for profile in profiles:
-#             profile.line = mapping[profile.line]
-#         self.n_lines = len(given_lines)
-#         self.commands = np.array([[[None] * self.n_steps] * self.n_lines], dtype=object)
-#         self.schedule = np.zeros(shape=(self.n_lines, self.n_steps), dtype=int)
-#         self.jobs = defaultdict(list)
-#
-#     @property
-#     def balance(self):
-#         """The total balance of the factory"""
-#         return self.wallet - self.loans
-#
-#     def copy(self):
-#         return Factory(storage={k: v for k, v in self.storage.items()}
-#                        , wallet=self.wallet, loans=self.loans, max_storage=self.max_storage
-#                        , n_steps=self.n_steps, profiles=self.profiles)
-#
-#     def step(self) -> List[ProductionReport]:
-#         reports = []
-#         for line in range(self.n_lines):
-#             # step the current production process
-#             report = self._step_line(line=line)
-#             reports.append(report)
-#             updates = report.updates
-#             if updates.balance != 0:
-#                 self.wallet += updates.balance
-#             if updates.storage is not None:
-#                 for k, v in updates.storage.items():
-#                     self.storage[k] += v
-#         self.current_step += 1
-#         return reports
-#
-#     def schedule_job(self, job: Job, override=True) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """
-#         Schedules the given job
-#
-#         Args:
-#             job: A job to schedule
-#             override: If true, override any preexisting jobs to make this one run
-#
-#         Returns:
-#             None if it is not possible to schedule this command, otherwise a mapping from time-steps to
-#             `FactoryStatusUpdate` to apply at this time-step.
-#
-#         Remarks:
-#             The job is updated as follows:
-#
-#             - This line is set as the line member in job
-#             - The updates that result from this schedule to balance and storage are added to the updates in the job
-#         """
-#         t = job.time
-#         self.jobs[t].append(job)
-#         result = self._schedule(command=job.command, t=t, profile=self.profiles[job.profile]
-#                                 , line=job.line, override=override)
-#         if result is None:
-#             return result
-#         if job.updates:
-#             FactoryStatusUpdate.combine_sets(job.updates, result)
-#         else:
-#             job.updates = result
-#         return result
-#
-#     def _cancel_running_command(self, running_command: RunningCommandInfo) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """
-#         Cancels a running command as if it did not ever happen
-#
-#         Args:
-#             running_command: The running command to cancel
-#
-#         Returns:
-#
-#             Dict[int, FactoryStatusUpdate]: The status updated for all times that need to be updated to cancel the
-#                 command
-#
-#         Remarks:
-#             - The output of a process that runs from step t to step t + n - 1 will only be in storage at step t + n
-#             -
-#
-#         """
-#         if running_command is None:
-#             return {}
-#         if running_command.command != 'run':
-#             raise NotImplementedError('We only support run jobs now')
-#         profile = running_command.profile
-#         if profile is None:
-#             return {}
-#         line = running_command.profile.line
-#         process = running_command.profile.process
-#         process_index = process.id
-#         beg, end = running_command.beg, running_command.end
-#         n, cost = profile.n_steps, profile.cost
-#         self.schedule[line, beg: end] = NO_PRODUCTION
-#         self.commands[line, beg: end] = [None] * (end - beg)
-#         results: Dict[int, FactoryStatusUpdate] = defaultdict(lambda: FactoryStatusUpdate(balance=0, storage={}))
-#         for need in process.inputs:
-#             results[beg + int(math.floor(need.step * n))].storage[need.product] += need.quantity
-#         for output in process.outputs:
-#             results[beg + int(math.ceil(output.step * n))].storage[output.product] -= output.quantity
-#         results[beg].balance += cost  # notice that we do not need to pay cancellation cost here
-#         FactoryStatusUpdate.combine_sets(self.updates, results)
-#         return results
-#
-#     def _simulate_run(self, t: int, profile: ManufacturingProfile
-#                       , override=True) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """running is executed at the beginning of the step t
-#
-#         Args:
-#             t: time-step to start the process
-#             profile: the profile to start giving both the line and process
-#             override: If true, override any running processes paying cancellation cost for these processes
-#
-#         Returns:
-#
-#             Optional[Dict[int, FactoryStatusUpdate]]: The status updated for all times that need to be updated to cancel
-#             the command if it is not None. If None is returned then scheduling failed.
-#
-#         Remarks:
-#
-#             - The output of a process that runs from step t to step t + n - 1 will only be in storage at step t + n
-#
-#         """
-#         process = profile.process
-#         line = profile.line
-#         pid = process.id
-#         n, cost = profile.n_steps, profile.cost
-#
-#         def do_run() -> Dict[int, FactoryStatusUpdate]:
-#             self.schedule[line, t: t + n] = pid
-#             c = RunningCommandInfo(command='run', process=pid, beg=t, end=t + n)
-#             self.commands[line, t: t + n] = [c] * n
-#             results: Dict[int, FactoryStatusUpdate] = defaultdict(lambda: FactoryStatusUpdate(balance=0, storage={}))
-#             for need in process.inputs:
-#                 results[t + int(math.floor(need.step * n))].storage[need.product] -= need.quantity
-#             for output in process.outputs:
-#                 results[t + int(math.ceil(output.step * n))].storage[output.product] += output.quantity
-#             results[t].balance -= cost
-#             return results
-#
-#         # run immediately if possible
-#         if np.all(self.schedule[line, t: t + n] == NO_PRODUCTION):
-#             updates = do_run()
-#             FactoryStatusUpdate.combine_sets(self.updates, updates)
-#             return updates
-#
-#         # if I am not allowed to override, then this command has no effect and I return an empty status update
-#         if not override:
-#             return {}
-#
-#         # requires some stopping and cancellation
-#         updates = defaultdict(lambda: FactoryStatusUpdate(balance=0, storage={}))
-#         for current in range(t, t + n):
-#             current_command = self.commands[line, current]
-#             if current_command is None:
-#                 continue
-#             if current_command == self.commands[line, current - 1]:
-#                 # that is a running process, stop it
-#                 # @todo if the process has not produced any outcomes, then cancel it
-#                 update_set = self._simulate_stop(t=current, line=line)
-#             else:
-#                 # that is a new process that is to be started. Do not start it
-#                 update_set = self._cancel_running_command(current_command)
-#             # if I cannot cancel or stop the running command, then fail
-#             if update_set is None:
-#                 return None
-#             for i, change in update_set.items():
-#                 updates[i].combine(change)
-#         new_updates = do_run()
-#         for i, change in new_updates.items():
-#             updates[i].combine(change)
-#         FactoryStatusUpdate.combine_sets(self.updates, updates)
-#         return updates
-#
-#     def _simulate_pause(self, t: int, line: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """pausing is executed at the end of the step
-#
-#         Args:
-#
-#             t: time-step to start the process
-#             line: the line on which the process is running
-#
-#         Returns:
-#
-#             Optional[Dict[int, FactoryStatusUpdate]]: The status updated for all times that need to be updated to cancel
-#             the command if it is not None. If None is returned then scheduling failed.
-#
-#         Remarks:
-#
-#             - Not implemented yet
-#             - pausing when nothing is running is not an error and will return an empty status update
-#
-#         """
-#         raise NotImplementedError('Pause is not implemented')
-#
-#     def _simulate_resume(self, t: int, line: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """resumption is executed at the end of the step (starting next step count down)
-#
-#
-#         Args:
-#
-#             t: time-step to start the process
-#             line: the line on which the process is running
-#
-#         Returns:
-#
-#             Optional[Dict[int, FactoryStatusUpdate]]: The status updated for all times that need to be updated to cancel
-#             the command if it is not None. If None is returned then scheduling failed.
-#
-#         Remarks:
-#
-#             - Not implemented yet
-#             - resuming when nothing is paused is not an error and will return an empty status update
-#
-#         """
-#         raise NotImplementedError('Resume is not implemented')
-#
-#     def _simulate_stop(self, t: int, line: int) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """stopping is executed at the beginning of the current step
-#
-#         Args:
-#
-#             t: time-step to start the process
-#             line: the line on which the process is running
-#
-#         Returns:
-#
-#             Optional[Dict[int, FactoryStatusUpdate]]: The status updated for all times that need to be updated to cancel
-#             the command if it is not None. If None is returned then scheduling failed.
-#
-#         Remarks:
-#
-#             - stopping when nothing is running is not an error and will just return an empty schedule
-#         """
-#         current_command: RunningCommandInfo = self.commands[line, t]
-#         if current_command is None:
-#             return {}
-#         running_process_index = self.schedule[line, t]
-#         if current_command.beg >= t:
-#             return self._cancel_running_command(current_command)
-#         beg, end = current_command.beg, current_command.end
-#         current_command.end = t
-#         self.schedule[line, t: end] = running_process_index
-#         profile = current_command.profile
-#         process = profile.process
-#         process_index = process.id
-#         # current_command.costs[t] = profile.cancellation_cost
-#         n = profile.n_steps
-#         updates: Dict[int, FactoryStatusUpdate] = defaultdict(lambda: FactoryStatusUpdate.is_empty())
-#         for need in process.inputs:
-#             need_time = beg + int(math.floor(need.step * n))
-#             if need_time > t:
-#                 updates[need_time].storage[need.product] += need.quantity
-#         for output in process.outputs:
-#             output_time = beg + int(math.floor(output.step * n))
-#             if output_time >= t:
-#                 updates[output_time].storage[output.product] -= output.quantity
-#         updates[t].balance -= profile.cancellation_cost
-#         FactoryStatusUpdate.combine_sets(self.updates, updates)
-#         return updates
-#
-#     def _schedule(self, command: str, t: int, profile: ManufacturingProfile = None, line: Optional[int] = None
-#                   , override=True) -> Optional[Dict[int, FactoryStatusUpdate]]:
-#         """
-#         Schedules the given command at the given time for the given process.
-#
-#         Args:
-#
-#             command: Can be run, stop, pause, resume
-#             t: The time to schedule
-#             profile: The profile to schedule
-#             line: The line to schedule at.
-#             override: IF true running commands will be overridden to make this command possible
-#
-#         Returns:
-#
-#             None if it is not possible to schedule this command, otherwise a mapping from time-steps to
-#             `FactoryStatusUpdate` to apply at this time-step.
-#
-#         Remarks:
-#             - cannot give profile and line in the same time. For run commands give profile, otherwise give line
-#
-#         """
-#         if line is not None and profile is not None and profile.line != line:
-#             raise ValueError('Cannot specify both the line and profile at the same time with different line in '
-#                              ' the profile')
-#         if command == 'run':
-#             if profile is None:
-#                 raise ValueError('Cannot run an unspecified process')
-#             return self._simulate_run(t=t, profile=profile, override=override)
-#         if line is None:
-#             if profile is not None:
-#                 line = profile.line
-#         if line is None:
-#             raise ValueError(f'Cannot {command} without specifying either a profile or a line')
-#         if command == 'pause':
-#             return self._simulate_pause(t=t, line=line)
-#         elif command == 'resume':
-#             return self._simulate_resume(t=t, line=line)
-#         elif command == 'stop':
-#             return self._simulate_stop(t=t, line=line)
-#         raise ValueError(f'Unknown command: {command}')
-#
-#     def _step_line(self, line: int) -> ProductionReport:
-#         """
-#         Steps the line to the time-step `t` assuming that it is already stepped to time-step t-1 given the storage
-#
-#         Args:
-#             line: the line to step
-#
-#         Returns:
-#             ProductionReport
-#         """
-#         t = self.current_step
-#         updates = self.updates.get(t, None)
-#         if updates is None:
-#             updates = FactoryStatusUpdate.is_empty()
-#         command = self.commands[line, t]
-#         if command is None:
-#             self.schedule[line, :t + 1] = INVALID_STEP
-#             return ProductionReport(updates=updates, continuing=None, started=None, finished=None, failure=None
-#                                     , line=line)
-#         available_storage = self.max_storage - sum(self.storage.values())
-#         process_index = command.process
-#         missing_inputs = []
-#         missing_money = 0
-#         failed = False
-#         started = command if command.beg == t else None
-#         finished = command if command.end == t + 1 else None
-#         continuing = command if command.beg != t and command.end != t else None
-#         missing_space = 0
-#         if updates.balance < 0 and self.wallet < -updates.balance:
-#             failed = True
-#             missing_money = -updates.balance - self.wallet
-#         for product_id, quantity in updates.storage.items():
-#             if quantity < 0 and self.storage.get(product_id, 0) < -quantity:
-#                 failed = True
-#                 missing_inputs.append(MissingInput(product=product_id, quantity=-quantity))
-#             elif quantity > 0:
-#                 available_storage -= quantity
-#                 if available_storage < 0:
-#                     failed = True
-#                     missing_space -= available_storage
-#                     available_storage = 0
-#         if failed:
-#             failure = ProductionFailure(line=line, command=command, missing_money=missing_money
-#                                         , missing_inputs=missing_inputs, missing_space=missing_space)
-#             if t == command.beg:
-#                 self._cancel_running_command(command)
-#             else:
-#                 self._simulate_stop(t=t, line=line)
-#             self.schedule[line, :t + 1] = INVALID_STEP
-#             return ProductionReport(updates=FactoryStatusUpdate.is_empty()
-#                                     , continuing=continuing, started=started, finished=finished, failure=failure
-#                                     , line=line)
-#         self.current_process = process_index
-#         self.schedule[line, :t + 1] = INVALID_STEP
-#         return ProductionReport(updates=updates, continuing=continuing, started=started, finished=finished, failure=None
-#                                 , line=line)
+    @property
+    def fixed_before(self):
+        return self._fixed_before
+
+
+@dataclass
+class _FullBookmark:
+    id: int
+    wallet: np.array
+    loans: np.array
+    storage: np.array
+    line_schedules: np.array
+    has_jobs: np.array
+
+
+class FastFactorySimulator(FactorySimulator):
+
+    def _as_array(self, storage: Dict[int, int]) -> np.array:
+        a = np.zeros(self._n_products)
+        for k, v in storage.items():
+            a[k] = v
+        return a
+
+    def __init__(self, initial_wallet: float, initial_storage: Dict[int, int], n_steps: int, n_products: int
+                 , profiles: List[ManufacturingProfile], max_storage: Optional[int]):
+        super().__init__(initial_wallet=initial_wallet, initial_storage=initial_storage, n_steps=n_steps
+                         , n_products=n_products, profiles=profiles, max_storage=max_storage)
+        self._wallet = np.ones(n_steps) * initial_wallet
+        self._loans = np.zeros(n_steps)
+        self._storage = np.repeat(self._as_array(initial_storage).reshape((n_products, 1)), n_steps, axis=1)
+        self._total_storage = self._storage.sum(axis=0)
+        factory = Factory(initial_storage=initial_storage, initial_wallet=initial_wallet, profiles=profiles
+                          , max_storage=max_storage)
+        self._profiles = factory.profiles
+        self._n_lines = factory.n_lines
+        self._line_schedules = np.ones(shape=(self._n_lines, self._n_steps)) * NO_PRODUCTION
+        self._has_jobs = np.zeros(shape=(self._n_lines, self._n_steps), dtype=bool)
+        self._fixed_before = 0
+        self._bookmarks: List[_FullBookmark] = []
+        self._active_bookmark: Optional[_FullBookmark] = None
+
+    @property
+    def fixed_before(self):
+        return self._fixed_before
+
+    @property
+    def n_lines(self):
+        return self._n_lines
+
+    @property
+    def final_balance(self) -> float:
+        return self._wallet[-1] - self._loans[-1]
+
+    def wallet_to(self, t: int) -> np.array:
+        return self._wallet[:t + 1]
+
+    def storage_to(self, t: int) -> np.array:
+        return self._storage[:, :t + 1]
+
+    def line_schedules_to(self, t: int) -> np.array:
+        return self._line_schedules[:, : t + 1]
+
+    def loans_to(self, t: int) -> np.array:
+        return self._loans[: t + 1]
+
+    def add_loan(self, total: float, t: int) -> bool:
+        if t < self._fixed_before:
+            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+        self._loans[t:] += total
+        return True
+
+    def pay(self, payment: float, t: int, ignore_money_shortage: bool = True) -> bool:
+        # @todo add minimum balance
+        if t < self._fixed_before:
+            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+        b = self._wallet[t:]
+        b -= payment
+        if b.min() < 0:
+            b += payment
+            return False
+        return True
+
+    def transport_to(self, product: int, quantity: int, t: int, ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+        # @todo add minimum storage
+        if t < self._fixed_before:
+            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+        s, total = self._storage[product, t:].view(), self._total_storage[t:]
+        s += quantity
+        total += quantity
+        if s.min() < 0 or total.max() > self.max_storage:
+            s -= quantity
+            total -= quantity
+            return False
+        return True
+
+    def buy(self, product: int, quantity: int, price: int, t: int
+            , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+        if t < self._fixed_before:
+            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+        s, total = self._storage[product, t:].view(), self._total_storage[t:]
+        s += quantity
+        total += quantity
+        b = self._wallet[t:]
+        b -= price
+        if total.max() > self.max_storage or b.min() < 0:
+            s -= quantity
+            total -= quantity
+            b += price
+            return False
+        return True
+
+    def sell(self, product: int, quantity: int, price: int, t: int, ignore_money_shortage: bool = True, ignore_inventory_shortage: bool = True) -> bool:
+        if t < self._fixed_before:
+            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+        s, total = self._storage[product, t:].view(), self._total_storage[t:]
+        s -= quantity
+        total -= quantity
+        b = self._wallet[t:]
+        b += price
+        if s.min() < 0:
+            s += quantity
+            total += quantity
+            b -= price
+            return False
+        return True
+
+    def schedule(self, job: Job, ignore_inventory_shortage=True, ignore_money_shortage=True, ignore_space_shortage=True
+                 , override=True) -> bool:
+        t, job_override = job.time, job.override
+        if t < self._fixed_before:
+            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+        if job_override:
+            raise NotImplementedError(f'{self.__class__.__name__} does not support scheduling jobs with overriding')
+        # job_line = job.line # only useful for stop/pause/resume that are not supported
+        profile = self._profiles[job.profile]
+        inputs, outputs, length, cost = profile.process.inputs, profile.process.outputs, profile.n_steps, profile.cost
+        line = profile.line
+
+        # confirm that there is no other jobs already scheduled at this exact time:
+        if self._has_jobs[line, t]:
+            if override:
+                raise NotImplementedError(f'{self.__class__.__name__} does not support scheduling more than a single '
+                                          f'job at any time-step/line')
+            return False
+
+        # confirm that the line is not busy. If it was busy, and we are not overriding, fail.
+        if not job_override and np.any(self._line_schedules[line, t:t + length] != NO_PRODUCTION):
+            return False
+
+        # confirm that there is enough money to start production
+        if (not ignore_money_shortage) and np.any(self._wallet[t:] < cost):
+            return False
+        # bookmark to be able to rollback at any error
+        if job.action == 'run':
+            with transaction(self) as bookmark:
+                if not self.pay(cost, t):
+                    self.rollback(bookmark)
+                    return False
+                self._line_schedules[line, t:t + length] = profile.process.id
+                for i in inputs:
+                    it = int(math.floor(i.step * length) + t)
+                    p, q = i.product, i.quantity
+                    if (not ignore_inventory_shortage) and np.any(self._storage[p, it:] < q):
+                        self.rollback(bookmark)
+                        return False
+                    s, total = self._storage[p, it:].view(), self._total_storage[it:]
+                    s -= q
+                    total -= q
+                for o in outputs:
+                    ot = int(math.ceil(o.step * length) + t)
+                    p, q = o.product, o.quantity
+                    if (not ignore_space_shortage) and np.any(self._total_storage[ot:] + q > self.max_storage):
+                        self.rollback(bookmark)
+                        return False
+                    s, total = self._storage[p, ot:].view(), self._total_storage[ot:]
+                    s += q
+                    total += q
+            return True
+        raise NotImplementedError(f'{self.__class__.__name__} does not support scheduling {job.action} jobs')
+
+    def fix_before(self, t: int) -> bool:
+        self._fixed_before = t
+        return True
+
+    def delete_bookmark(self, bookmark_id: int) -> bool:
+        if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
+            raise ValueError(f'there is no active bookmark to delete')
+        self._bookmarks = self._bookmarks[:-1]
+        self._active_bookmark = self._bookmarks[-1] if len(self._bookmarks) > 0 else None
+        return True
+
+    def bookmark(self) -> int:
+        bookmark = _FullBookmark(id=len(self._bookmarks), wallet=self._wallet.copy(), loans=self._loans.copy()
+                                 , storage=self._storage.copy(), line_schedules=self._line_schedules.copy()
+                                 , has_jobs=self._has_jobs.copy())
+        self._bookmarks.append(bookmark)
+        self._active_bookmark = bookmark
+        return bookmark.id
+
+    def rollback(self, bookmark_id: int) -> bool:
+        if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
+            raise ValueError(f'there is no active bookmark to rollback')
+        b = self._active_bookmark
+        self._wallet, self._loans, self._storage = b.wallet, b.loans, b.storage
+        self._line_schedules, self._has_jobs = b.line_schedules, b.has_jobs
+        self._total_storage = self._storage.sum(axis=0)
+        return True
+
+    def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
+        self._storage[:, t:] += storage.reshape(self._n_products, 1) - self._storage[:, t].reshape(self._n_products, 1)
+        self._wallet[t:] += wallet - self._wallet[t]
+        self._loans[t:] += loans - self._loans[t]
+
+        self._line_schedules[:, t] = line_schedules
+
+        # @todo enable this again to confirm that simulation is correct. may be I set_state before the job is run on the simulator
+        # expected_schedules = self._line_schedules[:, t]
+        # for i in range(self.n_lines):
+        #     expected, actual = expected_schedules[i], line_schedules[i]
+        #     if expected == actual:
+        #         continue
+        #     if expected == NO_PRODUCTION:
+        #         raise ValueError(f'Expected no production at time {t} on line {i} but actually process '
+        #                          f'{actual} is running')
+        #     if expected != actual and actual != NO_PRODUCTION:
+        #         raise ValueError(f'Expected process {expected} at time {t} on line {i} but actually process '
+        #                          f'{actual} is running')
+        #     self._line_schedules[i, t] = actual
+
+        self.fix_before(t)
+
+
+@contextmanager
+def transaction(simulator):
+    """Runs the simulated actions then confirms them if they are not rolled back"""
+    _bookmark = simulator.bookmark()
+    yield _bookmark
+    simulator.delete_bookmark(_bookmark)
+
+
+@contextmanager
+def temporary_transaction(simulator):
+    """Runs the simulated actions then rolls them back"""
+    _bookmark = simulator.bookmark()
+    yield _bookmark
+    simulator.rollback(_bookmark)
+    simulator.delete_bookmark(_bookmark)

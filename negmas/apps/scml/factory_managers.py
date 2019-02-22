@@ -1,25 +1,23 @@
 import itertools
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING
 
-from negmas.apps.scml.simulators import FactorySimulator, SlowFactorySimulator
+from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, storage_as_array, temporary_transaction
 from negmas.common import NamedObject, MechanismState, MechanismInfo
 from negmas.events import Event, EventSource, Notification
-from negmas.helpers import ConfigReader, get_class
+from negmas.helpers import get_class
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, Outcome
 from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Action, RenegotiationRequest
 from negmas.utilities import UtilityFunctionProxy, UtilityValue, normalize
-from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory
+from .awi import SCMLAWI
+from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile
 from .schedulers import Scheduler, ScheduleInfo, GreedyScheduler
-from .awi import SCMLAWI
 
 if True:
     from typing import Dict, Iterable, Any, Callable, Collection, Type, List, Optional, Union
-
 
 __all__ = [
     'FactoryManager', 'DoNothingFactoryManager', 'GreedyFactoryManager'
@@ -29,7 +27,7 @@ __all__ = [
 class FactoryManager(SCMLAgent):
     """Base factory manager class that will be inherited by participant negmas in ANAC 2019"""
 
-    def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = SlowFactorySimulator):
+    def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name)
         self.transportation_delay = 0
         self.simulator: Optional[FactorySimulator] = None
@@ -73,21 +71,24 @@ class FactoryManager(SCMLAgent):
         super().on_event(event=event, sender=sender)
 
     def step(self):
-        self.simulator.fix_before(self.current_step)
+        state = self.awi.state
+        self.simulator.set_state(self.current_step, wallet=state.wallet, loans=state.loans
+                                 , storage=storage_as_array(state.storage, n_products=len(self.products))
+                                 , line_schedules=state.line_schedules)
         self.current_step += 1
 
 
 class GreedyFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
 
-    def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = SlowFactorySimulator
+    def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator
                  , scheduler_type: Union[str, Type[Scheduler]] = GreedyScheduler
                  , scheduler_params: Optional[Dict[str, Any]] = None
                  , optimism: float = 0.0
                  , negotiator_type: Union[str, Type[NegotiatorProxy]] = 'negmas.sao.AspirationNegotiator'
                  , negotiator_params: Optional[Dict[str, Any]] = None
                  , n_retrials=5, use_consumer=True, reactive=True, sign_only_guaranteed_contracts=False
-                 , riskiness=0.0, max_insurance_premium=None):
+                 , riskiness=0.0, max_insurance_premium: float = -1.0):
         super().__init__(name=name, simulator_type=simulator_type)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
         self.negotiator_params = negotiator_params if negotiator_params is not None else {}
@@ -109,7 +110,7 @@ class GreedyFactoryManager(FactoryManager):
         self.sign_only_guaranteed_contracts = sign_only_guaranteed_contracts
         self.contract_schedules: Dict[str, ScheduleInfo] = {}
         self.riskiness = riskiness
-        self.negotiation_margin = int(round(n_retrials * riskiness))
+        self.negotiation_margin = int(round(n_retrials * max(0.0, 1.0 - riskiness)))
         self.scheduler_type: Type[Scheduler] = get_class(scheduler_type, scope=globals())
         self.scheduler: Scheduler = None
         self.scheduler_params: Dict[str, Any] = scheduler_params if scheduler_params is not None else {}
@@ -118,12 +119,14 @@ class GreedyFactoryManager(FactoryManager):
         """Calculates the total utility for the agent of a collection of contracts"""
         if self.scheduler is None:
             raise ValueError('Cannot calculate total utility without a scheduler')
-        bookmark = self.scheduler.bookmark()
-        schedule = self.scheduler.schedule(contracts=contracts, assume_no_further_negotiations=False
-                                           , ensure_storage_for=self.transportation_delay)
-        self.scheduler.rollback(bookmark)
+        min_concluded_at = self.awi.current_step
+        min_sign_at = min_concluded_at + self.awi.default_signing_delay
+        with temporary_transaction(self.scheduler):
+            schedule = self.scheduler.schedule(contracts=contracts, assume_no_further_negotiations=False
+                                               , ensure_storage_for=self.transportation_delay
+                                               , start_at=min_sign_at)
         if not schedule.valid:
-            return -2000.0
+            return INVALID_UTILITY
         return schedule.final_balance
 
     def init(self):
@@ -131,9 +134,12 @@ class GreedyFactoryManager(FactoryManager):
         if self.use_consumer:
             # @todo add the parameters of the consumption profile as parameters of the greedy factory manager
             self.consumer: ScheduleDrivenConsumer = ScheduleDrivenConsumer(profiles=dict(zip(self.consuming.keys()
-                                                                                             , (ConsumptionProfile(schedule=[_] * self.awi.n_steps)
-                                                                    for _ in itertools.repeat(0))))
-                                                                           , consumption_horizon=self.awi.n_steps, immediate_cfp_update=True
+                                                                                             , (ConsumptionProfile(
+                    schedule=[_] * self.awi.n_steps)
+                                                                                                 for _ in
+                                                                                                 itertools.repeat(0))))
+                                                                           , consumption_horizon=self.awi.n_steps,
+                                                                           immediate_cfp_update=True
                                                                            , name=self.name)
             self.consumer.id = self.id
             self.consumer.awi = self.awi
@@ -150,7 +156,7 @@ class GreedyFactoryManager(FactoryManager):
         else:
             neg = self.negotiator_type(name=self.name + '*' + partner, **self.negotiator_params)
             neg.utility_function = normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp)),
-                                             outcomes=cfp.outcomes, infeasible_cutoff=-1500)
+                                             outcomes=cfp.outcomes, infeasible_cutoff=0)
             return neg
 
     def on_negotiation_success(self, contract: Contract, mechanism: MechanismInfo):
@@ -178,11 +184,12 @@ class GreedyFactoryManager(FactoryManager):
         product = contract.annotation['cfp'].product
         if contract.annotation['buyer'] == self.id:
             self.simulator.buy(product=product, quantity=contract.agreement['quantity']
-                               , price=total, t=contract.agreement['time'])
-            if self.max_insurance_premium is None or contract is None:
+                               , price=total, t=contract.agreement['time']
+                               )
+            if total <= 0 or self.max_insurance_premium < 0.0 or contract is None:
                 return
             premium = awi.evaluate_insurance(contract=contract)
-            if premium is  None or total <= 0:
+            if premium is None:
                 return
             relative_premium = premium / total
             if relative_premium <= self.max_insurance_premium:
@@ -193,12 +200,18 @@ class GreedyFactoryManager(FactoryManager):
         self.simulator.sell(product=product, quantity=contract.agreement['quantity']
                             , price=total, t=contract.agreement['time'])
         for job in schedule.jobs:
-            awi.execute(action=Action(type=job.action, params={'profile': job.profile, 'time': job.time
-                        , 'contract': contract, 'override': True}))
+            if job.action == 'run':
+                awi.execute(action=Action(type=job.action, params={'profile': job.profile, 'time': job.time
+                    , 'contract': contract, 'override': job.override}))
+            else:
+                awi.execute(action=Action(type=job.action, params={'line': job.line, 'time': job.time
+                    , 'contract': contract, 'override': job.override}))
+            self.simulator.schedule(job=job, override=False)
         for need in schedule.needs:
             if need.quantity_to_buy <= 0:
                 continue
             product_id = need.product
+            # self.simulator.reserve(product=product_id, quantity=need.quantity_to_buy, t=need.step)
             if self.use_consumer:
                 self.consumer.profiles[product_id].schedule[need.step] += need.quantity_to_buy
                 self.consumer.register_product_cfps(p=product_id, t=need.step
@@ -223,12 +236,22 @@ class GreedyFactoryManager(FactoryManager):
         signature = super().sign_contract(contract)
         if signature is None:
             return None
-        bookmark = self.scheduler.bookmark()
-        schedule = self.scheduler.schedule(assume_no_further_negotiations=False, contracts=[contract]
-                                           , ensure_storage_for=self.transportation_delay)
-        self.scheduler.rollback(bookmark)
+        with temporary_transaction(self.scheduler):
+            schedule = self.scheduler.schedule(assume_no_further_negotiations=False, contracts=[contract]
+                                               , ensure_storage_for=self.transportation_delay
+                                               , start_at=self.awi.current_step
+                                               )
+
         if self.sign_only_guaranteed_contracts and (not schedule.valid or len(schedule.needs) > 1):
             return None
+        if schedule.valid:
+            profit = schedule.final_balance - self.simulator.final_balance
+            self.awi.logdebug(f'singing contract {contract.id} expecting '
+                              f'{-profit if profit < 0 else profit} {"loss" if profit < 0 else "profit"}')
+        else:
+            self.awi.logdebug(f'singing contract {contract.id} expecting breach')
+        # if schedule.final_balance <= self.simulator.final_balance:
+        #    return None
         self.contract_schedules[contract.id] = schedule
         return signature
 
@@ -297,15 +320,15 @@ class GreedyFactoryManager(FactoryManager):
         min_sign_at = min_concluded_at + self.awi.default_signing_delay
         if cfp.max_time < min_sign_at + 1:  # 1 is minimum time to produce the product
             return False
-        bookmark = self.scheduler.bookmark()
-        schedule = self.scheduler.schedule(contracts=[Contract(partners=[self.id, cfp.publisher]
-                                                               , agreement=agreement
-                                                               , annotation=self._create_annotation(cfp=cfp)
-                                                               , issues=cfp.issues, signed_at=min_sign_at
-                                                               , concluded_at=min_concluded_at)]
-                                           , ensure_storage_for=self.transportation_delay
-                                           , assume_no_further_negotiations=assume_no_further_negotiations)
-        self.scheduler.rollback(bookmark)
+        with temporary_transaction(self.scheduler):
+            schedule = self.scheduler.schedule(contracts=[Contract(partners=[self.id, cfp.publisher]
+                                                                   , agreement=agreement
+                                                                   , annotation=self._create_annotation(cfp=cfp)
+                                                                   , issues=cfp.issues, signed_at=min_sign_at
+                                                                   , concluded_at=min_concluded_at)]
+                                               , ensure_storage_for=self.transportation_delay
+                                               , assume_no_further_negotiations=assume_no_further_negotiations
+                                               , start_at=min_sign_at)
         return schedule.valid and self.can_secure_needs(schedule=schedule, step=self.awi.current_step)
 
     def can_secure_needs(self, schedule: ScheduleInfo, step: int):
@@ -350,7 +373,7 @@ TotalUtilityFun = Callable[[Collection[Contract]], float]
 class NegotiatorUtility(UtilityFunctionProxy):
     """The utility function of a negotiator."""
 
-    def __init__(self, agent: FactoryManager, annotation: Dict[str, Any], name: Optional[str] = None):
+    def __init__(self, agent: GreedyFactoryManager, annotation: Dict[str, Any], name: Optional[str] = None):
         if name is None:
             name = agent.name + '*' + '*'.join(_ for _ in annotation['partners'] if _ != agent.id)
         super().__init__(name=name)
@@ -372,7 +395,7 @@ class NegotiatorUtility(UtilityFunctionProxy):
                         , annotation=annotation, issues=annotation['cfp'].issues)
 
     def _free_sale(self, agreement: SCMLAgreement) -> bool:
-        return self.annotation['seller'] == self.agent and agreement['unit_price'] < 1e-6
+        return self.annotation['seller'] == self.agent.id and agreement['unit_price'] < 1e-6
 
     def __call__(self, outcome: Outcome) -> Optional[UtilityValue]:
         if isinstance(outcome, dict):
@@ -395,13 +418,16 @@ class PessimisticNegotiatorUtility(NegotiatorUtility):
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
         """An offer will be a tuple of one value which in turn will be a list of contracts"""
         if self._free_sale(agreement):
-            return -2000.0
+            return INVALID_UTILITY
         # contracts = self.agent.contracts
         # hypothetical = list(contracts)
         # hypothetical.append(self._contract(agreement))
         hypothetical = [self._contract(agreement)]
-        base_util = self.agent.total_utility(contracts=())
-        return self.agent.total_utility(hypothetical) - base_util
+        base_util = self.agent.simulator.final_balance
+        hypothetical = self.agent.total_utility(hypothetical)
+        if hypothetical < 0:
+            return INVALID_UTILITY
+        return hypothetical - base_util
 
 
 class OptimisticNegotiatorUtility(NegotiatorUtility):
@@ -409,7 +435,7 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
 
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
         if self._free_sale(agreement):
-            return -2000.0
+            return INVALID_UTILITY
         # contracts = self.agent.contracts
         # hypothetical = list(contracts)
         # hypothetical.append(self._contract(agreement))
@@ -419,14 +445,17 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
             current_offer = negotiator.my_last_proposal
             if current_offer is not None:
                 hypothetical.append(self._contract(current_offer))
-        base_util = self.agent.total_utility(contracts=())
-        return self.agent.total_utility(list(hypothetical)) - base_util
+        base_util = self.agent.simulator.final_balance
+        hypothetical = self.agent.total_utility(list(hypothetical))
+        if hypothetical < 0:
+            return INVALID_UTILITY
+        return hypothetical - base_util
 
 
 class AveragingNegotiatorUtility(NegotiatorUtility):
     """A utility function that combines optimistic and pessimistic evaluators linearly using adjustable weight"""
 
-    def __init__(self, agent: FactoryManager, annotation: Dict[str, Any], name: Optional[str] = None
+    def __init__(self, agent: GreedyFactoryManager, annotation: Dict[str, Any], name: Optional[str] = None
                  , optimism: float = 0.5):
         NamedObject.__init__(self=self, name=name)
         self.optimism = optimism
@@ -435,7 +464,7 @@ class AveragingNegotiatorUtility(NegotiatorUtility):
 
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
         if self._free_sale(agreement):
-            return -2000.0
+            return INVALID_UTILITY
         opt, pess = self.optimistic(agreement), self.pessimistic(agreement)
         if opt is None or pess is None:
             return None

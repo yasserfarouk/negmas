@@ -113,7 +113,7 @@ class ReactiveMiner(Miner):
             , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
         if self.negotiator_type == AspirationNegotiator:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher
-                                              , dynamic_ufun=False, aspiration_type='boulware')
+                                              , dynamic_ufun=False, aspiration_type='linear')
         else:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher)
         negotiator.utility_function = normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None)

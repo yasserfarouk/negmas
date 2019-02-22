@@ -1053,7 +1053,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
     def _log_header(self):
         if self.time is None:
             return f'{self.name} (not started)'
-        return f'{self.current_step}/{self.n_steps} [{self.relative_time:0.00}]'
+        return f'{self.current_step}/{self.n_steps} [{self.relative_time:0.1f}]'
 
     def _register_contract(self, mechanism, negotiation, force_signature_now=False) -> Optional[Contract]:
         if mechanism.agreement is None or negotiation is None:

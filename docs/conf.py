@@ -179,6 +179,11 @@ latex_documents = [
      u'Yasser Mohammad', 'manual'),
 ]
 
+# -- Options for graphviz used in inheritence diagrams -----------------
+
+graphviz_output_format = 'png'
+inheritance_node_attrs = dict(shape='rectangle', fontsize=16, height=0.75,
+                              color='white') # , style='filled') # dodgerblue1
 
 # -- Options for manual page output ------------------------------------
 

@@ -132,3 +132,11 @@ scripts/logs
 docs/_build
 docs/_build/*
 *~
+notebooks/tutorials/logs
+notebooks/tutorials/logs/*
+docs/api
+docs/api/*
+
+docs/_static/
+docs/_templates/
+notebooks/tutorials/logs/tournaments/*/
