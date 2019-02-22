@@ -833,9 +833,9 @@ class SCMLAgent(Agent):
     # EVENT CALLBACKS (Called by the `World` when certain events happen)
     # ------------------------------------------------------------------
 
-    def before_joining_negotiation(self, initiator: str, partners: List[str], issues: List[Issue]
-                                   , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
-                                   , req_id: str):
+    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
+                                       , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
+                                       , req_id: str):
         """When a negotiation request is received"""
         if req_id is not None:
             info = self._neg_requests.get(req_id, None)

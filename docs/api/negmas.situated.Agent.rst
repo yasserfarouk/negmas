@@ -10,7 +10,7 @@ Agent
 
    .. autosummary::
 
-      ~Agent.before_joining_negotiation
+      ~Agent.respond_to_negotiation_request
       ~Agent.init
       ~Agent.on_breach_by_another
       ~Agent.on_breach_by_self
@@ -28,7 +28,7 @@ Agent
 
    .. rubric:: Methods Documentation
 
-   .. automethod:: before_joining_negotiation
+   .. automethod:: respond_to_negotiation_request
    .. automethod:: init
    .. automethod:: on_breach_by_another
    .. automethod:: on_breach_by_self

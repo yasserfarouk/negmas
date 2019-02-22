@@ -10,7 +10,7 @@ SCMLAgent
 
    .. autosummary::
 
-      ~SCMLAgent.before_joining_negotiation
+      ~SCMLAgent.respond_to_negotiation_request
       ~SCMLAgent.can_expect_agreement
       ~SCMLAgent.confirm_contract_execution
       ~SCMLAgent.confirm_loan
@@ -23,7 +23,7 @@ SCMLAgent
 
    .. rubric:: Methods Documentation
 
-   .. automethod:: before_joining_negotiation
+   .. automethod:: respond_to_negotiation_request
    .. automethod:: can_expect_agreement
    .. automethod:: confirm_contract_execution
    .. automethod:: confirm_loan

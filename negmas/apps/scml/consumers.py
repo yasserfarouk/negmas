@@ -198,14 +198,34 @@ class ScheduleDrivenConsumer(Consumer):
         negotiator.utility_function = ufun
         return negotiator
 
-    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
-        raise ValueError('Consumers should never cause a breach')
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+        """
+        Received by partners in ascending order of their total breach levels in order to set the
+        renegotiation agenda when contract execution fails
 
-    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
-        return None  # reject all re-negotiations
+        Args:
+            contract:
+            breaches:
 
-    def on_breach_meta_negotiation(self, contract: Contract, partner: str, issues: List[Issue]) \
-        -> Optional[NegotiatorProxy]:
+        Returns:
+
+        """
+        return None
+
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        """
+        Called to respond to a renegotiation request
+
+        Args:
+            agenda:
+            contract:
+            breaches:
+
+        Returns:
+
+        """
         return None
 
     def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:

@@ -145,14 +145,12 @@ class ReactiveMiner(Miner):
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         raise ValueError('Miners should never receive negotiation requests as they publish no CFPs')
 
-    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
-        raise ValueError('Miners should never cause a breach')
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+        return None
 
-    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
-        return None  # reject all re-negotiations
-
-    def on_breach_meta_negotiation(self, contract: Contract, partner: str, issues: List[Issue]) \
-        -> Optional[NegotiatorProxy]:
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
 
     def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:

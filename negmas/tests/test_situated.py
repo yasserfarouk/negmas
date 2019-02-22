@@ -68,15 +68,13 @@ class DummyWorld(World):
 
 
 class DummyAgent(Agent):
-    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
-        pass
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+        return None
 
-    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
-        pass
-
-    def on_breach_meta_negotiation(self, contract: Contract, partner: str, issues: List[Issue]) -> Optional[
-        NegotiatorProxy]:
-        pass
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        return None
 
     def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
         pass
@@ -96,9 +94,9 @@ class DummyAgent(Agent):
             results.append(f'{self.name} started negotiation with {partners[0].name}')
         results.append(f'{self.name}: step {self.current_step}')
 
-    def before_joining_negotiation(self, initiator: str, partners: List[str], issues: List[Issue]
-                                   , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
-                                   , req_id: str):
+    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
+                                       , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
+                                       , req_id: str):
         """Called whenever a negotiation request is received"""
         negotiator = AspirationNegotiator()
         negotiator.utility_function = LinearUtilityAggregationFunction(issue_utilities=[lambda x: 1.0 - x / 10.0])
@@ -117,7 +115,7 @@ def test_world_runs_with_some_negs(capsys):
     assert "A1 started negotiation with A2" in results, 'negotiation started'
     assert f"A1: step {world.n_steps-1}" in results, 'last step logged'
     assert f"A2: step {world.n_steps-1}" in results, 'last step logged'
-    assert len(world.saved_contracts) == 2
+    assert len(world._saved_contracts) == 2
     assert sum(world.stats['n_negotiations']) == 2
 
 

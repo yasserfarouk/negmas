@@ -1,16 +1,18 @@
 import itertools
+import json
 import math
+import os
 import pathlib
 import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from random import shuffle
+from random import shuffle, randint
 from time import perf_counter
-from typing import TYPE_CHECKING
 
 import pandas as pd
 from dataclasses import dataclass
 from distributed import Client
 
+from negmas import save_logs
 from negmas.helpers import get_class, unique_name
 from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
@@ -27,10 +29,10 @@ __all__ = [
 
 def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
                    , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
-                   , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=4
-                   , competitors: Tuple[Union[str, Type[FactoryManager]]] = ()
+                   , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=100, n_retrials=4
+                   , competitors: Sequence[Union[str, Type[FactoryManager]]] = ()
                    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-                   , transportation_delay=0, default_signing_delay=1
+                   , transportation_delay=0, default_signing_delay=0
                    , max_storage=None
                    , consumption_horizon=15
                    , consumption=(3, 5)
@@ -39,6 +41,7 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
                    , n_greedy_per_level: int = 2
                    , random_factory_manager_assignment: bool = True
                    , log_file_name: str = None
+                   , name: str = None
                    ):
     """
     Creates a world compatible with the ANAC 2019 competition. Note that
@@ -119,7 +122,8 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
                                         , max_storage=max_storage
                                         , manager_types=competitors
                                         , n_greedy_per_level=n_greedy_per_level
-                                        , random_factory_manager_assignment=random_factory_manager_assignment)
+                                        , random_factory_manager_assignment=random_factory_manager_assignment
+                                        , name=name)
 
     return world
 
@@ -127,6 +131,8 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
 def _run_world(world: SCMLWorld):
     """Runs a world and returns stats"""
     world.run()
+    dir_name = pathlib.Path(world.log_file_name).parent
+    save_logs(world=world, log_dir=dir_name)
     return world.stats, world.name, world.log_file_name
 
 
@@ -157,6 +163,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
                         , n_steps=60, time_limit=60 * 90
                         , n_greedy_per_level: int = 2
+                        , name: str = None
                         ) -> TournamentResults:
     """
     Runs a tournament
@@ -195,6 +202,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
         consumption: The consumption schedule will be sampled from a uniform distribution with these limits inclusive
         negotiator_type: The negotiation factory used to create all negotiators
         max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
+        name: Tournament name
 
     Returns:
         scores as a dataframe
@@ -205,17 +213,52 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
 
 
     """
-    tournament_path = pathlib.Path(tournament_path) / unique_name('', add_time=True, rand_digits=0)
+    if name is None:
+        name = unique_name('', add_time=True, rand_digits=0)
+    params = {
+        'competitors': [get_class(_).__name__ for _ in competitors],
+        'randomize': randomize,
+        'n_runs': n_runs,
+        'tournament_path': tournament_path,
+        'total_timeout': total_timeout,
+        'parallelism': parallelism,
+        'scheduler_ip': scheduler_ip,
+        'scheduler_port': scheduler_port,
+        'n_intermediate': n_intermediate,
+        'n_miners': n_miners,
+        'n_factories_per_level': n_factories_per_level,
+        'n_consumers': n_consumers,
+        'n_lines_per_factory': n_lines_per_factory,
+        'guaranteed_contracts': guaranteed_contracts,
+        'use_consumer': use_consumer,
+        'max_insurance_premium': max_insurance_premium,
+        'n_retrials': n_retrials,
+        'negotiator_type': negotiator_type,
+        'transportation_delay': transportation_delay,
+        'default_signing_delay': default_signing_delay,
+        'max_storage': max_storage,
+        'consumption_horizon': consumption_horizon,
+        'consumption': consumption,
+        'negotiation_speed': negotiation_speed,
+        'neg_time_limit': neg_time_limit,
+        'neg_n_steps': neg_n_steps,
+        'n_steps': n_steps,
+        'time_limit': time_limit,
+        'n_greedy_per_level': n_greedy_per_level,
+        'name': name,
+    }
+    tournament_path = pathlib.Path(tournament_path) / name
     os.makedirs(str(tournament_path), exist_ok=True)
+    with (tournament_path / 'params.json').open('w') as f:
+        json.dump(params, f, sort_keys=True, indent=4)
     worlds = []
     if randomize:
         for i in range(n_runs):
             shuffle(competitors)
-            log_file_name = str(
-                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/',
-                                                                                                                   ''))
-            worlds.append(anac2019_world(competitors=competitors
-                                         , log_file_name=log_file_name
+            world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+            dir_name = tournament_path / world_name
+            worlds.append(anac2019_world(name=world_name, competitors=competitors
+                                         , log_file_name=str(dir_name / 'log.txt')
                                          , random_factory_manager_assignment=True
                                          , n_intermediate=n_intermediate
                                          , n_miners=n_miners
@@ -239,7 +282,6 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                                          , time_limit=time_limit
                                          , n_greedy_per_level=n_greedy_per_level
                                          ))
-
     else:
         c_list = list(itertools.permutations(competitors))
         extra_runs = 0
@@ -251,10 +293,9 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                 extra_runs = n_runs - len(c_list)
 
         for i, c in enumerate(c_list):
-            log_file_name = str(
-                tournament_path / 'logs' / (unique_name(f'{i:05}', add_time=True, rand_digits=4) + '.log').replace('/',
-                                                                                                                   ''))
-            worlds.append(anac2019_world(competitors=c, log_file_name=log_file_name
+            world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+            dir_name = tournament_path / world_name
+            worlds.append(anac2019_world(competitors=c, name=world_name, log_file_name=str(dir_name / 'logs.txt')
                                          , random_factory_manager_assignment=False
                                          , n_intermediate=n_intermediate
                                          , n_miners=n_miners
@@ -281,12 +322,10 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
             if extra_runs > 0:
                 for j in range(extra_runs):
                     shuffle(competitors)
-                    log_file_name = str(
-                        tournament_path / 'logs' / (
-                                unique_name(f'{j + len(c_list):05}', add_time=True, rand_digits=4) + '.log').replace(
-                            '/', ''))
-                    worlds.append(anac2019_world(competitors=competitors
-                                                 , log_file_name=log_file_name
+                    world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+                    dir_name = tournament_path / world_name
+                    worlds.append(anac2019_world(competitors=competitors, name=world_name
+                                                 , log_file_name=str(dir_name / 'logs.txt')
                                                  , random_factory_manager_assignment=True
                                                  , n_intermediate=n_intermediate
                                                  , n_miners=n_miners

@@ -3,21 +3,24 @@ import traceback
 from functools import partial
 from pprint import pprint, pformat
 from time import perf_counter
-
+from pathlib import Path
 import click
+import os
 import pandas as pd
 import progressbar
 from tabulate import tabulate
+import json
 
+from negmas import save_logs
 from negmas.apps.scml import *
-from negmas.helpers import humanize_time
+from negmas.helpers import humanize_time, unique_name
 
 click.option = partial(click.option, show_default=True)
 
 
 @click.command()
 @click.option('--steps', default=60, help='Number of steps.')
-@click.option('--levels', default=2, help='Number of intermediate production levels (processes). '
+@click.option('--levels', default=3, help='Number of intermediate production levels (processes). '
                                           '-1 means a single product and no factories.')
 @click.option('--neg-speedup', default=21, help='Negotiation Speedup.')
 @click.option('--negotiator', default='negmas.sao.AspirationNegotiator',
@@ -41,9 +44,31 @@ click.option = partial(click.option, show_default=True)
 @click.option('--max-insurance', default=1000, help='Use insurance against partner in factory managers up to this '
                                                     'premium')
 @click.option('--riskiness', default=0.6, help='How risky is the default factory manager')
+@click.option('--log', default='~/negmas/logs', help='Default location to save logs (A folder will be created under it)')
 def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption, max_consumption
         , transport, time, neg_time
-        , neg_steps, sign, guaranteed, lines, retrials, use_consumer, max_insurance, riskiness):
+        , neg_steps, sign, guaranteed, lines, retrials, use_consumer, max_insurance, riskiness, log):
+    params = {
+        "steps": steps,
+        "levels": levels,
+        "neg_speedup": neg_speedup,
+        "negotiator": negotiator,
+        "agents": agents,
+        "horizon": horizon,
+        "min_consumption": min_consumption,
+        "max_consumption": max_consumption,
+        "transport": transport,
+        "time": time,
+        "neg_time": neg_time,
+        "neg_steps": neg_steps,
+        "sign": sign,
+        "guaranteed": guaranteed,
+        "lines": lines,
+        "retrials": retrials,
+        "use_consumer": use_consumer,
+        "max_insurance": max_insurance,
+        "riskiness": riskiness
+    }
     neg_speedup = neg_speedup if neg_speedup is not None and neg_speedup > 0 else None
     if min_consumption == max_consumption:
         consumption = min_consumption
@@ -54,7 +79,17 @@ def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption
     factory_kwargs = {'negotiator_type': negotiator, 'n_retrials': retrials
         , 'sign_only_guaranteed_contracts': guaranteed, 'use_consumer': use_consumer
         , 'riskiness': riskiness, 'max_insurance_premium': max_insurance}
-    world = SCMLWorld.single_path_world(log_file_name='', n_steps=steps
+    if log.startswith('~/'):
+        log_dir = Path.home() / log[2:]
+    else:
+        log_dir = Path(log)
+    log_dir = log_dir / unique_name(base='scml', add_time=True, rand_digits=0)
+    log_dir = log_dir.absolute()
+    os.makedirs(log_dir, exist_ok=True)
+    log_file_name = str(log_dir / 'log.txt')
+    stats_file_name = str(log_dir / 'stats.json')
+    params_file_name = str(log_dir / 'params.json')
+    world = SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=steps
                                         , negotiation_speed=neg_speedup
                                         , n_intermediate_levels=levels
                                         , n_miners=agents
@@ -85,7 +120,6 @@ def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption
         world.logdebug(s)
         print(s)
 
-    pprint(world.stats, compact=True)
     world.logdebug(f'{pformat(world.stats, compact=True)}')
     world.logdebug(f'=================================================\n'
                    f'steps: {steps}, horizon: {horizon}, time: {time}, levels: {levels}, agents_per_level: '
@@ -96,11 +130,13 @@ def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption
                    f', neg_time: {neg_time}\n'
                    f'==================================================')
 
+    save_logs(world=world, log_dir=log_dir, params=params)
+
     if len(world.saved_contracts) > 0:
         data = pd.DataFrame(world.saved_contracts)
-        data = data.loc[:, ['seller_name', 'buyer_name', 'delivery_time', 'unit_price', 'quantity', 'product_name'
-                               , 'n_neg_steps', 'concluded_at', 'cfp']]
         data = data.sort_values(['delivery_time'])
+        data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
+                            , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])

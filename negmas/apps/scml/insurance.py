@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from negmas.situated import Agent, RenegotiationRequest
 from .common import InsurancePolicy, SCMLAgent, Factory
@@ -29,15 +29,13 @@ class InsuranceCompany(Agent):
         self.wallet: float = 0.0
         self.a2f = a2f
 
-    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
-        raise ValueError('The bank does not receive callbacks')
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+        return None
 
-    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
-        raise ValueError('The bank does not receive callbacks')
-
-    def on_breach_meta_negotiation(self, contract: Contract, partner: str
-                                   , issues: List[Issue]) -> Optional[NegotiatorProxy]:
-        raise ValueError('The bank does not receive callbacks')
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        return None
 
     def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
         raise ValueError('The bank does not receive callbacks')

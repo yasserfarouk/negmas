@@ -49,10 +49,12 @@ class FactoryManager(SCMLAgent):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 
-    def on_breach_by_self(self, contract: Contract, victims: List[str]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
         return None
 
-    def on_breach_by_another(self, contract: Contract, partner: str) -> Optional[RenegotiationRequest]:
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
 
     def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
@@ -62,10 +64,6 @@ class FactoryManager(SCMLAgent):
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
         breached"""
         return True
-
-    def on_breach_meta_negotiation(self, contract: Contract
-                                   , partner: str, issues: List[Issue]) -> Optional[NegotiatorProxy]:
-        return None
 
     def on_event(self, event: Event, sender: EventSource):
         super().on_event(event=event, sender=sender)

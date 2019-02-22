@@ -221,6 +221,7 @@ class SCMLWorld(World):
 
         self.f2a: Dict[str, SCMLAgent] = {}
         self.a2f: Dict[str, Factory] = {}
+        assert len(self.factories) == len(self.factory_managers), f'{len(self.factories)} factories and {len(self.factory_managers)} managers'
         for factory, agent in zip(self.factories, self.factory_managers):
             self.f2a[factory.id] = agent
             self.a2f[agent.id] = factory
@@ -374,9 +375,9 @@ class SCMLWorld(World):
             products.append(new_product)
 
         assignable_factories = []
-        greedy_factories = []
 
         for level in range(n_intermediate_levels + 1):
+            greedy_factories = []
             for j in range(n_factories_per_level):
                 profiles = []
                 for k in range(n_lines_per_factory):
@@ -393,24 +394,18 @@ class SCMLWorld(World):
                     assignable_factories.append((factory, level))
                 else:
                     greedy_factories.append(factory)
-
             for j, factory in enumerate(greedy_factories):
                 manager_name = snake_case(GreedyFactoryManager.__name__.replace('FactoryManager', ''))
-                manager = GreedyFactoryManager(name=f'{manager_name}_{level + 1}_{j}',
-                                               **manager_kwargs)
-                factory.manager = manager
+                manager = GreedyFactoryManager(name=f'{manager_name}_preassigned_{level + 1}_{j}', **manager_kwargs)
                 managers.append(manager)
-
         if random_factory_manager_assignment:
             shuffle(assignable_factories)
-
         for j, ((factory, level), manager_type) in enumerate(zip(assignable_factories, itertools.cycle(manager_types))):
             manager_name = snake_case(manager_type.__name__.replace('FactoryManager', ''))
             if manager_type == GreedyFactoryManager:
                 manager = manager_type(name=f'{manager_name}_{level + 1}_{j}', **manager_kwargs)
             else:
                 manager = manager_type(name=f'{manager_name}_{level + 1}_{j}')
-            factory.manager = manager
             managers.append(manager)
 
         def create_schedule():
@@ -769,6 +764,7 @@ class SCMLWorld(World):
         if not isinstance(agent, FactoryManager):
             if callback is not None:
                 callback(action, False)
+            self.logerror(f'{str(action)} received from {agent.id} which is {agent.__class__.__name__} not a FactoryManager')
             return False
         line, profile_index = action.params.get('line', None), action.params.get('profile', None)
         t = action.params.get('time', None)
@@ -778,22 +774,27 @@ class SCMLWorld(World):
         if (profile_index is None and line is None) or time is None or time < 0 or time > self.n_steps - 1:
             if callback is not None:
                 callback(action, False)
+            self.logerror(f'{str(action)} from {agent.id}: Neither profile index nor line is given or invalid time')
             return False
         factory = self.a2f[agent.id]
         if factory is None:
             if callback is not None:
                 callback(action, False)
+            self.logerror(
+                f'{str(action)} from {agent.id}: Unknown factory')
             return False
         if profile_index is not None:
             profile = factory.profiles[profile_index]
             if line is not None and profile.line != line:
                 if callback is not None:
                     callback(action, False)
+                self.logerror(f'{str(action)} from {agent.id}: profile\'s line {profile.line} != given line {line}')
                 return False
             line = profile.line
         job = Job(action=action.type, profile=profile_index, line=line, time=t, contract=contract, override=override)
         factory.schedule(job=job, override=override)
         if callback is not None:
+            self.logdebug(f'{str(action)} from {agent.id}: Executed successfully')
             callback(action, True)
         return True
 
@@ -1262,8 +1263,11 @@ class SCMLWorld(World):
 
     def _contract_record(self, contract: Contract) -> Dict[str, Any]:
         c = {
+            'id': contract.id,
             'seller_name': self.agents[contract.annotation['seller']].name,
             'buyer_name': self.agents[contract.annotation['buyer']].name,
+            'seller_type': self.agents[contract.annotation['seller']].__class__.__name__,
+            'buyer_type': self.agents[contract.annotation['buyer']].__class__.__name__,
             'product_name': self.products[contract.annotation['cfp'].product],
             'delivery_time': contract.agreement['time'],
             'quantity': contract.agreement['quantity'],
@@ -1335,19 +1339,19 @@ class SCMLWorld(World):
     def agreement_rate(self) -> float:
         """Fraction of negotiations ending in agreement and leading to signed contracts"""
         n_negs = sum(self.stats["n_negotiations"])
-        n_contracts = len(self.saved_contracts)
+        n_contracts = len(self._saved_contracts)
         return n_contracts / n_negs if n_negs != 0 else np.nan
 
     @property
     def contract_execution_fraction(self) -> float:
         """Fraction of signed contracts successfully executed"""
         n_executed = sum(self.stats['n_contracts_executed'])
-        n_contracts = len(self.saved_contracts)
+        n_contracts = len(self._saved_contracts)
         return n_executed / n_contracts if n_contracts > 0 else np.nan
 
     @property
     def breach_rate(self) -> float:
         """Fraction of signed contracts that led to breaches"""
         n_breaches = sum(self.stats['n_breaches'])
-        n_contracts = len(self.saved_contracts)
+        n_contracts = len(self._saved_contracts)
         return n_breaches / n_contracts if n_contracts else np.nan
