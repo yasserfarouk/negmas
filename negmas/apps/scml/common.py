@@ -241,8 +241,8 @@ class RunningCommandInfo:
         return self.beg >= t
 
     def __str__(self):
-        if self.is_none:
-            return 'No command'
+        # if self.is_none:
+        #     return 'No command'
         return f'{self.action} {self.profile.process.id} [{self.beg}:{self.end - 1}]'
 
     @property
