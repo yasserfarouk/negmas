@@ -23,6 +23,7 @@ SCMLWorld
       ~SCMLWorld.buy_insurance
       ~SCMLWorld.evaluate_insurance
       ~SCMLWorld.execute
+      ~SCMLWorld.get_private_state
       ~SCMLWorld.join
       ~SCMLWorld.on_contract_signed
       ~SCMLWorld.on_event
@@ -31,13 +32,11 @@ SCMLWorld
       ~SCMLWorld.request_negotiation
       ~SCMLWorld.run_negotiation
       ~SCMLWorld.set_consumers
-      ~SCMLWorld.set_factories
       ~SCMLWorld.set_factory_managers
       ~SCMLWorld.set_miners
       ~SCMLWorld.set_processes
       ~SCMLWorld.set_products
       ~SCMLWorld.single_path_world
-      ~SCMLWorld.state
 
    .. rubric:: Attributes Documentation
 
@@ -52,6 +51,7 @@ SCMLWorld
    .. automethod:: buy_insurance
    .. automethod:: evaluate_insurance
    .. automethod:: execute
+   .. automethod:: get_private_state
    .. automethod:: join
    .. automethod:: on_contract_signed
    .. automethod:: on_event
@@ -60,10 +60,8 @@ SCMLWorld
    .. automethod:: request_negotiation
    .. automethod:: run_negotiation
    .. automethod:: set_consumers
-   .. automethod:: set_factories
    .. automethod:: set_factory_managers
    .. automethod:: set_miners
    .. automethod:: set_processes
    .. automethod:: set_products
    .. automethod:: single_path_world
-   .. automethod:: state

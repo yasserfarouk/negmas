@@ -870,8 +870,10 @@ class Proxy:
         return getattr(self._obj, item)
 
 
-def get_class(class_name: str, module_name: str = None, scope: dict = None) -> Type:
+def get_class(class_name: Union[str, Type], module_name: str = None, scope: dict = None) -> Type:
     """Imports and creates a class object for the given class name"""
+    if not isinstance(class_name, str):
+        return class_name
     modules: List[str] = []
     if module_name is not None:
         modules = module_name.split('.')
@@ -886,13 +888,13 @@ def get_class(class_name: str, module_name: str = None, scope: dict = None) -> T
     return getattr(module, class_name)
 
 
-def instantiate(class_name: str, module_name: str = None, scope: dict = None, **kwargs) -> Any:
+def instantiate(class_name: Union[str, Type], module_name: str = None, scope: dict = None, **kwargs) -> Any:
     """Imports and instantiates an object of a class"""
     return get_class(class_name, module_name)(**kwargs)
 
 
 def humanize_time(secs, align=False, always_show_all_units=False):
-    '''
+    """
     Prints time that is given as seconds in human readable form. Useful only for times >=1sec.
 
     :param secs: float: number of seconds
@@ -900,7 +902,7 @@ def humanize_time(secs, align=False, always_show_all_units=False):
     :param always_show_all_units: bool, optional: Whether to always show days, hours, and minutes even when they
                                 are zeros. default False
     :return: str: formated string with the humanized form
-    '''
+    """
     units = [("d", 86400), ("h", 3600), ("m", 60), ("s", 1)]
     parts = []
     for unit, mul in units:

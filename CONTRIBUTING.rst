@@ -88,7 +88,7 @@ Ready to contribute? Here's how to set up `negmas` for local development.
 6. Commit your changes and push your branch to GitHub::
 
     $ git add .
-    $ git commit -m "Your detailed description of your changes."
+    $ git delete_bookmark -m "Your detailed description of your changes."
     $ git push origin name-of-your-bugfix-or-feature
 
 7. Submit a pull request through the GitHub website.

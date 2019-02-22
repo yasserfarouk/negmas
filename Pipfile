@@ -23,6 +23,7 @@ pytest = "*"
 hypothesis = "*"
 dask = "*"
 distributed = "*"
+numba = "*"
 
 [dev-packages]
 "pep8" = "*"

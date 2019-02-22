@@ -10,54 +10,60 @@ Factory
 
    .. autosummary::
 
-      ~Factory.manager
+      ~Factory.balance
+      ~Factory.commands
+      ~Factory.initial_balance
+      ~Factory.initial_wallet
+      ~Factory.line_schedules
+      ~Factory.loans
       ~Factory.max_storage
-      ~Factory.n_processes
-      ~Factory.n_products
-      ~Factory.n_scheduling_steps
-      ~Factory.n_steps
-      ~Factory.predicted_balance
-      ~Factory.predicted_reserved_storage
-      ~Factory.predicted_storage
-      ~Factory.predicted_total_storage
-      ~Factory.schedule
-      ~Factory.state
+      ~Factory.min_balance
+      ~Factory.min_storage
+      ~Factory.n_lines
+      ~Factory.next_step
+      ~Factory.storage
+      ~Factory.total_storage
+      ~Factory.wallet
 
    .. rubric:: Methods Summary
 
    .. autosummary::
 
-      ~Factory.copy
-      ~Factory.find_needs
-      ~Factory.get_line
-      ~Factory.init_schedule
-      ~Factory.init_state
-      ~Factory.schedule_job
+      ~Factory.add_loan
+      ~Factory.buy
+      ~Factory.pay
+      ~Factory.receive
+      ~Factory.schedule
+      ~Factory.sell
       ~Factory.step
-      ~Factory.update_fields
+      ~Factory.transport_from
+      ~Factory.transport_to
 
    .. rubric:: Attributes Documentation
 
-   .. autoattribute:: manager
+   .. autoattribute:: balance
+   .. autoattribute:: commands
+   .. autoattribute:: initial_balance
+   .. autoattribute:: initial_wallet
+   .. autoattribute:: line_schedules
+   .. autoattribute:: loans
    .. autoattribute:: max_storage
-   .. autoattribute:: n_processes
-   .. autoattribute:: n_products
-   .. autoattribute:: n_scheduling_steps
-   .. autoattribute:: n_steps
-   .. autoattribute:: predicted_balance
-   .. autoattribute:: predicted_reserved_storage
-   .. autoattribute:: predicted_storage
-   .. autoattribute:: predicted_total_storage
-   .. autoattribute:: schedule
-   .. autoattribute:: state
+   .. autoattribute:: min_balance
+   .. autoattribute:: min_storage
+   .. autoattribute:: n_lines
+   .. autoattribute:: next_step
+   .. autoattribute:: storage
+   .. autoattribute:: total_storage
+   .. autoattribute:: wallet
 
    .. rubric:: Methods Documentation
 
-   .. automethod:: copy
-   .. automethod:: find_needs
-   .. automethod:: get_line
-   .. automethod:: init_schedule
-   .. automethod:: init_state
-   .. automethod:: schedule_job
+   .. automethod:: add_loan
+   .. automethod:: buy
+   .. automethod:: pay
+   .. automethod:: receive
+   .. automethod:: schedule
+   .. automethod:: sell
    .. automethod:: step
-   .. automethod:: update_fields
+   .. automethod:: transport_from
+   .. automethod:: transport_to

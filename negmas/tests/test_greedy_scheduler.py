@@ -1,4 +1,4 @@
-from negmas.apps.scml import Product, Process, InputOutput, ManufacturingProfile, Line, Factory, GreedyScheduler, Contract, SCMLAgreement, CFP
+from negmas.apps.scml import Product, Process, InputOutput, ManufacturingProfileCompiled, Line, FactorySchedule, GreedyScheduler, Contract, SCMLAgreement, CFP
 
 
 class TestGreedyScheduler:
@@ -21,14 +21,14 @@ class TestGreedyScheduler:
                              historical_cost=1, production_level=1)]
         print(processes)
 
-        manufacturing_profiles = {0: ManufacturingProfile(n_steps=1, cost=1, cancellation_cost=5, initial_pause_cost=0, running_pause_cost=0, resumption_cost=0),
-                                  1: ManufacturingProfile(n_steps=1, cost=1, cancellation_cost=5, initial_pause_cost=0, running_pause_cost=0, resumption_cost=0)}
+        manufacturing_profiles = {0: ManufacturingProfileCompiled(n_steps=1, cost=1, cancellation_cost=5, initial_pause_cost=0, running_pause_cost=0, resumption_cost=0),
+                                  1: ManufacturingProfileCompiled(n_steps=1, cost=1, cancellation_cost=5, initial_pause_cost=0, running_pause_cost=0, resumption_cost=0)}
         print(manufacturing_profiles)
 
         lines = [Line(profiles=manufacturing_profiles, processes=processes) for _ in range(1)]
         print(lines)
 
-        factory = Factory(lines=lines, products=products, processes=processes)
+        factory = FactorySchedule(lines=lines, products=products, processes=processes)
         print("factory = ", factory)
 
         greedy_scheduler = GreedyScheduler(factory=factory, n_steps=99999, products=products, processes=processes, manager_id='test', awi=None, strategy='shortest')
@@ -49,8 +49,5 @@ class TestGreedyScheduler:
         something = greedy_scheduler.schedule([a_contract])
         print("\t ###### ", type(something))
         print(something)
-        print(list(greedy_scheduler.scheduling_factory.lines.values())[0].schedule)
-        print(greedy_scheduler.scheduling_factory.predicted_balance)
-        print(greedy_scheduler.scheduling_factory.predicted_storage)
 
     assert True

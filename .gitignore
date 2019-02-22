@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.*~
+
 # C extensions
 *.so
 tags
@@ -100,7 +100,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-tags
 scripts/figs/
 scripts/figs
 scripts/figs/*
@@ -132,3 +131,12 @@ scripts/logs
 docs/_build
 docs/_build/*
 /.dmypy.json
+*~
+notebooks/tutorials/logs
+notebooks/tutorials/logs/*
+docs/api
+docs/api/*
+
+docs/_static/
+docs/_templates/
+notebooks/tutorials/logs/tournaments/*/

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+import traceback
 from functools import partial
 from pprint import pprint, pformat
 from time import perf_counter
-import progressbar
-import traceback
+
 import click
 import pandas as pd
+import progressbar
 from tabulate import tabulate
 
 from negmas.apps.scml import *
@@ -25,43 +26,44 @@ click.option = partial(click.option, show_default=True)
                                                    'time-step.')
 @click.option('--max-consumption', default=5, help='The maximum number of units consumed by each consumer at every '
                                                    'time-step.')
-@click.option('--agents-per-level', default=5, help='Number of agents (miners/negmas.consumers) per production level')
+@click.option('--agents', default=5, help='Number of agents (miners/negmas.consumers) per production level')
 @click.option('--horizon', default=15, help='Consumption horizon.')
 @click.option('--transport', default=0, help='Transportation Delay.')
-@click.option('--time', default=60*90, help='Total time limit.')
-@click.option('--neg-time', default=60*4, help='Time limit per single negotiation')
+@click.option('--time', default=60 * 90, help='Total time limit.')
+@click.option('--neg-time', default=60 * 4, help='Time limit per single negotiation')
 @click.option('--neg-steps', default=20, help='Number of rounds per single negotiation')
-@click.option('--sign', default=1, help='The default delay between contract conclusion and signing')
-@click.option('--guaranteed', default=False
-              , help='Whether to only sign contracts that are guaranteed not to cause breaches')
-@click.option('--lines', default=5, help='The number of lines per factory')
+@click.option('--sign', default=0, help='The default delay between contract conclusion and signing')
+@click.option('--guaranteed', default=False, help='Whether to only sign contracts that are guaranteed not to cause '
+                                                  'breaches')
+@click.option('--lines', default=10, help='The number of lines per factory')
 @click.option('--retrials', default=5, help='The number of times an agent re-tries on failed negotiations')
 @click.option('--use-consumer', default=True, help='Use internal consumer object in factory managers')
-@click.option('--insurance', default=2.0, help='Use insurance against partner in factory managers')
-@click.option('--riskiness', default=0.0, help='How risky is the default factory manager')
-def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, min_consumption, max_consumption
+@click.option('--max-insurance', default=1000, help='Use insurance against partner in factory managers up to this '
+                                                    'premium')
+@click.option('--riskiness', default=0.6, help='How risky is the default factory manager')
+def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption, max_consumption
         , transport, time, neg_time
-        , neg_steps, sign, guaranteed, lines, retrials, use_consumer, insurance, riskiness):
+        , neg_steps, sign, guaranteed, lines, retrials, use_consumer, max_insurance, riskiness):
     neg_speedup = neg_speedup if neg_speedup is not None and neg_speedup > 0 else None
     if min_consumption == max_consumption:
         consumption = min_consumption
     else:
         consumption = (min_consumption, max_consumption)
+    customer_kwargs = {'negotiator_type': negotiator, 'consumption_horizon': horizon}
+    miner_kwargs = {'negotiator_type': negotiator, 'n_retrials': retrials}
+    factory_kwargs = {'negotiator_type': negotiator, 'n_retrials': retrials
+        , 'sign_only_guaranteed_contracts': guaranteed, 'use_consumer': use_consumer
+        , 'riskiness': riskiness, 'max_insurance_premium': max_insurance}
     world = SCMLWorld.single_path_world(log_file_name='', n_steps=steps
                                         , negotiation_speed=neg_speedup
                                         , n_intermediate_levels=levels
-                                        , n_miners=agents_per_level
-                                        , n_consumers=agents_per_level
-                                        , n_factories_per_level=agents_per_level
+                                        , n_miners=agents
+                                        , n_consumers=agents
+                                        , n_factories_per_level=agents
                                         , consumption=consumption
-                                        , consumer_kwargs={'negotiator_type': negotiator
-                                                           , 'consumption_horizon': horizon}
-                                        , miner_kwargs={'negotiator_type': negotiator, 'n_retrials': retrials}
-                                        , factory_kwargs={'negotiator_type': negotiator, 'n_retrials': retrials
-                                                          , 'sign_only_guaranteed_contracts': guaranteed
-                                                          , 'use_consumer': use_consumer
-                                                          , 'riskiness': riskiness
-                                                          , 'max_insurance_premium': None if insurance < 0 else insurance}
+                                        , consumer_kwargs=customer_kwargs
+                                        , miner_kwargs=miner_kwargs
+                                        , manager_kwargs=factory_kwargs
                                         , transportation_delay=transport, time_limit=time, neg_time_limit=neg_time
                                         , neg_n_steps=neg_steps, default_signing_delay=sign
                                         , n_lines_per_factory=lines)
@@ -87,30 +89,31 @@ def cli(steps, levels, neg_speedup, negotiator, agents_per_level, horizon, min_c
     world.logdebug(f'{pformat(world.stats, compact=True)}')
     world.logdebug(f'=================================================\n'
                    f'steps: {steps}, horizon: {horizon}, time: {time}, levels: {levels}, agents_per_level: '
-                   f'{agents_per_level}, lines: {lines}, guaranteed: {guaranteed}, negotiator: {negotiator}\n'
+                   f'{agents}, lines: {lines}, guaranteed: {guaranteed}, negotiator: {negotiator}\n'
                    f'consumption: {consumption}'
-                   f', transport: {transport}, sign: {sign}, speedup: {neg_speedup}, neg_steps: {neg_steps}'
+                   f', transport_to: {transport}, sign: {sign}, speedup: {neg_speedup}, neg_steps: {neg_steps}'
                    f', retrials: {retrials}'
                    f', neg_time: {neg_time}\n'
                    f'==================================================')
 
-
     if len(world.saved_contracts) > 0:
         data = pd.DataFrame(world.saved_contracts)
         data = data.loc[:, ['seller_name', 'buyer_name', 'delivery_time', 'unit_price', 'quantity', 'product_name'
-                             , 'n_neg_steps', 'concluded_at', 'cfp']]
+                               , 'n_neg_steps', 'concluded_at', 'cfp']]
         data = data.sort_values(['delivery_time'])
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
         n_contracts = len(world.saved_contracts)
+        winners = [f'{_.name} gaining {world.a2f[_.id].balance / world.a2f[_.id].initial_balance - 1.0:0.0%}'
+                   for _ in world.winners]
         print_and_log(f'{n_contracts} contracts :-) [N. Negotiations: {n_negs}'
                       f', Agreement Rate: {world.agreement_rate:0.0%}]')
         print_and_log(f'Executed: {world.contract_execution_fraction:0.0%}'
                       f', Breached: {world.breach_rate:0.0%}'
                       f', N. Executed: {n_executed}'
                       f', Business size: {world.business_size}\n'
-                      f'Winners: {[(_.name, _.factory.state.balance) for _ in world.winners]}'
+                      f'Winners: {winners}\n'
                       f'Running Time {humanize_time(elapsed)}')
     else:
         print_and_log('No contracts! :-(')

@@ -49,6 +49,7 @@ from negmas.common import MechanismInfo, MechanismState
 from negmas.events import Event, EventSource, EventSink, Notifier
 from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class
 from negmas.sao import SAOMechanism
+import numpy as np
 if TYPE_CHECKING:
     pass
 
@@ -481,9 +482,9 @@ class AgentWorldInterface:
         return self._world.execute(action=action, agent=self.agent, callback=callback)
 
     @property
-    def state(self) -> dict:
+    def state(self) -> Any:
         """Returns the private state of the agent in that world"""
-        return self._world.state(self.agent)
+        return self._world.get_private_state(self.agent)
 
     @property
     def relative_time(self) -> float:
@@ -734,8 +735,8 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
         relative_step = (
                             self.current_step + 1
-                        ) / self.n_steps if self.n_steps is not None else -1.0
-        relative_time = self.time / self.time_limit if self.time_limit is not None else -1.0
+                        ) / self.n_steps if self.n_steps is not None else np.nan
+        relative_time = self.time / self.time_limit if self.time_limit is not None else np.nan
         return max([relative_step, relative_time])
 
     @property
@@ -875,7 +876,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self._stats['n_contracts_cancelled'].append(n_cancelled)
         self._stats['n_breaches'].append(n_new_breaches)
         self._stats['breach_level'].append(n_new_breaches / n_total_contracts
-                                           if n_total_contracts > 0 else -1)
+                                           if n_total_contracts > 0 else np.nan)
         self._stats['n_contracts_signed'].append(self.__n_contracts_signed)
         self._stats['n_contracts_concluded'].append(self.__n_contracts_concluded)
         self._stats['n_negotiations'].append(self.__n_negotiations)
@@ -1052,7 +1053,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
     def _log_header(self):
         if self.time is None:
             return f'{self.name} (not started)'
-        return f'{self.current_step}/{self.n_steps} [{self.relative_time:0.00}]'
+        return f'{self.current_step}/{self.n_steps} [{self.relative_time:0.1f}]'
 
     def _register_contract(self, mechanism, negotiation, force_signature_now=False) -> Optional[Contract]:
         if mechanism.agreement is None or negotiation is None:
@@ -1106,7 +1107,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
     def _sign_contract(self, contract: Contract) -> bool:
         """Called to sign a contract and returns whether or not it was signed"""
         if self._contract_finalization_time(contract) >= self.n_steps or \
-            self._contract_executation_time(contract) < self.current_step:
+            self._contract_execution_time(contract) < self.current_step:
             return False
         partners = [self.agents[_] for _ in contract.partners]
         signatures = list(zip(partners, (partner.sign_contract(contract=contract) for partner in partners)))
@@ -1264,7 +1265,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         """Executes the given action by the given agent"""
 
     @abstractmethod
-    def state(self, agent: 'Agent') -> dict:
+    def get_private_state(self, agent: 'Agent') -> dict:
         """Reads the private state of the given agent"""
 
     @abstractmethod
@@ -1283,7 +1284,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         """
 
     @abstractmethod
-    def _contract_executation_time(self, contract: Contract) -> int:
+    def _contract_execution_time(self, contract: Contract) -> int:
         """
         Returns the time at which the given contract will start execution
         Args:
@@ -1381,6 +1382,23 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
         pass
 
+    def on_event(self, event: Event, sender: EventSource):
+        if not isinstance(sender, MechanismProxy) and not isinstance(sender, Mechanism):
+            raise ValueError(f'Sender of the negotiation end event is of type {sender.__class__.__name__} '
+                             f'not MechanismProxy!!')
+        if event.type == 'negotiation_end':
+            # will be sent by the World once a negotiation in which this agent is involved is completed            l
+            mechanism_id = sender.id
+            negotiation = self.running_negotiations.get(mechanism_id, None)
+            # if negotiation is None:
+            #    print('Cannot find the negotiation')
+            if negotiation:
+                del self.running_negotiations[mechanism_id]
+
+    # ------------------------------------------------------------------
+    # EVENT CALLBACKS (Called by the `World` when certain events happen)
+    # ------------------------------------------------------------------
+
     def before_joining_negotiation(self, initiator: str, partners: List[str], issues: List[Issue]
                                    , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
                                    , req_id: str) -> Optional[NegotiatorProxy]:
@@ -1432,19 +1450,6 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
                                                                            , negotiator=neg, annotation=annotation
                                                                            , uuid=req_id)
         del self._neg_requests[req_id]
-
-    def on_event(self, event: Event, sender: EventSource):
-        if not isinstance(sender, MechanismProxy) and not isinstance(sender, Mechanism):
-            raise ValueError(f'Sender of the negotiation end event is of type {sender.__class__.__name__} '
-                             f'not MechanismProxy!!')
-        if event.type == 'negotiation_end':
-            # will be sent by the World once a negotiation in which this agent is involved is completed            l
-            mechanism_id = sender.id
-            negotiation = self.running_negotiations.get(mechanism_id, None)
-            # if negotiation is None:
-            #    print('Cannot find the negotiation')
-            if negotiation:
-                del self.running_negotiations[mechanism_id]
 
     def __str__(self):
         return f'{self.name}'

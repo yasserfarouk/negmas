@@ -14,8 +14,8 @@ from typing import Tuple, List, Optional, Any, Iterable, Union, Dict, Set, Type
 import pandas as pd
 from dataclasses import dataclass
 
-from negmas import UtilityFunction, MappingUtilityFunction
-from negmas import outcome_is_valid, Issue, Outcome, NamedObject, pareto_frontier, enumerate_outcomes
+from negmas.utilities import UtilityFunction, MappingUtilityFunction, pareto_frontier
+from negmas.outcomes import outcome_is_valid, Issue, Outcome, enumerate_outcomes
 from negmas.common import *
 from negmas.common import NegotiatorInfo
 from negmas.events import *

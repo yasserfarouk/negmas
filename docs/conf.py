@@ -20,7 +20,6 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..')) # only import from installed version using pip install -e
 
 import negmas
 from negmas import *
@@ -135,7 +134,7 @@ html_theme_options = {
     #'logo_only':
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
-    # 'titles_only': False
+    #'titles_only': True
 }
 
 # theme options for alabaster
@@ -180,6 +179,11 @@ latex_documents = [
      u'Yasser Mohammad', 'manual'),
 ]
 
+# -- Options for graphviz used in inheritence diagrams -----------------
+
+graphviz_output_format = 'png'
+inheritance_node_attrs = dict(shape='rectangle', fontsize=16, height=0.75,
+                              color='white') # , style='filled') # dodgerblue1
 
 # -- Options for manual page output ------------------------------------
 
@@ -201,7 +205,7 @@ texinfo_documents = [
     (master_doc, 'negmas',
      u'NegMAS Documentation',
      author,
-     'negmas',
+     'NegMAS',
      'Situated Simultaneous Negotiations Library.',
      'Miscellaneous'),
 ]
