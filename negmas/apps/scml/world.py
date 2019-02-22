@@ -1017,7 +1017,7 @@ class SCMLWorld(World):
 
         if product_breach is not None:
             # apply insurances if they exist
-            insured_quantity, ins = 0
+            insured_quantity, insurance_money = 0, 0.0
             # register the breach independent of insurance
             breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
                                 , level=product_breach, type='product', step=self.current_step))
@@ -1037,10 +1037,11 @@ class SCMLWorld(World):
                     insured_quantity = missing_quantity
                 self.logdebug(f'Insurance: {buyer.name} got {insured_quantity} of {self.products[pind].name} '
                               f'from insurance ({missing_quantity} was missing')
+                insurance_money = insured_quantity * unit_price
                 buyer_factory.transport_to(product=pind, quantity=insured_quantity)
-                buyer_factory.pay(insured_quantity * unit_price)
+                buyer_factory.pay(insurance_money)
                 self.insurance_company.storage[pind] -= insured_quantity
-                self.insurance_company.wallet += insured_quantity * unit_price
+                self.insurance_company.wallet += insurance_money
 
             # we will only transfer the remaining quantity.
             missing_quantity -= insured_quantity
@@ -1091,6 +1092,25 @@ class SCMLWorld(World):
         return breaches
 
     def _move_product(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
+        """Moves as much product and money between the buyer and seller"""
+        seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
+        if quantity > 0:
+            seller_factory.transport_from(product_id, quantity)
+            if self.transportation_delay < 1:
+                buyer_factory.transport_to(product_id, quantity)
+            else:
+                self._transport[self.current_step + self.transportation_delay].append(
+                    (buyer, product_id, quantity))
+        if money > 0:
+            buyer_factory.pay(money)
+            if self.transfer_delay < 1:
+                seller_factory.receive(money)
+            else:
+                self._transfer[self.current_step + self.transfer_delay].append((seller, money))
+        self.logdebug(f'Moved {quantity} units of {self.products[product_id].name} from {seller.name} to {buyer.name} '
+                      f'for {money} dollars')
+
+    def _move_product_force(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
         """Moves as much product and money between the buyer and seller"""
         seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
         if isinstance(seller, Miner):
