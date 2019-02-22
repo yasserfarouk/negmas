@@ -938,8 +938,10 @@ class SCMLWorld(World):
         missing_quantity = max(0, quantity - available_quantity)
         if missing_quantity > 0:
             product_breach = missing_quantity / quantity
+            penalty_values = []
             for penalty, is_victim in ((penalty_victim, True), (penalty_society, False)):
                 if penalty is None:
+                    penalty_values.append(0.0)
                     continue
                 # find out how much need to be paid for this penalty
                 penalty_value = penalty * product_breach
@@ -947,31 +949,35 @@ class SCMLWorld(World):
                 # society penalty may have a minimum. If so, make sure the penalty value is at least as large as that
                 if not is_victim and self.breach_penalty_society_min is not None:
                     penalty_value = max(penalty_value, self.breach_penalty_society_min)
+                penalty_values.append(penalty_value)
 
-                # that is how much money is available in the wallet right now. Notice that loans do not count
-                seller_balance = seller_factory.wallet
+            # that is how much money is available in the wallet right now. Notice that loans do not count
+            seller_balance = seller_factory.wallet
 
-                # if the seller needs more than what she has in her wallet to pay the penalty, try a loan
-                # Loans are mandatory for society penalty but the agent can refuse to pay a victim penalty
-                if seller_balance < penalty_value:
-                    self.bank.buy_loan(agent=seller, amount=penalty_value - seller_balance
-                                       , n_installments=self.loan_installments, force=not is_victim)
+            # if the seller needs more than what she has in her wallet to pay the penalty, try a loan
+            # Loans are mandatory for society penalty but the agent can refuse to pay a victim penalty
+            if seller_balance < penalty_value:
+                self.bank.buy_loan(agent=seller, amount=penalty_value - seller_balance
+                                   , n_installments=self.loan_installments, force=not is_victim)
 
+            for penalty, is_victim, penalty_value in ((penalty_victim, True, penalty_values[0])
+                                                      , (penalty_society, False, penalty_values[1])):
+                if penalty is None:
+                    continue
                 # if the seller can pay the penalty then pay it and now there is no breach, otherwise pay as much as
                 # possible. Notice that for society penalties, it should always be the case that the whole penalty
                 # value is available in the wallet by now as loans are forced.
-
+                paid_for_quantity, paid_penalties = 0, 0.0
                 if seller_factory.wallet >= penalty_value:
                     # if there is enough money then pay the whole penalty
-                    payable = penalty_value
-                    missing_quantity_unpaid_for = 0
+                    paid_penalties = penalty_value
                 else:
                     # if there is not enough money then pay enough for the maximum number of items that can be paid
                     if unit_price == 0:
                         paid_for_quantity = missing_quantity
                     else:
                         paid_for_quantity = int(math.floor(seller_factory.wallet / unit_price))
-                    payable = unit_price * paid_for_quantity
+                    paid_penalties = unit_price * paid_for_quantity
                     missing_quantity_unpaid_for = missing_quantity - paid_for_quantity
                     if is_victim:
                         penalty_breach_victim = missing_quantity_unpaid_for / quantity
@@ -979,19 +985,21 @@ class SCMLWorld(World):
                         penalty_breach_society = missing_quantity_unpaid_for / quantity
 
                 # actually pay the payable amount
-                self.logdebug(f'Penalty: {seller.name} paid {payable} to {buyer.name if is_victim else "society"}')
-                seller_factory.pay(payable)
+                self.logdebug(f'Penalty: {seller.name} paid {paid_penalties} to {buyer.name if is_victim else "society"}')
+                seller_factory.pay(paid_penalties)
                 if is_victim:
-                    buyer_factory.receive(payable)
+                    buyer_factory.receive(paid_penalties)
                     # if we agreed on a penalty and the buyer paid it, then clear the product breach
-                    if missing_quantity_unpaid_for <= 0:
+                    quantity -= paid_for_quantity
+                    money -= paid_for_quantity * unit_price
+                    missing_quantity -= paid_for_quantity
+                    if missing_quantity <= 0:
                         product_breach = None
                     else:
-                        missing_quantity = missing_quantity_unpaid_for
                         product_breach = missing_quantity / quantity
                 else:
                     # if this is the society penalty, it does not affect the product_breach
-                    self.penalties += payable
+                    self.penalties += paid_penalties
 
         # pay penalties if there are any. Notice that penalties apply only to to seller. It makes no sense to have a
         # penalty on the buyer who already have no money to pay the contract value anyway.
@@ -1015,9 +1023,11 @@ class SCMLWorld(World):
         if missing_money > 0.0:
             money_breach = missing_money / money
 
+        insured_quantity, insured_quantity_cost = 0, 0.0
+        insured_money, insured_money_quantity = 0.0, 0
+
         if product_breach is not None:
             # apply insurances if they exist
-            insured_quantity, insurance_money = 0, 0.0
             # register the breach independent of insurance
             breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
                                 , level=product_breach, type='product', step=self.current_step))
@@ -1037,11 +1047,11 @@ class SCMLWorld(World):
                     insured_quantity = missing_quantity
                 self.logdebug(f'Insurance: {buyer.name} got {insured_quantity} of {self.products[pind].name} '
                               f'from insurance ({missing_quantity} was missing')
-                insurance_money = insured_quantity * unit_price
+                insured_quantity_cost = insured_quantity * unit_price
                 buyer_factory.transport_to(product=pind, quantity=insured_quantity)
-                buyer_factory.pay(insurance_money)
+                buyer_factory.pay(insured_quantity_cost)
                 self.insurance_company.storage[pind] -= insured_quantity
-                self.insurance_company.wallet += insurance_money
+                self.insurance_company.wallet += insured_quantity_cost
 
             # we will only transfer the remaining quantity.
             missing_quantity -= insured_quantity
@@ -1050,7 +1060,6 @@ class SCMLWorld(World):
 
         if money_breach is not None:
             # apply insurances if they exist.
-            insured_money, bought_quantity = 0.0, 0
             breaches.add(Breach(contract=contract, perpetrator=buyer, victims=[seller]
                                 , level=money_breach, type='money', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=buyer):
@@ -1061,29 +1070,38 @@ class SCMLWorld(World):
                 # the insurance company will provide enough money to buy whatever actually exist of the contract in the
                 # seller's storage
                 insured_money = min(missing_money, seller_factory.storage.get(pind, 0) * unit_price)
-                bought_quantity = int(insured_money // unit_price)  # I never come here if unit_price is zero.
+                insured_money_quantity = int(insured_money // unit_price)  # I never come here if unit_price is zero.
                 self.logdebug(f'Insurance: {seller.name} got {insured_money} dollars from insurance')
                 seller_factory.receive(insured_money)
-                seller_factory.transport_from(product=pind, quantity=bought_quantity)
+                seller_factory.transport_from(product=pind, quantity=insured_money_quantity)
                 self.insurance_company.wallet -= insured_money
-                self.insurance_company.storage[pind] += bought_quantity
+                self.insurance_company.storage[pind] += insured_money_quantity
 
             # we will only transfer the remaining money.
             money -= insured_money
             missing_money -= insured_money
-            quantity -= bought_quantity
+            quantity -= insured_money_quantity
 
         if len(breaches) > 0:
             self.logdebug(f'Contract {contract.id} has {len(breaches)} breaches:')
             for breach in breaches:
                 self.logdebug(f'{str(breach)}')
 
+        # missing quantity/money is now fully handled. Just remove them from the contract and execute the rest
+        quantity -= missing_quantity + (int(missing_money / unit_price) if unit_price != 0.0 else 0.0)
+        money -= missing_money + missing_quantity * unit_price
+
         # confirm that the money and quantity match given the unit price.
-        assert money == unit_price * quantity, f'invalid contract!! money {money}, quantity {quantity}, unit price {unit_price}'
-        if money > unit_price * quantity:
-            money = unit_price * quantity
-        if unit_price != 0.0 and quantity > math.floor(money / unit_price):
-            quantity = int(math.floor(money / unit_price))
+        assert money == unit_price * quantity, f'invalid contract!! money {money}, quantity {quantity}' \
+            f', unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}' \
+            f', breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}' \
+            f', insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}' \
+            f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}' \
+            f', original money {agreement["unit_price"] * agreement["quantity"]}'
+        # if money > unit_price * quantity:
+        #     money = unit_price * quantity
+        # if unit_price != 0.0 and quantity > math.floor(money / unit_price):
+        #     quantity = int(math.floor(money / unit_price))
 
         if money > 0 or quantity > 0:
             self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
