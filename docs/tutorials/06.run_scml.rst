@@ -37,6 +37,8 @@ conducted over time
 
 
 
+.. image:: 06.run_scml_files/06.run_scml_7_0.png
+
 
 It is clear that many negotiations happened at the beginning of the
 simulation with smaller number later. That is expected as the consumers
@@ -51,7 +53,7 @@ Several other statistics are available:
 
 .. parsed-literal::
 
-    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy_1_0', 'storage_greedy_1_0', 'balance_greedy_2_1', 'storage_greedy_2_1', 'balance_greedy_2_2', 'storage_greedy_2_2', 'balance_greedy_1_3', 'storage_greedy_1_3', 'balance_greedy_1_4', 'storage_greedy_1_4', 'balance_greedy_1_5', 'storage_greedy_1_5', 'balance_greedy_2_6', 'storage_greedy_2_6', 'balance_greedy_1_7', 'storage_greedy_1_7', 'balance_greedy_2_8', 'storage_greedy_2_8', 'balance_greedy_2_9', 'storage_greedy_2_9', 'market_size', 'production_failures', '_market_size_total']
+    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_fKMaPB3uSBRx', 'storage_fKMaPB3uSBRx', 'balance_uTD4AiQO7tzR', 'storage_uTD4AiQO7tzR', 'balance_UYSQviAykFGA', 'storage_UYSQviAykFGA', 'balance_BYNWLotYUAVR', 'storage_BYNWLotYUAVR', 'balance_Aj1EYfzMy6Rr', 'storage_Aj1EYfzMy6Rr', 'balance_v8seK0ld7gW1', 'storage_v8seK0ld7gW1', 'balance_evwmtfMYvgW9', 'storage_evwmtfMYvgW9', 'balance_C45L9sPKW94b', 'storage_C45L9sPKW94b', 'balance_nddUqFHO5sq2', 'storage_nddUqFHO5sq2', 'balance_dajIUQ7Lxgat', 'storage_dajIUQ7Lxgat', 'market_size', 'production_failures', '_market_size_total']
 
 
 We can for example check the activity level of this world (defined as
@@ -63,6 +65,8 @@ the total amount of money transferred due to trade)
     None
 
 
+
+.. image:: 06.run_scml_files/06.run_scml_11_0.png
 
 
 We can see a picture of contracting in this world as follows:
@@ -78,6 +82,8 @@ We can see a picture of contracting in this world as follows:
 
 
 
+.. image:: 06.run_scml_files/06.run_scml_13_0.png
+
 
 We can also check the breaches that happened
 
@@ -87,6 +93,8 @@ We can also check the breaches that happened
     None
 
 
+
+.. image:: 06.run_scml_files/06.run_scml_15_0.png
 
 
 That was a good run. No breaches were committed :-)
@@ -104,7 +112,7 @@ maximum wealth). Notice that there can be multiple winners
 
 .. parsed-literal::
 
-    [greedy_1_5]
+    [v8seK0ld7gW1]
 
 
 
@@ -113,11 +121,13 @@ What was the balance of this winner over time:
 .. code:: ipython3
 
     for winner in world.winners:
-        plt.plot(world.stats[f'balance_{winner}'], label=winner)
+        plt.plot(world.stats[f'balance_{winner}'], label=f'{winner}\n({winner.__class__.__name__})')
     plt.legend()
     None
 
 
+
+.. image:: 06.run_scml_files/06.run_scml_19_0.png
 
 
 Let's check how did its total storage change over time:
@@ -131,6 +141,8 @@ Let's check how did its total storage change over time:
 
 
 
+.. image:: 06.run_scml_files/06.run_scml_21_0.png
+
 
 We can actually check what happens to ALL competitors:
 
@@ -140,6 +152,10 @@ We can actually check what happens to ALL competitors:
         plt.plot(world.stats[f'balance_{name}'], label=name)
     plt.legend()
     None
+
+
+
+.. image:: 06.run_scml_files/06.run_scml_23_0.png
 
 
 
