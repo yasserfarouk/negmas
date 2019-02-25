@@ -117,3 +117,4 @@ widgetsnbextension
 yapf
 yappi
 yarg
+jupyter_contrib_nbextensions

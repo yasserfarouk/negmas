@@ -144,3 +144,7 @@ venv/*
 venv
 .venv
 .venv/*
+dask-worker-space/*
+dask-worker-space/
+
+/dask-worker-space

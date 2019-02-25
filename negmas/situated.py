@@ -1694,7 +1694,6 @@ def _run_world(world_info: dict, world_generator: WorldGenerator, score_calculat
         world.run()
     else:
         _start_time = time.monotonic()
-        world_progress_callback(world)
         for _ in range(world.n_steps):
             if world.time_limit is not None and (time.monotonic() - _start_time) >= world.time_limit:
                 break
@@ -1821,7 +1820,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     }
     params.update(kwargs)
     competitors = list(competitors)
-    tournament_path = pathlib.Path(tournament_path) / name
+    tournament_path = (pathlib.Path(tournament_path) / name).absolute()
     os.makedirs(str(tournament_path), exist_ok=True)
     with (tournament_path / 'params.json').open('w') as f:
         json.dump(params, f, sort_keys=True, indent=4)

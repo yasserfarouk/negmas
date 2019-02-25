@@ -1,4 +1,5 @@
 import math
+import sys
 from random import randint
 
 from negmas.situated import WorldRunResults, TournamentResults, tournament, WorldGenerator
@@ -24,16 +25,25 @@ def anac2019_world(
     , name: str = None
     , agent_names_reveal_type: bool = False
     , n_intermediate: Tuple[int, int] = (1, 4)
-    , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
-    , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=100, n_retrials=4
+    , n_miners=5
+    , n_factories_per_level=11
+    , n_consumers=5
+    , n_lines_per_factory=10
+    , guaranteed_contracts=False
+    , use_consumer=True
+    , max_insurance_premium=100, n_retrials=5
     , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-    , transportation_delay=0, default_signing_delay=0
-    , max_storage=None
+    , transportation_delay=0
+    , default_signing_delay=0
+    , max_storage=sys.maxsize
     , consumption_horizon=15
     , consumption=(3, 5)
-    , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
-    , n_steps=60, time_limit=60 * 90
-    , n_default_per_level: int = 2
+    , negotiation_speed=21
+    , neg_time_limit=60 * 4
+    , neg_n_steps=20
+    , n_steps=60
+    , time_limit=60 * 90
+    , n_default_per_level: int = 5
 
 ) -> SCMLWorld:
     """

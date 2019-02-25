@@ -36,7 +36,7 @@ setup(
     #        'scml=scripts.scml.cli',
     #    ],
     #},
-    scripts=['scripts/rungenius', 'scripts/scml'],
+    scripts=['scripts/rungenius', 'scripts/scml', 'scripts/tournament'],
     install_requires=requirements,
     python_requires='>=3.6',
     license="GNU General Public License v2 (GPLv2)",

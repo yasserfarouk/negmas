@@ -149,3 +149,4 @@ yarg
 typing_extensions
 numba
 jupyter
+jupyter_contrib_nbextensions
