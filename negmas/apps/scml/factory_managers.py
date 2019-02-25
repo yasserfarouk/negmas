@@ -46,6 +46,9 @@ class FactoryManager(SCMLAgent):
         self.interesting_products = list(self.producing.keys())
         self.interesting_products += list(self.consuming.keys())
 
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+        pass
+
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 

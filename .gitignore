@@ -140,3 +140,7 @@ docs/api/*
 docs/_static/
 docs/_templates/
 notebooks/tutorials/logs/tournaments/*/
+venv/*
+venv
+.venv
+.venv/*

@@ -11,7 +11,7 @@ import progressbar
 from tabulate import tabulate
 import json
 
-from negmas import save_logs
+from negmas import save_stats
 from negmas.apps.scml import *
 from negmas.helpers import humanize_time, unique_name
 
@@ -130,7 +130,7 @@ def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption
                    f', neg_time: {neg_time}\n'
                    f'==================================================')
 
-    save_logs(world=world, log_dir=log_dir, params=params)
+    save_stats(world=world, log_dir=log_dir, params=params)
 
     if len(world.saved_contracts) > 0:
         data = pd.DataFrame(world.saved_contracts)

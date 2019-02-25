@@ -60,9 +60,13 @@ Your do-nothing agent is almost ready. Let's try it:
 
 .. code:: ipython3
 
-    from negmas.apps.scml import anac2019_world
+    from negmas.apps.scml.utils import anac2019_world
+    from negmas.apps.scml import GreedyFactoryManager
     
-    world = anac2019_world(competitors=(MyFactoryManager,), n_steps=5)
+    world = anac2019_world(competitors=(MyFactoryManager, GreedyFactoryManager), n_steps=10, n_greedy_per_level=5
+                          , n_factories_per_level=11, n_intermediate=3
+                          , default_signing_delay=0, max_storage=1000000
+                          , max_insurance_premium=100, n_retrials=5)
 
 You have now a world with the settings for ANAC 2019 competition. Let's
 run it
@@ -75,122 +79,14 @@ What just happened?
 
 .. code:: ipython3
 
-    world.stats
+    world.winners
 
 
 
 
 .. parsed-literal::
 
-    defaultdict(list,
-                {'n_cfps_on_board_before': [0, 20, 13, 3, 0],
-                 'n_registered_negotiations_before': [0, 0, 0, 0, 0],
-                 'n_contracts_executed': [0, 0, 0, 0, 0],
-                 'n_contracts_cancelled': [0, 40, 0, 0, 0],
-                 'n_breaches': [0, 0, 0, 5, 5],
-                 'breach_level': [-1, -1, -1, 1.0, 1.0],
-                 'n_contracts_signed': [0, 10, 0, 0, 0],
-                 'n_contracts_concluded': [50, 0, 0, 0, 0],
-                 'n_negotiations': [50, 0, 0, 0, 0],
-                 'n_registered_negotiations_after': [0, 0, 0, 0, 0],
-                 'activity_level': [0, 0, 0, 0, 0],
-                 'n_cfps': [25, 21, 0, 0, 0],
-                 'n_cfps_on_board_after': [20, 13, 3, 0, 0],
-                 '_balance_bank': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 '_balance_society': [0.0, 0.0, 0.0, 5.0, 10.0],
-                 '_balance_insurance': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 '_storage_insurance': [0, 0, 0, 0, 0],
-                 'balance_m_0': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 'storage_m_0': [0, 0, 0, 0, 0],
-                 'balance_m_1': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 'storage_m_1': [0, 0, 0, 0, 0],
-                 'balance_m_2': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 'storage_m_2': [0, 0, 0, 0, 0],
-                 'balance_m_3': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 'storage_m_3': [0, 0, 0, 0, 0],
-                 'balance_m_4': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 'storage_m_4': [0, 0, 0, 0, 0],
-                 'balance_c_0': [0.0, 0.0, 0.0, -88.0, -176.0],
-                 'storage_c_0': [0, 0, 0, 0, 0],
-                 'balance_c_1': [0.0, 0.0, 0.0, -55.5, -129.5],
-                 'storage_c_1': [0, 0, 0, 0, 0],
-                 'balance_c_2': [0.0, 0.0, 0.0, -88.0, -154.0],
-                 'storage_c_2': [0, 0, 0, 0, 0],
-                 'balance_c_3': [0.0, 0.0, 0.0, -66.0, -121.5],
-                 'storage_c_3': [0, 0, 0, 0, 0],
-                 'balance_c_4': [0.0, 0.0, 0.0, -66.0, -140.0],
-                 'storage_c_4': [0, 0, 0, 0, 0],
-                 'balance_greedy_1_0': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_1_0': [0, 0, 0, 0, 0],
-                 'balance_greedy_1_1': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_1_1': [0, 0, 0, 0, 0],
-                 'balance_greedy_2_0': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_2_0': [0, 0, 0, 0, 0],
-                 'balance_greedy_2_1': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_2_1': [0, 0, 0, 0, 0],
-                 'balance_greedy_2_2': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_2_2': [0, 0, 0, 0, 0],
-                 'balance_greedy_2_3': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_2_3': [0, 0, 0, 0, 0],
-                 'balance_greedy_3_0': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_3_0': [0, 0, 0, 0, 0],
-                 'balance_greedy_3_1': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_3_1': [0, 0, 0, 0, 0],
-                 'balance_greedy_3_2': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_3_2': [0, 0, 0, 0, 0],
-                 'balance_greedy_3_3': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_3_3': [0, 0, 0, 0, 0],
-                 'balance_greedy_3_4': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_3_4': [0, 0, 0, 0, 0],
-                 'balance_greedy_3_5': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_3_5': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_0': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_4_0': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_1': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_4_1': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_2': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_greedy_4_2': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_3': [1000.0, 1000.0, 1000.0, 1000.0, 1127.5],
-                 'storage_greedy_4_3': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_4': [1000.0, 1000.0, 1000.0, 1087.0, 1174.0],
-                 'storage_greedy_4_4': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_5': [1000.0, 1000.0, 1000.0, 1054.5, 1054.5],
-                 'storage_greedy_4_5': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_6': [1000.0, 1000.0, 1000.0, 1065.0, 1203.0],
-                 'storage_greedy_4_6': [0, 0, 0, 0, 0],
-                 'balance_greedy_4_7': [1000.0, 1000.0, 1000.0, 1152.0, 1152.0],
-                 'storage_greedy_4_7': [0, 0, 0, 0, 0],
-                 'balance_my_1_0': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_1_0': [0, 0, 0, 0, 0],
-                 'balance_my_4_1': [1000.0, 1000.0, 1000.0, 1054.5, 1054.5],
-                 'storage_my_4_1': [0, 0, 0, 0, 0],
-                 'balance_my_1_2': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_1_2': [0, 0, 0, 0, 0],
-                 'balance_my_2_3': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_2_3': [0, 0, 0, 0, 0],
-                 'balance_my_4_4': [1000.0, 1000.0, 1000.0, 1065.0, 1203.0],
-                 'storage_my_4_4': [0, 0, 0, 0, 0],
-                 'balance_my_3_5': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_3_5': [0, 0, 0, 0, 0],
-                 'balance_my_2_6': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_2_6': [0, 0, 0, 0, 0],
-                 'balance_my_3_7': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_3_7': [0, 0, 0, 0, 0],
-                 'balance_my_4_8': [1000.0, 1000.0, 1000.0, 1152.0, 1152.0],
-                 'storage_my_4_8': [0, 0, 0, 0, 0],
-                 'balance_my_1_9': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_1_9': [0, 0, 0, 0, 0],
-                 'balance_my_3_10': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_3_10': [0, 0, 0, 0, 0],
-                 'balance_my_2_11': [1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
-                 'storage_my_2_11': [0, 0, 0, 0, 0],
-                 'market_size': [32000.0, 32000.0, 32000.0, 32266.5, 32399.5],
-                 'production_failures': [0.0, 0.0, 0.0, 0.0, 0.0],
-                 '_market_size_total': [32000.0,
-                  32000.0,
-                  32000.0,
-                  32271.5,
-                  32409.5]})
+    [greedy_4_19]
 
 
 
@@ -202,10 +98,43 @@ built-in greedy agent:
 
 .. code:: ipython3
 
-    from negmas.apps.scml import anac2019_tournament
+    from negmas.apps.scml.utils import anac2019_tournament
     
-    results = anac2019_tournament(competitors=(MyFactoryManager,)
-                                  , n_runs=4, n_steps=5, parallelism='serial')
+    results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
+                                  , n_runs=4, n_steps=10, parallelism='serial')
+
+
+::
+
+
+    ---------------------------------------------------------------------------
+
+    TypeError                                 Traceback (most recent call last)
+
+    <ipython-input-36-47b7de9ab07d> in <module>
+          2 
+          3 results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
+    ----> 4                               , n_runs=4, n_steps=10, parallelism='serial')
+    
+
+    ~/code/projects/negmas/negmas/apps/scml/utils.py in anac2019_tournament(competitors, randomize, n_runs, tournament_path, total_timeout, parallelism, scheduler_ip, scheduler_port, n_intermediate, n_miners, n_factories_per_level, n_consumers, n_lines_per_factory, guaranteed_contracts, use_consumer, max_insurance_premium, n_retrials, negotiator_type, transportation_delay, default_signing_delay, max_storage, consumption_horizon, consumption, negotiation_speed, neg_time_limit, neg_n_steps, n_steps, time_limit, n_greedy_per_level, name)
+        255     if randomize:
+        256         for i in range(n_runs):
+    --> 257             shuffle(competitors)
+        258             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+        259             dir_name = tournament_path / world_name
+
+
+    ~/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/random.py in shuffle(self, x, random)
+        273                 # pick an element in x[:i+1] with which to exchange x[i]
+        274                 j = randbelow(i+1)
+    --> 275                 x[i], x[j] = x[j], x[i]
+        276         else:
+        277             _int = int
+
+
+    TypeError: 'tuple' object does not support item assignment
+
 
 You can see the scores that each individual factory manager got:
 
@@ -213,549 +142,11 @@ You can see the scores that each individual factory manager got:
 
     results.scores
 
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>log_file</th>
-          <th>name</th>
-          <th>score</th>
-          <th>type</th>
-          <th>world</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>None</td>
-          <td>greedy_1_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>None</td>
-          <td>greedy_1_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>None</td>
-          <td>greedy_2_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>None</td>
-          <td>greedy_2_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>None</td>
-          <td>greedy_2_2</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>5</th>
-          <td>None</td>
-          <td>greedy_2_3</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>6</th>
-          <td>None</td>
-          <td>greedy_3_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>7</th>
-          <td>None</td>
-          <td>greedy_3_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>8</th>
-          <td>None</td>
-          <td>greedy_3_2</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>9</th>
-          <td>None</td>
-          <td>greedy_3_3</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>10</th>
-          <td>None</td>
-          <td>greedy_3_4</td>
-          <td>200.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>11</th>
-          <td>None</td>
-          <td>greedy_3_5</td>
-          <td>270.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>12</th>
-          <td>None</td>
-          <td>my_2_0</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>13</th>
-          <td>None</td>
-          <td>my_1_1</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>14</th>
-          <td>None</td>
-          <td>my_1_2</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>15</th>
-          <td>None</td>
-          <td>my_3_3</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>16</th>
-          <td>None</td>
-          <td>my_1_4</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>17</th>
-          <td>None</td>
-          <td>my_2_5</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>18</th>
-          <td>None</td>
-          <td>my_3_6</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>19</th>
-          <td>None</td>
-          <td>my_3_7</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>20</th>
-          <td>None</td>
-          <td>my_2_8</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_95f7d541-bbab-46df-b929-b4796878bdc2</td>
-        </tr>
-        <tr>
-          <th>21</th>
-          <td>None</td>
-          <td>greedy_1_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>22</th>
-          <td>None</td>
-          <td>greedy_1_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>23</th>
-          <td>None</td>
-          <td>greedy_2_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>24</th>
-          <td>None</td>
-          <td>greedy_2_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>25</th>
-          <td>None</td>
-          <td>greedy_2_2</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>26</th>
-          <td>None</td>
-          <td>greedy_2_3</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>27</th>
-          <td>None</td>
-          <td>greedy_3_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>28</th>
-          <td>None</td>
-          <td>greedy_3_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>29</th>
-          <td>None</td>
-          <td>greedy_3_2</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_8332af0f-1b80-45a9-9797-11db5df42c5e</td>
-        </tr>
-        <tr>
-          <th>...</th>
-          <td>...</td>
-          <td>...</td>
-          <td>...</td>
-          <td>...</td>
-          <td>...</td>
-        </tr>
-        <tr>
-          <th>78</th>
-          <td>None</td>
-          <td>my_3_0</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>79</th>
-          <td>None</td>
-          <td>my_3_1</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>80</th>
-          <td>None</td>
-          <td>my_3_2</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>81</th>
-          <td>None</td>
-          <td>my_2_3</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>82</th>
-          <td>None</td>
-          <td>my_2_4</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>83</th>
-          <td>None</td>
-          <td>my_1_5</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>84</th>
-          <td>None</td>
-          <td>my_1_6</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>85</th>
-          <td>None</td>
-          <td>my_2_7</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>86</th>
-          <td>None</td>
-          <td>my_1_8</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_4536eebe-9453-494b-ab5b-27547373f9f8</td>
-        </tr>
-        <tr>
-          <th>87</th>
-          <td>None</td>
-          <td>greedy_1_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>88</th>
-          <td>None</td>
-          <td>greedy_1_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>89</th>
-          <td>None</td>
-          <td>greedy_2_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>90</th>
-          <td>None</td>
-          <td>greedy_2_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>91</th>
-          <td>None</td>
-          <td>greedy_2_2</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>92</th>
-          <td>None</td>
-          <td>greedy_2_3</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>93</th>
-          <td>None</td>
-          <td>greedy_3_0</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>94</th>
-          <td>None</td>
-          <td>greedy_3_1</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>95</th>
-          <td>None</td>
-          <td>greedy_3_2</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>96</th>
-          <td>None</td>
-          <td>greedy_3_3</td>
-          <td>0.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>97</th>
-          <td>None</td>
-          <td>greedy_3_4</td>
-          <td>290.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>98</th>
-          <td>None</td>
-          <td>greedy_3_5</td>
-          <td>200.0</td>
-          <td>greedy</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>99</th>
-          <td>None</td>
-          <td>my_3_0</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>100</th>
-          <td>None</td>
-          <td>my_2_1</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>101</th>
-          <td>None</td>
-          <td>my_2_2</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>102</th>
-          <td>None</td>
-          <td>my_1_3</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>103</th>
-          <td>None</td>
-          <td>my_2_4</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>104</th>
-          <td>None</td>
-          <td>my_1_5</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>105</th>
-          <td>None</td>
-          <td>my_3_6</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>106</th>
-          <td>None</td>
-          <td>my_1_7</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-        <tr>
-          <th>107</th>
-          <td>None</td>
-          <td>my_3_8</td>
-          <td>0.0</td>
-          <td>my</td>
-          <td>SCMLWorld_c4a3cc72-9e4f-4d67-a8a1-81f72cdee575</td>
-        </tr>
-      </tbody>
-    </table>
-    <p>108 rows × 5 columns</p>
-    </div>
-
-
-
 You can also check the total scores for each factory manager type:
 
 .. code:: ipython3
 
     results.total_scores
-
-
-
-
-.. parsed-literal::
-
-    type
-    greedy    2878.0
-    my         367.0
-    Name: score, dtype: float64
-
-
 
 If you want, you can check if these differences are statistically
 significant using a t-test:
@@ -763,49 +154,6 @@ significant using a t-test:
 .. code:: ipython3
 
     results.ttest
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>a</th>
-          <th>b</th>
-          <th>p</th>
-          <th>t</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>greedy</td>
-          <td>my</td>
-          <td>0.041044</td>
-          <td>2.068314</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 So the greedy factory manager is better than the do-nothing factory
 manager getting a total score of 2878 compared with only 367 for the
@@ -818,29 +166,11 @@ Or, let's just find out who was the winner:
 
     results.winner
 
-
-
-
-.. parsed-literal::
-
-    'greedy'
-
-
-
 and what was its to score:
 
 .. code:: ipython3
 
     results.winner_score
-
-
-
-
-.. parsed-literal::
-
-    2878.0
-
-
 
 Now, you completed the development of your factory manager, tested it by
 running it in worlds and tournaments, what exactly should you do to
@@ -862,8 +192,7 @@ That is it folks! You can now start developing your own factory manager.
 Have fun.
 
 
-.. only:: builder_html
 
-    Download :download:`Notebook<notebooks/07.develop_scml_agent.ipynb>`.
+Download :download:`Notebook<notebooks/07.develop_scml_agent.ipynb>`.
 
 

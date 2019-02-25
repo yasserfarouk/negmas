@@ -1,56 +1,51 @@
-import itertools
-import json
 import math
-import os
-import pathlib
-import traceback
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from random import shuffle, randint
-from time import perf_counter
+from random import randint
 
-import pandas as pd
-from dataclasses import dataclass
-from distributed import Client
-
-from negmas import save_logs
-from negmas.helpers import get_class, unique_name
+from negmas.situated import WorldRunResults, TournamentResults, tournament, WorldGenerator
+from negmas.helpers import get_class
 from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
 if True:
-    from typing import Tuple, Union, Type, Iterable, Sequence, Optional, Dict, Any
+    from typing import Tuple, Union, Type, Iterable, Sequence, Optional, Callable
     from .factory_managers import FactoryManager
 
 __all__ = [
     'anac2019_world',
-    'anac2019_tournament'
+    'anac2019_tournament',
+    'balance_calculator',
 ]
 
 
-def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
-                   , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
-                   , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=100, n_retrials=4
-                   , competitors: Sequence[Union[str, Type[FactoryManager]]] = ()
-                   , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-                   , transportation_delay=0, default_signing_delay=0
-                   , max_storage=None
-                   , consumption_horizon=15
-                   , consumption=(3, 5)
-                   , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
-                   , n_steps=60, time_limit=60 * 90
-                   , n_greedy_per_level: int = 2
-                   , random_factory_manager_assignment: bool = True
-                   , log_file_name: str = None
-                   , name: str = None
-                   ):
+def anac2019_world(
+    competitors: Sequence[Union[str, Type[FactoryManager]]] = ()
+    , randomize: bool = True
+    , log_file_name: str = None
+    , name: str = None
+    , agent_names_reveal_type: bool = False
+    , n_intermediate: Tuple[int, int] = (1, 4)
+    , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
+    , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=100, n_retrials=4
+    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
+    , transportation_delay=0, default_signing_delay=0
+    , max_storage=None
+    , consumption_horizon=15
+    , consumption=(3, 5)
+    , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
+    , n_steps=60, time_limit=60 * 90
+    , n_default_per_level: int = 2
+
+) -> SCMLWorld:
     """
     Creates a world compatible with the ANAC 2019 competition. Note that
 
     Args:
-        random_factory_manager_assignment: If true, managers are assigned to factories randomly otherwise in the order
+        name: World name to use
+        agent_names_reveal_type: If true, a snake_case version of the agent_type will prefix agent names
+        randomize: If true, managers are assigned to factories randomly otherwise in the order
         they are giving (cycling).
         n_intermediate:
-        n_greedy_per_level:
+        n_default_per_level:
         competitors: A list of class names for the competitors
         n_miners: number of miners of the single raw material
         n_factories_per_level: number of factories at every production level
@@ -84,15 +79,18 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
 
 
     """
-    if n_factories_per_level == n_greedy_per_level and len(competitors) > 0:
-        raise ValueError(f'All factories in all levels are occupied by greedy_factory_managers')
+    competitors = list(competitors)
+    if n_factories_per_level == n_default_per_level and len(competitors) > 0:
+        raise ValueError(f'All factories in all levels are occupied by the default factory manager. Either decrease'
+                         f' n_default_per_level ({n_default_per_level}) or increase n_factories_per_level '
+                         f' ({n_factories_per_level})')
     if isinstance(n_intermediate, Iterable):
         n_intermediate = list(n_intermediate)
     else:
         n_intermediate = [n_intermediate, n_intermediate]
     max_insurance_premium = None if max_insurance_premium < 0 else max_insurance_premium
     n_competitors = len(competitors)
-    n_intermediate_levels_min = int(math.ceil(n_competitors / (n_factories_per_level - n_greedy_per_level))) - 1
+    n_intermediate_levels_min = int(math.ceil(n_competitors / (n_factories_per_level - n_default_per_level))) - 1
     if n_intermediate_levels_min > n_intermediate[1]:
         raise ValueError(f'Need {n_intermediate_levels_min} intermediate levels to run {n_competitors} competitors')
     n_intermediate[0] = max(n_intermediate_levels_min, n_intermediate[0])
@@ -100,6 +98,7 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
     if len(competitors) < 1:
         competitors.extend(GreedyFactoryManager)
     world = SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=n_steps
+                                        , agent_names_reveal_type=agent_names_reveal_type
                                         , negotiation_speed=negotiation_speed
                                         , n_intermediate_levels=randint(*n_intermediate)
                                         , n_miners=n_miners
@@ -121,302 +120,61 @@ def anac2019_world(n_intermediate: Tuple[int, int] = (1, 4)
                                         , n_lines_per_factory=n_lines_per_factory
                                         , max_storage=max_storage
                                         , manager_types=competitors
-                                        , n_greedy_per_level=n_greedy_per_level
-                                        , random_factory_manager_assignment=random_factory_manager_assignment
+                                        , n_default_per_level=n_default_per_level
+                                        , randomize=randomize
                                         , name=name)
 
     return world
 
 
-def _run_world(world: SCMLWorld):
-    """Runs a world and returns stats"""
-    world.run()
-    dir_name = pathlib.Path(world.log_file_name).parent
-    save_logs(world=world, log_dir=dir_name)
-    return world.stats, world.name, world.log_file_name
+def balance_calculator(world: SCMLWorld) -> WorldRunResults:
+    """A scoring function that scores factory managers' performance by the final balance only ignoring whatever still
+    in their inventory.
 
+    Args:
+        world: The world which is assumed to be run up to the point at which the scores are to be calculated.
 
-@dataclass
-class TournamentResults:
-    scores: pd.DataFrame
-    total_scores: pd.DataFrame
-    winner: str
-    winner_score: float
-    ttest: pd.DataFrame
+    Returns:
+        WorldRunResults giving the names, scores, and types of factory managers.
+
+    """
+    result = WorldRunResults(world_name=world.name, log_file_name=world.log_file_name)
+    initial_balances = []
+    for manager in world.factory_managers:
+        if '_default__preassigned__' in manager.id:
+            continue
+        initial_balances.append(world.a2f[manager.id].initial_balance)
+    normalize = all(_ != 0 for _ in initial_balances)
+    for manager in world.factory_managers:
+        if '_default__preassigned__' in manager.id:
+            continue
+        factory = world.a2f[manager.id]
+        result.names.append(manager.name)
+        result.types.append(manager.__class__.__name__)
+        if normalize:
+            result.scores.append((factory.balance - factory.initial_balance)/factory.initial_balance)
+        else:
+            result.scores.append(factory.balance - factory.initial_balance)
+    return result
 
 
 def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , randomize=True
+                        , agent_names_reveal_type=False
                         , n_runs: int = 10, tournament_path: str = './logs/tournaments'
                         , total_timeout: Optional[int] = None
                         , parallelism='local'
                         , scheduler_ip: Optional[str] = None
                         , scheduler_port: Optional[str] = None
-                        , n_intermediate: Tuple[int, int] = (1, 4)
-                        , n_miners=5, n_factories_per_level=5, n_consumers=5, n_lines_per_factory=10
-                        , guaranteed_contracts=False, use_consumer=True, max_insurance_premium=-1, n_retrials=4
-                        , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-                        , transportation_delay=0, default_signing_delay=1
-                        , max_storage=None
-                        , consumption_horizon=15
-                        , consumption=(3, 5)
-                        , negotiation_speed=21, neg_time_limit=60 * 4, neg_n_steps=20
-                        , n_steps=60, time_limit=60 * 90
-                        , n_greedy_per_level: int = 2
+                        , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = lambda x: None
+                        , world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None
                         , name: str = None
+                        , verbose: bool = False
+                        , **kwargs
                         ) -> TournamentResults:
-    """
-    Runs a tournament
-
-    Args:
-
-        competitors: A list of class names for the competitors
-        randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
-        n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
-        the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
-        total_timeout: Total timeout for the complete process
-        tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
-        keep detailed logs
-        parallelism: Type of parallelism. Can be 'none' for serial, 'local' for parallel and 'dist' for distributed
-        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
-        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
-        n_intermediate:
-        n_greedy_per_level:
-        n_miners: number of miners of the single raw material
-        n_factories_per_level: number of factories at every production level
-        n_consumers: number of consumers of the final product
-        n_steps: number of simulation steps
-        n_lines_per_factory: number of lines in each factory
-        negotiation_speed: The number of negotiation steps per simulation step. None means infinite
-        default_signing_delay: The number of simulation between contract conclusion and signature
-        neg_n_steps: The maximum number of steps of a single negotiation (that is double the number of rounds)
-        neg_time_limit: The total time-limit of a single negotiation
-        time_limit: The total time-limit of the simulation
-        transportation_delay: The transportation delay
-        n_retrials: The number of retrials the `Miner` and `GreedyFactoryManager` will try if negotiations fail
-        max_insurance_premium: The maximum insurance premium accepted by `GreedyFactoryManager` (-1 to disable)
-        use_consumer: If true, the `GreedyFactoryManager` will use an internal consumer for buying its needs
-        guaranteed_contracts: If true, the `GreedyFactoryManager` will only sign contracts that it can guaratnee not to
-        break.
-        consumption_horizon: The number of steps for which `Consumer` publishes `CFP` s
-        consumption: The consumption schedule will be sampled from a uniform distribution with these limits inclusive
-        negotiator_type: The negotiation factory used to create all negotiators
-        max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
-        name: Tournament name
-
-    Returns:
-        scores as a dataframe
-
-    Remarks:
-
-        - Every production level n has one process only that takes n steps to complete
-
-
-    """
-    if name is None:
-        name = unique_name('', add_time=True, rand_digits=0)
-    params = {
-        'competitors': [get_class(_).__name__ for _ in competitors],
-        'randomize': randomize,
-        'n_runs': n_runs,
-        'tournament_path': tournament_path,
-        'total_timeout': total_timeout,
-        'parallelism': parallelism,
-        'scheduler_ip': scheduler_ip,
-        'scheduler_port': scheduler_port,
-        'n_intermediate': n_intermediate,
-        'n_miners': n_miners,
-        'n_factories_per_level': n_factories_per_level,
-        'n_consumers': n_consumers,
-        'n_lines_per_factory': n_lines_per_factory,
-        'guaranteed_contracts': guaranteed_contracts,
-        'use_consumer': use_consumer,
-        'max_insurance_premium': max_insurance_premium,
-        'n_retrials': n_retrials,
-        'negotiator_type': negotiator_type,
-        'transportation_delay': transportation_delay,
-        'default_signing_delay': default_signing_delay,
-        'max_storage': max_storage,
-        'consumption_horizon': consumption_horizon,
-        'consumption': consumption,
-        'negotiation_speed': negotiation_speed,
-        'neg_time_limit': neg_time_limit,
-        'neg_n_steps': neg_n_steps,
-        'n_steps': n_steps,
-        'time_limit': time_limit,
-        'n_greedy_per_level': n_greedy_per_level,
-        'name': name,
-    }
-    tournament_path = pathlib.Path(tournament_path) / name
-    os.makedirs(str(tournament_path), exist_ok=True)
-    with (tournament_path / 'params.json').open('w') as f:
-        json.dump(params, f, sort_keys=True, indent=4)
-    worlds = []
-    if randomize:
-        for i in range(n_runs):
-            shuffle(competitors)
-            world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
-            dir_name = tournament_path / world_name
-            worlds.append(anac2019_world(name=world_name, competitors=competitors
-                                         , log_file_name=str(dir_name / 'log.txt')
-                                         , random_factory_manager_assignment=True
-                                         , n_intermediate=n_intermediate
-                                         , n_miners=n_miners
-                                         , n_factories_per_level=n_factories_per_level
-                                         , n_consumers=n_consumers
-                                         , n_lines_per_factory=n_lines_per_factory
-                                         , guaranteed_contracts=guaranteed_contracts
-                                         , use_consumer=use_consumer
-                                         , max_insurance_premium=max_insurance_premium
-                                         , n_retrials=n_retrials
-                                         , negotiator_type=negotiator_type
-                                         , transportation_delay=transportation_delay
-                                         , default_signing_delay=default_signing_delay
-                                         , max_storage=max_storage
-                                         , consumption_horizon=consumption_horizon
-                                         , consumption=consumption
-                                         , negotiation_speed=negotiation_speed
-                                         , neg_time_limit=neg_time_limit
-                                         , neg_n_steps=neg_n_steps
-                                         , n_steps=n_steps
-                                         , time_limit=time_limit
-                                         , n_greedy_per_level=n_greedy_per_level
-                                         ))
-    else:
-        c_list = list(itertools.permutations(competitors))
-        extra_runs = 0
-        if n_runs is not None:
-            if len(c_list) > n_runs:
-                print(f'Need {len(c_list)} permutations but allowed to only use {n_runs} of them')
-                c_list = shuffle(c_list)[:n_runs]
-            elif len(c_list) < n_runs:
-                extra_runs = n_runs - len(c_list)
-
-        for i, c in enumerate(c_list):
-            world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
-            dir_name = tournament_path / world_name
-            worlds.append(anac2019_world(competitors=c, name=world_name, log_file_name=str(dir_name / 'logs.txt')
-                                         , random_factory_manager_assignment=False
-                                         , n_intermediate=n_intermediate
-                                         , n_miners=n_miners
-                                         , n_factories_per_level=n_factories_per_level
-                                         , n_consumers=n_consumers
-                                         , n_lines_per_factory=n_lines_per_factory
-                                         , guaranteed_contracts=guaranteed_contracts
-                                         , use_consumer=use_consumer
-                                         , max_insurance_premium=max_insurance_premium
-                                         , n_retrials=n_retrials
-                                         , negotiator_type=negotiator_type
-                                         , transportation_delay=transportation_delay
-                                         , default_signing_delay=default_signing_delay
-                                         , max_storage=max_storage
-                                         , consumption_horizon=consumption_horizon
-                                         , consumption=consumption
-                                         , negotiation_speed=negotiation_speed
-                                         , neg_time_limit=neg_time_limit
-                                         , neg_n_steps=neg_n_steps
-                                         , n_steps=n_steps
-                                         , time_limit=time_limit
-                                         , n_greedy_per_level=n_greedy_per_level
-                                         ))
-            if extra_runs > 0:
-                for j in range(extra_runs):
-                    shuffle(competitors)
-                    world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
-                    dir_name = tournament_path / world_name
-                    worlds.append(anac2019_world(competitors=competitors, name=world_name
-                                                 , log_file_name=str(dir_name / 'logs.txt')
-                                                 , random_factory_manager_assignment=True
-                                                 , n_intermediate=n_intermediate
-                                                 , n_miners=n_miners
-                                                 , n_factories_per_level=n_factories_per_level
-                                                 , n_consumers=n_consumers
-                                                 , n_lines_per_factory=n_lines_per_factory
-                                                 , guaranteed_contracts=guaranteed_contracts
-                                                 , use_consumer=use_consumer
-                                                 , max_insurance_premium=max_insurance_premium
-                                                 , n_retrials=n_retrials
-                                                 , negotiator_type=negotiator_type
-                                                 , transportation_delay=transportation_delay
-                                                 , default_signing_delay=default_signing_delay
-                                                 , max_storage=max_storage
-                                                 , consumption_horizon=consumption_horizon
-                                                 , consumption=consumption
-                                                 , negotiation_speed=negotiation_speed
-                                                 , neg_time_limit=neg_time_limit
-                                                 , neg_n_steps=neg_n_steps
-                                                 , n_steps=n_steps
-                                                 , time_limit=time_limit
-                                                 , n_greedy_per_level=n_greedy_per_level
-                                                 ))
-
-    scores = []
-    scores_file = str(tournament_path / 'scores.csv')
-
-    def _process_stats(stats: Dict[str, Any], world_name: str, file_name: str):
-        if file_name is not None:
-            with open(file_name, 'a') as f:
-                f.write('\nDONE SUCCESSFULLY\n')
-        for k, v in stats.items():
-            if not k.startswith('balance'):
-                continue
-            if k.endswith('insurance') or k.endswith('bank') or k[len('balance_'):].startswith('c_') \
-                or k[len('balance_'):].startswith('m_'):
-                continue
-            name_ = k[len('balance_'):]
-            type_ = '_'.join(name_.split('_')[:-2])
-            score = v[-1] - v[0]
-            scores.append({'name': name_, 'type': type_, 'score': score, 'log_file': file_name
-                              , 'world': world_name})
-        pd.DataFrame(data=scores).to_csv(scores_file, index_label='index')
-
-    if parallelism in ('serial', 'none'):
-        strt = perf_counter()
-        for world in worlds:
-            if total_timeout is not None and perf_counter() - strt > total_timeout:
-                break
-            try:
-                _process_stats(*_run_world(world))
-            except Exception as e:
-                print(traceback.format_exc())
-                print(e)
-    elif parallelism in ('local', 'parallel', 'processes'):
-        executor = ProcessPoolExecutor(max_workers=None)
-        future_results = []
-        for world in worlds:
-            future_results.append(executor.submit(_run_world, world))
-        for future in as_completed(future_results, timeout=total_timeout):
-            try:
-                _process_stats(*future.results())
-            except Exception as e:
-                print(traceback.format_exc())
-                print(e)
-    elif parallelism in ('dist', 'distributed', 'dask'):
-        client = Client(scheduler=f'{scheduler_ip}:{scheduler_port}' if scheduler_ip is not None else None)
-        future_results = []
-        for world in worlds:
-            future_results.append(client.submit(_run_world, world))
-        for future in as_completed(future_results, timeout=total_timeout):
-            try:
-                _process_stats(*future.results())
-            except Exception as e:
-                print(traceback.format_exc())
-                print(e)
-
-    scores = pd.DataFrame(data=scores)
-    scores = scores.loc[~scores['type'].isnull(), :]
-    scores = scores.loc[scores.type.str.len() > 0, :]
-    total_scores = scores.groupby(['type'])['score'].sum().sort_values(ascending=False)
-    winner = total_scores.index[0]
-    winner_score = total_scores.loc[winner]
-    types = list(scores['type'].unique())
-
-    ttest_results = []
-    for i, t1 in enumerate(types):
-        for j, t2 in enumerate(types[i + 1:]):
-            from scipy.stats import ttest_ind
-            t, p = ttest_ind(scores[scores['type'] == t1].score, scores[scores['type'] == t2].score)
-            ttest_results.append({'a': t1, 'b': t2, 't': t, 'p': p})
-
-    return TournamentResults(scores=scores, total_scores=total_scores, winner=winner, winner_score=winner_score
-                             , ttest=pd.DataFrame(data=ttest_results))
+    return tournament(competitors=competitors, randomize=randomize, agent_names_reveal_type=agent_names_reveal_type
+                      , n_runs=n_runs, tournament_path=tournament_path, total_timeout=total_timeout
+                      , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
+                      , tournament_progress_callback=tournament_progress_callback
+                      , world_progress_callback=world_progress_callback, name=name, verbose=verbose
+                      , world_generator=anac2019_world, score_calculator=balance_calculator, **kwargs)

@@ -196,6 +196,15 @@ class Scheduler(ABC):
 class GreedyScheduler(Scheduler):
     """Default scheduler used by the DefaultFactoryManager"""
 
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        if 'fields' in result.keys():
+            del result['fields']
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.fields = [self.total_unit_cost, self.unit_time, self.production_unit_cost, self.input_unit_cost]
+
     def __init__(self, manager_id: str, awi: 'SCMLAWI', max_insurance_premium: float, horizon: Optional[int] = None
                  , add_catalog_prices=True, strategy: str = 'latest', profile_sorter: str = 'total-cost>time'):
         """
@@ -353,7 +362,7 @@ class GreedyScheduler(Scheduler):
             q_needed = q - simulator.available_storage_at(t)[pid]
             if q_needed <= 0:
                 if simulator.sell(product=pid, quantity=q, price=p, t=t, ignore_money_shortage=ignore_failures
-                                  , ignore_inventory_shortage=ignore_failures):
+                    , ignore_inventory_shortage=ignore_failures):
                     return ScheduleInfo(end=end, final_balance=self.simulator.balance_at(end - 1))
                 else:
                     return ScheduleInfo(end=end, valid=False, failed_contracts=[contract],

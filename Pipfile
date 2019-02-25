@@ -24,6 +24,7 @@ hypothesis = "*"
 dask = "*"
 distributed = "*"
 numba = "*"
+type-extensions = "*"
 
 [dev-packages]
 "pep8" = "*"

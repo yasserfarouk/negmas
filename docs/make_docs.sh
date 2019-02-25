@@ -24,9 +24,9 @@ for rstfile in ./tutorials/*.rst; do
     filename1=${rstfile##*/}
     filename=${filename1%????}
     echo "" >> $rstfile
-    echo ".. only:: builder_html">> $rstfile
+    # echo ".. only:: builder_html">> $rstfile
     echo "" >> $rstfile
-    echo "    Download :download:\`Notebook<notebooks/$filename.ipynb>\`." >> $rstfile
+    echo "Download :download:\`Notebook<notebooks/$filename.ipynb>\`." >> $rstfile
     echo "" >> $rstfile
     echo "" >> $rstfile
 done

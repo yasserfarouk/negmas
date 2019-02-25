@@ -306,8 +306,7 @@ point happens to maximze the *welfare* defined as the sum of the utility
 received by both partners.
 
 
-.. only:: builder_html
 
-    Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
+Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
 
 

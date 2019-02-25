@@ -4,8 +4,7 @@ Develop a new mechanism (protocol)
 
 TBD
 
-.. only:: builder_html
 
-    Download :download:`Notebook<notebooks/03.develop_new_mechanism.ipynb>`.
+Download :download:`Notebook<notebooks/03.develop_new_mechanism.ipynb>`.
 
 

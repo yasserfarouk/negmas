@@ -25,38 +25,36 @@ Simulation steps:
     #. update custom stats (call `_post_step_stats`)
 
 """
+import concurrent.futures as futures
 import itertools
 import json
-import math
-import multiprocessing
+import os
+import pathlib
 import random
 import re
-import os
 import time
+import traceback
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Any, Tuple, Callable, Union, Iterable, Set, Iterator, Collection, Type
-from typing import TYPE_CHECKING, Dict
+from typing import Optional, List, Any, Tuple, Callable, Union, Iterable, Set, Iterator, Collection, Type, Sequence
+from typing import Dict
 
+import distributed
+import numpy as np
+import pandas as pd
 from dataclasses import dataclass, field
+from typing_extensions import Protocol
 
-from negmas.common import NamedObject
-from negmas.mechanisms import MechanismProxy, Mechanism
-from negmas.negotiators import NegotiatorProxy
-from negmas.sao import SAONegotiator
-from negmas.outcomes import OutcomeType, Outcome, Issue, ResponseType
 from negmas.common import MechanismInfo, MechanismState
+from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
 from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name
-from negmas.sao import SAOMechanism
-import pandas as pd
-
-import numpy as np
-if TYPE_CHECKING:
-    pass
+from negmas.mechanisms import MechanismProxy, Mechanism
+from negmas.negotiators import NegotiatorProxy
+from negmas.outcomes import OutcomeType, Issue
 
 __all__ = [
     'Action',  # An action that an `Agent` can execute in the `World`.
@@ -71,7 +69,11 @@ __all__ = [
     'AgentWorldInterface',  # the interface though which an agent can interact with the world
     'NegotiationInfo',
     'RenegotiationRequest',
-    'save_logs',
+    'save_stats',
+    'tournament',
+    'WorldGenerator',
+    'WorldRunResults',
+    'TournamentResults'
 ]
 
 PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
@@ -194,20 +196,25 @@ class Entity(NamedObject):
         """Will be called by the world once the world itself is initialized to initialize itself."""
 
 
-class BulletinBoard(Entity, EventSource, ConfigReader, LoggerMixin):
+class BulletinBoard(Entity, EventSource, ConfigReader):
     """The white-board which carries all public information. It consists of sections each with a dictionary of records.
-
 
     """
 
-    def __init__(self, name: str = None, log_file_name: Optional[str] = '', screen_log: bool = False):
+    def __getstate__(self):
+        return self.name, self._data
+
+    def __setstate__(self, state):
+        name, self._data = state
+        super().__init__(name=name)
+
+    def __init__(self, name: str = None):
         """
         Constructor
 
         Args:
             name: BulletinBoard name
         """
-        LoggerMixin.__init__(self, file_name=log_file_name, screen_log=screen_log)
         super().__init__(name=name)
         self._data: Dict[str, Dict[str, Any]] = {}
 
@@ -221,7 +228,6 @@ class BulletinBoard(Entity, EventSource, ConfigReader, LoggerMixin):
         Returns:
 
         """
-        self.logdebug(f'section {name} added')
         self._data[name] = {}
 
     def query(self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False) -> Optional[Dict[str, Any]]:
@@ -309,7 +315,6 @@ class BulletinBoard(Entity, EventSource, ConfigReader, LoggerMixin):
             value: The value
 
         """
-        self.logdebug(f'Record: {str(value)} at {section} [{key}]')
         if key is None:
             try:
                 skey = str(hash(value))
@@ -353,7 +358,6 @@ class BulletinBoard(Entity, EventSource, ConfigReader, LoggerMixin):
                     break
         if key is not None:
             try:
-                self.logdebug(f'Remove: {str(sec[key])} from {section} [{key}]')
                 self.announce(Event('will_remove_record', data={'section': sec, 'key': key, 'value': sec[key]}))
                 del sec[key]
                 return True
@@ -370,7 +374,6 @@ class BulletinBoard(Entity, EventSource, ConfigReader, LoggerMixin):
         if len(keys) == 0:
             return False
         for k in keys:
-            self.logdebug(f'Remove: {str(sec.get(k, "none"))} from {section} [{k}]')
             self.announce(Event('will_remove_record', data={'section': sec, 'key': k, 'value': sec[k]}))
             del sec[k]
         return True
@@ -398,7 +401,6 @@ class NegotiationInfo:
     issues: List['Issue']
     requested_at: int
     rejectors: Optional[List['Agent']] = None
-
 
 
 class MechanismFactory:
@@ -499,6 +501,13 @@ class MechanismFactory:
 
 class AgentWorldInterface:
     """Agent World Interface class"""
+
+    def __getstate__(self):
+        return self._world, self.agent.id
+
+    def __setstate__(self, state):
+        self._world, agent_id = state
+        self.agent = self._world.agents[agent_id]
 
     def __init__(self, world: 'World', agent: 'Agent'):
         self._world, self.agent = world, agent
@@ -635,6 +644,19 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
     """
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if 'logger' in state.keys():
+            del state['logger']
+        state['log_file_name'] = self.log_file_name
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        LoggerMixin.__init__(self, file_name=state['log_file_name'], screen_log=['screen_log'])
+        if 'log_file_name' in state.keys():
+            del self.__dict__['log_file_name']
+
     def __init__(self, bulletin_board: BulletinBoard = None
                  , n_steps=10000
                  , time_limit=60 * 60
@@ -668,6 +690,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         """
         LoggerMixin.__init__(self, file_name=log_file_name, screen_log=screen_log)
         super().__init__()
+        self.screen_log = screen_log
         self.bulletin_board: BulletinBoard = bulletin_board
         self.set_bulletin_board(bulletin_board=bulletin_board)
         self._negotiations: Dict[str, NegotiationInfo] = {}
@@ -691,7 +714,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
         self.awi_type = get_class(awi_type, scope=globals())
         self.name = name if name is not None else unique_name(base=self.__class__.__name__, add_time=True
-                                                                , rand_digits=5)
+                                                              , rand_digits=5)
         self._stats: Dict[str, List[Any]] = defaultdict(list)
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
@@ -1108,9 +1131,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         partners = negotiation.partners
         if self.save_negotiations:
             _stats = {'final_status': 'failed', 'partners': [_.id for _ in partners]
-                      , 'partner_types': [_.__class__.__name__ for _ in partners]
-                      , 'ended_at': self.current_step, 'requested_at': negotiation.requested_at
-                      , 'mechanism_type': mechanism.__class__.__name__}
+                , 'partner_types': [_.__class__.__name__ for _ in partners]
+                , 'ended_at': self.current_step, 'requested_at': negotiation.requested_at
+                , 'mechanism_type': mechanism.__class__.__name__}
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
         if mechanism.agreement is None or negotiation is None:
@@ -1155,9 +1178,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         annotation = negotiation.annotation
         if self.save_negotiations:
             _stats = {'final_status': 'failed', 'partners': [_.id for _ in partners]
-                      , 'partner_types': [_.__class__.__name__ for _ in partners]
-                      , 'ended_at': self.current_step, 'requested_at': negotiation.requested_at
-                      , 'mechanism_type': mechanism.__class__.__name__}
+                , 'partner_types': [_.__class__.__name__ for _ in partners]
+                , 'ended_at': self.current_step, 'requested_at': negotiation.requested_at
+                , 'mechanism_type': mechanism.__class__.__name__}
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
         for partner in partners:
@@ -1371,14 +1394,21 @@ class ActiveEntity(Entity):
 RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])
 """Keeps track of running negotiations for an agent"""
 
-
 NegotiationRequestInfo = namedtuple('NegotiationRequestInfo', ['partners', 'issues', 'annotation', 'uuid'
-                                                               , 'negotiator', 'extra'])
+    , 'negotiator', 'extra'])
 """Keeps track to negotiation requests that an agent sent"""
 
 
 class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
     """Base class for all agents that can run within a `World` and engage in situated negotiations"""
+
+    def __getstate__(self):
+        return self.name, self.awi
+
+    def __setstate__(self, state):
+        name, awi = state
+        super().__init__(name=name)
+        self.awi = awi
 
     def __init__(self, name: str = None):
         super().__init__(name=name)
@@ -1527,7 +1557,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
 
     @abstractmethod
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
-                                 , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         """
         Called to respond to a renegotiation request
 
@@ -1545,7 +1575,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         """Called to respond to a re-negotiation request"""
 
 
-def save_logs(world: World, log_dir: str, params: Dict[str, Any] = None):
+def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
     log_dir = Path(log_dir)
     os.makedirs(log_dir, exist_ok=True)
 
@@ -1601,3 +1631,317 @@ def save_logs(world: World, log_dir: str, params: Dict[str, Any] = None):
             f.write('')
         with open(log_dir / 'all_contracts.csv', 'w') as f:
             f.write('')
+
+
+class WorldGenerator(Protocol):
+    """A callback-protocol specifying the signature of a world generator function that can be passed to `tournament`
+
+    Args:
+            name: world name. If None, a random name should be generated
+            competitors: A list of `Agent` types that can be used to create the agents of the competitor types
+            log_File_name: A log file name to keep logs
+            randomize: If true, competitors should be assigned randomly within the world. The meaning of "random
+            assignment" can vary from a world to another. In general it should be the case that if randomize is False,
+            all worlds generated given kwargs, and a selection competitors will be the same.
+            agent_names_reveal_type: Whether the type of an agent should be apparent in its name
+            kwargs: key-value pairs of arguments.
+
+    See Also:
+        `tournament`
+
+    """
+
+    def __call__(self, name: Optional[str] = None, competitors: Sequence[Type[Agent]] = ()
+                 , log_file_name: Optional[str] = None, randomize: bool = True, agent_names_reveal_type: bool = False
+                 , **kwargs) -> World: ...
+
+
+@dataclass
+class WorldRunResults:
+    """Results of a world run"""
+    world_name: str
+    """World name"""
+    log_file_name: str
+    """Log file name"""
+    names: List[str] = field(default_factory=list, init=False)
+    """Agent names"""
+    scores: List[float] = field(default_factory=list, init=False)
+    """Agent scores"""
+    types: List[str] = field(default_factory=list, init=False)
+    """Agent type names"""
+
+
+@dataclass
+class TournamentResults:
+    scores: pd.DataFrame
+    total_scores: pd.DataFrame
+    winners: List[str]
+    """Winner type name(s) which may be a list"""
+    winners_scores: np.array
+    """Winner score (accumulated)"""
+    ttest: pd.DataFrame
+
+
+def _run_world(world_info: dict, world_generator: WorldGenerator, score_calculator: Callable[[World], WorldRunResults]
+               , world_progress_callback: Callable[[Optional[World]], None] = None
+               ):
+    """Runs a world and returns stats"""
+    world_info = world_info.copy()
+    dir_name = world_info['__dir_name']
+    del world_info['__dir_name']
+    world = world_generator(**world_info)
+    if world_progress_callback is None:
+        world.run()
+    else:
+        _start_time = time.monotonic()
+        world_progress_callback(world)
+        for _ in range(world.n_steps):
+            if world.time_limit is not None and (time.monotonic() - _start_time) >= world.time_limit:
+                break
+            if not world.step():
+                break
+            world_progress_callback(world)
+    save_stats(world=world, log_dir=dir_name)
+    scores = score_calculator(world)
+    return scores, dir_name
+
+
+def _process_world_run(results: WorldRunResults, tournament_name: str, dir_name: str) -> pd.DataFrame:
+    log_file, world_name_ = results.log_file_name, results.world_name
+    if log_file is not None:
+        with open(log_file, 'a') as f:
+            f.write(f'\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n')
+    scores = []
+    for name_, type_, score in zip(results.names, results.types, results.scores):
+        scores.append({'agent_name': name_, 'agent_type': type_, 'score': score, 'log_file': log_file
+                          , 'world': world_name_, 'stats_folder': dir_name})
+    return pd.DataFrame(data=scores)
+
+
+def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generator, tournament_progress_callback
+              , n_worlds, name, score_calculator) -> List[pd.DataFrame]:
+    """Runs the tournament on dask"""
+    scores = []
+    if scheduler_ip is None and scheduler_port is None:
+        address = None
+    else:
+        if scheduler_ip is None:
+            scheduler_ip = '127.0.0.1'
+        if scheduler_port is None:
+            scheduler_port = '8786'
+        address = f'{scheduler_ip}:{scheduler_port}'
+    if verbose:
+        print(f'Will use DASK on {address}')
+    client = distributed.Client(address=address, set_as_default=True)
+    future_results = []
+    for world_info in world_infos:
+        future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator))
+    print(f'Submitted all processes ({len(world_infos)})')
+    for i, (future, result) in enumerate(
+        distributed.as_completed(future_results, with_results=True, raise_errors=False)):
+        try:
+            score_, dir_name = result
+            if tournament_progress_callback is not None:
+                tournament_progress_callback(score_, i, n_worlds)
+            scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+        except Exception as e:
+            if tournament_progress_callback is not None:
+                tournament_progress_callback(None, i, n_worlds)
+            print(traceback.format_exc())
+            print(e)
+    client.shutdown()
+    return scores
+
+
+def tournament(competitors: Sequence[Union[str, Type[Agent]]]
+               , world_generator: WorldGenerator
+               , score_calculator: Callable[[World], WorldRunResults]
+               , randomize=True
+               , agent_names_reveal_type=False
+               , n_runs: int = 10, tournament_path: str = './logs/tournaments'
+               , total_timeout: Optional[int] = None
+               , parallelism='local'
+               , scheduler_ip: Optional[str] = None
+               , scheduler_port: Optional[str] = None
+               , tournament_progress_callback: Callable[[Optional[WorldRunResults], int, int], None] = lambda x: None
+               , world_progress_callback: Callable[[Optional[World]], None] = None
+               , name: str = None
+               , verbose: bool = False
+               , **kwargs
+               ) -> TournamentResults:
+    """
+    Runs a tournament
+
+    Args:
+
+        name: Tournament name
+        world_generator: A functions to generate worlds for the tournament
+        score_calculator: A function for calculating the score of a world *After it finishes running*
+        competitors: A list of class names for the competitors
+        randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
+        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its 
+        beginning).
+        n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
+        the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
+        keep detailed logs
+        parallelism: Type of parallelism. Can be 'none' for serial, 'local' for parallel and 'dist' for distributed
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        world_progress_callback: A function to be called after everystep of every world run (only allowed for serial
+        evaluation and should be used with cautious).
+        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
+        processing
+        verbose: Verbosity
+        kwargs: Arguments to pass to the `world_generator` function
+
+    Returns:
+        `TournamentResults` The results of the tournament
+
+    """
+    dask_options = ('dist', 'distributed', 'dask', 'd')
+    multiprocessing_options = ('local', 'parallel', 'par', 'p')
+    serial_options = ('none', 'serial', 's')
+    assert total_timeout is None or parallelism not in dask_options, f'Cannot use {parallelism} with a total-timeout'
+    assert world_progress_callback is None or parallelism not in dask_options, f'Cannot use {parallelism} with a world callback'
+    if name is None:
+        name = unique_name('', add_time=True, rand_digits=0)
+    params = {
+        'competitors': [get_class(_).__name__ for _ in competitors],
+        'randomize': randomize,
+        'n_runs': n_runs,
+        'tournament_path': tournament_path,
+        'total_timeout': total_timeout,
+        'parallelism': parallelism,
+        'scheduler_ip': scheduler_ip,
+        'scheduler_port': scheduler_port,
+        'name': name,
+        'n_worlds_to_run': None
+    }
+    params.update(kwargs)
+    competitors = list(competitors)
+    tournament_path = pathlib.Path(tournament_path) / name
+    os.makedirs(str(tournament_path), exist_ok=True)
+    with (tournament_path / 'params.json').open('w') as f:
+        json.dump(params, f, sort_keys=True, indent=4)
+    world_infos = []
+    if randomize:
+        for i in range(n_runs):
+            random.shuffle(competitors)
+            world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+            dir_name = tournament_path / world_name
+            world_info = {'name': world_name, 'competitors': competitors, 'log_file_name': str(dir_name / 'log.txt')
+                          , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
+                          , '__dir_name': dir_name}
+            world_info.update(kwargs)
+            world_infos.append(world_info)
+    else:
+        c_list = list(itertools.permutations(competitors))
+        extra_runs = 0
+        if n_runs is not None:
+            if len(c_list) > n_runs:
+                print(f'Need {len(c_list)} permutations but allowed to only use {n_runs} of them'
+                      f' ({n_runs / len(c_list):0.2%})')
+                c_list = random.shuffle(c_list)[:n_runs]
+            elif len(c_list) < n_runs:
+                extra_runs = n_runs - len(c_list)
+
+        for i, c in enumerate(c_list):
+            world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+            dir_name = tournament_path / world_name
+            world_info = {'name': world_name, 'competitors': c, 'log_file_name': str(dir_name / 'log.txt')
+                , 'randomize': False, 'agent_names_reveal_type': agent_names_reveal_type
+                , '__dir_name': dir_name}
+            world_info.update(kwargs)
+            world_infos.append(world_info)
+            if extra_runs > 0:
+                for j in range(extra_runs):
+                    random.shuffle(competitors)
+                    world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
+                    dir_name = tournament_path / world_name
+                    world_info = {'name': world_name, 'competitors': competitors,
+                                  'log_file_name': str(dir_name / 'log.txt')
+                        , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
+                        , '__dir_name': dir_name}
+                    world_info.update(kwargs)
+                    world_infos.append(world_info)
+
+    scores = []
+    scores_file = str(tournament_path / 'scores.csv')
+    n_worlds = len(world_infos)
+    params['n_worlds_to_run'] = n_worlds
+    with (tournament_path / 'params.json').open('w') as f:
+        json.dump(params, f, sort_keys=True, indent=4)
+    if verbose:
+        print(f'Will run {n_worlds} worlds')
+    if parallelism in serial_options:
+        strt = time.perf_counter()
+        for i, world_info in enumerate(world_infos):
+            if total_timeout is not None and time.perf_counter() - strt > total_timeout:
+                break
+            try:
+                score_, _ = _run_world(world_info=world_info, world_generator=world_generator
+                                       , world_progress_callback=world_progress_callback
+                                       , score_calculator=score_calculator)
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(score_, i, n_worlds)
+                scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(world_info['__dir_name'])))
+            except Exception as e:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_worlds)
+                print(traceback.format_exc())
+                print(e)
+    elif parallelism in multiprocessing_options:
+        executor = futures.ProcessPoolExecutor(max_workers=None)
+        future_results = []
+        for world_info in world_infos:
+            future_results.append(executor.submit(_run_world, world_info, world_generator, score_calculator
+                                                  , world_progress_callback))
+        if verbose:
+            print(f'Submitted all processes ({len(world_infos)})')
+        for i, future in enumerate(futures.as_completed(future_results, timeout=total_timeout)):
+            try:
+                score_, dir_name = future.result()
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(score_, i, n_worlds)
+                scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+            except futures.TimeoutError:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_worlds)
+                print('Tournament timed-out')
+                break
+            except Exception as e:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_worlds)
+                print(traceback.format_exc())
+                print(e)
+    elif parallelism in dask_options:
+        scores = _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generator
+                           , tournament_progress_callback, n_worlds, name, score_calculator)
+    if verbose:
+        print(f'Finding winners')
+
+    scores: pd.DataFrame = pd.concat(scores, ignore_index=True)
+    scores = pd.DataFrame(data=scores)
+    scores.to_csv(scores_file, index_label='index')
+    scores = scores.loc[~scores['agent_type'].isnull(), :]
+    scores = scores.loc[scores['agent_type'].str.len() > 0, :]
+    total_scores = scores.groupby(['agent_type'])['score'].sum().sort_values(ascending=False).reset_index()
+    winner_table = total_scores.loc[total_scores['score'] == total_scores['score'].max(), :]
+    winners = winner_table['agent_type'].values.tolist()
+    winner_scores = winner_table['score'].values
+    types = list(scores['agent_type'].unique())
+
+    ttest_results = []
+    for i, t1 in enumerate(types):
+        for j, t2 in enumerate(types[i + 1:]):
+            from scipy.stats import ttest_ind
+            t, p = ttest_ind(scores[scores['agent_type'] == t1].score, scores[scores['agent_type'] == t2].score)
+            ttest_results.append({'a': t1, 'b': t2, 't': t, 'p': p})
+
+    if verbose:
+        print(f'Tournament completed successfully\nWinners: {list(zip(winners, winner_scores))}')
+
+    return TournamentResults(scores=scores, total_scores=total_scores, winners=winners, winners_scores=winner_scores
+                             , ttest=pd.DataFrame(data=ttest_results))

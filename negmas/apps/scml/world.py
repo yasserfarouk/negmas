@@ -1,5 +1,6 @@
 import itertools
 import math
+import sys
 from collections import defaultdict
 from random import shuffle, random, randint, sample, choices
 from typing import Optional, Callable, Type, Sequence, Dict, Tuple, Iterable, Any, Union, Set, \
@@ -8,7 +9,7 @@ from typing import Optional, Callable, Type, Sequence, Dict, Tuple, Iterable, An
 import numpy as np
 
 from negmas.events import Event, EventSource
-from negmas.helpers import snake_case, instantiate
+from negmas.helpers import snake_case, instantiate, unique_name
 from negmas.outcomes import Issue
 from negmas.situated import AgentWorldInterface, World, Breach, Action, BreachProcessing, Contract, Agent
 from .bank import Bank
@@ -289,17 +290,19 @@ class SCMLWorld(World):
                           , n_steps=10
                           , n_lines_per_factory=1
                           , log_file_name: str = None
+                          , agent_names_reveal_type: bool = False
                           , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
                           , miner_type: Union[str, Type[Miner]] = ReactiveMiner
                           , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
-                          , max_storage=None
+                          , max_storage: int = sys.maxsize
                           , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
                           , consumption: Union[int, Tuple[int, int]] = 1
                           , consumer_kwargs: Dict[str, Any] = None
                           , negotiation_speed: Optional[int] = None
                           , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
-                          , n_greedy_per_level: int = 0
-                          , random_factory_manager_assignment: bool = True
+                          , n_default_per_level: int = 0
+                          , default_factory_manager_type: Type[FactoryManager] = GreedyFactoryManager
+                          , randomize: bool = True
                           , initial_wallet_balances=1000
                           , interest_rate=0.1
                           , interest_max=0.2
@@ -309,9 +312,11 @@ class SCMLWorld(World):
         series with `n_intermediate_levels` intermediate levels between the single raw material and single final product
 
         Args:
-
-            random_factory_manager_assignment: If true, the factory assignment is randomized
-            n_greedy_per_level: The number of `GreedyFactoryManager` objects guaranteed at every level
+            randomize: If true, the factory assignment is randomized
+            n_default_per_level: The number of `GreedyFactoryManager` objects guaranteed at every level
+            default_factory_manager_type: The `FactoryManager` type to use as the base for default_factory_managers. You
+            can specify how many of this type exist at everly level by specifying `n_default_per_level`. If
+            `n_default_per_level` is zero, this parameter has no effect.
             manager_types: A sequence of factory manager types to control the factories.
             consumer_type: Consumer type to use for all consumers
             miner_type: Miner type to use for all miners
@@ -323,6 +328,7 @@ class SCMLWorld(World):
             n_steps: number of simulation steps
             n_lines_per_factory: number of lines in each factory
             log_file_name: File name to store the logs
+            agent_names_reveal_type: If true, agent names will start with a snake_case version of their type name
             negotiator_type: The negotiation factory used to create all negotiators
             max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
             manager_kwargs: keyword arguments to be used for constructing factory negmas
@@ -376,8 +382,10 @@ class SCMLWorld(World):
 
         assignable_factories = []
 
+        _DefaultFactoryManager = default_factory_manager_type
+
         for level in range(n_intermediate_levels + 1):
-            greedy_factories = []
+            default_factories = []
             for j in range(n_factories_per_level):
                 profiles = []
                 for k in range(n_lines_per_factory):
@@ -390,22 +398,27 @@ class SCMLWorld(World):
                 factory = Factory(id=f'f{level + 1}_{j}', max_storage=max_storage, profiles=profiles
                                   , initial_storage={}, initial_wallet=initial_wallet_balances)
                 factories.append(factory)
-                if j >= n_greedy_per_level:
+                if j >= n_default_per_level:
                     assignable_factories.append((factory, level))
                 else:
-                    greedy_factories.append(factory)
-            for j, factory in enumerate(greedy_factories):
-                manager_name = snake_case(GreedyFactoryManager.__name__.replace('FactoryManager', ''))
-                manager = GreedyFactoryManager(name=f'{manager_name}_preassigned_{level + 1}_{j}', **manager_kwargs)
+                    default_factories.append(factory)
+            for j, factory in enumerate(default_factories):
+                if agent_names_reveal_type:
+                    manager_name = snake_case(_DefaultFactoryManager.__name__.replace('FactoryManager', ''))
+                    manager_name = f'_default__preassigned__{manager_name}_{level + 1}_{j}'
+                else:
+                    manager_name = unique_name(base='_default__preassigned__', add_time=False, rand_digits=12)
+                manager = _DefaultFactoryManager(name=manager_name, **manager_kwargs)
                 managers.append(manager)
-        if random_factory_manager_assignment:
+        if randomize:
             shuffle(assignable_factories)
         for j, ((factory, level), manager_type) in enumerate(zip(assignable_factories, itertools.cycle(manager_types))):
-            manager_name = snake_case(manager_type.__name__.replace('FactoryManager', ''))
-            if manager_type == GreedyFactoryManager:
-                manager = manager_type(name=f'{manager_name}_{level + 1}_{j}', **manager_kwargs)
+            if agent_names_reveal_type:
+                manager_name = snake_case(manager_type.__name__.replace('FactoryManager', ''))
+                manager_name = f'{manager_name}_{level + 1}_{j}'
             else:
-                manager = manager_type(name=f'{manager_name}_{level + 1}_{j}')
+                manager_name = unique_name(base='', add_time=False, rand_digits=12)
+            manager = manager_type(name=manager_name)
             managers.append(manager)
 
         def create_schedule():
