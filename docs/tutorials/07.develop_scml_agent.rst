@@ -33,17 +33,15 @@
 
 .. parsed-literal::
 
-    /Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/IPython/core/magics/pylab.py:160: UserWarning: pylab import has clobbered these variables: ['plt']
+    /Users/yasser/code/projects/negmas/venv/lib/python3.7/site-packages/IPython/core/magics/pylab.py:160: UserWarning: pylab import has clobbered these variables: ['plt']
     `%matplotlib` prevents importing * from pylab and numpy
       "\n`%matplotlib` prevents importing * from pylab and numpy"
-
 
 
 
 .. raw:: html
 
     <style>.container { width:95% !important; }</style>
-
 
 
 Develop a factory manager (agent) for the SCM world
@@ -67,6 +65,7 @@ That is actually the ONLY abstract method you need to implement.
 
 .. code:: ipython3
 
+    from negmas.apps.scml import FactoryManager
     class MyFactoryManager(FactoryManager):
         """My factory manager"""
 
@@ -87,195 +86,102 @@ Let's check the contracts of this world:
 Let's try to run a tournament with this do-nothing agent against the
 built-in greedy agent:
 
-
-
 .. code:: ipython3
 
     from negmas.apps.scml.utils import anac2019_tournament
     from negmas.apps.scml import GreedyFactoryManager
     
-    n_completed = 0
+    n_worlds, n_steps = 4, 10 # how many worlds to run (max) for how many steps
     
+    # --------------- progress bar stuff -------------------------
+    from ipywidgets import IntProgress
+    from IPython.display import display
+    import time
+    t_progress = IntProgress(min=0, max=n_worlds) # instantiate the bar
+    w_progress = IntProgress(min=0, max=n_steps) # instantiate the bar
+    display(t_progress) # display the bar
+    display(w_progress) # display the bar
+    # --------------- progress bar stuff -------------------------
     
-    def print_progress(_) -> None:
-        global n_completed
-        print(f'{n_completed} worlds completed')
-        n_completed += 1
+    def print_progress(_, i, n) -> None:
+        """Print tournament progress"""
+        t_progress.value = i
     
     
     def print_world_progress(world) -> None:
-        print(f'{world.current_step}  of {world.n_steps} steps completed')    
-    
-    
-    results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager), agent_names_reveal_type=True
-                                  , n_runs=4, n_steps=10, parallelism='serial', n_default_per_level=5
-                          , n_factories_per_level=11, n_intermediate=3
-                          , default_signing_delay=0, max_storage=1000000
-                          , max_insurance_premium=100, n_retrials=5
-                          , tournament_progress_callback=print_progress
-                          , world_progress_callback=print_world_progress)
+        """Print current world progress"""
+        w_progress.value = world.current_step
+        
+    results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
+                                  , agent_names_reveal_type=True
+                                  , n_runs=n_worlds, n_steps=n_steps
+                                  , parallelism='parallel'
+                                  , tournament_progress_callback=print_progress
+                                  , world_progress_callback=print_world_progress)
+
 
 
 .. parsed-literal::
 
-    1  of 10 steps completed
-    2  of 10 steps completed
-    3  of 10 steps completed
-    4  of 10 steps completed
-    5  of 10 steps completed
-    6  of 10 steps completed
-    7  of 10 steps completed
-    8  of 10 steps completed
-    9  of 10 steps completed
-    10  of 10 steps completed
-    0 worlds completed
-    1 worlds completed
-    Traceback (most recent call last):
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1807, in tournament
-        scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1683, in _process_world_run
-        , columns=['agent_name', 'score', 'agent_type', 'log_file_names', 'world_name', 'stats_folder'])
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/frame.py", line 435, in __init__
-        arrays, columns = to_arrays(data, columns, dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 404, in to_arrays
-        dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 436, in _list_to_arrays
-        coerce_float=coerce_float)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 492, in _convert_object_array
-        con=len(content)))
-    AssertionError: 6 columns passed, passed data had 24 columns
-    
-    6 columns passed, passed data had 24 columns
-    1  of 10 steps completed
-    2  of 10 steps completed
-    3  of 10 steps completed
-    4  of 10 steps completed
-    5  of 10 steps completed
-    6  of 10 steps completed
-    7  of 10 steps completed
-    8  of 10 steps completed
-    9  of 10 steps completed
-    10  of 10 steps completed
-    2 worlds completed
-    3 worlds completed
-    Traceback (most recent call last):
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1807, in tournament
-        scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1683, in _process_world_run
-        , columns=['agent_name', 'score', 'agent_type', 'log_file_names', 'world_name', 'stats_folder'])
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/frame.py", line 435, in __init__
-        arrays, columns = to_arrays(data, columns, dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 404, in to_arrays
-        dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 436, in _list_to_arrays
-        coerce_float=coerce_float)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 492, in _convert_object_array
-        con=len(content)))
-    AssertionError: 6 columns passed, passed data had 24 columns
-    
-    6 columns passed, passed data had 24 columns
-    1  of 10 steps completed
-    2  of 10 steps completed
-    3  of 10 steps completed
-    4  of 10 steps completed
-    5  of 10 steps completed
-    6  of 10 steps completed
-    7  of 10 steps completed
-    8  of 10 steps completed
-    9  of 10 steps completed
-    10  of 10 steps completed
-    4 worlds completed
-    5 worlds completed
-    Traceback (most recent call last):
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1807, in tournament
-        scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1683, in _process_world_run
-        , columns=['agent_name', 'score', 'agent_type', 'log_file_names', 'world_name', 'stats_folder'])
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/frame.py", line 435, in __init__
-        arrays, columns = to_arrays(data, columns, dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 404, in to_arrays
-        dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 436, in _list_to_arrays
-        coerce_float=coerce_float)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 492, in _convert_object_array
-        con=len(content)))
-    AssertionError: 6 columns passed, passed data had 24 columns
-    
-    6 columns passed, passed data had 24 columns
-    1  of 10 steps completed
-    2  of 10 steps completed
-    3  of 10 steps completed
-    4  of 10 steps completed
-    5  of 10 steps completed
-    6  of 10 steps completed
-    7  of 10 steps completed
-    8  of 10 steps completed
-    9  of 10 steps completed
-    10  of 10 steps completed
-    6 worlds completed
-    7 worlds completed
-    Traceback (most recent call last):
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1807, in tournament
-        scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
-      File "/Users/yasser/code/projects/negmas/negmas/situated.py", line 1683, in _process_world_run
-        , columns=['agent_name', 'score', 'agent_type', 'log_file_names', 'world_name', 'stats_folder'])
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/frame.py", line 435, in __init__
-        arrays, columns = to_arrays(data, columns, dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 404, in to_arrays
-        dtype=dtype)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 436, in _list_to_arrays
-        coerce_float=coerce_float)
-      File "/Users/yasser/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/internals/construction.py", line 492, in _convert_object_array
-        con=len(content)))
-    AssertionError: 6 columns passed, passed data had 24 columns
-    
-    6 columns passed, passed data had 24 columns
+    IntProgress(value=0, max=4)
 
 
-::
+
+.. parsed-literal::
+
+    IntProgress(value=0, max=10)
 
 
-    ---------------------------------------------------------------------------
+.. parsed-literal::
 
-    ValueError                                Traceback (most recent call last)
-
-    <ipython-input-10-abc3c69dddff> in <module>
-         21                       , max_insurance_premium=100, n_retrials=5
-         22                       , tournament_progress_callback=print_progress
-    ---> 23                       , world_progress_callback=print_world_progress)
-    
-
-    ~/code/projects/negmas/negmas/apps/scml/utils.py in anac2019_tournament(competitors, randomize, agent_names_reveal_type, n_runs, tournament_path, total_timeout, parallelism, scheduler_ip, scheduler_port, tournament_progress_callback, world_progress_callback, name, **kwargs)
-        168                       , tournament_progress_callback=tournament_progress_callback
-        169                       , world_progress_callback=world_progress_callback, name=name
-    --> 170                       , world_generator=anac2019_world, score_calculator=balance_calculator, **kwargs)
-    
-
-    ~/code/projects/negmas/negmas/situated.py in tournament(competitors, world_generator, score_calculator, randomize, agent_names_reveal_type, n_runs, tournament_path, total_timeout, parallelism, scheduler_ip, scheduler_port, tournament_progress_callback, world_progress_callback, name, **kwargs)
-       1847                 print(e)
-       1848 
-    -> 1849     scores: pd.DataFrame = pd.concat(scores, ignore_index=True)
-       1850     scores = pd.DataFrame(data=scores)
-       1851     scores.to_csv(scores_file, index_label='index')
-
-
-    ~/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/reshape/concat.py in concat(objs, axis, join, join_axes, ignore_index, keys, levels, names, verify_integrity, sort, copy)
-        226                        keys=keys, levels=levels, names=names,
-        227                        verify_integrity=verify_integrity,
-    --> 228                        copy=copy, sort=sort)
-        229     return op.get_result()
-        230 
-
-
-    ~/.local/share/virtualenvs/negmas-bNSbQ2CL/lib/python3.6/site-packages/pandas/core/reshape/concat.py in __init__(self, objs, axis, join, join_axes, keys, levels, names, ignore_index, verify_integrity, copy, sort)
-        260 
-        261         if len(objs) == 0:
-    --> 262             raise ValueError('No objects to concatenate')
-        263 
-        264         if keys is None:
-
-
-    ValueError: No objects to concatenate
+    0
+    0
+    0
+    0
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    (0, 4)
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    (1, 4)
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    (2, 4)
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    (3, 4)
 
 
 You can see the scores that each individual factory manager got:
@@ -284,11 +190,138 @@ You can see the scores that each individual factory manager got:
 
     results.scores.head()
 
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_name</th>
+          <th>agent_type</th>
+          <th>log_file</th>
+          <th>score</th>
+          <th>stats_folder</th>
+          <th>world</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>my_2_0</td>
+          <td>MyFactoryManager</td>
+          <td>None</td>
+          <td>0.00</td>
+          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
+          <td>00003/20190225-184406LtzK</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>greedy_2_1</td>
+          <td>GreedyFactoryManager</td>
+          <td>None</td>
+          <td>0.00</td>
+          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
+          <td>00003/20190225-184406LtzK</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>my_4_2</td>
+          <td>MyFactoryManager</td>
+          <td>None</td>
+          <td>0.00</td>
+          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
+          <td>00003/20190225-184406LtzK</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>greedy_4_3</td>
+          <td>GreedyFactoryManager</td>
+          <td>None</td>
+          <td>0.01</td>
+          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
+          <td>00003/20190225-184406LtzK</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>my_3_4</td>
+          <td>MyFactoryManager</td>
+          <td>None</td>
+          <td>0.00</td>
+          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
+          <td>00003/20190225-184406LtzK</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
 You can also check the total scores for each factory manager type:
 
 .. code:: ipython3
 
     results.total_scores
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_type</th>
+          <th>score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>GreedyFactoryManager</td>
+          <td>2.31</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>MyFactoryManager</td>
+          <td>0.00</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
 
 If you want, you can check if these differences are statistically
 significant using a t-test:
@@ -296,6 +329,49 @@ significant using a t-test:
 .. code:: ipython3
 
     results.ttest
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>a</th>
+          <th>b</th>
+          <th>p</th>
+          <th>t</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>MyFactoryManager</td>
+          <td>GreedyFactoryManager</td>
+          <td>3.006466e-08</td>
+          <td>-6.044189</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
 
 So the greedy factory manager is better than the do-nothing factory
 manager getting a total score of 2878 compared with only 367 for the
@@ -306,13 +382,28 @@ Or, let's just find out who was the winner:
 
 .. code:: ipython3
 
-    results.winner
+    results.winners
+
+
+
+
+.. parsed-literal::
+
+    ['GreedyFactoryManager']
+
+
 
 and what was its to score:
 
 .. code:: ipython3
 
-    results.winner_score
+    print(results.winners_scores)
+
+
+.. parsed-literal::
+
+    [2.31]
+
 
 Now, you completed the development of your factory manager, tested it by
 running it in worlds and tournaments, what exactly should you do to
