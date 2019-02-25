@@ -1,49 +1,4 @@
 
-.. code:: ipython3
-
-    # setup disply parameters
-    import pandas as pd
-    import numpy as np
-    from matplotlib import pylab as plt
-    from matplotlib.ticker import StrMethodFormatter
-    float_formatter = StrMethodFormatter('{x:0.03f}')
-    %pylab inline
-    from IPython.core.display import display, HTML
-    display(HTML("<style>.container { width:95% !important; }</style>"))
-    %config InlineBackend.figure_formats = ['retina', 'pdf', 'png']
-    
-    SMALL_SIZE = 14
-    MEDIUM_SIZE = 16
-    BIGGER_SIZE = 20
-    
-    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-    plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-    plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
-    pylab.rcParams['figure.figsize'] = (18, 6)
-
-
-.. parsed-literal::
-
-    Populating the interactive namespace from numpy and matplotlib
-
-
-.. parsed-literal::
-
-    /Users/yasser/code/projects/negmas/venv/lib/python3.7/site-packages/IPython/core/magics/pylab.py:160: UserWarning: pylab import has clobbered these variables: ['plt']
-    `%matplotlib` prevents importing * from pylab and numpy
-      "\n`%matplotlib` prevents importing * from pylab and numpy"
-
-
-
-.. raw:: html
-
-    <style>.container { width:95% !important; }</style>
-
-
 Develop a factory manager (agent) for the SCM world
 ---------------------------------------------------
 
@@ -132,58 +87,6 @@ built-in greedy agent:
     IntProgress(value=0, max=10)
 
 
-.. parsed-literal::
-
-    0
-    0
-    0
-    0
-    1
-    2
-    3
-    4
-    5
-    6
-    7
-    8
-    9
-    10
-    (0, 4)
-    1
-    2
-    3
-    4
-    5
-    6
-    7
-    8
-    9
-    10
-    (1, 4)
-    1
-    2
-    3
-    4
-    5
-    6
-    7
-    8
-    9
-    10
-    (2, 4)
-    1
-    2
-    3
-    4
-    5
-    6
-    7
-    8
-    9
-    10
-    (3, 4)
-
-
 You can see the scores that each individual factory manager got:
 
 .. code:: ipython3
@@ -227,45 +130,45 @@ You can see the scores that each individual factory manager got:
           <td>my_2_0</td>
           <td>MyFactoryManager</td>
           <td>None</td>
-          <td>0.00</td>
-          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
-          <td>00003/20190225-184406LtzK</td>
+          <td>0.000000</td>
+          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
+          <td>00001/20190225-192632bunx</td>
         </tr>
         <tr>
           <th>1</th>
           <td>greedy_2_1</td>
           <td>GreedyFactoryManager</td>
           <td>None</td>
-          <td>0.00</td>
-          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
-          <td>00003/20190225-184406LtzK</td>
+          <td>0.031333</td>
+          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
+          <td>00001/20190225-192632bunx</td>
         </tr>
         <tr>
           <th>2</th>
-          <td>my_4_2</td>
+          <td>my_2_2</td>
           <td>MyFactoryManager</td>
           <td>None</td>
-          <td>0.00</td>
-          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
-          <td>00003/20190225-184406LtzK</td>
+          <td>0.000000</td>
+          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
+          <td>00001/20190225-192632bunx</td>
         </tr>
         <tr>
           <th>3</th>
-          <td>greedy_4_3</td>
+          <td>greedy_1_3</td>
           <td>GreedyFactoryManager</td>
           <td>None</td>
-          <td>0.01</td>
-          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
-          <td>00003/20190225-184406LtzK</td>
+          <td>0.042167</td>
+          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
+          <td>00001/20190225-192632bunx</td>
         </tr>
         <tr>
           <th>4</th>
-          <td>my_3_4</td>
+          <td>my_1_4</td>
           <td>MyFactoryManager</td>
           <td>None</td>
-          <td>0.00</td>
-          <td>logs/tournaments/20190225-184406/00003/2019022...</td>
-          <td>00003/20190225-184406LtzK</td>
+          <td>0.000000</td>
+          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
+          <td>00001/20190225-192632bunx</td>
         </tr>
       </tbody>
     </table>
@@ -310,12 +213,12 @@ You can also check the total scores for each factory manager type:
         <tr>
           <th>0</th>
           <td>GreedyFactoryManager</td>
-          <td>2.31</td>
+          <td>1.505667</td>
         </tr>
         <tr>
           <th>1</th>
           <td>MyFactoryManager</td>
-          <td>0.00</td>
+          <td>0.000000</td>
         </tr>
       </tbody>
     </table>
@@ -364,8 +267,8 @@ significant using a t-test:
           <th>0</th>
           <td>MyFactoryManager</td>
           <td>GreedyFactoryManager</td>
-          <td>3.006466e-08</td>
-          <td>-6.044189</td>
+          <td>0.004166</td>
+          <td>-3.039411</td>
         </tr>
       </tbody>
     </table>
@@ -402,7 +305,7 @@ and what was its to score:
 
 .. parsed-literal::
 
-    [2.31]
+    [1.50566667]
 
 
 Now, you completed the development of your factory manager, tested it by
