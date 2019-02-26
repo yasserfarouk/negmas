@@ -32,3 +32,4 @@ typing_extensions
 numba
 jupyter
 bokeh
+networkx
