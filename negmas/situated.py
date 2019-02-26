@@ -2046,7 +2046,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     scores.to_csv(scores_file, index_label='index')
     scores = scores.loc[~scores['agent_type'].isnull(), :]
     scores = scores.loc[scores['agent_type'].str.len() > 0, :]
-    total_scores = scores.groupby(['agent_type'])['score'].sum().sort_values(ascending=False).reset_index()
+    total_scores = scores.groupby(['agent_type'])['score'].mean().sort_values(ascending=False).reset_index()
     winner_table = total_scores.loc[total_scores['score'] == total_scores['score'].max(), :]
     winners = winner_table['agent_type'].values.tolist()
     winner_scores = winner_table['score'].values
