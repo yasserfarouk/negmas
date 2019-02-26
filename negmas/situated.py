@@ -1965,24 +1965,25 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         #         world_info.update(kwargs)
         #         world_infos += [world_info.copy() for _ in range(n_runs_per_config)]
 
+    saved_configs = [{k: copy.copy(v) if k != 'competitors' else
+                                        [get_full_type_name(c) if not isinstance(c, str) else c for c in v]
+                                                                        for k, v in _.items()} for _ in world_infos]
+    score_calculator_name = get_full_type_name(score_calculator) if not isinstance(score_calculator,
+                                                                                   str) else score_calculator
+    world_generator_name = get_full_type_name(world_generator) if not isinstance(world_generator,
+                                                                                 str) else world_generator
+    for d in saved_configs:
+        d['__score_calculator'] = score_calculator_name
+        d['__world_generator'] = world_generator_name
+        d['__tournament_name'] = name
+    config_path = tournament_path / 'configs'
+    config_path.mkdir(exist_ok=True, parents=True)
+    for i, conf in enumerate(saved_configs):
+        f_name = config_path / f'{i:06}.json'
+        with open(f_name, 'w') as f:
+            json.dump(conf, f, sort_keys=True, indent=4)
+
     if configs_only:
-        saved_configs = [{k: copy.copy(v) if k != 'competitors' else
-        [get_full_type_name(c) if not isinstance(c, str) else c for c in v]
-                          for k, v in _.items()} for _ in world_infos]
-        score_calculator_name = get_full_type_name(score_calculator) if not isinstance(score_calculator,
-                                                                                       str) else score_calculator
-        world_generator_name = get_full_type_name(world_generator) if not isinstance(world_generator,
-                                                                                     str) else world_generator
-        for d in saved_configs:
-            d['__score_calculator'] = score_calculator_name
-            d['__world_generator'] = world_generator_name
-            d['__tournament_name'] = name
-        config_path = tournament_path / 'configs'
-        config_path.mkdir(exist_ok=True, parents=True)
-        for i, conf in enumerate(saved_configs):
-            f_name = config_path / f'{i:06}.json'
-            with open(f_name, 'w') as f:
-                json.dump(conf, f, sort_keys=True, indent=4)
         return config_path
 
     scores = []
