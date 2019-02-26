@@ -2,8 +2,8 @@ import math
 import sys
 from random import randint
 
-from negmas.situated import WorldRunResults, TournamentResults, tournament, WorldGenerator
 from negmas.helpers import get_class
+from negmas.situated import WorldRunResults, TournamentResults, tournament
 from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
@@ -41,7 +41,7 @@ def anac2019_world(
     , negotiation_speed=21
     , neg_time_limit=60 * 4
     , neg_n_steps=20
-    , n_steps=60
+    , n_steps=100
     , time_limit=60 * 90
     , n_default_per_level: int = 5
 
@@ -162,7 +162,7 @@ def balance_calculator(world: SCMLWorld) -> WorldRunResults:
         result.names.append(manager.name)
         result.types.append(manager.__class__.__name__)
         if normalize:
-            result.scores.append((factory.balance - factory.initial_balance)/factory.initial_balance)
+            result.scores.append((factory.balance - factory.initial_balance) / factory.initial_balance)
         else:
             result.scores.append(factory.balance - factory.initial_balance)
     return result
@@ -171,20 +171,24 @@ def balance_calculator(world: SCMLWorld) -> WorldRunResults:
 def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , randomize=True
                         , agent_names_reveal_type=False
-                        , n_runs: int = 10, tournament_path: str = './logs/tournaments'
+                        , n_runs_per_config: int = 5, tournament_path: str = './logs/tournaments'
+                        , max_n_runs: int = 100
                         , total_timeout: Optional[int] = None
-                        , parallelism='local'
+                        , parallelism='parallel'
                         , scheduler_ip: Optional[str] = None
                         , scheduler_port: Optional[str] = None
                         , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = lambda x: None
                         , world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None
                         , name: str = None
                         , verbose: bool = False
+                        , config_only=False
                         , **kwargs
                         ) -> TournamentResults:
     return tournament(competitors=competitors, randomize=randomize, agent_names_reveal_type=agent_names_reveal_type
-                      , max_n_runs=n_runs, tournament_path=tournament_path, total_timeout=total_timeout
+                      , max_n_runs=max_n_runs, n_runs_per_config=n_runs_per_config
+                      , tournament_path=tournament_path, total_timeout=total_timeout
                       , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
                       , tournament_progress_callback=tournament_progress_callback
                       , world_progress_callback=world_progress_callback, name=name, verbose=verbose
+                      , configs_only=config_only
                       , world_generator=anac2019_world, score_calculator=balance_calculator, **kwargs)

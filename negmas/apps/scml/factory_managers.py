@@ -240,19 +240,22 @@ class GreedyFactoryManager(FactoryManager):
         with temporary_transaction(self.scheduler):
             schedule = self.scheduler.schedule(assume_no_further_negotiations=False, contracts=[contract]
                                                , ensure_storage_for=self.transportation_delay
-                                               , start_at=self.awi.current_step
-                                               )
+                                               , start_at=self.awi.current_step)
 
         if self.sign_only_guaranteed_contracts and (not schedule.valid or len(schedule.needs) > 1):
+            self.awi.logdebug(f'{self.name} refused to sign contract {contract.id} because it cannot be scheduled')
             return None
+        # if schedule.final_balance <= self.simulator.final_balance:
+        #     self.awi.logdebug(f'{self.name} refused to sign contract {contract.id} because it is not expected '
+        #                       f'to lead to profit')
+        #     return None
         if schedule.valid:
             profit = schedule.final_balance - self.simulator.final_balance
-            self.awi.logdebug(f'singing contract {contract.id} expecting '
+            self.awi.logdebug(f'{self.name} singing contract {contract.id} expecting '
                               f'{-profit if profit < 0 else profit} {"loss" if profit < 0 else "profit"}')
         else:
-            self.awi.logdebug(f'singing contract {contract.id} expecting breach')
-        # if schedule.final_balance <= self.simulator.final_balance:
-        #    return None
+            self.awi.logdebug(f'{self.name} singing contract {contract.id} expecting breach')
+
         self.contract_schedules[contract.id] = schedule
         return signature
 

@@ -106,7 +106,7 @@ class SCMLWorld(World):
                  # breach processing
                  , max_allowed_breach_level=None
                  , breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR
-                 , breach_penalty_society=1.0
+                 , breach_penalty_society=0.1
                  , breach_penalty_society_min=0.0
                  , breach_penalty_victim=0.0
                  , breach_move_max_product=True
@@ -285,10 +285,10 @@ class SCMLWorld(World):
                           , miner_kwargs=miner_kwargs, consumer_kwargs=consumer_kwargs, **kwargs)
 
     @classmethod
-    def single_path_world(cls, n_intermediate_levels=0, n_miners=1, n_factories_per_level=1
-                          , n_consumers: Union[int, Tuple[int, int], List[int]] = 1
-                          , n_steps=10
-                          , n_lines_per_factory=1
+    def single_path_world(cls, n_intermediate_levels=0, n_miners=5, n_factories_per_level=5
+                          , n_consumers: Union[int, Tuple[int, int], List[int]] = 5
+                          , n_steps=200
+                          , n_lines_per_factory=10
                           , log_file_name: str = None
                           , agent_names_reveal_type: bool = False
                           , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
@@ -296,7 +296,7 @@ class SCMLWorld(World):
                           , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
                           , max_storage: int = sys.maxsize
                           , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
-                          , consumption: Union[int, Tuple[int, int]] = 1
+                          , consumption: Union[int, Tuple[int, int]] = (3, 5)
                           , consumer_kwargs: Dict[str, Any] = None
                           , negotiation_speed: Optional[int] = None
                           , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
@@ -304,8 +304,8 @@ class SCMLWorld(World):
                           , default_factory_manager_type: Type[FactoryManager] = GreedyFactoryManager
                           , randomize: bool = True
                           , initial_wallet_balances=1000
-                          , interest_rate=0.1
-                          , interest_max=0.2
+                          , interest_rate=float('inf')
+                          , interest_max=float('inf')
                           , **kwargs):
         """
         Creates a very small world in which only one raw material and one final product. The production graph is a

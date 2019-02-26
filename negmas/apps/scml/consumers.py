@@ -191,7 +191,7 @@ class ScheduleDrivenConsumer(Consumer):
             , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
         if self.negotiator_type == AspirationNegotiator:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + partner
-                                              , aspiration_type='linear')
+                                              , aspiration_type='boulware')
         else:
             negotiator = self.negotiator_type(name=self.name + '*' + partner)
         negotiator.name = self.name + '_' + partner

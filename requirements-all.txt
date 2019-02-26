@@ -105,7 +105,7 @@ pytest-runner==4.2
 python-dateutil==2.7.5
 python-utils==2.3.0
 pytz==2018.9
-PyYAML==3.13
+PyYAML==5.1b1
 pyzmq==17.1.2
 qtconsole==4.4.3
 readme-renderer==24.0

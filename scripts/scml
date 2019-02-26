@@ -30,7 +30,7 @@ click.option = partial(click.option, show_default=True)
 @click.option('--max-consumption', default=5, help='The maximum number of units consumed by each consumer at every '
                                                    'time-step.')
 @click.option('--agents', default=5, help='Number of agents (miners/negmas.consumers) per production level')
-@click.option('--horizon', default=15, help='Consumption horizon.')
+@click.option('--horizon', default=20, help='Consumption horizon.')
 @click.option('--transport', default=0, help='Transportation Delay.')
 @click.option('--time', default=60 * 90, help='Total time limit.')
 @click.option('--neg-time', default=60 * 4, help='Time limit per single negotiation')
@@ -43,7 +43,7 @@ click.option = partial(click.option, show_default=True)
 @click.option('--use-consumer', default=True, help='Use internal consumer object in factory managers')
 @click.option('--max-insurance', default=100, help='Use insurance against partner in factory managers up to this '
                                                     'premium')
-@click.option('--riskiness', default=0.6, help='How risky is the default factory manager')
+@click.option('--riskiness', default=0.0, help='How risky is the default factory manager')
 @click.option('--log', default='~/negmas/logs', help='Default location to save logs (A folder will be created under it)')
 def cli(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption, max_consumption
         , transport, time, neg_time

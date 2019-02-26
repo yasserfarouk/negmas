@@ -19,7 +19,7 @@ def print_progress(_, i, n) -> None:
     global n_completed, n_total
     n_completed = i + 1
     n_total = n
-    print(f'{i:04} of {n:04} worlds completed ({i / n:0.2%})', flush=True)
+    print(f'{n_completed:04} of {n:04} worlds completed ({n_completed / n:0.2%})', flush=True)
 
 
 def print_world_progress(world) -> None:
@@ -79,7 +79,7 @@ def cli(name, steps, parallel, distributed, config, timeout, log, competitors, v
                                  , world_progress_callback=None
                                  , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
                                  , world_generator=anac2019_world, score_calculator=balance_calculator
-                                 , configs_only=False, randomize=randomize
+                                 , configs_only=True, randomize=randomize
                                  , n_steps=steps)
         tournament_progress_callback = print_world_progress if parallelism != 'dask' and verbose else None
         configs = [_.absolute() for _ in config_path.iterdir() if _.is_file() and _.suffix == 'json']
@@ -103,7 +103,7 @@ def cli(name, steps, parallel, distributed, config, timeout, log, competitors, v
         for config in configs:
             future_results.append(client.submit(run_world, config))
         if verbose > 0:
-            print(f'Submitted all processes ({n_worlds})')
+            print(f'Submitted all processes to dask ({n_worlds})')
         for i, (future, result) in enumerate(
             distributed.as_completed(future_results, with_results=True, raise_errors=False)):
             try:

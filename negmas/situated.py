@@ -914,7 +914,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                             self._saved_breaches[b.id] = b.as_dict()
                 current_contracts = [_[0] for _ in breached_contracts]
             for contract, contract_breaches in breached_contracts:
-                self._process_breach(contract, list(contract_breaches))
+                n_new_breaches += 1 - int(self._process_breach(contract, list(contract_breaches)))
 
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
@@ -1587,8 +1587,9 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
         with open(log_dir / 'params.csv', 'w') as f:
             json.dump(params, f, indent=4, sort_keys=True)
 
-    with open(log_dir / 'stats.csv', 'w') as f:
+    with open(log_dir / 'stats.json', 'w') as f:
         json.dump(world.stats, f, indent=4, sort_keys=True)
+
     try:
         data = pd.DataFrame.from_dict(world.stats)
         data.to_csv(str(log_dir / 'stats.csv'), index_label='index')
