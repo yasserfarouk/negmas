@@ -39,8 +39,10 @@ click.option = partial(click.option, show_default=True)
               help='The name of the tournament. The special value "random" will result in a random name')
 @click.option('--steps', '-s', default=60, help='Number of steps.')
 @click.option('--config', '-f', default='anac2019', help='The config to use. Default is ANAC 2019')
-@click.option('--worlds', '-w', default=50, help='Number of worlds to run.')
 @click.option('--timeout', '-t', default=0, help='Timeout after the given number of seconds (0 for infinite)')
+@click.option('--runs', default=5, help='Number of runs for each configuration')
+@click.option('--max-runs', default=-1, help='Maximum total number of runs. Zero or negative numbers mean no limit')
+@click.option('--randomize/--permutations', default=False, help='Random worlds or try all permutations up to max-runs')
 @click.option('--competitors', '-c'
     , default='negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager'
     , help='A semicolon (;) separated list of agent types to use for the competition.')
@@ -48,7 +50,7 @@ click.option = partial(click.option, show_default=True)
 @click.option('--distributed/--single-machine', default=False, help='Run a distributed tournament using dask')
 @click.option('--log', '-l', default='~/negmas/logs/tournaments',
               help='Default location to save logs (A folder will be created under it)')
-@click.option('--verbose/--silent', default=False, help='verbosity')
+@click.option('--verbose', default=0, help='verbosity level (from 0 == silent to 1 == world progress)')
 @click.option('--configs-only/--run', default=False, help='configs_only')
 @click.option('--reveal-names/--hidden-names', default=False, help='Reveal agent names (should be used only for '
                                                                    'debugging)')
@@ -56,13 +58,14 @@ click.option = partial(click.option, show_default=True)
                                                 ' Effective only if --distributed')
 @click.option('--port', default=8786, help='The IP port number a dask scheduler to run the distributed tournament.'
                                            ' Effective only if --distributed')
-def cli(name, steps, worlds, parallel, distributed, config, timeout, log, competitors, verbose, configs_only,
-        reveal_names
-        , ip, port):
+def cli(name, steps, parallel, distributed, config, timeout, log, competitors, verbose, configs_only,
+        reveal_names, ip, port, runs, max_runs, randomize):
     if timeout <= 0:
         timeout = None
     if name == 'random':
         name = None
+    if max_runs <= 0:
+        max_runs = None
     if config.lower() != 'anac2019':
         print('Only anac2019 config is supported')
         exit(1)
@@ -70,13 +73,14 @@ def cli(name, steps, worlds, parallel, distributed, config, timeout, log, compet
     start = perf_counter()
     if parallelism == 'dask' and not configs_only:
         config_path = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
-                                 , n_runs=worlds, tournament_path=log, total_timeout=timeout
+                                 , tournament_path=log, total_timeout=timeout
                                  , parallelism=parallelism, ip=ip, port=port
-                                 , tournament_progress_callback=print_progress if verbose else None
+                                 , tournament_progress_callback=print_progress if verbose > 0 else None
                                  , world_progress_callback=None
-                                 , name=name, verbose=verbose
+                                 , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
                                  , world_generator=anac2019_world, score_calculator=balance_calculator
-                                 , configs_only=False)
+                                 , configs_only=False, randomize=randomize
+                                 , n_steps=steps)
         tournament_progress_callback = print_world_progress if parallelism != 'dask' and verbose else None
         configs = [_.absolute() for _ in config_path.iterdir() if _.is_file() and _.suffix == 'json']
         for i, config in enumerate(configs):
@@ -91,14 +95,15 @@ def cli(name, steps, worlds, parallel, distributed, config, timeout, log, compet
             if port is None:
                 port = '8786'
             address = f'{ip}:{port}'
-        if verbose:
+        if verbose > 0:
             print(f'Will use DASK on {address}')
         client = distributed.Client(address=address, set_as_default=True)
         future_results = []
         n_worlds = len(configs)
         for config in configs:
             future_results.append(client.submit(run_world, config))
-        print(f'Submitted all processes ({n_worlds})')
+        if verbose > 0:
+            print(f'Submitted all processes ({n_worlds})')
         for i, (future, result) in enumerate(
             distributed.as_completed(future_results, with_results=True, raise_errors=False)):
             try:
@@ -114,14 +119,14 @@ def cli(name, steps, worlds, parallel, distributed, config, timeout, log, compet
         client.shutdown()
     else:
         results = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
-                             , n_runs=worlds, tournament_path=log, total_timeout=timeout
+                             , tournament_path=log, total_timeout=timeout
                              , parallelism=parallelism, ip=ip, port=port
-                             , tournament_progress_callback=print_progress if verbose else None
-                             ,
-                             world_progress_callback=print_world_progress if parallelism != 'dask' and verbose else None
-                             , name=name, verbose=verbose
+                             , tournament_progress_callback=print_progress if verbose > 0 else None
+                             , world_progress_callback=print_world_progress if verbose > 1 else None
+                             , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
                              , world_generator=anac2019_world, score_calculator=balance_calculator
-                             , configs_only=configs_only)
+                             , configs_only=configs_only, randomize=randomize
+                             , n_steps=steps)
     if configs_only:
         print(f'Saved all configs to {str(results)}')
         print(f'Finished in {humanize_time(perf_counter() - start)} [config-only]')

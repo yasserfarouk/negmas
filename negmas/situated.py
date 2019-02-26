@@ -40,8 +40,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Any, Tuple, Callable, Union, Iterable, Set, Iterator, Collection, Type, Sequence
 from typing import Dict
+from typing import Optional, List, Any, Tuple, Callable, Union, Iterable, Set, Iterator, Collection, Type, Sequence
 
 import distributed
 import numpy as np
@@ -1824,7 +1824,8 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
     for world_info in world_infos:
         future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator))
     print(f'Submitted all processes ({len(world_infos)})')
-    for i, (future, result) in enumerate(distributed.as_completed(future_results, with_results=True, raise_errors=False)):
+    for i, (future, result) in enumerate(
+        distributed.as_completed(future_results, with_results=True, raise_errors=False)):
         try:
             score_, dir_name = result
             if tournament_progress_callback is not None:
@@ -1842,9 +1843,11 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
 def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , world_generator: WorldGenerator
                , score_calculator: Callable[[World], WorldRunResults]
-               , randomize=True
+               , randomize=False
                , agent_names_reveal_type=False
-               , n_runs: int = 10, tournament_path: str = './logs/tournaments'
+               , max_n_runs: int = 100
+               , n_runs_per_config: int = 5
+               , tournament_path: str = './logs/tournaments'
                , total_timeout: Optional[int] = None
                , parallelism='local'
                , scheduler_ip: Optional[str] = None
@@ -1868,8 +1871,9 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its 
         beginning).
-        n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
+        max_n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
         the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
+        n_runs_per_config: Number of runs per configuration.
         total_timeout: Total timeout for the complete process
         tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
         keep detailed logs
@@ -1896,6 +1900,8 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     if name is None:
         name = unique_name('', add_time=True, rand_digits=0)
     competitors = list(competitors)
+    if tournament_path.startswith('~'):
+        tournament_path = Path.home() / ('/'.join(tournament_path.split('/')[1:]))
     tournament_path = (pathlib.Path(tournament_path) / name).absolute()
     tournament_path.mkdir(parents=True, exist_ok=True)
     if verbose:
@@ -1903,7 +1909,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     params = {
         'competitors': [get_class(_).__name__ for _ in competitors],
         'randomize': randomize,
-        'n_runs': n_runs,
+        'n_runs': max_n_runs,
         'tournament_path': str(tournament_path),
         'total_timeout': total_timeout,
         'parallelism': parallelism,
@@ -1917,51 +1923,55 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         json.dump(params, f, sort_keys=True, indent=4)
     world_infos = []
     if randomize:
-        for i in range(n_runs):
+        for i in range(max_n_runs):
             random.shuffle(competitors)
             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
             dir_name = tournament_path / world_name
             world_info = {'name': world_name, 'competitors': competitors, 'log_file_name': str(dir_name / 'log.txt')
-                          , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
-                          , '__dir_name': dir_name}
+                , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
+                , '__dir_name': str(dir_name)}
             world_info.update(kwargs)
-            world_infos.append(world_info)
+            world_infos += [world_info.copy() for _ in range(n_runs_per_config)]
     else:
         c_list = list(itertools.permutations(competitors))
         extra_runs = 0
-        if n_runs is not None:
-            if len(c_list) > n_runs:
-                print(f'Need {len(c_list)} permutations but allowed to only use {n_runs} of them'
-                      f' ({n_runs / len(c_list):0.2%})')
-                c_list = random.shuffle(c_list)[:n_runs]
-            elif len(c_list) < n_runs:
-                extra_runs = n_runs - len(c_list)
+        if max_n_runs is not None:
+            if len(c_list) > max_n_runs:
+                print(f'Need {len(c_list)} permutations but allowed to only use {max_n_runs} of them'
+                      f' ({max_n_runs / len(c_list):0.2%})')
+                c_list = random.shuffle(c_list)[:max_n_runs]
+            elif len(c_list) < max_n_runs:
+                extra_runs = max_n_runs - len(c_list)
 
         for i, c in enumerate(c_list):
             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
             dir_name = tournament_path / world_name
-            world_info = {'name': world_name, 'competitors': c, 'log_file_name': str(dir_name / 'log.txt')
+            world_info = {'name': world_name, 'competitors': list(c), 'log_file_name': str(dir_name / 'log.txt')
                 , 'randomize': False, 'agent_names_reveal_type': agent_names_reveal_type
-                , '__dir_name': dir_name}
+                , '__dir_name': str(dir_name)}
             world_info.update(kwargs)
-            world_infos.append(world_info)
-            if extra_runs > 0:
-                for j in range(extra_runs):
-                    random.shuffle(competitors)
-                    world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
-                    dir_name = tournament_path / world_name
-                    world_info = {'name': world_name, 'competitors': competitors,
-                                  'log_file_name': str(dir_name / 'log.txt')
-                        , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
-                        , '__dir_name': dir_name}
-                    world_info.update(kwargs)
-                    world_infos.append(world_info)
+            world_infos += [world_info.copy() for _ in range(n_runs_per_config)]
+
+        # if extra_runs > 0:
+        #     for j in range(extra_runs):
+        #         random.shuffle(competitors)
+        #         world_name = unique_name(f'{j:05}', add_time=True, rand_digits=4)
+        #         dir_name = tournament_path / world_name
+        #         world_info = {'name': world_name, 'competitors': competitors,
+        #                       'log_file_name': str(dir_name / 'log.txt')
+        #             , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
+        #             , '__dir_name': str(dir_name)}
+        #         world_info.update(kwargs)
+        #         world_infos += [world_info.copy() for _ in range(n_runs_per_config)]
 
     if configs_only:
-        saved_configs = [{k: copy.copy(v) if k != 'competitors' else [get_full_type_name(c) for c in v]
+        saved_configs = [{k: copy.copy(v) if k != 'competitors' else
+        [get_full_type_name(c) if not isinstance(c, str) else c for c in v]
                           for k, v in _.items()} for _ in world_infos]
-        score_calculator_name = get_full_type_name(score_calculator)
-        world_generator_name = get_full_type_name(world_generator)
+        score_calculator_name = get_full_type_name(score_calculator) if not isinstance(score_calculator,
+                                                                                       str) else score_calculator
+        world_generator_name = get_full_type_name(world_generator) if not isinstance(world_generator,
+                                                                                     str) else world_generator
         for d in saved_configs:
             d['__score_calculator'] = score_calculator_name
             d['__world_generator'] = world_generator_name

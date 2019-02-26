@@ -183,7 +183,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , **kwargs
                         ) -> TournamentResults:
     return tournament(competitors=competitors, randomize=randomize, agent_names_reveal_type=agent_names_reveal_type
-                      , n_runs=n_runs, tournament_path=tournament_path, total_timeout=total_timeout
+                      , max_n_runs=n_runs, tournament_path=tournament_path, total_timeout=total_timeout
                       , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
                       , tournament_progress_callback=tournament_progress_callback
                       , world_progress_callback=world_progress_callback, name=name, verbose=verbose
