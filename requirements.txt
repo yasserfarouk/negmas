@@ -31,3 +31,4 @@ distributed
 typing_extensions
 numba
 jupyter
+bokeh

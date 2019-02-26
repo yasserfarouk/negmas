@@ -1904,7 +1904,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         'competitors': [get_class(_).__name__ for _ in competitors],
         'randomize': randomize,
         'n_runs': n_runs,
-        'tournament_path': tournament_path,
+        'tournament_path': str(tournament_path),
         'total_timeout': total_timeout,
         'parallelism': parallelism,
         'scheduler_ip': scheduler_ip,
@@ -1971,7 +1971,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         for i, conf in enumerate(saved_configs):
             f_name = config_path / f'{i:06}.json'
             with open(f_name, 'w') as f:
-                json.dump(conf, f)
+                json.dump(conf, f, sort_keys=True, indent=4)
         return config_path
 
     scores = []

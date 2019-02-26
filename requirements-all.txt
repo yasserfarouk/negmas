@@ -7,6 +7,7 @@ autopep8==1.4.3
 Babel==2.6.0
 backcall==0.1.0
 bleach==3.1.0
+bokeh==1.0.4
 bumpversion==0.5.3
 certifi==2018.11.29
 chardet==3.0.4
@@ -63,7 +64,7 @@ mypy-extensions==0.4.1
 nb2plots==0.6
 nbconvert==5.4.0
 nbformat==4.4.0
--e git+https://github.com/yasserfarouk/negmas.git@c021e7bfd0aa25e768bd0885f3dd91b553ed8d80#egg=negmas
+-e git+https://github.com/yasserfarouk/negmas.git@381f4bde394dbae7e15e5f12b2169d668cd0656f#egg=negmas
 notebook==5.7.4
 numba==0.42.1
 numpy==1.16.1
@@ -77,6 +78,7 @@ pathtools==0.1.2
 pep8==1.7.1
 pexpect==4.6.0
 pickleshare==0.7.5
+Pillow==5.4.1
 pipenv==2018.11.26
 pipreqs==0.4.9
 pkginfo==1.5.0.1
