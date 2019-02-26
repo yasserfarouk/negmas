@@ -1222,20 +1222,16 @@ class Factory:
             running_command.updates = {k + 1: v for k, v in running_command.updates.items()}
             running_command.updates[running_command.step].combine(
                 FactoryStatusUpdate(balance=-profile.running_pause_cost, storage={}))
-        new_updates = running_command.updates.get(running_command.step, None)
-        updates.combine(new_updates)
+        updates = running_command.updates.get(running_command.step, None)
         if not running_command.paused:
             running_command.step += 1
-        if running_command.ended_before(t + 1):
-            self._carried_updates.combine(running_command.updates.get(running_command.step
-                                                                      , FactoryStatusUpdate.empty()))
         if updates.is_empty:
             return ProductionReport(updates=FactoryStatusUpdate.empty()
                                     , continuing=running_command if running_command.beg < t else None
                                     , started=running_command if running_command.beg == t else None
                                     , finished=running_command if running_command.end <= t + 1 else None
                                     , failure=None, line=line)
-        if new_updates is not None:
+        if updates is not None:
             del running_command.updates[running_command.step - 1]
         available_storage = self.max_storage - self._total_storage
         missing_inputs = []
@@ -1264,6 +1260,9 @@ class Factory:
                                     , started=running_command if running_command.beg == t else None
                                     , finished=running_command if running_command.end <= t + 1 else None
                                     , failure=failure, line=line)
+        if running_command.ended_before(t + 1):
+            self._carried_updates.combine(running_command.updates.get(running_command.step
+                                                                      , FactoryStatusUpdate.empty()))
         return ProductionReport(updates=updates
                                 , continuing=running_command if running_command.beg < t else None
                                 , started=running_command if running_command.beg == t else None
