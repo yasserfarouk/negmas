@@ -11,9 +11,41 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
-                , 'dataclasses', 'inflect', 'stringcase', 'pyyaml', 'tabulate', 'progressbar2', 'pytest', 'hypothesis'
-                , 'pytest-cov']
+requirements = ['Click>=6.0',
+                'pytest-runner',
+                'atomicwrites',
+                'attrs',
+                'click',
+                'colorlog',
+                'coverage',
+                'dataclasses',
+                'hypothesis',
+                'inflect',
+                'joblib',
+                'more-itertools',
+                'numpy',
+                'pandas',
+                'pluggy',
+                'progressbar2',
+                'py4j',
+                'py',
+                'pytest-cov',
+                'pytest-runner',
+                'pytest',
+                'python-dateutil',
+                'python-utils',
+                'pytz',
+                'pyyaml',
+                'scipy',
+                'six',
+                'stringcase',
+                'tabulate',
+                'distributed',
+                'typing_extensions',
+                'numba',
+                'jupyter',
+                'bokeh',
+                ]
 
 setup_requirements = requirements
 
