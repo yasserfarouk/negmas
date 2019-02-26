@@ -1824,7 +1824,7 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
     future_results = []
     for world_info in world_infos:
         future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator))
-    print(f'Submitted all processes ({len(world_infos)})')
+    print(f'Submitted all processes to DASK ({len(world_infos)})')
     for i, (future, result) in enumerate(
         distributed.as_completed(future_results, with_results=True, raise_errors=False)):
         try:
