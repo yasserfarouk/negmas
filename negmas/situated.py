@@ -85,6 +85,7 @@ PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
 
 yaml.warnings({'YAMLLoadWarning': False})
 
+
 @dataclass
 class Action:
     """An action that an `Agent` can execute in a `World` through the `Simulator`."""
@@ -1582,6 +1583,17 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
 
 
 def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
+    """
+    Saves the statistics of a world run
+
+    Args:
+        world:
+        log_dir:
+        params:
+
+    Returns:
+
+    """
     log_dir = Path(log_dir)
     os.makedirs(log_dir, exist_ok=True)
 
