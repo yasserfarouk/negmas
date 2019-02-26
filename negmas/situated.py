@@ -46,6 +46,7 @@ from typing import Optional, List, Any, Tuple, Callable, Union, Iterable, Set, I
 import distributed
 import numpy as np
 import pandas as pd
+import yaml
 from dataclasses import dataclass, field
 from typing_extensions import Protocol
 
@@ -82,6 +83,7 @@ __all__ = [
 
 PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
 
+yaml.warnings({'YAMLLoadWarning': False})
 
 @dataclass
 class Action:

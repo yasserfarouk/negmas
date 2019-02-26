@@ -9,11 +9,13 @@ import os
 import pandas as pd
 import progressbar
 from tabulate import tabulate
-import json
+import yaml
 
 from negmas import save_stats
 from negmas.apps.scml import *
 from negmas.helpers import humanize_time, unique_name
+
+yaml.warnings({'YAMLLoadWarning': False})
 
 click.option = partial(click.option, show_default=True)
 
