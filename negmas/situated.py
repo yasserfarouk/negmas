@@ -1855,7 +1855,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , parallelism='local'
                , scheduler_ip: Optional[str] = None
                , scheduler_port: Optional[str] = None
-               , tournament_progress_callback: Callable[[Optional[WorldRunResults], int, int], None] = lambda x: None
+               , tournament_progress_callback: Callable[[Optional[WorldRunResults], int, int], None] = None
                , world_progress_callback: Callable[[Optional[World]], None] = None
                , name: str = None
                , verbose: bool = False
