@@ -6,6 +6,7 @@ from time import perf_counter
 
 import click
 from tabulate import tabulate
+import distributed as daskdist
 
 from negmas import tournament, run_world, process_world_run
 from negmas.apps.scml.utils import anac2019_world, balance_calculator
@@ -97,15 +98,15 @@ def cli(name, steps, parallel, distributed, config, timeout, log, competitors, v
             address = f'{ip}:{port}'
         if verbose > 0:
             print(f'Will use DASK on {address}')
-        client = distributed.Client(address=address, set_as_default=True)
+        client = daskdist.Client(address=address, set_as_default=True)
         future_results = []
         n_worlds = len(configs)
         for config in configs:
             future_results.append(client.submit(run_world, config))
         if verbose > 0:
             print(f'Submitted all processes to dask ({n_worlds})')
-        for i, (future, result) in enumerate(
-            distributed.as_completed(future_results, with_results=True, raise_errors=False)):
+        for i, (future, result) in enumerate(daskdist.as_completed(future_results, with_results=True
+            , raise_errors=False)):
             try:
                 score_, dir_name = result
                 if tournament_progress_callback is not None:
