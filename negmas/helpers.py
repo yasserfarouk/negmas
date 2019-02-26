@@ -49,6 +49,8 @@ __all__ = [
     'pretty_string',
     'ConfigReader',
     'get_class',
+    'import_by_name',
+    'get_full_type_name',
     'instantiate',
     'humanize_time'
 ]
@@ -868,6 +870,28 @@ class Proxy:
 
     def __getattr__(self, item):
         return getattr(self._obj, item)
+
+
+def get_full_type_name(t: Type[Any]) -> str:
+    """Gets the ful typename of a type. You *should not* pass an instance to this function but it may just work."""
+    if not hasattr(t, '__module__') and not hasattr(t, '__name__'):
+        t = type(t)
+    return t.__module__ + '.' + t.__name__
+
+
+def import_by_name(full_name: str) -> Any:
+    """Imports something form a module using its full name"""
+    if not isinstance(full_name, str):
+        return full_name
+    modules: List[str] = []
+    parts = full_name.split('.')
+    modules = parts[:-1]
+    module_name = '.'.join(modules)
+    item_name = parts[:-1]
+    if len(modules) < 1:
+        raise ValueError(f'Cannot get the object {item_name} in module {module_name}  (modules {modules})')
+    module = importlib.import_module(module_name)
+    return getattr(module, item_name)
 
 
 def get_class(class_name: Union[str, Type], module_name: str = None, scope: dict = None) -> Type:

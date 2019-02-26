@@ -26,6 +26,7 @@ Simulation steps:
 
 """
 import concurrent.futures as futures
+import copy
 import itertools
 import json
 import os
@@ -51,7 +52,8 @@ from typing_extensions import Protocol
 from negmas.common import MechanismInfo, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
-from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name
+from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name, import_by_name, \
+    get_full_type_name
 from negmas.mechanisms import MechanismProxy, Mechanism
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue
@@ -73,7 +75,9 @@ __all__ = [
     'tournament',
     'WorldGenerator',
     'WorldRunResults',
-    'TournamentResults'
+    'TournamentResults',
+    'run_world',
+    'process_world_run',
 ]
 
 PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
@@ -1687,10 +1691,76 @@ class TournamentResults:
     ttest: pd.DataFrame
 
 
-def _run_world(world_info: dict, world_generator: WorldGenerator, score_calculator: Callable[[World], WorldRunResults]
+def run_world(world_info: dict):
+    """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
+
+    Args:
+        world_info: World info dict. See remarks for its parameters
+        
+    Remarks:
+    
+        The `world_info` dict should have the following members:
+
+            - name: world name [Defaults to random]
+            - competitors: list of strings giving competitor types [Defaults to an empty list]
+            - log_file_name: file name to store the world log [Defaults to random]
+            - randomize: whether to randomize assignment [Defaults to True]
+            - agent_names_reveal_type: whether agent names reveal type [Defaults to False]
+            - __dir_name: directory to store the world stats [Defaults to random]
+            - __world_generator: full name of the world generator function (including its module) [Required]
+            - __score_calculator: full name of the score calculator function [Required]
+            - __tournament_name: name of the tournament [Defaults to random]
+            - others: values of all other keys are passed to the world generator as kwargs
+    """
+    world_generator = world_info.get('__world_generator', None)
+    score_calculator = world_info.get('__score_calculator', None)
+    tournament_name = world_info.get('__tournament_name', unique_name(base=""))
+    assert world_generator and score_calculator, f'Cannot run without specifying both a world generator and a score ' \
+        f'calculator'
+
+    world_generator = import_by_name(world_generator)
+    score_calculator = import_by_name(score_calculator)
+    world_info['competitors'] = [get_class(_) for _ in world_info.get('competitors', [])]
+    default_name = unique_name(base="")
+    world_info['name'] = world_info.get('name', default_name)
+    world_name = world_info['name']
+    default_dir = (Path(f'~') / 'negmas' / 'tournaments' / tournament_name / world_name).absolute()
+    world_info['log_file_name'] = world_info.get('log_file_name', str(default_dir / 'log.txt'))
+    world_info['agent_names_reveal_type'] = world_info.get('agent_names_reveal_type', False)
+    world_info['randomize'] = world_info.get('randomzie', True)
+    world_info['__dir_name'] = world_info.get('__dir_name', str(default_dir))
+
+    # delete the parameters not used by _run_world
+    for k in ('__world_generator', '__tournament_name', '__score_calculator'):
+        if k in world_info.keys():
+            del world_info[k]
+    return _run_world(world_info=world_info, world_generator=world_generator, score_calculator=score_calculator)
+
+
+def _run_world(world_info: dict, world_generator: WorldGenerator,
+               score_calculator: Callable[[World], WorldRunResults]
                , world_progress_callback: Callable[[Optional[World]], None] = None
                ):
-    """Runs a world and returns stats"""
+    """Runs a world and returns stats
+
+    Args:
+        world_info: World info dict. See remarks for its parameters
+        world_generator: World generator function.
+        score_calculator: Score calculator function
+        world_progress_callback: world progress callback
+
+    Remarks:
+
+        The `world_info` dict should have the following members:
+
+            - name: world name
+            - competitors: list of types giving competitor types
+            - log_file_name: file name to store the world log
+            - randomize: whether to randomize assignment
+            - agent_names_reveal_type: whether agent names reveal type
+            - __dir_name: directory to store the world stats
+            - others: values of all other keys are passed to the world generator as kwargs
+    """
     world_info = world_info.copy()
     dir_name = world_info['__dir_name']
     del world_info['__dir_name']
@@ -1710,7 +1780,20 @@ def _run_world(world_info: dict, world_generator: WorldGenerator, score_calculat
     return scores, dir_name
 
 
-def _process_world_run(results: WorldRunResults, tournament_name: str, dir_name: str) -> pd.DataFrame:
+def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: str) -> pd.DataFrame:
+    """
+    Generates a dataframe with the results of this world run
+
+    Args:
+        results: Results of the world run
+        tournament_name: tournament name
+        dir_name: directory name to store the stats.
+
+    Returns:
+
+        A pandas DataFrame with agent_name, agent_type, score, log_file, world, and stats_folder columns
+
+    """
     log_file, world_name_ = results.log_file_name, results.world_name
     if log_file is not None:
         with open(log_file, 'a') as f:
@@ -1741,13 +1824,12 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
     for world_info in world_infos:
         future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator))
     print(f'Submitted all processes ({len(world_infos)})')
-    for i, (future, result) in enumerate(
-        distributed.as_completed(future_results, with_results=True, raise_errors=False)):
+    for i, (future, result) in enumerate(distributed.as_completed(future_results, with_results=True, raise_errors=False)):
         try:
             score_, dir_name = result
             if tournament_progress_callback is not None:
                 tournament_progress_callback(score_, i, n_worlds)
-            scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+            scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
         except Exception as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_worlds)
@@ -1771,8 +1853,9 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , world_progress_callback: Callable[[Optional[World]], None] = None
                , name: str = None
                , verbose: bool = False
+               , configs_only: bool = False
                , **kwargs
-               ) -> TournamentResults:
+               ) -> Union[TournamentResults, pathlib.Path]:
     """
     Runs a tournament
 
@@ -1798,6 +1881,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
         processing
         verbose: Verbosity
+        configs_only: If true, a config file for each 
         kwargs: Arguments to pass to the `world_generator` function
 
     Returns:
@@ -1811,6 +1895,11 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     assert world_progress_callback is None or parallelism not in dask_options, f'Cannot use {parallelism} with a world callback'
     if name is None:
         name = unique_name('', add_time=True, rand_digits=0)
+    competitors = list(competitors)
+    tournament_path = (pathlib.Path(tournament_path) / name).absolute()
+    tournament_path.mkdir(parents=True, exist_ok=True)
+    if verbose:
+        print(f'Results of Tournament {name} will be saved to {str(tournament_path)}')
     params = {
         'competitors': [get_class(_).__name__ for _ in competitors],
         'randomize': randomize,
@@ -1824,9 +1913,6 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         'n_worlds_to_run': None
     }
     params.update(kwargs)
-    competitors = list(competitors)
-    tournament_path = (pathlib.Path(tournament_path) / name).absolute()
-    os.makedirs(str(tournament_path), exist_ok=True)
     with (tournament_path / 'params.json').open('w') as f:
         json.dump(params, f, sort_keys=True, indent=4)
     world_infos = []
@@ -1871,6 +1957,23 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                     world_info.update(kwargs)
                     world_infos.append(world_info)
 
+    if configs_only:
+        saved_configs = [{k: copy.copy(v) if k != 'competitors' else [get_full_type_name(c) for c in v]
+                          for k, v in _.items()} for _ in world_infos]
+        score_calculator_name = get_full_type_name(score_calculator)
+        world_generator_name = get_full_type_name(world_generator)
+        for d in saved_configs:
+            d['__score_calculator'] = score_calculator_name
+            d['__world_generator'] = world_generator_name
+            d['__tournament_name'] = name
+        config_path = tournament_path / 'configs'
+        config_path.mkdir(exist_ok=True, parents=True)
+        for i, conf in enumerate(saved_configs):
+            f_name = config_path / f'{i:06}.json'
+            with open(f_name, 'w') as f:
+                json.dump(conf, f)
+        return config_path
+
     scores = []
     scores_file = str(tournament_path / 'scores.csv')
     n_worlds = len(world_infos)
@@ -1890,7 +1993,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                                        , score_calculator=score_calculator)
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_worlds)
-                scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(world_info['__dir_name'])))
+                scores.append(process_world_run(score_, tournament_name=name, dir_name=str(world_info['__dir_name'])))
             except Exception as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_worlds)
@@ -1909,7 +2012,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                 score_, dir_name = future.result()
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_worlds)
-                scores.append(_process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+                scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
             except futures.TimeoutError:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_worlds)
