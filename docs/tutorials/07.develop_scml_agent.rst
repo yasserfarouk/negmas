@@ -46,185 +46,24 @@ built-in greedy agent:
     from negmas.apps.scml.utils import anac2019_tournament
     from negmas.apps.scml import GreedyFactoryManager
     
-    n_worlds, n_steps = 4, 10 # how many worlds to run (max) for how many steps
-    
-    # --------------- progress bar stuff -------------------------
-    from ipywidgets import IntProgress
-    from IPython.display import display
-    import time
-    t_progress = IntProgress(min=0, max=n_worlds) # instantiate the bar
-    w_progress = IntProgress(min=0, max=n_steps) # instantiate the bar
-    display(t_progress) # display the bar
-    display(w_progress) # display the bar
-    # --------------- progress bar stuff -------------------------
-    
-    def print_progress(_, i, n) -> None:
-        """Print tournament progress"""
-        t_progress.value = i
-    
-    
-    def print_world_progress(world) -> None:
-        """Print current world progress"""
-        w_progress.value = world.current_step
-        
     results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
-                                  , agent_names_reveal_type=True
-                                  , n_runs=n_worlds, n_steps=n_steps
-                                  , parallelism='parallel'
+                                  , agent_names_reveal_type=True, n_runs_per_config=1
                                   , tournament_progress_callback=print_progress
                                   , world_progress_callback=print_world_progress)
 
 
-
-.. parsed-literal::
-
-    IntProgress(value=0, max=4)
-
-
-
-.. parsed-literal::
-
-    IntProgress(value=0, max=10)
-
-
-You can see the scores that each individual factory manager got:
+You can see the scores that each individual factory manager got (just a
+random sample):
 
 .. code:: ipython3
 
     results.scores.head()
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>agent_name</th>
-          <th>agent_type</th>
-          <th>log_file</th>
-          <th>score</th>
-          <th>stats_folder</th>
-          <th>world</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>my_2_0</td>
-          <td>MyFactoryManager</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
-          <td>00001/20190225-192632bunx</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>greedy_2_1</td>
-          <td>GreedyFactoryManager</td>
-          <td>None</td>
-          <td>0.031333</td>
-          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
-          <td>00001/20190225-192632bunx</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>my_2_2</td>
-          <td>MyFactoryManager</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
-          <td>00001/20190225-192632bunx</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>greedy_1_3</td>
-          <td>GreedyFactoryManager</td>
-          <td>None</td>
-          <td>0.042167</td>
-          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
-          <td>00001/20190225-192632bunx</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>my_1_4</td>
-          <td>MyFactoryManager</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>logs/tournaments/20190225-192632/00001/2019022...</td>
-          <td>00001/20190225-192632bunx</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 You can also check the total scores for each factory manager type:
 
 .. code:: ipython3
 
     results.total_scores
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>agent_type</th>
-          <th>score</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>GreedyFactoryManager</td>
-          <td>1.505667</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>MyFactoryManager</td>
-          <td>0.000000</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 If you want, you can check if these differences are statistically
 significant using a t-test:
@@ -233,80 +72,22 @@ significant using a t-test:
 
     results.ttest
 
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>a</th>
-          <th>b</th>
-          <th>p</th>
-          <th>t</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>MyFactoryManager</td>
-          <td>GreedyFactoryManager</td>
-          <td>0.004166</td>
-          <td>-3.039411</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
-
 So the greedy factory manager is better than the do-nothing factory
-manager getting a total score of 2878 compared with only 367 for the
-do-nothing factory manager. Moreover, this difference is statistically
-significant as the p-value is 0.041 < 0.05.
+manager getting a total score of 2878 compared with only 0 for the
+do-nothing factory manager (as expected). Moreover, this difference is
+statistically significant as the p-value is 0.041 < 0.05.
 
-Or, let's just find out who was the winner:
+Or, let's just find out who was the winner(s):
 
 .. code:: ipython3
 
     results.winners
 
-
-
-
-.. parsed-literal::
-
-    ['GreedyFactoryManager']
-
-
-
-and what was its to score:
+and what was its/their score:
 
 .. code:: ipython3
 
     print(results.winners_scores)
-
-
-.. parsed-literal::
-
-    [1.50566667]
-
 
 Now, you completed the development of your factory manager, tested it by
 running it in worlds and tournaments, what exactly should you do to

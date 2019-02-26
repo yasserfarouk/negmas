@@ -13,15 +13,24 @@ Firstly, let's import everything from the SCML app
 
     from negmas.apps.scml import *
 
-
 There are several ways to create an SCML world. One of the simplest is
-to use one of the class methods of the ``SCMLWorld`` class:
+to use one of the class methods of the ``SCMLWorld`` class. The
+resulting world will have > 100 production steps so simulating it will
+take a while. If you want to just test your installation (and do not
+care whether you get an accurate indicator of agent performance), you
+can set the number of steps to a small value (e.g. n\_steps=10).
 
 .. code:: ipython3
 
-    world = SCMLWorld.single_path_world(n_steps=50, n_consumers=5, n_miners=5, n_factories_per_level=5, n_intermediate_levels=1)
+    world = SCMLWorld.single_path_world(agent_names_reveal_type=True
+                                        # n_steps=10                        # remove this comment for a fast test but do not expect factories to gain anything
+                                       )
 
-Now you can run this world simulation by just calling ``run``:
+For debugging purposes, we set ``agent_names_reveal_type`` to true to be
+able to know the type of an agent from its name. During the actual ANAC
+2019 competition this is passed as ``False`` preventing agents from
+knowing the type of other agents by just inspecting their name. Now you
+can run this world simulation by just calling ``run``.
 
 .. code:: ipython3
 
@@ -33,10 +42,14 @@ conducted over time
 .. code:: ipython3
 
     plt.plot(world.stats['n_negotiations'])
-    None
+    plt.xlabel('Simulation Step')
+    plt.ylabel('N. Negotiations')
+    plt.show()
 
 
-
+.. image:: 06.run_scml_files/06.run_scml_7_0.png
+   :width: 1069px
+   :height: 386px
 
 It is clear that many negotiations happened at the beginning of the
 simulation with smaller number later. That is expected as the consumers
@@ -51,7 +64,7 @@ Several other statistics are available:
 
 .. parsed-literal::
 
-    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_HaXzjSLSTPms', 'storage_HaXzjSLSTPms', 'balance_cVvysvJ7CR6j', 'storage_cVvysvJ7CR6j', 'balance_XtQ1Dw8PGMWM', 'storage_XtQ1Dw8PGMWM', 'balance_LpBaxOh2xVy6', 'storage_LpBaxOh2xVy6', 'balance_5ACr3sBEj9Es', 'storage_5ACr3sBEj9Es', 'balance_RcIAY6PIDlzA', 'storage_RcIAY6PIDlzA', 'balance_8vMHihvTVyGB', 'storage_8vMHihvTVyGB', 'balance_X6CdTCHSlT3R', 'storage_X6CdTCHSlT3R', 'balance_jCDBzi9Lbq6e', 'storage_jCDBzi9Lbq6e', 'balance_0gDzlCpPZOsc', 'storage_0gDzlCpPZOsc', 'market_size', 'production_failures', '_market_size_total']
+    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy_1_0', 'storage_greedy_1_0', 'balance_greedy_1_1', 'storage_greedy_1_1', 'balance_greedy_1_2', 'storage_greedy_1_2', 'balance_greedy_1_3', 'storage_greedy_1_3', 'balance_greedy_1_4', 'storage_greedy_1_4', 'market_size', 'production_failures', '_market_size_total']
 
 
 We can for example check the activity level of this world (defined as
@@ -60,9 +73,13 @@ the total amount of money transferred due to trade)
 .. code:: ipython3
 
     plt.plot(world.stats['activity_level'])
-    None
+    plt.xlabel('Simulation Step')
+    plt.ylabel('Activitiy Level ($)\nTotal Money Transferred')
+    plt.show()
 
-
+.. image:: 06.run_scml_files/06.run_scml_11_0.png
+   :width: 1069px
+   :height: 386px
 
 
 We can see a picture of contracting in this world as follows:
@@ -73,20 +90,29 @@ We can see a picture of contracting in this world as follows:
     plt.plot(world.stats['n_contracts_cancelled'], label='Cancelled Contracts') 
     plt.plot(world.stats['n_contracts_signed'], label='Signed Contracts') 
     plt.plot(world.stats['n_contracts_executed'], label='Executed Contracts')
-    plt.legend()         
-    None
+    plt.legend()
+    plt.xlabel('Simulation Step')
+    plt.ylabel('N. Contracts')
+    plt.show()
 
-
+.. image:: 06.run_scml_files/06.run_scml_13_0.png
+   :width: 1069px
+   :height: 386px
 
 
 We can also check the breaches that happened
 
 .. code:: ipython3
 
-    plt.plot(world.stats['n_breaches'])
-    None
+    plt.plot(world.stats['breach_level'])
+    plt.xlabel('Simulation Step')
+    plt.ylabel('Total Breach Level')
+    plt.show()
 
 
+.. image:: 06.run_scml_files/06.run_scml_15_0.png
+   :width: 1069px
+   :height: 386px
 
 
 That was a good run. No breaches were committed :-)
@@ -104,7 +130,7 @@ maximum wealth). Notice that there can be multiple winners
 
 .. parsed-literal::
 
-    [HaXzjSLSTPms]
+    [greedy_1_0]
 
 
 
@@ -115,9 +141,13 @@ What was the balance of this winner over time:
     for winner in world.winners:
         plt.plot(world.stats[f'balance_{winner}'], label=f'{winner}\n({winner.__class__.__name__})')
     plt.legend()
-    None
+    plt.xlabel('Simulation Step')
+    plt.ylabel('Winner\'s Balance ($)')
+    plt.show()
 
-
+.. image:: 06.run_scml_files/06.run_scml_19_0.png
+   :width: 1069px
+   :height: 386px
 
 
 Let's check how did its total storage change over time:
@@ -126,10 +156,15 @@ Let's check how did its total storage change over time:
 
     for winner in world.winners:
         plt.plot(world.stats[f'storage_{winner}'], label=winner)
+    plt.xlabel('Simulation Step')
+    plt.ylabel('Player\'s Total Storage (item)')
     plt.legend()
-    None
+    plt.show()
 
 
+.. image:: 06.run_scml_files/06.run_scml_21_0.png
+   :width: 1069px
+   :height: 386px
 
 
 We can actually check what happens to ALL competitors:
@@ -138,14 +173,17 @@ We can actually check what happens to ALL competitors:
 
     for name, _ in sorted(((_.name, _) for _ in world.factory_managers), key=lambda x: x[0]):    
         plt.plot(world.stats[f'balance_{name}'], label=name)
+    plt.xlabel('Simulation Step')
+    plt.ylabel('Player Balance ($)')
     plt.legend()
-    None
+    plt.show()
+
+.. image:: 06.run_scml_files/06.run_scml_23_0.png
+   :width: 1069px
+   :height: 386px
 
 
-
-
-
-
+It is clear form the figure that the winner was by far the best player.
 
 
 Download :download:`Notebook<notebooks/06.run_scml.ipynb>`.
