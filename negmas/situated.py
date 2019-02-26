@@ -1585,6 +1585,11 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
 
     with open(log_dir / 'stats.csv', 'w') as f:
         json.dump(world.stats, f, indent=4, sort_keys=True)
+    try:
+        data = pd.DataFrame.from_dict(world.stats)
+        data.to_csv(str(log_dir / 'stats.csv'), index_label='index')
+    except:
+        pass
     if len(world.saved_negotiations) > 0:
         data = pd.DataFrame(world.saved_negotiations)
         data.to_csv(str(log_dir / 'negotiations.csv'), index_label='index')
