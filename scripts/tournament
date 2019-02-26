@@ -1,14 +1,11 @@
 #!/usr/bin/env python
-import json
-import traceback
 from functools import partial
 from time import perf_counter
 
 import click
 from tabulate import tabulate
-import distributed as daskdist
 
-from negmas import tournament, run_world, process_world_run
+from negmas import tournament
 from negmas.apps.scml.utils import anac2019_world, balance_calculator
 from negmas.helpers import humanize_time
 
@@ -72,62 +69,15 @@ def cli(name, steps, parallel, distributed, config, timeout, log, competitors, v
         exit(1)
     parallelism = 'dask' if distributed else 'parallel' if parallel else 'serial'
     start = perf_counter()
-    if parallelism == 'dask' and not configs_only:
-        config_path = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
-                                 , tournament_path=log, total_timeout=timeout
-                                 , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
-                                 , tournament_progress_callback=print_progress if verbose > 0 else None
-                                 , world_progress_callback=None
-                                 , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
-                                 , world_generator=anac2019_world, score_calculator=balance_calculator
-                                 , configs_only=True, randomize=randomize
-                                 , n_steps=steps)
-        tournament_progress_callback = print_world_progress if parallelism != 'dask' and verbose else None
-        configs = [_.absolute() for _ in config_path.iterdir() if _.is_file() and _.suffix == 'json']
-        for i, config in enumerate(configs):
-            with open(str(config), 'r') as f:
-                configs[i] = json.load(f)
-        scores = []
-        if ip is None and port is None:
-            address = None
-        else:
-            if ip is None:
-                ip = '127.0.0.1'
-            if port is None:
-                port = '8786'
-            address = f'{ip}:{port}'
-        if verbose > 0:
-            print(f'Will use DASK on {address}')
-        client = daskdist.Client(address=address, set_as_default=True)
-        future_results = []
-        n_worlds = len(configs)
-        for config in configs:
-            future_results.append(client.submit(run_world, config))
-        if verbose > 0:
-            print(f'Submitted all processes to dask ({n_worlds})')
-        for i, (future, result) in enumerate(daskdist.as_completed(future_results, with_results=True
-            , raise_errors=False)):
-            try:
-                score_, dir_name = result
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(score_, i, n_worlds)
-                scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
-            except Exception as e:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_worlds)
-                print(traceback.format_exc())
-                print(e)
-        client.shutdown()
-    else:
-        results = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
-                             , tournament_path=log, total_timeout=timeout
-                             , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
-                             , tournament_progress_callback=print_progress if verbose > 0 else None
-                             , world_progress_callback=print_world_progress if verbose > 1 else None
-                             , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
-                             , world_generator=anac2019_world, score_calculator=balance_calculator
-                             , configs_only=configs_only, randomize=randomize
-                             , n_steps=steps)
+    results = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
+                         , tournament_path=log, total_timeout=timeout
+                         , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
+                         , tournament_progress_callback=print_progress if verbose > 0 else None
+                         , world_progress_callback=print_world_progress if verbose > 1 and not distributed else None
+                         , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
+                         , world_generator=anac2019_world, score_calculator=balance_calculator
+                         , configs_only=configs_only, randomize=randomize
+                         , n_steps=steps)
     if configs_only:
         print(f'Saved all configs to {str(results)}')
         print(f'Finished in {humanize_time(perf_counter() - start)} [config-only]')
