@@ -46,10 +46,10 @@ conducted over time
     plt.ylabel('N. Negotiations')
     plt.show()
 
-
 .. image:: 06.run_scml_files/06.run_scml_7_0.png
    :width: 1069px
    :height: 386px
+
 
 It is clear that many negotiations happened at the beginning of the
 simulation with smaller number later. That is expected as the consumers
@@ -95,9 +95,11 @@ We can see a picture of contracting in this world as follows:
     plt.ylabel('N. Contracts')
     plt.show()
 
+
 .. image:: 06.run_scml_files/06.run_scml_13_0.png
    :width: 1069px
    :height: 386px
+
 
 
 We can also check the breaches that happened
@@ -113,6 +115,7 @@ We can also check the breaches that happened
 .. image:: 06.run_scml_files/06.run_scml_15_0.png
    :width: 1069px
    :height: 386px
+
 
 
 That was a good run. No breaches were committed :-)
@@ -145,9 +148,11 @@ What was the balance of this winner over time:
     plt.ylabel('Winner\'s Balance ($)')
     plt.show()
 
+
 .. image:: 06.run_scml_files/06.run_scml_19_0.png
    :width: 1069px
    :height: 386px
+
 
 
 Let's check how did its total storage change over time:
@@ -167,6 +172,7 @@ Let's check how did its total storage change over time:
    :height: 386px
 
 
+
 We can actually check what happens to ALL competitors:
 
 .. code:: ipython3
@@ -178,9 +184,11 @@ We can actually check what happens to ALL competitors:
     plt.legend()
     plt.show()
 
+
 .. image:: 06.run_scml_files/06.run_scml_23_0.png
    :width: 1069px
    :height: 386px
+
 
 
 It is clear form the figure that the winner was by far the best player.

@@ -21,6 +21,8 @@ That is actually the ONLY abstract method you need to implement.
 .. code:: ipython3
 
     from negmas.apps.scml import FactoryManager
+    import yaml
+    yaml.warnings({'YAMLLoadWarning': False}) # avoid a dask warning in newest yaml.
     class MyFactoryManager(FactoryManager):
         """My factory manager"""
 
@@ -47,10 +49,7 @@ built-in greedy agent:
     from negmas.apps.scml import GreedyFactoryManager
     
     results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
-                                  , agent_names_reveal_type=True, n_runs_per_config=1
-                                  , tournament_progress_callback=print_progress
-                                  , world_progress_callback=print_world_progress)
-
+                                  , agent_names_reveal_type=True, n_runs_per_config=1)
 
 You can see the scores that each individual factory manager got (just a
 random sample):
@@ -107,6 +106,8 @@ You need to submit the following items:
 
 That is it folks! You can now start developing your own factory manager.
 Have fun.
+
+
 
 
 Download :download:`Notebook<notebooks/07.develop_scml_agent.ipynb>`.
