@@ -1846,7 +1846,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , score_calculator: Callable[[World], WorldRunResults]
                , randomize=False
                , agent_names_reveal_type=False
-               , max_n_runs: int = 100
+               , max_n_runs: int = 1000
                , n_runs_per_config: int = 5
                , tournament_path: str = './logs/tournaments'
                , total_timeout: Optional[int] = None
@@ -1900,7 +1900,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     assert world_progress_callback is None or parallelism not in dask_options, f'Cannot use {parallelism} with a world callback'
     if name is None:
         name = unique_name('', add_time=True, rand_digits=0)
-    competitors = list(competitors)
+    competitors = list(set(competitors))
     if tournament_path.startswith('~'):
         tournament_path = Path.home() / ('/'.join(tournament_path.split('/')[1:]))
     tournament_path = (pathlib.Path(tournament_path) / name).absolute()
@@ -1908,7 +1908,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     if verbose:
         print(f'Results of Tournament {name} will be saved to {str(tournament_path)}')
     params = {
-        'competitors': [get_class(_).__name__ for _ in competitors],
+        'competitors': [get_class(_).__name__ if not isinstance(_, str) else _ for _ in competitors],
         'randomize': randomize,
         'n_runs': max_n_runs,
         'tournament_path': str(tournament_path),
@@ -2062,5 +2062,11 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     if verbose:
         print(f'Tournament completed successfully\nWinners: {list(zip(winners, winner_scores))}')
 
+    scores.to_csv(str(tournament_path / 'scores.csv'), index_label='index')
+    total_scores.to_csv(str(tournament_path / 'total_scores.csv'), index_label='index')
+    winner_table.to_csv(str(tournament_path / 'winners.csv'), index_label='index')
+    ttest_results = pd.DataFrame(data=ttest_results)
+    ttest_results.to_csv(str(tournament_path / 'ttest.csv'), index_label='index')
+
     return TournamentResults(scores=scores, total_scores=total_scores, winners=winners, winners_scores=winner_scores
-                             , ttest=pd.DataFrame(data=ttest_results))
+                             , ttest=ttest_results)
