@@ -1,9 +1,10 @@
 import math
 import sys
+from os import PathLike
 from random import randint
 
 from negmas.helpers import get_class
-from negmas.situated import WorldRunResults, TournamentResults, tournament
+from negmas.tournaments import WorldRunResults, TournamentResults, tournament
 from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
@@ -177,18 +178,53 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , parallelism='parallel'
                         , scheduler_ip: Optional[str] = None
                         , scheduler_port: Optional[str] = None
-                        , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = lambda x: None
+                        , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None
                         , world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None
                         , name: str = None
                         , verbose: bool = False
-                        , config_only=False
+                        , configs_only=False
                         , **kwargs
-                        ) -> TournamentResults:
+                        ) -> Union[TournamentResults, PathLike]:
+    """
+    The function used to run ANAC 2019 SCML tournaments.
+
+    Args:
+
+        name: Tournament name
+        competitors: A list of class names for the competitors
+        randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
+        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
+        beginning).
+        max_n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
+        the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
+        n_runs_per_config: Number of runs per configuration.
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
+        keep detailed logs
+        parallelism: Type of parallelism. Can be 'none' for serial, 'local' for parallel and 'dist' for distributed
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        world_progress_callback: A function to be called after everystep of every world run (only allowed for serial
+        evaluation and should be used with cautious).
+        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
+        processing
+        verbose: Verbosity
+        configs_only: If true, a config file for each
+        kwargs: Arguments to pass to the `world_generator` function
+
+    Returns:
+        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+
+    Remarks:
+        Default parameters will be used in the league with the exception of `parallelism` which may use distributed
+        processing
+
+    """
     return tournament(competitors=competitors, randomize=randomize, agent_names_reveal_type=agent_names_reveal_type
                       , max_n_runs=max_n_runs, n_runs_per_config=n_runs_per_config
                       , tournament_path=tournament_path, total_timeout=total_timeout
                       , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
                       , tournament_progress_callback=tournament_progress_callback
                       , world_progress_callback=world_progress_callback, name=name, verbose=verbose
-                      , configs_only=config_only
+                      , configs_only=configs_only
                       , world_generator=anac2019_world, score_calculator=balance_calculator, **kwargs)

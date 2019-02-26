@@ -872,7 +872,7 @@ class Proxy:
         return getattr(self._obj, item)
 
 
-def get_full_type_name(t: Type[Any]) -> str:
+def get_full_type_name(t: Union[Type[Any], Callable]) -> str:
     """Gets the ful typename of a type. You *should not* pass an instance to this function but it may just work."""
     if not hasattr(t, '__module__') and not hasattr(t, '__name__'):
         t = type(t)

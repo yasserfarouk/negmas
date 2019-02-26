@@ -5,7 +5,7 @@ import yaml
 import click
 from tabulate import tabulate
 
-from negmas import tournament
+from negmas.tournaments import tournament
 from negmas.apps.scml.utils import anac2019_world, balance_calculator
 from negmas.helpers import humanize_time
 

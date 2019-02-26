@@ -17,4 +17,4 @@ from .situated import *
 
 __all__ = common.__all__ + outcomes.__all__ + utilities.__all__ + negotiators.__all__ + mechanisms.__all__ \
           + sao.__all__ + acceptance_models.__all__ + inout.__all__ + genius.__all__ + situated.__all__ \
-          + ['generics', 'helpers', 'events', 'apps']
+          + ['generics', 'helpers', 'events', 'apps', 'tournaments']
