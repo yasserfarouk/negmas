@@ -33,3 +33,5 @@ numba
 jupyter
 bokeh
 networkx
+nbsphinx
+ipykernel

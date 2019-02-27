@@ -3,16 +3,15 @@ NegMAS
 ======
 
 
-.. .. image:: https://img.shields.io/pypi/v/negmas/svg
-..         :target: https://pypi.python.org/pypi/negmas
+.. image:: https://img.shields.io/pypi/v/negmas/svg
+        :target: https://pypi.python.org/pypi/negmas
 
-.. .. image:: https://img.shields.io/travis/yasserfarouk/negmas/svg
-..         :target: https://travis-ci.org/yasserfarouk/negmas
+.. image:: https://img.shields.io/travis/yasserfarouk/negmas/svg
+        :target: https://travis-ci.org/yasserfarouk/negmas
 
-.. .. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
-..         :target: https://negmas/readthedocs.io/en/latest/?badge=latest
-..         :alt: Documentation Status
-
+.. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
+        :target: https://negmas/readthedocs.io/en/latest/?badge=latest
+        :alt: Documentation Status
 
 
 
@@ -137,7 +136,14 @@ negotiation using `add()` and removed using `remove()`. See the documentation fo
 Running a world simulation
 --------------------------
 
-One of the main
+The *raison d'être* for NegMAS is to allow you to develop negotiation agents capable of behaving in realistic
+*business like* simulated environments. These simulations are called *worlds* in NegMAS. Agents interact with each other
+within these simulated environments trying their maximize some intrinsic utility function of the agent through several
+*possibly simultaneous* negotiations.
+
+The `situated` module provides all that you need to create such worlds. An example can be found in the `scml` package.
+This package implements a supply chain management system in which factory managers compete to maximize their profits in
+a market with only negotiations as the means of securing contracts.
 
 
 Acknowledgement
