@@ -13,6 +13,11 @@ with open('HISTORY.rst') as history_file:
 
 with open('requirements.txt', 'r') as f:
     requirements = [_.replace('\n', '') for _ in f.readlines() if not _.startswith('-')]
+
+with open('negmas/__init__.py') as f:
+    version = [_ for _ in f.readlines() if _.startswith('__version__')][0]
+    version = version.split('\'')[-2]
+
 setup_requirements = requirements
 
 test_requirements = requirements
@@ -47,7 +52,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.14',
+    version=version,
     zip_safe=False,
 )
 
