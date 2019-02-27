@@ -11,9 +11,43 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-with open('requirements.txt', 'r') as f:
-    requirements = [_.replace('\n', '') for _ in f.readlines() if not _.startswith('-')]
-
+requirements = [
+    'atomicwrites',
+    'attrs',
+    'click',
+    'colorlog',
+    'coverage',
+    'dataclasses',
+    'hypothesis',
+    'inflect',
+    'joblib',
+    'more-itertools',
+    'numpy',
+    'pandas',
+    'pluggy',
+    'progressbar2',
+    'py4j',
+    'py',
+    'pytest-cov',
+    'pytest-runner',
+    'pytest',
+    'python-dateutil',
+    'python-utils',
+    'pytz',
+    'pyyaml',
+    'scipy',
+    'six',
+    'stringcase',
+    'tabulate',
+    'distributed',
+    'typing_extensions',
+    'numba',
+    'jupyter',
+    'bokeh',
+    'networkx',
+    'nbsphinx',
+    'ipykernel',
+]
 
 setup_requirements = requirements
 
@@ -30,12 +64,12 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     description='A library for situated automated negotiations',
-    #entry_points={
+    # entry_points={
     #    'console_scripts': [
     #        'rungenius=scripts.rungenius.cli',
     #        'scml=scripts.scml.cli',
     #    ],
-    #},
+    # },
     scripts=['scripts/rungenius', 'scripts/scml', 'scripts/tournament'],
     install_requires=requirements,
     python_requires='>=3.6',
@@ -49,7 +83,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.17',
+    version='0.1.18',
     zip_safe=False,
 )
-
