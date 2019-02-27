@@ -422,7 +422,10 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                            , tournament_progress_callback, n_worlds, name, score_calculator)
     if verbose:
         print(f'Finding winners')
-
+    if len(scores) < 1:
+        return TournamentResults(scores=pd.DataFrame(), total_scores=pd.DataFrame()
+                          , winners=[], winners_scores=np.array([])
+                          , ttest=pd.DataFrame())
     scores: pd.DataFrame = pd.concat(scores, ignore_index=True)
     scores = pd.DataFrame(data=scores)
     scores.to_csv(scores_file, index_label='index')
