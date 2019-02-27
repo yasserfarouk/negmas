@@ -13,8 +13,9 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
-                , 'dataclasses', 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2', 'pytest', 'hypothesis'
-                , 'pytest-cov']
+                , 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2', 'pytest'
+                , 'hypothesis'
+                , 'pytest-cov', 'typing_extensions', 'numba', 'distributed']
 
 setup_requirements = requirements
 
@@ -39,7 +40,7 @@ setup(
     # },
     scripts=['scripts/rungenius', 'scripts/scml', 'scripts/tournament'],
     install_requires=requirements,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     license="GNU General Public License v2 (GPLv2)",
     long_description=readme,
     include_package_data=True,
@@ -50,6 +51,6 @@ setup(
     # test_suite='negmas/tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.23',
+    version='0.1.24',
     zip_safe=False,
 )
