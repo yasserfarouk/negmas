@@ -14,7 +14,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'atomicwrites',
     'attrs',
-    'click',
+    'Click>=6',
     'colorlog',
     'coverage',
     'dataclasses',
@@ -83,6 +83,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.20',
+    version='0.1.21',
     zip_safe=False,
 )
