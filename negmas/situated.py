@@ -661,7 +661,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                  , log_file_name=''
                  , mechanisms: Dict[str, Dict[str, Any]] = None
                  , screen_log: bool = False
-                 , awi_type: str = 'negmas.apps.scml.AgentWorldInterface'
+                 , awi_type: str = 'negmas.situated.AgentWorldInterface'
                  , start_negotiations_immediately: bool = False
                  , save_signed_contracts: bool = True
                  , save_cancelled_contracts: bool = True

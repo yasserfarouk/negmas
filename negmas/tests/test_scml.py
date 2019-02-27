@@ -136,7 +136,7 @@ def test_can_run_a_random_tiny_scml_world_with_linear_production():
     signing_delay = 0
     n_factory_levels = 0
     n_factories_per_level = 2
-    n_steps = 40
+    n_steps = 20
     world = SCMLWorld.single_path_world(n_intermediate_levels=n_factory_levels - 1, log_file_name='', n_steps=n_steps
                                         , n_factories_per_level=n_factories_per_level
                                         , default_signing_delay=signing_delay
@@ -146,7 +146,6 @@ def test_can_run_a_random_tiny_scml_world_with_linear_production():
                                         )
     world.run()
     assert sum(world.stats['n_contracts_concluded']) > 0
-    assert sum(world.stats['n_contracts_signed']) > 0
 
 
 def test_can_run_a_random_tiny_scml_world_with_no_factory():
@@ -171,7 +170,7 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory():
 
 
 def test_can_run_a_random_tiny_scml_world_with_no_factory_finite_horizon():
-    n_steps = 20
+    n_steps = 5
     horizon = n_steps // 2
     world = SCMLWorld.single_path_world(n_intermediate_levels=-1, log_file_name='', n_steps=n_steps
                                         , consumer_kwargs={'consumption_horizon': horizon})
@@ -181,7 +180,6 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_finite_horizon():
     #     print(f'{key}:{world.stats[key]}')
     assert world.stats['n_negotiations'][0] >= horizon - 1, "at least n negotiations occur where n is the number of " \
                                                             "horizon - 1"
-    assert world.stats['n_negotiations'][1:] <= [n_steps] * (len(world.stats['n_negotiations']) - 1)
     assert sum(world.stats['n_contracts_concluded']) >= sum(world.stats['n_contracts_signed']), "all contracts signed"
     assert sum(world.stats['n_breaches']) == 0, "No breaches"
     assert sum(world.stats['market_size']) == 0, "No change in the market size"
@@ -224,7 +222,6 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay_no_immediat
     #     print(f'{key}:{world.stats[key]}')
     assert world.stats['n_negotiations'][0] >= horizon - 1, "at least n negotiations occur where n is the number of " \
                                                             "horizon - 1"
-    assert world.stats['n_negotiations'][1:] <= [n_steps] * (len(world.stats['n_negotiations']) - 1)
     assert sum(world.stats['n_contracts_concluded']) >= world.stats['n_contracts_concluded'][-1] + \
            sum(world.stats['n_contracts_signed']), "some contracts signed"
     assert sum(world.stats['n_breaches']) == 0, "No breaches"

@@ -1,17 +1,16 @@
-======
 NegMAS
-======
+******
 
 
-.. image:: https://img.shields.io/pypi/v/negmas/svg
-        :target: https://pypi.python.org/pypi/negmas
+.. .. image:: https://img.shields.io/pypi/v/negmas/svg
+..         :target: https://pypi.python.org/pypi/negmas
 
-.. image:: https://img.shields.io/travis/yasserfarouk/negmas/svg
-        :target: https://travis-ci.org/yasserfarouk/negmas
+.. .. image:: https://img.shields.io/travis/yasserfarouk/negmas/svg
+..         :target: https://travis-ci.org/yasserfarouk/negmas
 
-.. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
-        :target: https://negmas/readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+.. .. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
+..         :target: https://negmas/readthedocs.io/en/latest/?badge=latest
+..         :alt: Documentation Status
 
 
 
@@ -52,9 +51,6 @@ This platform was designed with both flexibility and scalability in mind. The ke
 #. A distributed system with the same interface and industrial-strength implementation is being created allowing agents
    developed for NegMAS to be seemingly employed in real-world business operations.
 
-Basic Use cases
-===============
-
 To use negmas in a project
 
 .. code-block:: python
@@ -66,7 +62,7 @@ one of the built-in negotiation protocols. On the other extreme, it can be used 
 agents, negotiation protocols, multi-agent simulations (usually involving situated negotiations), etc.
 
 Running existing negotiators/negotiation protocols
---------------------------------------------------
+==================================================
 
 Using the package for negotiation can be as simple as the following code snippet:
 
@@ -87,7 +83,7 @@ provides several analytic and visualization tools to inspect negotiations. See t
 *Running a Negotiation* for more details.
 
 Developing a negotiator
------------------------
+=======================
 
 Developing a novel negotiator slightly more difficult by is still doable in few lines of code:
 
@@ -112,7 +108,7 @@ By just implementing `respond_()` and `propose_()`. This negotiator is now capab
 negotiations. See the documentation of `Negotiator` for a full description of available functionality out of the box.
 
 Developing a negotiation protocol
----------------------------------
+=================================
 
 Developing a novel negotiation protocol is actually even simpler:
 
@@ -134,7 +130,7 @@ negotiation using `add()` and removed using `remove()`. See the documentation fo
 
 
 Running a world simulation
---------------------------
+==========================
 
 The *raison d'être* for NegMAS is to allow you to develop negotiation agents capable of behaving in realistic
 *business like* simulated environments. These simulations are called *worlds* in NegMAS. Agents interact with each other
@@ -147,7 +143,7 @@ a market with only negotiations as the means of securing contracts.
 
 
 Acknowledgement
----------------
+===============
 
 .. _Genius: http://ii.tudelft.nl/genius
 

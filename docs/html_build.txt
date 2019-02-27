@@ -1,0 +1,215 @@
+WARNING: while settingloading pickled environment... done
+[automodsumm] references.rst: found 150 automodsumm entries to generate
+[automodsumm] application_modules.rst: found 36 automodsumm entries to generate
+[automodsumm] helper_modules.rst: found 39 automodsummreadme.rst:6: WARNING: download file not readable: /Users/yasser/code/projects/negmas/docs/_build/latex/negmas.pdf
+/Users/yasser/code/projects/negmas/docs/negmas.rst:16: WARNING: toctree contains reference to nonexisting document 'negmas.tournaments'
+WARNING: Cannot resolve forward reference in type annotations of "negmas.MechanismInfo": name 'Issue' is not defined
+WARNING: Cannot resolve forward reference in type annotations of looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+writing output... [ 12%] index
+writing output... [ 25%] modules
+writing output... [ 37%] negmas
+writing output... [ 50%] negmas.tests
+writing output... [ 62%] negmas.tests.test_greedy_scheduler
+writing output... [ 75%] readme
+writing output... [ 87%] tutorials
+writing output... [100%] tutorials/06.run_scml
+
+generating indices... genindex py-modindex
+highlighting module code... [  2%] negmas.acceptance_models
+highlighting module code... [  5%] negmas.apps.scml.awi
+highlighting module code... [  8%] negmas.apps.scml.bank
+highlighting module code... [ 10%] negmas.apps.scml.common
+highlighting module code... [ 13%] negmas.apps.scml.consumers
+highlighting module code... [ 16%] negmas.apps.scml.factory_managers
+highlighting module code... [ 18%] negmas.apps.scml.insurance
+highlighting module code... [ 21%] negmas.apps.scml.miners
+highlighting module code... [ 24%] negmas.apps.scml.schedulers
+highlighting module code... [ 27%] negmas.apps.scml.world
+highlighting module code... [ 29%] negmas.common
+highlighting module code... [ 32%] negmas.events
+highlighting module code... [ 35%] negmas.generics
+highlighting module code... [ 37%] negmas.genius
+highlighting module code... [ 40%] negmas.helpers
+highlighting module code... [ 43%] negmas.inout
+highlighting module code... [ 45%] negmas.mechanisms
+highlighting module code... [ 48%] negmas.negotiators
+highlighting module code... [ 51%] negmas.outcomes
+highlighting module code... [ 54%] negmas.sao
+highlighting module code... [ 56%] negmas.situated
+highlighting module code... [ 59%] negmas.tests.fixtures
+highlighting module code... [ 62%] negmas.tests.test_basic_agent
+highlighting module code... [ 64%] negmas.tests.test_genius
+highlighting module code... [ 67%] negmas.tests.test_helpers
+highlighting module code... [ 70%] negmas.tests.test_inout
+highlighting module code... [ 72%] negmas.tests.test_integration
+highlighting module code... [ 75%] negmas.tests.test_issue
+highlighting module code... [ 78%] negmas.tests.test_negotiators
+highlighting module code... [ 81%] negmas.tests.test_outcomes
+highlighting module code... [ 83%] negmas.tests.test_protocols
+highlighting module code... [ 86%] negmas.tests.test_scml
+highlighting module code... [ 89%] negmas.tests.test_situated
+highlighting module code... [ 91%] negmas.tests.test_utilities
+highlighting module code... [ 94%] negmas.tournaments
+highlighting module code... [ 97%] negmas.utilities
+highlighting module code... [100%] typing
+
+writing additional pages... search
+copying images... [ 14%] tutorials/06.run_scml_files/06.run_scml_7_0.png
+copying images... [ 28%] tutorials/06.run_scml_files/06.run_scml_11_0.png
+copying images... [ 42%] tutorials/06.run_scml_files/06.run_scml_13_0.png
+copying images... [ 57%] tutorials/06.run_scml_files/06.run_scml_15_0.png
+copying images... [ 71%] tutorials/06.run_scml_files/06.run_scml_19_0.png
+copying images... [ 85%] tutorials/06.run_scml_files/06.run_scml_21_0.png
+copying images... [100%] tutorials/06.run_scml_files/06.run_scml_23_0.png
+
+copying downloadable files... [ 14%] tutorials/notebooks/01.running_simple_negotiation.ipynb
+copying downloadable files... [ 28%] tutorials/notebooks/02.develop_new_negotiator.ipynb
+copying downloadable files... [ 42%] tutorials/notebooks/03.develop_new_mechanism.ipynb
+copying downloadable files... [ 57%] tutorials/notebooks/04.develop_new_simulation.ipynb
+copying downloadable files... [ 71%] tutorials/notebooks/05.develop_new_agent.ipynb
+copying downloadable files... [ 85%] tutorials/notebooks/07.develop_scml_agent.ipynb
+copying downloadable files... [100%] tutorials/notebooks/06.run_scml.ipynb
+
+copying static files... done
+copying extra files... done
+dumping search index in English (code: en) ... done
+dumping object inventory... done
+build succeeded, 165 warnings.
+
+The HTML pages are in _build/html.
+ of negmas.MappingUtilityFunction:50: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:41: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:45: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:49: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:53: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:57: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:61: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_mapping:12: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_mapping:18: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_mapping:24: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_ufun:12: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_ufun:18: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_ufun:24: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Negotiator.on_leave:7: WARNING: Inline interpreted text or phrase reference start-string without end-string.
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Controller.on_leave:9: WARNING: Inline interpreted text or phrase reference start-string without end-string.
+/Users/yasser/code/projects/negmas/negmas/mechanisms.py:docstring of negmas.Mechanism.can_participate:17: WARNING: Unexpected indentation.
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAOProtocol:1: WARNING: Inline interpreted text or phrase reference start-string without end-string.
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Agent.request_negotiation:29: WARNING: Bullet list ends without a blank line; unexpected unindent.
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.AgentWorldInterface.request_negotiation:27: WARNING: Bullet list ends without a blank line; unexpected unindent.
+WARNING: autodoc: failed to import module 'test_greedy_scheduler' from module 'negmas.tests'; the following exception was raised:
+cannot import name 'Line' from 'negmas.apps.scml' (/Users/yasser/code/projects/negmas/negmas/apps/scml/__init__.py)
+/Users/yasser/code/projects/negmas/docs/readme.rst:6: WARNING: download file not readable: /Users/yasser/code/projects/negmas/docs/_build/latex/negmas.pdf
+/Users/yasser/code/projects/negmas/docs/indices.rst: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/modules.rst: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/negmas.acceptance_models.rst: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/negmas.tournament.rst: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/references.rst: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/01.running_simple_negotiation.ipynb: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/02.develop_new_negotiator.ipynb: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/03.develop_new_mechanism.ipynb: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/04.develop_new_simulation.ipynb: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/05.develop_new_agent.ipynb: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/06.run_scml.ipynb: WARNING: document isn't included in any toctree
+/Users/yasser/code/projects/negmas/docs/tutorials/notebooks/07.develop_scml_agent.ipynb: WARNING: document isn't included in any toctree
+../README.rst:107: WARNING: more than one target found for 'any' cross-reference 'respond_()': could be :py:meth:`negmas.genius.GeniusNegotiator.respond_` or :py:meth:`negmas.sao.AspirationNegotiator.respond_` or :py:meth:`negmas.sao.LimitedOutcomesAcceptor.respond_` or :py:meth:`negmas.sao.NiceNegotiator.respond_` or :py:meth:`negmas.sao.OnlyBestNegotiator.respond_` or :py:meth:`negmas.sao.SAOController.respond_` or :py:meth:`negmas.sao.SAONegotiator.respond_` or :py:meth:`negmas.sao.SimpleTitForTatNegotiator.respond_` or :py:meth:`negmas.sao.ToughNegotiator.respond_` or :py:meth:`negmas.SAONegotiator.respond_` or :py:meth:`negmas.LimitedOutcomesAcceptor.respond_` or :py:meth:`negmas.AspirationNegotiator.respond_` or :py:meth:`negmas.ToughNegotiator.respond_` or :py:meth:`negmas.OnlyBestNegotiator.respond_` or :py:meth:`negmas.SimpleTitForTatNegotiator.respond_` or :py:meth:`negmas.NiceNegotiator.respond_` or :py:meth:`negmas.SAOController.respond_` or :py:meth:`negmas.GeniusNegotiator.respond_`
+../README.rst:107: WARNING: more than one target found for 'any' cross-reference 'propose_()': could be :py:meth:`negmas.genius.GeniusNegotiator.propose_` or :py:meth:`negmas.sao.AspirationNegotiator.propose_` or :py:meth:`negmas.sao.LimitedOutcomesAcceptor.propose_` or :py:meth:`negmas.sao.NiceNegotiator.propose_` or :py:meth:`negmas.sao.OnlyBestNegotiator.propose_` or :py:meth:`negmas.sao.SAOController.propose_` or :py:meth:`negmas.sao.SAONegotiator.propose_` or :py:meth:`negmas.sao.SimpleTitForTatNegotiator.propose_` or :py:meth:`negmas.sao.ToughNegotiator.propose_` or :py:meth:`negmas.SAONegotiator.propose_` or :py:meth:`negmas.LimitedOutcomesAcceptor.propose_` or :py:meth:`negmas.AspirationNegotiator.propose_` or :py:meth:`negmas.ToughNegotiator.propose_` or :py:meth:`negmas.OnlyBestNegotiator.propose_` or :py:meth:`negmas.SimpleTitForTatNegotiator.propose_` or :py:meth:`negmas.NiceNegotiator.propose_` or :py:meth:`negmas.SAOController.propose_` or :py:meth:`negmas.GeniusNegotiator.propose_`
+../README.rst:107: WARNING: more than one target found for 'any' cross-reference 'Negotiator': could be :py:class:`negmas.negotiators.Negotiator` or :py:class:`negmas.Negotiator`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'step_()': could be :py:meth:`negmas.mechanisms.Mechanism.step_` or :py:meth:`negmas.sao.SAOMechanism.step_` or :py:meth:`negmas.tests.test_protocols.MyMechanism.step_` or :py:meth:`negmas.Mechanism.step_` or :py:meth:`negmas.SAOMechanism.step_`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'add()': could be :py:meth:`negmas.mechanisms.Mechanism.add` or :py:meth:`negmas.Mechanism.add`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'remove()': could be :py:meth:`negmas.mechanisms.Mechanism.remove` or :py:meth:`negmas.situated.BulletinBoard.remove` or :py:meth:`negmas.Mechanism.remove` or :py:meth:`negmas.BulletinBoard.remove`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Mechanism': could be :py:class:`negmas.mechanisms.Mechanism` or :py:class:`negmas.Mechanism`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Protocol': could be :py:attr:`negmas.mechanisms.Protocol` or :py:attr:`negmas.Protocol`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Mechanism': could be :py:class:`negmas.mechanisms.Mechanism` or :py:class:`negmas.Mechanism`
+/Users/yasser/code/projects/negmas/docs/index.rst:: WARNING: toctree contains reference to nonexisting document 'api/negmas.utilities.UtilityDistribution'
+/Users/yasser/code/projects/negmas/negmas/common.py:docstring of negmas.MechanismInfo.annotation:1: WARNING: 'any' reference target not found: Dict[str, Any]
+/Users/yasser/code/projects/negmas/negmas/common.py:docstring of negmas.MechanismInfo.discrete_outcomes:8: WARNING: 'any' reference target not found: n
+/Users/yasser/code/projects/negmas/negmas/common.py:docstring of negmas.MechanismInfo.random_outcomes:8: WARNING: 'any' reference target not found: n
+/Users/yasser/code/projects/negmas/negmas/outcomes.py:docstring of negmas.Issue.generate:6: WARNING: more than one target found for 'any' cross-reference 'issues': could be :py:attr:`negmas.apps.scml.CFP.issues` or :py:attr:`negmas.mechanisms.Mechanism.issues` or :py:attr:`negmas.common.MechanismInfo.issues` or :py:attr:`negmas.situated.Contract.issues` or :py:func:`negmas.tests.fixtures.issues` or :py:attr:`negmas.MechanismInfo.issues` or :py:attr:`negmas.Mechanism.issues` or :py:attr:`negmas.Contract.issues`
+/Users/yasser/code/projects/negmas/negmas/outcomes.py:docstring of negmas.Issue.n_outcomes:1: WARNING: 'any' reference target not found: -1
+/Users/yasser/code/projects/negmas/negmas/outcomes.py:docstring of negmas.Issues.n_outcomes:1: WARNING: 'any' reference target not found: -1
+/Users/yasser/code/projects/negmas/negmas/__init__.py:docstring of negmas.sample_outcomes:6: WARNING: 'any' reference target not found: min_per_dim
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.UtilityFunction:11: WARNING: 'any' reference target not found: apply
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.UtilityFunction.from_xml_str:: WARNING: more than one target found for cross-reference 'Issue': negmas.outcomes.Issue, negmas.Issue
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.ConstUFun.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.LinDiscountedUFun.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.ExpDiscountedUFun.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.LinearUtilityAggregationFunction:8: WARNING: 'any' reference target not found: issue_utilities
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.NonLinearUtilityAggregationFunction:6: WARNING: 'any' reference target not found: Callable
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.NonLinearUtilityAggregationFunction:6: WARNING: 'any' reference target not found: Mapping
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.NonLinearUtilityAggregationFunction.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:7: WARNING: 'any' reference target not found: mappings
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:7: WARNING: 'any' reference target not found: mappings
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.HyperRectangleUtilityFunction:68: WARNING: 'any' reference target not found: OutcomeUtilityMapping
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.NonlinearHyperRectangleUtilityFunction:9: WARNING: 'any' reference target not found: mappings
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.NonlinearHyperRectangleUtilityFunction.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.ComplexWeightedUtilityFunction.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.ComplexNonlinearUtilityFunction.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_mapping:1: WARNING: 'any' reference target not found: u
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.from_ufun:1: WARNING: 'any' reference target not found: u
+/Users/yasser/code/projects/negmas/negmas/utilities.py:docstring of negmas.IPUtilityFunction.xml:3: WARNING: more than one target found for 'any' cross-reference 'to_xml_str': could be :py:meth:`negmas.outcomes.Issue.to_xml_str` or :py:meth:`negmas.utilities.UtilityFunction.to_xml_str` or :py:meth:`negmas.Issue.to_xml_str` or :py:meth:`negmas.UtilityFunction.to_xml_str`
+/Users/yasser/code/projects/negmas/negmas/__init__.py:docstring of negmas.normalize:: WARNING: more than one target found for cross-reference 'UtilityFunction': negmas.utilities.UtilityFunction, negmas.UtilityFunction
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Negotiator.on_enter:: WARNING: more than one target found for cross-reference 'MechanismInfo': negmas.common.MechanismInfo, negmas.MechanismInfo
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Negotiator.on_enter:: WARNING: more than one target found for cross-reference 'MechanismState': negmas.common.MechanismState, negmas.MechanismState
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Negotiator.on_enter:: WARNING: more than one target found for cross-reference 'UtilityFunction': negmas.utilities.UtilityFunction, negmas.UtilityFunction
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Negotiator.on_mechanism_error:1: WARNING: more than one target found for 'any' cross-reference 'state': could be :py:attr:`negmas.common.MechanismInfo.state` or :py:attr:`negmas.mechanisms.Mechanism.state` or :py:attr:`negmas.situated.AgentWorldInterface.state` or :py:attr:`negmas.MechanismInfo.state` or :py:attr:`negmas.Mechanism.state` or :py:attr:`negmas.AgentWorldInterface.state`
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Controller.kill_negotiator:1: WARNING: more than one target found for 'any' cross-reference 'before_death': could be :py:meth:`negmas.negotiators.Negotiator.before_death` or :py:meth:`negmas.Negotiator.before_death`
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Controller.on_enter:: WARNING: more than one target found for cross-reference 'MechanismInfo': negmas.common.MechanismInfo, negmas.MechanismInfo
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Controller.on_enter:: WARNING: more than one target found for cross-reference 'MechanismState': negmas.common.MechanismState, negmas.MechanismState
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Controller.on_enter:: WARNING: more than one target found for cross-reference 'UtilityFunction': negmas.utilities.UtilityFunction, negmas.UtilityFunction
+/Users/yasser/code/projects/negmas/negmas/negotiators.py:docstring of negmas.Controller.on_mechanism_error:1: WARNING: more than one target found for 'any' cross-reference 'state': could be :py:attr:`negmas.common.MechanismInfo.state` or :py:attr:`negmas.mechanisms.Mechanism.state` or :py:attr:`negmas.situated.AgentWorldInterface.state` or :py:attr:`negmas.MechanismInfo.state` or :py:attr:`negmas.Mechanism.state` or :py:attr:`negmas.AgentWorldInterface.state`
+/Users/yasser/code/projects/negmas/negmas/mechanisms.py:docstring of negmas.Mechanism.discrete_outcomes:9: WARNING: 'any' reference target not found: n
+/Users/yasser/code/projects/negmas/negmas/mechanisms.py:docstring of negmas.Mechanism.extra_state:1: WARNING: more than one target found for 'any' cross-reference 'history': could be :doc:`History` or :py:attr:`negmas.Mechanism.history`
+/Users/yasser/code/projects/negmas/negmas/mechanisms.py:docstring of negmas.Mechanism.step:: WARNING: more than one target found for cross-reference 'MechanismState': negmas.common.MechanismState, negmas.MechanismState
+/Users/yasser/code/projects/negmas/negmas/mechanisms.py:docstring of negmas.Mechanism.step:8: WARNING: 'any' reference target not found: round()
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAOMechanism.extra_state:1: WARNING: more than one target found for 'any' cross-reference 'state': could be :py:attr:`negmas.common.MechanismInfo.state` or :py:attr:`negmas.mechanisms.Mechanism.state` or :py:attr:`negmas.situated.AgentWorldInterface.state` or :py:attr:`negmas.MechanismInfo.state` or :py:attr:`negmas.Mechanism.state` or :py:attr:`negmas.AgentWorldInterface.state`
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAOMechanism.extra_state:1: WARNING: more than one target found for 'any' cross-reference 'history': could be :doc:`History` or :py:attr:`negmas.mechanisms.Mechanism.history` or :py:attr:`negmas.Mechanism.history`
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAONegotiator.counter:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAONegotiator.respond:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAONegotiator.respond:15: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAONegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SAONegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.LimitedOutcomesAcceptor.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.LimitedOutcomesAcceptor.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.AspirationNegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.AspirationNegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.ToughNegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.ToughNegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.OnlyBestNegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.OnlyBestNegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SimpleTitForTatNegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.SimpleTitForTatNegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.NiceNegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/sao.py:docstring of negmas.NiceNegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/genius.py:docstring of negmas.GeniusNegotiator.on_partner_response:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/genius.py:docstring of negmas.GeniusNegotiator.respond_:: WARNING: more than one target found for cross-reference 'ResponseType': negmas.outcomes.ResponseType, negmas.ResponseType
+/Users/yasser/code/projects/negmas/negmas/genius.py:docstring of negmas.GeniusNegotiator.respond_:14: WARNING: 'any' reference target not found: propose`() and accepts the `offer
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Action:1: WARNING: 'any' reference target not found: Simulator
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Breach.type:1: WARNING: 'any' reference target not found: refusal
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Breach.type:1: WARNING: more than one target found for 'any' cross-reference 'product': could be :py:attr:`negmas.apps.scml.InputOutput.product` or :py:attr:`negmas.apps.scml.MissingInput.product` or :py:attr:`negmas.apps.scml.ProductionNeed.product` or :py:attr:`negmas.apps.scml.CFP.product`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Breach.type:1: WARNING: 'any' reference target not found: money
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Breach.type:1: WARNING: more than one target found for 'any' cross-reference 'penalty': could be :py:attr:`negmas.apps.scml.CFP.penalty` or :py:attr:`negmas.apps.scml.SCMLAgreement.penalty`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Agent.request_negotiation:6: WARNING: more than one target found for 'any' cross-reference 'partners': could be :py:attr:`negmas.situated.Contract.partners` or :py:attr:`negmas.Contract.partners`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.Agent.request_negotiation:: WARNING: more than one target found for cross-reference 'World': negmas.situated.World, negmas.World
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.request_negotiation:12: WARNING: more than one target found for 'any' cross-reference 'partners': could be :py:attr:`negmas.situated.Contract.partners` or :py:attr:`negmas.Contract.partners`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.request_negotiation:: WARNING: more than one target found for cross-reference 'World': negmas.situated.World, negmas.World
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.request_negotiation:24: WARNING: more than one target found for 'any' cross-reference 'on_neg_request_accepted': could be :py:meth:`negmas.situated.Agent.on_neg_request_accepted` or :py:meth:`negmas.Agent.on_neg_request_accepted`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.request_negotiation:24: WARNING: more than one target found for 'any' cross-reference 'on_neg_request_rejected': could be :py:meth:`negmas.situated.Agent.on_neg_request_rejected` or :py:meth:`negmas.Agent.on_neg_request_rejected`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.run_negotiation:10: WARNING: more than one target found for 'any' cross-reference 'partners': could be :py:attr:`negmas.situated.Contract.partners` or :py:attr:`negmas.Contract.partners`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.run_negotiation:: WARNING: more than one target found for cross-reference 'World': negmas.situated.World, negmas.World
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.World.run_negotiation:: WARNING: more than one target found for cross-reference 'Contract': negmas.situated.Contract, negmas.Contract
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.AgentWorldInterface.request_negotiation:8: WARNING: more than one target found for 'any' cross-reference 'partners': could be :py:attr:`negmas.situated.Contract.partners` or :py:attr:`negmas.Contract.partners`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.AgentWorldInterface.request_negotiation:: WARNING: more than one target found for cross-reference 'World': negmas.situated.World, negmas.World
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.AgentWorldInterface.request_negotiation:26: WARNING: more than one target found for 'any' cross-reference 'on_neg_request_accepted': could be :py:meth:`negmas.situated.Agent.on_neg_request_accepted` or :py:meth:`negmas.Agent.on_neg_request_accepted`
+/Users/yasser/code/projects/negmas/negmas/situated.py:docstring of negmas.AgentWorldInterface.request_negotiation:27: WARNING: more than one target found for 'any' cross-reference 'on_neg_request_rejected': could be :py:meth:`negmas.situated.Agent.on_neg_request_rejected` or :py:meth:`negmas.Agent.on_neg_request_rejected`
+../README.rst:107: WARNING: more than one target found for 'any' cross-reference 'respond_()': could be :py:meth:`negmas.genius.GeniusNegotiator.respond_` or :py:meth:`negmas.sao.AspirationNegotiator.respond_` or :py:meth:`negmas.sao.LimitedOutcomesAcceptor.respond_` or :py:meth:`negmas.sao.NiceNegotiator.respond_` or :py:meth:`negmas.sao.OnlyBestNegotiator.respond_` or :py:meth:`negmas.sao.SAOController.respond_` or :py:meth:`negmas.sao.SAONegotiator.respond_` or :py:meth:`negmas.sao.SimpleTitForTatNegotiator.respond_` or :py:meth:`negmas.sao.ToughNegotiator.respond_` or :py:meth:`negmas.SAONegotiator.respond_` or :py:meth:`negmas.LimitedOutcomesAcceptor.respond_` or :py:meth:`negmas.AspirationNegotiator.respond_` or :py:meth:`negmas.ToughNegotiator.respond_` or :py:meth:`negmas.OnlyBestNegotiator.respond_` or :py:meth:`negmas.SimpleTitForTatNegotiator.respond_` or :py:meth:`negmas.NiceNegotiator.respond_` or :py:meth:`negmas.SAOController.respond_` or :py:meth:`negmas.GeniusNegotiator.respond_`
+../README.rst:107: WARNING: more than one target found for 'any' cross-reference 'propose_()': could be :py:meth:`negmas.genius.GeniusNegotiator.propose_` or :py:meth:`negmas.sao.AspirationNegotiator.propose_` or :py:meth:`negmas.sao.LimitedOutcomesAcceptor.propose_` or :py:meth:`negmas.sao.NiceNegotiator.propose_` or :py:meth:`negmas.sao.OnlyBestNegotiator.propose_` or :py:meth:`negmas.sao.SAOController.propose_` or :py:meth:`negmas.sao.SAONegotiator.propose_` or :py:meth:`negmas.sao.SimpleTitForTatNegotiator.propose_` or :py:meth:`negmas.sao.ToughNegotiator.propose_` or :py:meth:`negmas.SAONegotiator.propose_` or :py:meth:`negmas.LimitedOutcomesAcceptor.propose_` or :py:meth:`negmas.AspirationNegotiator.propose_` or :py:meth:`negmas.ToughNegotiator.propose_` or :py:meth:`negmas.OnlyBestNegotiator.propose_` or :py:meth:`negmas.SimpleTitForTatNegotiator.propose_` or :py:meth:`negmas.NiceNegotiator.propose_` or :py:meth:`negmas.SAOController.propose_` or :py:meth:`negmas.GeniusNegotiator.propose_`
+../README.rst:107: WARNING: more than one target found for 'any' cross-reference 'Negotiator': could be :py:class:`negmas.negotiators.Negotiator` or :py:class:`negmas.Negotiator`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'step_()': could be :py:meth:`negmas.mechanisms.Mechanism.step_` or :py:meth:`negmas.sao.SAOMechanism.step_` or :py:meth:`negmas.tests.test_protocols.MyMechanism.step_` or :py:meth:`negmas.Mechanism.step_` or :py:meth:`negmas.SAOMechanism.step_`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'add()': could be :py:meth:`negmas.mechanisms.Mechanism.add` or :py:meth:`negmas.Mechanism.add`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'remove()': could be :py:meth:`negmas.mechanisms.Mechanism.remove` or :py:meth:`negmas.situated.BulletinBoard.remove` or :py:meth:`negmas.Mechanism.remove` or :py:meth:`negmas.BulletinBoard.remove`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Mechanism': could be :py:class:`negmas.mechanisms.Mechanism` or :py:class:`negmas.Mechanism`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Protocol': could be :py:attr:`negmas.mechanisms.Protocol` or :py:attr:`negmas.Protocol`
+../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Mechanism': could be :py:class:`negmas.mechanisms.Mechanism` or :py:class:`negmas.Mechanism`

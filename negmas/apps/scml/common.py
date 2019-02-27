@@ -1225,7 +1225,7 @@ class Factory:
         updates = running_command.updates.get(running_command.step, None)
         if not running_command.paused:
             running_command.step += 1
-        if updates.is_empty:
+        if updates is None or updates.is_empty:
             return ProductionReport(updates=FactoryStatusUpdate.empty()
                                     , continuing=running_command if running_command.beg < t else None
                                     , started=running_command if running_command.beg == t else None

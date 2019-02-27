@@ -1,0 +1,23 @@
+2019-02-27 11:35:34,704 - INFO - 0/10 [10.00%]: DummyWorld/20190227-113534EwL56: World Created
+2019-02-27 11:35:34,704 - INFO - 0/10 [10.00%]: A1 joined
+2019-02-27 11:35:34,704 - INFO - 0/10 [10.00%]: A2 joined
+2019-02-27 11:35:34,704 - INFO - 0/10 [10.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,705 - INFO - 1/10 [20.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,705 - INFO - 2/10 [30.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,705 - INFO - 2/10 [30.00%]: A1 requested None[None] with ['A2', 'A1'] (ID b40ad5b8-e75b-440d-b8a4-0147c87223f6)
+2019-02-27 11:35:34,707 - INFO - 2/10 [30.00%]: A1 request was accepted
+2019-02-27 11:35:34,707 - INFO - 3/10 [40.00%]: 1 Negotiations/1 _entities
+2019-02-27 11:35:34,724 - DEBUG - 3/10 [40.00%]: Contract [signed]: ['A2', 'A1'] > {'nGisiWgNZq6ITZM5': 0} on annotation 
+2019-02-27 11:35:34,724 - INFO - 4/10 [50.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,724 - INFO - 4/10 [50.00%]: A2 requested None[None] with ['A1', 'A2'] (ID 8788990c-f0b6-4500-bf5a-40a62ac3d9e2)
+2019-02-27 11:35:34,725 - INFO - 4/10 [50.00%]: A2 request was accepted
+2019-02-27 11:35:34,725 - INFO - 5/10 [60.00%]: 1 Negotiations/1 _entities
+2019-02-27 11:35:34,742 - DEBUG - 5/10 [60.00%]: Contract [signed]: ['A1', 'A2'] > {'pslm0lcNQqEefRWi': 0} on annotation 
+2019-02-27 11:35:34,742 - INFO - 6/10 [70.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,742 - INFO - 7/10 [80.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,742 - INFO - 8/10 [90.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,742 - INFO - 9/10 [100.00%]: 0 Negotiations/1 _entities
+2019-02-27 11:35:34,744 - INFO - 0/10000 [0.14%]: DummyWorld/20190227-113534qeoeP: World Created
+2019-02-27 11:35:34,744 - INFO - 0/10 [10.00%]: DummyWorld/20190227-113534UE156: World Created
+2019-02-27 11:35:34,749 - INFO - 0/10000 [0.14%]: DummyWorld/20190227-113534hM6CQ: World Created
+2019-02-27 11:35:34,749 - INFO - 0/10 [10.00%]: DummyWorld/20190227-113534qjJSa: World Created

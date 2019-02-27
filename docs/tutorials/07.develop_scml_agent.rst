@@ -276,6 +276,331 @@ and what was its/their score:
     [0.15176269]
 
 
+This information and much more is also stored in a log folder that gives
+details of every world and total scores, etc. The default location of
+this log folder is under negmas/logs/tournaments in your HOME directory
+(this can be changed by passing a ``tournament_path`` to the
+``anac2019_tournamet`` function.
+
+The information stored in this folder is:
+
++------+------+------+
+| File | Form | Cont |
+| /Fol | at   | ent  |
+| der  |      |      |
+| Name |      |      |
++======+======+======+
+| conf | FOLD | Cont |
+| igs  | ER   | ains |
+|      |      | one  |
+|      |      | json |
+|      |      | file |
+|      |      | for  |
+|      |      | each |
+|      |      | worl |
+|      |      | d    |
+|      |      | run  |
+|      |      | trie |
+|      |      | d    |
+|      |      | duri |
+|      |      | ng   |
+|      |      | the  |
+|      |      | tour |
+|      |      | name |
+|      |      | nt.  |
+|      |      | You  |
+|      |      | can  |
+|      |      | re-r |
+|      |      | un   |
+|      |      | this |
+|      |      | worl |
+|      |      | d    |
+|      |      | usin |
+|      |      | g    |
+|      |      | ``ru |
+|      |      | n_wo |
+|      |      | rld` |
+|      |      | `    |
+|      |      | func |
+|      |      | tion |
+|      |      | in   |
+|      |      | the  |
+|      |      | ``to |
+|      |      | urna |
+|      |      | ment |
+|      |      | ``   |
+|      |      | modu |
+|      |      | le.  |
++------+------+------+
+| para | JSON | The  |
+| ms.j |      | para |
+| son  |      | mete |
+|      |      | rs   |
+|      |      | used |
+|      |      | to   |
+|      |      | crea |
+|      |      | te   |
+|      |      | this |
+|      |      | tour |
+|      |      | name |
+|      |      | nt   |
++------+------+------+
+| scor | CSV  | Scor |
+| es.c |      | es   |
+| sv   |      | of   |
+|      |      | ever |
+|      |      | y    |
+|      |      | agen |
+|      |      | t    |
+|      |      | in   |
+|      |      | ever |
+|      |      | y    |
+|      |      | worl |
+|      |      | d    |
++------+------+------+
+| tota | CSV  | Scor |
+| l\_s |      | es   |
+| core |      | of   |
+| s.cs |      | ever |
+| v    |      | y    |
+|      |      | agen |
+|      |      | t    |
+|      |      | **ty |
+|      |      | pe** |
+|      |      | aver |
+|      |      | aged |
+|      |      | over |
+|      |      | all  |
+|      |      | runs |
++------+------+------+
+| winn | CSV  | Winn |
+| ers. |      | er   |
+| csv  |      | *typ |
+|      |      | es*  |
+|      |      | and  |
+|      |      | thei |
+|      |      | r    |
+|      |      | aver |
+|      |      | age  |
+|      |      | scor |
+|      |      | es   |
++------+------+------+
+| ttes | CSV  | Resu |
+| t.cs |      | lts  |
+| v    |      | of a |
+|      |      | fact |
+|      |      | oria |
+|      |      | l    |
+|      |      | TTES |
+|      |      | T    |
+|      |      | comp |
+|      |      | arin |
+|      |      | g    |
+|      |      | the  |
+|      |      | perf |
+|      |      | orma |
+|      |      | nce  |
+|      |      | of   |
+|      |      | all  |
+|      |      | agen |
+|      |      | t    |
+|      |      | *typ |
+|      |      | es*  |
++------+------+------+
+
+Other than these files, a folder with the same number as the
+corresponding config file in the configs folder, keeps full
+statistics/log of every world with the following contents:
+
++------+------+------+
+| File | Form | Cont |
+| Name | at   | ent  |
++======+======+======+
+| all\ | CSV  | A    |
+| _con |      | reco |
+| trac |      | rd   |
+| ts.c |      | of   |
+| sv   |      | all  |
+|      |      | cont |
+|      |      | ract |
+|      |      | s    |
++------+------+------+
+| cont | CSV  | A    |
+| ract |      | reco |
+| s\_f |      | rd   |
+| ull\ |      | of   |
+| _inf |      | all  |
+| o.cs |      | cont |
+| v    |      | ract |
+|      |      | s    |
+|      |      | with |
+|      |      | adde |
+|      |      | d    |
+|      |      | info |
+|      |      | rmat |
+|      |      | ion  |
+|      |      | abou |
+|      |      | t    |
+|      |      | the  |
+|      |      | CFPs |
++------+------+------+
+| canc | CSV  | Cont |
+| elle |      | ract |
+| d\_c |      | s    |
+| ontr |      | that |
+| acts |      | were |
+| .csv |      | canc |
+|      |      | elle |
+|      |      | d    |
+|      |      | beca |
+|      |      | use  |
+|      |      | one  |
+|      |      | part |
+|      |      | ner  |
+|      |      | refu |
+|      |      | sed  |
+|      |      | to   |
+|      |      | sign |
+|      |      | it   |
++------+------+------+
+| sign | CSV  | Cont |
+| ed\_ |      | ract |
+| cont |      | s    |
+| ract |      | that |
+| s.cs |      | were |
+| v    |      | actu |
+|      |      | ally |
+|      |      | sign |
+|      |      | ed   |
++------+------+------+
+| nego | CSV  | A    |
+| tiat |      | reco |
+| ions |      | rd   |
+| .csv |      | of   |
+|      |      | all  |
+|      |      | nego |
+|      |      | tiat |
+|      |      | ions |
++------+------+------+
+| brea | CSV  | A    |
+| ches |      | reco |
+| .csv |      | rd   |
+|      |      | of   |
+|      |      | all  |
+|      |      | brea |
+|      |      | ches |
++------+------+------+
+| stat | CSV  | Help |
+| s.cs |      | ful  |
+| v    |      | stat |
+|      |      | isti |
+|      |      | cs   |
+|      |      | abou |
+|      |      | t    |
+|      |      | the  |
+|      |      | stat |
+|      |      | e    |
+|      |      | of   |
+|      |      | the  |
+|      |      | worl |
+|      |      | d    |
+|      |      | at   |
+|      |      | ever |
+|      |      | y    |
+|      |      | time |
+|      |      | step |
+|      |      | (e.g |
+|      |      | .    |
+|      |      | N.   |
+|      |      | nego |
+|      |      | tiat |
+|      |      | ions |
+|      |      | ,    |
+|      |      | N.   |
+|      |      | Cont |
+|      |      | ract |
+|      |      | s    |
+|      |      | Exec |
+|      |      | uted |
+|      |      | ,    |
+|      |      | etc) |
+|      |      | in   |
+|      |      | CSV  |
+|      |      | form |
+|      |      | at   |
++------+------+------+
+| stat | JSON | Help |
+| s.js |      | ful  |
+| on   |      | stat |
+|      |      | isti |
+|      |      | cs   |
+|      |      | abou |
+|      |      | t    |
+|      |      | the  |
+|      |      | stat |
+|      |      | e    |
+|      |      | of   |
+|      |      | the  |
+|      |      | worl |
+|      |      | d    |
+|      |      | at   |
+|      |      | ever |
+|      |      | y    |
+|      |      | time |
+|      |      | step |
+|      |      | (e.g |
+|      |      | .    |
+|      |      | N.   |
+|      |      | nego |
+|      |      | tiat |
+|      |      | ions |
+|      |      | ,    |
+|      |      | N.   |
+|      |      | Cont |
+|      |      | ract |
+|      |      | s    |
+|      |      | Exec |
+|      |      | uted |
+|      |      | ,    |
+|      |      | etc) |
+|      |      | in   |
+|      |      | JSON |
+|      |      | form |
+|      |      | at   |
++------+------+------+
+| para | JSON | The  |
+| ms.j |      | argu |
+| son  |      | ment |
+|      |      | s    |
+|      |      | used |
+|      |      | to   |
+|      |      | run  |
+|      |      | the  |
+|      |      | worl |
+|      |      | d    |
++------+------+------+
+| logs | TXT  | A    |
+| .txt |      | log  |
+|      |      | file |
+|      |      | givi |
+|      |      | ng   |
+|      |      | deta |
+|      |      | ils  |
+|      |      | of   |
+|      |      | most |
+|      |      | impo |
+|      |      | rtan |
+|      |      | t    |
+|      |      | even |
+|      |      | ts   |
+|      |      | duri |
+|      |      | ng   |
+|      |      | the  |
+|      |      | simu |
+|      |      | lati |
+|      |      | on   |
++------+------+------+
+
 To develop a more useful agent, you will need to override one or more of
 the available callbacks in ``FactroyManager`` and use methods available
 in the ``SCMLAWI`` (SCML Agent World Interface) to act in the world in

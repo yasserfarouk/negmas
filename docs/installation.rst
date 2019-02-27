@@ -54,8 +54,10 @@ Once you have a copy of the source, you can install it with:
 [Optional] Post Installation
 ----------------------------
 
-After installation, two new commands will be added to your environment (hopefully it is a virtual environment): *scml*
-and *rungenius*. To test your installation, run the following commands:
+After installation, some new commands will be added to your environment (hopefully it is a virtual environment). Among
+them there is a script called: *rungenius*.
+
+To test your installation, run the following commands:
 
 .. code-block:: console
 
