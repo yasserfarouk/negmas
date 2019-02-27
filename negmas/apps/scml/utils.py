@@ -107,7 +107,7 @@ def anac2019_world(
     n_intermediate[0] = max(n_intermediate_levels_min, n_intermediate[0])
     competitors = [get_class(c) if isinstance(c, str) else c for c in competitors]
     if len(competitors) < 1:
-        competitors.extend(GreedyFactoryManager)
+        competitors.append(GreedyFactoryManager)
     world = SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=n_steps
                                         , agent_names_reveal_type=agent_names_reveal_type
                                         , negotiation_speed=negotiation_speed
