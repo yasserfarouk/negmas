@@ -17,6 +17,7 @@ Welcome to NegMAS's documentation!
    base_modules
    application_modules
    helper_modules
+   scripts
    api
    contributing
    authors

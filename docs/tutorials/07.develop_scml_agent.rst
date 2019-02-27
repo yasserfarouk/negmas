@@ -49,7 +49,9 @@ built-in greedy agent:
     from negmas.apps.scml import GreedyFactoryManager
     
     results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
-                                  , agent_names_reveal_type=True, n_runs_per_config=1)
+                                  , agent_names_reveal_type=True, n_runs_per_config=1
+                                  # , n_steps=10  # uncomment this for a faster test
+                                 )
 
 You can see the scores that each individual factory manager got (just a
 random sample):
@@ -58,11 +60,138 @@ random sample):
 
     results.scores.head()
 
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_name</th>
+          <th>agent_type</th>
+          <th>log_file</th>
+          <th>score</th>
+          <th>stats_folder</th>
+          <th>world</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>greedy_2_0</td>
+          <td>GreedyFactoryManager</td>
+          <td>None</td>
+          <td>0.0</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>00003/20190227-080729RjPH</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>my_1_1</td>
+          <td>MyFactoryManager</td>
+          <td>None</td>
+          <td>0.0</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>00003/20190227-080729RjPH</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>greedy_1_2</td>
+          <td>GreedyFactoryManager</td>
+          <td>None</td>
+          <td>0.0</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>00003/20190227-080729RjPH</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>my_2_3</td>
+          <td>MyFactoryManager</td>
+          <td>None</td>
+          <td>0.0</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>00003/20190227-080729RjPH</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>greedy_2_4</td>
+          <td>GreedyFactoryManager</td>
+          <td>None</td>
+          <td>0.0</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>00003/20190227-080729RjPH</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
 You can also check the total scores for each factory manager type:
 
 .. code:: ipython3
 
     results.total_scores
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_type</th>
+          <th>score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>MyFactoryManager</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>GreedyFactoryManager</td>
+          <td>0.0</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
 
 If you want, you can check if these differences are statistically
 significant using a t-test:
@@ -70,6 +199,49 @@ significant using a t-test:
 .. code:: ipython3
 
     results.ttest
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>a</th>
+          <th>b</th>
+          <th>p</th>
+          <th>t</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>GreedyFactoryManager</td>
+          <td>MyFactoryManager</td>
+          <td>NaN</td>
+          <td>NaN</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
 
 So the greedy factory manager is better than the do-nothing factory
 manager getting a total score of 2878 compared with only 0 for the
@@ -82,11 +254,26 @@ Or, let's just find out who was the winner(s):
 
     results.winners
 
+
+
+
+.. parsed-literal::
+
+    ['MyFactoryManager', 'GreedyFactoryManager']
+
+
+
 and what was its/their score:
 
 .. code:: ipython3
 
     print(results.winners_scores)
+
+
+.. parsed-literal::
+
+    [0. 0.]
+
 
 Now, you completed the development of your factory manager, tested it by
 running it in worlds and tournaments, what exactly should you do to

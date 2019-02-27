@@ -13,4 +13,7 @@ Helper Modules
 .. automodapi:: negmas.inout
       :members:
       :show-inheritance:
+.. automodapi:: negmas.tournaments
+      :members:
+      :show-inheritance:
 

@@ -216,5 +216,5 @@ imgmath_image_format = 'png'
 
 
 # If false, no module index is generated.
-html_domain_indices = False
+html_domain_indices = True
 

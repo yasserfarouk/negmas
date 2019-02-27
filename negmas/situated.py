@@ -1583,7 +1583,7 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
     os.makedirs(log_dir, exist_ok=True)
 
     if params is not None:
-        with open(log_dir / 'params.csv', 'w') as f:
+        with open(log_dir / 'params.json', 'w') as f:
             json.dump(params, f, indent=4, sort_keys=True)
 
     with open(log_dir / 'stats.json', 'w') as f:

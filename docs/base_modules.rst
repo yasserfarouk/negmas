@@ -13,9 +13,15 @@ Base Modules
 .. automodapi:: negmas.mechanisms
       :members:
       :show-inheritance:
+.. automodapi:: negmas.sao
+      :members:
+      :show-inheritance:
 .. automodapi:: negmas.genius
       :members:
       :show-inheritance:
 .. automodapi:: negmas.situated
+      :members:
+      :show-inheritance:
+.. automodapi:: negmas.events
       :members:
       :show-inheritance:

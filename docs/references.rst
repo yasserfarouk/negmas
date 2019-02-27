@@ -6,12 +6,12 @@ Reference
 .. automodapi:: negmas.events    
 .. automodapi:: negmas.negotiators    
 .. automodapi:: negmas.common    
-.. automodapi:: negmas.outcomes    
-.. automodapi:: negmas.acceptance_models    
+.. automodapi:: negmas.outcomes
 .. automodapi:: negmas.utilities    
 .. automodapi:: negmas.mechanisms    
 .. automodapi:: negmas.helpers    
 .. automodapi:: negmas.inout    
-.. automodapi:: negmas.tournament    
-.. automodapi:: negmas.generics    
+.. automodapi:: negmas.tournaments
+.. automodapi:: negmas.generics
+.. automodapi:: negmas.apps.scml
     :no-heading:    
