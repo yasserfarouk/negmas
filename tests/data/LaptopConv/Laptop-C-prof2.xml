@@ -1,0 +1,64 @@
+<utility_space type="any" number_of_issues="1">
+<objective index="1" etype="objective" type="objective" description="" name="any">
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="0">
+    <item index="1" value="0"  cost="0"  evaluation="0.24849213897760034" description="0">
+    </item>
+    <item index="2" value="1"  cost="0"  evaluation="0.2094651115323505" description="1">
+    </item>
+    <item index="3" value="2"  cost="0"  evaluation="0.1704380840871007" description="2">
+    </item>
+    <item index="4" value="3"  cost="0"  evaluation="0.4034358517840555" description="3">
+    </item>
+    <item index="5" value="4"  cost="0"  evaluation="0.36440882433880567" description="4">
+    </item>
+    <item index="6" value="5"  cost="0"  evaluation="0.3253817968935559" description="5">
+    </item>
+    <item index="7" value="6"  cost="0"  evaluation="0.07805405489049963" description="6">
+    </item>
+    <item index="8" value="7"  cost="0"  evaluation="0.039027027445249815" description="7">
+    </item>
+    <item index="9" value="8"  cost="0"  evaluation="0.0" description="8">
+    </item>
+    <item index="10" value="9"  cost="0"  evaluation="0.8450562871935449" description="9">
+    </item>
+    <item index="11" value="10"  cost="0"  evaluation="0.806029259748295" description="10">
+    </item>
+    <item index="12" value="11"  cost="0"  evaluation="0.7670022323030452" description="11">
+    </item>
+    <item index="13" value="12"  cost="0"  evaluation="1.0" description="12">
+    </item>
+    <item index="14" value="13"  cost="0"  evaluation="0.9609729725547502" description="13">
+    </item>
+    <item index="15" value="14"  cost="0"  evaluation="0.9219459451095003" description="14">
+    </item>
+    <item index="16" value="15"  cost="0"  evaluation="0.6746182031064439" description="15">
+    </item>
+    <item index="17" value="16"  cost="0"  evaluation="0.6355911756611942" description="16">
+    </item>
+    <item index="18" value="17"  cost="0"  evaluation="0.5965641482159444" description="17">
+    </item>
+    <item index="19" value="18"  cost="0"  evaluation="0.5136317604069089" description="18">
+    </item>
+    <item index="20" value="19"  cost="0"  evaluation="0.47460473296165917" description="19">
+    </item>
+    <item index="21" value="20"  cost="0"  evaluation="0.43557770551640934" description="20">
+    </item>
+    <item index="22" value="21"  cost="0"  evaluation="0.6685754732133642" description="21">
+    </item>
+    <item index="23" value="22"  cost="0"  evaluation="0.6295484457681143" description="22">
+    </item>
+    <item index="24" value="23"  cost="0"  evaluation="0.5905214183228645" description="23">
+    </item>
+    <item index="25" value="24"  cost="0"  evaluation="0.3431936763198083" description="24">
+    </item>
+    <item index="26" value="25"  cost="0"  evaluation="0.30416664887455847" description="25">
+    </item>
+    <item index="27" value="26"  cost="0"  evaluation="0.2651396214293087" description="26">
+    </item>
+</issue>
+<weight index="1" value="1.0">
+</weight>
+</objective>
+<discount_factor value="1.0" />
+<reservation value="0.0" />
+</utility_space>

@@ -1,0 +1,64 @@
+<negotiation_template number_of_sessions="1">
+	<agent utility_space="Negotiator A UtilitySpace" name="Negotiator A Name"
+		class="Negotiator A Class">
+	</agent>
+	<agent utility_space="Negotiator B UtilitySpace" name="Negotiator B Name"
+		class="Negotiator B Class">
+	</agent>
+	<utility_space number_of_issues="0">
+		<objective index="0" description="" name="conflict" type="objective"
+			etype="objective">
+			<issue index="1" name="Size of Fund" vtype="discrete" type="discrete"
+				etype="discrete">
+				<item index="1" value="$100 Billion">
+				</item>
+				<item index="2" value="$50 Billion">
+				</item>
+				<item index="3" value="$10 billion">
+				</item>
+				<item index="4" value="No agreement">
+				</item>
+			</issue>
+			<issue index="2" name="Impact on Other Aid" vtype="discrete"
+				type="discrete" etype="discrete">
+				<item index="1" value="No reduction">
+				</item>
+				<item index="2" value="Reduction equal to half of fund size">
+				</item>
+				<item index="3" value="Reduction equal to fund size">
+				</item>
+				<item index="4" value="No agreement">
+				</item>
+			</issue>
+			<issue index="3" name="Zimbabwe Trade Policy" vtype="discrete"
+				type="discrete" etype="discrete">
+				<item index="1" value="Zimbabwe will reduce tariffs on imports">
+				</item>
+				<item index="2" value="Zimbabwe will increase tariffs on imports">
+				</item>
+				<item index="3" value="No agreement">
+				</item>
+			</issue>
+			<issue index="4" name="England Trade Policy" vtype="discrete"
+				type="discrete" etype="discrete">
+				<item index="1" value="England will reduce imports">
+				</item>
+				<item index="2" value="England will increase imports">
+				</item>
+				<item index="3" value="No agreement">
+				</item>
+			</issue>
+			<issue index="5" name="Forum on Other Health Issues" vtype="discrete"
+				type="discrete" etype="discrete">
+				<item index="1" value="Creation of fund">
+				</item>
+				<item index="2" value="Creation of committee to discuss creation of fund">
+				</item>
+				<item index="3" value="Creation of committee to develop agenda">
+				</item>
+				<item index="4" value="No">
+				</item>
+			</issue>
+		</objective>
+	</utility_space>
+</negotiation_template>

@@ -12,42 +12,9 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'atomicwrites',
-    'attrs',
-    'Click>=6',
-    'colorlog',
-    'coverage',
-    'dataclasses',
-    'hypothesis',
-    'inflect',
-    'joblib',
-    'more-itertools',
-    'numpy',
-    'pandas',
-    'pluggy',
-    'progressbar2',
-    'py4j',
-    'py',
-    'pytest-cov',
-    'pytest-runner',
-    'pytest',
-    'python-dateutil',
-    'python-utils',
-    'pytz',
-    'pyyaml',
-    'scipy',
-    'six',
-    'stringcase',
-    'tabulate',
-    'distributed',
-    'typing_extensions',
-    'numba',
-    'jupyter',
-    'bokeh',
-    'networkx',
-    'nbsphinx',
-    'ipykernel',
-]
+    'Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
+                , 'dataclasses', 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2', 'pytest', 'hypothesis'
+                , 'pytest-cov']
 
 setup_requirements = requirements
 
@@ -80,9 +47,9 @@ setup(
     name='negmas',
     packages=find_packages(),
     setup_requires=setup_requirements,
-    test_suite='tests',
+    # test_suite='negmas/tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.21',
+    version='0.1.23',
     zip_safe=False,
 )
