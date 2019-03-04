@@ -148,3 +148,9 @@ dask-worker-space/*
 dask-worker-space/
 
 /dask-worker-space
+
+*/.gradle
+*/build
+*/.idea
+*/out
+*/py4j

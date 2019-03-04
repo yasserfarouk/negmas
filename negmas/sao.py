@@ -1,6 +1,6 @@
 import random
 from abc import abstractmethod
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Type
 from typing import Sequence, Optional, List, Tuple, Iterable, Union
 
 import numpy as np
@@ -8,9 +8,10 @@ from dataclasses import dataclass
 
 from negmas.common import *
 from negmas.events import Notification
+from negmas.java import JNegmasGateway, JavaObjectMixin
 from negmas.mechanisms import MechanismRoundResult, Mechanism
 from negmas.negotiators import Negotiator, AspirationMixin, Controller
-from negmas.outcomes import sample_outcomes, Outcome, outcome_is_valid, ResponseType
+from negmas.outcomes import sample_outcomes, Outcome, outcome_is_valid, ResponseType, outcome_as_dict
 from negmas.utilities import MappingUtilityFunction, normalize, UtilityFunction, UtilityValue
 
 __all__ = [
@@ -31,6 +32,8 @@ __all__ = [
     'NiceNegotiator',
     'SAOController',
     'SAOControllerProxy',
+    'JavaSAONegotiator',
+    'JavaSAONegotiatorProxy',
 ]
 
 
@@ -1003,6 +1006,38 @@ class SimpleTitForTatNegotiator(SAONegotiator):
         return self._outcome_at_utility(asp=asp, n=1)[0]
 
 
+class JavaSAONegotiator(SAONegotiator, JavaObjectMixin):
+
+    def __init__(self, java_class_name: str
+                 , auto_load_java: bool = False, outcome_type: Type = dict
+                 , name=None, **kwargs):
+        super().__init__(name=name, **kwargs)
+        self._outcome_type = outcome_type
+        self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java)
+
+    def respond_(self, state: MechanismState, offer: 'Outcome'):
+        response = self.java_object.respond(state, outcome_as_dict(offer))
+        if response == 0:
+            return ResponseType.ACCEPT_OFFER
+        if response == 1:
+            return ResponseType.REJECT_OFFER
+        if response == 2:
+            return ResponseType.END_NEGOTIATION
+        if response == 3:
+            return ResponseType.NO_RESPONSE
+        raise ValueError(f'Unknown response type {response} returned from the Java underlying negotiator')
+
+    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+        outcome = self.java_object.propose(state)
+        if outcome is None:
+            return None
+        if self._outcome_type == dict:
+            return outcome
+        if self._outcome_type == tuple:
+            return tuple(outcome.values())
+        return self._outcome_type(outcome)
+
+
 class SAOController(Controller):
 
     def propose_(self, negotiator_id: str, state: MechanismState) -> Optional['Outcome']:
@@ -1032,3 +1067,6 @@ SAOProtocolProxy = SAOMechanismProxy
 
 SAOControllerProxy = SAOController
 """A proxy to a `SAOController` object"""
+
+JavaSAONegotiatorProxy = JavaSAONegotiator
+"""A proxy to a java SAO negotiator"""

@@ -58,9 +58,9 @@ __all__ = [
     'outcome_in_range',
     'enumerate_outcomes',
     'sample_outcomes',
-    # 'range_intersection',
-    # 'range_union',
-    # 'range_invert',
+    'outcome_as_dict',
+    'outcome_as_tuple',
+    'num_outcomes',
 ]
 
 
@@ -829,6 +829,9 @@ class Issue(NamedObject):
         if isinstance(self.values, list):
             return Issue(name=self.name, values=[_ for _ in self.values])
         return Issue(name=self.name, values=self.values)
+
+    class Java:
+        implements = ['jnegmas.Issue']
 
 
 class Issues(object):
@@ -2715,3 +2718,27 @@ EPSILON = 1e-9
 #
 #     def rand_invalid(self) -> Dict[str, Union[int, float, str]]:
 #         """Pick a random *invalid* value"""
+
+
+def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
+    """Converts the outcome to a dict no matter what was its type"""
+
+    if isinstance(outcome, dict):
+        return outcome
+    if isinstance(outcome, OutcomeType):
+        return outcome.asdict()
+    if issue_names is not None:
+        return dict(zip(issue_names, outcome))
+    return dict(zip((str(_) for _ in range(len(outcome))), outcome))
+
+
+def outcome_as_tuple(outcome: Outcome):
+    """Converts the outcome to a tuple no matter what was its type"""
+
+    if isinstance(outcome, tuple):
+        return outcome
+    if isinstance(outcome, OutcomeType):
+        return outcome.astuple()
+    if isinstance(outcome, dict):
+        return list(outcome.values())
+    raise ValueError(f'Unknown type for outcome {type(outcome)}')

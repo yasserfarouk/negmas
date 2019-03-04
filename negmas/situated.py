@@ -119,6 +119,9 @@ class Contract(OutcomeType):
         """The hash depends only on the name"""
         return self.id.__hash__()
 
+    class Java:
+        implements = ['jnegmas.Contract']
+
 
 @dataclass
 class Breach:
@@ -176,6 +179,9 @@ class RenegotiationRequest:
     publisher: 'Agent'
     issues: List[Issue]
     annotation: Dict[str, Any] = field(default_factory=dict)
+
+    class Java:
+        implements = ['jnegmas.ProductionFailure']
 
 
 class Entity(NamedObject):
@@ -627,6 +633,9 @@ class AgentWorldInterface:
 
         """
         self._world.logerror(msg)
+
+    class Java:
+        implements = ['jnegmas.AgentWorldInterface']
 
 
 class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
@@ -1476,6 +1485,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
     # EVENT CALLBACKS (Called by the `World` when certain events happen)
     # ------------------------------------------------------------------
 
+    @abstractmethod
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
                                        , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
                                        , req_id: str) -> Optional[NegotiatorProxy]:

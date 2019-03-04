@@ -102,6 +102,9 @@ class MechanismState:
         """Converts the outcome to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
+    class Java:
+        implements = ['jnegmas.ProductionFailure']
+
 
 @dataclass
 class MechanismInfo:
@@ -237,6 +240,9 @@ class MechanismInfo:
     def asdict(self):
         """Converts the outcome to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
+
+    class Java:
+        implements = ['jnegmas.ProductionFailure']
 
 
 def register_all_mechanisms(mechanisms: typing.Dict[str, 'Mechanism']) -> None:

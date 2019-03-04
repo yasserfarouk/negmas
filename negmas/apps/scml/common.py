@@ -10,6 +10,7 @@ from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 from dataclasses import dataclass, field, InitVar
 
+from negmas.java import JavaConvertible
 from negmas.mechanisms import MechanismProxy
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue
@@ -356,6 +357,9 @@ class ProductionFailure:
             s += f' space {self.missing_space}'
         return s
 
+    class Java:
+        implements = ['jnegmas.apps.scml.common.ProductionFailure']
+
 
 @dataclass
 class ProductionReport:
@@ -417,7 +421,7 @@ class SCMLAgreement(OutcomeType):
 
 
 @dataclass
-class CFP(OutcomeType):
+class CFP(OutcomeType, JavaConvertible):
     """A Call for proposal upon which a negotiation can start"""
     is_buy: bool
     """If true, the author wants to buy otherwise to sell. Non-negotiable."""
@@ -655,6 +659,61 @@ class CFP(OutcomeType):
             return max(self.unit_price)
         return self.unit_price
 
+    @property
+    def min_signing_delay(self):
+        if self.signing_delay is None:
+            return -1
+        if isinstance(self.signing_delay, tuple):
+            return self.signing_delay[0]
+        elif isinstance(self.signing_delay, list):
+            return min(self.signing_delay)
+        return self.signing_delay
+
+    @property
+    def max_signing_delay(self):
+        if self.signing_delay is None:
+            return -1
+        if isinstance(self.signing_delay, tuple):
+            return self.signing_delay[1]
+        elif isinstance(self.signing_delay, list):
+            return max(self.signing_delay)
+        return self.signing_delay
+
+    @property
+    def min_penalty(self):
+        if self.penalty is None:
+            return float('inf')
+        if isinstance(self.penalty, tuple):
+            return self.penalty[0]
+        elif isinstance(self.penalty, list):
+            return min(self.penalty)
+        return self.penalty
+
+    @property
+    def max_penalty(self):
+        if self.penalty is None:
+            return float('inf')
+        if isinstance(self.penalty, tuple):
+            return self.penalty[1]
+        elif isinstance(self.penalty, list):
+            return max(self.penalty)
+        return self.penalty
+
+    class Java:
+        implements = ['jnegmas.apps.scml.PyCFP']
+        
+    def to_java(self):
+        d = super().to_java()
+        d['min_time'], d['max_time'] = self.min_time, self.max_time
+        d['min_quantity'], d['max_quantity'] = self.min_quantity, self.max_quantity
+        d['min_unit_price'], d['max_unit_price'] = self.min_unit_price, self.max_unit_price
+        d['min_penalty'], d['max_penalty'] = self.min_penalty, self.max_penalty
+        d['min_signing_delay'], d['max_signing_delay'] = self.min_signing_delay, self.max_signing_delay
+        d['has_penalty'] = self.penalty is not None
+        d['has_signing_delay'] = self.signing_delay is not None
+        d['has_money_resolution'] = self.money_resolution is not None
+        return d
+
 
 @dataclass
 class SCMLAction:
@@ -738,6 +797,9 @@ class Loan:
         return f'{self.amount} @ {self.interest} paid in {self.n_installments} [{self.installment} each] ' \
             f'for a total {self.total} [starts at {self.starts_at}]'
 
+    class Java:
+        implements = ['jnegmas.Contract']
+
 
 class SCMLAgent(Agent):
     """The base for all SCM Agents"""
@@ -762,9 +824,6 @@ class SCMLAgent(Agent):
         self.processes: List[Process] = []
         self.interesting_products: List[int] = []
         """The products for which CFPs should be sent to this agent"""
-
-    def step(self):
-        pass
 
     def init(self):
         super().init()
@@ -843,12 +902,6 @@ class SCMLAgent(Agent):
                 return info.negotiator
         return self.on_negotiation_request(partner=initiator, cfp=annotation['cfp'])
 
-    def on_new_cfp(self, cfp: 'CFP') -> None:
-        """Called whenever a new CFP is published"""
-
-    def on_remove_cfp(self, cfp: 'CFP') -> None:
-        """Called whenever an existing CFP is about to be removed"""
-
     @abstractmethod
     def confirm_loan(self, loan: Loan) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
@@ -862,9 +915,6 @@ class SCMLAgent(Agent):
     @abstractmethod
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         """Called when a prospective partner requests a negotiation to start"""
-
-    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
-        """Will be called when production of some command fails"""
 
 
 @dataclass

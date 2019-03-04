@@ -1,3 +1,4 @@
+from abc import ABC
 from collections import defaultdict
 from random import random
 from typing import TYPE_CHECKING
@@ -50,7 +51,7 @@ class MiningProfile:
                              , beta_t=1.5 * random(), beta_q=99 * random() + 1, beta_u=99 * random() + 1)
 
 
-class Miner(SCMLAgent):
+class Miner(SCMLAgent, ABC):
     """Base class of all miners"""
 
 

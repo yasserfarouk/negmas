@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from negmas import Issue, NegotiatorProxy
+from negmas import Issue, NegotiatorProxy, MechanismProxy
 from negmas.situated import Agent, RenegotiationRequest, Contract
 from .common import *
 
@@ -15,6 +15,11 @@ __all__ = [
 
 class Bank(Agent):
     """Represents a bank in the world"""
+
+    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
+                                       annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str],
+                                       req_id: str) -> Optional[NegotiatorProxy]:
+        pass
 
     def __init__(self, minimum_balance: float, interest_rate: float
                  , interest_max: float, balance_at_max_interest: float, installment_interest: float

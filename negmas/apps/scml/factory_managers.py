@@ -1,18 +1,20 @@
 import itertools
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections import defaultdict
 
+from negmas import GeniusNegotiator
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, storage_as_array, temporary_transaction
 from negmas.common import NamedObject, MechanismState, MechanismInfo
-from negmas.events import Event, EventSource, Notification
-from negmas.helpers import get_class
+from negmas.events import Notification
+from negmas.helpers import get_class, instantiate
+from negmas.java import JavaObjectMixin
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, Outcome
-from negmas.sao import AspirationNegotiator
+from negmas.sao import AspirationNegotiator, JavaSAONegotiator
 from negmas.situated import Contract, Action, RenegotiationRequest
 from negmas.utilities import UtilityFunctionProxy, UtilityValue, normalize
 from .awi import SCMLAWI
-from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY
+from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY, ProductionFailure
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile
 from .schedulers import Scheduler, ScheduleInfo, GreedyScheduler
 
@@ -20,11 +22,11 @@ if True:
     from typing import Dict, Iterable, Any, Callable, Collection, Type, List, Optional, Union
 
 __all__ = [
-    'FactoryManager', 'DoNothingFactoryManager', 'GreedyFactoryManager'
+    'FactoryManager', 'DoNothingFactoryManager', 'GreedyFactoryManager', 'JavaFactoryManager'
 ]
 
 
-class FactoryManager(SCMLAgent):
+class FactoryManager(SCMLAgent, ABC):
     """Base factory manager class that will be inherited by participant negmas in ANAC 2019"""
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
@@ -46,31 +48,6 @@ class FactoryManager(SCMLAgent):
         self.interesting_products = list(self.producing.keys())
         self.interesting_products += list(self.consuming.keys())
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
-        pass
-
-    def confirm_contract_execution(self, contract: Contract) -> bool:
-        return True
-
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
-        return None
-
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
-        return None
-
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
-        return False
-
-    def confirm_loan(self, loan: Loan) -> bool:
-        """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
-        breached"""
-        return True
-
-    def on_event(self, event: Event, sender: EventSource):
-        super().on_event(event=event, sender=sender)
-
     def step(self):
         state = self.awi.state
         self.simulator.set_state(self.current_step, wallet=state.wallet, loans=state.loans
@@ -78,9 +55,109 @@ class FactoryManager(SCMLAgent):
                                  , line_schedules=state.line_schedules)
         self.current_step += 1
 
+    @abstractmethod
+    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
+        """
+        Called with a list of `ProductionFailure` records on production failure
+
+        Args:
+            failures:
+
+        Returns:
+
+        """
+
+
+class JavaFactoryManager(FactoryManager, JavaObjectMixin):
+    """Allows factory managers implemented in Java (using jnegmas) to participate in SCML worlds"""
+
+    def init(self):
+        return self.java_object.init()
+
+    def step(self):
+        return self.java_object.init()
+
+    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
+        return self.java_object.on_production_failure(failures=failures)
+
+    def confirm_loan(self, loan: Loan) -> bool:
+        return self.java_object.confirm_loan(loan)
+
+    def confirm_contract_execution(self, contract: Contract) -> bool:
+        return self.java_object.confirm_contract_execution(contract=contract)
+
+    def _get_negotiator(self, negotiator_class_name) -> Optional[NegotiatorProxy]:
+        if negotiator_class_name in ('', 'none', 'null'):
+            return None
+        if negotiator_class_name.startswith('agents'):
+            return GeniusNegotiator(java_class_name=negotiator_class_name, port=self._port)
+        if negotiator_class_name.startswith('jnegmas'):
+            return JavaSAONegotiator(java_class_name=negotiator_class_name, port=self._port)
+        return instantiate(negotiator_class_name)
+
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+        return self._get_negotiator(self.java_object.on_negotiation_request(cfp, partner))
+
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
+                               , state: MechanismState) -> None:
+        return self.java_object.on_negotiation_failure(partners, annotation, mechanism, state)
+
+    def on_negotiation_success(self, contract: Contract, mechanism: MechanismInfo) -> None:
+        return self.java_object.on_negotiation_success(contract, mechanism)
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        return self.java_object.on_contract_signed(contract)
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        return self.java_object.on_contract_cancelled(contract, rejectors)
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        return self.java_object.sign_contract(contract)
+
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+        return self.java_object.set_renegotiation_agenda(contract, breaches)
+
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]],
+                                         agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        return self._get_negotiator(self.java_object.respond_to_renegotiation_request(contract, breaches, agenda))
+
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        return self.java_object.on_renegotiation_request(contract, cfp, partner)
+
+    @classmethod
+    def do_nothing_manager(cls):
+        return JavaFactoryManager(java_class_name='jnegmas.apps.scml.factory_managers.DoNothingFactoryManager')
+
+    def __init__(self, java_class_name: str = 'jnegmas.apps.scml.factory_managers.DoNothingFactoryManager'
+                 , auto_load_java: bool = False
+                 , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
+        super().__init__(name=name, simulator_type=simulator_type)
+        self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java)
+
 
 class GreedyFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
+
+    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
+        pass
+
+    def confirm_loan(self, loan: Loan) -> bool:
+        return True
+
+    def confirm_contract_execution(self, contract: Contract) -> bool:
+        return True
+
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Dict[str, Any]]) -> Optional[
+        RenegotiationRequest]:
+        return None
+
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]],
+                                         agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        return None
+
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        return False
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator
                  , scheduler_type: Union[str, Type[Scheduler]] = GreedyScheduler
@@ -357,6 +434,28 @@ class GreedyFactoryManager(FactoryManager):
 
 class DoNothingFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
+
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+        pass
+
+    def confirm_contract_execution(self, contract: Contract) -> bool:
+        return True
+
+    def set_renegotiation_agenda(self, contract: Contract
+                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+        return None
+
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        return None
+
+    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+        return False
+
+    def confirm_loan(self, loan: Loan) -> bool:
+        """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
+        breached"""
+        return True
 
     def on_new_cfp(self, cfp: 'CFP') -> None:
         pass

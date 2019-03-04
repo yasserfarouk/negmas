@@ -73,6 +73,9 @@ class SCMLAWI(AgentWorldInterface):
         """Processes in the world"""
         return self._world.processes
 
+    class Java:
+        implements = ['jnegmas.SCMLAWI']
+
 
 class SCMLWorld(World):
     """The `World` class running a simulation of supply chain management."""

@@ -86,7 +86,7 @@ class MapUtil {
 }
 
 class NegLoader{
-    public String jarName = "../genius-8.0.4-jar-with-dependencies.jar";
+    public String jarName = "genius-8.0.4-jar-with-dependencies.jar";
     private HashMap<String, AbstractNegotiationParty> parties = null;
     private HashMap<String, Agent> agents = null;
     private HashMap<String, Boolean> is_party = null;

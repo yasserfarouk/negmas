@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
+from negmas import MechanismProxy
 from negmas.situated import Agent, RenegotiationRequest
 from .common import InsurancePolicy, SCMLAgent, Factory
 
@@ -17,6 +18,11 @@ __all__ = [
 
 class InsuranceCompany(Agent):
     """Represents an insurance company in the world"""
+
+    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
+                                       annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str],
+                                       req_id: str) -> Optional[NegotiatorProxy]:
+        pass
 
     def __init__(self, premium: float, premium_breach_increment: float, premium_time_increment: float
                  , a2f: Dict[str, Factory], name: str = None):

@@ -1,6 +1,7 @@
 import functools
 import itertools
 import math
+from abc import ABC
 from random import random, randint
 from typing import TYPE_CHECKING
 
@@ -80,7 +81,7 @@ class ConsumptionProfile:
         self.schedule[time % len(self.schedule)] = value
 
 
-class Consumer(SCMLAgent):
+class Consumer(SCMLAgent, ABC):
     """Base class of all consumer classes"""
     pass
 
