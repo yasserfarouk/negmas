@@ -196,7 +196,7 @@ class Entity(NamedObject):
 
 
 class BulletinBoard(Entity, EventSource, ConfigReader):
-    """The white-board which carries all public information. It consists of sections each with a dictionary of records.
+    """The bulletin-board which carries all public information. It consists of sections each with a dictionary of records.
 
     """
 
@@ -231,7 +231,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
 
     def query(self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False) -> Optional[Dict[str, Any]]:
         """
-        Returns all records in the given section/sections of the white-board that satisfy the query
+        Returns all records in the given section/sections of the bulletin-board that satisfy the query
 
         Args:
             section: Either a section name, a list of sections or None specifying ALL public sections (see remarks)
@@ -296,7 +296,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
 
         Returns:
 
-            Content of that key in the white-board
+            Content of that key in the bulletin-board
 
         """
         sec = self._data.get(section, None)
@@ -306,7 +306,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
 
     def record(self, section: str, value: Any, key: Optional[str] = None) -> None:
         """
-        Records data in the given section of the white-board
+        Records data in the given section of the bulletin-board
 
         Args:
             section: section name (can contain subsections separated by '/')
@@ -537,7 +537,7 @@ class AgentWorldInterface:
 
     @property
     def bulletin_board(self) -> BulletinBoardProxy:
-        """The white-board"""
+        """The bulletin-board"""
         return self._world.bulletin_board
 
     @property
@@ -633,6 +633,76 @@ class AgentWorldInterface:
 
         """
         self._world.logerror(msg)
+
+    def bb_query(self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False) -> Optional[Dict[str, Any]]:
+        """
+        Returns all records in the given section/sections of the bulletin-board that satisfy the query
+
+        Args:
+            section: Either a section name, a list of sections or None specifying ALL public sections (see remarks)
+            query: The query which is USUALLY a dict with conditions on it when querying values and a RegExp when
+            querying keys
+            query_keys: Whether the query is to be applied to the keys or values.
+
+        Returns:
+
+            - A dictionary with key:value pairs giving all records that satisfied the given requirements.
+
+        Remarks:
+
+            - A public section is a section with a name that does not start with an underscore
+            - If a set of sections is given, and two records in different sections had the same key, only one of them
+              will be returned
+            - Key queries use regular expressions and match from the beginning using the standard re.match function
+
+        """
+        return self._world.bulletin_board.query(section=section, query=query, query_keys=query_keys)
+
+    def bb_read(self, section: str, key: str) -> Optional[Any]:
+        """
+        Reads the value associated with given key from the bulletin board
+
+        Args:
+            section: section name
+            key: key
+
+        Returns:
+
+            Content of that key in the bulletin-board
+
+        """
+        return self._world.bulletin_board.read(section=section, key=key)
+
+    def bb_record(self, section: str, value: Any, key: Optional[str] = None) -> None:
+        """
+        Records data in the given section of the bulletin board
+
+        Args:
+            section: section name (can contain subsections separated by '/')
+            key: The key
+            value: The value
+
+        """
+        return self._world.bulletin_board.record(section=section, value=value, key=key)
+
+    def bb_remove(self, section: Optional[Union[List[str], str]], *
+               , query: Optional[Any] = None, key: str = None, query_keys: bool = False
+               , value: Any = None) -> bool:
+        """
+        Removes a value or a set of values from the bulletin Board
+
+        Args:
+            section: The section
+            query: the query to use to select what to remove
+            key: the key to remove (no need to give a full query)
+            query_keys: Whether to apply the query (if given) to keys or values
+            value: Value to be removed
+
+        Returns:
+            bool: Success of failure
+        """
+        return self._world.bulletin_board.remove(section=section, query=query, key=key, query_keys=query_keys
+                                                 , value=value)
 
     class Java:
         implements = ['jnegmas.AgentWorldInterface']

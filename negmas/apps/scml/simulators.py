@@ -183,7 +183,7 @@ class FactorySimulator(ABC):
         """
         return self.wallet_at(t) - self.loans_at(t)
 
-    def balance_to(self, t: int) -> float:
+    def balance_to(self, t: int) -> np.array:
         """
         Returns the balance fo the factory at times <= t
         Args:
@@ -717,6 +717,9 @@ class FastFactorySimulator(FactorySimulator):
         self._bookmarks: List[_FullBookmark] = []
         self._active_bookmark: Optional[_FullBookmark] = None
 
+    def init(self, *args, **kwargs):
+        self.__init__(*args, **kwargs)
+
     @property
     def fixed_before(self):
         return self._fixed_before
@@ -906,6 +909,9 @@ class FastFactorySimulator(FactorySimulator):
         #     self._line_schedules[i, t] = actual
 
         self.fix_before(t)
+
+    class Java:
+        implements = ['jnegmas.apps.scml.simulators.PySimulator']
 
 
 @contextmanager

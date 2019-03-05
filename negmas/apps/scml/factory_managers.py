@@ -71,6 +71,9 @@ class FactoryManager(SCMLAgent, ABC):
 class JavaFactoryManager(FactoryManager, JavaObjectMixin):
     """Allows factory managers implemented in Java (using jnegmas) to participate in SCML worlds"""
 
+    def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
+        super().__init__(name, simulator_type)
+
     def init(self):
         return self.java_object.init()
 
