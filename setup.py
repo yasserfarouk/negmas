@@ -15,7 +15,7 @@ requirements = [
     'Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
                 , 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2', 'pytest'
                 , 'hypothesis'
-                , 'pytest-cov', 'typing_extensions', 'numba', 'distributed']
+                , 'pytest-cov', 'typing_extensions', 'distributed']
 
 setup_requirements = requirements
 

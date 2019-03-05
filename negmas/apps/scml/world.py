@@ -31,7 +31,7 @@ class SCMLAWI(AgentWorldInterface):
         self.agent: SCMLAgent
         self._world.n_new_cfps += 1
         cfp.money_resolution = self._world.money_resolution
-        self._world.bulletin_board.record(section='cfps', key=cfp.id, value=cfp)
+        self.bb_record(section='cfps', key=cfp.id, value=cfp)
 
     def remove_cfp(self, cfp: CFP) -> bool:
         """Removes a CFP"""

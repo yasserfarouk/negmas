@@ -77,7 +77,7 @@ class InsuranceCompany(Agent):
             return None
 
         # find the total breach of the agent I am insuring against. The more this is, the more expensive the insurance
-        breaches = self.awi.bulletin_board.query(section='breaches', query={'perpetrator': against})
+        breaches = self.awi.bb_query(section='breaches', query={'perpetrator': against})
         b = 0
         if breaches is not None:
             for _, breach in breaches.items():

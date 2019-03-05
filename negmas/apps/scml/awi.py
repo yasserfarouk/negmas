@@ -13,13 +13,13 @@ class SCMLAWI(AgentWorldInterface):
         """Registers a CFP"""
         self._world.n_new_cfps += 1
         cfp.money_resolution = self._world.money_resolution
-        self._world.bulletin_board.record(section='cfps', key=cfp.id, value=cfp)
+        self.bb_record(section='cfps', key=cfp.id, value=cfp)
 
     def remove_cfp(self, cfp: CFP) -> bool:
         """Removes a CFP"""
         if self.agent.id != cfp.publisher:
             return False
-        return self._world.bulletin_board.remove(section='cfps', key=str(hash(cfp)))
+        return self.bb_remove(section='cfps', key=str(hash(cfp)))
 
     def evaluate_insurance(self, contract: Contract, t: int = None) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breachs committed by others

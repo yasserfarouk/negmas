@@ -68,7 +68,6 @@ nbsphinx==0.4.2
 -e git+https://github.com/yasserfarouk/negmas.git@c29a944f124e0b681d95324eb798e0767f04c086#egg=negmas
 networkx==2.2
 notebook==5.7.4
-numba==0.42.1
 numpy==1.16.1
 numpydoc==0.8.0
 packaging==19.0

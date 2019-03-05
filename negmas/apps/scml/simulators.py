@@ -3,7 +3,6 @@ import sys
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Optional
-from numba import jitclass
 import numpy as np
 from dataclasses import dataclass, field
 from contextlib import contextmanager

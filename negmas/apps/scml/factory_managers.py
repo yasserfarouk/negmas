@@ -251,7 +251,7 @@ class GreedyFactoryManager(FactoryManager):
         if self.use_consumer:
             self.consumer.on_negotiation_failure(partners, annotation, mechanism, state)
         cfp = annotation['cfp']
-        thiscfp = self.awi.bulletin_board.query(section='cfps', query=cfp.id, query_keys=True)
+        thiscfp = self.awi.bb_query(section='cfps', query=cfp.id, query_keys=True)
         if cfp.publisher != self.id and thiscfp is not None and len(thiscfp) > 0 \
             and self.n_neg_trials[cfp.id] < self.n_retrials:
             self.awi.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
@@ -384,11 +384,11 @@ class GreedyFactoryManager(FactoryManager):
         if self.reactive:
             return
         # 0. remove all my CFPs
-        # self.awi.bulletin_board.remove(section='cfps', query={'publisher': self})
+        # self.awi.bb_remove(section='cfps', query={'publisher': self})
 
         # respond to interesting CFPs
         # todo: should check time and sort products by interest etc
-        cfps = self.awi.bulletin_board.query(section='cfps'
+        cfps = self.awi.bb_query(section='cfps'
                                              , query={'products': self.producing.keys(), 'is_buy': True})
         if cfps is None:
             return

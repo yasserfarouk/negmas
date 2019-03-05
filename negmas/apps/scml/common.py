@@ -831,9 +831,9 @@ class SCMLAgent(Agent):
         self.products = self.awi.products  # type: ignore
         # noinspection PyUnresolvedReferences
         self.processes = self.awi.processes  # type: ignore
-        self.negotiation_speed_multiple = self.awi.bulletin_board.read('settings', 'negotiation_speed_multiple')
-        self.immediate_negotiations = self.awi.bulletin_board.read('settings', 'immediate_negotiations')
-        self.transportation_delay = self.awi.bulletin_board.read(section='settings', key='transportation_delay')
+        self.negotiation_speed_multiple = self.awi.bb_read('settings', 'negotiation_speed_multiple')
+        self.immediate_negotiations = self.awi.bb_read('settings', 'immediate_negotiations')
+        self.transportation_delay = self.awi.bb_read(section='settings', key='transportation_delay')
 
         factory = self.awi.state
         if factory is None:

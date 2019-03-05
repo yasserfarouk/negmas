@@ -78,7 +78,7 @@ class ReactiveMiner(Miner):
         # noinspection PyUnusedLocal
         cfp = annotation['cfp']
         super().on_negotiation_failure(partners=partners, annotation=annotation, mechanism=mechanism, state=state)
-        thiscfp = self.awi.bulletin_board.query(section='cfps', query=cfp.id, query_keys=True)
+        thiscfp = self.awi.bb_query(section='cfps', query=cfp.id, query_keys=True)
         if cfp.publisher != self.id and thiscfp is not None and len(thiscfp) > 0 \
             and self.n_neg_trials[cfp.id] < self.n_retrials:
             self.awi.logdebug(f'Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}')
@@ -132,7 +132,7 @@ class ReactiveMiner(Miner):
     def step(self):
         super().step()
         if not self.reactive:
-            cfps = self.awi.bulletin_board.query(section='cfps', query_keys=False
+            cfps = self.awi.bb_query(section='cfps', query_keys=False
                                                  , query={'products': list(self.profiles.keys())})
             if cfps is None:
                 return

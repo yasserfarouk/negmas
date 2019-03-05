@@ -124,17 +124,17 @@ class ScheduleDrivenConsumer(Consumer):
         product = self.products[p]
         awi: SCMLAWI = self.awi
         if current_schedule <= 0:
-            awi.bulletin_board.remove(section='cfps', query={'publisher': self.id, 'time': t, 'product_index': p})
+            awi.bb_remove(section='cfps', query={'publisher': self.id, 'time': t, 'product_index': p})
             return
         max_price = ScheduleDrivenConsumer.RELATIVE_MAX_PRICE * product.catalog_price if product.catalog_price is not None \
             else ScheduleDrivenConsumer.MAX_UNIT_PRICE
-        cfps = awi.bulletin_board.query(section='cfps', query={'publisher': self.id, 'time': t, 'product': p})
+        cfps = awi.bb_query(section='cfps', query={'publisher': self.id, 'time': t, 'product': p})
         if cfps is not None and len(cfps) > 0:
             for _, cfp in cfps.items():
                 if cfp.max_quantity != current_schedule:
                     cfp = CFP(is_buy=True, publisher=self.id, product=p
                               , time=t, unit_price=(0, max_price), quantity=(1, current_schedule))
-                    awi.bulletin_board.remove(section='cfps', query={'publisher': self.id, 'time': t
+                    awi.bb_remove(section='cfps', query={'publisher': self.id, 'time': t
                         , 'product': p})
                     awi.register_cfp(cfp)
                     break
