@@ -46,8 +46,17 @@ Once you have a copy of the source, you can install it with:
 
     $ python setup.py install
 
+or, better yet, if you do not have Poetry_, install it as explained in Poetry_install_, and then just run
+
+.. code-block:: console
+
+    $ poetry install
+
+We recommend the use of Poetry_.
 
 .. _Github repo: https://github.com/yasserfarouk/negmas
+.. _Poetry: https://poetry.eustace.io
+.. _Poetry_install: https://poetry.eustace.io/docs/#installation
 .. _tarball: https://github.com/yasserfarouk/negmas/tarball/master
 
 
