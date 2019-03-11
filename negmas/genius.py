@@ -22,6 +22,9 @@ from negmas import ResponseType, load_genius_domain
 from negmas.common import *
 from negmas.utilities import UtilityFunction
 
+DEFAULT_JAVA_PORT = 25337
+DEFAULT_PYTHON_PORT = 25338
+
 if typing.TYPE_CHECKING:
     from negmas import Outcome
 
@@ -32,8 +35,6 @@ __all__ = [
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
-
-DEFAULT_PORT = 25334
 
 common_gateway: Optional[JavaGateway] = None
 common_port: int = 0
@@ -282,7 +283,7 @@ def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
     global java_process
     global python_port
 
-    port = port if port > 0 else 25333
+    port = port if port > 0 else DEFAULT_JAVA_PORT
     if not force and common_gateway is not None and common_port == port:
         print('Java already initialized')
         return True
@@ -450,7 +451,7 @@ class GeniusNegotiator(SAONegotiator):
                     init_genius_bridge()
                 gateway = common_gateway
                 self.java = gateway.entry_point
-                port = DEFAULT_PORT
+                port = DEFAULT_PYTHON_PORT
                 return True
             # port = 25334
         gateway = JavaGateway(python_proxy_port=port)
