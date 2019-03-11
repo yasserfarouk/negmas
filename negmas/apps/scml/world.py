@@ -74,7 +74,7 @@ class SCMLAWI(AgentWorldInterface):
         return self._world.processes
 
     class Java:
-        implements = ['jnegmas.SCMLAWI']
+        implements = ['jnegmas.apps.scml.awi.PySCMLAWI']
 
 
 class SCMLWorld(World):

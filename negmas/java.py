@@ -18,7 +18,8 @@ from py4j.java_gateway import JavaClass
 __all__ = [
     'JavaObjectMixin',
     'JNegmasGateway',
-    'JavaConvertible'
+    'JavaConvertible',
+    'to_java',
 ]
 
 
@@ -27,24 +28,28 @@ def dict_encode(value):
     or string values"""
     if isinstance(value, dict):
         return {k: dict_encode(v) for k, v in value.items()}
-    if hasattr(value, '__dict__'):
-        return {k: dict_encode(v) for k, v in value.__dict__.items()}
     if isinstance(value, Iterable) and not isinstance(value, str):
         return [dict_encode(_) for _ in value]
     return value
+
+
+def to_java(object) -> Dict[str, Any]:
+    """Converts the object into a dict for serialization to Java side
+    """
+    d = dict_encode(object.__dict__)
+    # d['__java_class_name__'] = object.__class__.__name__
+    # if hasattr(object, 'Java') and isinstance(object.Java, type):
+    #     d['python_object'] = object
+    # else:
+    #     d['python_object'] = None
+    return d
 
 
 class JavaConvertible:
     """Object that represent *readonly* data that can be sent to jnegmas."""
 
     def to_java(self) -> Dict[str, Any]:
-        d = dict_encode(self.__dict__)
-        # d['__java_class_name__'] = self.__class__.__name__
-        # if hasattr(self, 'Java') and isinstance(self.Java, type):
-        #     d['python_object'] = self
-        # else:
-        #     d['python_object'] = None
-        return d
+        return to_java(self)
 
 
 class _NegmasConverter:
@@ -66,8 +71,8 @@ class _NegmasConverter:
 
 
 class JNegmasGateway:
-    DEFAULT_PYTHON_PORT = 25338
-    DEFAULT_JAVA_PORT = 25337
+    DEFAULT_PYTHON_PORT = 25334
+    DEFAULT_JAVA_PORT = 25333
 
     gateway: Optional[ClientServer] = None
 

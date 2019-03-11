@@ -29,7 +29,7 @@ You can get help on this tool by running:
 
 .. code-block:: console
 
-    $ rungenius --help
+    $ negmas genius --help
 
 
 This tool supports the following *optional* arguments:
@@ -55,7 +55,7 @@ You can get help on this tool by running:
 
 .. code-block:: console
 
-    $ scml --help
+    $ negmas scml --help
 
 
 These are the *optional* arguments of this tool:
@@ -137,7 +137,7 @@ You can get help on this tool by running:
 
 .. code-block:: console
 
-    $ tournament --help
+    $ negmas tournament --help
 
 
 These are the *optional* arguments of this tool:

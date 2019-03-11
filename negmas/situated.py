@@ -705,7 +705,7 @@ class AgentWorldInterface:
                                                  , value=value)
 
     class Java:
-        implements = ['jnegmas.AgentWorldInterface']
+        implements = ['jnegmas.situated.PyAgentWorldInterface']
 
 
 class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
