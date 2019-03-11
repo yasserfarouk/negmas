@@ -1,13 +1,25 @@
 Command Line Scripts
 ====================
 
-When installing NegMAS through the pip command, you get three command line tools that can be used to
-aid your development and testing. This section describes these three tools
+When installing NegMAS through the pip command, you get one command line tool that can be used to
+aid your development and testing. This tool provides a unified interface to all negmas commands.
 
-Genius Command Line Tool
-------------------------
+The set of supported commands are:
 
-This tool (`rungenius`) can be used to start a JVM running the Genius_ platform allowing `GeniusNegotiator` objects
+===============       ===================================================================
+ Command                                  Meaning
+===============       ===================================================================
+genius                Run a Genius Bridge. This bridge allows you to use GeniusNegotiator
+                      agents. Please notice that this command by-default runs in the
+                      foreground preventing further input to the terminal.
+scml                  Runs an SCML world
+tournament            Runs a tournament
+===============       ==============================================================
+
+Genius Bridge (genius negmas)
+-----------------------------
+
+The command ``genius`` can be used to start a JVM running the Genius_ platform allowing `GeniusNegotiator` objects
 to interact with existing GENIUS agents (Thanks for Tim Baarslag Lead Developer of GENIUS for allowing us
 to ship it within NegMAS).
 
@@ -33,10 +45,10 @@ This tool supports the following *optional* arguments:
 ===============       ==============================================================
 
 
-SCML World Runner
------------------
+SCML World Runner (negmas scml)
+-------------------------------
 
-The SCML World Runner command line tool (`scml`) runs an SCML world with default factory managers and reports
+The SCML World Runner command (`scml`) runs an SCML world with default factory managers and reports
 the results of this run.
 
 You can get help on this tool by running:
@@ -113,10 +125,10 @@ logs.txt                      TXT        A log file giving details of most impor
 =======================    ========     ====================================
 
 
-Tournament Running Tool
------------------------
+Tournament Command (negmas tournament)
+--------------------------------------
 
-The Tournament Running Tool (`tournament`) allows you to run a tournament between different agents in some world and
+The Tournament command (`tournament`) allows you to run a tournament between different agents in some world and
 compare their relative performance. The tool is general enough to support several world types but currently only the
 ANAC 2019 SCML (`anac2019`) configuration is supported.
 

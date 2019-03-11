@@ -27,7 +27,7 @@ if typing.TYPE_CHECKING:
 
 __all__ = [
     'GeniusNegotiator',  # Most abstract kind of agent
-    'init_genius_connection',
+    'init_genius_bridge',
     'genius_bridge_is_running'
 ]
 
@@ -265,39 +265,34 @@ party_based_negotiators = [
 ]
 
 
-def init_genius_connection(path: str = None, port: int = 0, force: bool = False) -> None:
+def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
     """Initializes a genius connection
 
-    Examples:
+    Args:
+        path: The path to a JAR file that runs negloader
+        port: port number to use
+        force: Force trial even if an existing bridge is initialized
 
-        # >>> init_genius_connection(port=35333)
-        # >>> a = GeniusNegotiator.random_negotiator()
-        # >>> a.java_uuid.startswith('agents')
-        # True
-        # >>> len(a.java_uuid)- len(a.java_class_name) == 36 # length of UUID
-        # True
+    Returns:
+        True if successful
 
     """
     global common_gateway
     global common_port
     global java_process
     global python_port
-    if path is None:
-        path = pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar')
+
     port = port if port > 0 else 25333
     if not force and common_gateway is not None and common_port == port:
         print('Java already initialized')
-        return
+        return True
     path = os.path.abspath(os.path.expanduser(path))
     try:
         subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
             f'java -jar {path} --die-on-exit {port}'
             , shell=True)
-    except FileNotFoundError:
-        print(os.getcwd(), flush=True)
-        raise FileNotFoundError([os.getcwd(), path])
     except:
-        pass
+        return False
     time.sleep(0.5)
     gateway = JavaGateway(gateway_parameters=GatewayParameters(port=port),
                           callback_server_parameters=CallbackServerParameters(port=0))
@@ -308,6 +303,7 @@ def init_genius_connection(path: str = None, port: int = 0, force: bool = False)
 
     common_gateway = gateway
     common_port = port
+    return True
 
 
 class GeniusNegotiator(SAONegotiator):
@@ -451,7 +447,7 @@ class GeniusNegotiator(SAONegotiator):
         if port is None:
             if auto_load_java:
                 if common_gateway is None:
-                    init_genius_connection()
+                    init_genius_bridge()
                 gateway = common_gateway
                 self.java = gateway.entry_point
                 port = DEFAULT_PORT
@@ -595,13 +591,24 @@ class GeniusNegotiator(SAONegotiator):
 
 
 def genius_bridge_is_running() -> bool:
+    """
+    Checks whether a Genius Bridge is running. A genius bridge allows you to use `GeniusNegotiator` objects.
+
+    Remarks:
+
+        You can start a Genius Bridge in at least two ways:
+
+        - execute the python function `init_genius_bridge()` in this module
+        - run "negmas genius" on the terminal
+
+    """
     try:
         neg = GeniusNegotiator(java_class_name='agents.anac.y2015.Atlas3.Atlas3')
         return neg.connected
-    except ConnectionRefusedError as e:
+    except ConnectionRefusedError:
         return False
-    except IndexError as e:
+    except IndexError:
         return False
-    except Py4JNetworkError as e:
+    except Py4JNetworkError:
         return False
 

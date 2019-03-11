@@ -7,7 +7,7 @@ from hypothesis import given, settings
 import hypothesis.strategies as st
 from py4j.protocol import Py4JNetworkError
 
-from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from_folder, init_genius_connection, \
+from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from_folder, init_genius_bridge, \
     genius_bridge_is_running
 
 dom_folder = pathlib.Path(pkg_resources.resource_filename('negmas'
@@ -20,7 +20,7 @@ util2 = dom_folder / 'travel_fanny.xml'
 @pytest.fixture(scope='module')
 def init_genius():
     try:
-        # init_genius_connection(pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar'))
+        # init_genius_bridge(pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar'))
         pass
     except:
         pass
