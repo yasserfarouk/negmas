@@ -56,6 +56,6 @@ setup(
     # test_suite='negmas/tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.26',
+    version='0.1.27',
     zip_safe=False,
 )
