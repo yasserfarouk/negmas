@@ -15,6 +15,7 @@ from typing import Optional, List, Tuple, Sequence
 import pkg_resources
 from py4j.java_gateway import (
     JavaGateway, CallbackServerParameters, GatewayParameters)
+from py4j.protocol import Py4JNetworkError
 
 from negmas import SAONegotiator, make_discounted_ufun, get_domain_issues
 from negmas import ResponseType, load_genius_domain
@@ -27,6 +28,7 @@ if typing.TYPE_CHECKING:
 __all__ = [
     'GeniusNegotiator',  # Most abstract kind of agent
     'init_genius_connection',
+    'genius_bridge_is_running'
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
@@ -37,6 +39,7 @@ common_gateway: Optional[JavaGateway] = None
 common_port: int = 0
 java_process = None
 python_port: int = 0
+
 
 all_agent_based_agents = [
     'agents.TestingAgent',
@@ -384,11 +387,6 @@ class GeniusNegotiator(SAONegotiator):
             agent_based: Old agents based on the Java class Negotiator
             party_based: Newer agents based on the Java class AbstractNegotiationParty
 
-        Examples:
-
-            >>> a = GeniusNegotiator.random_negotiator()
-            >>> print(a.java_class_name[:len('agents')])
-            agents
 
         Returns:
             GeniusNegotiator an agent with a random java class
@@ -401,16 +399,26 @@ class GeniusNegotiator(SAONegotiator):
                                 , auto_load_java=auto_load_java, can_propose=can_propose
                                 , name=name)
 
+    @property
+    def is_connected(self):
+        return self.connected and self.java is not None
+
     def _create(self):
         """
         Creates the agent
         Returns:
 
         Examples:
-            >>> a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
-            >>> a.java_uuid.startswith("agents.anac.y2015.Atlas3.Atlas3")
+            >>> if genius_bridge_is_running():
+            ...     a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
+            ...     a.java_uuid.startswith("agents.anac.y2015.Atlas3.Atlas3")
+            ... else:
+            ...     True
             True
-            >>> len(a.java_uuid)- len(a.java_class_name) == 36 # length of UUID
+            >>> if genius_bridge_is_running():
+            ...     len(a.java_uuid)- len(a.java_class_name) == 36 # length of UUID
+            ... else:
+            ...     True
             True
 
         """
@@ -424,13 +432,19 @@ class GeniusNegotiator(SAONegotiator):
         Examples:
 
             - Testing multilateral agent
-            >>> a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
-            >>> print(a.java_name)
+            >>> if genius_bridge_is_running():
+            ...     a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
+            ...     print(a.java_name)
+            ... else:
+            ...     print('ANAC2015-6-Atlas')
             ANAC2015-6-Atlas
 
             - Testing bilateral agent
-            >>> b = GeniusNegotiator(java_class_name="agents.SimpleAgent")
-            >>> print(b.java_name)
+            >>> if genius_bridge_is_running():
+            ...    b = GeniusNegotiator(java_class_name="agents.SimpleAgent")
+            ...    print(b.java_name)
+            ... else:
+            ...    print('Agent SimpleAgent')
             Agent SimpleAgent
 
         """
@@ -444,6 +458,9 @@ class GeniusNegotiator(SAONegotiator):
                 return True
             # port = 25334
         gateway = JavaGateway(python_proxy_port=port)
+        if gateway is None:
+            self.java = None
+            return False
         self.java = gateway.entry_point
         return True
 
@@ -456,35 +473,6 @@ class GeniusNegotiator(SAONegotiator):
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM.
-
-        Examples:
-
-            >>> from negmas import SAOMechanism
-            >>> dom_folder = pathlib.Path(pkg_resources.resource_filename('negmas'
-            ...             , resource_name='tests/data/scenarios/anac/y2010'))
-            >>> dom_folder = dom_folder / 'Travel'
-            >>> dom = str(dom_folder / 'travel_domain.xml')
-            >>> util1 = str(dom_folder / 'travel_chox.xml')
-            >>> util2 = str(dom_folder / 'travel_fanny.xml')
-            >>> a1 = GeniusNegotiator(
-            ... java_class_name = "agents.anac.y2015.Atlas3.Atlas3"
-            ... , domain_file_name=dom, utility_file_name=util1
-            ... )
-            >>> a2 = GeniusNegotiator(
-            ... java_class_name = "agents.anac.y2015.Atlas3.Atlas3"
-            ... , domain_file_name=dom, utility_file_name=util2
-            ... )
-            >>> p, _, issues = load_genius_domain(dom, keep_issue_names=True, keep_value_names=True, time_limit=10)
-            >>> print([f'{k}:{v}' for k, v in enumerate(issues)])
-            ["0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)', 'Liveliness', 'Turistic activities', 'Hospitality']", "1:Amusement: ['Nightlife and entertainment', 'Nightclubs', 'Excursion', 'Casinos', 'Zoo', 'Festivals', 'Amusement park']", "2:Culinary: ['Local cuisine', 'Lunch facilities', 'International cuisine', 'Cooking workshops']", "3:Shopping: ['Shopping malls', 'Markets', 'Streets', 'Small boutiques']", "4:Culture: ['Museum', 'Music hall', 'Theater', 'Art gallery', 'Cinema', 'Congress center']", "5:Sport: ['Bike tours', 'Hiking', 'Indoor activities', 'Outdoor activities', 'Adventure']", "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.', 'Monuments', 'Special streets', 'Palace', 'Landscape and nature']"]
-            >>> p.add(a1)
-            True
-            >>> p.add(a2)
-            True
-            >>> print(p.step().started)
-            True
-
-
         """
         super().on_negotiation_start(state=state)
         info = self.mechanism_info
@@ -604,3 +592,16 @@ class GeniusNegotiator(SAONegotiator):
         self.java.receive_message(self.java_uuid
                                   , agent_id
                                   , resp, bid)
+
+
+def genius_bridge_is_running() -> bool:
+    try:
+        neg = GeniusNegotiator(java_class_name='agents.anac.y2015.Atlas3.Atlas3')
+        return neg.connected
+    except ConnectionRefusedError as e:
+        return False
+    except IndexError as e:
+        return False
+    except Py4JNetworkError as e:
+        return False
+

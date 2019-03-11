@@ -5,8 +5,10 @@ import pytest
 import pathlib
 from hypothesis import given, settings
 import hypothesis.strategies as st
+from py4j.protocol import Py4JNetworkError
 
-from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from_folder, init_genius_connection
+from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from_folder, init_genius_connection, \
+    genius_bridge_is_running
 
 dom_folder = pathlib.Path(pkg_resources.resource_filename('negmas'
                                                           , resource_name='tests/data/scenarios/anac/y2010/Travel'))
@@ -28,6 +30,7 @@ def test_init_genius(init_genius):
     pass
 
 
+@pytest.mark.skipif(condition=not genius_bridge_is_running(), reason='No Genius Bridge, skipping genius-agent tests')
 @settings(max_examples=100)
 @given(agent_name1=st.sampled_from(GeniusNegotiator.negotiators()),
        agent_name2=st.sampled_from(GeniusNegotiator.negotiators()),
