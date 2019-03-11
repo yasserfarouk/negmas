@@ -12,10 +12,10 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'joblib', 'pytest-runner', 'colorlog', 'py4j'
-                , 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2', 'pytest'
+    'Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'colorlog', 'py4j'
+                , 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2'
                 , 'hypothesis'
-                , 'pytest-cov', 'typing_extensions', 'distributed']
+                , 'pytest-cov', 'typing_extensions']
 
 setup_requirements = requirements
 
@@ -38,9 +38,14 @@ setup(
            'negmas=scripts.negmas:cli',
        ],
     },
+    extras_require={
+        ':python_version < "3.7"': [
+            'dataclasses',
+        ],
+    },
     scripts=[],
     install_requires=requirements,
-    python_requires='>=3.7',
+    python_requires='>=3.6',
     license="GNU General Public License v2 (GPLv2)",
     long_description=readme,
     include_package_data=True,

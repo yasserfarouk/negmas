@@ -1,36 +1,17 @@
 -i https://pypi.python.org/simple
 -e .
-atomicwrites
-attrs
-Click
-colorlog
-coverage
-dataclasses
-hypothesis
-inflect
-joblib
-more-itertools
-numpy
-pandas
-pluggy
-progressbar2
-py4j
-py
-pytest-cov
 pytest-runner
-pytest
-python-dateutil
-python-utils
-pytz
-pyyaml
+pandas
 scipy
-six
+numpy
 stringcase
-tabulate
-distributed
+py4j
+colorlog
 typing_extensions
-jupyter
-bokeh
-networkx
-nbsphinx
-ipykernel
+inflect
+matplotlib
+hypothesis
+setuptools
+dataclasses; python_version < '3.7'
+typing
+PyYAML>=5.1b1

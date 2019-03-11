@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "negmas"
+version = "0.1.26"
+description = "NEGotiations Managed by Agent Simulations"
+authors = ["Yasser Mohammad <yasserfarouk@gmail.com>"]
+license = "GPL-2.0+"
+
+readme = 'README.rst'
+
+repository = "https://github.com/yasserfarouk/negmas"
+homepage = "https://github.com/yasserfarouk/negmas"
+
+keywords = ['negotiation', 'mas', 'multi-agent', 'simulation', 'AI']
+
+include = ["*.rst", "LICENSE"]
+exclude = ["negmas/**/*.pyc", "nemgas/**/__pycache__", "config", "docs", "etc", "notebooks", "tests"]
+
+[tool.poetry.dependencies]
+python = ">=3.6"
+Click = ">=6.0"
+pytest-runner = "*"
+pandas = "*"
+scipy = "*"
+numpy = "*"
+stringcase = "*"
+py4j = "*"
+colorlog = "*"
+inflect = "*"
+matplotlib = "*"
+hypothesis = "*"
+setuptools = "*"
+tabulate = "*"
+pytest-cov = "*"
+dataclasses = { version = "*", python = "<3.7" }
+typing = "*"
+PyYAML = "5.1b1" # to avoid a security issue found by github
+distributed = { version = "*", optional = true }
+progressbar2 = "^3.39"
+typing_extensions = "^3.7"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
+pytest-cov = "^2.0"
+poetry = "*"
+
+[tool.poetry.scripts]
+negmas = 'scripts.negmas:cli'
+
+
+[tool.poetry.extras]
+dask = ["distributed"]
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+

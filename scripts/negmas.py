@@ -90,7 +90,7 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, competit
         name = None
     if max_runs <= 0:
         max_runs = None
-    parallelism = 'dask' if distributed else 'parallel' if parallel else 'serial'
+    parallelism = 'distributed' if distributed else 'parallel' if parallel else 'serial'
     start = perf_counter()
     if ttype.lower() == 'anac2019':
         results = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names

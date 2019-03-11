@@ -3,7 +3,9 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
-include negmas/external/*.jar
-graft negmas/external
-graft negmas/tests
+recursive-exclude negmas *.pyc
+recursive-exclude negmas __pycache__
+
+
+
 

@@ -14,7 +14,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Optional, List, Callable, Union, Type, Sequence
 
-import distributed
 import numpy as np
 import pandas as pd
 import yaml
@@ -206,6 +205,7 @@ def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: 
 def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generator, tournament_progress_callback
               , n_worlds, name, score_calculator) -> List[pd.DataFrame]:
     """Runs the tournament on dask"""
+    import distributed
     scores = []
     if scheduler_ip is None and scheduler_port is None:
         address = None
