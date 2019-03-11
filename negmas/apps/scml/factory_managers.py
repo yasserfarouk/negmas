@@ -71,8 +71,14 @@ class FactoryManager(SCMLAgent, ABC):
 class JavaFactoryManager(FactoryManager, JavaObjectMixin):
     """Allows factory managers implemented in Java (using jnegmas) to participate in SCML worlds"""
 
-    def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
-        super().__init__(name, simulator_type)
+    @property
+    def awi(self):
+        return super().awi
+
+    @awi.setter
+    def awi(self, awi):
+        self.java_object.setAWI(awi)
+        super().awi = awi
 
     def init(self):
         return self.java_object.init()
@@ -137,6 +143,7 @@ class JavaFactoryManager(FactoryManager, JavaObjectMixin):
                  , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name, simulator_type=simulator_type)
         self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java)
+        self.java_object.on_construction(name, self.simulator)
 
 
 class GreedyFactoryManager(FactoryManager):
