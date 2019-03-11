@@ -31,14 +31,14 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
+    # py_modules=['scripts.negmas'],
     description='A library for situated automated negotiations',
-    # entry_points={
-    #    'console_scripts': [
-    #        'rungenius=scripts.rungenius.cli',
-    #        'scml=scripts.scml.cli',
-    #    ],
-    # },
-    scripts=['scripts/rungenius', 'scripts/scml', 'scripts/tournament'],
+    entry_points={
+       'console_scripts': [
+           'negmas=scripts.negmas:cli',
+       ],
+    },
+    scripts=[],
     install_requires=requirements,
     python_requires='>=3.7',
     license="GNU General Public License v2 (GPLv2)",
