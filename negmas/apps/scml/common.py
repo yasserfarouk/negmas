@@ -416,7 +416,7 @@ class SCMLAgreement(OutcomeType):
     """quantity"""
     penalty: Optional[float] = None
     """penalty"""
-    signing_delay: int = 0
+    signing_delay: int = -1
     """Delay between agreement conclusion and signing it to be binding"""
 
 
@@ -817,7 +817,7 @@ class SCMLAgent(Agent):
         """Mapping from a product to all manufacturing processes that can consume it"""
         self.compiled_profiles: List[ManufacturingProfileCompiled] = []
         """All the profiles to be used by the factory belonging to this agent compiled to use indices"""
-        self.immediate_negotiations = True
+        self.immediate_negotiations = False
         self.negotiation_speed_multiple: int = 1
         self.transportation_delay: int = 0
         self.products: List[Product] = []
@@ -921,7 +921,7 @@ class SCMLAgent(Agent):
 class InsurancePolicy:
     premium: float
     contract: Contract
-    at_time: float
+    at_time: int
     against: SCMLAgent
 
 
