@@ -1480,7 +1480,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
     def __setstate__(self, state):
         name, awi = state
         super().__init__(name=name)
-        self.awi = awi
+        self._awi = awi
 
     def __init__(self, name: str = None):
         super().__init__(name=name)
@@ -1488,7 +1488,15 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         self._neg_requests: Dict[str, NegotiationRequestInfo] = {}
         self.contracts: Set[Contract] = set()
         self._unsigned_contracts: Set[Contract] = set()
-        self.awi: AgentWorldInterface = None
+        self._awi: AgentWorldInterface = None
+
+    @property
+    def awi(self):
+        return self._awi
+
+    @awi.setter
+    def awi(self, awi):
+        self._awi = awi
 
     def request_negotiation(self
                             , issues: List[Issue]
