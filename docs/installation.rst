@@ -57,19 +57,29 @@ Once you have a copy of the source, you can install it with:
 After installation, some new commands will be added to your environment (hopefully it is a virtual environment). Among
 them there is a script called: *rungenius*.
 
-To test your installation, run the following commands:
-
-.. code-block:: console
-
-    $ rungenius
-
-This will start a service that allows NegMAS to use Genius_. After this process starts, you can run the tests normally
-using:
-
+To test your installation, run the following command (note that test_genius tests will be skipped):
 
 .. code-block:: console
 
     $ python -m pytest --cov=negmas --pyargs negmas
+
+If you want to test the Genius_  bridge, you need to download the :download:`Genius-NegMAS-Bridge<assets/genius-8.0.4-bridge.jar>`
+
+Once you have the file save it to some path in your machine and run the following command (note that it will run in the
+foreground until you press Ctrl-C to close it):
+
+.. code-block:: console
+
+    $ negmas genius --path=path-to-genius-bridge.jar
+
+This will start a service that allows NegMAS to use Genius_.
+
+After this process starts, you can run the tests involving genius using:
+
+.. code-block:: console
+
+    $ python -m pytest --cov=negmas --pyargs negmas/tests/test_genius
+
 
 Notice that this test will report coverage for test files as well. That is not ideal. To exclude such files from the
 report you will need to use a .coveragerc file as described in Coverage_.
