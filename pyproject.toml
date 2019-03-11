@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "negmas"
-version = "0.1.26"
+version = "0.1.27"
 description = "NEGotiations Managed by Agent Simulations"
 authors = ["Yasser Mohammad <yasserfarouk@gmail.com>"]
 license = "GPL-2.0+"
@@ -18,25 +18,25 @@ exclude = ["negmas/**/*.pyc", "nemgas/**/__pycache__", "config", "docs", "etc", 
 [tool.poetry.dependencies]
 python = ">=3.6"
 Click = ">=6.0"
-pytest-runner = "*"
-pandas = "*"
-scipy = "*"
-numpy = "*"
-stringcase = "*"
-py4j = "*"
-colorlog = "*"
-inflect = "*"
-matplotlib = "*"
-hypothesis = "*"
-setuptools = "*"
-tabulate = "*"
-pytest-cov = "*"
 dataclasses = { version = "*", python = "<3.7" }
-typing = "*"
 PyYAML = "5.1b1" # to avoid a security issue found by github
 distributed = { version = "*", optional = true }
 progressbar2 = "^3.39"
 typing_extensions = "^3.7"
+pytest-runner = "^4.4"
+pandas = "^0.24.1"
+scipy = "^1.2"
+numpy = "^1.16"
+stringcase = "^1.2"
+py4j = "^0.10.8"
+colorlog = "^4.0"
+inflect = "^2.1"
+matplotlib = "^3.0"
+hypothesis = "^4.9"
+setuptools = "^40.8"
+tabulate = "^0.8.3"
+pytest-cov = "^2.6"
+typing = "^3.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"

@@ -623,7 +623,7 @@ heapdict = "*"
 dask = ["distributed"]
 
 [metadata]
-content-hash = "97a8ccb31cebf8f1445f4c2914229650d1119cd699bca8b518b2f41cd63aeb2b"
+content-hash = "f33b180fc0a65a5d9074c3e07de54a069131deeecefa19e88f2aa5269f42c6c1"
 python-versions = ">=3.6"
 
 [metadata.hashes]

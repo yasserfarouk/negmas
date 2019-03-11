@@ -1,17 +1,16 @@
 -i https://pypi.python.org/simple
 -e .
-pytest-runner
-pandas
-scipy
-numpy
-stringcase
-py4j
-colorlog
-typing_extensions
-inflect
-matplotlib
-hypothesis
-setuptools
-dataclasses; python_version < '3.7'
-typing
-PyYAML>=5.1b1
+pytest-runner = "*"
+pandas = "*"
+scipy = "*"
+numpy = "*"
+stringcase = "*"
+py4j = "*"
+colorlog = "*"
+inflect = "*"
+matplotlib = "*"
+hypothesis = "*"
+setuptools = "*"
+tabulate = "*"
+pytest-cov = "*"
+typing = "*"
