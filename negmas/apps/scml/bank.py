@@ -126,6 +126,8 @@ class Bank(Agent):
                     new_loan = self._evaluate_loan(agent=agent, amount=unavailable, n_installments=1
                                                    , installment_loan=True, starts_at=t + 1)
                     if new_loan is None:
+                        # @todo delete l/lmax from interest calculation and base it only on cr. cr goes exponentially with
+                        # a discounted version of the total failures to pay
                         # The agent does not have enough money and cannot get a new loan, blacklist it
                         self.credit_rating[agent.id] += unavailable
                         self.awi.logdebug(f'Bank: {agent.name} blacklisted for {unavailable} (of {loan.installment})')
