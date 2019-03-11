@@ -1,3 +1,0 @@
-[console_scripts]
-negmas=scripts.negmas:cli
-
