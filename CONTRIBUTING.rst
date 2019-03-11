@@ -64,10 +64,10 @@ Ready to contribute? Here's how to set up `negmas` for local development.
 
     $ git clone git@github.com:your_name_here/negmas.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+3. Install your local copy into a virtualenv. This is how you set up your fork for local development::
 
-    $ mkvirtualenv negmas
-    $ cd negmas/
+    $ python -m venv venv
+    $ cd venv/
     $ python setup.py develop
 
 4. Create a branch for local development::
@@ -92,6 +92,13 @@ Ready to contribute? Here's how to set up `negmas` for local development.
     $ git push origin name-of-your-bugfix-or-feature
 
 7. Submit a pull request through the GitHub website.
+
+If you are using poetry, a toml file is included so you can just run
+
+    $ poetry install
+    $ poetry develop
+
+and you are good to go.
 
 Pull Request Guidelines
 -----------------------
