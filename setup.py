@@ -35,7 +35,7 @@ setup(
     description='A library for situated automated negotiations',
     entry_points={
        'console_scripts': [
-           'negmas=scripts.negmas:cli',
+           'negmas=negmas.scripts.negmas:cli',
        ],
     },
     extras_require={
@@ -56,6 +56,6 @@ setup(
     # test_suite='negmas/tests',
     tests_require=test_requirements,
     url='https://github.com/yasserfarouk/negmas',
-    version='0.1.29',
+    version='0.1.30',
     zip_safe=False,
 )
