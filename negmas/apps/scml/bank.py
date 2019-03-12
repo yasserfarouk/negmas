@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 from negmas import Issue, NegotiatorProxy, MechanismProxy
-from negmas.situated import Agent, RenegotiationRequest, Contract
+from negmas.situated import Agent, RenegotiationRequest, Contract, Breach
 from .common import *
 
 if True: # if TYPE_CHECKING:

@@ -11,7 +11,7 @@ from negmas.java import JavaCallerMixin, JavaConvertible, to_java
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, Outcome
 from negmas.sao import AspirationNegotiator, JavaSAONegotiator
-from negmas.situated import Contract, Action, RenegotiationRequest
+from negmas.situated import Contract, Action, RenegotiationRequest, Breach
 from negmas.utilities import UtilityFunctionProxy, UtilityValue, normalize
 from .awi import SCMLAWI
 from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY, ProductionFailure
@@ -462,9 +462,6 @@ class DoNothingFactoryManager(FactoryManager):
                                          , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
 
-    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
-        return False
-
     def confirm_loan(self, loan: Loan) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
         breached"""
@@ -475,9 +472,6 @@ class DoNothingFactoryManager(FactoryManager):
 
     def __init__(self, name=None):
         super().__init__(name=name)
-
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
-        return None
 
     def step(self):
         pass
