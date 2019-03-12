@@ -142,32 +142,42 @@ You can get help on this tool by running:
 
 These are the *optional* arguments of this tool:
 
-=================================   =================================================
+=================================   ==============================================================
     Argument                         Meaning
-=================================   =================================================
+=================================   ==============================================================
 -n, --name TEXT                     The name of the tournament. The special
                                     value "random" will result in a random name [default: random]
 -s, --steps INTEGER                 Number of steps.  [default: 60]
 -f, --config TEXT                   The config to use. Default is ANAC 2019 [default: anac2019]
--t, --timeout INTEGER               Timeout after the given number of seconds (0 for infinite)  [default: 0]
+-t, --timeout INTEGER               Timeout after the given number of seconds (0 for infinite)
+                                    [default: 0]
 --runs INTEGER                      Number of runs for each configuration [default: 5]
---max-runs INTEGER                  Maximum total number of runs. Zero or negative numbers mean no limit  [default:-1]
---randomize / --permutations        Random worlds or try all permutations up to max-runs  [default: False]
--c, --competitors TEXT              A semicolon (;) separated list of agent types to use for the competition.
-                                    [default:negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager]
---parallel / --serial               Run a parallel/serial tournament on a single machine  [default: True]
+--max-runs INTEGER                  Maximum total number of runs. Zero or negative numbers mean no
+                                    limit  [default:-1]
+--randomize / --permutations        Random worlds or try all permutations up to max-runs
+                                    [default: False]
+-c, --competitors TEXT              A semicolon (;) separated list of agent types to use for the
+                                    competition.
+                                    [default:negmas.apps.scml.DoNothingFactoryManager;
+                                    negmas.apps.scml.GreedyFactoryManager]
+--parallel / --serial               Run a parallel/serial tournament on a single machine
+                                    [default: True]
 --distributed / --single-machine    Run a distributed tournament using dask [default: False]
--l, --log TEXT                      Default location to save logs (A folder will be created under it)  [default:~/negmas/logs/tournaments]
---verbose INTEGER                   verbosity level (from 0 == silent to 1 == world progress)  [default: 0]
+-l, --log TEXT                      Default location to save logs (A folder will be created under
+                                    it)  [default:~/negmas/logs/tournaments]
+--verbose INTEGER                   verbosity level (from 0 == silent to 1 == world progress)
+                                    [default: 0]
 --configs-only / --run              configs_only  [default: False]
---reveal-names / --hidden-names     Reveal agent names (should be used only for debugging)  [default: False]
---ip TEXT                           The IP address for a dask scheduler to run the distributed tournament.
+--reveal-names / --hidden-names     Reveal agent names (should be used only for debugging)
+                                    [default: False]
+--ip TEXT                           The IP address for a dask scheduler to run the distributed
+                                    tournament.
                                     Effective only if --distributed  [default: 127.0.0.1]
 --port INTEGER                      The IP port number a dask scheduler to run
                                     the distributed tournament. Effective only
                                     if --distributed  [default: 8786]
 --help                              Show help message and exit.
-=================================   =================================================
+=================================   ==============================================================
 
 
 Upon completion, a complete log and several statistics are saved in a new folder under the `log folder` location
@@ -176,17 +186,20 @@ results, a new folder will be created for each run named by the current date and
 folder will contain the following files:
 
 
-=================           ========     ====================================
+=================           ========     =================================================================
  File/Folder Name             Format         Content
-=================           ========     ====================================
-configs                     FOLDER       Contains one json file for each world run tried during the tournament. You can
-                                         re-run this world using `run_world` function in the `tournament` module.
+=================           ========     =================================================================
+configs                     FOLDER       Contains one json file for each world
+                                         run tried during the tournament. You can
+                                         re-run this world using `run_world` function in the `tournament`
+                                         module.
 params.json                 JSON         The parameters used to create this tournament
 scores.csv                  CSV          Scores of every agent in every world
 total_scores.csv            CSV          Scores of every agent **type** averaged over all runs
 winners.csv                 CSV          Winner *types* and their average scores
-ttest.csv                   CSV          Results of a factorial TTEST comparing the performance of all agent *types*
-=================           ========     ====================================
+ttest.csv                   CSV          Results of a factorial TTEST comparing the performance of all
+                                         agent *types*
+=================           ========     =================================================================
 
 Other than these files, a folder with the same number as the corresponding config file in the configs folder, keeps full
 statistics/log of every world (see the `SCML World Runner` section for the contents of this folder.
