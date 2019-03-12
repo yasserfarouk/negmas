@@ -1392,7 +1392,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         return set()
 
     def _process_breach(self, contract: Contract, breaches: List[Breach]
-                        , force_negotiation_now=True) -> bool:
+                        , force_immediate_signing=True) -> bool:
         resolved = False
 
         # calculate total breach level
@@ -1401,7 +1401,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             total_breach_levels[breach.perpetrator.id] += breach.level
 
         # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
-        for agent, blevel in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
+        for agent, _ in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
             agenda = agent.set_renegotiation_agenda(contract=contract, breaches=breaches)
             if agenda is None:
                 continue
@@ -1420,8 +1420,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                 if results is not None:
                     contract, mechanism = results
                     self._register_contract(mechanism=mechanism, negotiation=None
-                                            , force_signature_now=force_negotiation_now)
+                                            , force_signature_now=force_immediate_signing)
                     resolved = True
+                    break
 
         if resolved:
             for breach in breaches:
