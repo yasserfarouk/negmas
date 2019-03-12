@@ -5,7 +5,7 @@ Implements Java interoperability allowing parts of negmas to work smoothly with 
 import os
 import subprocess
 import time
-from typing import Optional, Dict, Any, Iterable
+from typing import Optional, Dict, Any, Iterable, Callable
 
 import pkg_resources
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
@@ -16,7 +16,7 @@ from py4j.java_gateway import JavaClass
 #  somewhere
 
 __all__ = [
-    'JavaObjectMixin',
+    'JavaCallerMixin',
     'JNegmasGateway',
     'JavaConvertible',
     'to_java',
@@ -125,7 +125,7 @@ class JNegmasGateway:
         return True
 
 
-class JavaObjectMixin:
+class JavaCallerMixin:
     """A mixin to enable calling a java counterpart. This mixin can ONLY be used with a `NamedObject` because it uses
     its id property.
 
@@ -158,29 +158,50 @@ class JavaObjectMixin:
 
     """
 
-    def init_java_bridge(self, java_class_name: str, auto_load_java: bool = False):
+    @classmethod
+    def from_java(cls, java_object, *args, **kwargs):
+        """Creates a Python object representing the corresponding Java object"""
+        obj = cls(*args, **kwargs)
+        obj.java_object = java_object
+        obj._connected = True
+        obj._java_class_name = java_object.getClass().getSimpleName()
+        return obj
+
+    def init_java_bridge(self, java_class_name: str, auto_load_java: bool = False
+                         , python_object_factory: Optional[Callable[[], Any]] = None):
         """
         initializes a connection to the java bridge creating a member called `java_object` that can be used to access
         the counterpart object in Java
 
         Args:
-            java_class_name:
-            id:
-            port:
-            auto_load_java:
+            java_class_name: The type of the Java object to be created
+            auto_load_java: When true, a JVM will be automatically created (if one is not available)
+            python_object_factory: A callable that creates a python object to shadow the java object
 
-        Returns:
 
+        Remarks:
+
+            - sets a member called java_object that can be used to access the corresponding Java object crated
+            - if `python_object_factory` is given, it must return an object of a type that has an internal class called
+              Java which has a single member called 'implements' which is a list of one string element
+              representing the Java interface being implemented (it must be either jnegmas.PyCallable or an extension of
+              it).
         """
         self._java_class_name = java_class_name
         self._connected = JNegmasGateway.connect(auto_load_java=auto_load_java)
-        self.java_object = self._create()
+        self.java_object = self._create(python_object_factory() if python_object_factory else None)
 
-    def _create(self):
+    def _create(self, python_shadow: Any = None):
         """
-        Creates the internal object                
+        Creates the internal object.
+
+        Args:
+
+              python_shadow: An object that has an internal Java class with implements = ['jnegmas.PyCallable']
 
         """
-        return JNegmasGateway.gateway.entry_point.create(self._java_class_name)
+        if python_shadow is None:
+            return JNegmasGateway.gateway.entry_point.create(self._java_class_name)
+        return JNegmasGateway.gateway.entry_point.create(self._java_class_name, python_shadow)
 
 
