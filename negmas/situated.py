@@ -181,7 +181,7 @@ class RenegotiationRequest:
     annotation: Dict[str, Any] = field(default_factory=dict)
 
     class Java:
-        implements = ['jnegmas.ProductionFailure']
+        implements = ['jnegmas.situated.RenegotiationRequest']
 
 
 class Entity(NamedObject):
@@ -905,9 +905,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                     if agreement is not None or is_broken:  # or not mechanism.running:
                         negotiation = self._negotiations.get(puuid, None)
                         if agreement is None:
-                            self._register_failed_negotiation(mechanism, negotiation)
+                            self._register_failed_negotiation(mechanism.info, negotiation)
                         else:
-                            self._register_contract(mechanism, negotiation)
+                            self._register_contract(mechanism.info, negotiation)
                         if negotiation:
                             del self._negotiations[mechanism.uuid]
                 mechanisms = list((k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None)
@@ -1102,9 +1102,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                 if agreement is not None or is_broken:  # or not mechanism.running:
                     negotiation = self._negotiations.get(puuid, None)
                     if agreement is None:
-                        self._register_failed_negotiation(mechanism, negotiation)
+                        self._register_failed_negotiation(mechanism.info, negotiation)
                     else:
-                        self._register_contract(mechanism, negotiation)
+                        self._register_contract(mechanism.info, negotiation)
                     if negotiation:
                         del self._negotiations[mechanism.uuid]
         # self.loginfo(
@@ -1157,7 +1157,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                         , roles: Collection[str] = None
                         , annotation: Optional[Dict[str, Any]] = None
                         , mechanism_name: str = None
-                        , mechanism_params: Dict[str, Any] = None) -> Optional[Contract]:
+                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, MechanismInfo]]:
         """
         Requests to start a negotiation with some other agents
 
@@ -1180,7 +1180,6 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         """
         self.loginfo(f'{caller.name} requested immediate negotiation '
                      f'{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]}')
-        contract = None
         neg = self._register_negotiation(mechanism_name=mechanism_name, mechanism_params=mechanism_params, roles=roles
                                          , caller=caller, partners=partners, annotation=annotation, issues=issues
                                          , req_id=None, run_to_completion=True)
@@ -1189,10 +1188,11 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
-                self._register_failed_negotiation(mechanism=mechanism, negotiation=neg)
+                self._register_failed_negotiation(mechanism=mechanism.info, negotiation=neg)
             else:
-                contract = self._register_contract(mechanism=mechanism, negotiation=neg, force_signature_now=True)
-        return contract
+                contract = self._register_contract(mechanism=mechanism.info, negotiation=neg, force_signature_now=True)
+            return contract, mechanism.info
+        return None
 
     def _log_header(self):
         if self.time is None:
@@ -1208,18 +1208,18 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                 , 'mechanism_type': mechanism.__class__.__name__}
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
-        if mechanism.agreement is None or negotiation is None:
+        if mechanism.state.agreement is None or negotiation is None:
             return None
         signed_at = None
         if force_signature_now:
             signing_delay = 0
         else:
-            signing_delay = mechanism.agreement.get('signing_delay', self.default_signing_delay)
+            signing_delay = mechanism.state.agreement.get('signing_delay', self.default_signing_delay)
         contract = Contract(
             partners=list(_.id for _ in partners),
             annotation=negotiation.annotation,
             issues=negotiation.issues,
-            agreement=mechanism.agreement,
+            agreement=mechanism.state.agreement,
             concluded_at=self.current_step,
             to_be_signed_at=self.current_step + signing_delay,
             signed_at=signed_at,
@@ -1227,7 +1227,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         )
         self.on_contract_concluded(contract, to_be_signed_at=self.current_step + signing_delay)
         for partner in partners:
-            partner.on_negotiation_success(contract=contract, mechanism=mechanism.info)
+            partner.on_negotiation_success(contract=contract, mechanism=mechanism)
         if signing_delay == 0:
             signed = self._sign_contract(contract)
             if signed:
@@ -1241,7 +1241,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         else:
             annot_ = ''
         self.logdebug(f'Contract [{sign_status}]: {[_.name for _ in partners]}'
-                      f' > {str(mechanism.agreement)} on annotation {annot_}')
+                      f' > {str(mechanism.state.agreement)} on annotation {annot_}')
         return contract
 
     def _register_failed_negotiation(self, mechanism, negotiation) -> None:
@@ -1257,7 +1257,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             self._saved_negotiations[mechanism.id] = _stats
         for partner in partners:
             partner.on_negotiation_failure(partners=[_.id for _ in partners], annotation=annotation
-                                           , mechanism=mechanism.info, state=mechanism_state)
+                                           , mechanism=mechanism, state=mechanism_state)
 
         self.logdebug(f'Negotiation failure between {[_.name for _ in partners]}'
                       f' on annotation {negotiation.annotation} ')
@@ -1391,9 +1391,38 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.loginfo(f'Executing {str(contract)}')
         return set()
 
-    def _process_breach(self, contract: Contract, breaches: List[Breach]) -> bool:
+    def _process_breach(self, contract: Contract, breaches: List[Breach]
+                        , force_negotiation_now=True) -> bool:
         resolved = False
-        # @todo add breach processing
+
+        # calculate total breach level
+        total_breach_levels = defaultdict(int)
+        for breach in breaches:
+            total_breach_levels[breach.perpetrator.id] += breach.level
+
+        # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
+        for agent, blevel in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
+            agenda = agent.set_renegotiation_agenda(contract=contract, breaches=breaches)
+            if agenda is None:
+                continue
+            negotiators = []
+            for partner in contract.partners:
+                negotiator = self.agents[partner].respond_to_renegotiation_request(contract=contract
+                                                              , breaches=breaches
+                                                              , agenda=agenda)
+                if negotiator is None:
+                    break
+                negotiators.append(negotiator)
+            else:
+                # everyone accepted this renegotiation
+                results = self.run_negotiation(caller=agent, issues=agenda.issues
+                                                    , partners=[self.agents[_] for _ in contract.partners])
+                if results is not None:
+                    contract, mechanism = results
+                    self._register_contract(mechanism=mechanism, negotiation=None
+                                            , force_signature_now=force_negotiation_now)
+                    resolved = True
+
         if resolved:
             for breach in breaches:
                 if self.save_resolved_breaches:
@@ -1637,7 +1666,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         """
 
     @abstractmethod
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
                                          , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         """
         Called to respond to a renegotiation request
@@ -1650,10 +1679,6 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         Returns:
 
         """
-
-    @abstractmethod
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
-        """Called to respond to a re-negotiation request"""
 
 
 def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
