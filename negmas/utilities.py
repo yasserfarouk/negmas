@@ -38,6 +38,7 @@ from negmas.common import MechanismInfo
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
 from negmas.helpers import Distribution
 from negmas.helpers import snake_case, gmap, ikeys, Floats
+from negmas.java import JavaCallerMixin, to_java
 from negmas.outcomes import sample_outcomes, OutcomeRange, Outcome, outcome_in_range, Issue, outcome_is_valid, \
     OutcomeType
 
@@ -63,6 +64,7 @@ __all__ = [
     'pareto_frontier',
     'make_discounted_ufun',
     'normalize',
+    'JavaUtilityFunction',
 ]
 
 
@@ -2239,3 +2241,23 @@ def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[f
         return ComplexWeightedUtilityFunction(ufuns=[ufun, ConstUFun(-mn + rng[0] / scale)], weights=[scale, scale]
                                           , name=ufun.name + '-normalized', reserved_value=r, info=ufun.info)
 
+
+class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
+    """A utility function implemented in Java"""
+    def __init__(self, java_class_name: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_java_bridge(java_class_name=java_class_name, auto_load_java=False)
+        self.java_object.fromMap(to_java(self))
+
+    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+        pass
+
+    def xml(self, issues: List[Issue]) -> str:
+        return ''
+
+    def call(self, offer: Outcome) -> Optional[UtilityValue]:
+        return self(offer)
+
+
+    class Java:
+        implements = ['jnegmas.utilities.PyUtilityFunction']
