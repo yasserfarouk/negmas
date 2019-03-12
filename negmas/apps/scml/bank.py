@@ -1,3 +1,4 @@
+from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
@@ -9,11 +10,15 @@ if True: # if TYPE_CHECKING:
     from typing import Dict, List, Optional
 
 __all__ = [
-    'Bank'
+    'DefaultBank', 'Bank'
 ]
 
 
-class Bank(Agent):
+class Bank(Agent, ABC):
+    """Base class for all banks"""
+
+
+class DefaultBank(Bank):
     """Represents a bank in the world"""
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],

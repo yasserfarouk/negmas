@@ -1,3 +1,4 @@
+from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
@@ -12,11 +13,16 @@ if True: # if TYPE_CHECKING:
     from negmas.negotiators import NegotiatorProxy
 
 __all__ = [
+    'DefaultInsuranceCompany',
     'InsuranceCompany'
 ]
 
 
-class InsuranceCompany(Agent):
+class InsuranceCompany(Agent, ABC):
+    """Base class for all insurance companies"""
+
+
+class DefaultInsuranceCompany(InsuranceCompany):
     """Represents an insurance company in the world"""
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
