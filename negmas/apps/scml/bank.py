@@ -42,8 +42,7 @@ class DefaultBank(Bank):
         self.credit_rating: Dict[str, float] = defaultdict(float)
         self.a2f = a2f
 
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]

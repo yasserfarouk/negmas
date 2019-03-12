@@ -1401,7 +1401,8 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             total_breach_levels[breach.perpetrator.id] += breach.level
 
         # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
-        for agent, _ in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
+        for agent_name, _ in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
+            agent = self.agents[agent_name]
             agenda = agent.set_renegotiation_agenda(contract=contract, breaches=breaches)
             if agenda is None:
                 continue
@@ -1652,8 +1653,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
     __repr__ = __str__
 
     @abstractmethod
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         """
         Received by partners in ascending order of their total breach levels in order to set the
         renegotiation agenda when contract execution fails

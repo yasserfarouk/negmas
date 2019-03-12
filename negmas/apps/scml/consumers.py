@@ -199,8 +199,7 @@ class ScheduleDrivenConsumer(Consumer):
         negotiator.utility_function = ufun
         return negotiator
 
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         """
         Received by partners in ascending order of their total breach levels in order to set the
         renegotiation agenda when contract execution fails

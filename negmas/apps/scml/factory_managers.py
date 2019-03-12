@@ -123,8 +123,7 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     def sign_contract(self, contract: Contract) -> Optional[str]:
         return self.java_object.sign_contract(contract)
 
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return self.java_object.set_renegotiation_agenda(contract, breaches)
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach],
@@ -158,8 +157,7 @@ class GreedyFactoryManager(FactoryManager):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 
-    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Dict[str, Any]]) -> Optional[
-        RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach],
@@ -454,8 +452,7 @@ class DoNothingFactoryManager(FactoryManager):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]

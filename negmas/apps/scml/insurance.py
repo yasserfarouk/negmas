@@ -41,8 +41,7 @@ class DefaultInsuranceCompany(InsuranceCompany):
         self.wallet: float = 0.0
         self.a2f = a2f
 
-    def set_renegotiation_agenda(self, contract: Contract
-                                 , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
