@@ -26,7 +26,7 @@ You can use these to run negotiations as follows:
     {'agreement': (4,),
      'broken': False,
      'current_offer': (4,),
-     'current_offerer': 'a0-656a4272-3a2f-4ed5-8c25-1955d9b765ae',
+     'current_offerer': 'a0-ab6eba22-2aea-4c5c-9e57-b7f2a554cc8e',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 5,
@@ -35,7 +35,7 @@ You can use these to run negotiations as follows:
      'running': False,
      'started': True,
      'step': 5,
-     'time': 0.0012760839999828022,
+     'time': 0.0025315069999578554,
      'timedout': False}
 
 
@@ -68,7 +68,7 @@ instead of a ``Mechanism`` object
     {'agreement': (4,),
      'broken': False,
      'current_offer': (4,),
-     'current_offerer': 'a0-e5d2fe63-4a22-434a-9b91-5332b56e6227',
+     'current_offerer': 'a0-d633153f-0563-4f5a-8a1d-145f2be6b5bb',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 5,
@@ -77,7 +77,7 @@ instead of a ``Mechanism`` object
      'running': False,
      'started': True,
      'step': 5,
-     'time': 0.0022166910000578355,
+     'time': 0.002374742000029073,
      'timedout': False}
 
 
@@ -121,7 +121,7 @@ This can be modeled in the following negotiation:
     {'agreement': {'delivery_time': 8, 'price': 9, 'quantity': 6},
      'broken': False,
      'current_offer': {'delivery_time': 8, 'price': 9, 'quantity': 6},
-     'current_offerer': 'seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974',
+     'current_offerer': 'seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 2,
@@ -130,7 +130,7 @@ This can be modeled in the following negotiation:
      'running': False,
      'started': True,
      'step': 17,
-     'time': 0.03735982100010915,
+     'time': 0.03969929899994895,
      'timedout': False}
 
 
@@ -149,23 +149,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
-    001: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 5, 'delivery_time': 0}
-    002: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
-    003: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
-    004: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 1, 'quantity': 9, 'delivery_time': 9}
-    005: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
-    006: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 1, 'quantity': 8, 'delivery_time': 9}
-    007: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 7, 'delivery_time': 1}
-    008: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 1, 'quantity': 6, 'delivery_time': 9}
-    009: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 9, 'delivery_time': 2}
-    010: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 2, 'quantity': 6, 'delivery_time': 9}
-    011: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 7, 'delivery_time': 3}
-    012: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 4, 'quantity': 8, 'delivery_time': 9}
-    013: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 7, 'delivery_time': 5}
-    014: buyer-1e94717d-6159-496c-b41c-30dc4911447f offered {'price': 6, 'quantity': 5, 'delivery_time': 9}
-    015: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
-    016: seller-cd14dd98-7a77-4c24-985a-58c0c9ce0974 offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
+    000: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
+    001: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 5, 'delivery_time': 0}
+    002: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
+    003: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
+    004: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 1, 'quantity': 9, 'delivery_time': 9}
+    005: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
+    006: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 1, 'quantity': 8, 'delivery_time': 9}
+    007: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 7, 'delivery_time': 1}
+    008: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 1, 'quantity': 6, 'delivery_time': 9}
+    009: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 9, 'delivery_time': 2}
+    010: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 2, 'quantity': 6, 'delivery_time': 9}
+    011: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 7, 'delivery_time': 3}
+    012: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 4, 'quantity': 8, 'delivery_time': 9}
+    013: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 7, 'delivery_time': 5}
+    014: buyer-dea9a51a-a5e0-4ff5-8ead-23347e97ad35 offered {'price': 6, 'quantity': 5, 'delivery_time': 9}
+    015: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
+    016: seller-140ce665-c616-4ea1-abfb-03d9fa0ae3ef offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
 
 
 We can even plot the complete negotiation history and visually see how
@@ -179,12 +179,6 @@ from the pareto front.
 .. code:: ipython3
 
     session.plot(plot_outcomes=False)
-
-
-.. parsed-literal::
-
-    /Users/yasser/code/projects/negmas/venv/lib/python3.7/site-packages/matplotlib/figure.py:445: UserWarning: Matplotlib is currently using module://ipykernel.pylab.backend_inline, which is a non-GUI backend, so cannot show the figure.
-      % get_backend())
 
 
 
@@ -219,7 +213,7 @@ it can. Let's see what happens:
     {'agreement': {'delivery_time': 0, 'price': 9, 'quantity': 5},
      'broken': False,
      'current_offer': {'delivery_time': 0, 'price': 9, 'quantity': 5},
-     'current_offerer': 'seller-647221d4-1363-4459-9a1e-3da6ea682631',
+     'current_offerer': 'seller-d9366988-fde6-48b5-a502-536abcc967fe',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 2,
@@ -228,7 +222,7 @@ it can. Let's see what happens:
      'running': False,
      'started': True,
      'step': 3,
-     'time': 0.07148788400013473,
+     'time': 0.03852601800008415,
      'timedout': False}
 
 
@@ -278,7 +272,7 @@ negotiation time:
     {'agreement': {'delivery_time': 9, 'price': 9, 'quantity': 9},
      'broken': False,
      'current_offer': {'delivery_time': 9, 'price': 9, 'quantity': 9},
-     'current_offerer': 'seller-2b0e127a-6617-4295-a9b5-0d630c090042',
+     'current_offerer': 'seller-793a6ee6-68cc-437e-b1b1-1f9de214b9b3',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 2,
@@ -287,7 +281,7 @@ negotiation time:
      'running': False,
      'started': True,
      'step': 1617,
-     'time': 0.40377911500013397,
+     'time': 0.36451665100003083,
      'timedout': False}
 
 
@@ -298,6 +292,7 @@ take a tougher stance conceding as slowly as possible and as a result
 the actually acheive a point exatly on the pareto-front. Moreover, this
 point happens to maximze the *welfare* defined as the sum of the utility
 received by both partners.
+
 
 
 Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.

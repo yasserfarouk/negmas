@@ -118,8 +118,6 @@ We can also check the breaches that happened
 
 
 
-That was a good run. No breaches were committed :-)
-
 It is also possible to focus on the behavior of some specific agent.
 Let's first find who was the winner (the factory manager that got
 maximum wealth). Notice that there can be multiple winners
