@@ -43,13 +43,15 @@ pytest-cov = "^2.0"
 poetry = "*"
 hypothesis = "^4.9"
 tox = "^3.7"
+poetry-setup = "^0.3.6"
 
 [tool.poetry.scripts]
 negmas = 'negmas.scripts.negmas:cli'
 
 
-[tool.poetry.extras]
-dask = ["distributed"]
+#[tool.poetry.extras]
+#dask = ["distributed"]
+
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
