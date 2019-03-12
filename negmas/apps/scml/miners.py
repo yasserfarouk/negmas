@@ -11,7 +11,7 @@ from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue
 from negmas.sao import AspirationNegotiator
-from negmas.situated import Contract
+from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
 from negmas.utilities import LinearUtilityAggregationFunction, normalize
 from .common import SCMLAgent
@@ -153,9 +153,6 @@ class ReactiveMiner(Miner):
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
                                          , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
-
-    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
-        return False
 
     def confirm_loan(self, loan: Loan) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
