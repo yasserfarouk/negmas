@@ -7,7 +7,7 @@ from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, 
 from negmas.common import NamedObject, MechanismState, MechanismInfo
 from negmas.events import Notification
 from negmas.helpers import get_class, instantiate
-from negmas.java import JavaObjectMixin, JavaConvertible, to_java
+from negmas.java import JavaCallerMixin, JavaConvertible, to_java
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, Outcome
 from negmas.sao import AspirationNegotiator, JavaSAONegotiator
@@ -68,7 +68,7 @@ class FactoryManager(SCMLAgent, ABC):
         """
 
 
-class JavaFactoryManager(FactoryManager, JavaObjectMixin):
+class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     """Allows factory managers implemented in Java (using jnegmas) to participate in SCML worlds"""
 
     @property
@@ -127,12 +127,10 @@ class JavaFactoryManager(FactoryManager, JavaObjectMixin):
                                  , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
         return self.java_object.set_renegotiation_agenda(contract, breaches)
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]],
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach],
                                          agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return self._get_negotiator(self.java_object.respond_to_renegotiation_request(contract, breaches, agenda))
 
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
-        return self.java_object.on_renegotiation_request(contract, cfp, partner)
 
     @classmethod
     def do_nothing_manager(cls):
@@ -164,11 +162,11 @@ class GreedyFactoryManager(FactoryManager):
         RenegotiationRequest]:
         return None
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]],
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach],
                                          agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
 
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
         return False
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator
@@ -447,6 +445,9 @@ class GreedyFactoryManager(FactoryManager):
 class DoNothingFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
 
+    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
+        pass
+
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         pass
 
@@ -457,11 +458,11 @@ class DoNothingFactoryManager(FactoryManager):
                                  , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
         return None
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
                                          , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
 
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
         return False
 
     def confirm_loan(self, loan: Loan) -> bool:

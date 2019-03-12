@@ -41,11 +41,11 @@ class Bank(Agent):
                                  , breaches: List[Dict[str, Any]]) -> Optional[RenegotiationRequest]:
         return None
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
                                          , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return None
 
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
         raise ValueError('The bank does not receive callbacks')
 
     def _evaluate_loan(self, agent: SCMLAgent, amount: float, n_installments: int, starts_at: int

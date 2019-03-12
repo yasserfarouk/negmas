@@ -214,7 +214,7 @@ class ScheduleDrivenConsumer(Consumer):
         """
         return None
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Dict[str, Any]]
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
                                          , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         """
         Called to respond to a renegotiation request
@@ -229,7 +229,7 @@ class ScheduleDrivenConsumer(Consumer):
         """
         return None
 
-    def on_renegotiation_request(self, contract: Contract, cfp: "CFP", partner: str) -> bool:
+    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
         return False
 
     def confirm_loan(self, loan: Loan) -> bool:
