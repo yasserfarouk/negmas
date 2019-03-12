@@ -2,15 +2,17 @@ NegMAS
 ******
 
 
-.. .. image:: https://img.shields.io/pypi/v/negmas/svg
-..         :target: https://pypi.python.org/pypi/negmas
+.. image:: https://img.shields.io/pypi/v/negmas/svg
+        :target: https://pypi.python.org/pypi/negmas
+        :alt: Deployment Status
 
-.. .. image:: https://img.shields.io/travis/yasserfarouk/negmas/svg
-..         :target: https://travis-ci.org/yasserfarouk/negmas
+.. image:: https://img.shields.io/travis/yasserfarouk/negmas.svg
+        :target: https://travis-ci.org/yasserfarouk/negmas
+        :alt: Build Status
 
-.. .. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
-..         :target: https://negmas/readthedocs.io/en/latest/?badge=latest
-..         :alt: Documentation Status
+.. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
+        :target: https://negmas/readthedocs.io/en/latest/?badge=latest
+        :alt: Documentation Status
 
 
 
