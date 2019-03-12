@@ -4,15 +4,31 @@
 Installation
 ============
 
+It is always a good idea to install your packages to a virtual environment. This is a reminder of how to create one
+using the standard `venv` module in python 3 (inside a folder alled workspace)::
+
+$ mkdir workspace; cd workspace
+$ python -m venv venv
+$ source venv/bin/activate
+
+To check that you are in your newly created environment run the following commands depending on your OS.
+In windows machines::
+
+$ where python
+
+In *nix/macos machines::
+
+$ which python
+
+In both cases you should find that python is running from venv/bin within your workspace folder.
+
 
 Stable release
 --------------
 
-To install negmas, run this command in your terminal:
+To install negmas, run this command in your terminal::
 
-.. code-block:: console
-
-    $ pip install negmas
+$ pip install negmas
 
 This is the preferred method to install negmas, as it will always install the most recent stable release.
 
@@ -23,34 +39,27 @@ you through the process.
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 
 
+
 From sources
 ------------
 
 The sources for negmas can be downloaded from the `Github repo`_.
 
-You can either clone the public repository:
+You can either clone the public repository::
 
-.. code-block:: console
+$ git clone git://github.com/yasserfarouk/negmas
 
-    $ git clone git://github.com/yasserfarouk/negmas
+Or download the `tarball`_::
 
-Or download the `tarball`_:
+$ curl  -OL https://github.com/yasserfarouk/negmas/tarball/master
 
-.. code-block:: console
+Once you have a copy of the source, you can install it with::
 
-    $ curl  -OL https://github.com/yasserfarouk/negmas/tarball/master
+$ python setup.py install
 
-Once you have a copy of the source, you can install it with:
+or, better yet, if you do not have Poetry_, install it as explained in Poetry_install_, and then just run::
 
-.. code-block:: console
-
-    $ python setup.py install
-
-or, better yet, if you do not have Poetry_, install it as explained in Poetry_install_, and then just run
-
-.. code-block:: console
-
-    $ poetry install
+$ poetry install
 
 We recommend the use of Poetry_.
 
@@ -66,28 +75,22 @@ We recommend the use of Poetry_.
 After installation, some new commands will be added to your environment (hopefully it is a virtual environment). Among
 them there is a script called: *rungenius*.
 
-To test your installation, run the following command (note that test_genius tests will be skipped):
+To test your installation, run the following command (note that test_genius tests will be skipped)::
 
-.. code-block:: console
-
-    $ python -m pytest --cov=negmas --pyargs negmas
+$ python -m pytest --pyargs negmas
 
 If you want to test the Genius_  bridge, you need to download the :download:`Genius-NegMAS-Bridge<assets/genius-8.0.4-bridge.jar>`
 
 Once you have the file save it to some path in your machine and run the following command (note that it will run in the
-foreground until you press Ctrl-C to close it):
+foreground until you press Ctrl-C to close it)::
 
-.. code-block:: console
-
-    $ negmas genius --path=path-to-genius-bridge.jar
+$ negmas genius --path=path-to-genius-bridge.jar
 
 This will start a service that allows NegMAS to use Genius_.
 
-After this process starts, you can run the tests involving genius using:
+After this process starts, you can run the tests involving genius using::
 
-.. code-block:: console
-
-    $ python -m pytest --cov=negmas --pyargs negmas/tests/test_genius
+$ python -m pytest --pyargs negmas/tests/test_genius
 
 
 Notice that this test will report coverage for test files as well. That is not ideal. To exclude such files from the
