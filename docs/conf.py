@@ -50,9 +50,9 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_automodapi.automodapi',
               'sphinx.ext.intersphinx',
               'sphinx_automodapi.smart_resolver',
-              'sphinxcontrib.fulltoc',
+              #'sphinxcontrib.fulltoc',
               'nb2plots',
-              'nbsphinx',
+              #'nbsphinx',
               'sphinx.ext.mathjax',
               ]
 
@@ -107,7 +107,6 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
-
 # -- Options for HTML output -------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -130,14 +129,16 @@ html_theme_options = {
     #'canonical_url':
     #'analytics_id':
     'collapse_navigation': False,
-    'sticky_navigation': False,
+    'sticky_navigation': True,
     'navigation_depth': 4,
     'includehidden': True,
     #'logo_only':
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
-    #'titles_only': True
+    'titles_only': True
 }
+
+html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
 # theme options for alabaster
 # html_theme_options = {

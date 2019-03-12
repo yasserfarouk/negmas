@@ -3,30 +3,39 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to NegMAS's documentation!
-==================================
+*********************
+NegMAS Documentation
+*********************
 
-.. include:: ./readme.rst
+Welcome to NegMAS
 
 .. toctree::
-   :maxdepth: 1
+    :caption: Table of Contents
+    :name: mastertoc
+    :includehidden:
+    :titlesonly:
+    :maxdepth: 4
 
+   readme
    installation
    overview
+
    tutorials
+
    base_modules
    application_modules
    helper_modules
    scripts
-   api
+
    contributing
    authors
    history
 
-Indices and tables
-==================
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   api
+
+   indices
+
+
+
 
 

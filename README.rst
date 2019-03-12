@@ -1,7 +1,3 @@
-NegMAS
-******
-
-
 .. image:: https://img.shields.io/pypi/v/negmas/svg
         :target: https://pypi.python.org/pypi/negmas
         :alt: Deployment Status
