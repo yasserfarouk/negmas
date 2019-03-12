@@ -65,6 +65,7 @@ __all__ = [
     'make_discounted_ufun',
     'normalize',
     'JavaUtilityFunction',
+    'RandomUtilityFunction',
 ]
 
 

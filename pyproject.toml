@@ -32,16 +32,15 @@ py4j = "^0.10.8"
 colorlog = "^4.0"
 inflect = "^2.1"
 matplotlib = "^3.0"
-hypothesis = "^4.9"
 setuptools = "^40.8"
 tabulate = "^0.8.3"
-pytest-cov = "^2.6"
 typing = "^3.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
 pytest-cov = "^2.0"
 poetry = "*"
+hypothesis = "^4.9"
 
 [tool.poetry.scripts]
 negmas = 'negmas.scripts.negmas:cli'

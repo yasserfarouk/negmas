@@ -13,11 +13,11 @@ from negmas.events import Event, EventSource
 from negmas.helpers import snake_case, instantiate, unique_name
 from negmas.outcomes import Issue
 from negmas.situated import AgentWorldInterface, World, Breach, Action, BreachProcessing, Contract, Agent
-from .bank import Bank
+from .bank import DefaultBank
 from .common import *
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile, Consumer
 from .factory_managers import GreedyFactoryManager, FactoryManager
-from .insurance import InsuranceCompany
+from .insurance import DefaultInsuranceCompany
 from .miners import ReactiveMiner, MiningProfile, Miner
 
 __all__ = [
@@ -245,12 +245,12 @@ class SCMLWorld(World):
             self.f2a[factory.id] = agent
             self.a2f[agent.id] = factory
 
-        self.bank = Bank(minimum_balance=minimum_balance, interest_rate=interest_rate, interest_max=interest_max
-                         , balance_at_max_interest=balance_at_max_interest, installment_interest=installment_interest
-                         , time_increment=interest_time_increment, a2f=self.a2f)
+        self.bank = DefaultBank(minimum_balance=minimum_balance, interest_rate=interest_rate, interest_max=interest_max
+                                , balance_at_max_interest=balance_at_max_interest, installment_interest=installment_interest
+                                , time_increment=interest_time_increment, a2f=self.a2f)
         self.join(self.bank, simulation_priority=-1)
-        self.insurance_company = InsuranceCompany(premium=premium, premium_breach_increment=premium_breach_increment
-                                                  , premium_time_increment=premium_time_increment, a2f=self.a2f)
+        self.insurance_company = DefaultInsuranceCompany(premium=premium, premium_breach_increment=premium_breach_increment
+                                                         , premium_time_increment=premium_time_increment, a2f=self.a2f)
         self.join(self.insurance_company)
 
         for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore

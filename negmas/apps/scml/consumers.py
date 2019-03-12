@@ -13,7 +13,7 @@ from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue
 from negmas.sao import AspirationNegotiator
-from negmas.situated import Contract
+from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
 from negmas.utilities import normalize, ComplexWeightedUtilityFunction, MappingUtilityFunction
 from .common import SCMLAgent, CFP
