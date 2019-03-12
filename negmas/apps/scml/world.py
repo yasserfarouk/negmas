@@ -8,7 +8,7 @@ from typing import Optional, Callable, Type, Sequence, Dict, Tuple, Iterable, An
 
 import numpy as np
 
-from negmas import Mechanism
+from negmas import MechanismInfo
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case, instantiate, unique_name
 from negmas.outcomes import Issue
@@ -1217,7 +1217,7 @@ class SCMLWorld(World):
                         , roles: Collection[str] = None
                         , annotation: Optional[Dict[str, Any]] = None
                         , mechanism_name: str = None
-                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, Mechanism]]:
+                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, MechanismInfo]]:
         annotation = self._process_annotation(annotation)
         return super().run_negotiation(caller=caller, issues=issues, annotation=annotation
                                        , partners=partners, roles=roles
