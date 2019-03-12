@@ -361,7 +361,6 @@ class AspirationMixin:
             self.e = 0.25
         else:
             raise ValueError(f'Unknown aspiration type {aspiration_type}')
-        self.max_aspiration = max_aspiration
         self.above_reserved = above_reserved_value
 
     def aspiration(self, t: float) -> float:
