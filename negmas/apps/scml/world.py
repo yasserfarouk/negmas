@@ -8,6 +8,7 @@ from typing import Optional, Callable, Type, Sequence, Dict, Tuple, Iterable, An
 
 import numpy as np
 
+from negmas import Mechanism
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case, instantiate, unique_name
 from negmas.outcomes import Issue
@@ -123,6 +124,7 @@ class SCMLWorld(World):
                  , catalog_profit=0.15
                  , avg_process_cost_is_public=True
                  , catalog_prices_are_public=True
+                 , strip_annotations=True
                  # general parameters
                  , log_file_name=None
                  , name: str = None):
@@ -160,6 +162,8 @@ class SCMLWorld(World):
             default_signing_delay:
             transportation_delay:
             loan_installments:
+            strip_annotations: If true, annotations for all negotiations will be stripped from any information other
+            than the following: partners, seller, buyer, cfp
             log_file_name:
             name:
         """
@@ -173,6 +177,7 @@ class SCMLWorld(World):
                          , name=name)
         if balance_at_max_interest is None:
             balance_at_max_interest = initial_wallet_balances
+        self.strip_annotations = strip_annotations
         self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
         self.bulletin_board.register_listener(event_type='new_record', listener=self)
         self.bulletin_board.register_listener(event_type='will_remove_record', listener=self)
@@ -1197,23 +1202,23 @@ class SCMLWorld(World):
             raise ValueError('Cannot find partner while evaluating insurance')
         return self.insurance_company.buy_insurance(contract=contract, insured=agent, against=against[0]) is not None
 
+    def _process_annotation(self, annotation: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Processes an annotation stripping any extra information not allowed if necessary"""
+        if annotation is None:
+            return {}
+        if not self.strip_annotations:
+            return annotation
+        annotation = {k: v for k, v in annotation.items() if k in ('partners', 'cfp', 'buyer', 'seller')}
+        return annotation
+
     def run_negotiation(self, caller: "Agent"
                         , issues: Collection[Issue]
                         , partners: Collection["Agent"]
                         , roles: Collection[str] = None
                         , annotation: Optional[Dict[str, Any]] = None
                         , mechanism_name: str = None
-                        , mechanism_params: Dict[str, Any] = None):
-        if annotation is None:
-            annotation = {}
-        cfp: CFP = annotation['cfp']
-        annotation['partners'] = [_.id for _ in partners]
-        if cfp.is_buy:
-            annotation['buyer'] = [p for p in partners if p != caller][0].id
-            annotation['seller'] = caller.id
-        else:
-            annotation['seller'] = [p for p in partners if p != caller][0].id
-            annotation['buyer'] = caller.id
+                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, Mechanism]]:
+        annotation = self._process_annotation(annotation)
         return super().run_negotiation(caller=caller, issues=issues, annotation=annotation
                                        , partners=partners, roles=roles
                                        , mechanism_name=mechanism_name, mechanism_params=mechanism_params)
@@ -1226,16 +1231,7 @@ class SCMLWorld(World):
                             , annotation: Optional[Dict[str, Any]] = None
                             , mechanism_name: str = None
                             , mechanism_params: Dict[str, Any] = None):
-        if annotation is None:
-            annotation = {}
-        cfp: CFP = annotation['cfp']
-        annotation['partners'] = [_.id for _ in partners]
-        if cfp.is_buy:
-            annotation['buyer'] = [p for p in partners if p != caller][0].id
-            annotation['seller'] = caller.id
-        else:
-            annotation['seller'] = [p for p in partners if p != caller][0].id
-            annotation['buyer'] = caller.id
+        annotation = self._process_annotation(annotation)
         return super().request_negotiation(req_id=req_id, caller=caller, issues=issues, annotation=annotation
                                            , partners=partners, roles=roles, mechanism_name=mechanism_name
                                            , mechanism_params=mechanism_params)
