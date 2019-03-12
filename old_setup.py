@@ -14,8 +14,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'Click>=6.0', 'pytest-runner', 'numpy', 'pandas', 'scipy', 'colorlog', 'py4j'
                 , 'inflect', 'stringcase', 'PyYAML==5.1b1', 'tabulate', 'progressbar2'
-                , 'hypothesis'
-                , 'pytest-cov', 'typing_extensions']
+                , 'typing_extensions']
 
 setup_requirements = requirements
 
