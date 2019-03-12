@@ -125,7 +125,7 @@ scripts/logs
 .eggs
 .eggs/*
 .pyre_configuration
-/.travis.yml
+/.tox.results
 /scratch/*
 /scratch
 docs/_build
