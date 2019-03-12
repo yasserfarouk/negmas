@@ -65,7 +65,6 @@ nb2plots==0.6
 nbconvert==5.4.1
 nbformat==4.4.0
 nbsphinx==0.4.2
--e git+https://github.com/yasserfarouk/negmas.git@c29a944f124e0b681d95324eb798e0767f04c086#egg=negmas
 networkx==2.2
 notebook==5.7.4
 numpy==1.16.1
