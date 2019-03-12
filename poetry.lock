@@ -1,5 +1,5 @@
 [[package]]
-category = "main"
+category = "dev"
 description = "Atomic file writes."
 name = "atomicwrites"
 optional = false
@@ -7,7 +7,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.3.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Classes Without Boilerplate"
 name = "attrs"
 optional = false
@@ -99,7 +99,7 @@ version = "4.0.2"
 colorama = "*"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Code coverage measurement for Python"
 name = "coverage"
 optional = false
@@ -158,6 +158,14 @@ zict = ">=0.1.3"
 
 [[package]]
 category = "main"
+description = "A platform independent file lock."
+name = "filelock"
+optional = false
+python-versions = "*"
+version = "3.0.10"
+
+[[package]]
+category = "main"
 description = "a heap with decrease-key and increase-key operations"
 name = "heapdict"
 optional = true
@@ -177,7 +185,7 @@ six = ">=1.9"
 webencodings = "*"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "A library for property based testing"
 name = "hypothesis"
 optional = false
@@ -244,7 +252,7 @@ pyparsing = ">=2.0.1,<2.0.4 || >2.0.4,<2.1.2 || >2.1.2,<2.1.6 || >2.1.6"
 python-dateutil = ">=2.1"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "More routines for operating on iterables, beyond itertools"
 name = "more-itertools"
 optional = false
@@ -390,7 +398,7 @@ version = "0.14.11"
 six = "*"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "pytest: simple powerful testing with Python"
 name = "pytest"
 optional = false
@@ -408,7 +416,7 @@ setuptools = "*"
 six = ">=1.10.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Pytest plugin for measuring coverage."
 name = "pytest-cov"
 optional = false
@@ -550,6 +558,14 @@ python-versions = "*"
 version = "1.3.2"
 
 [[package]]
+category = "main"
+description = "Python Library for Tom's Obvious, Minimal Language"
+name = "toml"
+optional = false
+python-versions = "*"
+version = "0.10.0"
+
+[[package]]
 category = "dev"
 description = "Style preserving TOML library"
 name = "tomlkit"
@@ -572,6 +588,23 @@ name = "tornado"
 optional = true
 python-versions = ">= 3.5"
 version = "6.0.1"
+
+[[package]]
+category = "main"
+description = "virtualenv-based automation of test activities"
+name = "tox"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "3.7.0"
+
+[package.dependencies]
+filelock = ">=3.0.0,<4"
+pluggy = ">=0.3.0,<1"
+py = ">=1.4.17,<2"
+setuptools = ">=30.0.0"
+six = ">=1.0.0,<2"
+toml = ">=0.9.4"
+virtualenv = ">=1.11.2"
 
 [[package]]
 category = "main"
@@ -601,6 +634,14 @@ python-versions = "*"
 version = "1.22"
 
 [[package]]
+category = "main"
+description = "Virtual Python Environment builder"
+name = "virtualenv"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "16.4.3"
+
+[[package]]
 category = "dev"
 description = "Character encoding aliases for legacy web content"
 name = "webencodings"
@@ -623,7 +664,7 @@ heapdict = "*"
 dask = ["distributed"]
 
 [metadata]
-content-hash = "f33b180fc0a65a5d9074c3e07de54a069131deeecefa19e88f2aa5269f42c6c1"
+content-hash = "751cd8c4f64daa082c8756711ecddd429b05db497ebdcd683409a34d73dee87c"
 python-versions = ">=3.6"
 
 [metadata.hashes]
@@ -643,6 +684,7 @@ cycler = ["1d8a5ae1ff6c5cf9b93e8811e581232ad8920aeec647c37316ceac982b08cb2d", "c
 dask = ["7e9a3c053d8f503483d7357d5b8486c70250c4975b08b3d29f91ab7fc97736c3", "959a96547939986bc906c84cb0d8d310da5f87dc5d121cff922555d26b91adf2"]
 dataclasses = ["454a69d788c7fda44efd71e259be79577822f5e3f53f029a22d08004e951dc9f", "6988bd2b895eef432d562370bb707d540f32f7360ab13da45340101bc2307d84"]
 distributed = ["33bce2532cd76dec436839ca005bb94c12308f6618e148b6952b9ec1ca22ff05", "b9ffc4c28eb7a6639b15fbb84cea847693b6f9ce7e71f3e2a3e3272467b5b0b8"]
+filelock = ["b8d5ca5ca1c815e1574aee746650ea7301de63d87935b3463d26368b76e31633", "d610c1bb404daf85976d7a82eb2ada120f04671007266b708606565dd03b5be6"]
 heapdict = ["40c9e3680616cfdf942f77429a3a9e0a76f31ce965d62f4ffbe63a83a5ef1b5a"]
 html5lib = ["20b159aa3badc9d5ee8f5c647e5efd02ed2a66ab8d354930bd9ff139fc1dc0a3", "66cb0dcfdbbc4f9c3ba1a63fdb511ffdbd4f513b2b6d81b80cd26ce6b3fb3736"]
 hypothesis = ["139aacadb54c6cd61fd2df68c538f86eb486a3560b026f32f0f736ec3a3f09de", "ab76c1c0d3d10b96d8cddc8ab99126b8645a7de27c6f4981c5b0779684fec75f", "c9e310a9908cbc96f3b5cebd04699fa884d88f20a8e80e0df135190b8e26217a"]
@@ -682,11 +724,14 @@ sortedcontainers = ["974e9a32f56b17c1bac2aebd9dcf197f3eb9cd30553c5852a3187ad162e
 stringcase = ["48a06980661908efe8d9d34eab2b6c13aefa2163b3ced26972902e3bdfd87008"]
 tabulate = ["8af07a39377cee1103a5c8b3330a421c2d99b9141e9cc5ddd2e3263fea416943"]
 tblib = ["436e4200e63d92316551179dc540906652878df4ff39b43db30fcf6400444fe7", "9bae4b8c44b06af0e114bfc4d5f6aa3eafd2119af5a4dcab34f51f1665f16c59"]
+toml = ["229f81c57791a41d65e399fc06bf0848bab550a9dfd5ed66df18ce5f05e73d5c", "235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e", "f1db651f9657708513243e61e6cc67d101a39bad662eaa9b5546f789338e07a3"]
 tomlkit = ["d6506342615d051bc961f70bfcfa3d29b6616cc08a3ddfd4bc24196f16fd4ec2", "f077456d35303e7908cc233b340f71e0bec96f63429997f38ca9272b7d64029e"]
 toolz = ["929f0a7ea7f61c178bd951bdae93920515d3fbdbafc8e6caf82d752b9b3b31c9"]
 tornado = ["1a58f2d603476d5e462f7c28ca1dbb5ac7e51348b27a9cac849cdec3471101f8", "33f93243cd46dd398e5d2bbdd75539564d1f13f25d704cfc7541db74066d6695", "34e59401afcecf0381a28228daad8ed3275bcb726810654612d5e9c001f421b7", "35817031611d2c296c69e5023ea1f9b5720be803e3bb119464bb2a0405d5cd70", "666b335cef5cc2759c21b7394cff881f71559aaf7cb8c4458af5bb6cb7275b47", "81203efb26debaaef7158187af45bc440796de9fb1df12a75b65fae11600a255", "de274c65f45f6656c375cdf1759dbf0bc52902a1e999d12a35eb13020a641a53"]
+tox = ["04f8f1aa05de8e76d7a266ccd14e0d665d429977cd42123bc38efa9b59964e9e", "25ef928babe88c71e3ed3af0c464d1160b01fca2dd1870a5bb26c2dea61a17fc"]
 typing = ["4027c5f6127a6267a435201981ba156de91ad0d1d98e9ddc2aa173453453492d", "57dcf675a99b74d64dacf6fba08fb17cf7e3d5fdff53d4a30ea2a5e7e52543d4", "a4c8473ce11a65999c8f59cb093e70686b6c84c98df58c1dae9b3b196089858a"]
 typing-extensions = ["07b2c978670896022a43c4b915df8958bec4a6b84add7f2c87b2b728bda3ba64", "f3f0e67e1d42de47b5c67c32c9b26641642e9170fe7e292991793705cd5fef7c", "fb2cd053238d33a8ec939190f30cfd736c00653a85a2919415cecf7dc3d9da71"]
 urllib3 = ["06330f386d6e4b195fbfc736b297f58c5a892e4440e54d294d7004e3a9bbea1b", "cc44da8e1145637334317feebd728bd869a35285b93cbb4cca2577da7e62db4f"]
+virtualenv = ["6aebaf4dd2568a0094225ebbca987859e369e3e5c22dc7d52e5406d504890417", "984d7e607b0a5d1329425dd8845bd971b957424b5ba664729fab51ab8c11bc39"]
 webencodings = ["a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78", "b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923"]
 zict = ["a7838b2f21bc06b7e3db5c64ffa6642255a5f7c01841660b3388a9840e101f99", "d57434102b247719aeda1f543cb55d0ae7ab44f1e1a1f286e299164d1d40da58"]
