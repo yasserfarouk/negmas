@@ -1,9 +1,27 @@
 language: python
+
+stages:
+  - linting
+  - test
+
 python:
-- 3.6
-- 3.7
-install: pip install -r requirements.txt
+    - 3.6
+    - 3.7
+
+cache:
+  pip: true
+  directories:
+    - "$HOME/.cache/pypoetry"
+    - "$HOME/.cache/pre-commit"
+
+install:
+  - pip install pip -U
+  - python get-poetry.py --preview -y
+  - source $HOME/.poetry/env
+  - poetry install -v
+
 script: tox
+
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel

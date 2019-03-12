@@ -1,5 +1,4 @@
 -i https://pypi.python.org/simple
--e .
 pytest-runner = "*"
 pandas = "*"
 scipy = "*"
