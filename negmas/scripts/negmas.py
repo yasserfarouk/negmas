@@ -270,7 +270,7 @@ def genius(path, port, force):
 @click.option('--path', '-p', default=None, help='Path to jnegmas library. If not given, an internal version '
                                                           'will be used')
 @click.option('--port', '-r', default=0, help='Port to run the jnegmas on. Pass 0 for the default value')
-def jnegmas(path, port, force):
+def jnegmas(path, port):
     init_jnegmas_bridge(path=path, port=port)
 
 
