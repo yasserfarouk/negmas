@@ -21,6 +21,7 @@ from negmas.apps.scml import *
 from negmas.apps.scml.utils import anac2019_world, balance_calculator
 from negmas.helpers import humanize_time, unique_name
 from negmas.tournaments import tournament
+from negmas.java import init_jnegmas_bridge
 
 try:
     # disable a warning in yaml 1b1 version
@@ -263,6 +264,14 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
 @click.option('--force/--no-force', default=False, help='Force trial even if an earlier instance exists')
 def genius(path, port, force):
     negmas.init_genius_bridge(path=path, port=port, force=force)
+
+
+@cli.command(help='Start the bridge to JNegMAS (to use Java agents in worlds)')
+@click.option('--path', '-p', default=None, help='Path to jnegmas library. If not given, an internal version '
+                                                          'will be used')
+@click.option('--port', '-r', default=0, help='Port to run the jnegmas on. Pass 0 for the default value')
+def jnegmas(path, port, force):
+    init_jnegmas_bridge(path=path, port=port)
 
 
 if __name__ == '__main__':

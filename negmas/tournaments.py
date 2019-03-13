@@ -36,7 +36,11 @@ __all__ = [
 
 PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
 
-yaml.warnings({'YAMLLoadWarning': False})
+try:
+    # disable a warning in yaml 1b1 version
+    yaml.warnings({'YAMLLoadWarning': False})
+except:
+    pass
 
 
 class WorldGenerator(Protocol):

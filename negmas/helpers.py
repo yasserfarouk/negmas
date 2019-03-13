@@ -740,7 +740,7 @@ class ConfigReader:
                 elif config.endswith('.cfg'):
                     config = eval(f.read())
                 elif config.endswith('.yaml') or config.endswith('.yml'):
-                    config = yaml.load(f)
+                    config = yaml.safe_load(f)
                 else:
                     raise ValueError(f'Cannot parse {config}')
 

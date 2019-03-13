@@ -411,22 +411,18 @@ class SCMLWorld(World):
                 else:
                     default_factories.append(factory)
             for j, factory in enumerate(default_factories):
-                if agent_names_reveal_type:
-                    manager_name = snake_case(_DefaultFactoryManager.__name__.replace('FactoryManager', ''))
-                    manager_name = f'_default__preassigned__{manager_name}_{level + 1}_{j}'
-                else:
-                    manager_name = unique_name(base='_default__preassigned__', add_time=False, rand_digits=12)
+                manager_name = unique_name(base='_default__preassigned__', add_time=False, rand_digits=12)
                 manager = _DefaultFactoryManager(name=manager_name, **manager_kwargs)
+                if agent_names_reveal_type:
+                    manager.name = f'_default__preassigned__{manager.type_name}_{level + 1}_{j}'
                 managers.append(manager)
         if randomize:
             shuffle(assignable_factories)
         for j, ((factory, level), manager_type) in enumerate(zip(assignable_factories, itertools.cycle(manager_types))):
-            if agent_names_reveal_type:
-                manager_name = snake_case(manager_type.__name__.replace('FactoryManager', ''))
-                manager_name = f'{manager_name}_{level + 1}_{j}'
-            else:
-                manager_name = unique_name(base='', add_time=False, rand_digits=12)
+            manager_name = unique_name(base='', add_time=False, rand_digits=12)
             manager = manager_type(name=manager_name)
+            if agent_names_reveal_type:
+                manager.name = f'{manager.type_name}_{level + 1}_{j}'
             managers.append(manager)
 
         def create_schedule():

@@ -29,6 +29,10 @@ __all__ = [
 class FactoryManager(SCMLAgent, ABC):
     """Base factory manager class that will be inherited by participant negmas in ANAC 2019"""
 
+    @property
+    def type_name(self):
+        return super().type_name.replace('FactoryManager', '')
+
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name)
         self.transportation_delay = 0

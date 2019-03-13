@@ -14,13 +14,42 @@ from py4j.java_gateway import JavaClass
 
 # @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
 #  somewhere
+from py4j.protocol import Py4JNetworkError
 
 __all__ = [
     'JavaCallerMixin',
     'JNegmasGateway',
     'JavaConvertible',
     'to_java',
+    'jnegmas_bridge_is_running',
+    'init_jnegmas_bridge'
 ]
+
+
+def init_jnegmas_bridge(path: Optional[str] = None, port: int=0):
+    JNegmasGateway.start_java_side(path=path, java_port=port)
+
+
+def jnegmas_bridge_is_running() -> bool:
+    """
+    Checks whether a JNegMAS Bridge is running. This bridge is needed to use any objects in the jnegmas package
+
+    Remarks:
+
+        You can start a JNegMAS Bridge in at least two ways:
+
+        - execute the python function `init_jnegmas_bridge()` in this module
+        - run "negmas jnegmas" on the terminal
+
+    """
+    try:
+        init_jnegmas_bridge(None, 0)
+    except ConnectionRefusedError:
+        return False
+    except IndexError:
+        return False
+    except Py4JNetworkError:
+        return False
 
 
 def dict_encode(value):
@@ -93,7 +122,7 @@ class JNegmasGateway:
         if cls.gateway is not None:
             return
         if path is None:
-            path = pkg_resources.resource_filename('negmas', resource_name='external/jnegmas.jar')
+            path = pkg_resources.resource_filename('negmas', resource_name='external/yasserfarouk.jnegmas.main.jar')
         java_port = java_port if java_port > 0 else cls.DEFAULT_JAVA_PORT
         path = os.path.abspath(os.path.expanduser(path))
         try:

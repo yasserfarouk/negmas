@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 from negmas.common import MechanismInfo, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
-from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name
+from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name, snake_case
 from negmas.mechanisms import MechanismProxy, Mechanism
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue
@@ -69,8 +69,11 @@ __all__ = [
 
 PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
 
-yaml.warnings({'YAMLLoadWarning': False})
-
+try:
+    # disable a warning in yaml 1b1 version
+    yaml.warnings({'YAMLLoadWarning': False})
+except:
+    pass
 
 @dataclass
 class Action:
@@ -193,6 +196,11 @@ class Entity(NamedObject):
 
     def init(self):
         """Will be called by the world once the world itself is initialized to initialize itself."""
+
+    @property
+    def type_name(self):
+        """Returns the name of the type of this entity"""
+        return snake_case(self.__class__.__name__)
 
 
 class BulletinBoard(Entity, EventSource, ConfigReader):
