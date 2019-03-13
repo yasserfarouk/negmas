@@ -1,6 +1,12 @@
 History
 =======
 
+
+Release 0.1.33
+--------------
+
+* Moving to Travis CI for continuous integration, ReadTheDocs for documentation and Codacy for code quality
+
 Release 0.1.32
 --------------
 
