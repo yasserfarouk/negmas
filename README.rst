@@ -14,6 +14,14 @@
         :target: https://pypi.python.org/pypi/negmas
         :alt: Downloads
 
+.. image:: https://img.shields.io/codacy/coverage/1b204fe0a69e41a298a175ea225d7b81.svg
+        :target: https://app.codacy.com/project/yasserfarouk/negmas/dashboard
+        :alt: Coveage
+
+.. image:: https://img.shields.io/codacy/grade/1b204fe0a69e41a298a175ea225d7b81.svg
+        :target: https://app.codacy.com/project/yasserfarouk/negmas/dashboard
+        :alt: Code Quality
+
 .. image:: https://img.shields.io/pypi/v/negmas.svg
         :target: https://pypi.python.org/pypi/negmas
         :alt: Pypi

@@ -6,6 +6,14 @@ omit =
     */tests/*
     */test_*
     /tests/*
+    */external/*
+    */scripts/*
+    negmas/tests/*
+    negmas/external/*
+    negmas/scripts/*
+    negmas/logs/*
+    notebooks/*
+    logs/*
 
 [report]
 # Regexes for lines to exclude from consideration
