@@ -54,7 +54,7 @@ of one session is affected by what happens in other sessions.
 
 The documentation is available at: documentation_
 
-.. _documentation: http://www.yasserm.com/negmas/index.html
+.. _documentation: https://negmas.readthedocs.io/
 
 Main Features
 =============
