@@ -105,7 +105,7 @@ pytest-runner
 python-dateutil
 python-utils
 pytz
-PyYAML
+PyYAML==5.1b1
 pyzmq
 qtconsole
 readme-renderer
