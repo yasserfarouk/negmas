@@ -5,6 +5,7 @@ omit =
     # omit anything in a .local directory anywhere
     */tests/*
     */test_*
+    /tests/*
 
 [report]
 # Regexes for lines to exclude from consideration
