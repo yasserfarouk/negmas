@@ -16,7 +16,7 @@ install:
   - source $HOME/.poetry/env
   - poetry install -v
 
-script: tox
+script: poetry run pytest negmas/ tests/
 
 matrix:
   include:
