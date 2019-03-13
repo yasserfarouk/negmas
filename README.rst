@@ -167,3 +167,8 @@ Acknowledgement
 
 NegMAS tests use scenarios used in ANAC 2010 to ANAC 2018 competitions obtained from the Genius_ Platform. These domains
 can be found in the tests/data and notebooks/data folders.
+
+
+.. image:: https://api.codacy.com/project/badge/Grade/8ea7e86796c243f79d654de43458ed73
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/app/yasserfarouk/negmas?utm_source=github.com&utm_medium=referral&utm_content=yasserfarouk/negmas&utm_campaign=Badge_Grade_Dashboard
