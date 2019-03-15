@@ -123,7 +123,6 @@ Developing a novel negotiator slightly more difficult by is still doable in few 
         def __init__(self):
             # initialize the parents
             Negotiator.__init__(self)
-            MultiNegotiationsMixin.__init__(self)
 
         def respond_(self, offer, state):
             # decide what to do when receiving an offer @ that negotiation
