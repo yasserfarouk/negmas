@@ -10,4 +10,5 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Enrique Areyan <enrique_areyanviqueira@brown.edu>
+* ?
