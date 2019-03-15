@@ -1,7 +1,6 @@
 from negmas.situated import AgentWorldInterface, Contract
 from .common import *
-from typing import Optional
-
+from typing import Optional, List
 
 __all__ = [
     'SCMLAWI',
@@ -9,6 +8,13 @@ __all__ = [
 
 
 class SCMLAWI(AgentWorldInterface):
+
+    def _allProducts(self) -> List[Product]:
+        return self.products
+
+    def _allProcesses(self) -> List[Process]:
+        return self.processes
+
     def register_cfp(self, cfp: CFP) -> None:
         """Registers a CFP"""
         self._world.n_new_cfps += 1
@@ -40,12 +46,12 @@ class SCMLAWI(AgentWorldInterface):
         return self._world.buy_insurance(contract=contract, agent=self.agent)
 
     @property
-    def products(self):
+    def products(self) -> List[Product]:
         """Products in the world"""
         return self._world.products
 
     @property
-    def processes(self):
+    def processes(self) -> List[Process]:
         """Processes in the world"""
         return self._world.processes
 
