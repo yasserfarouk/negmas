@@ -35,9 +35,10 @@ matplotlib = "*"
 setuptools = ">=40.8.0"
 tabulate = "*"
 typing = "*"
-tox = "*"
+tqdm = ">=4.31.1"
 
 [tool.poetry.dev-dependencies]
+lockfile = "*"
 pytest = "*"
 pytest-cov = "*"
 poetry = "*"
@@ -45,13 +46,64 @@ hypothesis = "*"
 tox = "*"
 poetry-setup = "*"
 codacy-coverage = "*"
+pytest-timeout = "^1.3"
+coverage = "*"
+bumpversion = "*"
+typing-extensions = "*"
+docopt =  { version = "*", optional = true }
+docutils =  { version = "*", optional = true }
+Sphinx =  { version = "*", optional = true }
+sphinx-autodoc-annotation =  { version = "*", optional = true }
+sphinx-autodoc-typehints =  { version = "*", optional = true }
+sphinx-automodapi =  { version = "*", optional = true }
+sphinx-rtd-theme =  { version = "*", optional = true }
+sphinxcontrib-napoleon =  { version = "*", optional = true }
+sphinxcontrib-websupport =  { version = "*", optional = true }
+sphinxtesters =  { version = "*", optional = true }
+ipykernel =  { version = "*", optional = true }
+ipython =  { version = "*", optional = true }
+ipython-genutils =  { version = "*", optional = true }
+ipywidgets =  { version = "*", optional = true }
+jupyter =  { version = "*", optional = true }
+jupyter-client =  { version = "*", optional = true }
+jupyter-console =  { version = "*", optional = true }
+jupyter-contrib-core =  { version = "*", optional = true }
+jupyter-contrib-nbextensions =  { version = "*", optional = true }
+jupyter-core =  { version = "*", optional = true }
+jupyter-highlight-selected-word =  { version = "*", optional = true }
+jupyter-latex-envs =  { version = "*", optional = true }
+jupyter-nbextensions-configurator =  { version = "*", optional = true }
+MarkupSafe =  { version = "*", optional = true }
+matplotlib =  { version = "*", optional = true }
+nb2plots =  { version = "*", optional = true }
+nbconvert =  { version = "*", optional = true }
+nbformat =  { version = "*", optional = true }
+nbsphinx =  { version = "*", optional = true }
+pandoc =  { version = "*", optional = true }
+pandocfilters =  { version = "*", optional = true }
+pycodestyle =  { version = "*", optional = true }
+pydocstyle =  { version = "*", optional = true }
+readme-renderer =  { version = "*", optional = true }
+recommonmark =  { version = "*", optional = true }
+
 
 [tool.poetry.scripts]
 negmas = 'negmas.scripts.negmas:cli'
 
 
-#[tool.poetry.extras]
-#dask = ["distributed"]
+[tool.poetry.extras]
+dask = [
+    "distributed"
+]
+doc = ["docopt", "docutils", "Sphinx", "sphinx-autodoc-annotation", "sphinx-autodoc-typehints", "sphinx-automodapi",
+       "sphinx-rtd-theme", "sphinxcontrib-fulltoc", "sphinxcontrib-napoleon", "sphinxcontrib-websupport",
+       "sphinxtesters", "ipykernel", "ipython", "ipython-genutils", "ipywidgets", "jupyter", "jupyter-client",
+       "jupyter-console", "jupyter-contrib-core", "jupyter-contrib-nbextensions", "jupyter-core",
+       "jupyter-highlight-selected-word", "jupyter-latex-envs", "jupyter-nbextensions-configurator",
+       "MarkupSafe", "matplotlib", "nb2plots", "nbconvert", "nbformat", "nbsphinx", "pandoc",
+       "pandocfilters", "pycodestyle", "pydocstyle", "readme-renderer", "recommonmark"
+]
+
 
 [build-system]
 requires = ["poetry>=0.12"]
