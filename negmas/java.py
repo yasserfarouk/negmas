@@ -25,7 +25,8 @@ __all__ = [
     'init_jnegmas_bridge'
 ]
 
-DEFAULT_JNEGMAS_PATH = 'external/com.yasserm.jnegmas.main'
+DEFAULT_JNEGMAS_PATH = 'external/jnegmas-1.0-SNAPSHOT-all.jar'
+
 
 @contextmanager
 def jnegmas_connection(init: bool = False, path: Optional[str] = None, port=0, shutdown=True):
@@ -143,10 +144,12 @@ class JNegmasGateway:
         if path is None:
             path = pkg_resources.resource_filename('negmas', resource_name=DEFAULT_JNEGMAS_PATH)
         java_port = java_port if java_port > 0 else cls.DEFAULT_JAVA_PORT
+        if jnegmas_bridge_is_running(port=java_port):
+            return
         path = os.path.abspath(os.path.expanduser(path))
         try:
             subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
-                f'java -jar {path} --doe --port {java_port}'
+                f'java -jar {path} --doe --client-server --port {java_port}'
                 , shell=True)
         except FileNotFoundError:
             print(os.getcwd(), flush=True)

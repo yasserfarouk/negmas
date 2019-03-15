@@ -6,7 +6,7 @@ from negmas import GeniusNegotiator
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, storage_as_array, temporary_transaction
 from negmas.common import NamedObject, MechanismState, MechanismInfo
 from negmas.events import Notification
-from negmas.helpers import get_class, instantiate
+from negmas.helpers import get_class, instantiate, snake_case
 from negmas.java import JavaCallerMixin, JavaConvertible, to_java
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import Issue, Outcome
@@ -23,6 +23,7 @@ if True:
 
 __all__ = [
     'FactoryManager', 'DoNothingFactoryManager', 'GreedyFactoryManager', 'JavaFactoryManager'
+    , 'JavaDoNothingFactoryManager', 'JavaGreedyFactoryManager', 'JavaMiddleMan'
 ]
 
 
@@ -31,7 +32,7 @@ class FactoryManager(SCMLAgent, ABC):
 
     @property
     def type_name(self):
-        return super().type_name.replace('FactoryManager', '')
+        return super().type_name.replace('_factory_manager', '')
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name)
@@ -71,9 +72,18 @@ class FactoryManager(SCMLAgent, ABC):
 
         """
 
+    class Java:
+        implements = ['jnegmas.apps.scml.factory_managers.PyFactoryManager']
+
 
 class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     """Allows factory managers implemented in Java (using jnegmas) to participate in SCML worlds"""
+
+    @property
+    def type_name(self):
+        """Overrides type name to give the internal java type name"""
+        return 'j' + snake_case(self.java_class_name.replace('jnegmas.apps.scml.factory_managers.', '').replace(
+            'FactoryManager', ''))
 
     @property
     def awi(self):
@@ -82,6 +92,8 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     @awi.setter
     def awi(self, value):
         self._awi = value
+        if self.python_shadow is not None:
+            self.python_shadow._awi = value
         self.java_object.setAWI(value)
 
     def init(self):
@@ -134,19 +146,52 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
                                          agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
         return self._get_negotiator(self.java_object.respond_to_renegotiation_request(contract, breaches, agenda))
 
-
     @classmethod
     def do_nothing_manager(cls):
         return JavaFactoryManager(java_class_name='jnegmas.apps.scml.factory_managers.DoNothingFactoryManager')
 
+    @classmethod
+    def greedy_manager(cls):
+        return JavaFactoryManager(java_class_name='jnegmas.apps.scml.factory_managers.GreedyFactoryManager')
+
     def __init__(self, java_class_name: str = 'jnegmas.apps.scml.factory_managers.DoNothingFactoryManager'
+                 , python_object_factory: Optional[Callable[[], FactoryManager]] = None
                  , auto_load_java: bool = False
                  , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name, simulator_type=simulator_type)
-        self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java)
+        if python_object_factory is None:
+            python_shadow_object = None
+        else:
+            python_shadow_object = python_object_factory()
+        self.python_shadow = python_shadow_object
+        self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java
+                              , python_shadow_object=python_shadow_object)
         map = to_java(self)
         map['simulator_type'] = self.simulator_type.__class__.__name__
         self.java_object.fromMap(map)
+
+
+class JavaDoNothingFactoryManager(JavaFactoryManager):
+    def __init__(self, auto_load_java: bool = False
+                 , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
+        super().__init__(name=name, simulator_type=simulator_type, auto_load_java=auto_load_java
+                         , java_class_name='jnegmas.apps.scml.factory_managers.DoNothingFactoryManager')
+
+
+class JavaGreedyFactoryManager(JavaFactoryManager):
+    def __init__(self, auto_load_java: bool = False
+                 , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
+        super().__init__(name=name, simulator_type=simulator_type, auto_load_java=auto_load_java
+                         , java_class_name='jnegmas.apps.scml.factory_managers.GreedyFactoryManager'
+                         , python_object_factory=lambda: GreedyFactoryManager(name=name
+                                                                              , simulator_type=self.simulator_type))
+
+
+class JavaMiddleMan(JavaFactoryManager):
+    def __init__(self, auto_load_java: bool = False
+                 , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
+        super().__init__(name=name, simulator_type=simulator_type, auto_load_java=auto_load_java
+                         , java_class_name='jnegmas.apps.scml.factory_managers.MiddleMan')
 
 
 class GreedyFactoryManager(FactoryManager):

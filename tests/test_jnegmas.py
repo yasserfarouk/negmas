@@ -18,28 +18,10 @@ SHUTDOWN_AFTER_EVERY_TEST = False
 # @pytest.fixture(scope='session', autouse=True)
 # def init_jnegmas():
 #     from negmas.java import init_jnegmas_bridge
-#     init_jnegmas_bridge(None, 0)
-
-
-# @pytest.mark.skipif(jnegmas_bridge_is_running(), reason='JNegMAS is already running')
-# def donottest_can_init_jnegmas_on_default_port():
-#     from negmas.java import init_jnegmas_bridge
-#     init_jnegmas_bridge(None, 0)
-
-
-@pytest.mark.skipif(not jnegmas_bridge_is_running(), reason='JNegMAS is not running')
-@pytest.mark.timeout(timeout=10, method='thread')
-def test_can_connect_and_disconnect():
-    JNegmasGateway.connect()
-    if SHUTDOWN_AFTER_EVERY_TEST:
-        JNegmasGateway.shutdown()
-
-
-@pytest.mark.skipif(not jnegmas_bridge_is_running(), reason='JNegMAS is not running')
-@pytest.mark.timeout(timeout=10, method='thread')
-def test_java_connection_context():
-    with jnegmas_connection(shutdown=SHUTDOWN_AFTER_EVERY_TEST):
-        pass
+#     init_jnegmas_bridge()
+#     JNegmasGateway.connect()
+#     yield
+#     JNegmasGateway.shutdown()
 
 
 def python_name(java_class: str) -> str:
