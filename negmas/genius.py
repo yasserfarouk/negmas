@@ -7,6 +7,7 @@ import pathlib
 
 import os
 import random
+import socket
 import subprocess
 import time
 import typing
@@ -284,6 +285,8 @@ def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
     global python_port
 
     port = port if port > 0 else DEFAULT_JAVA_PORT
+    if genius_bridge_is_running(port):
+        return True
     if not force and common_gateway is not None and common_port == port:
         print('Java already initialized')
         return True
@@ -591,7 +594,7 @@ class GeniusNegotiator(SAONegotiator):
                                   , resp, bid)
 
 
-def genius_bridge_is_running() -> bool:
+def genius_bridge_is_running(port: int=None) -> bool:
     """
     Checks whether a Genius Bridge is running. A genius bridge allows you to use `GeniusNegotiator` objects.
 
@@ -603,13 +606,17 @@ def genius_bridge_is_running() -> bool:
         - run "negmas genius" on the terminal
 
     """
+    if port is None:
+        port = DEFAULT_JAVA_PORT
+    s = socket.socket()
     try:
-        neg = GeniusNegotiator(java_class_name='agents.anac.y2015.Atlas3.Atlas3')
-        return neg.connected
+        s.connect(('127.0.0.1', port))
     except ConnectionRefusedError:
         return False
     except IndexError:
         return False
     except Py4JNetworkError:
         return False
+    finally:
+        s.close()
 
