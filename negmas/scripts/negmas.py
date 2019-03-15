@@ -16,11 +16,10 @@ import yaml
 from tabulate import tabulate
 
 import negmas
-from negmas import save_stats
+from negmas import save_stats, tournaments
 from negmas.apps.scml import *
 from negmas.apps.scml.utils import anac2019_world, balance_calculator
 from negmas.helpers import humanize_time, unique_name
-from negmas.tournaments import tournament
 from negmas.java import init_jnegmas_bridge
 
 try:
@@ -68,14 +67,14 @@ def cli():
 @click.option('--runs', default=5, help='Number of runs for each configuration')
 @click.option('--max-runs', default=-1, help='Maximum total number of runs. Zero or negative numbers mean no limit')
 @click.option('--randomize/--permutations', default=False, help='Random worlds or try all permutations up to max-runs')
-@click.option('--competitors', '-c'
+@click.option('--competitors'
     , default='negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager'
     , help='A semicolon (;) separated list of agent types to use for the competition.')
 @click.option('--parallel/--serial', default=True, help='Run a parallel/serial tournament on a single machine')
 @click.option('--distributed/--single-machine', default=False, help='Run a distributed tournament using dask')
 @click.option('--log', '-l', default='~/negmas/logs/tournaments',
               help='Default location to save logs (A folder will be created under it)')
-@click.option('--verbose', default=0, help='verbosity level (from 0 == silent to 1 == world progress)')
+@click.option('--verbosity', default=1, help='verbosity level (from 0 == silent to 1 == world progress)')
 @click.option('--configs-only/--run', default=False, help='configs_only')
 @click.option('--reveal-names/--hidden-names', default=False, help='Reveal agent names (should be used only for '
                                                                    'debugging)')
@@ -83,8 +82,9 @@ def cli():
                                                 ' Effective only if --distributed')
 @click.option('--port', default=8786, help='The IP port number a dask scheduler to run the distributed tournament.'
                                            ' Effective only if --distributed')
-def tournament(name, steps, parallel, distributed, ttype, timeout, log, competitors, verbose, configs_only,
-               reveal_names, ip, port, runs, max_runs, randomize):
+def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosity, configs_only,
+               reveal_names, ip, port, runs, max_runs, randomize, competitors
+               ):
     if timeout <= 0:
         timeout = None
     if name == 'random':
@@ -94,12 +94,11 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, competit
     parallelism = 'distributed' if distributed else 'parallel' if parallel else 'serial'
     start = perf_counter()
     if ttype.lower() == 'anac2019':
-        results = tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
+        results = tournaments.tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
                              , tournament_path=log, total_timeout=timeout
                              , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
-                             , tournament_progress_callback=print_progress if verbose > 0 else None
-                             , world_progress_callback=print_world_progress if verbose > 1 and not distributed else None
-                             , name=name, verbose=verbose > 0, n_runs_per_config=runs, max_n_runs=max_runs
+                             , world_progress_callback=print_world_progress if verbosity > 1 and not distributed else None
+                             , name=name, verbose=verbosity > 0, n_runs_per_config=runs, max_n_runs=max_runs
                              , world_generator=anac2019_world, score_calculator=balance_calculator
                              , configs_only=configs_only, randomize=randomize
                              , n_steps=steps)
