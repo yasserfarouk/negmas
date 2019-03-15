@@ -5,13 +5,13 @@ Implements Java interoperability allowing parts of negmas to work smoothly with 
 import os
 import subprocess
 import time
-from typing import Optional, Dict, Any, Iterable, Callable
+import socket
+from contextlib import contextmanager
+from typing import Optional, Dict, Any, Iterable
 
 import pkg_resources
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
-from py4j.java_collections import MapConverter, SetConverter, ListConverter
 from py4j.java_gateway import JavaClass
-
 # @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
 #  somewhere
 from py4j.protocol import Py4JNetworkError
@@ -25,12 +25,24 @@ __all__ = [
     'init_jnegmas_bridge'
 ]
 
+DEFAULT_JNEGMAS_PATH = 'external/com.yasserm.jnegmas.main'
 
-def init_jnegmas_bridge(path: Optional[str] = None, port: int=0):
+@contextmanager
+def jnegmas_connection(init: bool = False, path: Optional[str] = None, port=0, shutdown=True):
+    """Runs the simulated actions then confirms them if they are not rolled back"""
+    if init:
+        JNegmasGateway.start_java_side(path=path, java_port=port)
+    JNegmasGateway.connect()
+    yield JNegmasGateway.gateway
+    if shutdown:
+        JNegmasGateway.shutdown()
+
+
+def init_jnegmas_bridge(path: Optional[str] = None, port: int = 0):
     JNegmasGateway.start_java_side(path=path, java_port=port)
 
 
-def jnegmas_bridge_is_running() -> bool:
+def jnegmas_bridge_is_running(port: int=None) -> bool:
     """
     Checks whether a JNegMAS Bridge is running. This bridge is needed to use any objects in the jnegmas package
 
@@ -42,14 +54,21 @@ def jnegmas_bridge_is_running() -> bool:
         - run "negmas jnegmas" on the terminal
 
     """
+    if port is None:
+        port = JNegmasGateway.DEFAULT_JAVA_PORT
+    s = socket.socket()
     try:
-        init_jnegmas_bridge(None, 0)
+        s.connect(('127.0.0.1', port))
     except ConnectionRefusedError:
         return False
     except IndexError:
         return False
     except Py4JNetworkError:
         return False
+    except Exception:
+        return False
+    finally:
+        s.close()
 
 
 def dict_encode(value):
@@ -122,7 +141,7 @@ class JNegmasGateway:
         if cls.gateway is not None:
             return
         if path is None:
-            path = pkg_resources.resource_filename('negmas', resource_name='external/yasserfarouk.jnegmas.main.jar')
+            path = pkg_resources.resource_filename('negmas', resource_name=DEFAULT_JNEGMAS_PATH)
         java_port = java_port if java_port > 0 else cls.DEFAULT_JAVA_PORT
         path = os.path.abspath(os.path.expanduser(path))
         try:
@@ -152,6 +171,10 @@ class JNegmasGateway:
                                        python_parameters=PythonParameters(port=JNegmasGateway.DEFAULT_PYTHON_PORT
                                                                           , propagate_java_exceptions=True))
         return True
+
+    @classmethod
+    def shutdown(cls):
+        cls.gateway.shutdown(raise_exception=False)
 
 
 class JavaCallerMixin:
@@ -193,11 +216,11 @@ class JavaCallerMixin:
         obj = cls(*args, **kwargs)
         obj.java_object = java_object
         obj._connected = True
-        obj._java_class_name = java_object.getClass().getSimpleName()
+        obj.java_class_name = java_object.getClass().getSimpleName()
         return obj
 
     def init_java_bridge(self, java_class_name: str, auto_load_java: bool = False
-                         , python_object_factory: Optional[Callable[[], Any]] = None):
+                         , python_shadow_object: Any = None):
         """
         initializes a connection to the java bridge creating a member called `java_object` that can be used to access
         the counterpart object in Java
@@ -205,20 +228,21 @@ class JavaCallerMixin:
         Args:
             java_class_name: The type of the Java object to be created
             auto_load_java: When true, a JVM will be automatically created (if one is not available)
-            python_object_factory: A callable that creates a python object to shadow the java object
+            python_shadow_object: A python object to shadow the java object. The object will just call the corresponding
+            method on this shadow object whenever it needs.
 
 
         Remarks:
 
             - sets a member called java_object that can be used to access the corresponding Java object crated
-            - if `python_object_factory` is given, it must return an object of a type that has an internal class called
+            - if `python_shadow_object` is given, it must be an object of a type that has an internal class called
               Java which has a single member called 'implements' which is a list of one string element
               representing the Java interface being implemented (it must be either jnegmas.PyCallable or an extension of
               it).
         """
-        self._java_class_name = java_class_name
+        self.java_class_name = java_class_name
         self._connected = JNegmasGateway.connect(auto_load_java=auto_load_java)
-        self.java_object = self._create(python_object_factory() if python_object_factory else None)
+        self.java_object = self._create(python_shadow_object)
 
     def _create(self, python_shadow: Any = None):
         """
@@ -230,7 +254,5 @@ class JavaCallerMixin:
 
         """
         if python_shadow is None:
-            return JNegmasGateway.gateway.entry_point.create(self._java_class_name)
-        return JNegmasGateway.gateway.entry_point.create(self._java_class_name, python_shadow)
-
-
+            return JNegmasGateway.gateway.entry_point.create(self.java_class_name)
+        return JNegmasGateway.gateway.entry_point.create(self.java_class_name, python_shadow)
