@@ -22,8 +22,7 @@ from typing_extensions import Protocol
 
 from .situated import Agent, World, save_stats
 
-from negmas.helpers import get_class, unique_name, import_by_name, \
-    get_full_type_name
+from negmas.helpers import get_class, unique_name, import_by_name, get_full_type_name, humanize_time
 
 __all__ = [
     'tournament',
@@ -209,6 +208,7 @@ def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: 
 def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generator, tournament_progress_callback
               , n_worlds, name, score_calculator) -> List[pd.DataFrame]:
     """Runs the tournament on dask"""
+
     import distributed
     scores = []
     if scheduler_ip is None and scheduler_port is None:
@@ -226,6 +226,7 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
     for world_info in world_infos:
         future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator))
     print(f'Submitted all processes to DASK ({len(world_infos)})')
+    _strt = time.perf_counter()
     for i, (future, result) in enumerate(
         distributed.as_completed(future_results, with_results=True, raise_errors=False)):
         try:
@@ -233,6 +234,10 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
             if tournament_progress_callback is not None:
                 tournament_progress_callback(score_, i, n_worlds)
             scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+            if verbose:
+                _duration = time.perf_counter() - _strt
+                print(f'{i + 1:003} of {n_worlds:003} [{100 * (i + 1) / n_worlds:0.3}%] completed in '
+                      f'{humanize_time(_duration)} [ETA {humanize_time(_duration * n_worlds  / (i + 1))}]')
         except Exception as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_worlds)
@@ -392,6 +397,11 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_worlds)
                 scores.append(process_world_run(score_, tournament_name=name, dir_name=str(world_info['__dir_name'])))
+                if verbose:
+                    _duration = time.perf_counter() - strt
+                    print(f'{i + 1:003} of {n_worlds:003} [{100 * (i + 1) / n_worlds:0.3}%] completed '
+                          f'in {humanize_time(_duration)}'
+                          f' [ETA {humanize_time(_duration * n_worlds  / (i + 1))}]')
             except Exception as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_worlds)
@@ -405,12 +415,18 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                                                   , world_progress_callback))
         if verbose:
             print(f'Submitted all processes ({len(world_infos)})')
+        _strt = time.perf_counter()
         for i, future in enumerate(futures.as_completed(future_results, timeout=total_timeout)):
             try:
                 score_, dir_name = future.result()
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_worlds)
                 scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+                if verbose:
+                    _duration = time.perf_counter() - _strt
+                    print(f'{i+1:003} of {n_worlds:003} [{100*(i+1)/n_worlds:0.3}%] completed in '
+                          f'{humanize_time(_duration)}'
+                          f' [ETA {humanize_time(_duration * n_worlds  / (i + 1))}]')
             except futures.TimeoutError:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_worlds)
