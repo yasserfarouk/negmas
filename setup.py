@@ -82,7 +82,7 @@ setup(
     include_package_data=True,
     entry_points={  # Optional
         'console_scripts': [
-            'negmas=negmas.scripts.negmas:cli',
+            'negmas=negmas.scripts.app:cli',
         ],
     },
     # https://packaging.python.org/specifications/core-metadata/#project-url-multiple-use
