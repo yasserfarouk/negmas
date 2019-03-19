@@ -58,6 +58,18 @@ class Miner(SCMLAgent, ABC):
 class ReactiveMiner(Miner):
     """Raw Material Generator"""
 
+    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+        pass
+
+    def on_agent_bankrupt(self, agent_id: str) -> None:
+        pass
+
+    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+        pass
+
+    def on_remove_cfp(self, cfp: 'CFP'):
+        pass
+
     def __init__(self, profiles: Dict[int, MiningProfile] = None, negotiator_type='negmas.sao.AspirationNegotiator'
                  , n_retrials=0, reactive=True, name=None):
         super().__init__(name=name)
@@ -71,7 +83,7 @@ class ReactiveMiner(Miner):
 
     def init(self):
         super().init()
-        self.interesting_products = list(self.profiles.keys())
+        self.awi.register_interest(list(self.profiles.keys()))
 
     def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
                                , state: MechanismState) -> None:

@@ -24,6 +24,23 @@ __all__ = [
     'SCMLWorld'
 ]
 
+
+def realin(rng: Union[Tuple[float, float], float]) -> float:
+    if isinstance(rng, float):
+        return rng
+    if abs(rng[1] - rng[0]) < 1e-8:
+        return rng[0]
+    return rng[0] + random() * (rng[1] - rng[0])
+
+
+def intin(rng: Union[Tuple[int, int], int]) -> int:
+    if isinstance(rng, int):
+        return rng
+    if rng[0] == rng[1]:
+        return rng[0]
+    return randint(rng[0], rng[1])
+
+
 class SCMLWorld(World):
     """The `World` class running a simulation of supply chain management."""
 
@@ -191,22 +208,26 @@ class SCMLWorld(World):
             self.f2a[factory.id] = agent
             self.a2f[agent.id] = factory
 
-        self.bank = DefaultBank(minimum_balance=minimum_balance, interest_rate=interest_rate, interest_max=interest_max
-                                , balance_at_max_interest=balance_at_max_interest, installment_interest=installment_interest
-                                , time_increment=interest_time_increment, a2f=self.a2f)
-        self.join(self.bank, simulation_priority=-1)
-        self.insurance_company = DefaultInsuranceCompany(premium=premium, premium_breach_increment=premium_breach_increment
-                                                         , premium_time_increment=premium_time_increment, a2f=self.a2f)
-        self.join(self.insurance_company)
-
-        for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore
-            agent.init()
+        self.__interested_agents: List[List[SCMLAgent]] = [[]] * len(self.products)
         self.n_new_cfps = 0
         self._transport: Dict[int, List[Tuple[SCMLAgent, int, int]]] = defaultdict(list)
         self._transfer: Dict[int, List[Tuple[SCMLAgent, float]]] = defaultdict(list)
         self.transfer_delay = transfer_delay
 
         self._n_production_failures = 0
+
+        self.bank = DefaultBank(minimum_balance=minimum_balance, interest_rate=interest_rate, interest_max=interest_max
+                                , balance_at_max_interest=balance_at_max_interest,
+                                installment_interest=installment_interest
+                                , time_increment=interest_time_increment, a2f=self.a2f)
+        self.join(self.bank, simulation_priority=-1)
+        self.insurance_company = DefaultInsuranceCompany(premium=premium,
+                                                         premium_breach_increment=premium_breach_increment
+                                                         , premium_time_increment=premium_time_increment, a2f=self.a2f)
+        self.join(self.insurance_company)
+
+        for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore
+            agent.init()
         # self.standing_jobs: Dict[int, List[Tuple[Factory, Job]]] = defaultdict(list)
 
     def join(self, x: 'Agent', simulation_priority: int = 0):
@@ -250,7 +271,7 @@ class SCMLWorld(World):
                           , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
                           , max_storage: int = sys.maxsize
                           , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
-                          , consumption: Union[int, Tuple[int, int]] = (3, 5)
+                          , consumption: Union[int, Tuple[int, int]] = (0, 5)
                           , consumer_kwargs: Dict[str, Any] = None
                           , negotiation_speed: Optional[int] = None
                           , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
@@ -258,6 +279,8 @@ class SCMLWorld(World):
                           , default_factory_manager_type: Type[FactoryManager] = GreedyFactoryManager
                           , randomize: bool = True
                           , initial_wallet_balances=1000
+                          , process_cost: Union[float, Tuple[float, float]] = (1.0, 5.0)
+                          , process_time: Union[int, Tuple[int, int]] = 1
                           , interest_rate=float('inf')
                           , interest_max=float('inf')
                           , **kwargs):
@@ -281,6 +304,8 @@ class SCMLWorld(World):
             n_consumers: number of consumers of the final product
             n_steps: number of simulation steps
             n_lines_per_factory: number of lines in each factory
+            process_cost: The range of process costs. A uniform distribution will be used
+            process_time: The range of process times. A unifrom distribution will be used
             log_file_name: File name to store the logs
             agent_names_reveal_type: If true, agent names will start with a snake_case version of their type name
             negotiator_type: The negotiation factory used to create all negotiators
@@ -325,11 +350,12 @@ class SCMLWorld(World):
             return x if x is not None else 0
 
         for level in range(n_intermediate_levels + 1):
-            new_product = Product(name=f'p{level + 1}', catalog_price=_s(products[-1].catalog_price) + level + 1
+            new_product = Product(name=f'p{level + 1}', catalog_price=None # keep this to the world to calculate _s(products[-1].catalog_price) + level + 1
                                   , production_level=level + 1, id=level + 1, expires_in=0)
-            p = Process(name=f'p{level + 1}', inputs={InputOutput(product=level, quantity=1, step=0.0)}
+            p = Process(name=f'p{level + 1}', inputs=[InputOutput(product=level, quantity=1, step=0.0)]
                         , production_level=level + 1
-                        , outputs={InputOutput(product=level + 1, quantity=1, step=1.0)}, historical_cost=level + 1
+                        , outputs=[InputOutput(product=level + 1, quantity=1, step=1.0)]
+                        , historical_cost= None # keep this to the world to calculate level + 1
                         , id=level)
             processes.append(p)
             products.append(new_product)
@@ -343,7 +369,8 @@ class SCMLWorld(World):
             for j in range(n_factories_per_level):
                 profiles = []
                 for k in range(n_lines_per_factory):
-                    profiles.append(ManufacturingProfile(n_steps=n_steps_profile, cost=j + 1
+                    profiles.append(ManufacturingProfile(n_steps=intin(process_time)
+                                                         , cost=realin(process_cost)
                                                          , initial_pause_cost=0
                                                          , running_pause_cost=0
                                                          , resumption_cost=0
@@ -490,20 +517,6 @@ class SCMLWorld(World):
             for args in (factory_kwargs, consumer_kwargs, miner_kwargs):
                 if 'negotiator_type' not in args.keys():
                     args['negotiator_type'] = negotiator_type
-
-        def realin(rng: Union[Tuple[float, float], float]) -> float:
-            if isinstance(rng, float):
-                return rng
-            if abs(rng[1] - rng[0]) < 1e-8:
-                return rng[0]
-            return rng[0] + random() * (rng[1] - rng[0])
-
-        def intin(rng: Union[Tuple[int, int], int]) -> int:
-            if isinstance(rng, int):
-                return rng
-            if rng[0] == rng[1]:
-                return rng[0]
-            return randint(rng[0], rng[1])
 
         def _sample_product(products: list, old_products: list, last_level_products: list, k: int):
             if bias_toward_last_level_products < 1e-7:
@@ -657,32 +670,83 @@ class SCMLWorld(World):
 
         product_costs: Dict[Product, List[float]] = defaultdict(list)
         process_costs: Dict[Process, List[float]] = defaultdict(list)
+        producers: Dict[Product, List[Tuple[Process, int]]] = defaultdict(list)
+        consumers: Dict[Product, List[Tuple[Process, int]]] = defaultdict(list)
 
+        def production_record(process_: Process, product_: Product):
+            for output_ in process_.outputs:
+                if output_.product == product_.id:
+                    return process_, output_.quantity
+            return None
+
+        def consumption_record(process_: Process, product_: Product):
+            for input_ in process_.inputs:
+                if input_.product == product_.id:
+                    return process_, input_.quantity
+
+        # sort products and processes by the production level. We assume here that production levels are well behaved
+        products = sorted(self.products, key=lambda x: x.production_level)
+        processes = sorted(self.processes, key=lambda x: x.production_level)
+
+        # find the producers and consumers for every product. This builds the production graph and its inverse
+        for product in products:
+            for process in processes:
+                precord = production_record(process, product)
+                if precord is not None:
+                    producers[product].append(precord)
+                crecord = consumption_record(process, product)
+                if crecord is not None:
+                    consumers[product].append(crecord)
+
+        # find the average manufacturing profile cost for every process
         for factory in self.factories:
             for profile_index, profile in enumerate(factory.profiles):
                 process = profile.process
                 if self.avg_process_cost_is_public:
                     process_costs[process].append(profile.cost)
-                if self.catalog_prices_are_public:
-                    input_price = sum(self.products[i.product].catalog_price * i.quantity
-                                      for i in process.inputs)
-                    for output in process.outputs:
-                        if output.quantity == 0:
-                            continue
-                        product_costs[self.products[output.product]].append(
-                            (input_price + profile.cost) / output.quantity)
 
-        if self.catalog_prices_are_public:
-            product_costs_avg = {p: sum(v) / len(v) if len(v) > 0 else math.inf for p, v in product_costs.items()}
-            for product in self.products:
-                if product.catalog_price is None:
-                    product.catalog_price = product_costs_avg[product] * (1 + self.catalog_profit)
+        process_costs_avg = {k: sum(v) / len(v) if len(v) > 0 else math.inf for k, v in process_costs.items()}
 
+        # loop over all products finding the processes that can produce it and add a new cost example for this product
+        for product in products:
+            for process, quantity in producers[product]:
+                if quantity == 0:
+                    continue
+
+                # find the total input cost for a process that can produce the current product
+                input_cost = 0.0
+                for input_ in process.inputs:
+                    iproduct = self.products[input_.product]
+                    if iproduct.catalog_price is None:
+                        if self.catalog_prices_are_public or self.avg_process_cost_is_public:
+                            raise ValueError(
+                                f'Catalog prices should be public but product {product} is needed for process {process}'
+                                f' without a catalog price')
+                        return
+                    input_cost += iproduct.catalog_price * input_.quantity
+                # append a new unit price for this product
+                product_costs[product].append((input_cost + process_costs_avg[process]) / quantity)
+
+            # now we have the product cost for all processes producing this product. Average them
+            if product_costs.get(product, None) is None or len(product_costs[product]) < 1:
+                continue
+            avg_cost = sum(product_costs[product]) / len(product_costs[product])
+            if product.catalog_price is None:
+                product.catalog_price = avg_cost * (1 + self.catalog_profit)
+
+        # update the historical cost for processes if needed
         if self.avg_process_cost_is_public:
-            process_costs_avg = {k: sum(v) / len(v) if len(v) > 0 else math.inf for k, v in process_costs.items()}
             for process in self.processes:
                 if process.historical_cost is None:
                     process.historical_cost = process_costs_avg[process]
+        else:
+            for process in self.processes:
+                process.historical_cost = None
+
+        # update the catalog prices by averaging all possible ways to create any product.
+        if not self.catalog_prices_are_public:
+            for product in self.products:
+                product.catalog_price = None
 
     def set_consumers(self, consumers: List[Consumer]):
         self.consumers = consumers
@@ -1120,11 +1184,23 @@ class SCMLWorld(World):
             else:
                 self._transfer[self.current_step + self.transfer_delay].append((seller, available_money))
 
+    def register_interest(self, agent: SCMLAgent, products: List[int]) -> None:
+        for product in products:
+            self.__interested_agents[product] = list(set(self.__interested_agents[product] + [agent]))
+
+    def unregister_interest(self, agent: SCMLAgent, products: List[int]) -> None:
+        for product in products:
+            try:
+                self.__interested_agents[product].remove(agent)
+            except ValueError:
+                pass
+
     def evaluate_insurance(self, contract: Contract, agent: SCMLAgent, t: int = None) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
 
         Args:
 
+            agent: The agent buying the contract
             contract: hypothetical contract
             t: time at which the policy is to be bought. If None, it means current step
         """
@@ -1206,13 +1282,15 @@ class SCMLWorld(World):
         """
         if event.type == 'new_record' and event.data['section'] == 'cfps':
             cfp = event.data['value']
-            for m in itertools.chain(self.miners, self.factory_managers, self.consumers):  # type: ignore
-                if m.id != cfp.publisher and cfp.product in m.interesting_products:
+            product = cfp.product
+            for m in self.__interested_agents[product]:
+                if m.id != cfp.publisher:
                     m.on_new_cfp(cfp)
         elif event.type == 'will_remove_record' and event.data['section'] == 'cfps':
-            for m in itertools.chain(self.miners, self.factory_managers, self.consumers):  # type: ignore
-                cfp = event.data['value']
-                if m.id != cfp.publisher and cfp.product in m.interesting_products:
+            cfp = event.data['value']
+            product = cfp.product
+            for m in self.__interested_agents[product]:
+                if m.id != cfp.publisher:
                     m.on_remove_cfp(cfp)
 
     def _contract_record(self, contract: Contract) -> Dict[str, Any]:

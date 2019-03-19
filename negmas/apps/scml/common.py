@@ -14,7 +14,7 @@ from negmas.java import JavaConvertible
 from negmas.mechanisms import MechanismProxy
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue
-from negmas.situated import Contract, Agent
+from negmas.situated import Contract, Agent, Breach
 
 INVALID_STEP = -1000
 NO_PRODUCTION = -1
@@ -84,10 +84,10 @@ class Process:
     """The level of this process in the production graph"""
     name: str
     """Object name"""
-    inputs: Set[InputOutput]
+    inputs: List[InputOutput]
     """list of input product name + quantity required and time of consumption relative to the time required for 
     production (value from 0 to 1)"""
-    outputs: Set[InputOutput]
+    outputs: List[InputOutput]
     """list of output product names, quantity required and when it becomes available relative to the time required for 
     production (value from 0 to 1)"""
     historical_cost: Optional[float]
@@ -822,8 +822,6 @@ class SCMLAgent(Agent):
         self.transportation_delay: int = 0
         self.products: List[Product] = []
         self.processes: List[Process] = []
-        self.interesting_products: List[int] = []
-        """The products for which CFPs should be sent to this agent"""
 
     def init(self):
         super().init()
@@ -862,7 +860,7 @@ class SCMLAgent(Agent):
                 self.consuming[inpt.product].append(ProductManufacturingInfo(profile=index
                                                                              , quantity=inpt.quantity
                                                                              , step=step))
-        self.interesting_products = list(set(itertools.chain(self.producing.keys(), self.consuming.keys())))
+        self.awi.register_interest(list(set(itertools.chain(self.producing.keys(), self.consuming.keys()))))
 
     def can_expect_agreement(self, cfp: 'CFP', margin: int):
         """
@@ -908,6 +906,22 @@ class SCMLAgent(Agent):
         breached"""
 
     @abstractmethod
+    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+        """Will be called whenever a contract the agent is involved in is nullified because another partner went
+        bankrupt"""
+
+    @abstractmethod
+    def on_agent_bankrupt(self, agent_id: str) -> None:
+        """Will be called whenever any agent went bankrupt"""
+
+    @abstractmethod
+    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+        """Will be called whenever a contract cannot be fully executed due to breaches by the other partner.
+
+        Will not be called if both partners committed breaches.
+        """
+
+    @abstractmethod
     def confirm_contract_execution(self, contract: Contract) -> bool:
         """Called before executing any agreement"""
         return True
@@ -915,6 +929,14 @@ class SCMLAgent(Agent):
     @abstractmethod
     def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
         """Called when a prospective partner requests a negotiation to start"""
+
+    @abstractmethod
+    def on_new_cfp(self, cfp: 'CFP'):
+        """Called when a new CFP for a product for which the agent registered interest is published"""
+
+    @abstractmethod
+    def on_remove_cfp(self, cfp: 'CFP'):
+        """Called when a new CFP for a product for which the agent registered interest is removed"""
 
 
 @dataclass

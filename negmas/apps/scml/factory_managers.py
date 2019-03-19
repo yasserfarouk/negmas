@@ -50,8 +50,6 @@ class FactoryManager(SCMLAgent, ABC):
         self.simulator = self.simulator_type(initial_wallet=state.wallet, initial_storage=state.storage
                                              , n_steps=self.awi.n_steps, n_products=len(self.products)
                                              , profiles=state.profiles, max_storage=self.max_storage)
-        self.interesting_products = list(self.producing.keys())
-        self.interesting_products += list(self.consuming.keys())
 
     def step(self):
         state = self.awi.state
@@ -76,8 +74,66 @@ class FactoryManager(SCMLAgent, ABC):
         implements = ['jnegmas.apps.scml.factory_managers.PyFactoryManager']
 
 
+class DoNothingFactoryManager(FactoryManager):
+    """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
+
+    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+        pass
+
+    def on_agent_bankrupt(self, agent_id: str) -> None:
+        pass
+
+    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+        pass
+
+    def on_remove_cfp(self, cfp: 'CFP'):
+        pass
+
+    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
+        pass
+
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+        pass
+
+    def confirm_contract_execution(self, contract: Contract) -> bool:
+        return True
+
+    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
+        return None
+
+    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
+                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+        return None
+
+    def confirm_loan(self, loan: Loan) -> bool:
+        """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
+        breached"""
+        return True
+
+    def on_new_cfp(self, cfp: 'CFP') -> None:
+        pass
+
+    def step(self):
+        pass
+
+
 class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     """Allows factory managers implemented in Java (using jnegmas) to participate in SCML worlds"""
+
+    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+        self.java_object.on_contract_nullified(contract, bankrupt_partner, compensation)
+
+    def on_agent_bankrupt(self, agent_id: str) -> None:
+        self.java_object.on_agent_bankrupt(agent_id)
+
+    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+        return self.java_object.confirm_parial_execution(contract, breaches)
+
+    def on_new_cfp(self, cfp: 'CFP'):
+        return self.java_object.on_new_cfp(cfp)
+
+    def on_remove_cfp(self, cfp: 'CFP'):
+        return self.java_object.on_remove_cfp(cfp)
 
     @property
     def type_name(self):
@@ -194,7 +250,7 @@ class JavaMiddleMan(JavaFactoryManager):
                          , java_class_name='jnegmas.apps.scml.factory_managers.MiddleMan')
 
 
-class GreedyFactoryManager(FactoryManager):
+class GreedyFactoryManager(DoNothingFactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
 
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
@@ -487,40 +543,6 @@ class GreedyFactoryManager(FactoryManager):
             if need.quantity_to_buy > 0 and need.step < step + 1 - int(self.immediate_negotiations):  # @todo check this
                 return False
         return True
-
-
-class DoNothingFactoryManager(FactoryManager):
-    """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
-
-    def on_production_failure(self, failures: List[ProductionFailure]) -> None:
-        pass
-
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
-        pass
-
-    def confirm_contract_execution(self, contract: Contract) -> bool:
-        return True
-
-    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
-        return None
-
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
-        return None
-
-    def confirm_loan(self, loan: Loan) -> bool:
-        """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
-        breached"""
-        return True
-
-    def on_new_cfp(self, cfp: 'CFP') -> None:
-        pass
-
-    def __init__(self, name=None):
-        super().__init__(name=name)
-
-    def step(self):
-        pass
 
 
 TotalUtilityFun = Callable[[Collection[Contract]], float]

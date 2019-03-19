@@ -37,7 +37,7 @@ __all__ = [
 class ConsumptionProfile:
     schedule: Union[int, List[int]] = 0
     underconsumption: float = 0.1
-    overconsumption: float = 0.0
+    overconsumption: float = 0.01
     dynamicity: float = 0.0
     cv: float = 0.1
 
@@ -89,6 +89,18 @@ class Consumer(SCMLAgent, ABC):
 class ScheduleDrivenConsumer(Consumer):
     """Consumer class"""
 
+    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+        pass
+
+    def on_agent_bankrupt(self, agent_id: str) -> None:
+        pass
+
+    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+        pass
+
+    def on_remove_cfp(self, cfp: 'CFP'):
+        pass
+
     MAX_UNIT_PRICE = 1e5
     RELATIVE_MAX_PRICE = 2
 
@@ -113,7 +125,7 @@ class ScheduleDrivenConsumer(Consumer):
         super().init()
         if self.consumption_horizon is None:
             self.consumption_horizon = self.awi.n_steps
-        self.interesting_products = list(self.profiles.keys())
+        self.awi.register_interest(list(self.profiles.keys()))
 
     def set_profiles(self, profiles: Dict[int, ConsumptionProfile]):
         self.profiles = profiles if profiles is not None else dict()

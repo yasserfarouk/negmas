@@ -1,4 +1,6 @@
 """Implements Event management"""
+import itertools
+import random
 from collections import defaultdict
 from typing import Any, Dict, Union, Optional, Set
 
@@ -35,6 +37,7 @@ class EventSource:
         on this event type"""
 
         sinks = self.__sinks.get(event.type, [])
+        random.shuffle(sinks)
         for sink in sinks:
             sink.on_event(event=event, sender=self)
 
