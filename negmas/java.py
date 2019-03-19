@@ -3,15 +3,15 @@ Implements Java interoperability allowing parts of negmas to work smoothly with 
 
 """
 import os
+import socket
 import subprocess
 import time
-import socket
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, Iterable
 
 import pkg_resources
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
-from py4j.java_gateway import JavaClass
+from py4j.java_gateway import JavaClass, JavaGateway, GatewayParameters, CallbackServerParameters
 # @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
 #  somewhere
 from py4j.protocol import Py4JNetworkError
@@ -22,18 +22,21 @@ __all__ = [
     'JavaConvertible',
     'to_java',
     'jnegmas_bridge_is_running',
-    'init_jnegmas_bridge'
+    'init_jnegmas_bridge',
+    'deep_dict_encode',
+    'dict_encode'
 ]
 
 DEFAULT_JNEGMAS_PATH = 'external/jnegmas-1.0-SNAPSHOT-all.jar'
 
 
 @contextmanager
-def jnegmas_connection(init: bool = False, path: Optional[str] = None, port=0, shutdown=True):
-    """Runs the simulated actions then confirms them if they are not rolled back"""
+def jnegmas_connection(init: bool = False, path: Optional[str] = None, java_port=0
+                       , python_port=0, client_server=True, shutdown=True):
+    """A connection to jnegmas that closes automatically"""
     if init:
-        JNegmasGateway.start_java_side(path=path, java_port=port)
-    JNegmasGateway.connect()
+        JNegmasGateway.start_java_side(path=path, java_port=java_port)
+    JNegmasGateway.connect(java_port=java_port, python_port=python_port, client_server=client_server)
     yield JNegmasGateway.gateway
     if shutdown:
         JNegmasGateway.shutdown()
@@ -43,7 +46,7 @@ def init_jnegmas_bridge(path: Optional[str] = None, port: int = 0):
     JNegmasGateway.start_java_side(path=path, java_port=port)
 
 
-def jnegmas_bridge_is_running(port: int=None) -> bool:
+def jnegmas_bridge_is_running(port: int = None) -> bool:
     """
     Checks whether a JNegMAS Bridge is running. This bridge is needed to use any objects in the jnegmas package
 
@@ -60,6 +63,7 @@ def jnegmas_bridge_is_running(port: int=None) -> bool:
     s = socket.socket()
     try:
         s.connect(('127.0.0.1', port))
+        return True
     except ConnectionRefusedError:
         return False
     except IndexError:
@@ -79,6 +83,20 @@ def dict_encode(value):
         return {k: dict_encode(v) for k, v in value.items()}
     if isinstance(value, Iterable) and not isinstance(value, str):
         return [dict_encode(_) for _ in value]
+    return value
+
+
+def deep_dict_encode(value):
+    """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
+    or string values"""
+    if isinstance(value, dict):
+        return {k: deep_dict_encode(v) for k, v in value.items()}
+    if isinstance(value, Iterable) and not isinstance(value, str):
+        return [deep_dict_encode(_) for _ in value]
+    if hasattr(value, '__dict__'):
+        return deep_dict_encode(value.__dict__)
+    if hasattr(value, '__slots__'):
+        return deep_dict_encode(dict(zip(value.__slots__, (getattr(value, _) for _ in value.__slots__))))
     return value
 
 
@@ -160,24 +178,57 @@ class JNegmasGateway:
         cls.connect(auto_load_java=False)
 
     @classmethod
-    def connect(cls, auto_load_java: bool = False) -> bool:
+    def connect(cls, java_port: int = None, python_port: int = None
+                , auto_load_java: bool = False, client_server: bool = True) -> bool:
         """
         connects to jnegmas
         """
+        if not java_port:
+            java_port = cls.DEFAULT_JAVA_PORT
+        if not python_port:
+            python_port = cls.DEFAULT_PYTHON_PORT
         if auto_load_java:
             if cls.gateway is None:
-                cls.start_java_side()
+                cls.start_java_side(java_port=java_port)
             return True
         if cls.gateway is None:
-            cls.gateway = ClientServer(java_parameters=JavaParameters(port=JNegmasGateway.DEFAULT_JAVA_PORT
-                                                                      , auto_convert=True),
-                                       python_parameters=PythonParameters(port=JNegmasGateway.DEFAULT_PYTHON_PORT
-                                                                          , propagate_java_exceptions=True))
+            eager_load, auto_convert = True, True
+            if client_server:
+                cls.gateway = ClientServer(java_parameters=JavaParameters(port=java_port
+                                                                          , auto_convert=auto_convert
+                                                                          , eager_load=eager_load, auto_close=True
+                                                                          , auto_gc=False, auto_field=False
+                                                                          , daemonize_memory_management=True),
+                                           python_parameters=PythonParameters(port=python_port
+                                                                              , propagate_java_exceptions=True
+                                                                              , daemonize=True
+                                                                              , eager_load=eager_load
+                                                                              , auto_gc=False
+                                                                              , daemonize_connections=True
+                                                                              ))
+            else:
+                pyparams = CallbackServerParameters(port=python_port
+                                                    , daemonize_connections=True
+                                                    , daemonize=True
+                                                    , eager_load=True
+                                                    , propagate_java_exceptions=True)
+                cls.gateway = JavaGateway(gateway_parameters=GatewayParameters(port=java_port
+                                                                               , auto_convert=auto_convert
+                                                                               , auto_field=False
+                                                                               , eager_load=eager_load
+                                                                               , auto_close=True),
+                                          callback_server_parameters=pyparams, auto_convert=auto_convert
+                                          , start_callback_server=True, eager_load=eager_load)
+                python_port = cls.gateway.get_callback_server().get_listening_port()
+                cls.gateway.java_gateway_server.resetCallbackClient(
+                    cls.gateway.java_gateway_server.getCallbackClient().getAddress(),
+                    python_port)
         return True
 
     @classmethod
     def shutdown(cls):
         cls.gateway.shutdown(raise_exception=False)
+        cls.gateway.shutdown_callback_server(raise_exception=False)
 
 
 class JavaCallerMixin:

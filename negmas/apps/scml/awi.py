@@ -1,3 +1,6 @@
+from py4j.java_collections import ListConverter
+
+from negmas.java import JNegmasGateway, to_java, dict_encode, deep_dict_encode
 from negmas.situated import AgentWorldInterface, Contract
 from .common import *
 from typing import Optional, List
@@ -10,7 +13,8 @@ __all__ = [
 class SCMLAWI(AgentWorldInterface):
 
     def _allProducts(self) -> List[Product]:
-        return self.products
+        products = deep_dict_encode(self.products)
+        return ListConverter().convert(products, JNegmasGateway.gateway._gateway_client)
 
     def _allProcesses(self) -> List[Process]:
         return self.processes
@@ -20,6 +24,14 @@ class SCMLAWI(AgentWorldInterface):
         self._world.n_new_cfps += 1
         cfp.money_resolution = self._world.money_resolution
         self.bb_record(section='cfps', key=cfp.id, value=cfp)
+
+    def register_interest(self, products: List[int]) -> None:
+        """registers interest in receiving callbacks about CFPs related to these products"""
+        self._world.register_interest(agent=self.agent, products=products)
+
+    def unregister_interest(self, products: List[int]) -> None:
+        """registers interest in receiving callbacks about CFPs related to these products"""
+        self._world.unregister_interest(agent=self.agent, products=products)
 
     def remove_cfp(self, cfp: CFP) -> bool:
         """Removes a CFP"""
