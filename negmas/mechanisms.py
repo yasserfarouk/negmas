@@ -62,6 +62,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         outcomes: Union[int, List['Outcome']] = None,
         n_steps: int = None,
         time_limit: float = None,
+        step_time_limit: float = None,
         max_n_agents: int = None,
         dynamic_entry=False,
         cache_outcomes=True,
@@ -160,6 +161,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             , outcomes=__outcomes
             , time_limit=time_limit
             , n_steps=n_steps
+            , step_time_limit = step_time_limit
             , dynamic_entry=dynamic_entry
             , max_n_agents=max_n_agents
             , annotation=annotation
@@ -571,6 +573,10 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             - There is another function (`run()`) that runs the whole mechanism in blocking mode
 
         """
+        if self.time > self.time_limit:
+            self._agreement, self._broken, self._timedout = None, False, True
+            self._history.append(self.state)
+            return self.state
         if len(self._agents) < 2:
             if self.info.dynamic_entry:
                 self._history.append(self.state)
@@ -611,11 +617,16 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
         for agent in self._agents:
             agent.on_round_start(state=self.state)
+        step_start = time.perf_counter()
         result = self.step_()
+        step_time = time.perf_counter() - step_start
         self._error, self._error_details = result.error, result.error_details
         if self._error:
             self.on_mechanism_error()
-        self._broken, self._timedout, self._agreement = result.broken, result.timedout, result.agreement
+        if step_time > self.info.step_time_limit:
+            self._broken, self._timedout, self._agreement = False, True, None
+        else:
+            self._broken, self._timedout, self._agreement = result.broken, result.timedout, result.agreement
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
         self._step += 1

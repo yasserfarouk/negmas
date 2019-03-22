@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from negmas.common import *
 from negmas.events import Notification
-from negmas.java import JNegmasGateway, JavaCallerMixin, to_java
+from negmas.java import JNegmasGateway, JavaCallerMixin, to_dict
 from negmas.mechanisms import MechanismRoundResult, Mechanism
 from negmas.negotiators import Negotiator, AspirationMixin, Controller
 from negmas.outcomes import sample_outcomes, Outcome, outcome_is_valid, ResponseType, outcome_as_dict
@@ -63,6 +63,7 @@ class SAOMechanism(Mechanism):
         outcomes=None,
         n_steps=None,
         time_limit=None,
+        step_time_limit=None,
         max_n_agents=None,
         dynamic_entry=True,
         keep_issue_names=True,
@@ -77,6 +78,7 @@ class SAOMechanism(Mechanism):
             outcomes=outcomes,
             n_steps=n_steps,
             time_limit=time_limit,
+            step_time_limit=step_time_limit,
             max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
             keep_issue_names=keep_issue_names,
@@ -600,6 +602,9 @@ class SAONegotiator(Negotiator):
 
         """
 
+    class Java:
+        implements = ['jnegmas.sao.PySAONegotiator']
+
 
 class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
     """A negotiation agent that responds randomly in a single negotiation."""
@@ -1023,15 +1028,15 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         )
         if java_class_name is not None:
             self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java)
-            self.java_object.fromMap(to_java(self))
+            self.java_object.fromMap(to_dict(self))
 
     @classmethod
-    def from_java(cls, java_object, *args, parent: Controller = None) -> 'JavaSAONegotiator':
+    def from_dict(cls, java_object, *args, parent: Controller = None) -> 'JavaSAONegotiator':
         """Creates a Java negotiator from an object returned from the JVM implementing PySAONegotiator"""
         ufun = java_object.getUtilityFunction()
         if ufun is not None:
-            ufun = JavaUtilityFunction.from_java(java_object=ufun)
-        return JavaCallerMixin.from_java(java_object, name=java_object.getName()
+            ufun = JavaUtilityFunction.from_dict(java_object=ufun)
+        return JavaCallerMixin.from_dict(java_object, name=java_object.getName()
                                          , assume_normalized=java_object.getAssumeNormalized()
                                          , rational_proposal=java_object.getRationalProposal()
                                          , parent=parent
@@ -1039,7 +1044,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
 
     def on_notification(self, notification: Notification, notifier: str):
         super().on_notification(notification=notification, notifier=notifier)
-        jnotification = {'type': notification.type, 'data': to_java(notification.data)}
+        jnotification = {'type': notification.type, 'data': to_dict(notification.data)}
         self.java_object.on_notification(jnotification, notifier)
 
     def respond_(self, state: MechanismState, offer: 'Outcome'):

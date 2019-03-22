@@ -56,6 +56,7 @@ class SCMLWorld(World):
                  , time_limit=60 * 90
                  , neg_n_steps=100
                  , neg_time_limit=3 * 60
+                 , neg_step_time_limit=60
                  , negotiation_speed=10
                  # bank parameters
                  , minimum_balance=0
@@ -137,6 +138,7 @@ class SCMLWorld(World):
                          , log_file_name=log_file_name, awi_type='negmas.apps.scml.SCMLAWI'
                          , default_signing_delay=default_signing_delay
                          , start_negotiations_immediately=start_negotiations_immediately
+                         , neg_step_time_limit=neg_step_time_limit
                          , name=name)
         if balance_at_max_interest is None:
             balance_at_max_interest = initial_wallet_balances
@@ -166,6 +168,8 @@ class SCMLWorld(World):
         self.bulletin_board.record(section='settings', key='negotiation_speed_multiple'
                                    , value=negotiation_speed)
         self.bulletin_board.record(section='settings', key='negotiation_n_steps', value=neg_n_steps)
+        self.bulletin_board.record(section='settings', key='negotiation_step_time_limit', value=neg_step_time_limit)
+        self.bulletin_board.record(section='settings', key='negotiation_time_limit', value=neg_time_limit)
         self.bulletin_board.record(section='settings', key='transportation_delay', value=transportation_delay)
         self.avg_process_cost_is_public = avg_process_cost_is_public
         self.catalog_prices_are_public = catalog_prices_are_public
@@ -934,8 +938,8 @@ class SCMLWorld(World):
             if not partner.confirm_contract_execution(contract=contract):
                 self.logdebug(
                     f'{partner.name} refused execution og Contract {contract.id}')
-                breaches.add(Breach(contract=contract, perpetrator=partner  # type: ignore
-                                    , victims=list(partners - {partner})
+                breaches.add(Breach(contract=contract, perpetrator=partner.id  # type: ignore
+                                    , victims=[_.id for _ in list(partners - {partner})]
                                     , level=1.0, type='refusal'))
         if len(breaches) > 0:
             return breaches
@@ -1032,10 +1036,10 @@ class SCMLWorld(World):
         # pay penalties if there are any. Notice that penalties apply only to to seller. It makes no sense to have a
         # penalty on the buyer who already have no money to pay the contract value anyway.
         if penalty_breach_society is not None:
-            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[]
+            breaches.add(Breach(contract=contract, perpetrator=seller.id, victims=[]
                                 , level=penalty_breach_society, type='penalty_society', step=self.current_step))
         if penalty_breach_victim is not None:
-            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
+            breaches.add(Breach(contract=contract, perpetrator=seller.id, victims=[buyer.id]
                                 , level=penalty_breach_victim, type='penalty_society', step=self.current_step))
 
         # check the buyer
@@ -1057,7 +1061,7 @@ class SCMLWorld(World):
         if product_breach is not None:
             # apply insurances if they exist
             # register the breach independent of insurance
-            breaches.add(Breach(contract=contract, perpetrator=seller, victims=[buyer]
+            breaches.add(Breach(contract=contract, perpetrator=seller.id, victims=[buyer.id]
                                 , level=product_breach, type='product', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=seller):
                 # if the buyer has an insurance against the seller for this contract, then just give him the missing
@@ -1088,7 +1092,7 @@ class SCMLWorld(World):
 
         if money_breach is not None:
             # apply insurances if they exist.
-            breaches.add(Breach(contract=contract, perpetrator=buyer, victims=[seller]
+            breaches.add(Breach(contract=contract, perpetrator=buyer.id, victims=[seller.id]
                                 , level=money_breach, type='money', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=buyer):
                 # if the seller has an insurance against the buyer for this contract, then just give him the missing
@@ -1132,7 +1136,17 @@ class SCMLWorld(World):
         #     quantity = int(math.floor(money / unit_price))
 
         if money > 0 or quantity > 0:
-            self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
+            perpetrators = set([b.perpetrator for b in breaches])
+            execute = True
+            victims = {}
+            if 0 < len(perpetrators) < len(partners):
+                victims = set(partners) - set(perpetrators)
+                execute = all(victim.confirm_partial_execution(contract=contract, breaches=list(breaches))
+                              for victim in victims)
+            if execute:
+                self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
+            else:
+                self.logdebug(f'Contract {contract.id}: one of {[_.id for _ in victims]} refused partial execution.')
         else:
             self.logdebug(f'Contract {contract.id} has no transfers')
         return breaches
@@ -1155,6 +1169,9 @@ class SCMLWorld(World):
                 self._transfer[self.current_step + self.transfer_delay].append((seller, money))
         self.logdebug(f'Moved {quantity} units of {self.products[product_id].name} from {seller.name} to {buyer.name} '
                       f'for {money} dollars')
+
+    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolved: bool):
+        pass
 
     def _move_product_force(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
         """Moves as much product and money between the buyer and seller"""
