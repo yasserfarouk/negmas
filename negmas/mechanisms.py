@@ -573,7 +573,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             - There is another function (`run()`) that runs the whole mechanism in blocking mode
 
         """
-        if self.time > self.time_limit:
+        if self.time_limit is not None and self.time > self.time_limit:
             self._agreement, self._broken, self._timedout = None, False, True
             self._history.append(self.state)
             return self.state
@@ -623,7 +623,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         self._error, self._error_details = result.error, result.error_details
         if self._error:
             self.on_mechanism_error()
-        if step_time > self.info.step_time_limit:
+        if self.info.step_time_limit is not None and step_time > self.info.step_time_limit:
             self._broken, self._timedout, self._agreement = False, True, None
         else:
             self._broken, self._timedout, self._agreement = result.broken, result.timedout, result.agreement

@@ -12,6 +12,9 @@ results = [] # will keep results not to use printing
 
 
 class DummyWorld(World):
+    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolved: bool) -> None:
+        pass
+
     def _contract_finalization_time(self, contract: Contract) -> int:
         return self.current_step + 1
 
