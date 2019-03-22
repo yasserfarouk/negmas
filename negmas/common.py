@@ -64,6 +64,8 @@ class MechanismState:
     """Does the mechanism have any errors"""
     error_details: str = ''
     """Details of the error if any"""
+    info: 'MechanismInfo' = None
+    """Mechanism information"""
 
     @property
     def ended(self):
@@ -103,7 +105,7 @@ class MechanismState:
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
     class Java:
-        implements = ['jnegmas.ProductionFailure']
+        implements = ['jnegmas.common.MechanismState']
 
 
 @dataclass
@@ -119,6 +121,8 @@ class MechanismInfo:
     """A lit of *all possible* outcomes for a negotiation. None if the number of outcomes is uncountable"""
     time_limit: float
     """The time limit in seconds for this negotiation session. None indicates infinity"""
+    step_time_limit: float
+    """The time limit in seconds for each step of this negotiation session. None indicates infinity"""
     n_steps: int
     """The allowed number of steps for this negotiation. None indicates infinity"""
     dynamic_entry: bool
@@ -242,7 +246,7 @@ class MechanismInfo:
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
     class Java:
-        implements = ['jnegmas.ProductionFailure']
+        implements = ['jnegmas.common.PyMechanismInfo']
 
 
 def register_all_mechanisms(mechanisms: typing.Dict[str, 'Mechanism']) -> None:

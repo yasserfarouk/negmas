@@ -123,18 +123,18 @@ class Contract(OutcomeType):
         return self.id.__hash__()
 
     class Java:
-        implements = ['jnegmas.Contract']
+        implements = ['jnegmas.situated.Contract']
 
 
 @dataclass
 class Breach:
     contract: Contract
     """The agreement being breached"""
-    perpetrator: 'Agent'
-    """The agent committing the breach"""
+    perpetrator: str
+    """ID of the agent committing the breach"""
     type: str
     """The type of the breach. Can be one of: `refusal`, `product`, `money`, `penalty`."""
-    victims: List['Agent'] = field(default_factory=list)
+    victims: List[str] = field(default_factory=list)
     """Specific victims of the breach. If not given all partners in the agreement (except perpetrator) are considered 
     victims"""
     level: float = 1.0
@@ -160,11 +160,16 @@ class Breach:
             'id': self.id,
             'perpetrator': self.perpetrator.id,
             'perpetrator_type': self.perpetrator.__class__.__name__,
-            'victims': [_.id for _ in self.victims],
-            'victim_types': [_.__class__.__name__ for _ in self.victims],
+            'victims': [_ for _ in self.victims],
             'step': self.step,
             'resolved': None,
         }
+
+    def to_dict(self):
+        return self.as_dict()
+
+    class Java:
+        implements = ['jnegmas.situated.Breach']
 
 
 class BreachProcessing(Enum):
@@ -417,6 +422,7 @@ class MechanismFactory:
                  , issues: List['Issue'], req_id: str
                  , caller: 'Agent', partners: List['Agent'], roles: Optional[List[str]] = None
                  , annotation: Dict[str, Any] = None, neg_n_steps: int = None, neg_time_limit: int = None
+                 , neg_step_time_limit = None
                  ):
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller
@@ -425,6 +431,7 @@ class MechanismFactory:
         self.annotation = annotation
         self.neg_n_steps = neg_n_steps
         self.neg_time_limit = neg_time_limit
+        self.neg_step_time_limit = neg_step_time_limit
         self.world = world
         self.req_id = req_id
         self.issues = issues
@@ -437,6 +444,8 @@ class MechanismFactory:
             mechanism.info.n_steps = self.neg_n_steps
         if self.neg_time_limit is not None:
             mechanism.info.time_limit = self.neg_time_limit
+        if self.neg_step_time_limit is not None:
+            mechanism.info.step_time_limit = self.neg_step_time_limit
         for partner in partners:
             mechanism.register_listener(event_type='negotiation_end', listener=partner)
         for _negotiator, _role in responses:
@@ -463,6 +472,7 @@ class MechanismFactory:
         mechanism_params = {k: v for k, v in mechanism_params.items() if k != PROTOCOL_CLASS_NAME_FIELD}
         mechanism_params['n_steps'] = self.neg_n_steps
         mechanism_params['time_limit'] = self.neg_time_limit
+        mechanism_params['step_time_limit'] = self.neg_step_time_limit
         mechanism_params['issues'] = issues
         mechanism_params['annotation'] = annotation
         mechanism_params['name'] = '-'.join(_.id for _ in partners)
@@ -743,6 +753,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                  , negotiation_speed=None
                  , neg_n_steps=100
                  , neg_time_limit=3 * 60
+                 , neg_step_time_limit=60
                  , default_signing_delay=0
                  , breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR
                  , log_file_name=''
@@ -765,6 +776,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             time_limit: Real-time limit on the simulation
             negotiation_speed: The number of negotiation steps per simulation step. None means infinite
             neg_n_steps: Maximum number of steps allowed for a negotiation.
+            neg_step_time_limit: Time limit for single step of the negotiation protocol.
             neg_time_limit: Real-time limit on each single negotiation
             name: Name of the simulator
         """
@@ -788,6 +800,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.time_limit = time_limit
         self.neg_n_steps = neg_n_steps
         self.neg_time_limit = neg_time_limit
+        self.neg_step_time_limit = neg_step_time_limit
         self._entities: Dict[int, Set[ActiveEntity]] = defaultdict(set)
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self._start_time = -1
@@ -990,7 +1003,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                             self._saved_breaches[b.id] = b.as_dict()
                 current_contracts = [_[0] for _ in breached_contracts]
             for contract, contract_breaches in breached_contracts:
-                n_new_breaches += 1 - int(self._process_breach(contract, list(contract_breaches)))
+                resolved = self._process_breach(contract, list(contract_breaches))
+                n_new_breaches += 1 - int(resolved)
+                self._complete_contract_execution(contract, contract_breaches, resolved)
 
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
@@ -1091,7 +1106,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         factory = MechanismFactory(world=self, mechanism_name=mechanism_name, mechanism_params=mechanism_params
                                    , issues=issues, req_id=req_id, caller=caller, partners=partners
                                    , roles=roles, annotation=annotation
-                                   , neg_n_steps=self.neg_n_steps, neg_time_limit=self.neg_time_limit)
+                                   , neg_n_steps=self.neg_n_steps
+                                   , neg_time_limit=self.neg_time_limit
+                                   , neg_step_time_limit=self.neg_step_time_limit)
         neg = factory.init()
         if neg is None:
             return None
@@ -1389,7 +1406,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             contract:
 
         Returns:
-            Set[Breach]: The set of breaches sommitted if any. If there are no breaches return an empty set
+            Set[Breach]: The set of breaches committed if any. If there are no breaches return an empty set
 
         Remarks:
 
@@ -1399,6 +1416,20 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.loginfo(f'Executing {str(contract)}')
         return set()
 
+    @abstractmethod
+    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolved: bool) -> None:
+        """
+        Called after breach resolution is completed for contracts for which some potential breaches occurred.
+
+        Args:
+            contract: The contract considered.
+            breaches: The list of potential breaches that was generated by `_execute_contract`.
+            resolved: Whether the breaches were resolved.
+
+        Returns:
+
+        """
+
     def _process_breach(self, contract: Contract, breaches: List[Breach]
                         , force_immediate_signing=True) -> bool:
         resolved = False
@@ -1406,7 +1437,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         # calculate total breach level
         total_breach_levels = defaultdict(int)
         for breach in breaches:
-            total_breach_levels[breach.perpetrator.id] += breach.level
+            total_breach_levels[breach.perpetrator] += breach.level
 
         # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
         for agent_name, _ in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
