@@ -10,7 +10,7 @@ from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 from dataclasses import dataclass, field, InitVar
 
-from negmas.java import JavaConvertible
+from negmas.java import DictConvertible
 from negmas.mechanisms import MechanismProxy
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue
@@ -421,7 +421,7 @@ class SCMLAgreement(OutcomeType):
 
 
 @dataclass
-class CFP(OutcomeType, JavaConvertible):
+class CFP(OutcomeType):
     """A Call for proposal upon which a negotiation can start"""
     is_buy: bool
     """If true, the author wants to buy otherwise to sell. Non-negotiable."""
@@ -702,8 +702,8 @@ class CFP(OutcomeType, JavaConvertible):
     class Java:
         implements = ['jnegmas.apps.scml.PyCFP']
         
-    def to_java(self):
-        d = super().to_java()
+    def to_dict(self):
+        d = self.__dict__
         d['min_time'], d['max_time'] = self.min_time, self.max_time
         d['min_quantity'], d['max_quantity'] = self.min_quantity, self.max_quantity
         d['min_unit_price'], d['max_unit_price'] = self.min_unit_price, self.max_unit_price
@@ -713,6 +713,39 @@ class CFP(OutcomeType, JavaConvertible):
         d['has_signing_delay'] = self.signing_delay is not None
         d['has_money_resolution'] = self.money_resolution is not None
         return d
+    
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> 'CFP':
+        if d['min_time'] == d['max_time']:
+            t = d['min_time']
+        else:
+            t = (d['min_time'], d['max_time'])
+        if d['min_quantity'] == d['max_quantity']:
+            q = d['min_quantity']
+        else:
+            q = (d['min_quantity'], d['max_quantity'])
+        if d['min_unit_price'] == d['max_unit_price']:
+            up = d['min_unit_price']
+        else:
+            up = (d['min_unit_price'], d['max_unit_price'])
+        if not d.get('min_penalty', None) or not p.get('max_penalty', None):
+            p = None
+        else:
+            if d['min_penalty'] == d['max_penalty']:
+                p = d['min_penalty']
+            else:
+                p = (d['min_penalty'], d['max_penalty'])
+        if not d.get('min_signing_delay', None) or not p.get('max_signing_delay', None):
+            s = None
+        else:
+            if d['min_signing_delay'] == d['max_signing_delay']:
+                s = d['min_signing_delay']
+            else:
+                s = (d['min_signing_delay'], d['max_signing_delay'])
+
+        return cls(is_buy=d['is_buy'], publisher=d['publisher'], product=d['product'], time=t, unit_price=up
+                   , quantity=q, penalty=p, signing_delay=s, money_resolution=d.get('money_resolution', None)
+                   , id=d.get('id', None))
 
 
 @dataclass

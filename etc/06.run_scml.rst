@@ -189,9 +189,6 @@ We can actually check what happens to ALL competitors:
 
 
 
-It is clear form the figure that the winner was by far the best player.
-
-
 Download :download:`Notebook<notebooks/06.run_scml.ipynb>`.
 
 

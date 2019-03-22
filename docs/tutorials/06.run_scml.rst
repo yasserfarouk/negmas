@@ -23,7 +23,7 @@ can set the number of steps to a small value (e.g. n\_steps=10).
 .. code:: ipython3
 
     world = SCMLWorld.single_path_world(agent_names_reveal_type=True
-                                        # n_steps=10                        # remove this comment for a fast test but do not expect factories to gain anything
+                                        #, n_steps=10                        # remove this comment for a fast test but do not expect factories to gain anything
                                        )
 
 For debugging purposes, we set ``agent_names_reveal_type`` to true to be
@@ -46,9 +46,7 @@ conducted over time
     plt.ylabel('N. Negotiations')
     plt.show()
 
-.. image:: 06.run_scml_files/06.run_scml_7_0.png
-   :width: 1069px
-   :height: 386px
+
 
 
 It is clear that many negotiations happened at the beginning of the
@@ -77,9 +75,7 @@ the total amount of money transferred due to trade)
     plt.ylabel('Activitiy Level ($)\nTotal Money Transferred')
     plt.show()
 
-.. image:: 06.run_scml_files/06.run_scml_11_0.png
-   :width: 1069px
-   :height: 386px
+
 
 
 We can see a picture of contracting in this world as follows:
@@ -96,10 +92,6 @@ We can see a picture of contracting in this world as follows:
     plt.show()
 
 
-.. image:: 06.run_scml_files/06.run_scml_13_0.png
-   :width: 1069px
-   :height: 386px
-
 
 
 We can also check the breaches that happened
@@ -111,10 +103,6 @@ We can also check the breaches that happened
     plt.ylabel('Total Breach Level')
     plt.show()
 
-
-.. image:: 06.run_scml_files/06.run_scml_15_0.png
-   :width: 1069px
-   :height: 386px
 
 
 
@@ -131,7 +119,7 @@ maximum wealth). Notice that there can be multiple winners
 
 .. parsed-literal::
 
-    [greedy_1_0]
+    [greedy_1_4]
 
 
 
@@ -147,10 +135,6 @@ What was the balance of this winner over time:
     plt.show()
 
 
-.. image:: 06.run_scml_files/06.run_scml_19_0.png
-   :width: 1069px
-   :height: 386px
-
 
 
 Let's check how did its total storage change over time:
@@ -164,10 +148,6 @@ Let's check how did its total storage change over time:
     plt.legend()
     plt.show()
 
-
-.. image:: 06.run_scml_files/06.run_scml_21_0.png
-   :width: 1069px
-   :height: 386px
 
 
 
@@ -183,13 +163,8 @@ We can actually check what happens to ALL competitors:
     plt.show()
 
 
-.. image:: 06.run_scml_files/06.run_scml_23_0.png
-   :width: 1069px
-   :height: 386px
 
 
-
-It is clear form the figure that the winner was by far the best player.
 
 
 Download :download:`Notebook<notebooks/06.run_scml.ipynb>`.

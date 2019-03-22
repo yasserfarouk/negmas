@@ -477,6 +477,7 @@ class GreedyScheduler(Scheduler):
             assume_no_further_negotiations: If true, no further negotiations will be assumed to be possible
             end: The end of the simulation for the schedule (exclusive)
             ensure_storage_for: Ensure that the outcome will be at the storage for at least this time
+            start_at: The timestep at which to start scheduling
 
         Returns:
 
@@ -508,7 +509,8 @@ class GreedyScheduler(Scheduler):
 
         # Now, schedule the contracts
         schedule = self.schedule_contracts(contracts=contracts, end=end, ensure_storage_for=ensure_storage_for
-                                           , assume_no_further_negotiations=assume_no_further_negotiations)
+                                           , assume_no_further_negotiations=assume_no_further_negotiations
+                                           , start_at=start_at)
 
         # Mark the schedule as invalid if it has any production needs and we assume_no_further_negotiations
         if assume_no_further_negotiations and schedule.needs is not None and len(schedule.needs) > 0:
