@@ -10,7 +10,6 @@ from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 from dataclasses import dataclass, field, InitVar
 
-from negmas.java import DictConvertible
 from negmas.mechanisms import MechanismProxy
 from negmas.negotiators import NegotiatorProxy
 from negmas.outcomes import OutcomeType, Issue

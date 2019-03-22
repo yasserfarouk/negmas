@@ -1,6 +1,5 @@
 from py4j.java_collections import ListConverter
 
-from negmas.java import JNegmasGateway, to_dict, dict_encode, to_dict
 from negmas.situated import AgentWorldInterface, Contract
 from .common import *
 from typing import Optional, List
