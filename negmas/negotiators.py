@@ -328,6 +328,9 @@ class Negotiator(NamedObject, Notifiable, ABC):
             return None
         return self.utility_function.compare(first, second)
 
+    class Java:
+        implements = ['jnegmas.negotiators.PyNegotiator']
+
 
 NegotiatorProxy = Negotiator
 """A negotiator stands as a proxy for itself"""

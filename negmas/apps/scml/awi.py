@@ -1,6 +1,6 @@
 from py4j.java_collections import ListConverter
 
-from negmas.java import JNegmasGateway, to_java, dict_encode, deep_dict_encode
+from negmas.java import JNegmasGateway, to_dict, dict_encode, to_dict
 from negmas.situated import AgentWorldInterface, Contract
 from .common import *
 from typing import Optional, List
@@ -11,14 +11,7 @@ __all__ = [
 
 
 class SCMLAWI(AgentWorldInterface):
-
-    def _allProducts(self) -> List[Product]:
-        products = deep_dict_encode(self.products)
-        return ListConverter().convert(products, JNegmasGateway.gateway._gateway_client)
-
-    def _allProcesses(self) -> List[Process]:
-        return self.processes
-
+    """A single contact point between SCML agents and the world simulation."""
     def register_cfp(self, cfp: CFP) -> None:
         """Registers a CFP"""
         self._world.n_new_cfps += 1
@@ -67,6 +60,4 @@ class SCMLAWI(AgentWorldInterface):
         """Processes in the world"""
         return self._world.processes
 
-    class Java:
-        implements = ['jnegmas.apps.scml.awi.PySCMLAWI']
 

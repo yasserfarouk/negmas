@@ -16,18 +16,21 @@ from py4j.java_gateway import JavaClass, JavaGateway, GatewayParameters, Callbac
 #  somewhere
 from py4j.protocol import Py4JNetworkError
 
+from negmas.helpers import get_class, instantiate
+
 __all__ = [
     'JavaCallerMixin',
     'JNegmasGateway',
-    'JavaConvertible',
-    'to_java',
+    'to_dict',
+    'from_dict',
     'jnegmas_bridge_is_running',
     'init_jnegmas_bridge',
-    'deep_dict_encode',
-    'dict_encode'
+    'jnegmas_connection',
+    'from_dict',
 ]
 
 DEFAULT_JNEGMAS_PATH = 'external/jnegmas-1.0-SNAPSHOT-all.jar'
+PYTHON_CLASS_IDENTIFIER = '__python_class__'
 
 
 @contextmanager
@@ -58,83 +61,31 @@ def jnegmas_bridge_is_running(port: int = None) -> bool:
         - run "negmas jnegmas" on the terminal
 
     """
-    if port is None:
-        port = JNegmasGateway.DEFAULT_JAVA_PORT
-    s = socket.socket()
-    try:
-        s.connect(('127.0.0.1', port))
-        return True
-    except ConnectionRefusedError:
-        return False
-    except IndexError:
-        return False
-    except Py4JNetworkError:
-        return False
-    except Exception:
-        return False
-    finally:
-        s.close()
+    return JNegmasGateway.is_running(port)
 
 
-def dict_encode(value):
-    """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
-    or string values"""
-    if isinstance(value, dict):
-        return {k: dict_encode(v) for k, v in value.items()}
-    if isinstance(value, Iterable) and not isinstance(value, str):
-        return [dict_encode(_) for _ in value]
-    return value
+class PyEntryPoint:
+    """Used as an entry point from the java side allowing it to create objects in python and take initiative in calling
+    python"""
 
+    def create(self, class_name: str, params: Dict[str, Any]) -> Any:
+        """
+        Creates a python object and returns it.
 
-def deep_dict_encode(value):
-    """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
-    or string values"""
-    if isinstance(value, dict):
-        return {k: deep_dict_encode(v) for k, v in value.items()}
-    if isinstance(value, Iterable) and not isinstance(value, str):
-        return [deep_dict_encode(_) for _ in value]
-    if hasattr(value, '__dict__'):
-        return deep_dict_encode(value.__dict__)
-    if hasattr(value, '__slots__'):
-        return deep_dict_encode(dict(zip(value.__slots__, (getattr(value, _) for _ in value.__slots__))))
-    return value
+        Args:
+            class_name: python full class name
+            params: params to pass by value to the constructor of the object
 
+        Remarks:
+            - Notice that the returned object will only be usable in Java if it is implementing a Java interface which
+              means that it *must* have an internal Java class with an `implements` list of interfaces that it
+              implements.
 
-def to_java(object) -> Dict[str, Any]:
-    """Converts the object into a dict for serialization to Java side
-    """
-    d = dict_encode(object.__dict__)
-    # d['__java_class_name__'] = object.__class__.__name__
-    # if hasattr(object, 'Java') and isinstance(object.Java, type):
-    #     d['python_object'] = object
-    # else:
-    #     d['python_object'] = None
-    return d
+        """
+        return instantiate(class_name, **params)
 
-
-class JavaConvertible:
-    """Object that represent *readonly* data that can be sent to jnegmas."""
-
-    def to_java(self) -> Dict[str, Any]:
-        return to_java(self)
-
-
-class _NegmasConverter:
-    """An internal  class for converting `JavaConvertible` objects"""
-
-    def can_convert(self, x):
-        return isinstance(x, JavaConvertible)
-
-    def convert(self, x, gateway_client):
-        """We assume that a class with the same name exists in jnegmas"""
-        class_name = f'j' + x.__class__.__module__ + '.' + x.__class__.__name__
-        java_object = JavaClass(class_name, gateway_client)()
-        java_object.fill(x.to_java())
-        return java_object
-
-
-# registering the Negmas converter globally in py4j
-# register_input_converter(converter=_NegmasConverter(), prepend=True)
+    class Java:
+        implements = ['jnegmas.PyEntryPoint']
 
 
 class JNegmasGateway:
@@ -205,7 +156,8 @@ class JNegmasGateway:
                                                                               , eager_load=eager_load
                                                                               , auto_gc=False
                                                                               , daemonize_connections=True
-                                                                              ))
+                                                                              ),
+                                           python_server_entry_point=PyEntryPoint())
             else:
                 pyparams = CallbackServerParameters(port=python_port
                                                     , daemonize_connections=True
@@ -218,7 +170,8 @@ class JNegmasGateway:
                                                                                , eager_load=eager_load
                                                                                , auto_close=True),
                                           callback_server_parameters=pyparams, auto_convert=auto_convert
-                                          , start_callback_server=True, eager_load=eager_load)
+                                          , start_callback_server=True, eager_load=eager_load
+                                          , python_server_entry_point=PyEntryPoint())
                 python_port = cls.gateway.get_callback_server().get_listening_port()
                 cls.gateway.java_gateway_server.resetCallbackClient(
                     cls.gateway.java_gateway_server.getCallbackClient().getAddress(),
@@ -229,6 +182,124 @@ class JNegmasGateway:
     def shutdown(cls):
         cls.gateway.shutdown(raise_exception=False)
         cls.gateway.shutdown_callback_server(raise_exception=False)
+
+    @classmethod
+    def is_running(cls, port):
+        """
+        Checks whether a JNegMAS Bridge is running. This bridge is needed to use any objects in the jnegmas package
+
+        Remarks:
+
+            You can start a JNegMAS Bridge in at least two ways:
+
+            - execute the python function `init_jnegmas_bridge()` in this module
+            - run "negmas jnegmas" on the terminal
+
+        """
+        if port is None:
+            port = JNegmasGateway.DEFAULT_JAVA_PORT
+        s = socket.socket()
+        try:
+            s.connect(('127.0.0.1', port))
+            return True
+        except ConnectionRefusedError:
+            return False
+        except IndexError:
+            return False
+        except Py4JNetworkError:
+            return False
+        except Exception:
+            return False
+        finally:
+            s.close()
+
+
+def to_dict(value, deep=True, add_type_field=True):
+    """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
+    or string values
+
+    Args:
+        value: Any object
+        deep: Whether we should go deep in the encoding or do a shallow encoding
+        add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
+        giving the type of `value`
+
+    Remarks:
+
+        - All iterables are converted to lists when `deep` is true.
+        - If the `value` object has a `to_dict` member, it will be called to do the conversion, otherwise its `__dict__`
+          or `__slots__` member will be used.
+
+    See Also:
+          `from_dict`, `PYTHON_CLASS_IDENTIFIER`
+
+    """
+    if isinstance(value, dict):
+        if not deep:
+            return value
+        return {k: to_dict(v) for k, v in value.items()}
+    if isinstance(value, Iterable) and not deep:
+        return value
+    if isinstance(value, Iterable) and not isinstance(value, str):
+        return [to_dict(_) for _ in value]
+    if hasattr(value, 'to_dict'):
+        return value.to_dict()
+    if hasattr(value, '__dict__'):
+        if deep:
+            d = {k: to_dict(v) for k, v in value.__dict__.items()}
+        else:
+            d = {k: v for k, v in value.__dict__.items()}
+        if add_type_field:
+            d[PYTHON_CLASS_IDENTIFIER] = value.__class__.__name__
+        return d
+    if hasattr(value, '__slots__'):
+        if deep:
+            d = dict(zip(value.__slots__, (to_dict(getattr(value, _)) for _ in value.__slots__)))
+        else:
+            d = dict(zip(value.__slots__, (getattr(value, _) for _ in value.__slots__)))
+        if add_type_field:
+            d[PYTHON_CLASS_IDENTIFIER] = value.__class__.__name__
+        return d
+    # a builtin
+    return value
+
+
+def from_dict(d: Dict[str, Any], deep=True, remove_type_field=True, fallback_class_name: Optional[str]=None):
+    """Decodes a dict coming from java recovering all objects in the way
+
+    Args:
+        d: The value to be decoded. If it is not a dict, it is returned as it is.
+        deep: If true, decode recursively
+        remove_type_field: If true the field called `PYTHON_CLASS_IDENTIFIER` will be removed if found.
+        fallback_class_name: If given, it is used as the fall-back  type if ``PYTHON_CLASS_IDENTIFIER` is not in the dict.
+
+    Remarks:
+
+        - If the object is not a dict or if it has no `PYTHON_CLASS_IDENTIFIER` field and no `fallback_class_name` is
+          given, the input `d` is returned as it is. It will not even be copied.
+
+    See Also:
+        `to_dict`, `PYTHON_CLASS_IDENTIFIER`
+
+
+
+    """
+    if not isinstance(d, dict):
+        return d
+    if remove_type_field:
+        python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
+    else:
+        python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
+    if python_class_name is not None:
+        python_class = get_class(python_class_name)
+        # we resolve sub-objects first from the dict if deep is specified before calling from_dict on the class
+        if deep:
+            d = {k: from_dict(v) for k, v in d.items()}
+        # from_dict needs to do a shallow conversion from a dict as deep conversion is taken care of already.
+        if hasattr(python_class, 'from_dict'):
+            return python_class.from_dict(d)
+        return python_class(**d)
+    return d
 
 
 class JavaCallerMixin:
@@ -244,9 +315,11 @@ class JavaCallerMixin:
     .. code
 
         def do_this(self, x, y, z) -> Type:
-            return self.java_object.do_this(x, y, z)
+            return self.java_object.doThis(x, y, z)
 
-    Notice that you cannot use named arguments when calling the function in `java_object`
+    Notice that you cannot use named arguments when calling the function in `java_object` and that the names are
+    converted to camelCase instead of snake_case. Moreover, property x will be implemented as a pair getX, setX on the
+    Java side.
 
     If your class needs just to call the corresponding java object but is never called back from it then you are done
     after inheriting from this mixin.
@@ -265,7 +338,7 @@ class JavaCallerMixin:
     """
 
     @classmethod
-    def from_java(cls, java_object, *args, **kwargs):
+    def from_dict(cls, java_object, *args, **kwargs):
         """Creates a Python object representing the corresponding Java object"""
         obj = cls(*args, **kwargs)
         obj.java_object = java_object

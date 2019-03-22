@@ -99,4 +99,4 @@ from . import utils
 from . import helpers
 
 __all__ = common.__all__ + awi.__all__ + factory_managers.__all__ + bank.__all__ + insurance.__all__ \
-          + schedulers.__all__ + world.__all__ + consumers.__all__ + miners.__all__ + ['utils'] + ['helpers']
+          + schedulers.__all__ + world.__all__ + consumers.__all__ + miners.__all__ + ['utils', 'helpers', 'java']
