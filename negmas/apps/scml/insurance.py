@@ -2,7 +2,7 @@ from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from negmas import MechanismProxy
+from negmas import Mechanism
 from negmas.situated import Agent, RenegotiationRequest, Breach
 from .common import InsurancePolicy, SCMLAgent, Factory
 
@@ -10,7 +10,7 @@ if True: # if TYPE_CHECKING:
     from typing import Dict, Tuple, List, Optional
     from negmas.situated import Contract
     from negmas.outcomes import Issue
-    from negmas.negotiators import NegotiatorProxy
+    from negmas.negotiators import Negotiator
 
 __all__ = [
     'DefaultInsuranceCompany',
@@ -26,8 +26,8 @@ class DefaultInsuranceCompany(InsuranceCompany):
     """Represents an insurance company in the world"""
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
-                                       annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str],
-                                       req_id: str) -> Optional[NegotiatorProxy]:
+                                       annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str],
+                                       req_id: str) -> Optional[Negotiator]:
         pass
 
     def __init__(self, premium: float, premium_breach_increment: float, premium_time_increment: float
@@ -45,11 +45,8 @@ class DefaultInsuranceCompany(InsuranceCompany):
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
-        return None
-
-    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
-        raise ValueError('The bank does not receive callbacks')
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
+        raise ValueError('The insurance company does not receive callbacks')
 
     def evaluate_insurance(self, contract: Contract, insured: SCMLAgent, against: SCMLAgent
                            , t: int = None) -> Optional[float]:

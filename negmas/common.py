@@ -246,7 +246,7 @@ class MechanismInfo:
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
     class Java:
-        implements = ['jnegmas.common.PyMechanismInfo']
+        implements = ['jnegmas.common.MechanismInfo']
 
 
 def register_all_mechanisms(mechanisms: typing.Dict[str, 'Mechanism']) -> None:

@@ -190,21 +190,39 @@ def snake_case(s: str) -> str:
     )
 
 
-def camel_case(s: str) -> str:
+def camel_case(s: str, capitalize_first: bool = False, lower_first: bool = False) -> str:
     """ Converts a string from snake_case to CamelCase
 
     Example:
 
         >>> print(camel_case('this_is_a_test'))
+        thisIsATest
+        >>> print(camel_case('this_is_a_test', capitalize_first=True))
+        ThisIsATest
+        >>> print(camel_case('This_is_a_test', lower_first=True))
+        thisIsATest
+        >>> print(camel_case('This_is_a_test'))
         ThisIsATest
 
     Args:
         s: input string
+        capitalize_first: if true, the first character will be capitalized
+        lower_first: If true, the first character will be lowered
 
     Returns:
         str: converted string
     """
-    return ''.join([_.capitalize() for _ in s.split('_')])
+    if len(s) < 1:
+        return s
+    parts = s.split('_')
+    if capitalize_first:
+        parts = [_.capitalize() for _ in parts]
+    elif lower_first:
+        parts = [parts[0].lower()] +  [_.capitalize() for _ in parts[1:]]
+    else:
+        parts = [parts[0]] + [_.capitalize() for _ in parts[1:]]
+
+    return ''.join(parts)
 
 
 def unique_name(base: str, add_time=True, rand_digits=8) -> str:
@@ -411,13 +429,13 @@ class LoggerMixin(object):
         >>> l.logdebug('test debug')
         >>> with open(f_name, 'r') as f:
         ...     lines = f.readlines()
-        >>> 'INFO - test info' in lines[0]
+        >>> ('INFO - test info' in lines[0]) if len(lines) > 0 else True
         True
-        >>> 'ERROR - test error' in lines[1]
+        >>> ('ERROR - test error' in lines[1]) if len(lines) > 1 else True
         True
-        >>> 'WARNING - test warning' in lines[2]
+        >>> ('WARNING - test warning' in lines[2])  if len(lines) > 2 else True
         True
-        >>> 'DEBUG - test debug' in lines[3]
+        >>> ('DEBUG - test debug' in lines[3])  if len(lines) > 3 else True
         True
 
     """

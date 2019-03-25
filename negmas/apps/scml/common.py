@@ -1,4 +1,4 @@
-import itertools
+"""Common data-structures and objects used throughout the SCM world implementation"""
 import itertools
 import math
 import sys
@@ -10,8 +10,8 @@ from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 from dataclasses import dataclass, field, InitVar
 
-from negmas.mechanisms import MechanismProxy
-from negmas.negotiators import NegotiatorProxy
+from negmas.mechanisms import Mechanism
+from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
 from negmas.situated import Contract, Agent, Breach
 
@@ -356,9 +356,6 @@ class ProductionFailure:
             s += f' space {self.missing_space}'
         return s
 
-    class Java:
-        implements = ['jnegmas.apps.scml.common.ProductionFailure']
-
 
 @dataclass
 class ProductionReport:
@@ -699,22 +696,23 @@ class CFP(OutcomeType):
         return self.penalty
 
     class Java:
-        implements = ['jnegmas.apps.scml.PyCFP']
+        implements = ['jnegmas.apps.scml.CFP']
         
-    def to_dict(self):
+    def to_java(self):
         d = self.__dict__
-        d['min_time'], d['max_time'] = self.min_time, self.max_time
-        d['min_quantity'], d['max_quantity'] = self.min_quantity, self.max_quantity
-        d['min_unit_price'], d['max_unit_price'] = self.min_unit_price, self.max_unit_price
-        d['min_penalty'], d['max_penalty'] = self.min_penalty, self.max_penalty
-        d['min_signing_delay'], d['max_signing_delay'] = self.min_signing_delay, self.max_signing_delay
+        d['min_time'], d['max_time'] = int(self.min_time), int(self.max_time)
+        d['min_quantity'], d['max_quantity'] = int(self.min_quantity), int(self.max_quantity)
+        d['min_unit_price'], d['max_unit_price'] = float(self.min_unit_price), float(self.max_unit_price)
+        d['min_penalty'], d['max_penalty'] = float(self.min_penalty), float(self.max_penalty)
+        d['min_signing_delay'], d['max_signing_delay'] = int(self.min_signing_delay), int(self.max_signing_delay)
         d['has_penalty'] = self.penalty is not None
         d['has_signing_delay'] = self.signing_delay is not None
         d['has_money_resolution'] = self.money_resolution is not None
+        d['money_resolution'] = float(self.money_resolution) if self.money_resolution is not None else 0.0
         return d
     
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> 'CFP':
+    def from_java(cls, d: Dict[str, Any]) -> 'CFP':
         if d['min_time'] == d['max_time']:
             t = d['min_time']
         else:
@@ -923,7 +921,7 @@ class SCMLAgent(Agent):
     # ------------------------------------------------------------------
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                       , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
+                                       , annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str]
                                        , req_id: str):
         """When a negotiation request is received"""
         if req_id is not None:
@@ -959,7 +957,7 @@ class SCMLAgent(Agent):
         return True
 
     @abstractmethod
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         """Called when a prospective partner requests a negotiation to start"""
 
     @abstractmethod

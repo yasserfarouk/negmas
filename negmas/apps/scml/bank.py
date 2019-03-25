@@ -2,7 +2,7 @@ from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from negmas import Issue, NegotiatorProxy, MechanismProxy
+from negmas import Issue, Negotiator, Mechanism
 from negmas.situated import Agent, RenegotiationRequest, Contract, Breach
 from .common import *
 
@@ -22,8 +22,8 @@ class DefaultBank(Bank):
     """Represents a bank in the world"""
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
-                                       annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str],
-                                       req_id: str) -> Optional[NegotiatorProxy]:
+                                       annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str],
+                                       req_id: str) -> Optional[Negotiator]:
         pass
 
     def __init__(self, minimum_balance: float, interest_rate: float
@@ -46,11 +46,9 @@ class DefaultBank(Bank):
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
-        return None
-
-    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         raise ValueError('The bank does not receive callbacks')
+
 
     def _evaluate_loan(self, agent: SCMLAgent, amount: float, n_installments: int, starts_at: int
                        , installment_loan=False) -> Optional[Loan]:

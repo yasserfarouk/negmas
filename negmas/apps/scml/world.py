@@ -223,11 +223,13 @@ class SCMLWorld(World):
         self.bank = DefaultBank(minimum_balance=minimum_balance, interest_rate=interest_rate, interest_max=interest_max
                                 , balance_at_max_interest=balance_at_max_interest,
                                 installment_interest=installment_interest
-                                , time_increment=interest_time_increment, a2f=self.a2f)
+                                , time_increment=interest_time_increment, a2f=self.a2f
+                                , name='bank')
         self.join(self.bank, simulation_priority=-1)
         self.insurance_company = DefaultInsuranceCompany(premium=premium,
                                                          premium_breach_increment=premium_breach_increment
-                                                         , premium_time_increment=premium_time_increment, a2f=self.a2f)
+                                                         , premium_time_increment=premium_time_increment, a2f=self.a2f
+                                                         , name='insurance_company')
         self.join(self.insurance_company)
 
         for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore
@@ -1336,8 +1338,8 @@ class SCMLWorld(World):
 
     def _breach_record(self, breach: Breach) -> Dict[str, Any]:
         return {
-            'perpetrator': breach.perpetrator.id,
-            'perpetrator_name': breach.perpetrator.name,
+            'perpetrator': breach.perpetrator,
+            'perpetrator_name': breach.perpetrator,
             'level': breach.level,
             'type': breach.type,
             'time': breach.step

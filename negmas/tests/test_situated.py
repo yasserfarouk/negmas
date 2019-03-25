@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Dict, Any, Union, Callable, Set, Itera
 import pytest
 
 from negmas import Issue, AspirationNegotiator, LinearUtilityAggregationFunction, Mechanism, Negotiator, \
-    SAOMechanism, MechanismProxy, NegotiatorProxy, RenegotiationRequest
+    SAOMechanism, Mechanism, Negotiator, RenegotiationRequest
 from negmas.helpers import ConfigReader
 from negmas.situated import World, Agent, Action, Breach, Contract
 
@@ -75,7 +75,7 @@ class DummyAgent(Agent):
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         return None
 
     def __init__(self, name=None):
@@ -94,11 +94,10 @@ class DummyAgent(Agent):
         results.append(f'{self.name}: step {self.current_step}')
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                       , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
+                                       , annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str]
                                        , req_id: str):
         """Called whenever a negotiation request is received"""
-        negotiator = AspirationNegotiator()
-        negotiator.utility_function = LinearUtilityAggregationFunction(issue_utilities=[lambda x: 1.0 - x / 10.0])
+        negotiator = AspirationNegotiator(ufun = LinearUtilityAggregationFunction(issue_utilities=[lambda x: 1.0 - x / 10.0]))
         return negotiator
 
 

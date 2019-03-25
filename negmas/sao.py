@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from negmas.common import *
 from negmas.events import Notification
-from negmas.java import JNegmasGateway, JavaCallerMixin, to_dict
+from negmas.java import JNegmasGateway, JavaCallerMixin, to_java
 from negmas.mechanisms import MechanismRoundResult, Mechanism
 from negmas.negotiators import Negotiator, AspirationMixin, Controller
 from negmas.outcomes import sample_outcomes, Outcome, outcome_is_valid, ResponseType, outcome_as_dict
@@ -17,10 +17,7 @@ from negmas.utilities import MappingUtilityFunction, normalize, UtilityFunction,
 __all__ = [
     'SAOState',
     'SAOMechanism',
-    'SAOMechanismProxy',
     'SAOProtocol',
-    'SAOProtocolProxy',
-    'SAONegotiatorProxy',
     'SAONegotiator',
     'RandomNegotiator',
     'LimitedOutcomesNegotiator',
@@ -31,9 +28,7 @@ __all__ = [
     'SimpleTitForTatNegotiator',
     'NiceNegotiator',
     'SAOController',
-    'SAOControllerProxy',
-    'JavaSAONegotiator',
-    'JavaSAONegotiatorProxy',
+    'SAOController',
 ]
 
 
@@ -247,9 +242,9 @@ class RandomProposalMixin(object):
         )
 
     def propose_(self, state: MechanismState) -> Optional['Outcome']:
-        if hasattr(self, 'offerable_outcomes') and self.offerable_outcomes is not None:
-            return random.sample(self.offerable_outcomes, 1)[0]
-        return self.mechanism_info.random_outcomes(1, astype=dict)[0]
+        if hasattr(self, 'offerable_outcomes') and self._offerable_outcomes is not None:
+            return random.sample(self._offerable_outcomes, 1)[0]
+        return self._mechanism_info.random_outcomes(1, astype=dict)[0]
 
 
 class LimitedOutcomesAcceptorMixin(object):
@@ -325,7 +320,7 @@ class LimitedOutcomesAcceptorMixin(object):
             ResponseType: The response to the offer
 
         """
-        info = self.mechanism_info
+        info = self._mechanism_info
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
@@ -374,15 +369,15 @@ class LimitedOutcomesProposerMixin(object):
                 'max-proposals': None,  # indicates infinity
             }
         )
-        self.offerable_outcomes = proposable_outcomes
+        self._offerable_outcomes = proposable_outcomes
         if proposable_outcomes is not None:
-            self.offerable_outcomes = list(proposable_outcomes)
+            self._offerable_outcomes = list(proposable_outcomes)
 
     def propose_(self, state: MechanismState) -> Optional['Outcome']:
-        if self.offerable_outcomes is None:
-            return self.mechanism_info.random_outcomes(1)[0]
+        if self._offerable_outcomes is None:
+            return self._mechanism_info.random_outcomes(1)[0]
         else:
-            return random.sample(self.offerable_outcomes, 1)[0]
+            return random.sample(self._offerable_outcomes, 1)[0]
 
 
 class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposerMixin):
@@ -447,11 +442,11 @@ class SAONegotiator(Negotiator):
     def on_notification(self, notification: Notification, notifier: str):
         if notification.type == 'end_negotiation':
             self.__end_negotiation = True
-        elif notification.type == 'propose' and notifier == self.mechanism_id:
+        elif notification.type == 'propose' and notifier == self._mechanism_id:
             return self.propose(state=notification.data['state'])
-        elif notification.type == 'respond' and notifier == self.mechanism_id:
+        elif notification.type == 'respond' and notifier == self._mechanism_id:
             return self.respond(state=notification.data['state'], offer=notification.data('offer', None))
-        elif notification.type == 'counter' and notifier == self.mechanism_id:
+        elif notification.type == 'counter' and notifier == self._mechanism_id:
             return self.counter(state=notification.data['state'], offer=notification.data('offer', None))
 
     def propose(self, state: MechanismState) -> Optional['Outcome']:
@@ -603,7 +598,7 @@ class SAONegotiator(Negotiator):
         """
 
     class Java:
-        implements = ['jnegmas.sao.PySAONegotiator']
+        implements = ['jnegmas.sao.SAONegotiator']
 
 
 class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
@@ -686,9 +681,9 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
 
 
 class AspirationNegotiator(SAONegotiator, AspirationMixin):
-    def __init__(self, name=None, parent: Controller = None, max_aspiration=0.95, aspiration_type='boulware'
+    def __init__(self, name=None, ufun=None, parent: Controller = None, max_aspiration=0.95, aspiration_type='boulware'
                  , dynamic_ufun=True, randomize_offer=False, can_propose=True, assume_normalized=True):
-        super().__init__(name=name, assume_normalized=assume_normalized, parent=parent)
+        super().__init__(name=name, assume_normalized=assume_normalized, parent=parent, ufun=ufun)
         self.aspiration_init(max_aspiration=max_aspiration, aspiration_type=aspiration_type)
         self.ordered_outcomes = []
         self.dynamic_ufun = dynamic_ufun
@@ -719,7 +714,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             return self.utility_function
 
     def _update_ordered_outcomes(self):
-        outcomes = self.mechanism_info.discrete_outcomes()
+        outcomes = self._mechanism_info.discrete_outcomes()
         if not self.assume_normalized:
             self.utility_function = normalize(self.utility_function, outcomes=outcomes, infeasible_cutoff=-1e-6)
         self.ordered_outcomes = sorted([(self.ufun(outcome), outcome) for outcome in outcomes]
@@ -785,6 +780,7 @@ class ToughNegotiator(SAONegotiator):
         super().__init__(name=name, parent=parent)
         self.best_outcome = None
         self.dynamic_ufun = dynamic_ufun
+        self._offerable_outcomes = None
         self.add_capabilities(
             {
                 'respond': True,
@@ -809,12 +805,12 @@ class ToughNegotiator(SAONegotiator):
             return self.utility_function
 
     def on_negotiation_start(self, state: MechanismState):
-        outcomes = self.mechanism_info.outcomes if self.offerable_outcomes is None else self.offerable_outcomes
+        outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
         self.best_outcome = max([(self.ufun(outcome), outcome) for outcome in outcomes])[1]
 
     def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         if self.dynamic_ufun:
-            outcomes = self.mechanism_info.outcomes if self.offerable_outcomes is None else self.offerable_outcomes
+            outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
             self.best_outcome = max([(self.ufun(outcome), outcome) for outcome in outcomes])[1]
         if offer == self.best_outcome:
             return ResponseType.ACCEPT_OFFER
@@ -824,7 +820,7 @@ class ToughNegotiator(SAONegotiator):
         if not self._capabilities['propose']:
             return None
         if self.dynamic_ufun:
-            outcomes = self.mechanism_info.outcomes if self.offerable_outcomes is None else self.offerable_outcomes
+            outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
             self.best_outcome = max([(self.eu(outcome), outcome) for outcome in outcomes])[1]
         return self.best_outcome
 
@@ -835,6 +831,7 @@ class OnlyBestNegotiator(SAONegotiator):
                  , probabilisic_offering=True, can_propose=True
                  ):
         super().__init__(name=name, parent=parent)
+        self._offerable_outcomes = None
         self.best_outcome = []
         self.dynamic_ufun = dynamic_ufun
         self.top_fraction = top_fraction
@@ -869,7 +866,7 @@ class OnlyBestNegotiator(SAONegotiator):
             return self.utility_function
 
     def acceptable(self):
-        outcomes = self.mechanism_info.outcomes if self.offerable_outcomes is None else self.offerable_outcomes
+        outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
         eu_outcome = [(self.eu(outcome), outcome) for outcome in outcomes]
         self.ordered_outcomes = sorted(eu_outcome
                                        , key=lambda x: x[0], reverse=True)
@@ -949,6 +946,7 @@ class SimpleTitForTatNegotiator(SAONegotiator):
                  , ufun: Optional['UtilityFunction'] = None, kindness=0.0
                  , randomize_offer=False, initial_concession: Union[float, str] = 'min'):
         super().__init__(name=name, ufun=ufun, parent=parent)
+        self._offerable_outcomes = None
         self.received_utilities = []
         self.proposed_utility = None
         self.kindness = kindness
@@ -957,9 +955,9 @@ class SimpleTitForTatNegotiator(SAONegotiator):
         self.randomize_offer = randomize_offer
 
     def on_negotiation_start(self, state: MechanismState):
-        outcomes = self.mechanism_info.outcomes if self.offerable_outcomes is None else self.offerable_outcomes
+        outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
         if outcomes is None:
-            outcomes = sample_outcomes(self.mechanism_info.issues, keep_issue_names=True)
+            outcomes = sample_outcomes(self._mechanism_info.issues, keep_issue_names=True)
         self.ordered_outcomes = sorted([(self.ufun(outcome), outcome) for outcome in outcomes]
                                        , key=lambda x: x[0], reverse=True)
 
@@ -1028,7 +1026,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         )
         if java_class_name is not None:
             self.init_java_bridge(java_class_name=java_class_name, auto_load_java=auto_load_java)
-            self.java_object.fromMap(to_dict(self))
+            self.java_object.fromMap(to_java(self))
 
     @classmethod
     def from_dict(cls, java_object, *args, parent: Controller = None) -> 'JavaSAONegotiator':
@@ -1044,7 +1042,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
 
     def on_notification(self, notification: Notification, notifier: str):
         super().on_notification(notification=notification, notifier=notifier)
-        jnotification = {'type': notification.type, 'data': to_dict(notification.data)}
+        jnotification = {'type': notification.type, 'data': to_java(notification.data)}
         self.java_object.on_notification(jnotification, notifier)
 
     def respond_(self, state: MechanismState, offer: 'Outcome'):
@@ -1070,7 +1068,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         return self._outcome_type(outcome)
 
     class Java:
-        implements = ['jnegmas.sao.PySAONegotiator']
+        implements = ['jnegmas.sao.SAONegotiator']
 
 
 class SAOController(Controller):
@@ -1088,20 +1086,5 @@ class SAOController(Controller):
         return self.call(negotiator, 'respond_', state=state,  offer=offer)
 
 
-SAOMechanismProxy = SAOMechanism
-"""A proxy to a `SAOMechanism` object"""
-
-SAONegotiatorProxy = SAONegotiator
-"""A proxy to an `SAONegotiator` object"""
-
 SAOProtocol = SAOMechanism
 """An alias for `SAOMechanism object"""
-
-SAOProtocolProxy = SAOMechanismProxy
-"""A proxy to a protocol (Alias for `SAOMechanismProxy`)"""
-
-SAOControllerProxy = SAOController
-"""A proxy to a `SAOController` object"""
-
-JavaSAONegotiatorProxy = JavaSAONegotiator
-"""A proxy to a java SAO negotiator"""
