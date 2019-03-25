@@ -168,10 +168,10 @@ class PeekingAcceptanceModel(AcceptanceModel):
         for opponent in self.opponents:
             if opponent is self:
                 continue
-            if opponent.mechanism_info is None:
+            if opponent._mechanism_info is None:
                 response = ResponseType.REJECT_OFFER
             else:
-                response = opponent.respond_(state=opponent.mechanism_info.state, offer=outcome)
+                response = opponent.respond_(state=opponent._mechanism_info.state, offer=outcome)
             if response != ResponseType.ACCEPT_OFFER:
                 return 0.0
         return 1.0

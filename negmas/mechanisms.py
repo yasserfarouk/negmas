@@ -25,9 +25,7 @@ from negmas.negotiators import Negotiator
 
 __all__ = [
     'Mechanism',
-    'MechanismProxy',
     'Protocol',
-    'ProtocolProxy',
     'MechanismRoundResult',
 ]
 
@@ -322,7 +320,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         if role is None:
             role = 'agent'
 
-        if negotiator.on_enter(info=self.info, state=self.state, ufun=ufun, role=role, **kwargs):
+        if negotiator.on_enter(info=self.info, state=self.state, ufun=ufun, role=role):
             if negotiator.ufun is None:
                 return None
             self._agents.append(negotiator)
@@ -866,11 +864,6 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         return None
 
 
-MechanismProxy = Mechanism
-"""A mechanism is a proxy of itself"""
-
 Protocol = Mechanism
 """An alias for `Mechanism`"""
 
-ProtocolProxy = MechanismProxy
-"""An alias for `MechanismProxy`"""

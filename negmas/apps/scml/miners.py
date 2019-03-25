@@ -8,7 +8,7 @@ from numpy.random import dirichlet
 
 from negmas.common import MechanismState, MechanismInfo
 from negmas.helpers import ConfigReader, get_class
-from negmas.negotiators import NegotiatorProxy
+from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Breach
@@ -155,14 +155,14 @@ class ReactiveMiner(Miner):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         raise ValueError('Miners should never receive negotiation requests as they publish no CFPs')
 
     def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         return None
 
     def confirm_loan(self, loan: Loan) -> bool:

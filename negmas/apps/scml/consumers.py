@@ -10,7 +10,7 @@ from numpy.random import dirichlet
 
 from negmas.events import Notification
 from negmas.helpers import ConfigReader, get_class
-from negmas.negotiators import NegotiatorProxy
+from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Breach
@@ -187,7 +187,7 @@ class ScheduleDrivenConsumer(Consumer):
             result = 1.0
         return math.exp(result)
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         profile = self.profiles[cfp.product]
         if profile.cv == 0:
             alpha_u, alpha_q = profile.alpha_u, profile.alpha_q
@@ -226,7 +226,7 @@ class ScheduleDrivenConsumer(Consumer):
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         """
         Called to respond to a renegotiation request
 
@@ -239,9 +239,6 @@ class ScheduleDrivenConsumer(Consumer):
 
         """
         return None
-
-    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
-        return False
 
     def confirm_loan(self, loan: Loan) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
@@ -273,7 +270,7 @@ class ScheduleDrivenConsumer(Consumer):
                                                    , n_steps=self.awi.n_steps)
         if self.immediate_cfp_update and new_quantity != old_quantity:
             self.register_product_cfps(p=cfp.product, t=t, profile=self.profiles[cfp.product])
-        for negotiation in self.running_negotiations.values():
+        for negotiation in self._running_negotiations.values():
             self.notify(negotiation.negotiator, Notification(type='ufun_modified', data=None))
 
 

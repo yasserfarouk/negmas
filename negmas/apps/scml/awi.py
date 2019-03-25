@@ -1,5 +1,6 @@
-from py4j.java_collections import ListConverter
-
+"""
+Implements an agent-world-interface (see `AgentWorldInterface`) for the SCM world.
+"""
 from negmas.situated import AgentWorldInterface, Contract
 from .common import *
 from typing import Optional, List

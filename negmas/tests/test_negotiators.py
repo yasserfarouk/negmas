@@ -51,7 +51,7 @@ def test_tough_asp_negotiator():
         neg.run()
         a1offers = [s.current_offer for s in neg.history if s.current_offerer == a1.id]
         a2offers = [s.current_offer for s in neg.history if s.current_offerer == a2.id]
-        assert a1.offerable_outcomes is None
+        assert a1._offerable_outcomes is None
         if len(a1offers) > 0:
             assert len(set(a1offers)) == 1 and a1offers[-1] == (9,)
         assert len(set(a2offers)) >= 0
@@ -69,7 +69,7 @@ def test_best_only_asp_negotiator():
     neg.run()
     a1offers = [s.current_offer for s in neg.history if s.current_offerer == a1.id]
     a2offers = [s.current_offer for s in neg.history if s.current_offerer == a2.id]
-    assert a1.offerable_outcomes is None
+    assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
         assert len(set(a1offers)) <= 2 and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9
     assert len(set(a2offers)) >= 1

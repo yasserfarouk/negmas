@@ -47,8 +47,8 @@ from negmas.common import MechanismInfo, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
 from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name, snake_case
-from negmas.mechanisms import MechanismProxy, Mechanism
-from negmas.negotiators import NegotiatorProxy
+from negmas.mechanisms import Mechanism
+from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
 
 __all__ = [
@@ -74,6 +74,7 @@ try:
     yaml.warnings({'YAMLLoadWarning': False})
 except:
     pass
+
 
 @dataclass
 class Action:
@@ -149,7 +150,7 @@ class Breach:
         return self.id.__hash__()
 
     def __str__(self):
-        return f'Breach ({self.level} {self.type}) by {self.perpetrator.name} on {self.contract.id} at {self.step}'
+        return f'Breach ({self.level} {self.type}) by {self.perpetrator} on {self.contract.id} at {self.step}'
 
     def as_dict(self):
         return {
@@ -158,14 +159,14 @@ class Breach:
             'type': self.type,
             'level': self.level,
             'id': self.id,
-            'perpetrator': self.perpetrator.id,
+            'perpetrator': self.perpetrator,
             'perpetrator_type': self.perpetrator.__class__.__name__,
             'victims': [_ for _ in self.victims],
             'step': self.step,
             'resolved': None,
         }
 
-    def to_dict(self):
+    def to_java(self):
         return self.as_dict()
 
     class Java:
@@ -278,8 +279,8 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
             return final
 
         sec = self._data.get(section, None)
-        if not sec:
-            return None
+        if sec is None:
+            return {}
         if query is None:
             return sec
         if query_keys:
@@ -299,7 +300,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
             raise ValueError(f'Cannot check satisfaction of {type(query)} against value {type(value)}')
         return True
 
-    def read(self, section: str, key: str) -> Optional[Any]:
+    def read(self, section: str, key: str) -> Any:
         """
         Reads the value associated with given key
 
@@ -391,10 +392,6 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         return True
 
 
-BulletinBoardProxy = BulletinBoard
-"""A proxy to the bulletin board"""
-
-
 def safe_min(a, b):
     """Returns min(a, b) assuming None is less than anything."""
     if a is None:
@@ -407,7 +404,7 @@ def safe_min(a, b):
 @dataclass
 class NegotiationInfo:
     """Saves information about a negotiation"""
-    mechanism: Optional[MechanismProxy]
+    mechanism: Optional[Mechanism]
     partners: List['Agent']
     annotation: Dict[str, Any]
     issues: List['Issue']
@@ -437,9 +434,9 @@ class MechanismFactory:
         self.issues = issues
         self.mechanism = None
 
-    def _create_negotiation_session(self, mechanism: MechanismProxy
-                                    , responses: Iterator[Tuple[NegotiatorProxy, str]]
-                                    , partners: List["Agent"]) -> MechanismProxy:
+    def _create_negotiation_session(self, mechanism: Mechanism
+                                    , responses: Iterator[Tuple[Negotiator, str]]
+                                    , partners: List["Agent"]) -> Mechanism:
         if self.neg_n_steps is not None:
             mechanism.info.n_steps = self.neg_n_steps
         if self.neg_time_limit is not None:
@@ -554,7 +551,7 @@ class AgentWorldInterface:
         return self._world.n_steps
 
     @property
-    def bulletin_board(self) -> BulletinBoardProxy:
+    def bulletin_board(self) -> BulletinBoard:
         """The bulletin-board"""
         return self._world.bulletin_board
 
@@ -723,7 +720,7 @@ class AgentWorldInterface:
                                                  , value=value)
 
     class Java:
-        implements = ['jnegmas.situated.PyAgentWorldInterface']
+        implements = ['jnegmas.situated.AgentWorldInterface']
 
 
 class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
@@ -1554,9 +1551,9 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
 
     def __init__(self, name: str = None):
         super().__init__(name=name)
-        self.running_negotiations: Dict[str, RunningNegotiationInfo] = {}
+        self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._neg_requests: Dict[str, NegotiationRequestInfo] = {}
-        self.contracts: Set[Contract] = set()
+        self.contracts: List[Contract] = []
         self._unsigned_contracts: Set[Contract] = set()
         self._awi: AgentWorldInterface = None
 
@@ -1575,7 +1572,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
                             , annotation: Optional[Dict[str, Any]] = None
                             , mechanism_name: str = None
                             , mechanism_params: Dict[str, Any] = None
-                            , negotiator: NegotiatorProxy = None
+                            , negotiator: Negotiator = None
                             , extra: Optional[Dict[str, Any]] = None
                             ) -> bool:
         """
@@ -1617,17 +1614,17 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         pass
 
     def on_event(self, event: Event, sender: EventSource):
-        if not isinstance(sender, MechanismProxy) and not isinstance(sender, Mechanism):
+        if not isinstance(sender, Mechanism) and not isinstance(sender, Mechanism):
             raise ValueError(f'Sender of the negotiation end event is of type {sender.__class__.__name__} '
-                             f'not MechanismProxy!!')
+                             f'not Mechanism!!')
         if event.type == 'negotiation_end':
             # will be sent by the World once a negotiation in which this agent is involved is completed            l
             mechanism_id = sender.id
-            negotiation = self.running_negotiations.get(mechanism_id, None)
+            negotiation = self._running_negotiations.get(mechanism_id, None)
             # if negotiation is None:
             #    print('Cannot find the negotiation')
             if negotiation:
-                del self.running_negotiations[mechanism_id]
+                del self._running_negotiations[mechanism_id]
 
     # ------------------------------------------------------------------
     # EVENT CALLBACKS (Called by the `World` when certain events happen)
@@ -1635,27 +1632,27 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
 
     @abstractmethod
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                       , annotation: Dict[str, Any], mechanism: MechanismProxy, role: Optional[str]
-                                       , req_id: str) -> Optional[NegotiatorProxy]:
+                                       , annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str]
+                                       , req_id: str) -> Optional[Negotiator]:
         """Called by the mechanism to ask for joining a negotiation. The agent can refuse by returning a None"""
 
     def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
                                , state: MechanismState) -> None:
         """Called whenever a negotiation ends without agreement"""
-        if mechanism.id in self.running_negotiations.keys():
-            del self.running_negotiations[mechanism.id]
+        if mechanism.id in self._running_negotiations.keys():
+            del self._running_negotiations[mechanism.id]
 
     def on_negotiation_success(self, contract: Contract, mechanism: MechanismInfo) -> None:
         """Called whenever a negotiation ends with agreement"""
         self._unsigned_contracts.add(contract)
-        if mechanism.id in self.running_negotiations.keys():
-            del self.running_negotiations[mechanism.id]
+        if mechanism.id in self._running_negotiations.keys():
+            del self._running_negotiations[mechanism.id]
 
     def on_contract_signed(self, contract: Contract) -> None:
         """Called whenever a contract is signed by all partners"""
         if contract in self._unsigned_contracts:
             self._unsigned_contracts.remove(contract)
-        self.contracts.add(contract)
+        self.contracts.append(contract)
 
     def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
         """Called whenever at least a partner did not sign the contract"""
@@ -1678,12 +1675,12 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
         """
         del self._neg_requests[req_id]
 
-    def on_neg_request_accepted(self, req_id: str, mechanism: MechanismProxy):
+    def on_neg_request_accepted(self, req_id: str, mechanism: Mechanism):
         """Called when a requested negotiation is accepted"""
         neg, annotation = self._neg_requests[req_id].negotiator, self._neg_requests[req_id].annotation
-        self.running_negotiations[mechanism.uuid] = RunningNegotiationInfo(extra=self._neg_requests[req_id].extra
-                                                                           , negotiator=neg, annotation=annotation
-                                                                           , uuid=req_id)
+        self._running_negotiations[mechanism.uuid] = RunningNegotiationInfo(extra=self._neg_requests[req_id].extra
+                                                                            , negotiator=neg, annotation=annotation
+                                                                            , uuid=req_id)
         del self._neg_requests[req_id]
 
     def __str__(self):
@@ -1707,7 +1704,7 @@ class Agent(ActiveEntity, EventSink, ConfigReader, Notifier, ABC):
 
     @abstractmethod
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         """
         Called to respond to a renegotiation request
 

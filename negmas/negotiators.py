@@ -26,10 +26,8 @@ if TYPE_CHECKING:
 
 __all__ = [
     'Negotiator',  # Most abstract kind of agent
-    'NegotiatorProxy',
     'AspirationMixin',
     'Controller',
-    'ControllerProxy',
 ]
 
 
@@ -48,19 +46,18 @@ class Negotiator(NamedObject, Notifiable, ABC):
     """
 
     def __init__(self, name: str = None, ufun: Optional['UtilityFunction'] = None
-                 , parent: 'ControllerProxy' = None) -> None:
+                 , parent: 'Controller' = None) -> None:
         super().__init__(name=name)
         self.__parent = parent
         self._capabilities = {'enter': True, 'leave': True}
         self.add_capabilities({'evaluate': True, 'compare': True})
-        self.mechanism_id = None
-        self.mechanism_info = None
-        self.initial_info = None
-        self.initial_state = None
+        self._mechanism_id = None
+        self._mechanism_info = None
+        self._initial_info = None
+        self._initial_state = None
         self.utility_function = ufun
         self._init_utility = ufun
-        self.role = None
-        self.offerable_outcomes = None
+        self._role = None
 
     def __getattribute__(self, item):
         if item in ('id', 'name') or item.startswith('_'):
@@ -80,11 +77,11 @@ class Negotiator(NamedObject, Notifiable, ABC):
         does not with to be killed but the controller can still force-kill it"""
 
     def _dissociate(self):
-        self.mechanism_id = None
-        self.mechanism_info = None
-        self.initial_info = None
+        self._mechanism_id = None
+        self._mechanism_info = None
+        self._initial_info = None
         self.utility_function = self._init_utility
-        self.role = None
+        self._role = None
 
     def isin(self, negotiation_id: Optional[str]) -> bool:
         """Is that agent participating in the given negotiation?
@@ -100,7 +97,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
                 negotiation if it was None)
 
         """
-        return self.mechanism_id == negotiation_id
+        return self._mechanism_id == negotiation_id
 
     @property
     def ufun(self) -> Callable[['Outcome'], Optional['UtilityValue']]:
@@ -153,18 +150,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
             # CALL BACKS
 
     def on_enter(self, info: MechanismInfo, state: MechanismState
-                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent'
-                 , cost_per_round: float = None
-                 , power_per_round: float = None
-                 , discount_per_round: float = None
-                 , cost_per_relative_time: float = None
-                 , power_per_relative_time: float = None
-                 , discount_per_relative_time: float = None
-                 , cost_per_real_time: float = None
-                 , power_per_real_time: float = None
-                 , discount_per_real_time: float = None
-                 , dynamic_reservation: bool = True
-                 , **kwargs) -> bool:
+                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
@@ -173,43 +159,21 @@ class Negotiator(NamedObject, Notifiable, ABC):
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
-            cost_per_round: Will be multiplied by the round number and subtracted from the ufun value
-            discount_per_round: Will be raised to the round number power and multiplied by the ufun value
-            cost_per_relative_time: Will be multiplied by the relative time (0-1) and subtracted from the ufun value
-            discount_per_relative_time: Will be raised to the relative time power and multiplied by the ufun
-            cost_per_real_time: Will be multiplied by the real time (0-infinity) and subtracted from the ufun value
-            discount_per_real_time: Will be raised to the real time power and multiplied by the ufun value
-            power_per_real_time: A power to raise the cost to before applying it to ufun value
-            power_per_relative_time: A power to raise the cost to before applying it to ufun value
-            power_per_round: A power to raise the cost to before applying it to ufun value
-            dynamic_reservation: If True the same discount and cost roles will be applied to the reserved value
-            **kwargs:
 
         Returns:
             bool indicating whether or not the agent accepts to enter.
             If False is returned it will not enter the negotiation
 
         """
-        if self.mechanism_id is not None:
+        if self._mechanism_id is not None:
             return False
-        self.role = role
-        self.mechanism_id = info.id
-        self.mechanism_info = info
-        self.initial_info = copy(info)
-        self.initial_state = state
+        self._role = role
+        self._mechanism_id = info.id
+        self._mechanism_info = info
+        self._initial_info = copy(info)
+        self._initial_state = state
         if ufun is not None:
-            self.utility_function = make_discounted_ufun(ufun=ufun, info=info
-                                                         , cost_per_round=cost_per_round
-                                                         , power_per_round=power_per_round
-                                                         , discount_per_round=discount_per_round
-                                                         , cost_per_relative_time=cost_per_relative_time
-                                                         , power_per_relative_time=power_per_relative_time
-                                                         , discount_per_relative_time=discount_per_relative_time
-                                                         , cost_per_real_time=cost_per_real_time
-                                                         , power_per_real_time=power_per_real_time
-                                                         , discount_per_real_time=discount_per_real_time
-                                                         , dynamic_reservation=dynamic_reservation
-                                                         )
+            self.utility_function = ufun
         if self.utility_function:
             self.utility_function.info = info
         return True
@@ -294,7 +258,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
         """
 
     def on_notification(self, notification: Notification, notifier: str):
-        if notifier != self.mechanism_id:
+        if notifier != self._mechanism_id:
             raise ValueError(f'Notification is coming from unknown {notifier}')
         if notification.type == 'negotiation_start':
             self.on_negotiation_start(state=notification.data)
@@ -329,11 +293,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
         return self.utility_function.compare(first, second)
 
     class Java:
-        implements = ['jnegmas.negotiators.PyNegotiator']
-
-
-NegotiatorProxy = Negotiator
-"""A negotiator stands as a proxy for itself"""
+        implements = ['jnegmas.negotiators.Negotiator']
 
 
 class AspirationMixin:
@@ -407,7 +367,7 @@ class Controller(NamedObject):
 
     def create_negotiator(self, negotiator_type: Union[str, Type[Negotiator]] = None
                           , name: str = None
-                          , cntxt: Dict[str, None] = None, **kwargs) -> NegotiatorProxy:
+                          , cntxt: Dict[str, None] = None, **kwargs) -> Negotiator:
         """
         Creates a negotiator passing it the context
 
@@ -420,7 +380,7 @@ class Controller(NamedObject):
 
         Returns:
 
-            NegotiatorProxy: The negotiator to be controlled
+            Negotiator: The negotiator to be controlled
 
         """
         if negotiator_type is None:
@@ -476,18 +436,7 @@ class Controller(NamedObject):
             del self._negotiators[negotiator_id]
 
     def on_enter(self, negotiator_id: str, info: MechanismInfo, state: MechanismState
-                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent'
-                 , cost_per_round: float = None
-                 , power_per_round: float = None
-                 , discount_per_round: float = None
-                 , cost_per_relative_time: float = None
-                 , power_per_relative_time: float = None
-                 , discount_per_relative_time: float = None
-                 , cost_per_real_time: float = None
-                 , power_per_real_time: float = None
-                 , discount_per_real_time: float = None
-                 , dynamic_reservation: bool = True
-                 , **kwargs) -> bool:
+                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
@@ -497,17 +446,6 @@ class Controller(NamedObject):
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
-            cost_per_round: Will be multiplied by the round number and subtracted from the ufun value
-            discount_per_round: Will be raised to the round number power and multiplied by the ufun value
-            cost_per_relative_time: Will be multiplied by the relative time (0-1) and subtracted from the ufun value
-            discount_per_relative_time: Will be raised to the relative time power and multiplied by the ufun
-            cost_per_real_time: Will be multiplied by the real time (0-infinity) and subtracted from the ufun value
-            discount_per_real_time: Will be raised to the real time power and multiplied by the ufun value
-            power_per_real_time: A power to raise the cost to before applying it to ufun value
-            power_per_relative_time: A power to raise the cost to before applying it to ufun value
-            power_per_round: A power to raise the cost to before applying it to ufun value
-            dynamic_reservation: If True the same discount and cost roles will be applied to the reserved value
-            **kwargs:
 
         Returns:
             bool indicating whether or not the agent accepts to enter.If False is returned it will not enter the
@@ -517,17 +455,7 @@ class Controller(NamedObject):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_enter'
-                         , info=info, state=state, ufun=ufun, role=role, cost_per_round=cost_per_round
-                         , power_per_round=power_per_round, discount_per_round=discount_per_round
-                         , cost_per_relative_time=cost_per_relative_time
-                         , power_per_relative_time=power_per_relative_time
-                         , discount_per_relative_time=discount_per_relative_time
-                         , cost_per_real_time=cost_per_real_time
-                         , power_per_real_time=power_per_real_time
-                         , discount_per_real_time=discount_per_real_time
-                         , dynamic_reservation=dynamic_reservation
-                         , **kwargs)
+        return self.call(negotiator, 'on_enter', info=info, state=state, ufun=ufun, role=role)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -647,5 +575,5 @@ class Controller(NamedObject):
         return f'{self.name}'
 
 
-ControllerProxy = Controller
+Controller = Controller
 """Proxy for a `Controller`"""

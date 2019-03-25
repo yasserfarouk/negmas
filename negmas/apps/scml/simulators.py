@@ -910,7 +910,7 @@ class FastFactorySimulator(FactorySimulator):
         self.fix_before(t)
 
     class Java:
-        implements = ['jnegmas.apps.scml.simulators.PyFactorySimulator']
+        implements = ['jnegmas.apps.scml.simulators.FactorySimulator']
 
 
 @contextmanager

@@ -6,11 +6,11 @@ from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, 
 from negmas.common import NamedObject, MechanismState, MechanismInfo
 from negmas.events import Notification
 from negmas.helpers import get_class
-from negmas.negotiators import NegotiatorProxy
+from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome
 from negmas.sao import AspirationNegotiator, JavaSAONegotiator
 from negmas.situated import Contract, Action, RenegotiationRequest, Breach
-from negmas.utilities import UtilityFunctionProxy, UtilityValue, normalize
+from negmas.utilities import UtilityFunction, UtilityValue, normalize
 from .awi import SCMLAWI
 from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY, ProductionFailure
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile
@@ -68,7 +68,7 @@ class FactoryManager(SCMLAgent, ABC):
         """
 
     class Java:
-        implements = ['jnegmas.apps.scml.factory_managers.PyFactoryManager']
+        implements = ['jnegmas.apps.scml.factory_managers.FactoryManager']
 
 
 class DoNothingFactoryManager(FactoryManager):
@@ -89,7 +89,7 @@ class DoNothingFactoryManager(FactoryManager):
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
         pass
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         return None
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
@@ -99,7 +99,7 @@ class DoNothingFactoryManager(FactoryManager):
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         return None
 
     def confirm_loan(self, loan: Loan) -> bool:
@@ -130,17 +130,14 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         return None
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach],
-                                         agenda: RenegotiationRequest) -> Optional[NegotiatorProxy]:
+                                         agenda: RenegotiationRequest) -> Optional[Negotiator]:
         return None
-
-    def on_renegotiation_request(self, contract: Contract, agenda: RenegotiationRequest, partner: str) -> bool:
-        return False
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator
                  , scheduler_type: Union[str, Type[Scheduler]] = GreedyScheduler
                  , scheduler_params: Optional[Dict[str, Any]] = None
                  , optimism: float = 0.0
-                 , negotiator_type: Union[str, Type[NegotiatorProxy]] = 'negmas.sao.AspirationNegotiator'
+                 , negotiator_type: Union[str, Type[Negotiator]] = 'negmas.sao.AspirationNegotiator'
                  , negotiator_params: Optional[Dict[str, Any]] = None
                  , n_retrials=5, use_consumer=True, reactive=True, sign_only_guaranteed_contracts=False
                  , riskiness=0.0, max_insurance_premium: float = -1.0):
@@ -205,7 +202,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         self.scheduler.init(simulator=self.simulator, products=self.products, processes=self.processes
                             , producing=self.producing, profiles=self.compiled_profiles)
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[NegotiatorProxy]:
+    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         if self.use_consumer:
             return self.consumer.on_negotiation_request(cfp=cfp, partner=partner)
         else:
@@ -322,7 +319,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         if schedule is not None and schedule.valid:
             self._execute_schedule(schedule=schedule, contract=contract)
         if contract.annotation['buyer'] != self.id or not self.use_consumer:
-            for negotiation in self.running_negotiations.values():
+            for negotiation in self._running_negotiations.values():
                 self.notify(negotiation.negotiator, Notification(type='ufun_modified', data=None))
 
     def _process_buy_cfp(self, cfp: 'CFP') -> None:
@@ -413,7 +410,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
 TotalUtilityFun = Callable[[Collection[Contract]], float]
 
 
-class NegotiatorUtility(UtilityFunctionProxy):
+class NegotiatorUtility(UtilityFunction):
     """The utility function of a negotiator."""
 
     def __init__(self, agent: GreedyFactoryManager, annotation: Dict[str, Any], name: Optional[str] = None):
@@ -483,7 +480,7 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
         # hypothetical = list(contracts)
         # hypothetical.append(self._contract(agreement))
         hypothetical = [self._contract(agreement)]
-        for negotiation in self.agent.running_negotiations.values():  # type: ignore
+        for negotiation in self.agent._running_negotiations.values():  # type: ignore
             negotiator = negotiation.negotiator
             current_offer = negotiator.my_last_proposal
             if current_offer is not None:

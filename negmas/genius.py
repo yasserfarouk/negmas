@@ -475,7 +475,7 @@ class GeniusNegotiator(SAONegotiator):
         """Called when the info starts. Connects to the JVM.
         """
         super().on_negotiation_start(state=state)
-        info = self.mechanism_info
+        info = self._mechanism_info
         if self.discount is not None and self.discount != 1.0:
             self.utility_function = make_discounted_ufun(self.utility_function, info=info
                                                 , discount_per_round=self.discount, power_per_round=1.0)
@@ -561,7 +561,7 @@ class GeniusNegotiator(SAONegotiator):
     def on_partner_proposal(self, state: MechanismState, agent_id: str, offer: 'Outcome'):
         if agent_id is self.id:
             return
-        agent_info = [_ for _ in self.mechanism_info.participants if _.id != self.id and _.id == agent_id]
+        agent_info = [_ for _ in self._mechanism_info.participants if _.id != self.id and _.id == agent_id]
         if len(agent_info) == 0:
             return
         agent_info = agent_info[0]
@@ -574,7 +574,7 @@ class GeniusNegotiator(SAONegotiator):
     def on_partner_response(self, state: MechanismState, agent_id: str, outcome: 'Outcome', response: 'ResponseType'):
         if agent_id is self.id:
             return
-        agent_info = [_ for _ in self.mechanism_info.participants if _.id != self.id and _.id == agent_id]
+        agent_info = [_ for _ in self._mechanism_info.participants if _.id != self.id and _.id == agent_id]
         if len(agent_info) == 0:
             return
         agent_info = agent_info[0]
