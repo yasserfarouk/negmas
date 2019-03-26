@@ -12,6 +12,7 @@ import numpy as np
 
 import pkg_resources
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
+from py4j.java_collections import ListConverter
 from py4j.java_gateway import JavaGateway, GatewayParameters, CallbackServerParameters, JavaObject
 # @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
 #  somewhere
@@ -307,16 +308,20 @@ def to_java(value):
 
     """
     value = to_dict_for_java(value, deep=True, add_type_field=True)
-    if not isinstance(value, dict):
+    if isinstance(value, JavaObject):
         return value
-    # print('')
-    for k, v in value.items():
-        # if v is not None and not isinstance(v, int) and not isinstance(v, float) and not isinstance(v, str) \
-        #     and not isinstance(v, list) and not isinstance(v, dict) and not isinstance(v, tuple):
-        #     print(f'\t{k}: {v}({type(v)})')
-        if isinstance(v, np.int64):
-            value[k] = int(v)
-    return JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(value)
+    if isinstance(value, np.int64):
+        return int(value)
+    if isinstance(value, dict):
+        for k, v in value.items():
+            if isinstance(v, np.int64):
+                value[k] = int(v)
+        return JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(value)
+    if isinstance(value, Iterable) and not isinstance(value, str):
+        return ListConverter().convert([JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(_)
+                                        if isinstance(_, dict) else _ for _ in value]
+                                       , JNegmasGateway.gateway._gateway_client)
+    raise RuntimeError(f'got {value} of type {type(value)} from to_dict_fo_java')
 
 
 def from_java(d: Dict[str, Any], deep=True, remove_type_field=True, fallback_class_name: Optional[str]=None):

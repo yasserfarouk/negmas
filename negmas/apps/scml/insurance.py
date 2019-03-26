@@ -2,9 +2,10 @@ from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from negmas import Mechanism
+from negmas import Mechanism, AgentMechanismInterface, MechanismState
 from negmas.situated import Agent, RenegotiationRequest, Breach
-from .common import InsurancePolicy, SCMLAgent, Factory
+from .common import InsurancePolicy, Factory
+from .agent import SCMLAgent
 
 if True: # if TYPE_CHECKING:
     from typing import Dict, Tuple, List, Optional
@@ -21,14 +22,41 @@ __all__ = [
 class InsuranceCompany(Agent, ABC):
     """Base class for all insurance companies"""
 
+    def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
+                                        annotation: Dict[str, Any], mechanism: AgentMechanismInterface,
+                                        role: Optional[str], req_id: Optional[str]) -> Optional[Negotiator]:
+        pass
 
-class DefaultInsuranceCompany(InsuranceCompany):
-    """Represents an insurance company in the world"""
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
+                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+        pass
+
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        pass
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
                                        annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str],
                                        req_id: str) -> Optional[Negotiator]:
         pass
+
+
+class DefaultInsuranceCompany(InsuranceCompany):
+    """Represents an insurance company in the world"""
 
     def __init__(self, premium: float, premium_breach_increment: float, premium_time_increment: float
                  , a2f: Dict[str, Factory], name: str = None):
@@ -40,6 +68,9 @@ class DefaultInsuranceCompany(InsuranceCompany):
         self.storage: Dict[int, int] = defaultdict(int)
         self.wallet: float = 0.0
         self.a2f = a2f
+
+    def init(self):
+        pass
 
     def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None

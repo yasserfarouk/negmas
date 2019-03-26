@@ -12,7 +12,7 @@ Simulation steps:
     #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
     #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating
        contracts for any resulting agreements
-    #. run all `ActiveEntity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then
+    #. run all `Entity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then
        `Miner` s
     #. execute contracts that are executable at this time-step handling any breaches
     #. Custom Simulation Steps:
@@ -87,10 +87,11 @@ Remarks about ANAC 2019 SCML League:
 
 """
 from .common import *
-from .bank import *
-from .insurance import *
 from .schedulers import *
 from .awi import *
+from .agent import *
+from .bank import *
+from .insurance import *
 from .world import *
 from .factory_managers import *
 from .consumers import *
@@ -99,4 +100,5 @@ from . import utils
 from . import helpers
 
 __all__ = common.__all__ + awi.__all__ + factory_managers.__all__ + bank.__all__ + insurance.__all__ \
+          + agent.__all__ \
           + schedulers.__all__ + world.__all__ + consumers.__all__ + miners.__all__ + ['utils', 'helpers', 'java']

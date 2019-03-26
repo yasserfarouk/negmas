@@ -2,9 +2,10 @@ from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from negmas import Issue, Negotiator, Mechanism
+from negmas import Issue, Negotiator, Mechanism, AgentMechanismInterface, MechanismState
 from negmas.situated import Agent, RenegotiationRequest, Contract, Breach
 from .common import *
+from .agent import SCMLAgent
 
 if True: # if TYPE_CHECKING:
     from typing import Dict, List, Optional
@@ -16,10 +17,44 @@ __all__ = [
 
 class Bank(Agent, ABC):
     """Base class for all banks"""
+    def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
+                                        annotation: Dict[str, Any], mechanism: AgentMechanismInterface,
+                                        role: Optional[str], req_id: Optional[str]) -> Optional[Negotiator]:
+        pass
+
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
+                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+        pass
+
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        pass
+
+    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
+                                       annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str],
+                                       req_id: str) -> Optional[Negotiator]:
+        pass
 
 
 class DefaultBank(Bank):
     """Represents a bank in the world"""
+
+    def init(self):
+        pass
 
     def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
                                        annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str],
@@ -49,8 +84,7 @@ class DefaultBank(Bank):
                                          , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         raise ValueError('The bank does not receive callbacks')
 
-
-    def _evaluate_loan(self, agent: SCMLAgent, amount: float, n_installments: int, starts_at: int
+    def _evaluate_loan(self, agent: 'SCMLAgent', amount: float, n_installments: int, starts_at: int
                        , installment_loan=False) -> Optional[Loan]:
         """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
         factory = self.a2f[agent.id]
@@ -71,12 +105,12 @@ class DefaultBank(Bank):
         return Loan(amount=amount, total=total, interest=interest
                     , n_installments=n_installments, installment=installment, starts_at=starts_at)
 
-    def evaluate_loan(self, agent: SCMLAgent, amount: float, start_at: int, n_installments: int) -> Optional[Loan]:
+    def evaluate_loan(self, agent: 'SCMLAgent', amount: float, start_at: int, n_installments: int) -> Optional[Loan]:
         """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
         return self._evaluate_loan(agent=agent, amount=amount, n_installments=n_installments, installment_loan=False
                                    , starts_at=start_at)
 
-    def _buy_loan(self, agent: SCMLAgent, loan: Loan, force=False) -> Optional[Loan]:
+    def _buy_loan(self, agent: 'SCMLAgent', loan: Loan, force=False) -> Optional[Loan]:
         if loan is None:
             return loan
         factory = self.a2f[agent.id]
@@ -88,7 +122,7 @@ class DefaultBank(Bank):
             self.wallet -= loan.amount
         return loan
 
-    def buy_loan(self, agent: SCMLAgent, amount: float, n_installments: int
+    def buy_loan(self, agent: 'SCMLAgent', amount: float, n_installments: int
                  , force: bool = False) -> Optional[Loan]:
         """Gives a loan of amount to agent at the interest calculated using `evaluate_loan`"""
         loan = self.evaluate_loan(amount=amount, agent=agent, n_installments=n_installments

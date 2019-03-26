@@ -8,13 +8,14 @@ from typing import Optional, Callable, Type, Sequence, Dict, Tuple, Iterable, An
 
 import numpy as np
 
-from negmas import MechanismInfo
+from negmas import AgentMechanismInterface
 from negmas.events import Event, EventSource
 from negmas.helpers import snake_case, instantiate, unique_name
 from negmas.outcomes import Issue
 from negmas.situated import AgentWorldInterface, World, Breach, Action, BreachProcessing, Contract, Agent
 from .bank import DefaultBank
 from .common import *
+from .agent import SCMLAgent
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile, Consumer
 from .factory_managers import GreedyFactoryManager, FactoryManager
 from .insurance import DefaultInsuranceCompany
@@ -139,6 +140,7 @@ class SCMLWorld(World):
                          , default_signing_delay=default_signing_delay
                          , start_negotiations_immediately=start_negotiations_immediately
                          , neg_step_time_limit=neg_step_time_limit
+                         , mechanisms={'negmas.sao.SAOMechanism': {}}
                          , name=name)
         if balance_at_max_interest is None:
             balance_at_max_interest = initial_wallet_balances
@@ -233,7 +235,7 @@ class SCMLWorld(World):
         self.join(self.insurance_company)
 
         for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore
-            agent.init()
+            agent.init_()
         # self.standing_jobs: Dict[int, List[Tuple[Factory, Job]]] = defaultdict(list)
 
     def join(self, x: 'Agent', simulation_priority: int = 0):
@@ -266,30 +268,30 @@ class SCMLWorld(World):
                           , miner_kwargs=miner_kwargs, consumer_kwargs=consumer_kwargs, **kwargs)
 
     @classmethod
-    def single_path_world(cls, n_intermediate_levels=0, n_miners=5, n_factories_per_level=5
-                          , n_consumers: Union[int, Tuple[int, int], List[int]] = 5
-                          , n_steps=200
-                          , n_lines_per_factory=10
-                          , log_file_name: str = None
-                          , agent_names_reveal_type: bool = False
-                          , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-                          , miner_type: Union[str, Type[Miner]] = ReactiveMiner
-                          , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
-                          , max_storage: int = sys.maxsize
-                          , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
-                          , consumption: Union[int, Tuple[int, int]] = (0, 5)
-                          , consumer_kwargs: Dict[str, Any] = None
-                          , negotiation_speed: Optional[int] = None
-                          , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
-                          , n_default_per_level: int = 0
-                          , default_factory_manager_type: Type[FactoryManager] = GreedyFactoryManager
-                          , randomize: bool = True
-                          , initial_wallet_balances=1000
-                          , process_cost: Union[float, Tuple[float, float]] = (1.0, 5.0)
-                          , process_time: Union[int, Tuple[int, int]] = 1
-                          , interest_rate=float('inf')
-                          , interest_max=float('inf')
-                          , **kwargs):
+    def chain_world(cls, n_intermediate_levels=0, n_miners=5, n_factories_per_level=5
+                    , n_consumers: Union[int, Tuple[int, int], List[int]] = 5
+                    , n_steps=200
+                    , n_lines_per_factory=10
+                    , log_file_name: str = None
+                    , agent_names_reveal_type: bool = False
+                    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
+                    , miner_type: Union[str, Type[Miner]] = ReactiveMiner
+                    , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
+                    , max_storage: int = sys.maxsize
+                    , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
+                    , consumption: Union[int, Tuple[int, int]] = (0, 5)
+                    , consumer_kwargs: Dict[str, Any] = None
+                    , negotiation_speed: Optional[int] = None
+                    , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
+                    , n_default_per_level: int = 0
+                    , default_factory_manager_type: Type[FactoryManager] = GreedyFactoryManager
+                    , randomize: bool = True
+                    , initial_wallet_balances=1000
+                    , process_cost: Union[float, Tuple[float, float]] = (1.0, 5.0)
+                    , process_time: Union[int, Tuple[int, int]] = 1
+                    , interest_rate=float('inf')
+                    , interest_max=float('inf')
+                    , **kwargs):
         """
         Creates a very small world in which only one raw material and one final product. The production graph is a
         series with `n_intermediate_levels` intermediate levels between the single raw material and single final product
@@ -1254,24 +1256,24 @@ class SCMLWorld(World):
                         , roles: Collection[str] = None
                         , annotation: Optional[Dict[str, Any]] = None
                         , mechanism_name: str = None
-                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, MechanismInfo]]:
+                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
         annotation = self._process_annotation(annotation)
         return super().run_negotiation(caller=caller, issues=issues, annotation=annotation
                                        , partners=partners, roles=roles
                                        , mechanism_name=mechanism_name, mechanism_params=mechanism_params)
 
-    def request_negotiation(self, req_id: str
-                            , caller: "Agent"
-                            , issues: List[Issue]
-                            , partners: List["Agent"]
-                            , roles: List[str] = None
-                            , annotation: Optional[Dict[str, Any]] = None
-                            , mechanism_name: str = None
-                            , mechanism_params: Dict[str, Any] = None):
+    def request_negotiation_about(self, req_id: str
+                                  , caller: "Agent"
+                                  , issues: List[Issue]
+                                  , partners: List["Agent"]
+                                  , roles: List[str] = None
+                                  , annotation: Optional[Dict[str, Any]] = None
+                                  , mechanism_name: str = None
+                                  , mechanism_params: Dict[str, Any] = None):
         annotation = self._process_annotation(annotation)
-        return super().request_negotiation(req_id=req_id, caller=caller, issues=issues, annotation=annotation
-                                           , partners=partners, roles=roles, mechanism_name=mechanism_name
-                                           , mechanism_params=mechanism_params)
+        return super().request_negotiation_about(req_id=req_id, caller=caller, issues=issues, annotation=annotation
+                                                 , partners=partners, roles=roles, mechanism_name=mechanism_name
+                                                 , mechanism_params=mechanism_params)
 
     @property
     def winners(self):

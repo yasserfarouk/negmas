@@ -91,7 +91,7 @@ class AdaptiveAcceptanceModel(AcceptanceModel):
         self.not_offering_discount = self.discount + (1.0 - self.not_offering_rejection_ratio) * (1.0-self.discount)
 
     @classmethod
-    def from_negotiation(cls, info: MechanismInfo
+    def from_negotiation(cls, info: AgentMechanismInterface
                          , prob: Union[float, list] = 0.5
                          , end_prob=0.0
                          , p_accept_after_reject=0.0

@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Dict, Any, Union, Callable, Set, Itera
 import pytest
 
 from negmas import Issue, AspirationNegotiator, LinearUtilityAggregationFunction, Mechanism, Negotiator, \
-    SAOMechanism, Mechanism, Negotiator, RenegotiationRequest
+    SAOMechanism, Mechanism, Negotiator, RenegotiationRequest, AgentMechanismInterface, MechanismState
 from negmas.helpers import ConfigReader
 from negmas.situated import World, Agent, Action, Breach, Contract
 
@@ -71,6 +71,38 @@ class DummyWorld(World):
 
 
 class DummyAgent(Agent):
+    def init(self):
+        pass
+
+    def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
+                                        annotation: Dict[str, Any], mechanism: AgentMechanismInterface,
+                                        role: Optional[str], req_id: Optional[str]) -> Optional[Negotiator]:
+        negotiator = AspirationNegotiator(
+            ufun=LinearUtilityAggregationFunction(issue_utilities=[lambda x: 1.0 - x / 10.0]))
+        return negotiator
+
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
+                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+        pass
+
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        pass
+
     def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
         return None
 
@@ -89,16 +121,9 @@ class DummyAgent(Agent):
         if (self.current_step == 2 and self.name.endswith('1')) or (self.current_step == 4 and self.name.endswith('2')):
             issues = [Issue(10)]
             partners = self.awi.state['partners']
-            self.request_negotiation(partners=[_.name for _ in partners] + [self.name], issues=issues)
+            self._request_negotiation(partners=[_.name for _ in partners] + [self.name], issues=issues)
             results.append(f'{self.name} started negotiation with {partners[0].name}')
         results.append(f'{self.name}: step {self.current_step}')
-
-    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                       , annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str]
-                                       , req_id: str):
-        """Called whenever a negotiation request is received"""
-        negotiator = AspirationNegotiator(ufun = LinearUtilityAggregationFunction(issue_utilities=[lambda x: 1.0 - x / 10.0]))
-        return negotiator
 
 
 def test_world_runs_with_some_negs(capsys):

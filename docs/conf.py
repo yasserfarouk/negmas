@@ -22,12 +22,8 @@ import os
 import sys
 
 import negmas
-from negmas import *
-from negmas.situated import *
-from negmas.apps.scml import *
 
 import sphinx_rtd_theme
-import recommonmark.parser
 
 # -- General configuration ---------------------------------------------
 
