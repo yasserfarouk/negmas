@@ -22,6 +22,10 @@ $ which python
 
 In both cases you should find that python is running from venv/bin within your workspace folder.
 
+After creating your venv, it is recommended to update pip::
+
+$ pip install -U pip
+
 
 Stable release
 --------------
@@ -38,7 +42,15 @@ you through the process.
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 
+Latest Commit
+-------------
 
+To installing the latest commit of negmas from github, you can run this command in your terminal::
+
+$ pip install git+https://github.com/yasserfarouk/negmas
+
+Please note that this may not be a stable version. As always make sure that you are running the command within the
+correct virtual environment.
 
 From sources
 ------------
