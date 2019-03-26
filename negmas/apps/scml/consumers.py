@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
+from negmas import AgentMechanismInterface, MechanismState
 from negmas.events import Notification
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
@@ -16,7 +17,8 @@ from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
 from negmas.utilities import normalize, ComplexWeightedUtilityFunction, MappingUtilityFunction
-from .common import SCMLAgent, CFP
+from .common import CFP
+from .agent import SCMLAgent
 from .helpers import pos_gauss
 
 if True: #
@@ -89,6 +91,22 @@ class Consumer(SCMLAgent, ABC):
 class ScheduleDrivenConsumer(Consumer):
     """Consumer class"""
 
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
+                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+        pass
+
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
     def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
         pass
 
@@ -122,7 +140,6 @@ class ScheduleDrivenConsumer(Consumer):
         pass  # consumers never respond to CFPs
 
     def init(self):
-        super().init()
         if self.consumption_horizon is None:
             self.consumption_horizon = self.awi.n_steps
         self.awi.register_interest(list(self.profiles.keys()))
@@ -156,7 +173,6 @@ class ScheduleDrivenConsumer(Consumer):
             awi.register_cfp(cfp)
 
     def step(self):
-        super().step()
         if self.consumption_horizon is None:
             horizon = self.awi.n_steps
         else:
@@ -187,7 +203,7 @@ class ScheduleDrivenConsumer(Consumer):
             result = 1.0
         return math.exp(result)
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         profile = self.profiles[cfp.product]
         if profile.cv == 0:
             alpha_u, alpha_q = profile.alpha_u, profile.alpha_q
@@ -253,10 +269,9 @@ class ScheduleDrivenConsumer(Consumer):
         schedule = self.profiles[cfp.product].schedule_at(agreement['time'])
         if schedule - agreement['quantity'] < 0:
             return None
-        return super().sign_contract(contract=contract)
+        return self.id
 
     def on_contract_signed(self, contract: Contract):
-        super().on_contract_signed(contract)
         if contract is None:
             return
         cfp: CFP = contract.annotation['cfp']

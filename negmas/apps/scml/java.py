@@ -5,14 +5,14 @@ from typing import Union, Type, List, Optional, Dict, Any, Callable
 
 from py4j.java_collections import ListConverter
 
-from negmas import Contract, Breach, Negotiator, MechanismState, MechanismInfo, RenegotiationRequest
+from negmas import Contract, Breach, Negotiator, MechanismState, AgentMechanismInterface, RenegotiationRequest
 from negmas.apps.scml import GreedyFactoryManager, FactoryManager, ProductionFailure, Loan, SCMLAWI, CFP
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.helpers import snake_case, instantiate
 from negmas.java import JavaCallerMixin, to_java, to_java, JNegmasGateway, from_java, to_dict_for_java
 
 __all__ = [
-    'JavaFactoryManager', 'JavaDoNothingFactoryManager', 'JavaGreedyFactoryManager', 'JavaMiddleMan', 'JavaSCMLAWI'
+    'JavaFactoryManager', 'JavaDoNothingFactoryManager', 'JavaGreedyFactoryManager', 'JavaDummyMiddleMan', 'JavaSCMLAWI'
 ]
 
 
@@ -33,16 +33,38 @@ class JavaSCMLAWI:
         self.awi = awi
 
     def getProducts(self):
-        products = to_java(self.awi.products)
-        return ListConverter().convert(products, JNegmasGateway.gateway._gateway_client)
+        return to_java(self.awi.products)
 
     def getProcesses(self):
-        processes = to_java(self.awi.processes)
-        return ListConverter().convert(processes, JNegmasGateway.gateway._gateway_client)
+        return to_java(self.awi.processes)
+
+    def getState(self):
+        return to_java(self.awi.state)
+
+    def relativeTime(self):
+        return self.awi.relative_time
+
+    def getCurrentStep(self):
+        return self.awi.current_step
+
+    def getNSteps(self):
+        return self.awi.n_steps
+
+    def getDefaultSigningDelay(self):
+        return self.awi.default_signing_delay
+
+    def requestNegotiation(self, cfp: CFP, req_id: str, roles: Optional[List[str]] = None
+                           , mechanism_name: Optional[str] = None
+                           , mechanism_params: Optional[Dict[str, Any]]=None):
+        return self.awi.request_negotiation(cfp, req_id, roles, mechanism_name, mechanism_params)
 
     def registerCFP(self, cfp: Dict[str, Any]) -> None:
         """Registers a CFP"""
         self.awi.register_cfp(from_java(cfp))
+
+    def removeCFP(self, cfp: Dict[str, Any]) -> bool:
+        """Removes a CFP"""
+        return self.awi.remove_cfp(CFP.from_java(cfp))
 
     def registerInterest(self, products: List[int]) -> None:
         """registers interest in receiving callbacks about CFPs related to these products"""
@@ -51,10 +73,6 @@ class JavaSCMLAWI:
     def unregisterInterest(self, products: List[int]) -> None:
         """registers interest in receiving callbacks about CFPs related to these products"""
         self.awi.unregister_interest(products)
-
-    def removeCFP(self, cfp: Dict[str, Any]) -> bool:
-        """Removes a CFP"""
-        return self.awi.remove_cfp(CFP.from_java(cfp))
 
     def evaluateInsurance(self, contract: Dict[str, Any], t: int = None) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
@@ -76,6 +94,18 @@ class JavaSCMLAWI:
             The agent can call `evaluate_insurance` to find the premium that will be used.
         """
         return self.awi.buy_insurance(from_java(contract))
+
+    def loginfo(self, msg: str):
+        return self.awi.loginfo(msg)
+
+    def logwarning(self, msg: str):
+        return self.awi.logwarning(msg)
+
+    def logdebug(self, msg: str):
+        return self.awi.logdebug(msg)
+
+    def logerror(self, msg: str):
+        return self.awi.logerror(msg)
 
     class Java:
         implements = ['jnegmas.apps.scml.awi.SCMLAWI']
@@ -109,15 +139,19 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         self.java_object.setAWI(self.java_awi)
 
     def init(self):
-        super().init()
         if self.python_shadow is not None:
             self.python_shadow.simulator = self.simulator
         self.java_object.setSimulator(self.simulator)
         self.java_object.init()
 
     def step(self):
-        super().step()
         return self.java_object.init()
+
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        return self.java_object.onNegRequestRejected(req_id, by)
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        return self.java_object.onNegRequestAccepted(req_id, mechanism)
 
     def on_new_cfp(self, cfp: 'CFP'):
         return self.java_object.onNewCFP(to_java(cfp))
@@ -143,23 +177,14 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return self.java_object.confirmContractExecution(contract=contract)
 
-    # def _get_negotiator(self, negotiator_class_name) -> Optional[Negotiator]:
-    #     if negotiator_class_name in ('', 'none', 'null'):
-    #         return None
-    #     if negotiator_class_name.startswith('agents'):
-    #         return GeniusNegotiator(java_class_name=negotiator_class_name)
-    #     if negotiator_class_name.startswith('jnegmas'):
-    #         return JavaSAONegotiator(java_class_name=negotiator_class_name)
-    #     return instantiate(negotiator_class_name)
+    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+        return from_java(self.java_object.respondToNegotiationRequest(cfp, partner))
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
-        return from_java(self.java_object.onNegotiationRequest(cfp, partner))
-
-    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: AgentMechanismInterface
                                , state: MechanismState) -> None:
         return self.java_object.onNegotiationFailure(partners, annotation, mechanism, state)
 
-    def on_negotiation_success(self, contract: Contract, mechanism: MechanismInfo) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
         return self.java_object.onNegotiationSuccess(contract, mechanism)
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -220,10 +245,10 @@ class JavaGreedyFactoryManager(JavaFactoryManager):
                                                                               , simulator_type=self.simulator_type))
 
 
-class JavaMiddleMan(JavaFactoryManager):
+class JavaDummyMiddleMan(JavaFactoryManager):
     def __init__(self, auto_load_java: bool = False
                  , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name, simulator_type=simulator_type, auto_load_java=auto_load_java
-                         , java_class_name='jnegmas.apps.scml.factory_managers.MiddleMan')
+                         , java_class_name='jnegmas.apps.scml.factory_managers.DummyMiddleMan')
 
 

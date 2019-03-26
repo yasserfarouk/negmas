@@ -152,7 +152,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                 self.outcome_index = lambda x: __outcomes.index(x)
 
         self.id = str(uuid.uuid4())
-        self.info = MechanismInfo(
+        self.info = AgentMechanismInterface(
             id=self.id
             , n_outcomes=None if outcomes is None else len(outcomes)
             , issues=__issues
@@ -192,7 +192,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         self.role_of_agent = {}
 
     @classmethod
-    def get_info(cls, id: str) -> MechanismInfo:
+    def get_info(cls, id: str) -> AgentMechanismInterface:
         """Returns the mechanism information which contains its static config plus methods to access current state"""
         return cls.all[id].info
 

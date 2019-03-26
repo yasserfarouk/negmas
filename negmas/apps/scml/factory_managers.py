@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, storage_as_array, temporary_transaction
-from negmas.common import NamedObject, MechanismState, MechanismInfo
+from negmas.common import NamedObject, MechanismState, AgentMechanismInterface
 from negmas.events import Notification
 from negmas.helpers import get_class
 from negmas.negotiators import Negotiator
@@ -12,7 +12,8 @@ from negmas.sao import AspirationNegotiator, JavaSAONegotiator
 from negmas.situated import Contract, Action, RenegotiationRequest, Breach
 from negmas.utilities import UtilityFunction, UtilityValue, normalize
 from .awi import SCMLAWI
-from .common import SCMLAgent, SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY, ProductionFailure
+from .common import SCMLAgreement, Loan, CFP, Factory, INVALID_UTILITY, ProductionFailure
+from .agent import SCMLAgent
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile
 from .schedulers import Scheduler, ScheduleInfo, GreedyScheduler
 
@@ -39,21 +40,22 @@ class FactoryManager(SCMLAgent, ABC):
         self.current_step = 0
         self.max_storage: int = 0
 
-    def init(self):
-        super().init()
+    def init_(self):
         state: Factory = self.awi.state
         self.current_step = state.next_step
         self.max_storage = state.max_storage
         self.simulator = self.simulator_type(initial_wallet=state.wallet, initial_storage=state.storage
-                                             , n_steps=self.awi.n_steps, n_products=len(self.products)
+                                             , n_steps=self.awi.n_steps, n_products=len(self.awi.products)
                                              , profiles=state.profiles, max_storage=self.max_storage)
+        super().init_()
 
-    def step(self):
+    def step_(self):
         state = self.awi.state
         self.simulator.set_state(self.current_step, wallet=state.wallet, loans=state.loans
                                  , storage=storage_as_array(state.storage, n_products=len(self.products))
                                  , line_schedules=state.line_schedules)
         self.current_step += 1
+        self.step()
 
     @abstractmethod
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
@@ -74,6 +76,34 @@ class FactoryManager(SCMLAgent, ABC):
 class DoNothingFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
 
+    def init(self):
+        pass
+
+    def step(self):
+        pass
+
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
+                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+        pass
+
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        return self.id
+
     def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
         pass
 
@@ -89,7 +119,7 @@ class DoNothingFactoryManager(FactoryManager):
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
         pass
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         return None
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
@@ -108,9 +138,6 @@ class DoNothingFactoryManager(FactoryManager):
         return True
 
     def on_new_cfp(self, cfp: 'CFP') -> None:
-        pass
-
-    def step(self):
         pass
 
 
@@ -182,7 +209,6 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         return schedule.final_balance
 
     def init(self):
-        super().init()
         if self.use_consumer:
             # @todo add the parameters of the consumption profile as parameters of the greedy factory manager
             self.consumer: ScheduleDrivenConsumer = ScheduleDrivenConsumer(profiles=dict(zip(self.consuming.keys()
@@ -195,30 +221,28 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                                                                            , name=self.name)
             self.consumer.id = self.id
             self.consumer.awi = self.awi
-            self.consumer.init()
+            self.consumer.init_()
         self.scheduler = self.scheduler_type(manager_id=self.id, awi=self.awi
                                              , max_insurance_premium=self.max_insurance_premium
                                              , **self.scheduler_params)
         self.scheduler.init(simulator=self.simulator, products=self.products, processes=self.processes
                             , producing=self.producing, profiles=self.compiled_profiles)
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         if self.use_consumer:
-            return self.consumer.on_negotiation_request(cfp=cfp, partner=partner)
+            return self.consumer.respond_to_negotiation_request(cfp=cfp, partner=partner)
         else:
             neg = self.negotiator_type(name=self.name + '*' + partner, **self.negotiator_params)
             neg.utility_function = normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp)),
                                              outcomes=cfp.outcomes, infeasible_cutoff=0)
             return neg
 
-    def on_negotiation_success(self, contract: Contract, mechanism: MechanismInfo):
-        super().on_negotiation_success(contract=contract, mechanism=mechanism)
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface):
         if self.use_consumer:
             self.consumer.on_negotiation_success(contract, mechanism)
 
-    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: AgentMechanismInterface
                                , state: MechanismState) -> None:
-        super().on_negotiation_failure(partners=partners, annotation=annotation, mechanism=mechanism, state=state)
         if self.use_consumer:
             self.consumer.on_negotiation_failure(partners, annotation, mechanism, state)
         cfp = annotation['cfp']
@@ -285,9 +309,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             awi.register_cfp(cfp)
 
     def sign_contract(self, contract: Contract):
-        signature = super().sign_contract(contract)
-        if signature is None:
-            return None
+        signature = self.id
         with temporary_transaction(self.scheduler):
             schedule = self.scheduler.schedule(assume_no_further_negotiations=False, contracts=[contract]
                                                , ensure_storage_for=self.transportation_delay
@@ -312,7 +334,6 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         return signature
 
     def on_contract_signed(self, contract: Contract):
-        super().on_contract_signed(contract)
         if contract.annotation['buyer'] == self.id and self.use_consumer:
             self.consumer.on_contract_signed(contract)
         schedule = self.contract_schedules[contract.id]
@@ -331,11 +352,9 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             neg = self.negotiator_type(assume_normalized=True, name=self.name + '>' + cfp.publisher)
         else:
             neg = self.negotiator_type(name=self.name + '>' + cfp.publisher)
-        neg.utility_function = normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp)),
-                                         outcomes=cfp.outcomes, infeasible_cutoff=-1500)
-        self.request_negotiation(negotiator=neg, extra=None, partners=[cfp.publisher, self.id]
-                                 , issues=cfp.issues, annotation=self._create_annotation(cfp=cfp)
-                                 , mechanism_name='negmas.sao.SAOMechanism')
+        self.request_negotiation(negotiator=neg, cfp=cfp
+                                 , ufun=normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp))
+                                                  , outcomes=cfp.outcomes, infeasible_cutoff=-1500))
 
     def _process_sell_cfp(self, cfp: 'CFP'):
         if self.use_consumer:
@@ -350,7 +369,6 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             self._process_sell_cfp(cfp)
 
     def step(self):
-        super().step()
         if self.use_consumer:
             self.consumer.step()
         if self.reactive:

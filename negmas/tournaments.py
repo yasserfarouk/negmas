@@ -252,11 +252,12 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , score_calculator: Callable[[World], WorldRunResults]
                , randomize=False
                , agent_names_reveal_type=False
-               , max_n_runs: int = 1000
+               , n_agents_per_competitor=1
+               , max_n_configs: int = 1000
                , n_runs_per_config: int = 5
                , tournament_path: str = './logs/tournaments'
                , total_timeout: Optional[int] = None
-               , parallelism='local'
+               , parallelism='parallel'
                , scheduler_ip: Optional[str] = None
                , scheduler_port: Optional[str] = None
                , tournament_progress_callback: Callable[[Optional[WorldRunResults], int, int], None] = None
@@ -271,6 +272,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
 
     Args:
 
+        n_agents_per_competitor: The number of agents of each competing type to be instantiated in the world
         name: Tournament name
         world_generator: A functions to generate worlds for the tournament
         score_calculator: A function for calculating the score of a world *After it finishes running*
@@ -278,13 +280,13 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
         beginning).
-        max_n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
+        max_n_configs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
         the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
         n_runs_per_config: Number of runs per configuration.
         total_timeout: Total timeout for the complete process
         tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
         keep detailed logs
-        parallelism: Type of parallelism. Can be 'none' for serial, 'local' for parallel and 'dist' for distributed
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for distributed
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
         world_progress_callback: A function to be called after everystep of every world run (only allowed for serial
@@ -302,6 +304,8 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     dask_options = ('dist', 'distributed', 'dask', 'd')
     multiprocessing_options = ('local', 'parallel', 'par', 'p')
     serial_options = ('none', 'serial', 's')
+    if parallelism is None:
+        parallelism = 'serial'
     assert total_timeout is None or parallelism not in dask_options, f'Cannot use {parallelism} with a total-timeout'
     assert world_progress_callback is None or parallelism not in dask_options, f'Cannot use {parallelism} with a world callback'
     if name is None:
@@ -316,7 +320,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     params = {
         'competitors': [get_class(_).__name__ if not isinstance(_, str) else _ for _ in competitors],
         'randomize': randomize,
-        'n_runs': max_n_runs,
+        'n_runs': max_n_configs,
         'tournament_path': str(tournament_path),
         'total_timeout': total_timeout,
         'parallelism': parallelism,
@@ -330,28 +334,30 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         json.dump(params, f, sort_keys=True, indent=4)
     world_infos = []
     if randomize:
-        for i in range(max_n_runs):
+        for i in range(max_n_configs):
             random.shuffle(competitors)
             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
             dir_name = tournament_path / world_name
             world_info = {'name': world_name, 'competitors': competitors, 'log_file_name': str(dir_name / 'log.txt')
                 , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
+                          , 'n_agents_per_competitor': n_agents_per_competitor
                 , '__dir_name': str(dir_name)}
             world_info.update(kwargs)
             world_infos += [world_info.copy() for _ in range(n_runs_per_config)]
     else:
         c_list = list(itertools.permutations(competitors))
-        if max_n_runs is not None:
-            if len(c_list) > max_n_runs:
-                print(f'Need {len(c_list)} permutations but allowed to only use {max_n_runs} of them'
-                      f' ({max_n_runs / len(c_list):0.2%})')
-                c_list = random.shuffle(c_list)[:max_n_runs]
+        if max_n_configs is not None:
+            if len(c_list) > max_n_configs:
+                print(f'Need {len(c_list)} permutations but allowed to only use {max_n_configs} of them'
+                      f' ({max_n_configs / len(c_list):0.2%})')
+                c_list = random.shuffle(c_list)[:max_n_configs]
 
         for i, c in enumerate(c_list):
             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
             dir_name = tournament_path / world_name
             world_info = {'name': world_name, 'competitors': list(c), 'log_file_name': str(dir_name / 'log.txt')
                 , 'randomize': False, 'agent_names_reveal_type': agent_names_reveal_type
+                , 'n_agents_per_competitor': n_agents_per_competitor
                 , '__dir_name': str(dir_name)}
             world_info.update(kwargs)
             world_infos += [world_info.copy() for _ in range(n_runs_per_config)]

@@ -28,6 +28,7 @@ def anac2019_world(
     , n_intermediate: Tuple[int, int] = (1, 4)
     , n_miners=5
     , n_factories_per_level=11
+    , n_agents_per_competitor=1
     , n_consumers=5
     , n_lines_per_factory=10
     , guaranteed_contracts=False
@@ -51,6 +52,7 @@ def anac2019_world(
     Creates a world compatible with the ANAC 2019 competition. Note that
 
     Args:
+        n_agents_per_competitor: Number of instantiations of each competing type.
         name: World name to use
         agent_names_reveal_type: If true, a snake_case version of the agent_type will prefix agent names
         randomize: If true, managers are assigned to factories randomly otherwise in the order
@@ -108,32 +110,32 @@ def anac2019_world(
     competitors = [get_class(c) if isinstance(c, str) else c for c in competitors]
     if len(competitors) < 1:
         competitors.append(GreedyFactoryManager)
-    world = SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=n_steps
-                                        , agent_names_reveal_type=agent_names_reveal_type
-                                        , negotiation_speed=negotiation_speed
-                                        , n_intermediate_levels=randint(*n_intermediate)
-                                        , n_miners=n_miners
-                                        , n_consumers=n_consumers
-                                        , n_factories_per_level=n_factories_per_level
-                                        , consumption=consumption
-                                        , consumer_kwargs={'negotiator_type': negotiator_type
+    world = SCMLWorld.chain_world(log_file_name=log_file_name, n_steps=n_steps
+                                  , agent_names_reveal_type=agent_names_reveal_type
+                                  , negotiation_speed=negotiation_speed
+                                  , n_intermediate_levels=randint(*n_intermediate)
+                                  , n_miners=n_miners
+                                  , n_consumers=n_consumers
+                                  , n_factories_per_level=n_factories_per_level
+                                  , consumption=consumption
+                                  , consumer_kwargs={'negotiator_type': negotiator_type
             , 'consumption_horizon': consumption_horizon}
-                                        , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
-                                        , manager_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
+                                  , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
+                                  , manager_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
             , 'sign_only_guaranteed_contracts': guaranteed_contracts
             , 'use_consumer': use_consumer
             , 'max_insurance_premium': max_insurance_premium}
-                                        , transportation_delay=transportation_delay
-                                        , time_limit=time_limit
-                                        , neg_time_limit=neg_time_limit
-                                        , neg_n_steps=neg_n_steps
-                                        , default_signing_delay=default_signing_delay
-                                        , n_lines_per_factory=n_lines_per_factory
-                                        , max_storage=max_storage
-                                        , manager_types=competitors
-                                        , n_default_per_level=n_default_per_level
-                                        , randomize=randomize
-                                        , name=name)
+                                  , transportation_delay=transportation_delay
+                                  , time_limit=time_limit
+                                  , neg_time_limit=neg_time_limit
+                                  , neg_n_steps=neg_n_steps
+                                  , default_signing_delay=default_signing_delay
+                                  , n_lines_per_factory=n_lines_per_factory
+                                  , max_storage=max_storage
+                                  , manager_types=competitors
+                                  , n_default_per_level=n_default_per_level
+                                  , randomize=randomize
+                                  , name=name)
 
     return world
 
@@ -172,8 +174,10 @@ def balance_calculator(world: SCMLWorld) -> WorldRunResults:
 def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , randomize=True
                         , agent_names_reveal_type=False
-                        , n_runs_per_config: int = 5, tournament_path: str = './logs/tournaments'
-                        , max_n_runs: int = 100
+                        , n_agents_per_competitor=1
+                        , n_runs_per_config: int = 5
+                        , max_n_configs: int = 100
+                        , tournament_path: str = './logs/tournaments'
                         , total_timeout: Optional[int] = None
                         , parallelism='parallel'
                         , scheduler_ip: Optional[str] = None
@@ -195,13 +199,14 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
         randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
         beginning).
-        max_n_runs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
+        n_agents_per_competitor: The number of agents to instantiate in each world from each competitor type.
+        max_n_configs: No more than n_runs_max worlds will be run. If `randomize` then it cannot be None and that is exactly
         the number of worlds to run. If not `randomize` then at most this number of worlds will be run if it is not None
         n_runs_per_config: Number of runs per configuration.
         total_timeout: Total timeout for the complete process
         tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
         keep detailed logs
-        parallelism: Type of parallelism. Can be 'none' for serial, 'local' for parallel and 'dist' for distributed
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for distributed
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
         world_progress_callback: A function to be called after everystep of every world run (only allowed for serial
@@ -221,10 +226,11 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
 
     """
     return tournament(competitors=competitors, randomize=randomize, agent_names_reveal_type=agent_names_reveal_type
-                      , max_n_runs=max_n_runs, n_runs_per_config=n_runs_per_config
+                      , max_n_configs=max_n_configs, n_runs_per_config=n_runs_per_config
                       , tournament_path=tournament_path, total_timeout=total_timeout
                       , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
                       , tournament_progress_callback=tournament_progress_callback
                       , world_progress_callback=world_progress_callback, name=name, verbose=verbose
                       , configs_only=configs_only
+                      , n_agents_per_competitor=n_agents_per_competitor
                       , world_generator=anac2019_world, score_calculator=balance_calculator, **kwargs)

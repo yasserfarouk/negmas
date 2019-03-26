@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     'NamedObject',
-    'MechanismInfo',
+    'AgentMechanismInterface',
     'MechanismState',
     'register_all_mechanisms',
     'NegotiatorInfo',
@@ -64,7 +64,7 @@ class MechanismState:
     """Does the mechanism have any errors"""
     error_details: str = ''
     """Details of the error if any"""
-    info: 'MechanismInfo' = None
+    info: 'AgentMechanismInterface' = None
     """Mechanism information"""
 
     @property
@@ -84,11 +84,11 @@ class MechanismState:
         return self.__hash__() == other.__hash__()
 
     def __copy__(self):
-        return MechanismInfo(**self.__dict__)
+        return AgentMechanismInterface(**self.__dict__)
 
     def __deepcopy__(self, memodict={}):
         d = {k: deepcopy(v) for k, v in self.__dict__.items()}
-        return MechanismInfo(**d)
+        return AgentMechanismInterface(**d)
 
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
@@ -109,7 +109,7 @@ class MechanismState:
 
 
 @dataclass
-class MechanismInfo:
+class AgentMechanismInterface:
     """All information of a negotiation visible to negotiators."""
     id: str
     """Mechanism session ID. That is unique for all mechanisms"""
@@ -186,7 +186,7 @@ class MechanismInfo:
 
         Remarks:
 
-            - Whenever a method receives a `MechanismInfo` object, it can always access the *current* state of the
+            - Whenever a method receives a `AgentMechanismInterface` object, it can always access the *current* state of the
               protocol by accessing this property.
 
         """
@@ -225,11 +225,11 @@ class MechanismInfo:
         return True
 
     def __copy__(self):
-        return MechanismInfo(**self.__dict__)
+        return AgentMechanismInterface(**self.__dict__)
 
     def __deepcopy__(self, memodict={}):
         d = {k: deepcopy(v) for k, v in self.__dict__.items()}
-        return MechanismInfo(**d)
+        return AgentMechanismInterface(**d)
 
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
@@ -246,7 +246,7 @@ class MechanismInfo:
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
     class Java:
-        implements = ['jnegmas.common.MechanismInfo']
+        implements = ['jnegmas.common.AgentMechanismInterface']
 
 
 def register_all_mechanisms(mechanisms: typing.Dict[str, 'Mechanism']) -> None:

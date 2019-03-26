@@ -4,13 +4,12 @@ import math
 import sys
 import uuid
 from abc import abstractmethod
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
 
 import numpy as np
 from dataclasses import dataclass, field, InitVar
 
-from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
 from negmas.situated import Contract, Agent, Breach
@@ -27,7 +26,7 @@ __all__ = ['Product', 'Process', 'InputOutput', 'RunningCommandInfo'
     , 'ManufacturingProfile', 'ManufacturingProfileCompiled', 'ProductManufacturingInfo'
     , 'FactoryStatusUpdate', 'Job', 'ProductionNeed'
     , 'MissingInput', 'ProductionReport', 'ProductionFailure'
-    , 'SCMLAgreement', 'SCMLAction', 'SCMLAgent'
+    , 'SCMLAgreement', 'SCMLAction'
     , 'CFP', 'Loan', 'InsurancePolicy', 'Factory']
 
 
@@ -831,142 +830,12 @@ class Loan:
         implements = ['jnegmas.Contract']
 
 
-class SCMLAgent(Agent):
-    """The base for all SCM Agents"""
+RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])
+"""Keeps track of running negotiations for an agent"""
 
-    # @todo remove negotiator_type from here and add it independently to consumer, miner, and greedy_factory_manager
-    def __init__(self, name: str = None):
-        super().__init__(name=name)
-        self.line_profiles: Dict[int, ManufacturingProfileCompiled] = {}
-        """A mapping specifying for each `Process` index, all the profiles used to run it in the factory"""
-        self.process_profiles: Dict[int, ManufacturingProfileCompiled] = {}
-        """A mapping specifying for each line index, all the profiles that can be run on it"""
-        self.producing: Dict[int, List[ProductManufacturingInfo]] = defaultdict(list)
-        """Mapping from a product to all manufacturing processes that can generate it"""
-        self.consuming: Dict[int, List[ProductManufacturingInfo]] = defaultdict(list)
-        """Mapping from a product to all manufacturing processes that can consume it"""
-        self.compiled_profiles: List[ManufacturingProfileCompiled] = []
-        """All the profiles to be used by the factory belonging to this agent compiled to use indices"""
-        self.immediate_negotiations = False
-        self.negotiation_speed_multiple: int = 1
-        self.transportation_delay: int = 0
-        self.products: List[Product] = []
-        self.processes: List[Process] = []
-
-    def init(self):
-        super().init()
-        # noinspection PyUnresolvedReferences
-        self.products = self.awi.products  # type: ignore
-        # noinspection PyUnresolvedReferences
-        self.processes = self.awi.processes  # type: ignore
-        self.negotiation_speed_multiple = self.awi.bb_read('settings', 'negotiation_speed_multiple')
-        self.immediate_negotiations = self.awi.bb_read('settings', 'immediate_negotiations')
-        self.transportation_delay = self.awi.bb_read(section='settings', key='transportation_delay')
-
-        factory = self.awi.state
-        if factory is None:
-            raise ValueError('Cannot init any SCMLAgent without specifying a factory')
-        profiles = factory.profiles
-        self.line_profiles = defaultdict(list)
-        self.process_profiles = defaultdict(list)
-        self.compiled_profiles = []
-        self.producing = defaultdict(list)
-        self.consuming = defaultdict(list)
-        p2i = dict(zip(self.processes, range(len(self.processes))))
-        for index, profile in enumerate(profiles):
-            compiled = ManufacturingProfileCompiled.from_manufacturing_profile(profile=profile, process2ind=p2i)
-            self.compiled_profiles.append(compiled)
-            self.line_profiles[profile.line].append(compiled)
-            self.process_profiles[profile.process].append(compiled)
-            process = profile.process
-            for outpt in process.outputs:
-                step = int(math.ceil(outpt.step * profile.n_steps))
-                self.producing[outpt.product].append(ProductManufacturingInfo(profile=index
-                                                                              , quantity=outpt.quantity
-                                                                              , step=step))
-
-            for inpt in process.inputs:
-                step = int(math.floor(inpt.step * profile.n_steps))
-                self.consuming[inpt.product].append(ProductManufacturingInfo(profile=index
-                                                                             , quantity=inpt.quantity
-                                                                             , step=step))
-        self.awi.register_interest(list(set(itertools.chain(self.producing.keys(), self.consuming.keys()))))
-
-    def can_expect_agreement(self, cfp: 'CFP', margin: int):
-        """
-        Checks if it is possible in principle to get an agreement on this CFP by the time it becomes executable
-        Args:
-            margin:
-            cfp:
-
-        Returns:
-
-        """
-        return cfp.max_time >= self.awi.current_step + 1 - int(self.immediate_negotiations) + margin
-
-    def _create_annotation(self, cfp: 'CFP'):
-        """Creates full annotation based on a cfp that the agent is receiving"""
-        partners = [self.id, cfp.publisher]
-        annotation = {'cfp': cfp, 'partners': partners}
-        if cfp.is_buy:
-            annotation['seller'] = self.id
-            annotation['buyer'] = cfp.publisher
-        else:
-            annotation['buyer'] = self.id
-            annotation['seller'] = cfp.publisher
-        return annotation
-
-    # ------------------------------------------------------------------
-    # EVENT CALLBACKS (Called by the `World` when certain events happen)
-    # ------------------------------------------------------------------
-
-    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                       , annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str]
-                                       , req_id: str):
-        """When a negotiation request is received"""
-        if req_id is not None:
-            info = self._neg_requests.get(req_id, None)
-            if info and info.negotiator is not None:
-                return info.negotiator
-        return self.on_negotiation_request(partner=initiator, cfp=annotation['cfp'])
-
-    @abstractmethod
-    def confirm_loan(self, loan: Loan) -> bool:
-        """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
-        breached"""
-
-    @abstractmethod
-    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
-        """Will be called whenever a contract the agent is involved in is nullified because another partner went
-        bankrupt"""
-
-    @abstractmethod
-    def on_agent_bankrupt(self, agent_id: str) -> None:
-        """Will be called whenever any agent went bankrupt"""
-
-    @abstractmethod
-    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
-        """Will be called whenever a contract cannot be fully executed due to breaches by the other partner.
-
-        Will not be called if both partners committed breaches.
-        """
-
-    @abstractmethod
-    def confirm_contract_execution(self, contract: Contract) -> bool:
-        """Called before executing any agreement"""
-        return True
-
-    @abstractmethod
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
-        """Called when a prospective partner requests a negotiation to start"""
-
-    @abstractmethod
-    def on_new_cfp(self, cfp: 'CFP'):
-        """Called when a new CFP for a product for which the agent registered interest is published"""
-
-    @abstractmethod
-    def on_remove_cfp(self, cfp: 'CFP'):
-        """Called when a new CFP for a product for which the agent registered interest is removed"""
+NegotiationRequestInfo = namedtuple('NegotiationRequestInfo', ['partners', 'issues', 'annotation', 'uuid'
+    , 'negotiator', 'extra'])
+"""Keeps track to negotiation requests that an agent sent"""
 
 
 @dataclass
@@ -974,7 +843,7 @@ class InsurancePolicy:
     premium: float
     contract: Contract
     at_time: int
-    against: SCMLAgent
+    against: 'SCMLAgent'
 
 
 @dataclass

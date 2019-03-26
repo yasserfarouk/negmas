@@ -149,13 +149,13 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
             # CALL BACKS
 
-    def on_enter(self, info: MechanismInfo, state: MechanismState
+    def on_enter(self, info: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
         Args:
-            info  (MechanismInfo): The negotiation.
+            info  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -435,14 +435,14 @@ class Controller(NamedObject):
         if response or force:
             del self._negotiators[negotiator_id]
 
-    def on_enter(self, negotiator_id: str, info: MechanismInfo, state: MechanismState
+    def on_enter(self, negotiator_id: str, info: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
         Args:
             negotiator_id: The negotiator ID
-            info  (MechanismInfo): The negotiation.
+            info  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.

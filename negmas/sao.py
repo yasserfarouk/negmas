@@ -47,7 +47,7 @@ class SAOState(MechanismState):
 
 
 @dataclass
-class SAOInfo(MechanismInfo):
+class SAOAMI(AgentMechanismInterface):
     end_negotiation_on_refusal_to_propose: bool = False
 
 

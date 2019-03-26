@@ -104,9 +104,9 @@ class FactorySimulator(ABC):
     def storage_to(self, t: int) -> np.array:
         """
         Returns the storage at time t
-        
+
         Args:
-            t: 
+            t:
 
         Returns:
 
@@ -121,7 +121,7 @@ class FactorySimulator(ABC):
         Returns the schedule of each line
 
         Args:
-            t:
+            t: time
 
         Returns:
             - A `NO_PRODUCTION` value means no production, otherwise the index of the process being run
@@ -152,9 +152,9 @@ class FactorySimulator(ABC):
     def loans_to(self, t: int) -> np.array:
         """
         Returns loans up to time t
-        
+
         Args:
-            t: 
+            t: time
 
         Returns:
 
@@ -164,7 +164,7 @@ class FactorySimulator(ABC):
         """
         Returns loans at time t
         Args:
-            t:
+            t: time
 
         Returns:
 
@@ -175,7 +175,7 @@ class FactorySimulator(ABC):
         """
         Returns the balance fo the factory at time t
         Args:
-            t: 
+            t: time
 
         Returns:
 
@@ -186,7 +186,7 @@ class FactorySimulator(ABC):
         """
         Returns the balance fo the factory at times <= t
         Args:
-            t:
+            t: time
 
         Returns:
 
@@ -211,8 +211,8 @@ class FactorySimulator(ABC):
         """
         Adds a loan at the given time
         Args:
-            total: 
-            t: 
+            total:
+            t: time
 
         Returns:
 
@@ -222,8 +222,8 @@ class FactorySimulator(ABC):
         """
         Simulates receiving payment at time t
         Args:
-            payment: 
-            t: 
+            payment:
+            t: time
 
         Returns:
 
@@ -234,11 +234,11 @@ class FactorySimulator(ABC):
     def pay(self, payment: float, t: int, ignore_money_shortage: bool = True) -> bool:
         """
         Simulate payment at time t
-        
-        Args:            
-            payment: 
-            t:
-            ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative 
+
+        Args:
+            payment:
+            t: time
+            ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
 
         Returns:
 
@@ -249,11 +249,11 @@ class FactorySimulator(ABC):
                      , ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
         """
         Simulates transporting products to/from storage at time t
-        
-        Args:            
+
+        Args:
             product:
             quantity:
-            t:
+            t: time
             ignore_inventory_shortage: Ignore shortage in the `product` which may lead to negative storage[product]
             ignore_space_shortage:  Ignore the limit on total storage which may lead to total_storage > max_storage
 
@@ -266,7 +266,7 @@ class FactorySimulator(ABC):
             , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
         """
         Buy a given quantity of a product for a given price at some time t
-        
+
         Args:
             product:
             quantity:
@@ -276,7 +276,7 @@ class FactorySimulator(ABC):
             ignore_space_shortage:  Ignore the limit on total storage which may lead to total_storage > max_storage
 
         Returns:
-            
+
             - buy cannot ever have inventory shortage
 
         """
@@ -291,7 +291,7 @@ class FactorySimulator(ABC):
             product:
             quantity:
             price:
-            t:
+            t: time
             ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
             ignore_inventory_shortage: Ignore shortage in the `product` which may lead to negative storage[product]
 
@@ -339,7 +339,7 @@ class FactorySimulator(ABC):
         Fix the history before this point
 
         Args:
-            t:
+            t: time
 
         Returns:
 
@@ -437,7 +437,7 @@ class SlowFactorySimulator(FactorySimulator):
             if expected != actual and actual != NO_PRODUCTION:
                 raise ValueError(f'Expected process {expected} at time {t} on line {i} but actually process '
                                  f'{actual} is running')
-            self._line_schedules[i, t] = actual 
+            self._line_schedules[i, t] = actual
         self.fix_before(t + 1)
         self._saved_states[t].append(_State(t=t, storage=storage.copy(), wallet=wallet, loans=loans
                                             , line_schedules=line_schedules.copy()))
@@ -568,7 +568,7 @@ class SlowFactorySimulator(FactorySimulator):
         """
         Steps the factory to the end of step t
         Args:
-            t:
+            t: time
 
         Returns:
 

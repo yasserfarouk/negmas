@@ -95,13 +95,13 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
     start = perf_counter()
     if ttype.lower() == 'anac2019':
         results = tournaments.tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
-                             , tournament_path=log, total_timeout=timeout
-                             , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
-                             , world_progress_callback=print_world_progress if verbosity > 1 and not distributed else None
-                             , name=name, verbose=verbosity > 0, n_runs_per_config=runs, max_n_runs=max_runs
-                             , world_generator=anac2019_world, score_calculator=balance_calculator
-                             , configs_only=configs_only, randomize=randomize
-                             , n_steps=steps)
+                                         , tournament_path=log, total_timeout=timeout
+                                         , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
+                                         , world_progress_callback=print_world_progress if verbosity > 1 and not distributed else None
+                                         , name=name, verbose=verbosity > 0, n_runs_per_config=runs, max_n_configs=max_runs
+                                         , world_generator=anac2019_world, score_calculator=balance_calculator
+                                         , configs_only=configs_only, randomize=randomize
+                                         , n_steps=steps)
     else:
         print('Only anac2019 tournament type is supported')
         exit(1)
@@ -185,19 +185,19 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
     log_file_name = str(log_dir / 'log.txt')
     stats_file_name = str(log_dir / 'stats.json')
     params_file_name = str(log_dir / 'params.json')
-    world = SCMLWorld.single_path_world(log_file_name=log_file_name, n_steps=steps
-                                        , negotiation_speed=neg_speedup
-                                        , n_intermediate_levels=levels
-                                        , n_miners=agents
-                                        , n_consumers=agents
-                                        , n_factories_per_level=agents
-                                        , consumption=consumption
-                                        , consumer_kwargs=customer_kwargs
-                                        , miner_kwargs=miner_kwargs
-                                        , manager_kwargs=factory_kwargs
-                                        , transportation_delay=transport, time_limit=time, neg_time_limit=neg_time
-                                        , neg_n_steps=neg_steps, default_signing_delay=sign
-                                        , n_lines_per_factory=lines)
+    world = SCMLWorld.chain_world(log_file_name=log_file_name, n_steps=steps
+                                  , negotiation_speed=neg_speedup
+                                  , n_intermediate_levels=levels
+                                  , n_miners=agents
+                                  , n_consumers=agents
+                                  , n_factories_per_level=agents
+                                  , consumption=consumption
+                                  , consumer_kwargs=customer_kwargs
+                                  , miner_kwargs=miner_kwargs
+                                  , manager_kwargs=factory_kwargs
+                                  , transportation_delay=transport, time_limit=time, neg_time_limit=neg_time
+                                  , neg_n_steps=neg_steps, default_signing_delay=sign
+                                  , n_lines_per_factory=lines)
     failed = False
     strt = perf_counter()
     try:

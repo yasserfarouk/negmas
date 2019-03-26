@@ -34,7 +34,7 @@ import numpy as np
 import pkg_resources
 
 from negmas.common import NamedObject
-from negmas.common import MechanismInfo
+from negmas.common import AgentMechanismInterface
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
 from negmas.helpers import Distribution
 from negmas.helpers import snake_case, gmap, ikeys, Floats
@@ -113,7 +113,7 @@ class UtilityFunction(ABC, NamedObject):
 
     """
 
-    def __init__(self, name: Optional[str] = None, info: MechanismInfo = None
+    def __init__(self, name: Optional[str] = None, info: AgentMechanismInterface = None
                  , reserved_value: Optional[UtilityValue] = 0.0) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
@@ -948,13 +948,14 @@ class ExpDiscountedUFun(UtilityFunction):
     Args:
         ufun: The utility function that is being discounted
         beta: discount factor
-        factor: str -> The name of the MechanismInfo variable based on which discounting operate
+        factor: str -> The name of the AgentMechanismInterface variable based on which discounting operate
         callable -> must receive a mechanism info object and returns a float representing the factor
 
     """
 
-    def __init__(self, ufun: UtilityFunction, info: 'MechanismInfo'
-                 , beta: Optional[float] = None, factor: Union[str, Callable[['MechanismInfo'], float]] = 'step'
+    def __init__(self, ufun: UtilityFunction, info: 'AgentMechanismInterface'
+                 , beta: Optional[float] = None, factor: Union[str, Callable[[
+                                                                                 'AgentMechanismInterface'], float]] = 'step'
                  , name=None, reserved_value: Optional[UtilityValue] = 0.0, dynamic_reservation=True):
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.ufun = ufun
@@ -1009,15 +1010,15 @@ class LinDiscountedUFun(UtilityFunction):
 
         ufun: The utility function that is being discounted
         cost: discount factor
-        factor: str -> The name of the MechanismInfo variable based on which discounting operate
+        factor: str -> The name of the AgentMechanismInterface variable based on which discounting operate
         callable -> must receive a mechanism info object and returns a float representing the factor
         power: A power to raise the total cost to before discounting it from the utility_function value
 
     """
 
-    def __init__(self, ufun: UtilityFunction, info: 'MechanismInfo'
+    def __init__(self, ufun: UtilityFunction, info: 'AgentMechanismInterface'
                  , cost: Optional[float] = None
-                 , factor: Union[str, Callable[['MechanismInfo'], float]] = 'step'
+                 , factor: Union[str, Callable[['AgentMechanismInterface'], float]] = 'step'
                  , power: float = 1.0
                  , name=None, reserved_value: Optional[UtilityValue] = 0.0, dynamic_reservation=True):
         super().__init__(name=name, reserved_value=reserved_value, info=info)
@@ -1071,7 +1072,7 @@ class LinDiscountedUFun(UtilityFunction):
 
 
 class ConstUFun(UtilityFunction):
-    def __init__(self, value: float, name=None, reserved_value: Optional[float] = 0.0, info: MechanismInfo=None):
+    def __init__(self, value: float, name=None, reserved_value: Optional[float] = 0.0, info: AgentMechanismInterface=None):
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.value = value
 
@@ -1087,7 +1088,7 @@ class ConstUFun(UtilityFunction):
         return str(self.value)
 
 
-def make_discounted_ufun(ufun: 'UtilityFunction', info: 'MechanismInfo'
+def make_discounted_ufun(ufun: 'UtilityFunction', info: 'AgentMechanismInterface'
                          , cost_per_round: float = None
                          , power_per_round: float = None
                          , discount_per_round: float = None
@@ -1187,7 +1188,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             MutableMapping[Any, GenericMapping], Sequence[GenericMapping]
         ],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.issue_utilities = issue_utilities
@@ -1372,7 +1373,7 @@ class MappingUtilityFunction(UtilityFunction):
 
     def __init__(
         self, mapping: OutcomeUtilityMapping, default=None, name: str = None,
-        reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
+        reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.mapping = mapping
@@ -1503,7 +1504,7 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         self,
         issue_utilities: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.issue_utilities = issue_utilities
@@ -1670,7 +1671,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         *,
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.outcome_ranges = outcome_ranges
@@ -1740,7 +1741,7 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         hypervolumes: Iterable[OutcomeRange],
         mappings: OutcomeUtilityMappings,
         f: Callable[[List[UtilityValue]], UtilityValue],
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.hypervolumes = hypervolumes
@@ -1774,7 +1775,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
 
     def __init__(self, ufuns: Iterable[UtilityFunction]
                  , weights: Optional[Iterable[float]] = None
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None):
+                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None):
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.ufuns = list(ufuns)
         if weights is None:
@@ -1829,7 +1830,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
 
     def __init__(self, ufuns: Iterable[UtilityFunction]
                  , combination_function=Callable[[Iterable[UtilityValue]], UtilityValue]
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None):
+                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None):
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
@@ -1887,7 +1888,7 @@ class IPUtilityFunction(UtilityFunction):
     def __init__(self, outcomes: Iterable['Outcome']
                  , distributions: Iterable['UtilityDistribution'] = None
                  , issue_names: Iterable[str] = None
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: MechanismInfo=None):
+                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None):
         super().__init__(name=name, reserved_value=reserved_value, info=info)
         outcomes, distributions = list(outcomes), (list(distributions) if distributions is not None else None)
         if len(outcomes) < 1:

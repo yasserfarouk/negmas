@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
-from negmas.common import MechanismState, MechanismInfo
+from negmas.common import MechanismState, AgentMechanismInterface
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
@@ -14,7 +14,7 @@ from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
 from negmas.utilities import LinearUtilityAggregationFunction, normalize
-from .common import SCMLAgent
+from .agent import SCMLAgent
 from .helpers import pos_gauss
 
 if True:
@@ -58,6 +58,24 @@ class Miner(SCMLAgent, ABC):
 class ReactiveMiner(Miner):
     """Raw Material Generator"""
 
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        return self.id
+
     def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
         pass
 
@@ -82,10 +100,9 @@ class ReactiveMiner(Miner):
             self.set_profiles(profiles=profiles)
 
     def init(self):
-        super().init()
         self.awi.register_interest(list(self.profiles.keys()))
 
-    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: MechanismInfo
+    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: AgentMechanismInterface
                                , state: MechanismState) -> None:
         # noinspection PyUnusedLocal
         cfp = annotation['cfp']
@@ -129,11 +146,9 @@ class ReactiveMiner(Miner):
                                               , dynamic_ufun=False, aspiration_type='boulware')
         else:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher)
-        negotiator.utility_function = normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None)
         self.n_neg_trials[cfp.id] += 1
-        self.request_negotiation(partners=[cfp.publisher, self.id], issues=cfp.issues, negotiator=negotiator
-                                 , annotation=self._create_annotation(cfp=cfp), extra=None
-                                 , mechanism_name='negmas.sao.SAOMechanism', roles=None)
+        self.request_negotiation(cfp=cfp, negotiator=negotiator
+                                 , ufun=normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None))
 
     def on_new_cfp(self, cfp: 'CFP'):
         if self.reactive:
@@ -142,7 +157,6 @@ class ReactiveMiner(Miner):
             self._process_cfp(cfp)
 
     def step(self):
-        super().step()
         if not self.reactive:
             cfps = self.awi.bb_query(section='cfps', query_keys=False
                                                  , query={'products': list(self.profiles.keys())})
@@ -155,7 +169,7 @@ class ReactiveMiner(Miner):
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
 
-    def on_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         raise ValueError('Miners should never receive negotiation requests as they publish no CFPs')
 
     def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:

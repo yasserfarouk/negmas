@@ -31,7 +31,7 @@ def python_name(java_class: str) -> str:
 @pytest.mark.skipif(not jnegmas_bridge_is_running(), reason='JNegMAS is not running')
 @pytest.mark.parametrize(argnames='java_class'
     , argvalues=['jnegmas.apps.scml.factory_managers.DoNothingFactoryManager',
-                 'jnegmas.apps.scml.factory_managers.MiddleMan',
+                 'jnegmas.apps.scml.factory_managers.DummyMiddleMan',
                  # 'jnegmas.apps.scml.factory_managers.GreedyFactoryManager',
                  ]
     , ids=['java do-nothing',
@@ -44,10 +44,10 @@ def test_java_factory_manager(java_class):
             super().__init__(*args, java_class_name=java_class, **kwargs)
     with jnegmas_connection(shutdown=SHUTDOWN_AFTER_EVERY_TEST):
         python_class = get_class(python_name(java_class))
-        world = SCMLWorld.single_path_world(manager_types=(JFM
+        world = SCMLWorld.chain_world(manager_types=(JFM
                                                            , GreedyFactoryManager)
-                                            , n_steps=10, agent_names_reveal_type=True
-                                            , log_file_name=f'/Users/yasser/negmas/logs/test{java_class.split(".")[-1]}.txt')
+                                      , n_steps=10, agent_names_reveal_type=True
+                                      , log_file_name=f'/Users/yasser/negmas/logs/test{java_class.split(".")[-1]}.txt')
         print('World created')
         world.run()
         pprint('World completed')
