@@ -152,7 +152,7 @@ class SCMLAgent(Agent):
         Returns:
 
         """
-        if ufun is not None:
+        if negotiator is not None and ufun is not None:
             negotiator.utility_function = ufun
         req_id = self._add_negotiation_request_info(issues=cfp.issues, partners=[self.id, cfp.publisher]
                                                     , annotation=None
