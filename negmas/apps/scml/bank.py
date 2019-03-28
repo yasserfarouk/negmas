@@ -161,7 +161,7 @@ class DefaultBank(Bank):
 
                 # pay as much as possible from the agent's wallet (which may be zero)
                 wallet = factory.wallet
-                payment = max(0, min(loan.installment, wallet))
+                payment = max(0.0, min(loan.installment, wallet))
                 loan.amount -= payment
                 factory.pay(payment)
                 factory.add_loan(-payment)

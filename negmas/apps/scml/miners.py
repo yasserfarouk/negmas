@@ -87,7 +87,7 @@ class ReactiveMiner(Miner):
         pass
 
     def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
-        pass
+        return True
 
     def on_remove_cfp(self, cfp: 'CFP'):
         pass

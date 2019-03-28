@@ -13,6 +13,7 @@ from negmas import GeniusNegotiator, load_genius_domain, load_genius_domain_from
 dom_folder = pathlib.Path(pkg_resources.resource_filename('negmas'
                                                           , resource_name='tests/data/scenarios/anac/y2010/Travel'))
 dom = dom_folder / 'travel_domain.xml'
+# noinspection SpellCheckingInspection
 util1 = dom_folder / 'travel_chox.xml'
 util2 = dom_folder / 'travel_fanny.xml'
 
