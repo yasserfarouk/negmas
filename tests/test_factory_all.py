@@ -10,13 +10,14 @@ import hypothesis.strategies as st
 import numpy as np
 import pytest
 from hypothesis import given
-from hypothesis._strategies import composite
+from hypothesis.strategies import composite
 from hypothesis.stateful import RuleBasedStateMachine, Bundle, rule
 from pytest import fixture
 
 from negmas.apps.scml import ManufacturingProfile, Product, Process, InputOutput, Job
 from negmas.apps.scml.simulators import SlowFactorySimulator, FastFactorySimulator, storage_as_array
-from negmas.apps.scml.world import Factory, NO_PRODUCTION
+from negmas.apps.scml.world import Factory
+from negmas.apps.scml.common import NO_PRODUCTION
 
 n_lines = 5
 n_levels = 4

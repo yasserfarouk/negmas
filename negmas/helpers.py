@@ -52,7 +52,8 @@ __all__ = [
     'import_by_name',
     'get_full_type_name',
     'instantiate',
-    'humanize_time'
+    'humanize_time',
+    'gmap', 'ikeys', 'Floats'
 ]
 # conveniently named classes
 

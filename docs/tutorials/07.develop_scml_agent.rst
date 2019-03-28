@@ -20,10 +20,10 @@ That is actually the ONLY abstract method you need to implement.
 
 .. code:: ipython3
 
-    from negmas.apps.scml import FactoryManager
+    from negmas.apps.scml import DoNothingFactoryManager
     import yaml
     yaml.warnings({'YAMLLoadWarning': False}) # avoid a dask warning in newest yaml.
-    class MyFactoryManager(FactoryManager):
+    class MyFactoryManager(DoNothingFactoryManager):
         """My factory manager"""
 
 As the
@@ -60,138 +60,11 @@ random sample):
 
     results.scores.head()
 
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>agent_name</th>
-          <th>agent_type</th>
-          <th>log_file</th>
-          <th>score</th>
-          <th>stats_folder</th>
-          <th>world</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>my_1_0</td>
-          <td>MyFactoryManager</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>/export/home/yasser/code/projects/negmas/noteb...</td>
-          <td>00052/20190227-0809064n34</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>greedy_2_1</td>
-          <td>GreedyFactoryManager</td>
-          <td>None</td>
-          <td>0.618758</td>
-          <td>/export/home/yasser/code/projects/negmas/noteb...</td>
-          <td>00052/20190227-0809064n34</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>my_1_2</td>
-          <td>MyFactoryManager</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>/export/home/yasser/code/projects/negmas/noteb...</td>
-          <td>00052/20190227-0809064n34</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>greedy_1_3</td>
-          <td>GreedyFactoryManager</td>
-          <td>None</td>
-          <td>0.493517</td>
-          <td>/export/home/yasser/code/projects/negmas/noteb...</td>
-          <td>00052/20190227-0809064n34</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>my_2_4</td>
-          <td>MyFactoryManager</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>/export/home/yasser/code/projects/negmas/noteb...</td>
-          <td>00052/20190227-0809064n34</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
-
 You can also check the total scores for each factory manager type:
 
 .. code:: ipython3
 
     results.total_scores
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>agent_type</th>
-          <th>score</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>GreedyFactoryManager</td>
-          <td>0.151763</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>MyFactoryManager</td>
-          <td>0.000000</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 If you want, you can check if these differences are statistically
 significant using a t-test:
@@ -199,49 +72,6 @@ significant using a t-test:
 .. code:: ipython3
 
     results.ttest
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>a</th>
-          <th>b</th>
-          <th>p</th>
-          <th>t</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>MyFactoryManager</td>
-          <td>GreedyFactoryManager</td>
-          <td>7.399829e-67</td>
-          <td>-17.857351</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
 
 So the greedy factory manager is better than the do-nothing factory
 manager getting an average profit of *15%* compared with the expected
@@ -255,26 +85,11 @@ Or, let's just find out who was the winner(s):
 
     results.winners
 
-
-
-
-.. parsed-literal::
-
-    ['GreedyFactoryManager']
-
-
-
 and what was its/their score:
 
 .. code:: ipython3
 
     print(results.winners_scores)
-
-
-.. parsed-literal::
-
-    [0.15176269]
-
 
 This information and much more is also stored in a log folder that gives
 details of every world and total scores, etc. The default location of
@@ -654,6 +469,10 @@ The agent can act by calling various methods of its ``awi`` member
 (Agent World Interface). The most important of these are:
 
 -  ``request_negotiation()`` Requests a negotiation with another partner
+-  ``register_interest()`` / ``unregister_interest`` By default the
+   agent will receive ``on_*_cfp`` callbacks only on products that its
+   factory consumes or produces. To override this behavior, you can use
+   these two methods of the ``awi``.
 -  ``register_cfp()`` / ``remove_cfp()`` Registers/removes a call for
    proposals indicating interest in buying/selling some product and
    giving the negotiation issues (e.g. deliver time, unit cost,
@@ -716,7 +535,7 @@ For more information, please refer to the following links:
    behavior of the built-in agents. This document also describes the
    specific settings of the simulator for the ANAC 2019 SCML
    competition.
--  `NegMAS library documentation <http://www.yasserm.com/negmas/>`__:
+-  `NegMAS library documentation <http://negmas.readthedocs.io>`__:
    Here, you can find complete documentation of the NegMAS library.
 -  `NegMAS Source Code on
    GitHub <https://github.com/yasserfarouk/negmas>`__: Here, you can
@@ -726,6 +545,7 @@ For more information, please refer to the following links:
    can find the official project page for the NegMAS library, and
    download the latest version (or just use pip install as described
    here). Version 0.2.0 will be compatible with the distributed version.
+
 
 
 

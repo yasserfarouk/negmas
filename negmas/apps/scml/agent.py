@@ -45,13 +45,32 @@ class SCMLAgent(Agent):
 
     @property
     def awi(self) -> 'SCMLAWI':
+        """Returns the Agent-World-Interface through which the agent does all of its actions in the world.
+
+        A single excption is request_negotiation for which it is recommended to actually call the helper method
+        on the agent itself instead of directly calling the AWI version."""
         return self._awi
 
     @awi.setter
     def awi(self, awi: 'SCMLAWI'):
+        """Sets the AWI. Not to be used by agents. Only used by the world simulation itself."""
         self._awi = awi
 
     def init_(self):
+        """The initialization function called by the world directly.
+
+        It does the following actions by default:
+
+            1. copies some of the static world settings to the agent to make them available without calling the AWI.
+            2. prepares production related properties like producing, consuming, line_profiles, compiled_profiles, etc.
+            3. registers interest in all products that the agent can produce or consume in its factory.
+            4. finally it calls any custom initialization logic implemented in `init`()
+
+        See Also:
+
+            `init`, `step`
+
+        """
         # noinspection PyUnresolvedReferences
         self.products = self.awi.products  # type: ignore
         # noinspection PyUnresolvedReferences

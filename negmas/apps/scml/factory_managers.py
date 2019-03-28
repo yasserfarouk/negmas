@@ -510,7 +510,7 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
         # hypothetical = list(contracts)
         # hypothetical.append(self._contract(agreement))
         hypothetical = [self._contract(agreement)]
-        for negotiation in self.agent._running_negotiations.values():  # type: ignore
+        for negotiation in self.agent.running_negotiations:  # type: ignore
             negotiator = negotiation.negotiator
             current_offer = negotiator.my_last_proposal
             if current_offer is not None:

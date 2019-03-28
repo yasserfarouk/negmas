@@ -22,7 +22,7 @@ from .insurance import DefaultInsuranceCompany
 from .miners import ReactiveMiner, MiningProfile, Miner
 
 __all__ = [
-    'SCMLWorld'
+    'SCMLWorld', 'Factory'
 ]
 
 

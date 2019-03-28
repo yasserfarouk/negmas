@@ -4,6 +4,7 @@ cp ./tutorials_template ./tutorials.rst
 jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst ../notebooks/overview.ipynb
 for notebook in `ls ../notebooks/tutorials/*.ipynb | sort -g` ; do
     jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst $notebook
+    jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst $notebook
     filename1=${notebook##*/}
     filename=${filename1%??????}
     echo "    tutorials/$filename" >> ./tutorials.rst

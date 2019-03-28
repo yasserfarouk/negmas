@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""The NegMAS universal command line tool"""
 
 import multiprocessing
 import os
@@ -34,6 +35,7 @@ external_path = pkg_resources.resource_filename('negmas', resource_name='externa
 
 
 def print_progress(_, i, n) -> None:
+    """Prints the progress of a tournament"""
     global n_completed, n_total
     n_completed = i + 1
     n_total = n
@@ -41,6 +43,7 @@ def print_progress(_, i, n) -> None:
 
 
 def print_world_progress(world) -> None:
+    """Prints the progress of a world"""
     step = world.current_step + 1
     s = f'World# {n_completed:04}: {step:04}  of {world.n_steps:04} ' \
         f'steps completed ({step / world.n_steps:0.2f}) '
