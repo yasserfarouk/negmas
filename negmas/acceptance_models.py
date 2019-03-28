@@ -171,7 +171,7 @@ class PeekingAcceptanceModel(AcceptanceModel):
             if opponent._mechanism_info is None:
                 response = ResponseType.REJECT_OFFER
             else:
-                response = opponent.respond_(state=opponent._mechanism_info.state, offer=outcome)
+                response = opponent.respond(state=opponent._mechanism_info.state, offer=outcome)
             if response != ResponseType.ACCEPT_OFFER:
                 return 0.0
         return 1.0
@@ -196,7 +196,7 @@ class PeekingProbabilisticAcceptanceModel(AcceptanceModel):
             return 0.0
         prod = 1.0
         for o in self.opponents:
-            prod *= o.ufun(outcome) # type: ignore
+            prod *= o.utility_function(outcome) # type: ignore
         return prod
 
     def update_rejected_indx(self, outcome_index: int):

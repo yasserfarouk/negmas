@@ -494,7 +494,7 @@ class GeniusNegotiator(SAONegotiator):
             , self.utility_file_name  # Negotiator file
         )
 
-    def propose_(self, state: MechanismState) -> 'Outcome':
+    def propose(self, state: MechanismState) -> 'Outcome':
         if not self.capabilities['propose']:
             return None
         if self._my_last_offer is None:  # never responded before
@@ -509,7 +509,7 @@ class GeniusNegotiator(SAONegotiator):
         self._my_last_offer = None
         return tmp
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         action = self.java.choose_action(self.java_uuid)
         response, self._my_last_offer = self.parse(action)
         return response

@@ -158,8 +158,8 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory():
     #     print(f'{key}:{world.stats[key]}')
     assert world.stats['n_negotiations'][0] >= n_steps - 1, "at least n negotiations occur where n is the number of " \
                                                             "steps - 1"
-    assert world.stats['n_negotiations'][1:] == [0] * (len(world.stats['n_negotiations']) - 1), "All negotiations " \
-                                                                                                "happen in step 0"
+    assert world.stats['n_negotiations'][2:] == [0] * (len(world.stats['n_negotiations']) - 2), "All negotiations " \
+                                                                                                "happen in steps 0, 1"
     assert sum(world.stats['n_contracts_concluded']) >= sum(world.stats['n_contracts_signed']), "some contracts signed"
     assert sum(world.stats['n_breaches']) == 0, "No breaches"
     assert sum(world.stats['market_size']) == 0, "No change in the market size"
