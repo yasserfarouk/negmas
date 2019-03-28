@@ -27,7 +27,7 @@ setup(
     name='negmas',  # Required
     # https://www.python.org/dev/peps/pep-0440/
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.1.37',  # Required
+    version='0.1.38',  # Required
     # https://packaging.python.org/specifications/core-metadata/#summary
     description="NEGotiations Managed by Agent Simulations",  # Required
     # https://packaging.python.org/specifications/core-metadata/#description-optional
