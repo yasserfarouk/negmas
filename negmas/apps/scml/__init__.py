@@ -98,6 +98,7 @@ from .consumers import *
 from .miners import *
 from . import utils
 from . import helpers
+from . import java
 
 __all__ = common.__all__ + awi.__all__ + factory_managers.__all__ + bank.__all__ + insurance.__all__ \
           + agent.__all__ \
