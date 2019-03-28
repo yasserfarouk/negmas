@@ -185,6 +185,18 @@ class BreachProcessing(Enum):
 
 @dataclass
 class RenegotiationRequest:
+    """A request for renegotiation.
+
+    The issues can be any or all of the following:
+
+    immediate_delivery: int
+    immediate_unit_price: float
+    later_quantity: int
+    later_unit_price: int
+    later_penalty: float
+    later_time: int
+
+    """
     publisher: 'Agent'
     issues: List[Issue]
     annotation: Dict[str, Any] = field(default_factory=dict)
@@ -817,6 +829,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
+        self.__n_contracts_cancelled = 0
         self._saved_contracts: Dict[str, Dict[str, Any]] = {}
         self._saved_negotiations: Dict[str, Dict[str, Any]] = {}
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
@@ -902,6 +915,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         return self.n_steps - self.current_step
 
     def _register_breach(self, breach: Breach) -> None:
+        # we do not report breachs with no victims
+        if breach.victims is None or len(breach.victims) < 1:
+            return
         self.bulletin_board.record(section='breaches', key=breach.id, value=self._breach_record(breach))
 
     @property
@@ -956,14 +972,17 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         # this is done first to allow these contracts to be executed immediately
         unsigned = self.unsigned_contracts.get(self.current_step, None)
         signed = []
+        cancelled = []
         if unsigned:
             for contract in unsigned:
                 if self._sign_contract(contract=contract):
                     signed.append(contract)
                 else:
-                    n_cancelled += 1
+                    cancelled.append(contract)
             for contract in signed:
                 self.on_contract_signed(contract=contract)
+            for contract in cancelled:
+                self.on_contract_cancelled(contract=contract)
 
         # run all negotiations before the simulation step if that is the meeting strategy
         # --------------------------------------------------------------------------------
@@ -1008,9 +1027,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                             self._saved_breaches[b.id] = b.as_dict()
                 current_contracts = [_[0] for _ in breached_contracts]
             for contract, contract_breaches in breached_contracts:
-                resolved = self._process_breach(contract, list(contract_breaches))
-                n_new_breaches += 1 - int(resolved)
-                self._complete_contract_execution(contract, list(contract_breaches), resolved)
+                resolution = self._process_breach(contract, list(contract_breaches))
+                n_new_breaches += 1 - int(resolution is not None)
+                self._complete_contract_execution(contract, list(contract_breaches), resolution)
 
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
@@ -1033,7 +1052,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         # ------------
         n_total_contracts = n_new_contract_executions + n_new_breaches
         self._stats['n_contracts_executed'].append(n_new_contract_executions)
-        self._stats['n_contracts_cancelled'].append(n_cancelled)
+        self._stats['n_contracts_cancelled'].append(self.__n_contracts_cancelled)
         self._stats['n_breaches'].append(n_new_breaches)
         self._stats['breach_level'].append(n_new_breaches / n_total_contracts
                                            if n_total_contracts > 0 else np.nan)
@@ -1046,6 +1065,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
+        self.__n_contracts_cancelled = 0
         self.current_step += 1
 
         # always indicate that the simulation is to continue
@@ -1256,22 +1276,23 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             signed_at=signed_at,
             mechanism_state=mechanism.state
         )
-        self.on_contract_concluded(contract, to_be_signed_at=self.current_step + signing_delay)
+        if not force_signature_now:
+            self.on_contract_concluded(contract, to_be_signed_at=self.current_step + signing_delay)
         for partner in partners:
             partner.on_negotiation_success_(contract=contract, mechanism=mechanism)
         if signing_delay == 0:
             signed = self._sign_contract(contract)
-            if signed:
+            if signed and not force_signature_now:
                 self.on_contract_signed(contract=contract)
-
             sign_status = "signed" if signed else "cancelled"
         else:
             sign_status = f"to be signed at {contract.to_be_signed_at}"
+            self.on_contract_cancelled(contract=contract)
         if negotiation.annotation is not None:
             annot_ = dict(zip(negotiation.annotation.keys(), (str(_) for _ in negotiation.annotation.values())))
         else:
             annot_ = ''
-        self.logdebug(f'Contract [{sign_status}]: {[_.name for _ in partners]}'
+        self.logdebug(f'Contract<{"immediate-signature-forced" if force_signature_now else ""}> [{sign_status}]: {[_.name for _ in partners]}'
                       f' > {str(mechanism.state.agreement)} on annotation {annot_}')
         return contract
 
@@ -1342,6 +1363,28 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             self._saved_contracts[contract.id] = record
         else:
             del self._saved_contracts[contract.id]
+
+    def on_contract_cancelled(self, contract):
+        """Called whenever a concluded contract is not signed (cancelled)
+
+                Args:
+
+                    contract: The contract to add
+
+                Remarks:
+
+                    - By default this function just adds the contract to the set of contracts maintaned by the world.
+                    - You should ALWAYS call this function when overriding it.
+
+        """
+        self.__n_contracts_cancelled += 1
+        unsigned = self.unsigned_contracts.get(self.current_step, None)
+        if unsigned is None:
+            return
+        try:
+            unsigned.remove(contract)
+        except KeyError:
+            pass
 
     @property
     def saved_contracts(self) -> List[Dict[str, Any]]:
@@ -1423,22 +1466,22 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         return set()
 
     @abstractmethod
-    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolved: bool) -> None:
+    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolution: Contract) -> None:
         """
         Called after breach resolution is completed for contracts for which some potential breaches occurred.
 
         Args:
             contract: The contract considered.
             breaches: The list of potential breaches that was generated by `_execute_contract`.
-            resolved: Whether the breaches were resolved.
+            resolution: The agreed upon resolution
 
         Returns:
 
         """
 
     def _process_breach(self, contract: Contract, breaches: List[Breach]
-                        , force_immediate_signing=True) -> bool:
-        resolved = False
+                        , force_immediate_signing=True) -> Optional[Contract]:
+        contract = None
 
         # calculate total breach level
         total_breach_levels = defaultdict(int)
@@ -1467,23 +1510,22 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                     contract, mechanism = results
                     self._register_contract(mechanism=mechanism, negotiation=None
                                             , force_signature_now=force_immediate_signing)
-                    resolved = True
                     break
 
-        if resolved:
+        if contract is not None:
             for breach in breaches:
                 if self.save_resolved_breaches:
                     self._saved_breaches[breach.id]['resolved'] = True
                 else:
                     del self._saved_breaches[breach.id]
-            return True
+            return contract
         for breach in breaches:
             if self.save_unresolved_breaches:
                 self._saved_breaches[breach.id]['resolved'] = False
             else:
                 del self._saved_breaches[breach.id]
             self._register_breach(breach)
-        return False
+        return None
 
     @abstractmethod
     def execute(self, action: Action, agent: 'Agent', callback: Callable = None) -> bool:
@@ -1529,6 +1571,8 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         Returns:
 
         """
+
+
 
 
 RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])
