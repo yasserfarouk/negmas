@@ -10,12 +10,12 @@ import numpy as np
 
 from negmas import AgentMechanismInterface
 from negmas.events import Event, EventSource
-from negmas.helpers import snake_case, instantiate, unique_name
+from negmas.helpers import instantiate, unique_name
 from negmas.outcomes import Issue
-from negmas.situated import AgentWorldInterface, World, Breach, Action, BreachProcessing, Contract, Agent
+from negmas.situated import World, Breach, Action, BreachProcessing, Contract, Agent
+from .agent import SCMLAgent
 from .bank import DefaultBank
 from .common import *
-from .agent import SCMLAgent
 from .consumers import ScheduleDrivenConsumer, ConsumptionProfile, Consumer
 from .factory_managers import GreedyFactoryManager, FactoryManager
 from .insurance import DefaultInsuranceCompany
@@ -145,6 +145,7 @@ class SCMLWorld(World):
                          , neg_step_time_limit=neg_step_time_limit
                          , mechanisms={'negmas.sao.SAOMechanism': {}}
                          , name=name)
+        self.agents: Dict[str, SCMLAgent] = {}  # just to help static type checkers
         if balance_at_max_interest is None:
             balance_at_max_interest = initial_wallet_balances
         self.strip_annotations = strip_annotations
@@ -205,7 +206,8 @@ class SCMLWorld(World):
 
         self.f2a: Dict[str, SCMLAgent] = {}
         self.a2f: Dict[str, Factory] = {}
-        assert len(self.factories) == len(self.factory_managers), f'{len(self.factories)} factories and {len(self.factory_managers)} managers'
+        assert len(self.factories) == len(self.factory_managers), \
+            f'{len(self.factories)} factories and {len(self.factory_managers)} managers'
         for factory, agent in zip(self.factories, self.factory_managers):
             self.f2a[factory.id] = agent
             self.a2f[agent.id] = factory
@@ -365,12 +367,13 @@ class SCMLWorld(World):
             return x if x is not None else 0
 
         for level in range(n_intermediate_levels + 1):
-            new_product = Product(name=f'p{level + 1}', catalog_price=None # keep this to the world to calculate _s(products[-1].catalog_price) + level + 1
+            new_product = Product(name=f'p{level + 1}', catalog_price=None
+                                  # keep this to the world to calculate _s(products[-1].catalog_price) + level + 1
                                   , production_level=level + 1, id=level + 1, expires_in=0)
             p = Process(name=f'p{level + 1}', inputs=[InputOutput(product=level, quantity=1, step=0.0)]
                         , production_level=level + 1
                         , outputs=[InputOutput(product=level + 1, quantity=1, step=1.0)]
-                        , historical_cost= None # keep this to the world to calculate level + 1
+                        , historical_cost=None  # keep this to the world to calculate level + 1
                         , id=level)
             processes.append(p)
             products.append(new_product)
@@ -806,7 +809,8 @@ class SCMLWorld(World):
         if not isinstance(agent, FactoryManager):
             if callback is not None:
                 callback(action, False)
-            self.logerror(f'{str(action)} received from {agent.id} which is {agent.__class__.__name__} not a FactoryManager')
+            self.logerror(
+                f'{str(action)} received from {agent.id} which is {agent.__class__.__name__} not a FactoryManager')
             return False
         line, profile_index = action.params.get('line', None), action.params.get('profile', None)
         t = action.params.get('time', None)
@@ -877,10 +881,10 @@ class SCMLWorld(World):
                 except ArithmeticError:
                     inventory = None
                 report = FinancialReport(agent=agent.id, step=self.current_step
-                                                    , cash=factory.wallet
-                                                    , liabilities=factory.loans
-                                                    , inventory=inventory
-                                                    , credit_rating=self.bank.credit_rating.get(agent.id, 1))
+                                         , cash=factory.wallet
+                                         , liabilities=factory.loans
+                                         , inventory=inventory
+                                         , credit_rating=self.bank.credit_rating.get(agent.id, 1))
                 if reports_agent.get(agent.id, None) is None:
                     reports_agent[agent.id] = []
                 reports_agent[agent.id].append(report)
@@ -970,9 +974,7 @@ class SCMLWorld(World):
         self._stats['_market_size_total'].append(market_size + internal_market_size)
 
     def _execute_contract(self, contract: Contract) -> Set[Breach]:
-        super()._execute_contract(contract=contract)
-        partners: Set[SCMLAgent]
-        cfp: CFP
+
         partners, agreement = set(self.agents[_] for _ in contract.partners), contract.agreement
         cfp = contract.annotation['cfp']  # type: ignore
         breaches = set()
@@ -985,6 +987,7 @@ class SCMLWorld(World):
             penalty_victim = penalty_victim if penalty_victim is not None else 0.0
             penalty_victim += self.breach_penalty_victim if self.breach_penalty_victim is not None else 0.0
         penalty_society = self.breach_penalty_society
+        penalty_value = 0.0
 
         # ask each partner to confirm the execution
         for partner in partners:
@@ -1000,8 +1003,6 @@ class SCMLWorld(World):
         # all partners agreed to execute the agreement -> execute it.
         pind = cfp.product
         buyer_id, seller_id = contract.annotation['buyer'], contract.annotation['seller']
-        seller: SCMLAgent
-        buyer: SCMLAgent
         buyer, seller = self.agents[buyer_id], self.agents[seller_id]
         seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
         product_breach, money_breach, penalty_breach_victim, penalty_breach_society = None, None, None, None
@@ -1070,7 +1071,8 @@ class SCMLWorld(World):
                         penalty_breach_society = missing_quantity_unpaid_for / quantity
 
                 # actually pay the payable amount
-                self.logdebug(f'Penalty: {seller.name} paid {paid_penalties} to {buyer.name if is_victim else "society"}')
+                self.logdebug(
+                    f'Penalty: {seller.name} paid {paid_penalties} to {buyer.name if is_victim else "society"}')
                 seller_factory.pay(paid_penalties)
                 if is_victim:
                     buyer_factory.receive(paid_penalties)
@@ -1088,12 +1090,13 @@ class SCMLWorld(World):
 
         # pay penalties if there are any. Notice that penalties apply only to to seller. It makes no sense to have a
         # penalty on the buyer who already have no money to pay the contract value anyway.
+
         if penalty_breach_society is not None:
             breaches.add(Breach(contract=contract, perpetrator=seller.id, victims=[]
                                 , level=penalty_breach_society, type='penalty_society', step=self.current_step))
         if penalty_breach_victim is not None:
             breaches.add(Breach(contract=contract, perpetrator=seller.id, victims=[buyer.id]
-                                , level=penalty_breach_victim, type='penalty_society', step=self.current_step))
+                                , level=penalty_breach_victim, type='penalty', step=self.current_step))
 
         # check the buyer
         available_money = buyer_factory.wallet if not isinstance(buyer, Consumer) else money
@@ -1108,14 +1111,131 @@ class SCMLWorld(World):
         if missing_money > 0.0:
             money_breach = missing_money / money
 
-        insured_quantity, insured_quantity_cost = 0, 0.0
-        insured_money, insured_money_quantity = 0.0, 0
-
         if product_breach is not None:
-            # apply insurances if they exist
             # register the breach independent of insurance
             breaches.add(Breach(contract=contract, perpetrator=seller.id, victims=[buyer.id]
                                 , level=product_breach, type='product', step=self.current_step))
+
+        if money_breach is not None:
+            # register the breach independent of insurance
+            breaches.add(Breach(contract=contract, perpetrator=buyer.id, victims=[seller.id]
+                                , level=money_breach, type='money', step=self.current_step))
+
+        return breaches
+
+    def _move_product(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
+        """Moves as much product and money between the buyer and seller"""
+        seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
+        if quantity > 0:
+            seller_factory.transport_from(product_id, quantity)
+            if self.transportation_delay < 1:
+                buyer_factory.transport_to(product_id, quantity)
+            else:
+                self._transport[self.current_step + self.transportation_delay].append(
+                    (buyer, product_id, quantity))
+        if money > 0:
+            buyer_factory.pay(money)
+            if self.transfer_delay < 1:
+                seller_factory.receive(money)
+            else:
+                self._transfer[self.current_step + self.transfer_delay].append((seller, money))
+        self.logdebug(f'Moved {quantity} units of {self.products[product_id].name} from {seller.name} to {buyer.name} '
+                      f'for {money} dollars')
+
+    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]):
+        """The resolution can either be None or a contract with the following items:
+
+        The issues can be any or all of the following:
+
+        immediate_quantity: int
+        immediate_unit_price: float
+        later_quantity: int
+        later_unit_price: int
+        later_penalty: float
+        later_time: int
+
+        """
+        partners, agreement = set(self.agents[_] for _ in contract.partners), contract.agreement
+        cfp = contract.annotation['cfp']  # type: ignore
+        breaches = set()
+        quantity, unit_price = agreement['quantity'], agreement['unit_price']
+        penalty_victim = agreement.get('penalty', None)
+        if penalty_victim is not None and self.breach_penalty_victim is not None:
+            # there is a defined penalty, find its value
+            penalty_victim = penalty_victim if penalty_victim is not None else 0.0
+            penalty_victim += self.breach_penalty_victim if self.breach_penalty_victim is not None else 0.0
+        penalty_society = self.breach_penalty_society
+
+        pind = cfp.product
+        buyer_id, seller_id = contract.annotation['buyer'], contract.annotation['seller']
+        buyer, seller = self.agents[buyer_id], self.agents[seller_id]
+        seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
+        product_breach, money_breach, penalty_breach_victim, penalty_breach_society = None, None, None, None
+
+        if resolution is None:
+            for breach in breaches:
+                if breach.type == 'product':
+                    product_breach = breach.level
+                elif breach.type == 'money':
+                    money_breach = breach.level
+                elif breach.type == 'penalty':
+                    penalty_breach_victim = breach.level
+                elif breach.type == 'penalty_society':
+                    penalty_breach_society = breach.level
+        else:
+            quantity = resolution.agreement.get('immediate_quantity', quantity)
+            unit_price = resolution.agreement.get('immediate_unit_price', unit_price)
+            # make and register new contract
+            contract.annotation['renegotiation'] = True
+            future_agreement = {
+                'time': agreement.get('later_time', -1)
+                , 'penalty': agreement.get('later_penalty', -1)
+                , 'quantity': agreement.get('later_quantity', None)
+                , 'unit_price': agreement.get('later_unit_price', 0.0)
+            }
+            new_contract = Contract(
+                partners=contract.partners,
+                annotation=contract.annotation,
+                issues=contract.issues,
+                agreement=SCMLAgreement(**future_agreement),
+                concluded_at=self.current_step,
+                to_be_signed_at=self.current_step,
+                signed_at=self.current_step,
+                mechanism_state=None,
+                signatures=contract.partners,
+            )
+            self.on_contract_concluded(new_contract, to_be_signed_at=self.current_step)
+            self.on_contract_signed(contract=new_contract)
+            for partner in partners:
+                partner.on_contract_signed_(contract=new_contract)
+
+        money = unit_price * quantity
+
+        # check the seller
+        available_quantity = seller_factory.storage.get(pind, 0) if not isinstance(seller, Miner) else quantity
+        missing_quantity = max(0, quantity - available_quantity)
+
+        # check the buyer
+        available_money = buyer_factory.wallet if not isinstance(buyer, Consumer) else money
+        missing_money = max(0.0, money - available_money)
+
+        if missing_money > 0.0:
+            money_breach = missing_money / money
+
+        insured_quantity, insured_quantity_cost = 0, 0.0
+        insured_money, insured_money_quantity = 0.0, 0
+
+        # confirm partial execution
+        perpetrators = set([b.perpetrator for b in breaches])
+        victims = set()
+        if 0 < len(perpetrators) < len(partners):
+            victims = set(partners) - set(perpetrators)
+        execute = all(victim.confirm_partial_execution(contract=contract, breaches=list(breaches))
+                      for victim in victims) if len(victims) > 0 else True
+
+        if product_breach is not None and resolution is None:
+            # apply insurances if they exist
+            # register the breach independent of insurance
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=seller):
                 # if the buyer has an insurance against the seller for this contract, then just give him the missing
                 #  quantity and proceed as if the contract was for the remaining quantity. Notice that the breach on the
@@ -1143,10 +1263,8 @@ class SCMLWorld(World):
             quantity -= insured_quantity
             money -= insured_quantity * unit_price
 
-        if money_breach is not None:
+        if money_breach is not None and resolution is None:
             # apply insurances if they exist.
-            breaches.add(Breach(contract=contract, perpetrator=buyer.id, victims=[seller.id]
-                                , level=money_breach, type='money', step=self.current_step))
             if self.insurance_company.pay_insurance(contract=contract, perpetrator=buyer):
                 # if the seller has an insurance against the buyer for this contract, then just give him the missing
                 #  money and proceed as if the contract was for the remaining amount. Notice that the breach on the
@@ -1167,11 +1285,6 @@ class SCMLWorld(World):
             missing_money -= insured_money
             quantity -= insured_money_quantity
 
-        if len(breaches) > 0:
-            self.logdebug(f'Contract {contract.id} has {len(breaches)} breaches:')
-            for breach in breaches:
-                self.logdebug(f'{str(breach)}')
-
         # missing quantity/money is now fully handled. Just remove them from the contract and execute the rest
         quantity -= missing_quantity + (int(missing_money / unit_price) if unit_price != 0.0 else 0.0)
         money -= missing_money + missing_quantity * unit_price
@@ -1189,42 +1302,12 @@ class SCMLWorld(World):
         #     quantity = int(math.floor(money / unit_price))
 
         if money > 0 or quantity > 0:
-            perpetrators = set([b.perpetrator for b in breaches])
-            execute = True
-            victims = {}
-            if 0 < len(perpetrators) < len(partners):
-                victims = set(partners) - set(perpetrators)
-                execute = all(victim.confirm_partial_execution(contract=contract, breaches=list(breaches))
-                              for victim in victims)
             if execute:
                 self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
             else:
                 self.logdebug(f'Contract {contract.id}: one of {[_.id for _ in victims]} refused partial execution.')
         else:
             self.logdebug(f'Contract {contract.id} has no transfers')
-        return breaches
-
-    def _move_product(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
-        """Moves as much product and money between the buyer and seller"""
-        seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
-        if quantity > 0:
-            seller_factory.transport_from(product_id, quantity)
-            if self.transportation_delay < 1:
-                buyer_factory.transport_to(product_id, quantity)
-            else:
-                self._transport[self.current_step + self.transportation_delay].append(
-                    (buyer, product_id, quantity))
-        if money > 0:
-            buyer_factory.pay(money)
-            if self.transfer_delay < 1:
-                seller_factory.receive(money)
-            else:
-                self._transfer[self.current_step + self.transfer_delay].append((seller, money))
-        self.logdebug(f'Moved {quantity} units of {self.products[product_id].name} from {seller.name} to {buyer.name} '
-                      f'for {money} dollars')
-
-    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolved: bool):
-        pass
 
     def _move_product_force(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
         """Moves as much product and money between the buyer and seller"""
@@ -1305,7 +1388,8 @@ class SCMLWorld(World):
                         , roles: Collection[str] = None
                         , annotation: Optional[Dict[str, Any]] = None
                         , mechanism_name: str = None
-                        , mechanism_params: Dict[str, Any] = None) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
+                        , mechanism_params: Dict[str, Any] = None) -> Optional[
+        Tuple[Contract, AgentMechanismInterface]]:
         annotation = self._process_annotation(annotation)
         return super().run_negotiation(caller=caller, issues=issues, annotation=annotation
                                        , partners=partners, roles=roles
@@ -1456,4 +1540,6 @@ class SCMLWorld(World):
         """Fraction of signed contracts that led to breaches"""
         n_breaches = sum(self.stats['n_breaches'])
         n_contracts = len(self._saved_contracts)
-        return n_breaches / n_contracts if n_contracts else np.nan
+        if n_contracts != 0:
+            return n_breaches / n_contracts
+        return np.nan
