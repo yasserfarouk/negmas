@@ -53,6 +53,7 @@ typing-extensions = "*"
 docopt =  { version = "*", optional = true }
 docutils =  { version = "*", optional = true }
 Sphinx =  { version = "*", optional = true }
+sphinx =  { version = "*", optional = true }
 sphinx-autodoc-annotation =  { version = "*", optional = true }
 sphinx-autodoc-typehints =  { version = "*", optional = true }
 sphinx-automodapi =  { version = "*", optional = true }
@@ -95,7 +96,7 @@ negmas = 'negmas.scripts.app:cli'
 dask = [
     "distributed"
 ]
-doc = ["docopt", "docutils", "Sphinx", "sphinx-autodoc-annotation", "sphinx-autodoc-typehints", "sphinx-automodapi",
+doc = ["docopt", "docutils", "sphinx", "Sphinx", "sphinx-autodoc-annotation", "sphinx-autodoc-typehints", "sphinx-automodapi",
        "sphinx-rtd-theme", "sphinxcontrib-fulltoc", "sphinxcontrib-napoleon", "sphinxcontrib-websupport",
        "sphinxtesters", "ipykernel", "ipython", "ipython-genutils", "ipywidgets", "jupyter", "jupyter-client",
        "jupyter-console", "jupyter-contrib-core", "jupyter-contrib-nbextensions", "jupyter-core",

@@ -1,4 +1,5 @@
 import random
+import time
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Any, Callable, Type
@@ -149,7 +150,14 @@ class SAOMechanism(Mechanism):
                 # (the ultimatum scenario) or not.
                 responses = []
                 for neg in negotiators:
+                    strt = time.perf_counter()
                     resp = neg.counter(state=self.state, offer=None)
+                    if self.info.step_time_limit is not None and time.perf_counter() - strt > self.info.step_time_limit:
+                        return MechanismRoundResult(broken=False, timedout=True, agreement=None)
+                    for other in self.negotiators:
+                        if other is not neg:
+                            other.on_partner_response(state=self.state, agent_id=neg.id
+                                                      , outcome=None, response=resp)
                     if resp.response == ResponseType.END_NEGOTIATION or \
                         resp.response == ResponseType.NO_RESPONSE or (resp.outcome is None and neg.capabilities.get('propose', False)):
                         return MechanismRoundResult(broken=True, timedout=False, agreement=None)
@@ -159,7 +167,14 @@ class SAOMechanism(Mechanism):
             else:
                 # when there is no risk of ultimatum (n_steps is not known), we just take one first offer.
                 neg = negotiators[self._first_proposer]
+                strt = time.perf_counter()
                 resp = neg.counter(state=self.state, offer=None)
+                if self.info.step_time_limit is not None and time.perf_counter() - strt > self.info.step_time_limit:
+                        return MechanismRoundResult(broken=False, timedout=True, agreement=None)
+                for other in self.negotiators:
+                    if other is not neg:
+                        other.on_partner_response(state=self.state, agent_id=neg.id
+                                                  , outcome=None, response=resp)
                 if resp.response == ResponseType.END_NEGOTIATION or \
                     resp.response == ResponseType.NO_RESPONSE or resp.outcome is None:
                     return MechanismRoundResult(broken=True, timedout=False, agreement=None)
@@ -171,13 +186,16 @@ class SAOMechanism(Mechanism):
         # this is not the first round. A round will get n_negotiators steps
         ordered_negotiators = [negotiators[(_ + self._first_proposer + 1) % n_negotiators] for _ in range(n_negotiators)]
         for neg in ordered_negotiators:
-            resp = neg.counter(state=self.state, offer=self._current_offer)
-            if resp.response == ResponseType.NO_RESPONSE:
-                continue
+            strt = time.perf_counter()
+            resp = neg.counter(state=self.state, offer=self._current_offer)            
+            if self.info.step_time_limit is not None and time.perf_counter() - strt > self.info.step_time_limit:
+                        return MechanismRoundResult(broken=False, timedout=True, agreement=None)
             for other in self.negotiators:
                 if other is not neg:
                     other.on_partner_response(state=self.state, agent_id=neg.id, outcome=self._current_offer
                                               , response=resp)
+            if resp.response == ResponseType.NO_RESPONSE:
+                continue
             if resp.response == ResponseType.END_NEGOTIATION:
                 return MechanismRoundResult(broken=True, timedout=False, agreement=None)
             if resp.response == ResponseType.ACCEPT_OFFER:

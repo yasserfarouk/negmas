@@ -11,7 +11,7 @@ from ...negotiators import Negotiator
 from ...outcomes import Issue
 from ...situated import Agent
 from ...situated import Contract, Breach
-from .common import ManufacturingProfileCompiled, ProductManufacturingInfo, Process, Product, Loan, CFP
+from .common import ManufacturingProfileCompiled, ProductManufacturingInfo, Process, Product, Loan, CFP, FinancialReport
 
 if TYPE_CHECKING:
     from .awi import SCMLAWI
@@ -200,3 +200,10 @@ class SCMLAgent(Agent):
     @abstractmethod
     def on_remove_cfp(self, cfp: 'CFP'):
         """Called when a new CFP for a product for which the agent registered interest is removed"""
+
+    @abstractmethod
+    def on_new_report(self, report: FinancialReport):
+        """Called whenever a financial report is published.
+
+        Agents must opt-in to receive these calls by calling `receive_financial_reports` on their AWI
+        """

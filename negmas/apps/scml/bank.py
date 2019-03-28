@@ -63,10 +63,13 @@ class DefaultBank(Bank):
 
     def __init__(self, minimum_balance: float, interest_rate: float
                  , interest_max: float, balance_at_max_interest: float, installment_interest: float
-                 , time_increment: float, a2f: Dict[str, Factory], name: str = None):
+                 , time_increment: float, a2f: Dict[str, Factory]
+                 , disabled: bool = False
+                 , name: str = None):
         super().__init__(name=name)
         self.storage: Dict[int, int] = defaultdict(int)
         self.wallet: float = 0.0
+        self.disabled = disabled
         self.loans: Dict[SCMLAgent, List[Loan]] = defaultdict(list)
         self.minimum_balance = minimum_balance
         self.interest_rate = interest_rate
@@ -87,6 +90,8 @@ class DefaultBank(Bank):
     def _evaluate_loan(self, agent: 'SCMLAgent', amount: float, n_installments: int, starts_at: int
                        , installment_loan=False) -> Optional[Loan]:
         """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
+        if self.disabled:
+            return None
         factory = self.a2f[agent.id]
         balance = factory.balance
 
@@ -107,10 +112,14 @@ class DefaultBank(Bank):
 
     def evaluate_loan(self, agent: 'SCMLAgent', amount: float, start_at: int, n_installments: int) -> Optional[Loan]:
         """Evaluates the interest that will be imposed on the agent to buy_loan that amount"""
+        if self.disabled:
+            return None
         return self._evaluate_loan(agent=agent, amount=amount, n_installments=n_installments, installment_loan=False
                                    , starts_at=start_at)
 
     def _buy_loan(self, agent: 'SCMLAgent', loan: Loan, force=False) -> Optional[Loan]:
+        if self.disabled:
+            return None
         if loan is None:
             return loan
         factory = self.a2f[agent.id]
@@ -125,6 +134,8 @@ class DefaultBank(Bank):
     def buy_loan(self, agent: 'SCMLAgent', amount: float, n_installments: int
                  , force: bool = False) -> Optional[Loan]:
         """Gives a loan of amount to agent at the interest calculated using `evaluate_loan`"""
+        if self.disabled:
+            return None
         loan = self.evaluate_loan(amount=amount, agent=agent, n_installments=n_installments
                                   , start_at=self.awi.current_step)
         return self._buy_loan(agent=agent, loan=loan, force=force)
@@ -133,6 +144,8 @@ class DefaultBank(Bank):
         """Takes payments from agents"""
         # apply interests and pay loans
         # -----------------------------
+        if self.disabled:
+            return
         t = self.awi.current_step
         delayed_payments = 0.0
         # for every agent with loans

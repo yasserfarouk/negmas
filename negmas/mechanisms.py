@@ -1,7 +1,4 @@
 """Provides interfaces for defining negotiation mechanisms.
-
-
-
 """
 import itertools
 import math

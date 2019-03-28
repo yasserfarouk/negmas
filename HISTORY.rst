@@ -1,6 +1,14 @@
 History
 =======
 
+Release 0.1.40
+--------------
+
+* documentation update
+* implementing bank and insurance company disable/enable switches
+* implementing financial reports
+* implementing checks for bankruptcy in all built-in agents in SCML
+* implementing round timeout in SAOMechanism
 
 Release 0.1.33
 --------------

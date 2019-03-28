@@ -1,22 +1,12 @@
 Helper Modules
 ===============
+    This part of the documentation describes helper modules.
 
-.. automodapi:: negmas.common
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.generics
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.helpers
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.inout
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.java
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.tournaments
-      :members:
-      :show-inheritance:
+.. toctree::
+
+    modules/helpers
+    modules/inout
+    modules/java
+    modules/tournaments
+
 

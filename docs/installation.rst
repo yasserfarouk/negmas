@@ -47,7 +47,7 @@ Latest Commit
 
 To installing the latest commit of negmas from github, you can run this command in your terminal::
 
-$ pip install git+https://github.com/yasserfarouk/negmas
+    $ pip install git+https://github.com/yasserfarouk/negmas
 
 Please note that this may not be a stable version. As always make sure that you are running the command within the
 correct virtual environment.

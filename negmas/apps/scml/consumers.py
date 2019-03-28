@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from numpy.random import dirichlet
 
 from negmas import AgentMechanismInterface, MechanismState
+from negmas.apps.scml import FinancialReport
 from negmas.events import Notification
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
@@ -90,6 +91,9 @@ class Consumer(SCMLAgent, ABC):
 
 class ScheduleDrivenConsumer(Consumer):
     """Consumer class"""
+
+    def on_new_report(self, report: FinancialReport):
+        pass
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
         pass
@@ -204,6 +208,8 @@ class ScheduleDrivenConsumer(Consumer):
         return math.exp(result)
 
     def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+        if self.awi.is_bankrupt(partner):
+            return None
         profile = self.profiles[cfp.product]
         if profile.cv == 0:
             alpha_u, alpha_q = profile.alpha_u, profile.alpha_q

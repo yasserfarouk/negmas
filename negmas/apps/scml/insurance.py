@@ -59,10 +59,11 @@ class DefaultInsuranceCompany(InsuranceCompany):
     """Represents an insurance company in the world"""
 
     def __init__(self, premium: float, premium_breach_increment: float, premium_time_increment: float
-                 , a2f: Dict[str, Factory], name: str = None):
+                 , a2f: Dict[str, Factory], disabled=False, name: str = None):
         super().__init__(name=name)
         self.premium_breach_increment = premium_breach_increment
         self.premium = premium
+        self.disabled = disabled
         self.premium_time_increment = premium_time_increment
         self.insured_contracts: Dict[Tuple[Contract, str], InsurancePolicy] = dict()
         self.storage: Dict[int, int] = defaultdict(int)
@@ -90,7 +91,8 @@ class DefaultInsuranceCompany(InsuranceCompany):
             insured: The `SCMLAgent` to buy the insurance
             t: time at which the policy is to be bought. If None, it means current step
         """
-
+        if self.disabled:
+            return None
         # fail if no premium
         if self.premium is None:
             return None
@@ -123,6 +125,8 @@ class DefaultInsuranceCompany(InsuranceCompany):
         Remarks:
             The agent can call `evaluate_insurance` to find the premium that will be used.
         """
+        if self.disabled:
+            return None
         premium = self.evaluate_insurance(contract=contract, t=self.awi.current_step, insured=insured, against=against)
         factory = self.a2f[insured.id]
         if premium is None or factory.wallet < premium:
@@ -143,6 +147,8 @@ class DefaultInsuranceCompany(InsuranceCompany):
         Returns:
 
         """
+        if self.disabled:
+            return False
         if (contract, perpetrator.id) in self.insured_contracts.keys():
             del self.insured_contracts[(contract, perpetrator.id)]
             return True
