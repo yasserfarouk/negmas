@@ -15,7 +15,7 @@ def dummyagent():
         def ufun(self, negotiation_id=None):
             return None
 
-        def respond_(self, state, offer):
+        def respond(self, state, offer):
             return None
 
         def isin(self, negotiation_id):
@@ -24,7 +24,7 @@ def dummyagent():
         def evaluate(self, offer):
             return 0.0
 
-        def propose_(self, state):
+        def propose(self, state):
             return None
 
         def enter(self, negotiation, ufun):
@@ -49,8 +49,8 @@ def test_tough_asp_negotiator():
         neg.add(a1, ufun=u1)
         neg.add(a2, ufun=u2)
         neg.run()
-        a1offers = [s.current_offer for s in neg.history if s.current_offerer == a1.id]
-        a2offers = [s.current_offer for s in neg.history if s.current_offerer == a2.id]
+        a1offers = [s.current_offer for s in neg.history if s.current_proposer == a1.id]
+        a2offers = [s.current_offer for s in neg.history if s.current_proposer == a2.id]
         assert a1._offerable_outcomes is None
         if len(a1offers) > 0:
             assert len(set(a1offers)) == 1 and a1offers[-1] == (9,)
@@ -67,8 +67,8 @@ def test_best_only_asp_negotiator():
     neg.add(a1, ufun=u1)
     neg.add(a2, ufun=u2)
     neg.run()
-    a1offers = [s.current_offer for s in neg.history if s.current_offerer == a1.id]
-    a2offers = [s.current_offer for s in neg.history if s.current_offerer == a2.id]
+    a1offers = [s.current_offer for s in neg.history if s.current_proposer == a1.id]
+    a2offers = [s.current_offer for s in neg.history if s.current_proposer == a2.id]
     assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
         assert len(set(a1offers)) <= 2 and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9

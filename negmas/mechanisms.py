@@ -8,6 +8,7 @@ import math
 import pprint
 import time
 import uuid
+from abc import abstractmethod, ABC
 from collections import defaultdict
 from typing import Tuple, List, Optional, Any, Iterable, Union, Dict, Set, Type
 
@@ -45,7 +46,7 @@ class MechanismRoundResult:
 
 
 # noinspection PyAttributeOutsideInit
-class Mechanism(NamedObject, EventSource, LoggerMixin):
+class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
     """
     Base class for all negotiation Mechanisms.
 
@@ -174,7 +175,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         Mechanism.all[self.id] = self
 
         self._requirements = {}
-        self._agents = []
+        self._negotiators = []
         self._roles = []
         self._start_time = None
         self._started = False
@@ -308,7 +309,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         if not self.can_enter(negotiator):
             return None
 
-        if negotiator in self._agents:
+        if negotiator in self._negotiators:
             return False
 
         if isinstance(ufun, Iterable) and not isinstance(ufun, UtilityFunction):
@@ -321,9 +322,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             role = 'agent'
 
         if negotiator.on_enter(info=self.info, state=self.state, ufun=ufun, role=role):
-            if negotiator.ufun is None:
-                return None
-            self._agents.append(negotiator)
+            self._negotiators.append(negotiator)
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
             self.agents_of_role[role].append(negotiator)
@@ -342,13 +341,13 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             * None if the agent cannot be removed.
         """
         try:
-            indx = self._agents.index(agent)
+            indx = self._negotiators.index(agent)
         except ValueError:
             return False
 
         if not self.can_leave(agent):
             return None
-        self._agents = self._agents[0:indx] + self._agents[indx + 1:]
+        self._negotiators = self._negotiators[0:indx] + self._negotiators[indx + 1:]
         agent.on_leave(self.info, **kwargs)
         return True
 
@@ -371,7 +370,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
     @property
     def negotiators(self):
-        return self._agents
+        return self._negotiators
 
     @property
     def requirements(self):
@@ -536,13 +535,13 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
     def can_accept_more_agents(self) -> bool:
         """Whether the mechanism can **currently** accept more negotiators."""
-        return True if self.info.max_n_agents is None or self._agents is None else len(
-            self._agents
+        return True if self.info.max_n_agents is None or self._negotiators is None else len(
+            self._negotiators
         ) < self.info.max_n_agents
 
     def can_leave(self, agent: 'Negotiator') -> bool:
         """Can the agent leave now?"""
-        return True if self.info.dynamic_entry else not self.info.state.running and agent in self._agents
+        return True if self.info.dynamic_entry else not self.info.state.running and agent in self._negotiators
 
     def can_enter(self, agent: 'Negotiator') -> bool:
         """Whether the agent can enter the negotiation now."""
@@ -575,7 +574,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             self._agreement, self._broken, self._timedout = None, False, True
             self._history.append(self.state)
             return self.state
-        if len(self._agents) < 2:
+        if len(self._negotiators) < 2:
             if self.info.dynamic_entry:
                 self._history.append(self.state)
                 return self.state
@@ -613,10 +612,10 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                 self.on_negotiation_end()
                 return self.state
 
-        for agent in self._agents:
+        for agent in self._negotiators:
             agent.on_round_start(state=self.state)
         step_start = time.perf_counter()
-        result = self.step_()
+        result = self.round()
         step_time = time.perf_counter() - step_start
         self._error, self._error_details = result.error, result.error_details
         if self._error:
@@ -628,7 +627,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
         self._step += 1
-        for agent in self._agents:
+        for agent in self._negotiators:
             agent.on_round_end(state=self.state)
         if not self._running:
             self.on_negotiation_end()
@@ -681,7 +680,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
 
     @property
     def state(self):
-        """Returns the current state. **Override this property if your mechanism wants to keep extra state**"""
+        """Returns the current state. Override `extra_state` if you want to keep extra state"""
         current_state = self.extra_state()
         if current_state is None:
             current_state = {}
@@ -774,7 +773,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                 , itertools.chain(axs_outcome, itertools.repeat(None)))):
                 if au is None and ao is None:
                     break
-                h = history.loc[history.current_offerer == self.negotiators[a].id, ['relative_time', 'offer_index'
+                h = history.loc[history.current_proposer == self.negotiators[a].id, ['relative_time', 'offer_index'
                                                                             , 'current_offer']]
                 h['utility'] = h['current_offer'].apply(ufuns[a])
                 if plot_outcomes:
@@ -793,7 +792,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                 clrs = ('blue', 'green')
                 if plot_utils:
                     for a in range(n_agents):
-                        h = history.loc[history.current_offerer == self.negotiators[a].id, ['relative_time', 'offer_index'
+                        h = history.loc[history.current_proposer == self.negotiators[a].id, ['relative_time', 'offer_index'
                                                                                             , 'current_offer']]
                         h['u0'] = h['current_offer'].apply(ufuns[0])
                         h['u1'] = h['current_offer'].apply(ufuns[1])
@@ -804,7 +803,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
                     for step in steps[::2]:
                         offrs = []
                         for a in range(n_agents):
-                            a_offer = history.loc[(history.current_offerer == agent_names[a]) &
+                            a_offer = history.loc[(history.current_proposer == agent_names[a]) &
                                                   ((history.step == step) | (history.step == step + 1)), 'offer_index']
                             if len(a_offer) > 0:
                                 offrs.append(a_offer.values[-1])
@@ -850,7 +849,8 @@ class Mechanism(NamedObject, EventSource, LoggerMixin):
             if plot_outcomes:
                 fig_outcome.show()
 
-    def step_(self) -> MechanismRoundResult:
+    @abstractmethod
+    def round(self) -> MechanismRoundResult:
         """ Implements a single step of the mechanism. Override this!
 
         Returns:

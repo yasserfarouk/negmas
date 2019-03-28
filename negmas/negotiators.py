@@ -573,7 +573,3 @@ class Controller(NamedObject):
 
     def __str__(self):
         return f'{self.name}'
-
-
-Controller = Controller
-"""Proxy for a `Controller`"""

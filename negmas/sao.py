@@ -1,14 +1,14 @@
 import random
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Dict, Any, Callable, Type
 from typing import Sequence, Optional, List, Tuple, Iterable, Union
 
 import numpy as np
-from dataclasses import dataclass
 
 from negmas.common import *
 from negmas.events import Notification
-from negmas.java import JNegmasGateway, JavaCallerMixin, to_java
+from negmas.java import JavaCallerMixin, to_java
 from negmas.mechanisms import MechanismRoundResult, Mechanism
 from negmas.negotiators import Negotiator, AspirationMixin, Controller
 from negmas.outcomes import sample_outcomes, Outcome, outcome_is_valid, ResponseType, outcome_as_dict
@@ -42,13 +42,15 @@ class SAOResponse:
 @dataclass
 class SAOState(MechanismState):
     current_offer: Optional['Outcome'] = None
-    current_offerer: Optional[str] = None
+    current_proposer: Optional[str] = None
     n_acceptances: int = 0
 
 
 @dataclass
 class SAOAMI(AgentMechanismInterface):
-    end_negotiation_on_refusal_to_propose: bool = False
+    end_on_no_response: bool = True
+    publish_proposer: bool = True
+    publish_n_acceptances: bool = False
 
 
 class SAOMechanism(Mechanism):
@@ -65,7 +67,9 @@ class SAOMechanism(Mechanism):
         cache_outcomes=True,
         max_n_outcomes: int = 1000000,
         annotation: Optional[Dict[str, Any]] = None,
-        end_negotiation_on_refusal_to_propose=True,
+        end_on_no_response=True,
+        publish_proposer=True,
+        publish_n_acceptances=False,
         name: Optional[str] = None,
     ):
         super().__init__(
@@ -84,14 +88,17 @@ class SAOMechanism(Mechanism):
             name=name,
         )
         self._current_offer = None
-        self._current_offerer = None
+        self._current_proposer = None
         self._n_accepting = 0
-        self._current_negotiator = 0
-        self.end_negotiation_on_refusal_to_propose = end_negotiation_on_refusal_to_propose
+        self._first_proposer = 0
+        self._avoid_ultimatum = n_steps is not None
+        self.end_negotiation_on_refusal_to_propose = end_on_no_response
+        self.publish_proposer = publish_proposer
+        self.publish_n_acceptances = publish_n_acceptances
 
     def on_negotiation_start(self):
         if not self.info.dynamic_entry and not any([a.capabilities.get('propose', False) for a in self.negotiators]):
-            self._current_offerer = None
+            self._current_proposer = None
             self._current_offer = None
             self._n_accepting = 0
             return False
@@ -100,68 +107,108 @@ class SAOMechanism(Mechanism):
     def extra_state(self):
         return SAOState(
             current_offer=self._current_offer
-            , current_offerer=self._current_offerer.id if self._current_offerer else None
-            , n_acceptances=self._n_accepting,
+            , current_proposer=self._current_proposer.id if self._current_proposer and self.publish_proposer else None
+            , n_acceptances=self._n_accepting if self.publish_n_acceptances else 0,
         )
 
-    def step_(self) -> MechanismRoundResult:
-        n_agents = len(self.negotiators)
-        accepted = False
-        negotiator = self.negotiators[self._current_negotiator]
-        self._current_negotiator = (self._current_negotiator + 1) % n_agents
-        if self._current_offer is None:
-            response = ResponseType.NO_RESPONSE
-        elif negotiator is not self._current_offerer:
-            response = negotiator.respond_(state=self.state, offer=self._current_offer)
-            for other in self.negotiators:
-                if other is negotiator:
-                    continue
-                other.on_partner_response(state=self.state, agent_id=negotiator.id, outcome=self._current_offer
-                                          , response=response)
-        else:
-            response = ResponseType.NO_RESPONSE
-        if response == ResponseType.END_NEGOTIATION:
-            self._current_offerer = negotiator
-            self._current_offer = None
-        else:
-            if response == ResponseType.ACCEPT_OFFER:
-                if negotiator is not self._current_offerer:
-                    self._n_accepting += 1
-                if self._n_accepting == n_agents:
-                    accepted = True
+    def round(self) -> MechanismRoundResult:
+        """implements a round of the Stacked Alternating Offers Protocol.
+
+
+        """
+        negotiators: List[SAONegotiator] = self.negotiators
+        n_negotiators = len(negotiators)
+
+        # if this is the first step which means that there is no _current_offer
+        if self.info.state.step == 0:
+            assert self._current_offer is None
+            assert self._current_proposer is None
+
+            # choose a random negotiator and set it as the current negotiator
+            self._first_proposer = random.randint(0, n_negotiators - 1)
+            if self._avoid_ultimatum:
+                # if we are trying to avoid an ultimatum, we take an offer from everyone and ignore them but one.
+                # this way, the agent cannot know its order. For example, if we have two agents and 3 steps, this will
+                # be the situation after each step:
+                #
+                # Case 1: Assume that it ignored the offer from agent 1
+                # Step, Agent 0 calls received  , Agent 1 calls received    , relative time during last call
+                # 0   , counter(None)->offer1*  , counter(None) -> offer0   , 0/3
+                # 1   , counter(offer2)->offer3 , counter(offer1) -> offer2 , 1/3
+                # 2   , counter(offer4)->offer5 , counter(offer3) -> offer4 , 2/3
+                # 3   ,                         , counter(offer5)->offer6   , 3/3
+                #
+                # Case 2: Assume that it ignored the offer from agent 0
+                # Step, Agent 0 calls received  , Agent 1 calls received    , relative time during last call
+                # 0   , counter(None)->offer1   , counter(None) -> offer0*  , 0/3
+                # 1   , counter(offer0)->offer2 , counter(offer2) -> offer3 , 1/3
+                # 2   , counter(offer3)->offer4 , counter(offer4) -> offer5 , 2/3
+                # 3   , counter(offer5)->offer6 ,                           , 3/3
+                #
+                # in both cases, the agent cannot know whether its last offer going to be passed to the other agent
+                # (the ultimatum scenario) or not.
+                responses = []
+                for neg in negotiators:
+                    resp = neg.counter(state=self.state, offer=None)
+                    if resp.response == ResponseType.END_NEGOTIATION or \
+                        resp.response == ResponseType.NO_RESPONSE or (resp.outcome is None and neg.capabilities.get('propose', False)):
+                        return MechanismRoundResult(broken=True, timedout=False, agreement=None)
+                    responses.append(resp)
+                resp = responses[self._first_proposer]
+                neg = negotiators[self._first_proposer]
             else:
-                started_at = self._current_negotiator
-                while not negotiator.capabilities.get('propose', False):
-                    negotiator = self.negotiators[self._current_negotiator]
-                    self._current_negotiator = (self._current_negotiator + 1) % n_agents
-                    if self._current_negotiator == started_at:
-                        if not self.info.dynamic_entry:
-                            raise RuntimeError('No negotiators can propose. I cannot run a meaningful negotiation')
-                        else:
-                            return MechanismRoundResult(broken=False, timedout=False, agreement=None, error=True
-                                                        , error_details='No negotiators can propose in a static_entry'
-                                                                        ' negotiation!!')
-                state = self.state
-                proposal = negotiator.propose(state=state)
+                # when there is no risk of ultimatum (n_steps is not known), we just take one first offer.
+                neg = negotiators[self._first_proposer]
+                resp = neg.counter(state=self.state, offer=None)
+                if resp.response == ResponseType.END_NEGOTIATION or \
+                    resp.response == ResponseType.NO_RESPONSE or resp.outcome is None:
+                    return MechanismRoundResult(broken=True, timedout=False, agreement=None)
+            self._n_accepting = 1
+            self._current_offer = resp.outcome
+            self._current_proposer = neg
+            return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+
+        # this is not the first round. A round will get n_negotiators steps
+        ordered_negotiators = [negotiators[(_ + self._first_proposer + 1) % n_negotiators] for _ in range(n_negotiators)]
+        for neg in ordered_negotiators:
+            resp = neg.counter(state=self.state, offer=self._current_offer)
+            if resp.response == ResponseType.NO_RESPONSE:
+                continue
+            for other in self.negotiators:
+                if other is not neg:
+                    other.on_partner_response(state=self.state, agent_id=neg.id, outcome=self._current_offer
+                                              , response=resp)
+            if resp.response == ResponseType.END_NEGOTIATION:
+                return MechanismRoundResult(broken=True, timedout=False, agreement=None)
+            if resp.response == ResponseType.ACCEPT_OFFER:
+                self._n_accepting += 1
+                if self._n_accepting == n_negotiators:
+                    return MechanismRoundResult(broken=False, timedout=False, agreement=self._current_offer)
+            if resp.response == ResponseType.REJECT_OFFER:
+                proposal = resp.outcome
                 if proposal is None:
                     if self.end_negotiation_on_refusal_to_propose:
-                        response = ResponseType.END_NEGOTIATION
-                        accepted = False
+                        return MechanismRoundResult(broken=True, timedout=False, agreement=None)
                     else:
                         for other in self.negotiators:
-                            if other is negotiator:
-                                continue
-                            other.on_partner_refused_to_propose(agent_id=negotiator, state=state)
+                            if other is not neg:
+                                other.on_partner_refused_to_propose(agent_id=neg, state=self.state)
+                        continue
                 else:
                     self._current_offer = proposal
-                    self._current_offerer = negotiator
+                    self._current_proposer = neg
                     self._n_accepting = 1
                     for other in self.negotiators:
-                        if other is negotiator:
+                        if other is neg:
                             continue
-                        other.on_partner_proposal(agent_id=negotiator.id, offer=proposal, state=state)
-        return MechanismRoundResult(broken=response == ResponseType.END_NEGOTIATION, timedout=False
-                                    , agreement=self._current_offer if accepted else None)
+                        other.on_partner_proposal(agent_id=neg.id, offer=proposal, state=self.state)
+                    return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+        # we can arrive here only if all agents either refused to response or to offer.
+        if not self.info.dynamic_entry:
+            raise RuntimeError('No negotiators can propose. I cannot run a meaningful negotiation')
+        return MechanismRoundResult(broken=False, timedout=False, agreement=None, error=True
+                                        , error_details='No negotiators can propose in a static_entry'
+                                                        ' negotiation!!')
 
 
 class RandomResponseMixin(object):
@@ -216,7 +263,7 @@ class RandomResponseMixin(object):
         self.wheel = self.wheel[1:]
 
     # noinspection PyUnusedLocal,PyUnusedLocal
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         r = random.random()
         for w in self.wheel:
             if w[0] >= r:
@@ -241,8 +288,8 @@ class RandomProposalMixin(object):
             }
         )
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
-        if hasattr(self, 'offerable_outcomes') and self._offerable_outcomes is not None:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
+        if hasattr(self, '_offerable_outcomes') and self._offerable_outcomes is not None:
             return random.sample(self._offerable_outcomes, 1)[0]
         return self._mechanism_info.random_outcomes(1, astype=dict)[0]
 
@@ -310,7 +357,7 @@ class LimitedOutcomesAcceptorMixin(object):
         self.p_no_response = p_no_response
         self.p_ending = p_ending + p_no_response
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         """Respond to an offer.
 
         Args:
@@ -373,7 +420,7 @@ class LimitedOutcomesProposerMixin(object):
         if proposable_outcomes is not None:
             self._offerable_outcomes = list(proposable_outcomes)
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         if self._offerable_outcomes is None:
             return self._mechanism_info.random_outcomes(1)[0]
         else:
@@ -442,20 +489,14 @@ class SAONegotiator(Negotiator):
     def on_notification(self, notification: Notification, notifier: str):
         if notification.type == 'end_negotiation':
             self.__end_negotiation = True
-        elif notification.type == 'propose' and notifier == self._mechanism_id:
-            return self.propose(state=notification.data['state'])
-        elif notification.type == 'respond' and notifier == self._mechanism_id:
-            return self.respond(state=notification.data['state'], offer=notification.data('offer', None))
-        elif notification.type == 'counter' and notifier == self._mechanism_id:
-            return self.counter(state=notification.data['state'], offer=notification.data('offer', None))
 
-    def propose(self, state: MechanismState) -> Optional['Outcome']:
+    def propose_(self, state: MechanismState) -> Optional['Outcome']:
         if not self._capabilities['propose'] or self.__end_negotiation:
             return None
-        proposal = self.propose_(state=state)
+        proposal = self.propose(state=state)
 
         # never return a proposal that is less than the reserved value
-        if self.rational_proposal:
+        if self.rational_proposal and self.reserved_value is not None:
             utility = None
             if proposal is not None:
                 utility = self.ufun(proposal)
@@ -468,7 +509,7 @@ class SAONegotiator(Negotiator):
 
         return proposal
 
-    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         """Respond to an offer.
 
         Args:
@@ -487,7 +528,7 @@ class SAONegotiator(Negotiator):
         """
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
-        return self.respond_(state=state, offer=offer)
+        return self.respond(state=state, offer=offer)
 
     def counter(self, state: MechanismState, offer: Optional['Outcome']) -> 'SAOResponse':
         """
@@ -501,14 +542,16 @@ class SAONegotiator(Negotiator):
             Tuple[ResponseType, Outcome]: The response to the given offer with a counter offer if the response is REJECT
 
         """
+        if self.__end_negotiation:
+            return SAOResponse(ResponseType.END_NEGOTIATION, None)
         if offer is None:
-            return SAOResponse(ResponseType.REJECT_OFFER, self.propose(state=state))
-        response = self.respond(state=state, offer=offer)
+            return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
+        response = self.respond_(state=state, offer=offer)
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
-        return SAOResponse(response, self.propose(state=state))
+        return SAOResponse(response, self.propose_(state=state))
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         """Respond to an offer.
 
         Args:
@@ -530,7 +573,7 @@ class SAONegotiator(Negotiator):
         if self.my_last_proposal_utility is not None:
             utility = self.my_last_proposal_utility
         if utility is None:
-            myoffer = self.propose(state=state)
+            myoffer = self.propose_(state=state)
             if myoffer is None:
                 return ResponseType.NO_RESPONSE
             utility = self.ufun(myoffer)
@@ -583,7 +626,7 @@ class SAONegotiator(Negotiator):
         """
 
     @abstractmethod
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         """Propose a set of offers
 
         Args:
@@ -650,8 +693,8 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
     """A negotiation agent that uses a fixed set of outcomes in a single
     negotiation."""
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
-        return LimitedOutcomesAcceptorMixin.respond_(self, state=state, offer=offer)
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+        return LimitedOutcomesAcceptorMixin.respond(self, state=state, offer=offer)
 
     def __init__(
         self,
@@ -676,7 +719,7 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
             }
         )
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         return None
 
 
@@ -717,7 +760,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         outcomes = self._mechanism_info.discrete_outcomes()
         if not self.assume_normalized:
             self.utility_function = normalize(self.utility_function, outcomes=outcomes, infeasible_cutoff=-1e-6)
-        self.ordered_outcomes = sorted([(self.ufun(outcome), outcome) for outcome in outcomes]
+        self.ordered_outcomes = sorted([(self.utility_function(outcome), outcome) for outcome in outcomes]
                                        , key=lambda x: x[0], reverse=True)
 
     def on_notification(self, notification: Notification, notifier: str):
@@ -731,7 +774,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self.__ufun_modified = False
         self._update_ordered_outcomes()
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         u = self.ufun(offer)
         if u is None:
             return ResponseType.REJECT_OFFER
@@ -742,7 +785,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             return ResponseType.END_NEGOTIATION
         return ResponseType.REJECT_OFFER
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         asp = self.aspiration(state.relative_time)
         if asp < self.reserved_value:
             return None
@@ -768,11 +811,11 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
         SAONegotiator.__init__(self, *args, **kwargs)
         self.init_random_proposal()
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         return ResponseType.ACCEPT_OFFER
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
-        return RandomProposalMixin.propose_(self=self, state=state)
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
+        return RandomProposalMixin.propose(self=self, state=state)
 
 
 class ToughNegotiator(SAONegotiator):
@@ -808,7 +851,7 @@ class ToughNegotiator(SAONegotiator):
         outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
         self.best_outcome = max([(self.ufun(outcome), outcome) for outcome in outcomes])[1]
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         if self.dynamic_ufun:
             outcomes = self._mechanism_info.outcomes if self._offerable_outcomes is None else self._offerable_outcomes
             self.best_outcome = max([(self.ufun(outcome), outcome) for outcome in outcomes])[1]
@@ -816,7 +859,7 @@ class ToughNegotiator(SAONegotiator):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         if not self._capabilities['propose']:
             return None
         if self.dynamic_ufun:
@@ -911,14 +954,14 @@ class OnlyBestNegotiator(SAONegotiator):
     def on_negotiation_start(self, state: MechanismState):
         self.acceptable_outcomes, self.wheel = self.acceptable()
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         if self.dynamic_ufun:
             self.acceptable_outcomes, self.wheel = self.acceptable()
         if offer in self.acceptable_outcomes:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         if not self._capabilities['propose']:
             return None
         if self.dynamic_ufun:
@@ -961,7 +1004,7 @@ class SimpleTitForTatNegotiator(SAONegotiator):
         self.ordered_outcomes = sorted([(self.ufun(outcome), outcome) for outcome in outcomes]
                                        , key=lambda x: x[0], reverse=True)
 
-    def respond_(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         my_offer = self.propose(state=state)
         u = self.ufun(offer)
         if len(self.received_utilities) < 2:
@@ -987,7 +1030,7 @@ class SimpleTitForTatNegotiator(SAONegotiator):
                 else:
                     return [self.ordered_outcomes[i][1]] * n
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         if len(self.received_utilities) < 2 or self.proposed_utility is None:
             if len(self.received_utilities) < 1:
                 return self.ordered_outcomes[0][1]
@@ -1045,7 +1088,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         jnotification = {'type': notification.type, 'data': to_java(notification.data)}
         self.java_object.on_notification(jnotification, notifier)
 
-    def respond_(self, state: MechanismState, offer: 'Outcome'):
+    def respond(self, state: MechanismState, offer: 'Outcome'):
         response = self.java_object.respond(state, outcome_as_dict(offer))
         if response == 0:
             return ResponseType.ACCEPT_OFFER
@@ -1057,7 +1100,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
             return ResponseType.NO_RESPONSE
         raise ValueError(f'Unknown response type {response} returned from the Java underlying negotiator')
 
-    def propose_(self, state: MechanismState) -> Optional['Outcome']:
+    def propose(self, state: MechanismState) -> Optional['Outcome']:
         outcome = self.java_object.propose(state)
         if outcome is None:
             return None
@@ -1077,13 +1120,13 @@ class SAOController(Controller):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'propose_', state=state)
+        return self.call(negotiator, 'propose', state=state)
 
     def respond_(self, negotiator_id: str, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'respond_', state=state,  offer=offer)
+        return self.call(negotiator, 'respond', state=state, offer=offer)
 
 
 SAOProtocol = SAOMechanism

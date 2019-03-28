@@ -832,6 +832,30 @@ class UtilityFunction(ABC, NamedObject):
         return MappingUtilityFunction(dict(zip(outcomes, u1))), MappingUtilityFunction(dict(zip(outcomes, u2)))
 
     @classmethod
+    def generate_random(cls, n: int, outcomes: Union[int, List[Outcome]]
+                        , normalized: bool = True) -> List['UtilityFunction']:
+        """Generates a couple of utility functions
+
+        Args:
+            n: number of utility functions to generate
+            outcomes: number of outcomes to use
+            normalized: if true, the resulting ufuns will be normlized between zero and one.
+
+
+        """
+        if isinstance(outcomes, int):
+            outcomes = [(_,) for _ in range(outcomes)]
+        n_outcomes = len(outcomes)
+        ufuns = []
+        for _ in range(n):
+            u1 = np.random.random(n_outcomes)
+            if normalized:
+                u1 -= u1.min()
+                u1 /= u1.max()
+            ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1))))
+        return ufuns
+
+    @classmethod
     def conflict_level(cls, u1: 'UtilityFunction', u2: 'UtilityFunction', outcomes: Union[int, List['Outcome']]
                        , max_tests: int=10000) -> float:
         """

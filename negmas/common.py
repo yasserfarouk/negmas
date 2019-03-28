@@ -64,8 +64,6 @@ class MechanismState:
     """Does the mechanism have any errors"""
     error_details: str = ''
     """Details of the error if any"""
-    info: 'AgentMechanismInterface' = None
-    """Mechanism information"""
 
     @property
     def ended(self):
