@@ -53,13 +53,14 @@ class SCMLWorld(World):
                  , miners: List[Miner]
                  , factory_managers: Optional[List[FactoryManager]] = None
                  # timing parameters
-                 , n_steps=60
+                 , n_steps=200
                  , time_limit=60 * 90
                  , neg_n_steps=100
                  , neg_time_limit=3 * 60
                  , neg_step_time_limit=60
                  , negotiation_speed=10
                  # bank parameters
+                 , no_bank=False
                  , minimum_balance=0
                  , interest_rate=0.1
                  , interest_max=0.3
@@ -69,6 +70,7 @@ class SCMLWorld(World):
                  # loan parameters
                  , loan_installments=1
                  # insurance company parameters
+                 , no_insurance=False
                  , premium=0.1
                  , premium_time_increment=0.1
                  , premium_breach_increment=0.1
@@ -90,6 +92,7 @@ class SCMLWorld(World):
                  , avg_process_cost_is_public=True
                  , catalog_prices_are_public=True
                  , strip_annotations=True
+                 , financial_reports_period=10
                  # general parameters
                  , log_file_name=None
                  , name: str = None):
@@ -151,14 +154,16 @@ class SCMLWorld(World):
         self.bulletin_board.add_section("cfps")
         self.bulletin_board.add_section("products")
         self.bulletin_board.add_section("processes")
-        self.bulletin_board.add_section("raw_materials")
-        self.bulletin_board.add_section("final_products")
+        self.bulletin_board.add_section("bankruptcy")
+        self.bulletin_board.add_section("reports_time")
+        self.bulletin_board.add_section("reports_agent")
         self.minimum_balance = minimum_balance
         self.transportation_delay = transportation_delay
         self.breach_penalty_society = breach_penalty_society
         self.breach_move_max_product = breach_move_max_product
         self.breach_penalty_society_min = breach_penalty_society_min
         self.penalties = 0.0
+        self.financial_reports_period = financial_reports_period
         self.max_allowed_breach_level = max_allowed_breach_level
         self.catalog_profit = catalog_profit
         self.loan_installments = loan_installments
@@ -188,6 +193,7 @@ class SCMLWorld(World):
         self.set_consumers(consumers)
         self.set_factory_managers(factory_managers)
         self.money_resolution = money_resolution
+        self._financial_report_interest: Dict[str, set[str]] = defaultdict(set)
         # self._remove_processes_not_used_by_factories()
         # self._remove_products_not_used_by_processes()
         if catalog_prices_are_public or avg_process_cost_is_public:
@@ -226,10 +232,11 @@ class SCMLWorld(World):
                                 , balance_at_max_interest=balance_at_max_interest,
                                 installment_interest=installment_interest
                                 , time_increment=interest_time_increment, a2f=self.a2f
+                                , disabled=no_bank
                                 , name='bank')
         self.join(self.bank, simulation_priority=-1)
-        self.insurance_company = DefaultInsuranceCompany(premium=premium,
-                                                         premium_breach_increment=premium_breach_increment
+        self.insurance_company = DefaultInsuranceCompany(premium=premium, disabled=no_insurance
+                                                         , premium_breach_increment=premium_breach_increment
                                                          , premium_time_increment=premium_time_increment, a2f=self.a2f
                                                          , name='insurance_company')
         self.join(self.insurance_company)
@@ -833,11 +840,53 @@ class SCMLWorld(World):
             callback(action, True)
         return True
 
-    def get_private_state(self, agent: 'Agent') -> Any:
+    def get_private_state(self, agent: 'Agent') -> Factory:
         return self.a2f[agent.id]
+
+    def receive_financial_reports(self, agent: str, receive: bool, agents: Optional[List[str]]):
+        """Registers interest/disinterest in receiving financial reports"""
+        if receive:
+            if agents is not None:
+                for _ in agents:
+                    self._financial_report_interest[agent].add(_)
+            else:
+                self._financial_report_interest[agent].add('all')
+        else:
+            if agents is None:
+                self._financial_report_interest.pop(agent, None)
+            else:
+                self._financial_report_interest[agent] = self._financial_report_interest[agent] - set(agents)
+                if 'all' in self._financial_report_interest[agent]:
+                    self._financial_report_interest[agent] = set(self.agents)
 
     def _simulation_step(self):
         """A step of SCML simulation"""
+
+        # publish financial reports
+        # -------------------------
+        if self.current_step % self.financial_reports_period == 0:
+            reports_agent = self.bulletin_board.data['reports_agent']
+            reports_time = self.bulletin_board.data['reports_time']
+            for agent in self.agents.values():
+                factory = self.a2f.get(agent.id, None)
+                if factory is None:
+                    continue
+                try:
+                    inventory = sum(self.products[product].catalog_price * quantity
+                                    for product, quantity in factory.storage.items())
+                except ArithmeticError:
+                    inventory = None
+                report = FinancialReport(agent=agent.id, step=self.current_step
+                                                    , cash=factory.wallet
+                                                    , liabilities=factory.loans
+                                                    , inventory=inventory
+                                                    , credit_rating=self.bank.credit_rating.get(agent.id, 1))
+                if reports_agent.get(agent.id, None) is None:
+                    reports_agent[agent.id] = []
+                reports_agent[agent.id].append(report)
+                if reports_time.get(self.current_step, None) is None:
+                    reports_time[self.current_step] = {}
+                reports_time[self.current_step][agent.id] = report
 
         # run standing jobs
         # -----------------

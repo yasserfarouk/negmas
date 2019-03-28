@@ -273,8 +273,8 @@ def load_genius_domain_from_folder(folder_name: str
         ...                             , force_single_issue=True, keep_issue_names=False
         ...                             , keep_value_names=False)
         >>> state = mechanism.run()
-        >>> state.agreement
-        (18,)
+        >>> state.agreement is not None
+        True
 
 
         >>> mechanism, negotiators, issues = load_genius_domain_from_folder(

@@ -1,27 +1,15 @@
 Base Modules
 ============
+    This part of the documentation describes the basic modules the provide the core functionality of NegMAS.
 
-.. automodapi:: negmas.outcomes
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.utilities
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.negotiators
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.mechanisms
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.sao
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.genius
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.situated
-      :members:
-      :show-inheritance:
-.. automodapi:: negmas.events
-      :members:
-      :show-inheritance:
+.. toctree::
+    modules/outcomes
+    modules/utilities
+    modules/mechanisms
+    modules/common
+    modules/negotiators
+    modules/sao
+    modules/genius
+    modules/situated
+    modules/events
+

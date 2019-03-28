@@ -25,7 +25,7 @@ __all__ = ['Product', 'Process', 'InputOutput', 'RunningCommandInfo'
     , 'INVALID_STEP', 'NO_PRODUCTION', 'INVALID_UTILITY'
     , 'ManufacturingProfile', 'ManufacturingProfileCompiled', 'ProductManufacturingInfo'
     , 'FactoryStatusUpdate', 'Job', 'ProductionNeed'
-    , 'MissingInput', 'ProductionReport', 'ProductionFailure'
+    , 'MissingInput', 'ProductionReport', 'ProductionFailure', 'FinancialReport'
     , 'SCMLAgreement', 'SCMLAction'
     , 'CFP', 'Loan', 'InsurancePolicy', 'Factory']
 
@@ -724,7 +724,7 @@ class CFP(OutcomeType):
             up = d['min_unit_price']
         else:
             up = (d['min_unit_price'], d['max_unit_price'])
-        if not d.get('min_penalty', None) or not p.get('max_penalty', None):
+        if not d.get('min_penalty', None) or not d.get('max_penalty', None):
             p = None
         else:
             if d['min_penalty'] == d['max_penalty']:
@@ -805,6 +805,34 @@ class ProductManufacturingInfo:
     """The quantity generated/consumed by running this manufacturing info"""
     step: int
     """The step from the beginning at which the `Product` is received/consumed"""
+
+
+@dataclass
+class FinancialReport:
+    """Reports that financial standing of an agent at a given time in the simulation"""
+    agent: str
+    """Agent ID"""
+    step: int
+    """Time of the report"""
+    cash: float
+    """Cash at hand"""
+    liabilities: float
+    """Total liabilities (loans)"""
+    inventory: float
+    """Value of everything in the inventory priced at catalog prices."""
+    credit_rating: float
+    """The agent's credit rating as a fraction of the maximum credit rating (1 indicates highest credit rating)."""
+
+    @property
+    def balance(self):
+        """The balance of the agent defined as the difference between its available cash + inventory and its liabilities
+
+        Remarks:
+
+            - If the inventory was not calculated (due to having at least one product with unknown catalog price),
+              it is used as zero in the equation.
+        """
+        return self.cash + self.inventory - self.liabilities if self.inventory is not None else self.cash - self.liabilities
 
 
 @dataclass

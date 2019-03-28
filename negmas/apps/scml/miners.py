@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
+from negmas.apps.scml import FinancialReport
 from negmas.common import MechanismState, AgentMechanismInterface
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
@@ -57,6 +58,9 @@ class Miner(SCMLAgent, ABC):
 
 class ReactiveMiner(Miner):
     """Raw Material Generator"""
+
+    def on_new_report(self, report: FinancialReport):
+        pass
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
         pass
@@ -117,7 +121,7 @@ class ReactiveMiner(Miner):
         self.profiles = profiles if profiles is not None else dict()
 
     def _process_cfp(self, cfp: 'CFP'):
-        if not self.can_expect_agreement(cfp=cfp, margin=0):
+        if self.awi.is_bankrupt(cfp.publisher) or not self.can_expect_agreement(cfp=cfp, margin=0):
             return
         profile = self.profiles.get(cfp.product, None)
         if profile is None:

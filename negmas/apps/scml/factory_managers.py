@@ -2,6 +2,7 @@ import itertools
 from abc import abstractmethod, ABC
 from collections import defaultdict
 
+from negmas.apps.scml import FinancialReport
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator, storage_as_array, temporary_transaction
 from negmas.common import NamedObject, MechanismState, AgentMechanismInterface
 from negmas.events import Notification
@@ -75,6 +76,9 @@ class FactoryManager(SCMLAgent, ABC):
 
 class DoNothingFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
+
+    def on_new_report(self, report: FinancialReport):
+        pass
 
     def init(self):
         pass
@@ -229,6 +233,8 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                             , producing=self.producing, profiles=self.compiled_profiles)
 
     def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+        if self.awi.is_bankrupt(partner):
+            return None
         if self.use_consumer:
             return self.consumer.respond_to_negotiation_request(cfp=cfp, partner=partner)
         else:
@@ -309,6 +315,8 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             awi.register_cfp(cfp)
 
     def sign_contract(self, contract: Contract):
+        if any(self.awi.is_bankrupt(partner) for partner in contract.partners):
+            return None
         signature = self.id
         with temporary_transaction(self.scheduler):
             schedule = self.scheduler.schedule(assume_no_further_negotiations=False, contracts=[contract]
@@ -344,6 +352,8 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 self.notify(negotiation.negotiator, Notification(type='ufun_modified', data=None))
 
     def _process_buy_cfp(self, cfp: 'CFP') -> None:
+        if self.awi.is_bankrupt(cfp.publisher):
+            return None
         if self.simulator is None or not self.can_expect_agreement(cfp=cfp, margin=self.negotiation_margin):
             return
         if not self.can_produce(cfp=cfp):
@@ -357,6 +367,8 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                                                   , outcomes=cfp.outcomes, infeasible_cutoff=-1500))
 
     def _process_sell_cfp(self, cfp: 'CFP'):
+        if self.awi.is_bankrupt(cfp.publisher):
+            return None
         if self.use_consumer:
             self.consumer.on_new_cfp(cfp=cfp)
 

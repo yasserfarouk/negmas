@@ -62,7 +62,7 @@ Ready to contribute? Here's how to set up `negmas` for local development.
 1. Fork the `negmas` repo on GitHub.
 2. Clone your fork locally::
 
-$ git clone git@github.com:your_name_here/negmas.git
+    $ git clone git@github.com:your_name_here/negmas.git
 
 3. Install your local copy into a virtualenv. This is how you set up your fork for local development
    (assuming you are using poetry)::
@@ -73,7 +73,7 @@ $ git clone git@github.com:your_name_here/negmas.git
 
 4. Create a branch for local development::
 
-$ git checkout -b name-of-your-bugfix-or-feature
+    $ git checkout -b name-of-your-bugfix-or-feature
 
    Now you can make your changes locally.
 

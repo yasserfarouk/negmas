@@ -1,6 +1,7 @@
 Application Modules
 ===================
+    This part of the documentation describes specific application modules that are based on the base
+    `situated` module.
 
-.. automodapi:: negmas.apps.scml
-      :members:
-      :show-inheritance:
+.. toctree::
+    modules/apps/scml

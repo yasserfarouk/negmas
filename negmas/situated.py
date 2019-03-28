@@ -25,6 +25,7 @@ Simulation steps:
     #. update custom stats (call `_post_step_stats`)
 
 """
+import copy
 import json
 import os
 import random
@@ -278,7 +279,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         if sec is None:
             return {}
         if query is None:
-            return sec
+            return copy.deepcopy(sec)
         if query_keys:
             return {k: v for k, v in sec.items() if re.match(str(query), k) is not None}
         return {k: v for k, v in sec.items() if BulletinBoard.satisfies(v, query)}
@@ -387,6 +388,10 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
             del sec[k]
         return True
 
+    @property
+    def data(self):
+        """This property is intended for use only by the world manager. No other agent is allowed to use it"""
+        return self._data
 
 def safe_min(a, b):
     """Returns min(a, b) assuming None is less than anything."""
@@ -1005,7 +1010,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             for contract, contract_breaches in breached_contracts:
                 resolved = self._process_breach(contract, list(contract_breaches))
                 n_new_breaches += 1 - int(resolved)
-                self._complete_contract_execution(contract, contract_breaches, resolved)
+                self._complete_contract_execution(contract, list(contract_breaches), resolved)
 
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
