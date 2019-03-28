@@ -313,7 +313,7 @@ def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
 class GeniusNegotiator(SAONegotiator):
     """Encapsulates a Genius Negotiator"""
 
-    def __init__(self, java_class_name: str
+    def __init__(self, genius_bridge_path: str, java_class_name: str
                  , port: int = None
                  , domain_file_name: str = None
                  , utility_file_name: str = None
@@ -328,7 +328,7 @@ class GeniusNegotiator(SAONegotiator):
         self.java = None
         self.java_class_name = java_class_name
         self.port = port
-        self.connected = self._connect(port=self.port, auto_load_java=auto_load_java)
+        self.connected = self._connect(path=genius_bridge_path, port=self.port, auto_load_java=auto_load_java)
         self.java_uuid = self._create()
         self.uuid = self.java_uuid
         self.name = self.java_uuid
@@ -424,7 +424,7 @@ class GeniusNegotiator(SAONegotiator):
         """
         return self.java.create_agent(self.java_class_name)
 
-    def _connect(self, port: int, auto_load_java: bool = False) -> bool:
+    def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
         """
 
         Returns:
@@ -451,7 +451,7 @@ class GeniusNegotiator(SAONegotiator):
         if port is None:
             if auto_load_java:
                 if common_gateway is None:
-                    init_genius_bridge()
+                    init_genius_bridge(path=path)
                 gateway = common_gateway
                 self.java = gateway.entry_point
                 port = DEFAULT_PYTHON_PORT

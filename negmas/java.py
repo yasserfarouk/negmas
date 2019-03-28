@@ -29,6 +29,7 @@ __all__ = [
     'init_jnegmas_bridge',
     'jnegmas_connection',
     'from_java',
+    'to_dict_for_java',
 ]
 
 DEFAULT_JNEGMAS_PATH = 'external/jnegmas-1.0-SNAPSHOT-all.jar'

@@ -1,3 +1,4 @@
+"""Implements all builtin banks."""
 from abc import ABC
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any

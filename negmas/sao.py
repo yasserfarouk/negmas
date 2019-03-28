@@ -29,7 +29,7 @@ __all__ = [
     'SimpleTitForTatNegotiator',
     'NiceNegotiator',
     'SAOController',
-    'SAOController',
+    'JavaSAONegotiator'
 ]
 
 

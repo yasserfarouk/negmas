@@ -9,7 +9,8 @@ from negmas.apps.scml.helpers import zero_runs
 from negmas.situated import Contract
 from .common import ProductionNeed, Job, Product, Process, ProductManufacturingInfo, SCMLAgreement, \
     ManufacturingProfileCompiled, INVALID_UTILITY
-from .simulators import FactorySimulator, NO_PRODUCTION, transaction
+from .simulators import FactorySimulator, transaction
+from .common import NO_PRODUCTION
 
 __all__ = [
     'ScheduleInfo', 'Scheduler', 'GreedyScheduler'

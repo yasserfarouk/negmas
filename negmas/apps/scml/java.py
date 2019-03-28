@@ -6,7 +6,8 @@ from typing import Union, Type, List, Optional, Dict, Any, Callable
 from py4j.java_collections import ListConverter
 
 from negmas import Contract, Breach, Negotiator, MechanismState, AgentMechanismInterface, RenegotiationRequest
-from negmas.apps.scml import GreedyFactoryManager, FactoryManager, ProductionFailure, Loan, SCMLAWI, CFP
+from negmas.apps.scml import GreedyFactoryManager, FactoryManager, ProductionFailure, Loan, SCMLAWI, CFP, \
+    FinancialReport
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.helpers import snake_case, instantiate
 from negmas.java import JavaCallerMixin, to_java, to_java, JNegmasGateway, from_java, to_dict_for_java
@@ -246,6 +247,9 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     it to connect to the java object it is representing.
 
     """
+
+    def on_new_report(self, report: FinancialReport):
+        pass
 
     @property
     def type_name(self):

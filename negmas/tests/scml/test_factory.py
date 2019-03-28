@@ -8,8 +8,9 @@ import pytest
 from pytest import fixture, mark
 
 from negmas.apps.scml import ManufacturingProfile, Product, Process, InputOutput, Job, RunningCommandInfo
-from negmas.apps.scml.simulators import SlowFactorySimulator, NO_PRODUCTION, FastFactorySimulator, storage_as_array
+from negmas.apps.scml.simulators import SlowFactorySimulator, FastFactorySimulator, storage_as_array
 from negmas.apps.scml.world import Factory
+from negmas.apps.scml.common import NO_PRODUCTION
 
 n_lines = 5
 n_levels = 4
