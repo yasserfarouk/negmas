@@ -160,23 +160,26 @@ class SCMLAgent(Agent):
         cfp = annotation['cfp']
         return self.respond_to_negotiation_request(cfp=cfp, partner=cfp.publisher)
 
-    def request_negotiation(self, cfp: CFP, negotiator: Negotiator = None, ufun: UtilityFunction = None) -> str:
+    def request_negotiation(self, cfp: CFP, negotiator: Negotiator = None, ufun: UtilityFunction = None) -> bool:
         """
         Requests a negotiation from the AWI while keeping track of available negotiation requests
+
         Args:
+
             cfp:
             negotiator:
             ufun:
 
         Returns:
 
+            Whether the negotiation request was successful indicating that the partner accepted the negotiation
         """
         if negotiator is not None and ufun is not None:
             negotiator.utility_function = ufun
         req_id = self._add_negotiation_request_info(issues=cfp.issues, partners=[self.id, cfp.publisher]
                                                     , annotation=None
                                                     , negotiator=negotiator, extra=None)
-        self.awi.request_negotiation(cfp=cfp, req_id=req_id)
+        return self.awi.request_negotiation(cfp=cfp, req_id=req_id)
 
     # ------------------------------------------------------------------
     # EVENT CALLBACKS (Called by the `World` when certain events happen)

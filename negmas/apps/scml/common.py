@@ -254,6 +254,7 @@ class RunningCommandInfo:
 
     @classmethod
     def do_nothing(cls):
+        # noinspection PyTypeChecker
         return cls(profile=None, beg=-1, end=-1, action='none', updates={}, step=0, paused=False)
 
 
