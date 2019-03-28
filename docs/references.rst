@@ -10,7 +10,8 @@ Reference
 .. automodapi:: negmas.utilities    
 .. automodapi:: negmas.mechanisms    
 .. automodapi:: negmas.helpers    
-.. automodapi:: negmas.inout    
+.. automodapi:: negmas.inout
+.. automodapi:: negmas.java
 .. automodapi:: negmas.tournaments
 .. automodapi:: negmas.generics
 .. automodapi:: negmas.apps.scml
