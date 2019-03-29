@@ -18,10 +18,11 @@ from py4j.java_gateway import (
     JavaGateway, CallbackServerParameters, GatewayParameters)
 from py4j.protocol import Py4JNetworkError
 
-from negmas import SAONegotiator, make_discounted_ufun, get_domain_issues
+from negmas import SAONegotiator, make_discounted_ufun, get_domain_issues, NEGMAS_CONFIG, CONFIG_KEY_GENIUS_BRIDGE_JAR
 from negmas import ResponseType, load_genius_domain
 from negmas.common import *
 from negmas.utilities import UtilityFunction
+import json
 
 DEFAULT_JAVA_PORT = 25337
 DEFAULT_PYTHON_PORT = 25338
@@ -267,7 +268,7 @@ party_based_negotiators = [
 ]
 
 
-def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
+def init_genius_bridge(path: str = None, port: int = 0, force: bool = False) -> bool:
     """Initializes a genius connection
 
     Args:
@@ -290,12 +291,21 @@ def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
     if not force and common_gateway is not None and common_port == port:
         print('Java already initialized')
         return True
-    path = os.path.abspath(os.path.expanduser(path))
+
+    path = NEGMAS_CONFIG.get(CONFIG_KEY_GENIUS_BRIDGE_JAR, None)
+    if path is None:
+        print('Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path'
+              'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
+              ' to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n'
+              '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'              
+              'You can find the jar at http://www.yasserm.com/scml/genius-8.0.4-bridge.jar')
+        return False
+    path = pathlib.Path(path).expanduser().absolute()
     try:
         subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
             f'java -jar {path} --die-on-exit {port}'
             , shell=True)
-    except:
+    except (OSError, TimeoutError, RuntimeError, ValueError):
         return False
     time.sleep(0.5)
     gateway = JavaGateway(gateway_parameters=GatewayParameters(port=port),
@@ -313,7 +323,7 @@ def init_genius_bridge(path: str, port: int = 0, force: bool = False) -> bool:
 class GeniusNegotiator(SAONegotiator):
     """Encapsulates a Genius Negotiator"""
 
-    def __init__(self, genius_bridge_path: str, java_class_name: str
+    def __init__(self, java_class_name: str
                  , port: int = None
                  , domain_file_name: str = None
                  , utility_file_name: str = None
@@ -321,6 +331,7 @@ class GeniusNegotiator(SAONegotiator):
                  , keep_value_names: bool = True
                  , auto_load_java: bool = False
                  , can_propose=True
+                 , genius_bridge_path: str = None
                  , name: str = None):
         super().__init__(name=name)
         self.capabilities['propose'] = can_propose
@@ -454,10 +465,11 @@ class GeniusNegotiator(SAONegotiator):
                     init_genius_bridge(path=path)
                 gateway = common_gateway
                 self.java = gateway.entry_point
-                port = DEFAULT_PYTHON_PORT
+                port = DEFAULT_JAVA_PORT
                 return True
-            # port = 25334
-        gateway = JavaGateway(python_proxy_port=port)
+            else:
+                port = DEFAULT_JAVA_PORT
+        gateway = JavaGateway(gateway_parameters=GatewayParameters(port=port, auto_close=True))
         if gateway is None:
             self.java = None
             return False
@@ -577,6 +589,8 @@ class GeniusNegotiator(SAONegotiator):
         agent_info = [_ for _ in self._mechanism_info.participants if _.id != self.id and _.id == agent_id]
         if len(agent_info) == 0:
             return
+        if outcome is None:
+            return
         agent_info = agent_info[0]
         #if agent_info.type == 'genius_negotiator':
         #    return
@@ -594,7 +608,7 @@ class GeniusNegotiator(SAONegotiator):
                                   , resp, bid)
 
 
-def genius_bridge_is_running(port: int=None) -> bool:
+def genius_bridge_is_running(port: int = None) -> bool:
     """
     Checks whether a Genius Bridge is running. A genius bridge allows you to use `GeniusNegotiator` objects.
 
@@ -611,6 +625,7 @@ def genius_bridge_is_running(port: int=None) -> bool:
     s = socket.socket()
     try:
         s.connect(('127.0.0.1', port))
+        return True
     except ConnectionRefusedError:
         return False
     except IndexError:
