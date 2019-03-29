@@ -1,11 +1,11 @@
 """
 Implements an agent-world-interface (see `AgentWorldInterface`) for the SCM world.
 """
-from negmas import Issue, Agent
-from negmas.apps.scml.common import FinancialReport
-from negmas.situated import AgentWorldInterface, Contract
-from negmas.apps.scml.common import *
 from typing import Optional, List, Dict, Any
+
+from negmas import Issue
+from negmas.apps.scml.common import *
+from negmas.situated import AgentWorldInterface, Contract, Action
 
 __all__ = [
     'SCMLAWI',
@@ -66,7 +66,7 @@ class SCMLAWI(AgentWorldInterface):
         return annotation
 
     def request_negotiation(self, cfp: CFP, req_id: str, roles: List[str] = None, mechanism_name: str = None
-                            , mechanism_params: Dict[str, Any] = None)  -> bool:
+                            , mechanism_params: Dict[str, Any] = None) -> bool:
         """
         Requests a negotiation with the publisher of a given CFP
 
@@ -90,9 +90,11 @@ class SCMLAWI(AgentWorldInterface):
 
         """
         default_annotation = self._create_annotation(cfp)
-        return super().request_negotiation_about(issues=cfp.issues, req_id=req_id, partners=default_annotation['partners']
-                                          , roles=roles, annotation=default_annotation, mechanism_name=mechanism_name
-                                          , mechanism_params=mechanism_params)
+        return super().request_negotiation_about(issues=cfp.issues, req_id=req_id,
+                                                 partners=default_annotation['partners']
+                                                 , roles=roles, annotation=default_annotation,
+                                                 mechanism_name=mechanism_name
+                                                 , mechanism_params=mechanism_params)
 
     def request_negotiation_about(self
                                   , issues: List[Issue]
@@ -194,4 +196,120 @@ class SCMLAWI(AgentWorldInterface):
         """Processes in the world"""
         return self._world.processes
 
+    # sugar functions (implementing actions that can all be done through execute
 
+    def schedule_production(self, profile: int, step: int, contract: Optional[Contract] = None,
+                            override: bool = True) -> None:
+        """
+        Schedules production on the agent's factory
+
+        Args:
+            profile: Index of the profile in the agent's `compiled_profiles` list
+            step: The step to start production according to the given profile
+            contract: The contract for which the production is scheduled (optional)
+            override: Whether to override existing production jobs schedules at the same time.
+
+        """
+        self.execute(action=Action(type='run', params={'profile': profile, 'time': step
+                                                       , 'contract': contract, 'override': override}))
+
+    def stop_production(self, line: int, step: int, contract: Optional[Contract], override: bool = True):
+        """
+        Stops/cancels production scheduled at the given line at the given time.
+
+        Args:
+            line: One of the factory lines (index)
+            step: Step to stop/cancel production at
+            contract: The contract for which the job is scheduled (optional)
+            override: Whether to override existing production jobs schedules at the same time.
+        """
+        self.execute(action=Action(type='stop', params={'line': line, 'time': step}))
+
+    cancel_production = stop_production
+    """
+    Stops/cancels production scheduled at the given line at the given time.
+
+    Args:
+        line: One of the factory lines (index) 
+        step: Step to stop/cancel production at
+    """
+
+    def schedule_job(self, job: Job, contract: Optional[Contract]):
+        """
+        Schedules production using a `Job` object. This can be used to schedule any kind of job
+
+        Args:
+            job: The job description
+            contract: The contract for which the job is scheduled (optional)
+
+        Remarks:
+
+            - Notice that actions that require the profile member of Job (run) never use the line member and vice versa.
+        """
+        self.execute(action=Action(type=job.action, params={'profile': job.profile, 'time': job.time
+                                                            , 'line': job.line
+                                                            , 'contract': contract, 'override': job.override}))
+
+    def hide_inventory(self, product: int, quantity: int) -> None:
+        """
+        Hides the given quantity of the given product so that it is not accessible by the simulator and does not appear
+        in reports etc.
+
+        Args:
+            product: product index
+            quantity: the amount of the product to hide
+
+        Remarks:
+
+            - if the current quantity in storage of the product is less than the amount to be hidden, whatever quantity
+              exists is hidden
+            - hiding is always immediate
+        """
+        self.execute(action=Action(type='hide_product', params={'product': product, 'quantity': quantity}))
+
+    def hide_funds(self, amount: float) -> None:
+        """
+        Hides the given amount of money so that it is not accessible by the simulator and does not appear
+        in reports etc.
+
+        Args:
+            amount: The amount of money to hide
+
+        Remarks:
+
+            - if the current cash in the agent's wallet is less than the amount to be hidden, all the cash is hidden.
+            - hiding is always immediate
+        """
+        self.execute(action=Action(type='hide_funds', params={'amount': amount}))
+
+    def unhide_inventory(self, product: int, quantity: int) -> None:
+        """
+        Un-hides the given quantity of the given product so that it is not accessible by the simulator and does not appear
+        in reports etc.
+
+        Args:
+            product: product index
+            quantity: the amount of the product to hide
+
+        Remarks:
+
+            - if the current quantity in storage of the product is less than the amount to be hidden, whatever quantity
+              exists is hidden
+            - hiding is always immediate
+        """
+        self.execute(action=Action(type='unhide_product', params={'product': product, 'quantity': quantity}))
+
+    def unhide_funds(self, amount: float) -> None:
+        """
+        Un-hides the given amount of money so that it is not accessible by the simulator and does not appear
+        in reports etc.
+
+        Args:
+            amount: The amount of money to unhide
+
+        Remarks:
+
+            - if the current cash in the agent's wallet is less than the amount to be hidden, all the cash is hidden.
+            - hiding is always immediate
+        """
+        self.execute(action=Action(type='unhide_funds', params={'amount': amount}))

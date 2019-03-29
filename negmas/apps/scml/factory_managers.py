@@ -283,11 +283,11 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                             , price=total, t=contract.agreement['time'])
         for job in schedule.jobs:
             if job.action == 'run':
-                awi.execute(action=Action(type=job.action, params={'profile': job.profile, 'time': job.time
-                    , 'contract': contract, 'override': job.override}))
+                awi.schedule_job(job, contract=contract)
+            elif job.action == 'stop':
+                awi.stop_production(line=job.line, step=job.time, contract=contract, override=job.override)
             else:
-                awi.execute(action=Action(type=job.action, params={'line': job.line, 'time': job.time
-                    , 'contract': contract, 'override': job.override}))
+                awi.schedule_job(job, contract=contract)
             self.simulator.schedule(job=job, override=False)
         for need in schedule.needs:
             if need.quantity_to_buy <= 0:

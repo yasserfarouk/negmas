@@ -820,6 +820,28 @@ class SCMLWorld(World):
             self.logerror(
                 f'{str(action)} received from {agent.id} which is {agent.__class__.__name__} not a FactoryManager')
             return False
+        factory = self.a2f[agent.id]
+        if factory is None:
+            if callback is not None:
+                callback(action, False)
+            self.logerror(
+                f'{str(action)} from {agent.id}: Unknown factory')
+            return False
+        if action.type == 'hide_funds':
+            factory.hide_funds(amount=action.params.get('amount', 0.0))
+            return True
+        elif action.type == 'unhide_funds':
+            factory.unhide_funds(amount=action.params.get('amount', 0.0))
+            return True
+        elif action.type in ('hide_product', 'hide_products', 'hide_inventory'):
+            factory.hide_product(product=action.params.get('product', -1)
+                                 , quantity=action.params.get('quantity', 0))
+        elif action.type in ('unhide_product', 'unhide_products', 'unhide_inventory'):
+            factory.unhide_product(product=action.params.get('product', -1)
+                                 , quantity=action.params.get('quantity', 0))
+        elif action.type not in ('run', 'start', 'stop', 'pause', 'resume'):
+                raise ValueError(f'Unknown action {action.type} received {str(action)}')
+
         line, profile_index = action.params.get('line', None), action.params.get('profile', None)
         t = action.params.get('time', None)
         contract = action.params.get('contract', None)
@@ -829,13 +851,6 @@ class SCMLWorld(World):
             if callback is not None:
                 callback(action, False)
             self.logerror(f'{str(action)} from {agent.id}: Neither profile index nor line is given or invalid time')
-            return False
-        factory = self.a2f[agent.id]
-        if factory is None:
-            if callback is not None:
-                callback(action, False)
-            self.logerror(
-                f'{str(action)} from {agent.id}: Unknown factory')
             return False
         if profile_index is not None:
             profile = factory.profiles[profile_index]
