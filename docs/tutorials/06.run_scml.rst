@@ -14,15 +14,19 @@ Firstly, let's import everything from the SCML app
     from negmas.apps.scml import *
 
 There are several ways to create an SCML world. One of the simplest is
-to use one of the class methods of the ``SCMLWorld`` class. The
-resulting world will have > 100 production steps so simulating it will
-take a while. If you want to just test your installation (and do not
-care whether you get an accurate indicator of agent performance), you
-can set the number of steps to a small value (e.g. n\_steps=10).
+to use one of the class methods of the ``SCMLWorld`` class.
+
+The resulting world will have > 100 production steps so simulating it
+will take several minutes. **To speed up the simulation, use a small
+number of n\_steps (e.g. 20)**
+
+If you want to just test your installation (and do not care whether you
+get an accurate indicator of agent performance), you can set the number
+of steps to a small value (e.g. n\_steps=10).
 
 .. code:: ipython3
 
-    world = SCMLWorld.chain_world(agent_names_reveal_type=True, n_steps=20)
+    world = SCMLWorld.chain_world(agent_names_reveal_type=True, n_steps=200)
 
 For debugging purposes, we set ``agent_names_reveal_type`` to true to be
 able to know the type of an agent from its name. During the actual ANAC
@@ -62,7 +66,7 @@ Several other statistics are available:
 
 .. parsed-literal::
 
-    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy_1_0', 'storage_greedy_1_0', 'balance_greedy_1_1', 'storage_greedy_1_1', 'balance_greedy_1_2', 'storage_greedy_1_2', 'balance_greedy_1_3', 'storage_greedy_1_3', 'balance_greedy_1_4', 'storage_greedy_1_4', 'market_size', 'production_failures', '_market_size_total']
+    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', 'n_contracts_nullified', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy_1_0', 'storage_greedy_1_0', 'balance_greedy_1_1', 'storage_greedy_1_1', 'balance_greedy_1_2', 'storage_greedy_1_2', 'balance_greedy_1_3', 'storage_greedy_1_3', 'balance_greedy_1_4', 'storage_greedy_1_4', 'market_size', 'production_failures', '_market_size_total']
 
 
 We can for example check the activity level of this world (defined as
@@ -125,7 +129,7 @@ maximum wealth). Notice that there can be multiple winners
 
 .. parsed-literal::
 
-    [greedy_1_4]
+    [greedy_1_0]
 
 
 
@@ -175,7 +179,6 @@ We can actually check what happens to ALL competitors:
 
 
 .. image:: 06.run_scml_files/06.run_scml_23_0.png
-
 
 
 
