@@ -1044,7 +1044,7 @@ class SCMLWorld(World):
             # Loans are mandatory for society penalty but the agent can refuse to pay a victim penalty
             if seller_balance < penalty_value:
                 self.bank.buy_loan(agent=seller, amount=penalty_value - seller_balance
-                                   , n_installments=self.loan_installments, force=not is_victim)
+                                   , n_installments=self.loan_installments, force=True)
 
             for penalty, is_victim, penalty_value in ((penalty_victim, True, penalty_values[0])
                                                       , (penalty_society, False, penalty_values[1])):
@@ -1103,7 +1103,8 @@ class SCMLWorld(World):
         missing_money = max(0.0, money - available_money)
         if missing_money > 0.0:
             # if the buyer cannot pay, then offer him a loan. The loan is always optional
-            self.bank.buy_loan(agent=buyer, amount=missing_money, n_installments=self.loan_installments)
+            self.bank.buy_loan(agent=buyer, amount=missing_money, n_installments=self.loan_installments
+                               , force=False)
             available_money = buyer_factory.wallet
             missing_money = max(0.0, money - available_money)
 

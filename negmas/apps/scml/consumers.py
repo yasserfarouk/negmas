@@ -262,10 +262,10 @@ class ScheduleDrivenConsumer(Consumer):
         """
         return None
 
-    def confirm_loan(self, loan: Loan) -> bool:
+    def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
         breached"""
-        return False
+        return bankrupt_if_rejected
 
     def sign_contract(self, contract: Contract) -> Optional[str]:
         if contract is None:

@@ -302,8 +302,8 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
         return self.java_object.onProductionFailure(failures=failures)
 
-    def confirm_loan(self, loan: Loan) -> bool:
-        return self.java_object.confirmLoan(loan)
+    def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
+        return self.java_object.confirmLoan(loan, bankrupt_if_rejected)
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return self.java_object.confirmContractExecution(contract=contract)

@@ -136,10 +136,10 @@ class DoNothingFactoryManager(FactoryManager):
                                          , agenda: RenegotiationRequest) -> Optional[Negotiator]:
         return None
 
-    def confirm_loan(self, loan: Loan) -> bool:
+    def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
         breached"""
-        return True
+        return bankrupt_if_rejected
 
     def on_new_cfp(self, cfp: 'CFP') -> None:
         pass
@@ -151,8 +151,8 @@ class GreedyFactoryManager(DoNothingFactoryManager):
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
         pass
 
-    def confirm_loan(self, loan: Loan) -> bool:
-        return True
+    def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
+        return bankrupt_if_rejected
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return True
