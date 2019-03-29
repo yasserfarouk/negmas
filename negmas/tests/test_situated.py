@@ -53,8 +53,9 @@ class DummyWorld(World):
     def _execute_contract(self, contract: Contract) -> Set[Breach]:
         return set()
 
-    def _process_breach(self, breach: Breach) -> bool:
-        return True
+    def _process_breach(self, contract: Contract, breaches: List[Breach]
+                        , force_immediate_signing=True) -> Optional[Contract]:
+        return None
 
     def _breach_record(self, breach: Breach):
         return breach.__dict__

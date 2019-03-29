@@ -296,7 +296,7 @@ class Job:
         if self.line != job.line:
             return False
         return job.action == 'cancel' or \
-               (self.action == 'run' and job.action == 'stop') or \
+               (self.action in ('run', 'start') and job.action == 'stop') or \
                (self.action == 'pause' and job.action == 'resume') or \
                (self.action == 'resume' and job.action == 'pause')
 
@@ -748,10 +748,13 @@ class CFP(OutcomeType):
 @dataclass
 class SCMLAction:
     line: str
-    process: Process
+    """Line to execute the action on (need not be given if the profile is given"""
+    profile: Optional[int]
+    """Index of the profile to execute"""
     action: str
     """The action which may be start, stop, pause, resume"""
     time: int = 0
+    """Time to execute the action at"""
 
 
 @dataclass
@@ -903,6 +906,10 @@ class Factory:
     """Total storage"""
     _wallet: float = field(default=0, init=False)
     """Money available for purchases"""
+    _hidden_money: float = field(default=0, init=False)
+    """Amount of money hidden by the agent"""
+    _hidden_storage: Dict[int, int] = field(default_factory=lambda: defaultdict(int), init=False)
+    """Mapping from product index to the amount hidden by the agent"""
     _loans: float = field(default=0.0, init=False)
     """The total money owned as loans"""
     _n_lines: int = field(init=False)
@@ -934,6 +941,14 @@ class Factory:
         self._wallet = initial_wallet
         self._carried_updates = FactoryStatusUpdate.empty()
         self.initial_balance = initial_wallet
+
+    @property
+    def hidden_money(self) -> float:
+        return self._hidden_money
+
+    @property
+    def hidden_storage(self) -> Dict[int, int]:
+        return self._hidden_storage
 
     @property
     def n_lines(self) -> int:
@@ -1018,6 +1033,26 @@ class Factory:
     def transport_from(self, product: int, quantity: int) -> None:
         self.transport_to(product=product, quantity=-quantity)
 
+    def hide_funds(self, amount: float) -> None:
+        to_hide = min(amount, self._wallet)
+        self._hidden_money += to_hide
+        self._wallet -= to_hide
+
+    def hide_product(self, product: int, quantity: int) -> None:
+        to_hide = min(quantity, self._storage.get(product, 0))
+        self._hidden_storage[product] += to_hide
+        self._storage[product] -= to_hide
+
+    def unhide_funds(self, amount: float) -> None:
+        to_hide = min(amount, self._hidden_money)
+        self._hidden_money -= to_hide
+        self._wallet += to_hide
+
+    def unhide_product(self, product: int, quantity: int) -> None:
+        to_hide = min(quantity, self._hidden_storage.get(product, 0))
+        self._hidden_storage[product] -= to_hide
+        self._storage[product] += to_hide
+
     def schedule(self, job: Job, override=False) -> None:
         """
         Schedules the given job at its `time` and `line` optionally overriding whatever was already scheduled
@@ -1030,7 +1065,7 @@ class Factory:
         """
         # you can only schedule jobs at the following simulation step
         t, line, profile = job.time, job.line, self.profiles[job.profile]
-        if job.action == 'run':
+        if job.action in ('run', 'start'):
             line = profile.line
         if t < self._next_step - 1 or line >= self._n_lines or line < 0:
             raise ValueError(f'cannot schedule at time {t} (current {self._next_step - 1}) on line {line} '
@@ -1202,7 +1237,7 @@ class Factory:
             return ProductionReport(updates=updates, continuing=None, started=None, finished=None
                                     , failure=None, line=line)
         if job is not None:
-            if job.action == 'run':
+            if job.action in ('run', 'start'):
                 self._run(profile=self.profiles[job.profile], override=job.override)
             elif job.action == 'pause':
                 self._pause(line=job.line)

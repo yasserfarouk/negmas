@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.1.45
+--------------
+
+* implemented money and inventory hiding
+* added sugar methods to SCMLAWI that run execute for different commands: schedule_production, stop_production, schedule_job, hide_inventory, hide_money
+* added a json file ~/negmas/config.json to store all global configs
+* reading jar locations for both jnegmas and genius-bridge from config file
+* completed bankruptcy and liquidation implementation.
+* removed the unnecessary _world parameter from Entity
+* Added parameters to the SCML world to control compensation parameters and default price for products with no catalog prices.
+* Added contract nullification everywhere.
+
 Release 0.1.42
 --------------
 
