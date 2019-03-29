@@ -1,7 +1,7 @@
 History
 =======
 
-Release 0.1.41
+Release 0.1.42
 --------------
 
 * documentation improvement
