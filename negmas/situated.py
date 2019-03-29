@@ -107,6 +107,9 @@ class Contract(OutcomeType):
     """The time-step at which the contract was signed"""
     concluded_at: Optional[int] = None
     """The time-step at which the contract was concluded (but it is still not binding until signed)"""
+    nullified_at: Optional[int] = None
+    """The time-step at which the contract was nullified after being signed. That can happen if a partner declares 
+    bankruptcy"""
     to_be_signed_at: Optional[int] = None
     """The time-step at which the contract should be signed"""
     signatures: List[Signature] = field(default_factory=list)
@@ -210,7 +213,6 @@ class Entity(NamedObject):
 
     def __init__(self, name: str = None):
         super().__init__(name=name)
-        self._world: Optional['World'] = None
 
     @property
     def type_name(self):
@@ -1001,7 +1003,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
         # execute contracts that are executable at this step
         # --------------------------------------------------
-        current_contracts = self._get_executable_contracts()
+        current_contracts = [_ for _ in self._get_executable_contracts() if _.nullified_at is None]
         if len(current_contracts) > 0:
             # remove expired contracts
             executed = set()
@@ -1105,7 +1107,8 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         """
         # super().register(x) # If we inherit from session, we can do that but it is not needed as we do not do string
         # based resolution now
-        x._world = self
+        if hasattr(x, '_world'):
+            x._world = self
         if hasattr(x, 'step_'):
             self._entities[simulation_priority].add(x)
 
@@ -1440,7 +1443,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
     @abstractmethod
     def _contract_record(self, contract: Contract) -> Dict[str, Any]:
-        """Converts a contract to a record suitable for permenant storage"""
+        """Converts a contract to a record suitable for permanent storage"""
 
     @abstractmethod
     def _breach_record(self, breach: Breach) -> Dict[str, Any]:

@@ -1,17 +1,16 @@
 from abc import ABC
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import Dict, Tuple, List, Optional, TYPE_CHECKING, Any
 
 from negmas import Mechanism, AgentMechanismInterface, MechanismState
-from negmas.situated import Agent, RenegotiationRequest, Breach
-from .common import InsurancePolicy, Factory
+from negmas.negotiators import Negotiator
+from negmas.outcomes import Issue
+from negmas.situated import Agent, RenegotiationRequest, Breach, Contract
 from .agent import SCMLAgent
+from .common import InsurancePolicy, Factory
 
-if True: # if TYPE_CHECKING:
-    from typing import Dict, Tuple, List, Optional
-    from negmas.situated import Contract
-    from negmas.outcomes import Issue
-    from negmas.negotiators import Negotiator
+if TYPE_CHECKING:
+    from .world import SCMLWorld
 
 __all__ = [
     'DefaultInsuranceCompany',
@@ -21,6 +20,10 @@ __all__ = [
 
 class InsuranceCompany(Agent, ABC):
     """Base class for all insurance companies"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._world: Optional[SCMLWorld] = None
 
     def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
                                         annotation: Dict[str, Any], mechanism: AgentMechanismInterface,

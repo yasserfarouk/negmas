@@ -93,6 +93,9 @@ class SCMLWorld(World):
                  , catalog_prices_are_public=True
                  , strip_annotations=True
                  , financial_reports_period=10
+                 # bankruptcy parameters
+                 , default_price_for_products_without_one=1
+                 , compensation_fraction=0.5
                  # general parameters
                  , log_file_name=None
                  , name: str = None):
@@ -145,6 +148,8 @@ class SCMLWorld(World):
                          , neg_step_time_limit=neg_step_time_limit
                          , mechanisms={'negmas.sao.SAOMechanism': {}}
                          , name=name)
+        self.compensation_fraction = compensation_fraction
+        self.default_price_for_products_without_one = default_price_for_products_without_one
         self.agents: Dict[str, SCMLAgent] = {}  # just to help static type checkers
         if balance_at_max_interest is None:
             balance_at_max_interest = initial_wallet_balances
@@ -224,6 +229,7 @@ class SCMLWorld(World):
 
         self.__interested_agents: List[List[SCMLAgent]] = [[]] * len(self.products)
         self.n_new_cfps = 0
+        self.__n_nullified = 0
         self._transport: Dict[int, List[Tuple[SCMLAgent, int, int]]] = defaultdict(list)
         self._transfer: Dict[int, List[Tuple[SCMLAgent, float]]] = defaultdict(list)
         self.transfer_delay = transfer_delay
@@ -243,8 +249,10 @@ class SCMLWorld(World):
                                                          , name='insurance_company')
         self.join(self.insurance_company)
 
+        self.all_agents = {}
         for agent in itertools.chain(self.miners, self.consumers, self.factory_managers):  # type: ignore
             agent.init_()
+            self.all_agents[agent.id] = agent
         # self.standing_jobs: Dict[int, List[Tuple[Factory, Job]]] = defaultdict(list)
 
     def join(self, x: 'Agent', simulation_priority: int = 0):
@@ -884,7 +892,8 @@ class SCMLWorld(World):
                                          , cash=factory.wallet
                                          , liabilities=factory.loans
                                          , inventory=inventory
-                                         , credit_rating=self.bank.credit_rating.get(agent.id, 1))
+                                         , credit_rating=self.bank.credit_rating(agent.id)
+                                         )
                 if reports_agent.get(agent.id, None) is None:
                     reports_agent[agent.id] = []
                 reports_agent[agent.id].append(report)
@@ -949,6 +958,7 @@ class SCMLWorld(World):
         cfps = self.bulletin_board._data['cfps']
         self._stats['n_cfps_on_board_before'].append(len(cfps) if cfps else 0)
         self._n_production_failures = 0
+        self.__n_nullified = 0
         pass
 
     def _post_step_stats(self):
@@ -958,6 +968,7 @@ class SCMLWorld(World):
         # noinspection PyProtectedMember
         cfps = self.bulletin_board._data['cfps']
         self._stats['n_cfps_on_board_after'].append(len(cfps) if cfps else 0)
+        self._stats['n_contracts_nullified'].append(self.__n_nullified)
         market_size = 0
         self._stats[f'_balance_bank'].append(self.bank.wallet)
         self._stats[f'_balance_society'].append(self.penalties)
@@ -1044,7 +1055,8 @@ class SCMLWorld(World):
             # Loans are mandatory for society penalty but the agent can refuse to pay a victim penalty
             if seller_balance < penalty_value:
                 self.bank.buy_loan(agent=seller, amount=penalty_value - seller_balance
-                                   , n_installments=self.loan_installments, force=True)
+                                   , n_installments=self.loan_installments, force=True, beneficiary=buyer
+                                   , contract=contract)
 
             for penalty, is_victim, penalty_value in ((penalty_victim, True, penalty_values[0])
                                                       , (penalty_society, False, penalty_values[1])):
@@ -1104,7 +1116,7 @@ class SCMLWorld(World):
         if missing_money > 0.0:
             # if the buyer cannot pay, then offer him a loan. The loan is always optional
             self.bank.buy_loan(agent=buyer, amount=missing_money, n_installments=self.loan_installments
-                               , force=False)
+                               , force=False, beneficiary=seller, contract=contract)
             available_money = buyer_factory.wallet
             missing_money = max(0.0, money - available_money)
 
@@ -1122,6 +1134,17 @@ class SCMLWorld(World):
             breaches.add(Breach(contract=contract, perpetrator=buyer.id, victims=[seller.id]
                                 , level=money_breach, type='money', step=self.current_step))
 
+        if len(breaches) > 0:
+            return breaches
+
+        # should never arrive here
+        assert missing_quantity == 0
+        assert missing_money == 0
+
+        if money > 0 or quantity > 0:
+            self._move_product(buyer=buyer, seller=seller, quantity=quantity, money=money, product_id=pind)
+        else:
+            self.logdebug(f'Contract {contract.id} has no transfers')
         return breaches
 
     def _move_product(self, buyer: SCMLAgent, seller: SCMLAgent, product_id: int, quantity: int, money: float):
@@ -1349,6 +1372,77 @@ class SCMLWorld(World):
             except ValueError:
                 pass
 
+    def make_bankrupt(self, agent: SCMLAgent, amount: float, beneficiary: Agent, contract: Optional[Contract]) -> None:
+        """Marks the agent as bankrupt"""
+        self.bulletin_board.record('bankruptcy', {'time': self.current_step,
+                                                  }, key=agent.id)
+        # @todo can be implemented faster by keeping the reverse dict (i.e. from agent to everyone to inform about his
+        #  bakruptcy
+        for receiver in itertools.chain(self.miners, self.consumers, self.factory_managers):
+            if agent.id in self._financial_report_interest.get(receiver.id, {}):
+                receiver.on_agent_bankrupt(agent.id)
+        # liquidate the bankrupt agent
+        factory = self.a2f.get(agent.id, None)
+        if factory is None:
+            return
+
+        # first sell everything the agent has in its factory at catalog prices
+        for product_index, quantity in factory.storage.items():
+            price = self.products[product_index].catalog_price
+            if price is None:
+                price = self.default_price_for_products_without_one
+            saved_min_storage, factory.min_storage = factory.min_storage, 0
+            factory.sell(product=product_index, quantity=quantity, price=price)
+
+        payable = min(factory.wallet, amount)
+
+        # second pay the beneficiary
+        if contract is None:
+            # beneficiary is the bank
+            beneficiary: DefaultBank
+            beneficiary.wallet += payable
+            factory.pay(payable)
+            keep_for_beneficiary = 0
+        else:
+            # beneficiary is another agent
+            keep_for_beneficiary = payable
+
+        # nullify all future contracts
+        available = factory.balance - keep_for_beneficiary
+        owed = 0.0
+        nulled_contracts = []
+        for time, contracts in self.contracts.items():
+            if time < self.current_step:
+                continue
+            for contract in contracts:
+                if agent.id in contract.partners:
+                    victim = [_ for _ in contract.partners if _ != agent.id][0]
+                    nulled_contracts.append((victim, contract))
+                    owed += contract.agreement['quantity'] * contract.agreement['unit_price']
+
+        # calculate compensation fraction
+        if available > owed:
+            fraction = self.compensation_fraction
+        else:
+            fraction = self.compensation_fraction * available / owed
+
+        for victim, contract in nulled_contracts:
+            victim = self.all_agents.get(victim, None)
+            if victim is None:
+                continue
+            factory = self.a2f.get(victim.id, None)
+            if factory is None:
+                continue
+            compensation = fraction * contract.agreement['quantity'] * contract.agreement['unit_price']
+            victim.on_contract_nullified(contract=contract, bankrupt_partner=agent.id, compensation=compensation)
+            factory.receive(compensation)
+
+            self.nullify_contract(contract)
+
+    def nullify_contract(self, contract: Contract):
+        self.__n_nullified += 1
+        contract.nullified_at = self.current_step
+
     def evaluate_insurance(self, contract: Contract, agent: SCMLAgent, t: int = None) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
 
@@ -1460,6 +1554,7 @@ class SCMLWorld(World):
             'quantity': contract.agreement['quantity'],
             'unit_price': contract.agreement['unit_price'],
             'signed_at': contract.signed_at if contract.signed_at is not None else -1,
+            'nullified_at': contract.nullified_at if contract.nullified_at is not None else -1,
             'concluded_at': contract.concluded_at,
             'penalty': contract.agreement.get('penalty', np.nan),
             'signing_delay': contract.agreement.get('signing_delay', 0),
