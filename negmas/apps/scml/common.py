@@ -999,7 +999,7 @@ class Factory:
     # @todo Schedulers and simulators do not know about transportation or transfer delays. They should
     # @todo Factory buy and sell functions do not take transportation and transfer delays into account
 
-    def buy(self, product: int, quantity: int, price: int) -> None:
+    def buy(self, product: int, quantity: int, price: float) -> None:
         if self._wallet < price or self._total_storage + quantity > self.max_storage:
             raise ValueError(f'Cannot buy {quantity} (total {self._total_storage}/{sum(self._storage.values())}) of '
                              f'{product} for {price} (wallet {self._wallet} / balance {self.balance})')
@@ -1007,7 +1007,7 @@ class Factory:
         self._storage[product] += quantity
         self._total_storage += quantity
 
-    def sell(self, product: int, quantity: int, price: int) -> None:
+    def sell(self, product: int, quantity: int, price: float) -> None:
         if self._storage[product] < quantity + self.min_storage:
             raise ValueError(f'Cannot sell {quantity} (have {self._storage[product]}) of '
                              f'{product} for {price} (wallet {self._wallet} / balance {self.balance})')

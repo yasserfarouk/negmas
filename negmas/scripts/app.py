@@ -235,7 +235,8 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
         data = pd.DataFrame(world.saved_contracts)
         data = data.sort_values(['delivery_time'])
         data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                               , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+                             , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'nullified_at'
+                             , 'cfp']]
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
