@@ -186,7 +186,7 @@ class SCMLAgent(Agent):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    def confirm_loan(self, loan: Loan) -> bool:
+    def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
         breached"""
 
@@ -197,13 +197,39 @@ class SCMLAgent(Agent):
 
     @abstractmethod
     def on_agent_bankrupt(self, agent_id: str) -> None:
-        """Will be called whenever any agent went bankrupt"""
+        """
+        Will be called whenever any agent goes bankrupt
+
+        Args:
+
+            agent_id: The ID of the agent that went bankrupt
+
+        Remarks:
+
+            - Agents can go bankrupt in two cases:
+
+                1. Failing to pay one installments of a loan they bought and refusing (or being unable to) get another
+                   loan to pay it.
+                2. Failing to pay a penalty on a sell contract they failed to honor (and refusing or being unable to get
+                   a loan to pay for it).
+
+            - All built-in agents ignore this call and they use the bankruptcy list ONLY to decide whether or not to
+              negotiate in their `on_new_cfp` and `respond_to_negotiation_request` callbacks by pulling the
+              bulletin-board using the helper function `is_bankrupt` of their AWI.
+        """
 
     @abstractmethod
     def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
         """Will be called whenever a contract cannot be fully executed due to breaches by the other partner.
 
-        Will not be called if both partners committed breaches.
+        Args:
+
+            contract: The contract that was breached
+            breaches: A list of all the breaches committed.
+
+        Remarks:
+
+            - Will not be called if both partners committed breaches.
         """
 
     @abstractmethod
@@ -227,5 +253,11 @@ class SCMLAgent(Agent):
     def on_new_report(self, report: FinancialReport):
         """Called whenever a financial report is published.
 
-        Agents must opt-in to receive these calls by calling `receive_financial_reports` on their AWI
+        Args:
+
+            report: The financial report giving details of the standing of an agent at some time (see `FinancialReport`)
+
+        Remarks:
+
+            - Agents must opt-in to receive these calls by calling `receive_financial_reports` on their AWI
         """

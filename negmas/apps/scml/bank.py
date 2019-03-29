@@ -124,7 +124,7 @@ class DefaultBank(Bank):
         if loan is None:
             return loan
         factory = self.a2f[agent.id]
-        if force or agent.confirm_loan(loan=loan):
+        if force or agent.confirm_loan(loan=loan, bankrupt_if_rejected=force):
             self.loans[agent].append(loan)
             self.awi.logdebug(f'Bank: {agent.name} borrowed {str(loan)}')
             factory.receive(loan.amount)
