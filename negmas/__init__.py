@@ -2,7 +2,7 @@
 """A framework for conducting multi-strand multilateral asynchronous negotiations on multiple issues."""
 __author__ = """Yasser Mohammad"""
 __email__ = 'yasserfarouk@gmail.com'
-__version__ = '__version__ = '0.1.44''
+__version__ = '__version__ = '0.1.45''
 
 import json
 import pathlib
