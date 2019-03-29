@@ -12,6 +12,8 @@ Release 0.1.45
 * removed the unnecessary _world parameter from Entity
 * Added parameters to the SCML world to control compensation parameters and default price for products with no catalog prices.
 * Added contract nullification everywhere.
+* updated documentation to show all inherited members of all classes and to show all non-private members
+* Removing the bulletin-board from the public members of the AWI
 
 Release 0.1.42
 --------------

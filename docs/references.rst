@@ -1,18 +1,47 @@
 Reference
 =========
-.. automodapi:: negmas.situated    
-.. automodapi:: negmas.sao    
-.. automodapi:: negmas.genius    
-.. automodapi:: negmas.events    
-.. automodapi:: negmas.negotiators    
-.. automodapi:: negmas.common    
+.. automodapi:: negmas.situated
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.sao
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.genius
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.events
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.negotiators
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.common
+    :include-all-objects:
+    :inherited-members:
 .. automodapi:: negmas.outcomes
-.. automodapi:: negmas.utilities    
-.. automodapi:: negmas.mechanisms    
-.. automodapi:: negmas.helpers    
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.utilities
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.mechanisms
+    :include-all-objects:
+    :inherited-members:
+.. automodapi:: negmas.helpers
+    :include-all-objects:
+    :inherited-members:
 .. automodapi:: negmas.inout
+    :include-all-objects:
+    :inherited-members:
 .. automodapi:: negmas.java
+    :include-all-objects:
+    :inherited-members:
 .. automodapi:: negmas.tournaments
+    :include-all-objects:
+    :inherited-members:
 .. automodapi:: negmas.generics
+    :include-all-objects:
+    :inherited-members:
 .. automodapi:: negmas.apps.scml
-    :no-heading:    
+    :include-all-objects:
+    :inherited-members:

@@ -215,3 +215,5 @@ imgmath_image_format = 'png'
 # If false, no module index is generated.
 html_domain_indices = True
 
+automodsumm_inherited_members = True
+
