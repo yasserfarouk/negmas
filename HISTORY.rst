@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.1.41
+--------------
+
+* documentation improvement
+* basic bankruptcy implementation
+* bug fixes
+
 Release 0.1.40
 --------------
 
