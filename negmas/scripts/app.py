@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """The NegMAS universal command line tool"""
 
-import multiprocessing
 import os
 import traceback
 from functools import partial
 from pathlib import Path
 from pprint import pformat
-from time import perf_counter, sleep
+from time import perf_counter
 
 import click
 import pandas as pd
@@ -31,7 +30,6 @@ except:
 
 n_completed = 0
 n_total = 0
-external_path = pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar')
 
 
 def print_progress(_, i, n) -> None:
@@ -100,8 +98,10 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
         results = tournaments.tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
                                          , tournament_path=log, total_timeout=timeout
                                          , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
-                                         , world_progress_callback=print_world_progress if verbosity > 1 and not distributed else None
-                                         , name=name, verbose=verbosity > 0, n_runs_per_config=runs, max_n_configs=max_runs
+                                         ,
+                                         world_progress_callback=print_world_progress if verbosity > 1 and not distributed else None
+                                         , name=name, verbose=verbosity > 0, n_runs_per_config=runs,
+                                         max_n_configs=max_runs
                                          , world_generator=anac2019_world, score_calculator=balance_calculator
                                          , configs_only=configs_only, randomize=randomize
                                          , n_steps=steps)
@@ -235,8 +235,8 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
         data = pd.DataFrame(world.saved_contracts)
         data = data.sort_values(['delivery_time'])
         data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                             , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'nullified_at'
-                             , 'cfp']]
+                               , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'nullified_at'
+                               , 'cfp']]
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
@@ -262,19 +262,26 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
 
 
 @cli.command(help='Start the bridge to genius (to use GeniusNegotiator)')
-@click.option('--path', '-p', default=external_path, help='Path to genius-8.0.4.jar with embedded NegLoader')
+@click.option('--path', '-p', default='auto', help='Path to genius-8.0.4.jar with embedded NegLoader. Use "auto" to '
+                                                   'read the path from ~/negmas/config.json'
+                                                   '\n\tConfig key is genius_bridge_jar'
+                                                   '\nYou can download this jar from: '
+                                                   'http://www.yasserm.com/scml/genius-8.0.4-bridge.jar')
 @click.option('--port', '-r', default=0, help='Port to run the NegLoader on. Pass 0 for the default value')
 @click.option('--force/--no-force', default=False, help='Force trial even if an earlier instance exists')
 def genius(path, port, force):
-    negmas.init_genius_bridge(path=path, port=port, force=force)
+    negmas.init_genius_bridge(path=path if path != 'auto' else None, port=port, force=force)
 
 
 @cli.command(help='Start the bridge to JNegMAS (to use Java agents in worlds)')
-@click.option('--path', '-p', default=None, help='Path to jnegmas library. If not given, an internal version '
-                                                          'will be used')
+@click.option('--path', '-p', default='auto', help='Path to jnegmas*.jar with. Use "auto" to '
+                                                   'read the path from ~/negmas/config.json.'
+                                                   '\n\tConfig key is jnegmas_jar'
+                                                   '\nYou can download the latest version of this jar from: '
+                                                   'http://www.yasserm.com/scml/jnegmas-all.jar')
 @click.option('--port', '-r', default=0, help='Port to run the jnegmas on. Pass 0 for the default value')
 def jnegmas(path, port):
-    init_jnegmas_bridge(path=path, port=port)
+    init_jnegmas_bridge(path=path if path != 'auto' else None, port=port)
 
 
 if __name__ == '__main__':
