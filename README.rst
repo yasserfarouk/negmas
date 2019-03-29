@@ -118,21 +118,22 @@ Developing a novel negotiator slightly more difficult by is still doable in few 
 
 .. code-block:: python
 
-    from negmas.negotiators import Negotiator
-    class MyAwsomeNegotiator(Negotiator):
+    from negmas.sao import SAONegotiator
+    from negmas import ResponseType
+    class MyAwsomeNegotiator(SAONegotiator):
         def __init__(self):
             # initialize the parents
-            Negotiator.__init__(self)
+            super().__init__(self)
 
-        def respond_(self, offer, state):
-            # decide what to do when receiving an offer @ that negotiation
+        def respond(self, offer, state):
+            # decide what to do when receiving an offer
+            return ResponseType.ACCEPT_OFFER
+
+        def propose(self, state):
+            # proposed the required number of proposals (or less) 
             pass
 
-        def propose_(self, state):
-            # proposed the required number of proposals (or less) @ that negotiation
-            pass
-
-By just implementing `respond_()` and `propose_()`. This negotiator is now capable of engaging in alternating offers
+By just implementing `respond()` and `propose()`. This negotiator is now capable of engaging in alternating offers
 negotiations. See the documentation of `Negotiator` for a full description of available functionality out of the box.
 
 Developing a negotiation protocol
@@ -148,11 +149,11 @@ Developing a novel negotiation protocol is actually even simpler:
         def __init__(self):
             super().__init__()
 
-        def step_(self):
+        def round(self):
             # one step of the protocol
             pass
 
-By implementing the single `step_()` function, a new protocol is created. New negotiators can be added to the
+By implementing the single `round()` function, a new protocol is created. New negotiators can be added to the
 negotiation using `add()` and removed using `remove()`. See the documentation for a full description of
 `Mechanism` available functionality out of the box [Alternatively you can use `Protocol` instead of `Mechanism`].
 
