@@ -162,7 +162,7 @@ Running a world simulation
 
 The *raison d'être* for NegMAS is to allow you to develop negotiation agents capable of behaving in realistic
 *business like* simulated environments. These simulations are called *worlds* in NegMAS. Agents interact with each other
-within these simulated environments trying their maximize some intrinsic utility function of the agent through several
+within these simulated environments trying to maximize some intrinsic utility function of the agent through several
 *possibly simultaneous* negotiations.
 
 The `situated` module provides all that you need to create such worlds. An example can be found in the `scml` package.
