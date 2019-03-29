@@ -570,11 +570,6 @@ class AgentWorldInterface:
         return self._world.n_steps
 
     @property
-    def bulletin_board(self) -> BulletinBoard:
-        """The bulletin-board"""
-        return self._world.bulletin_board
-
-    @property
     def default_signing_delay(self) -> int:
         return self._world.default_signing_delay
 
