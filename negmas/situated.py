@@ -453,11 +453,11 @@ class MechanismFactory:
                                     , responses: Iterator[Tuple[Negotiator, str]]
                                     , partners: List["Agent"]) -> Mechanism:
         if self.neg_n_steps is not None:
-            mechanism.info.n_steps = self.neg_n_steps
+            mechanism.ami.n_steps = self.neg_n_steps
         if self.neg_time_limit is not None:
-            mechanism.info.time_limit = self.neg_time_limit
+            mechanism.ami.time_limit = self.neg_time_limit
         if self.neg_step_time_limit is not None:
-            mechanism.info.step_time_limit = self.neg_step_time_limit
+            mechanism.ami.step_time_limit = self.neg_step_time_limit
         for partner in partners:
             mechanism.register_listener(event_type='negotiation_end', listener=partner)
         for _negotiator, _role in responses:
@@ -508,7 +508,7 @@ class MechanismFactory:
         partner_names = [p.id for p in partners]
         responses = [partner.respond_to_negotiation_request_(initiator=caller.id, partners=partner_names, issues=issues
                                                              , annotation=annotation, role=role
-                                                             , mechanism=mechanism.info
+                                                             , mechanism=mechanism.ami
                                                              , req_id=req_id if partner == caller else None)
                      for role, partner in zip(roles, partners)]
         if not all(responses):
@@ -521,7 +521,7 @@ class MechanismFactory:
                                                      , responses=zip(responses, roles), partners=partners)
         neg_info = NegotiationInfo(mechanism=mechanism, partners=partners, annotation=annotation, issues=issues
                                    , requested_at=self.world.current_step)
-        caller.on_neg_request_accepted_(req_id=req_id, mechanism=mechanism.info)
+        caller.on_neg_request_accepted_(req_id=req_id, mechanism=mechanism.ami)
         self.world.loginfo(f'{caller.id} request was accepted')
         return neg_info
 
@@ -944,9 +944,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                     if agreement is not None or is_broken:  # or not mechanism.running:
                         negotiation = self._negotiations.get(puuid, None)
                         if agreement is None:
-                            self._register_failed_negotiation(mechanism.info, negotiation)
+                            self._register_failed_negotiation(mechanism.ami, negotiation)
                         else:
-                            self._register_contract(mechanism.info, negotiation)
+                            self._register_contract(mechanism.ami, negotiation)
                         if negotiation:
                             del self._negotiations[mechanism.uuid]
                 mechanisms = list((k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None)
@@ -1150,9 +1150,9 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                 if agreement is not None or is_broken:  # or not mechanism.running:
                     negotiation = self._negotiations.get(puuid, None)
                     if agreement is None:
-                        self._register_failed_negotiation(mechanism.info, negotiation)
+                        self._register_failed_negotiation(mechanism.ami, negotiation)
                     else:
-                        self._register_contract(mechanism.info, negotiation)
+                        self._register_contract(mechanism.ami, negotiation)
                     if negotiation:
                         del self._negotiations[mechanism.uuid]
         # self.loginfo(
@@ -1237,10 +1237,10 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
-                self._register_failed_negotiation(mechanism=mechanism.info, negotiation=neg)
+                self._register_failed_negotiation(mechanism=mechanism.ami, negotiation=neg)
             else:
-                contract = self._register_contract(mechanism=mechanism.info, negotiation=neg, force_signature_now=True)
-            return contract, mechanism.info
+                contract = self._register_contract(mechanism=mechanism.ami, negotiation=neg, force_signature_now=True)
+            return contract, mechanism.ami
         return None
 
     def _log_header(self):

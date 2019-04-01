@@ -5,11 +5,11 @@ This module does not import anything from the library except during type checkin
 import typing
 import uuid
 from copy import deepcopy
+from dataclasses import dataclass, field, fields
 from typing import List, Optional, Any, TYPE_CHECKING
 
-from dataclasses import dataclass, field, fields
-
-from negmas.helpers import snake_case, unique_name
+from negmas.helpers import unique_name
+from negmas.java import to_java, JavaCallerMixin, to_dict_for_java
 
 if TYPE_CHECKING:
     from negmas.mechanisms import Mechanism
@@ -21,6 +21,7 @@ __all__ = [
     'MechanismState',
     'register_all_mechanisms',
     'NegotiatorInfo',
+    '_ShadowAgentMechanismInterface',
 ]
 
 _running_negotiations: typing.Dict[str, 'Mechanism'] = {}
@@ -240,8 +241,51 @@ class AgentMechanismInterface:
         return self.__dict__.values()
 
     def asdict(self):
-        """Converts the outcome to a dict containing all fields"""
+        """Converts the object to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
+
+    def to_java(self):
+        return self.asdict()
+
+
+class _ShadowAgentMechanismInterface(AgentMechanismInterface, JavaCallerMixin):
+    """Used to represent an AMI to Java.
+    """
+
+    def randomOutcomes(self, n: int):
+        return self.python_shadow.random_outcomes(n)
+
+    def discreteOutcomes(self, nMax: int):
+        return self.python_shadow.discrete_outcomes(n_max=nMax)
+
+    def outcomeIndex(self, outcome) -> int:
+        return self.python_shadow.outcome_index(outcome)
+
+    def getParticipants(self) -> List[NegotiatorInfo]:
+        return to_java(self.python_shadow.participants)
+
+    def getState(self) -> MechanismState:
+        return to_java(self.python_shadow.state)
+
+    def getRequirements(self) -> typing.Dict[str, Any]:
+        return to_java(self.python_shadow.requirements)
+
+    def getNNegotiators(self) -> int:
+        return self.python_shadow.n_negotiators
+
+    def __init__(self, ami: AgentMechanismInterface
+                 , java_class_name: str = 'jnegmas.common.PythonAgentMechanismInterface'
+                 , auto_load_java: bool = False):
+        super().__init__(id=ami.id, n_outcomes=ami.n_outcomes, issues=ami.issues, outcomes=ami.outcomes
+                         , time_limit=ami.time_limit, step_time_limit=ami.step_time_limit
+                         , n_steps=ami.n_steps, dynamic_entry=ami.dynamic_entry
+                         , max_n_agents=ami.max_n_agents, annotation=ami.annotation)
+        self.java_awi = None
+        self.python_shadow = ami
+        self.init_java_bridge(java_object=None, java_class_name=java_class_name, auto_load_java=auto_load_java
+                              , python_shadow_object=ami)
+        map = to_dict_for_java(self)
+        self._java_object.construct(map)
 
     class Java:
         implements = ['jnegmas.common.AgentMechanismInterface']

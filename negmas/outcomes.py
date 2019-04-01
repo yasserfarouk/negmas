@@ -831,7 +831,7 @@ class Issue(NamedObject):
         return Issue(name=self.name, values=self.values)
 
     class Java:
-        implements = ['jnegmas.Issue']
+        implements = ['jnegmas.outcomes.Issue']
 
 
 class Issues(object):

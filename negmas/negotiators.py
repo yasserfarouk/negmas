@@ -52,8 +52,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._capabilities = {'enter': True, 'leave': True}
         self.add_capabilities({'evaluate': True, 'compare': True})
         self._mechanism_id = None
-        self._mechanism_info = None
-        self._initial_info = None
+        self._ami = None
         self._initial_state = None
         self.utility_function = ufun
         self._init_utility = ufun
@@ -62,7 +61,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
     def __getattribute__(self, item):
         if item in ('id', 'name') or item.startswith('_'):
             return super().__getattribute__(item)
-        parent = super().__getattribute__('__dict__')['_Negotiator__parent']
+        parent = super().__getattribute__('__dict__').get('_Negotiator__parent', None)
         if parent is None:
             return super().__getattribute__(item)
         attr = getattr(parent, item, None)
@@ -78,8 +77,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
     def _dissociate(self):
         self._mechanism_id = None
-        self._mechanism_info = None
-        self._initial_info = None
+        self._ami = None
         self.utility_function = self._init_utility
         self._role = None
 
@@ -149,13 +147,13 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
             # CALL BACKS
 
-    def on_enter(self, info: AgentMechanismInterface, state: MechanismState
+    def on_enter(self, ami: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
         Args:
-            info  (AgentMechanismInterface): The negotiation.
+            ami  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -168,14 +166,13 @@ class Negotiator(NamedObject, Notifiable, ABC):
         if self._mechanism_id is not None:
             return False
         self._role = role
-        self._mechanism_id = info.id
-        self._mechanism_info = info
-        self._initial_info = copy(info)
+        self._mechanism_id = ami.id
+        self._ami = ami
         self._initial_state = state
         if ufun is not None:
             self.utility_function = ufun
         if self.utility_function:
-            self.utility_function.info = info
+            self.utility_function.ami = ami
         return True
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -435,14 +432,14 @@ class Controller(NamedObject):
         if response or force:
             del self._negotiators[negotiator_id]
 
-    def on_enter(self, negotiator_id: str, info: AgentMechanismInterface, state: MechanismState
+    def on_enter(self, negotiator_id: str, ami: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
         Args:
             negotiator_id: The negotiator ID
-            info  (AgentMechanismInterface): The negotiation.
+            ami  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -455,7 +452,7 @@ class Controller(NamedObject):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_enter', info=info, state=state, ufun=ufun, role=role)
+        return self.call(negotiator, 'on_enter', ami=ami, state=state, ufun=ufun, role=role)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         """
