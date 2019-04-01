@@ -113,11 +113,11 @@ class UtilityFunction(ABC, NamedObject):
 
     """
 
-    def __init__(self, name: Optional[str] = None, info: AgentMechanismInterface = None
+    def __init__(self, name: Optional[str] = None, ami: AgentMechanismInterface = None
                  , reserved_value: Optional[UtilityValue] = 0.0) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
-        self.info = info
+        self.ami = ami
 
     @property
     def is_dynamic(self):
@@ -127,7 +127,7 @@ class UtilityFunction(ABC, NamedObject):
           state).
         - If this property is `True`, the ufun may depend on negotiation state but it may also not depend on it.
         """
-        return self.info is None
+        return self.ami is None
 
     @classmethod
     def from_genius(cls, file_name: str, **kwargs):
@@ -977,11 +977,11 @@ class ExpDiscountedUFun(UtilityFunction):
 
     """
 
-    def __init__(self, ufun: UtilityFunction, info: 'AgentMechanismInterface'
+    def __init__(self, ufun: UtilityFunction, ami: 'AgentMechanismInterface'
                  , beta: Optional[float] = None, factor: Union[str, Callable[[
                                                                                  'AgentMechanismInterface'], float]] = 'step'
                  , name=None, reserved_value: Optional[UtilityValue] = 0.0, dynamic_reservation=True):
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufun = ufun
         self.beta = beta
         self.factor = factor
@@ -994,9 +994,9 @@ class ExpDiscountedUFun(UtilityFunction):
         if not self.beta or self.beta == 1.0:
             return u
         if isinstance(self.factor, str):
-            factor = getattr(self.info, self.factor)
+            factor = getattr(self.ami, self.factor)
         else:
-            factor = self.factor(self.info)
+            factor = self.factor(self.ami)
         return (factor ** self.beta) * u
 
     def xml(self, issues: List[Issue]) -> str:
@@ -1040,12 +1040,12 @@ class LinDiscountedUFun(UtilityFunction):
 
     """
 
-    def __init__(self, ufun: UtilityFunction, info: 'AgentMechanismInterface'
+    def __init__(self, ufun: UtilityFunction, ami: 'AgentMechanismInterface'
                  , cost: Optional[float] = None
                  , factor: Union[str, Callable[['AgentMechanismInterface'], float]] = 'step'
                  , power: float = 1.0
                  , name=None, reserved_value: Optional[UtilityValue] = 0.0, dynamic_reservation=True):
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufun = ufun
         self.cost = cost
         self.factor = factor
@@ -1059,9 +1059,9 @@ class LinDiscountedUFun(UtilityFunction):
         if not self.cost or self.cost == 0.0:
             return u
         if isinstance(self.factor, str):
-            factor = getattr(self.info, self.factor)
+            factor = getattr(self.ami, self.factor)
         else:
-            factor = self.factor(self.info)
+            factor = self.factor(self.ami)
         return u - ((factor * self.cost) ** self.power)
 
     def xml(self, issues: List[Issue]) -> str:
@@ -1096,8 +1096,8 @@ class LinDiscountedUFun(UtilityFunction):
 
 
 class ConstUFun(UtilityFunction):
-    def __init__(self, value: float, name=None, reserved_value: Optional[float] = 0.0, info: AgentMechanismInterface=None):
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+    def __init__(self, value: float, name=None, reserved_value: Optional[float] = 0.0, ami: AgentMechanismInterface=None):
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.value = value
 
     def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
@@ -1112,7 +1112,7 @@ class ConstUFun(UtilityFunction):
         return str(self.value)
 
 
-def make_discounted_ufun(ufun: 'UtilityFunction', info: 'AgentMechanismInterface'
+def make_discounted_ufun(ufun: 'UtilityFunction', ami: 'AgentMechanismInterface'
                          , cost_per_round: float = None
                          , power_per_round: float = None
                          , discount_per_round: float = None
@@ -1125,29 +1125,29 @@ def make_discounted_ufun(ufun: 'UtilityFunction', info: 'AgentMechanismInterface
                          , dynamic_reservation: bool = True
                          ):
     if cost_per_round is not None and cost_per_round > 0.0:
-        ufun = LinDiscountedUFun(ufun=ufun, info=info
+        ufun = LinDiscountedUFun(ufun=ufun, ami=ami
                                  , cost=cost_per_round, factor='step', power=power_per_round
                                  , dynamic_reservation=dynamic_reservation)
     if cost_per_relative_time is not None and cost_per_relative_time > 0.0:
-        ufun = LinDiscountedUFun(ufun=ufun, info=info
+        ufun = LinDiscountedUFun(ufun=ufun, ami=ami
                                  , cost=cost_per_relative_time, factor='relative_time'
                                  , power=power_per_relative_time
                                  , dynamic_reservation=dynamic_reservation)
     if cost_per_real_time is not None and cost_per_real_time > 0.0:
-        ufun = LinDiscountedUFun(ufun=ufun, info=info
+        ufun = LinDiscountedUFun(ufun=ufun, ami=ami
                                  , cost=cost_per_real_time, factor='real_time'
                                  , power=power_per_real_time
                                  , dynamic_reservation=dynamic_reservation)
     if discount_per_round is not None and discount_per_round > 0.0:
-        ufun = ExpDiscountedUFun(ufun=ufun, info=info
+        ufun = ExpDiscountedUFun(ufun=ufun, ami=ami
                                  , beta=discount_per_round, factor='step'
                                  , dynamic_reservation=dynamic_reservation)
     if discount_per_relative_time is not None and discount_per_relative_time > 0.0:
-        ufun = ExpDiscountedUFun(ufun=ufun, info=info
+        ufun = ExpDiscountedUFun(ufun=ufun, ami=ami
                                  , beta=discount_per_relative_time, factor='relative_time'
                                  , dynamic_reservation=dynamic_reservation)
     if discount_per_real_time is not None and discount_per_real_time > 0.0:
-        ufun = ExpDiscountedUFun(ufun=ufun, info=info
+        ufun = ExpDiscountedUFun(ufun=ufun, ami=ami
                                  , beta=discount_per_real_time, factor='real_time'
                                  , dynamic_reservation=dynamic_reservation)
     return ufun
@@ -1212,9 +1212,9 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             MutableMapping[Any, GenericMapping], Sequence[GenericMapping]
         ],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
     ) -> None:
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.issue_utilities = issue_utilities
         self.weights = weights
         if self.weights is None:
@@ -1397,9 +1397,9 @@ class MappingUtilityFunction(UtilityFunction):
 
     def __init__(
         self, mapping: OutcomeUtilityMapping, default=None, name: str = None,
-        reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
+        reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
     ) -> None:
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.mapping = mapping
         self.default = default
 
@@ -1528,9 +1528,9 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         self,
         issue_utilities: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
     ) -> None:
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.issue_utilities = issue_utilities
         self.f = f
 
@@ -1695,9 +1695,9 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         *,
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
     ) -> None:
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.outcome_ranges = outcome_ranges
         self.mappings = utilities
         self.weights = weights
@@ -1765,9 +1765,9 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         hypervolumes: Iterable[OutcomeRange],
         mappings: OutcomeUtilityMappings,
         f: Callable[[List[UtilityValue]], UtilityValue],
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None
+        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
     ) -> None:
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.hypervolumes = hypervolumes
         self.mappings = mappings
         self.f = f
@@ -1799,8 +1799,8 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
 
     def __init__(self, ufuns: Iterable[UtilityFunction]
                  , weights: Optional[Iterable[float]] = None
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None):
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None):
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufuns = list(ufuns)
         if weights is None:
             weights = [1.0] * len(self.ufuns)
@@ -1854,8 +1854,8 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
 
     def __init__(self, ufuns: Iterable[UtilityFunction]
                  , combination_function=Callable[[Iterable[UtilityValue]], UtilityValue]
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None):
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None):
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
@@ -1912,8 +1912,8 @@ class IPUtilityFunction(UtilityFunction):
     def __init__(self, outcomes: Iterable['Outcome']
                  , distributions: Iterable['UtilityDistribution'] = None
                  , issue_names: Iterable[str] = None
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, info: AgentMechanismInterface=None):
-        super().__init__(name=name, reserved_value=reserved_value, info=info)
+                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None):
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         outcomes, distributions = list(outcomes), (list(distributions) if distributions is not None else None)
         if len(outcomes) < 1:
             raise ValueError('IPUtilityFunction cannot be initialized with zero outcomes')
@@ -2252,7 +2252,7 @@ def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[f
                                                                                            else 0.5*x[0]/mn)
             else:
                 return ComplexWeightedUtilityFunction(ufuns=[ufun], weights=[0.5/mn], name=ufun.name + '-normalized'
-                                                  , reserved_value=r, info=ufun.info)
+                                                      , reserved_value=r, ami=ufun.ami)
     scale = (rng[1] - rng[0]) / (mx - mn)
     r = scale*(ufun.reserved_value - mn) if ufun.reserved_value else 0.0
     if infeasible_cutoff is not None:
@@ -2262,15 +2262,16 @@ def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[f
                                                                                     else scale * (x[0] - mn) + rng[0])
     else:
         return ComplexWeightedUtilityFunction(ufuns=[ufun, ConstUFun(-mn + rng[0] / scale)], weights=[scale, scale]
-                                          , name=ufun.name + '-normalized', reserved_value=r, info=ufun.info)
+                                              , name=ufun.name + '-normalized', reserved_value=r, ami=ufun.ami)
 
 
 class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
     """A utility function implemented in Java"""
-    def __init__(self, java_class_name: str, *args, **kwargs):
+    def __init__(self, java_object, java_class_name: Optional[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.init_java_bridge(java_class_name=java_class_name, auto_load_java=False)
-        self.java_object.fromMap(to_java(self))
+        self.init_java_bridge(java_object=java_object, java_class_name=java_class_name, auto_load_java=False)
+        if java_object is None:
+            self._java_object.construct(to_java(self))
 
     def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
         pass

@@ -3,16 +3,14 @@ import itertools
 import math
 import sys
 import uuid
-from abc import abstractmethod
 from collections import defaultdict, namedtuple
-from typing import Dict, Set, Union, Tuple, Iterable, List, Optional, Any
+from dataclasses import dataclass, field, InitVar
+from typing import Dict, Union, Tuple, Iterable, List, Optional, Any
 
 import numpy as np
-from dataclasses import dataclass, field, InitVar
 
-from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
-from negmas.situated import Contract, Agent, Breach
+from negmas.situated import Contract
 
 INVALID_STEP = -1000
 NO_PRODUCTION = -1
@@ -658,7 +656,7 @@ class CFP(OutcomeType):
     @property
     def min_signing_delay(self):
         if self.signing_delay is None:
-            return -1
+            return None
         if isinstance(self.signing_delay, tuple):
             return self.signing_delay[0]
         elif isinstance(self.signing_delay, list):
@@ -668,7 +666,7 @@ class CFP(OutcomeType):
     @property
     def max_signing_delay(self):
         if self.signing_delay is None:
-            return -1
+            return None
         if isinstance(self.signing_delay, tuple):
             return self.signing_delay[1]
         elif isinstance(self.signing_delay, list):
@@ -678,7 +676,7 @@ class CFP(OutcomeType):
     @property
     def min_penalty(self):
         if self.penalty is None:
-            return float('inf')
+            return None
         if isinstance(self.penalty, tuple):
             return self.penalty[0]
         elif isinstance(self.penalty, list):
@@ -688,61 +686,57 @@ class CFP(OutcomeType):
     @property
     def max_penalty(self):
         if self.penalty is None:
-            return float('inf')
+            return None
         if isinstance(self.penalty, tuple):
             return self.penalty[1]
         elif isinstance(self.penalty, list):
             return max(self.penalty)
         return self.penalty
 
-    class Java:
-        implements = ['jnegmas.apps.scml.CFP']
-        
     def to_java(self):
         d = self.__dict__
         d['min_time'], d['max_time'] = int(self.min_time), int(self.max_time)
         d['min_quantity'], d['max_quantity'] = int(self.min_quantity), int(self.max_quantity)
         d['min_unit_price'], d['max_unit_price'] = float(self.min_unit_price), float(self.max_unit_price)
-        d['min_penalty'], d['max_penalty'] = float(self.min_penalty), float(self.max_penalty)
-        d['min_signing_delay'], d['max_signing_delay'] = int(self.min_signing_delay), int(self.max_signing_delay)
-        d['has_penalty'] = self.penalty is not None
-        d['has_signing_delay'] = self.signing_delay is not None
-        d['has_money_resolution'] = self.money_resolution is not None
+        d['min_penalty'] = float(self.min_penalty) if self.min_penalty is not None else None
+        d['max_penalty'] = float(self.max_penalty) if self.max_penalty is not None else None
+        d['min_signing_delay'] = int(self.min_signing_delay) if self.min_signing_delay is not None else None
+        d['max_signing_delay'] = int(self.max_signing_delay) if self.max_signing_delay is not None else None
         d['money_resolution'] = float(self.money_resolution) if self.money_resolution is not None else 0.0
         return d
-    
+
     @classmethod
-    def from_java(cls, d: Dict[str, Any]) -> 'CFP':
-        if d['min_time'] == d['max_time']:
-            t = d['min_time']
+    def from_java(cls, idict: Dict[str, Any]) -> 'CFP':
+        if idict['min_time'] == idict['max_time']:
+            t = idict['min_time']
         else:
-            t = (d['min_time'], d['max_time'])
-        if d['min_quantity'] == d['max_quantity']:
-            q = d['min_quantity']
+            t = (idict['min_time'], idict['max_time'])
+        if idict['min_quantity'] == idict['max_quantity']:
+            q = idict['min_quantity']
         else:
-            q = (d['min_quantity'], d['max_quantity'])
-        if d['min_unit_price'] == d['max_unit_price']:
-            up = d['min_unit_price']
+            q = (idict['min_quantity'], idict['max_quantity'])
+        if idict['min_unit_price'] == idict['max_unit_price']:
+            up = idict['min_unit_price']
         else:
-            up = (d['min_unit_price'], d['max_unit_price'])
-        if not d.get('min_penalty', None) or not d.get('max_penalty', None):
+            up = (idict['min_unit_price'], idict['max_unit_price'])
+        if not idict.get('min_penalty', None) or not idict.get('max_penalty', None):
             p = None
         else:
-            if d['min_penalty'] == d['max_penalty']:
-                p = d['min_penalty']
+            if idict['min_penalty'] == idict['max_penalty']:
+                p = idict['min_penalty']
             else:
-                p = (d['min_penalty'], d['max_penalty'])
-        if not d.get('min_signing_delay', None) or not p.get('max_signing_delay', None):
+                p = (idict['min_penalty'], idict['max_penalty'])
+        if not idict.get('min_signing_delay', None) or not idict.get('max_signing_delay', None):
             s = None
         else:
-            if d['min_signing_delay'] == d['max_signing_delay']:
-                s = d['min_signing_delay']
+            if idict['min_signing_delay'] == idict['max_signing_delay']:
+                s = idict['min_signing_delay']
             else:
-                s = (d['min_signing_delay'], d['max_signing_delay'])
+                s = (idict['min_signing_delay'], idict['max_signing_delay'])
 
-        return cls(is_buy=d['is_buy'], publisher=d['publisher'], product=d['product'], time=t, unit_price=up
-                   , quantity=q, penalty=p, signing_delay=s, money_resolution=d.get('money_resolution', None)
-                   , id=d.get('id', None))
+        return cls(is_buy=idict['is_buy'], publisher=idict['publisher'], product=idict['product'], time=t, unit_price=up
+                   , quantity=q, penalty=p, signing_delay=s, money_resolution=idict.get('money_resolution', None)
+                   , id=idict.get('id', None))
 
 
 @dataclass
@@ -859,7 +853,7 @@ class Loan:
             f'for a total {self.total} [starts at {self.starts_at}]'
 
     class Java:
-        implements = ['jnegmas.Contract']
+        implements = ['jnegmas.apps.scml.common.Loan']
 
 
 RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])

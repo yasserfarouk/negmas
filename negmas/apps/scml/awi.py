@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 
 from negmas import Issue
 from negmas.apps.scml.common import *
+from negmas.java import to_java, from_java
 from negmas.situated import AgentWorldInterface, Contract, Action
 
 __all__ = [
@@ -313,3 +314,97 @@ class SCMLAWI(AgentWorldInterface):
             - hiding is always immediate
         """
         self.execute(action=Action(type='unhide_funds', params={'amount': amount}))
+
+
+class _ShadowSCMLAWI:
+    """An SCMLAWI As seen by JNegMAS.
+
+    This is an object that is not visible to python code. It is not directly called from python ever. It is only called
+    from a corresponding Java object to represent an internal python object. Because of he way py4j works, we cannot
+    just use dunders to implement this kind of object in general. We will have to implement each such class
+    independently.
+
+    This kind of classes will always have an internal Java class implementing a Java interface in Jnegmas that starts
+    with Py.
+
+    """
+
+    def __init__(self, awi: SCMLAWI):
+        self.awi = awi
+
+    def getProducts(self):
+        return to_java(self.awi.products)
+
+    def getProcesses(self):
+        return to_java(self.awi.processes)
+
+    def getState(self):
+        return to_java(self.awi.state)
+
+    def relativeTime(self):
+        return self.awi.relative_time
+
+    def getCurrentStep(self):
+        return self.awi.current_step
+
+    def getNSteps(self):
+        return self.awi.n_steps
+
+    def getDefaultSigningDelay(self):
+        return self.awi.default_signing_delay
+
+    def requestNegotiation(self, cfp, req_id: str, roles=None, mechanism_name=None, mechanism_params=None):
+        return self.awi.request_negotiation(from_java(cfp), req_id, roles, mechanism_name, mechanism_params)
+
+    def registerCFP(self, cfp: Dict[str, Any]) -> None:
+        """Registers a CFP"""
+        self.awi.register_cfp(from_java(cfp))
+
+    def removeCFP(self, cfp: Dict[str, Any]) -> bool:
+        """Removes a CFP"""
+        return self.awi.remove_cfp(from_java(cfp))
+
+    def registerInterest(self, products: List[int]) -> None:
+        """registers interest in receiving callbacks about CFPs related to these products"""
+        self.awi.register_interest(from_java(products))
+
+    def unregisterInterest(self, products: List[int]) -> None:
+        """registers interest in receiving callbacks about CFPs related to these products"""
+        self.awi.unregister_interest(from_java(products))
+
+    def evaluateInsurance(self, contract: Dict[str, Any], t: int = None) -> Optional[float]:
+        """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
+
+        Args:
+
+            contract: hypothetical contract
+            t: time at which the policy is to be bought. If None, it means current step
+        """
+        result = self.awi.evaluate_insurance(from_java(contract), t)
+        if result < 0:
+            return None
+        return result
+
+    def buyInsurance(self, contract: Dict[str, Any]) -> bool:
+        """Buys insurance for the contract by the premium calculated by the insurance company.
+
+        Remarks:
+            The agent can call `evaluate_insurance` to find the premium that will be used.
+        """
+        return self.awi.buy_insurance(from_java(contract))
+
+    def loginfo(self, msg: str):
+        return self.awi.loginfo(msg)
+
+    def logwarning(self, msg: str):
+        return self.awi.logwarning(msg)
+
+    def logdebug(self, msg: str):
+        return self.awi.logdebug(msg)
+
+    def logerror(self, msg: str):
+        return self.awi.logerror(msg)
+
+    class Java:
+        implements = ['jnegmas.apps.scml.awi.SCMLAWI']
+

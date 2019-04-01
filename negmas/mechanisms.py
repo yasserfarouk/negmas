@@ -150,7 +150,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
                 self.outcome_index = lambda x: __outcomes.index(x)
 
         self.id = str(uuid.uuid4())
-        self.info = AgentMechanismInterface(
+        self.ami = AgentMechanismInterface(
             id=self.id
             , n_outcomes=None if outcomes is None else len(outcomes)
             , issues=__issues
@@ -164,10 +164,10 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         )
 
         self._history = []
-        # if self.info.issues is not None:
-        #     self.info.issues = tuple(self.info.issues)
-        # if self.info.outcomes is not None:
-        #     self.info.outcomes = tuple(self.info.outcomes)
+        # if self.ami.issues is not None:
+        #     self.ami.issues = tuple(self.ami.issues)
+        # if self.ami.outcomes is not None:
+        #     self.ami.outcomes = tuple(self.ami.outcomes)
         self._state_factory = state_factory
         Mechanism.all[self.id] = self
 
@@ -192,7 +192,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
     @classmethod
     def get_info(cls, id: str) -> AgentMechanismInterface:
         """Returns the mechanism information which contains its static config plus methods to access current state"""
-        return cls.all[id].info
+        return cls.all[id].ami
 
     @property
     def participants(self) -> List[NegotiatorInfo]:
@@ -202,10 +202,10 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
     def is_valid(self, outcome: 'Outcome'):
         """Checks whether the outcome is valid given the issues"""
-        if self.info.issues is None or len(self.info.issues) == 0:
+        if self.ami.issues is None or len(self.ami.issues) == 0:
             raise ValueError('I do not have any issues to check')
 
-        return outcome_is_valid(outcome, self.info.issues)
+        return outcome_is_valid(outcome, self.ami.issues)
 
     def discrete_outcomes(self, n_max: int = None, astype: Type['Outcome'] = dict) -> List['Outcome']:
         """
@@ -236,7 +236,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
     def random_outcomes(self, n: int = 1, astype: Type[Outcome] = dict) -> List['Outcome']:
         """Returns random offers"""
-        if self.info.issues is None or len(self.info.issues) == 0:
+        if self.ami.issues is None or len(self.ami.issues) == 0:
             raise ValueError('I do not have any issues to generate offers from')
         return Issue.sample(issues=self.issues, n_outcomes=n, astype=astype, with_replacement=False
                             , fail_if_not_enough=False)
@@ -252,10 +252,10 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
     @property
     def remaining_time(self) -> Optional[float]:
         """Returns remaining time in seconds. None if no time limit is given."""
-        if self.info.time_limit is None:
+        if self.ami.time_limit is None:
             return None
 
-        limit = self.info.time_limit - (time.monotonic() - self._start_time)
+        limit = self.ami.time_limit - (time.monotonic() - self._start_time)
         if limit < 0.0:
             return 0.0
 
@@ -264,22 +264,22 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
     @property
     def relative_time(self) -> Optional[float]:
         """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
-        if self.info.time_limit is None and self.info.n_steps is None:
+        if self.ami.time_limit is None and self.ami.n_steps is None:
             return None
 
         relative_step = (
                             self._step + 1
-                        ) / self.info.n_steps if self.info.n_steps is not None else -1.0
-        relative_time = self.time / self.info.time_limit if self.info.time_limit is not None else -1.0
+                        ) / self.ami.n_steps if self.ami.n_steps is not None else -1.0
+        relative_time = self.time / self.ami.time_limit if self.ami.time_limit is not None else -1.0
         return max([relative_step, relative_time])
 
     @property
     def remaining_steps(self) -> Optional[int]:
         """Returns the remaining number of steps until the end of the mechanism run. None if unlimited"""
-        if self.info.n_steps is None:
+        if self.ami.n_steps is None:
             return None
 
-        return self.info.n_steps - self._step
+        return self.ami.n_steps - self._step
 
     def add(self, negotiator: 'Negotiator', *, ufun: Optional['UtilityFunction'] = None
             , role: Optional[str] = None, **kwargs) -> Optional[bool]:
@@ -311,14 +311,14 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
         if isinstance(ufun, Iterable) and not isinstance(ufun, UtilityFunction):
             if isinstance(ufun, dict):
-                ufun = MappingUtilityFunction(mapping=ufun, info=self.info)
+                ufun = MappingUtilityFunction(mapping=ufun, ami=self.ami)
             else:
-                ufun = MappingUtilityFunction(mapping=dict(zip(self.outcomes, ufun)), info=self.info)
+                ufun = MappingUtilityFunction(mapping=dict(zip(self.outcomes, ufun)), ami=self.ami)
 
         if role is None:
             role = 'agent'
 
-        if negotiator.on_enter(info=self.info, state=self.state, ufun=ufun, role=role):
+        if negotiator.on_enter(ami=self.ami, state=self.state, ufun=ufun, role=role):
             self._negotiators.append(negotiator)
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
@@ -345,7 +345,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         if not self.can_leave(agent):
             return None
         self._negotiators = self._negotiators[0:indx] + self._negotiators[indx + 1:]
-        agent.on_leave(self.info, **kwargs)
+        agent.on_leave(self.ami, **kwargs)
         return True
 
     def add_requirements(self, requirements: dict) -> None:
@@ -492,11 +492,11 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
     @property
     def n_outcomes(self):
-        return self.info.n_outcomes
+        return self.ami.n_outcomes
 
     @property
     def issues(self):
-        return self.info.issues
+        return self.ami.issues
 
     @property
     def completed(self):
@@ -504,15 +504,15 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
     @property
     def outcomes(self):
-        return self.info.outcomes
+        return self.ami.outcomes
 
     @property
     def n_steps(self):
-        return self.info.n_steps
+        return self.ami.n_steps
 
     @property
     def time_limit(self):
-        return self.info.time_limit
+        return self.ami.time_limit
 
     @property
     def running(self):
@@ -520,25 +520,25 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
     @property
     def dynamic_entry(self):
-        return self.info.dynamic_entry
+        return self.ami.dynamic_entry
 
     @property
     def max_n_agents(self):
-        return self.info.max_n_agents
+        return self.ami.max_n_agents
 
     @max_n_agents.setter
     def max_n_agents(self, n: int):
-        self.info.max_n_agents = n
+        self.ami.max_n_agents = n
 
     def can_accept_more_agents(self) -> bool:
         """Whether the mechanism can **currently** accept more negotiators."""
-        return True if self.info.max_n_agents is None or self._negotiators is None else len(
+        return True if self.ami.max_n_agents is None or self._negotiators is None else len(
             self._negotiators
-        ) < self.info.max_n_agents
+        ) < self.ami.max_n_agents
 
     def can_leave(self, agent: 'Negotiator') -> bool:
         """Can the agent leave now?"""
-        return True if self.info.dynamic_entry else not self.info.state.running and agent in self._negotiators
+        return True if self.ami.dynamic_entry else not self.ami.state.running and agent in self._negotiators
 
     def can_enter(self, agent: 'Negotiator') -> bool:
         """Whether the agent can enter the negotiation now."""
@@ -572,11 +572,11 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
             self._history.append(self.state)
             return self.state
         if len(self._negotiators) < 2:
-            if self.info.dynamic_entry:
+            if self.ami.dynamic_entry:
                 self._history.append(self.state)
                 return self.state
             else:
-                self.info.state.running = False
+                self.ami.state.running = False
                 self._agreement, self._broken, self._timedout = None, False, False
                 self._history.append(self.state)
                 self.on_negotiation_end()
@@ -617,7 +617,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         self._error, self._error_details = result.error, result.error_details
         if self._error:
             self.on_mechanism_error()
-        if self.info.step_time_limit is not None and step_time > self.info.step_time_limit:
+        if self.ami.step_time_limit is not None and step_time > self.ami.step_time_limit:
             self._broken, self._timedout, self._agreement = False, True, None
         else:
             self._broken, self._timedout, self._agreement = result.broken, result.timedout, result.agreement
@@ -665,7 +665,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         for a in self.negotiators:
             a.on_negotiation_end(state=self.state)
         self.announce(Event(type='negotiation_end', data={'agreement': self.agreement, 'state': self.state
-            , 'annotation': self.info.annotation}))
+            , 'annotation': self.ami.annotation}))
 
     def on_negotiation_start(self) -> bool:
         """Called before starting the negotiation. If it returns False then negotiation will end immediately"""

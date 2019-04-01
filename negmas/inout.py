@@ -186,7 +186,7 @@ def load_genius_domain(domain_file_name: str
         if agent_info is not None and len(agent_info) > 0:
             for info in agent_info:
                 info['ufun'] = info['ufun'] if info['discount_factor'] is None or info['discount_factor'] == 1.0 else \
-                    make_discounted_ufun(ufun=info['ufun'], info=mechanism.info
+                    make_discounted_ufun(ufun=info['ufun'], ami=mechanism.ami
                                          , discount_per_round=info['discount_factor'], power_per_round=1.0)
 
     if agent_factories is not None and agent_info is not None and len(agent_info) > 0:

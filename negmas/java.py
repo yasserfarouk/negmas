@@ -7,12 +7,12 @@ import socket
 import subprocess
 import time
 from contextlib import contextmanager
-from typing import Optional, Dict, Any, Iterable
+from typing import Optional, Dict, Any, Iterable, Union
 import numpy as np
 
 import pkg_resources
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
-from py4j.java_collections import ListConverter
+from py4j.java_collections import ListConverter, JavaMap, MapConverter, JavaList, JavaSet
 from py4j.java_gateway import JavaGateway, GatewayParameters, CallbackServerParameters, JavaObject
 # @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
 #  somewhere
@@ -29,6 +29,7 @@ __all__ = [
     'init_jnegmas_bridge',
     'jnegmas_connection',
     'from_java',
+    'java_link',
     'to_dict_for_java',
 ]
 
@@ -85,8 +86,21 @@ class PyEntryPoint:
               implements.
 
         """
-        params = {k: from_java(v) for k, v in params.items()}
-        return instantiate(class_name, **params)
+        return from_java(params, fallback_class_name=class_name)
+
+    def create_shadow(self, class_name: str, params: Dict[str, Any]) -> Any:
+        lst = class_name.split('.')
+        for ending in ('Negotiator', 'FactoryManager', 'UtilityFunction'):
+            if lst[-1].endswith(ending):
+                lst[-1] = '_Shadow' + (ending if ending != 'Negotiator' else 'SAONegotiator')
+                break
+        else:
+            lst[-1] = '_Shadow' + lst[-1]
+        shadow_class_name = '.'.join(lst)
+        cls = get_class(shadow_class_name)
+        obj = from_java(params, fallback_class_name=class_name)
+        shadow = cls(obj)
+        return shadow
 
     class Java:
         implements = ['jnegmas.EntryPoint']
@@ -96,7 +110,7 @@ class JNegmasGateway:
     DEFAULT_PYTHON_PORT = 25334
     DEFAULT_JAVA_PORT = 25333
 
-    gateway: Optional[ClientServer] = None
+    gateway: Optional[Union[JavaGateway, ClientServer]] = None
 
     @classmethod
     def start_java_side(cls, path: str = None, java_port: int = 0) -> None:
@@ -148,17 +162,18 @@ class JNegmasGateway:
             return True
         if cls.gateway is None:
             eager_load, auto_convert = True, True
+            auto_field, auto_gc = True, False
             if client_server:
                 cls.gateway = ClientServer(java_parameters=JavaParameters(port=java_port
                                                                           , auto_convert=auto_convert
                                                                           , eager_load=eager_load, auto_close=True
-                                                                          , auto_gc=False, auto_field=False
+                                                                          , auto_gc=False, auto_field=auto_field
                                                                           , daemonize_memory_management=True),
                                            python_parameters=PythonParameters(port=python_port
                                                                               , propagate_java_exceptions=True
                                                                               , daemonize=True
                                                                               , eager_load=eager_load
-                                                                              , auto_gc=False
+                                                                              , auto_gc=auto_gc
                                                                               , daemonize_connections=True
                                                                               ),
                                            python_server_entry_point=PyEntryPoint())
@@ -166,20 +181,20 @@ class JNegmasGateway:
                 pyparams = CallbackServerParameters(port=python_port
                                                     , daemonize_connections=True
                                                     , daemonize=True
-                                                    , eager_load=True
+                                                    , eager_load=eager_load
                                                     , propagate_java_exceptions=True)
                 cls.gateway = JavaGateway(gateway_parameters=GatewayParameters(port=java_port
                                                                                , auto_convert=auto_convert
-                                                                               , auto_field=False
+                                                                               , auto_field=auto_field
                                                                                , eager_load=eager_load
                                                                                , auto_close=True),
                                           callback_server_parameters=pyparams, auto_convert=auto_convert
                                           , start_callback_server=True, eager_load=eager_load
                                           , python_server_entry_point=PyEntryPoint())
-                python_port = cls.gateway.get_callback_server().get_listening_port()
-                cls.gateway.java_gateway_server.resetCallbackClient(
-                    cls.gateway.java_gateway_server.getCallbackClient().getAddress(),
-                    python_port)
+            python_port = cls.gateway.get_callback_server().get_listening_port()
+            cls.gateway.java_gateway_server.resetCallbackClient(
+                cls.gateway.java_gateway_server.getCallbackClient().getAddress(),
+                python_port)
         return True
 
     @classmethod
@@ -288,15 +303,40 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
     return value
 
 
+def java_link(obj, map=None, copyable=False):
+    """
+    Creates a link in java to the object given without copying it.
+
+    Args:
+        obj: The object for which to create a java shadow
+        map: construction parameters
+        copyable: If true, we will assume that the java object is PyCopyable otherwise PyConstructable. Only checked if
+        map is not None
+
+    Returns:
+        A java object. Cannot be used dieectly in python but can be used as an argument to a call to of a java object.
+
+    """
+    class_name = obj.__class__.__module__ + '.' + obj.__class__.__name__
+    lst = class_name.split('.')
+    lst[0] = 'j' + lst[0]
+    lst[-1] = 'Python' + lst[-1]
+    class_name = '.'.join(lst)
+    obj = JNegmasGateway.gateway.entry_point.createJavaLink(obj, class_name)
+    if map is not None:
+        if copyable:
+            obj.fromMap(map)
+        else:
+            obj.construct(map)
+    return obj
+
+
 def to_java(value):
     """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
     or string values
 
     Args:
         value: Any object
-        deep: Whether we should go deep in the encoding or do a shallow encoding
-        add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
-        giving the type of `value`
 
     Remarks:
 
@@ -318,6 +358,7 @@ def to_java(value):
             if isinstance(v, np.int64):
                 value[k] = int(v)
         return JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(value)
+
     if isinstance(value, Iterable) and not isinstance(value, str):
         return ListConverter().convert([JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(_)
                                         if isinstance(_, dict) else _ for _ in value]
@@ -325,7 +366,7 @@ def to_java(value):
     raise RuntimeError(f'got {value} of type {type(value)} from to_dict_fo_java')
 
 
-def from_java(d: Dict[str, Any], deep=True, remove_type_field=True, fallback_class_name: Optional[str]=None):
+def from_java(d: Any, deep=True, remove_type_field=True, fallback_class_name: Optional[str] = None):
     """Decodes a dict coming from java recovering all objects in the way
 
     Args:
@@ -347,22 +388,37 @@ def from_java(d: Dict[str, Any], deep=True, remove_type_field=True, fallback_cla
     """
     def good_field(k: str):
         return not k.startswith('python_') and not k.startswith('java') and not (k != PYTHON_CLASS_IDENTIFIER and k.startswith('_'))
-    if not isinstance(d, dict):
+    if d is None or isinstance(d, int) or isinstance(d, float) or isinstance(d, str):
         return d
-    if remove_type_field:
-        python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
-    else:
-        python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
-    if python_class_name is not None:
-        python_class = get_class(python_class_name)
-        # we resolve sub-objects first from the dict if deep is specified before calling from_java on the class
-        if deep:
-            d = {snake_case(k): from_java(v) for k, v in d.items() if good_field(k)}
-        # from_java needs to do a shallow conversion from a dict as deep conversion is taken care of already.
-        if hasattr(python_class, 'from_java'):
-            return python_class.from_java({snake_case(k): v for k, v in d.items()})
-        return python_class({snake_case(k): v for k, v in d.items() if good_field(k)})
-    return d
+    if isinstance(d, JavaList):
+        return [_ for _ in d]
+    if isinstance(d, JavaSet):
+        return {_ for _ in d}
+    if isinstance(d, JavaMap):
+        d = {k: d[k] for k in d.keys()}
+    if isinstance(d, JavaObject):
+        d = JNegmasGateway.gateway.entry_point.toMap(d)
+        d = {k: d[k] for k in d.keys()}
+    if isinstance(d, dict):
+        if remove_type_field:
+            python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
+        else:
+            python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
+        if python_class_name is not None:
+            lst = python_class_name.split('.')
+            if lst[-1].startswith('Python'):
+                lst[-1] = lst[-1][len('Python'):]
+            python_class_name = '.'.join(lst)
+            python_class = get_class(python_class_name)
+            # we resolve sub-objects first from the dict if deep is specified before calling from_java on the class
+            if deep:
+                d = {snake_case(k): from_java(v) for k, v in d.items() if good_field(k)}
+            # from_java needs to do a shallow conversion from a dict as deep conversion is taken care of already.
+            if hasattr(python_class, 'from_java'):
+                return python_class.from_java({snake_case(k): v for k, v in d.items()})
+            return python_class(**{snake_case(k): v for k, v in d.items() if good_field(k)})
+        return d
+    raise(ValueError(str(d)))
 
 
 class JavaCallerMixin:
@@ -404,18 +460,19 @@ class JavaCallerMixin:
     def from_dict(cls, java_object, *args, **kwargs):
         """Creates a Python object representing the corresponding Java object"""
         obj = cls(*args, **kwargs)
-        obj.java_object = java_object
+        obj._java_object = java_object
         obj._connected = True
-        obj.java_class_name = java_object.getClass().getSimpleName()
+        obj._java_class_name = java_object.getClass().getSimpleName()
         return obj
 
-    def init_java_bridge(self, java_class_name: str, auto_load_java: bool = False
+    def init_java_bridge(self, java_object, java_class_name: str, auto_load_java: bool = False
                          , python_shadow_object: Any = None):
         """
         initializes a connection to the java bridge creating a member called `java_object` that can be used to access
         the counterpart object in Java
 
         Args:
+            java_object: A java object that already exists of the correct type. If given no new objects will be created
             java_class_name: The type of the Java object to be created
             auto_load_java: When true, a JVM will be automatically created (if one is not available)
             python_shadow_object: A python object to shadow the java object. The object will just call the corresponding
@@ -430,9 +487,9 @@ class JavaCallerMixin:
               representing the Java interface being implemented (it must be either jnegmas.PyCallable or an extension of
               it).
         """
-        self.java_class_name = java_class_name
+        self._java_class_name = java_class_name if java_class_name is not None else java_object.getClass().getName()
         self._connected = JNegmasGateway.connect(auto_load_java=auto_load_java)
-        self.java_object = self._create(python_shadow_object)
+        self._java_object = java_object if java_object is not None else self._create(python_shadow_object)
 
     def _create(self, python_shadow: Any = None):
         """
@@ -444,5 +501,5 @@ class JavaCallerMixin:
 
         """
         if python_shadow is None:
-            return JNegmasGateway.gateway.entry_point.create(self.java_class_name)
-        return JNegmasGateway.gateway.entry_point.create(self.java_class_name, python_shadow)
+            return JNegmasGateway.gateway.entry_point.create(self._java_class_name)
+        return JNegmasGateway.gateway.entry_point.create(self._java_class_name, python_shadow)
