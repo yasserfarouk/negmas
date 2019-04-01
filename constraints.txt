@@ -28,6 +28,7 @@ pycodestyle
 pydocstyle
 readme-renderer
 recommonmark
+sphinx
 sphinx-autodoc-annotation
 sphinx-autodoc-typehints
 sphinx-automodapi
