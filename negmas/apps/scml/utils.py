@@ -168,7 +168,7 @@ def balance_calculator(world: SCMLWorld) -> WorldRunResults:
             continue
         factory = world.a2f[manager.id]
         result.names.append(manager.name)
-        result.types.append(manager.__class__.__name__)
+        result.types.append(manager.type_name)
         if normalize:
             result.scores.append((factory.balance - factory.initial_balance) / factory.initial_balance)
         else:
