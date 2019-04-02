@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "negmas"
-version = "0.1.47"
+version = "0.1.48"
 description = "NEGotiations Managed by Agent Simulations"
 authors = ["Yasser Mohammad <yasserfarouk@gmail.com>"]
 license = "GPL-2.0+"
