@@ -241,7 +241,7 @@ def test_alternating_offers_mechanism():
     a1offers = [s.current_offer for s in p.history if s.current_proposer == a1.id]
     a2offers = [s.current_offer for s in p.history if s.current_proposer == a2.id]
     assert len(p.history) > 0
-    assert len(a2offers) > 0, 'acceptor did offer'
+    assert len(a2offers) == 0, 'acceptor did offer'
     assert p.agreement is None or p.agreement in to_be_accepted, 'acceptor accepted the correct offer'
     assert all([_ in to_be_offered for _ in a1offers])
 
