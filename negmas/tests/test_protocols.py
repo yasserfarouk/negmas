@@ -230,7 +230,7 @@ def test_mechanisms_get_some_rounds():
 
 
 def test_alternating_offers_mechanism():
-    p = SAOMechanism(outcomes=10, n_steps=10, dynamic_entry=False)
+    p = SAOMechanism(outcomes=10, n_steps=10, dynamic_entry=False, publish_n_acceptances=True, publish_proposer=True)
     to_be_offered = [(0,), (1,), (2,)]
     to_be_accepted = [(2,)]
     a1 = LimitedOutcomesNegotiator(acceptable_outcomes=to_be_offered, outcomes=10)
@@ -238,10 +238,10 @@ def test_alternating_offers_mechanism():
     p.add(a1, ufun=MappingUtilityFunction(lambda x: x[0]+1.0))
     p.add(a2, ufun=MappingUtilityFunction(lambda x: x[0] + 1.0))
     p.run()
-    a1offers = [s.current_offer for s in p.history if s.current_proposer is a1]
-    a2offers = [s.current_offer for s in p.history if s.current_proposer is a2]
+    a1offers = [s.current_offer for s in p.history if s.current_proposer == a1.id]
+    a2offers = [s.current_offer for s in p.history if s.current_proposer == a2.id]
     assert len(p.history) > 0
-    assert len(a2offers) == 0, 'acceptor did offer'
+    assert len(a2offers) > 0, 'acceptor did offer'
     assert p.agreement is None or p.agreement in to_be_accepted, 'acceptor accepted the correct offer'
     assert all([_ in to_be_offered for _ in a1offers])
 
@@ -258,11 +258,11 @@ def test_alternating_offers_mechanism_fails_on_no_offerer():
         p.run()
     except RuntimeError:
         pass
-    a1offers = [s.current_offer for s in p.history if s.current_proposer is a1]
-    a2offers = [s.current_offer for s in p.history if s.current_proposer is a2]
-    assert len(p.history) == 3
-    assert len(a2offers) == 0, 'acceptor did offer'
-    assert len(a1offers) == 0, 'acceptor did offer'
+    a1offers = [s.current_offer for s in p.history if s.current_proposer is a1.id]
+    a2offers = [s.current_offer for s in p.history if s.current_proposer is a2.id]
+    assert len(p.history) > 0
+    assert len(a2offers) == 0, 'acceptor did not offer'
+    assert len(a1offers) == 0, 'acceptor did not offer'
     assert p.agreement is None, 'no agreement'
 
 

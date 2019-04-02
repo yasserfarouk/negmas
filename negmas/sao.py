@@ -156,6 +156,8 @@ class SAOMechanism(Mechanism):
                 # (the ultimatum scenario) or not.
                 responses = []
                 for neg in negotiators:
+                    if not neg.capabilities.get('propose', False):
+                        continue
                     strt = time.perf_counter()
                     resp = neg.counter(state=self.state, offer=None)
                     if self.ami.step_time_limit is not None and time.perf_counter() - strt > self.ami.step_time_limit:
@@ -170,8 +172,14 @@ class SAOMechanism(Mechanism):
                         resp.outcome is None and neg.capabilities.get('propose', False)):
                         return MechanismRoundResult(broken=True, timedout=False, agreement=None)
                     responses.append(resp)
-                resp = responses[self._first_proposer]
-                neg = negotiators[self._first_proposer]
+                if len(responses) < 1:
+                    if not self.dynamic_entry:
+                        return MechanismRoundResult(broken=True, timedout=False, agreement=None, error=True
+                                                , error_details='No proposers and no dynamic entry')
+                    else:
+                        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+                resp = responses[self._first_proposer] if len(responses) > self._first_proposer else responses[0]
+                neg = negotiators[self._first_proposer] if len(negotiators) > self._first_proposer else negotiators[0]
             else:
                 # when there is no risk of ultimatum (n_steps is not known), we just take one first offer.
                 neg = negotiators[self._first_proposer]
