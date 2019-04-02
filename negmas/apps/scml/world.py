@@ -85,7 +85,7 @@ class SCMLWorld(World):
                  , initial_wallet_balances: Optional[int] = None
                  , money_resolution=0.5
                  , default_signing_delay=0
-                 , transportation_delay: int = 1
+                 , transportation_delay: int = 0
                  , transfer_delay: int = 0
                  , start_negotiations_immediately=False
                  , catalog_profit=0.15
@@ -295,11 +295,12 @@ class SCMLWorld(World):
                     , miner_type: Union[str, Type[Miner]] = ReactiveMiner
                     , consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer
                     , max_storage: int = sys.maxsize
-                    , manager_kwargs: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
+                    , default_manager_params: Dict[str, Any] = None, miner_kwargs: Dict[str, Any] = None
                     , consumption: Union[int, Tuple[int, int]] = (0, 5)
                     , consumer_kwargs: Dict[str, Any] = None
                     , negotiation_speed: Optional[int] = None
                     , manager_types: Sequence[Type[FactoryManager]] = (GreedyFactoryManager,)
+                    , manager_params: Optional[Sequence[Dict[str, Any]]] = None
                     , n_default_per_level: int = 0
                     , default_factory_manager_type: Type[FactoryManager] = GreedyFactoryManager
                     , randomize: bool = True
@@ -320,6 +321,7 @@ class SCMLWorld(World):
             can specify how many of this type exist at everly level by specifying `n_default_per_level`. If
             `n_default_per_level` is zero, this parameter has no effect.
             manager_types: A sequence of factory manager types to control the factories.
+            manager_params: An optional sequence of dictionaries giving the parameters to pass to `manager_types`.
             consumer_type: Consumer type to use for all consumers
             miner_type: Miner type to use for all miners
             consumption: Consumption schedule
@@ -334,8 +336,8 @@ class SCMLWorld(World):
             log_file_name: File name to store the logs
             agent_names_reveal_type: If true, agent names will start with a snake_case version of their type name
             negotiator_type: The negotiation factory used to create all negotiators
-            max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
-            manager_kwargs: keyword arguments to be used for constructing factory negmas
+            max_storage: maximum storage capacity for all factory managers If None then it is unlimited
+            default_manager_params: keyword arguments to be used for constructing factory managers
             consumer_kwargs: keyword arguments to be used for constructing consumers
             miner_kwargs: keyword arguments to be used for constructing miners
             negotiation_speed: The number of negotiation steps per simulation step. None means infinite
@@ -353,14 +355,16 @@ class SCMLWorld(World):
 
 
         """
-        if manager_kwargs is None:
-            manager_kwargs = {}
+        if default_manager_params is None:
+            default_manager_params = {}
         if consumer_kwargs is None:
             consumer_kwargs = {}
         if miner_kwargs is None:
             miner_kwargs = {}
+        if manager_params is None and len(manager_types) > 0:
+            manager_params = [dict() for _ in range(len(manager_types))]
         if negotiator_type is not None:
-            for args in (manager_kwargs, consumer_kwargs, miner_kwargs):
+            for args in (default_manager_params, consumer_kwargs, miner_kwargs):
                 if 'negotiator_type' not in args.keys():
                     args['negotiator_type'] = negotiator_type
 
@@ -411,15 +415,17 @@ class SCMLWorld(World):
                     default_factories.append(factory)
             for j, factory in enumerate(default_factories):
                 manager_name = unique_name(base='_default__preassigned__', add_time=False, rand_digits=12)
-                manager = _DefaultFactoryManager(name=manager_name, **manager_kwargs)
+                manager = _DefaultFactoryManager(name=manager_name, **default_manager_params)
                 if agent_names_reveal_type:
                     manager.name = f'_default__preassigned__{manager.type_name}_{level + 1}_{j}'
                 managers.append(manager)
         if randomize:
             shuffle(assignable_factories)
-        for j, ((factory, level), manager_type) in enumerate(zip(assignable_factories, itertools.cycle(manager_types))):
+        for j, ((factory, level), (params, manager_type)) in enumerate(zip(assignable_factories
+                                                                       , itertools.cycle(zip(manager_params
+                                                                                             , manager_types)))):
             manager_name = unique_name(base='', add_time=False, rand_digits=12)
-            manager = manager_type(name=manager_name)
+            manager = manager_type(name=manager_name, **params)
             if agent_names_reveal_type:
                 manager.name = f'{manager.type_name}_{level + 1}_{j}'
             managers.append(manager)
@@ -511,12 +517,12 @@ class SCMLWorld(World):
             n_miners: Number of miners. Can be a value or a range.
             n_products_per_miner: Number of products per miner. If None then all raw materials will be assigned to every
             miner. Can be a value or a range.
-            factory_manager_types: A callable for creating factory negmas for the factories
+            factory_manager_types: A callable for creating factory managers for the factories
             consumer_types: A callable for creating `Consumer` objects
             miner_types: A callable for creating `Miner` objects
             negotiator_type: A string that can be `eval`uated to a negotiator.
             initial_wallet_balance: The initial balance of all wallets
-            factory_kwargs: keyword arguments to be used for constructing factory negmas
+            factory_kwargs: keyword arguments to be used for constructing factory managers
             consumer_kwargs: keyword arguments to be used for constructing consumers
             miner_kwargs: keyword arguments to be used for constructing miners
             **kwargs:

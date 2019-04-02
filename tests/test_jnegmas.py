@@ -42,10 +42,10 @@ def test_java_factory_manager(java_class):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, java_class_name=java_class, **kwargs)
     with jnegmas_connection(shutdown=SHUTDOWN_AFTER_EVERY_TEST):
-        log_file = os.path.expanduser(f'~/negmas/logs/test{java_class.split(".")[-1]}.txt')
+        log_file = os.path.expanduser(f'~/negmas/logs/debug/test{java_class.split(".")[-1]}.txt')
         print(log_file)
         world = SCMLWorld.chain_world(manager_types=(JFM, GreedyFactoryManager)
-                                      , n_steps=10, agent_names_reveal_type=True
+                                      , n_steps=15, agent_names_reveal_type=True
                                       , log_file_name=log_file)
         world.run()
         #pprint('World completed')

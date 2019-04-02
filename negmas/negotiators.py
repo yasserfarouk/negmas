@@ -147,7 +147,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
             # CALL BACKS
 
-    def on_enter(self, ami: AgentMechanismInterface, state: MechanismState
+    def join(self, ami: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
@@ -432,7 +432,7 @@ class Controller(NamedObject):
         if response or force:
             del self._negotiators[negotiator_id]
 
-    def on_enter(self, negotiator_id: str, ami: AgentMechanismInterface, state: MechanismState
+    def join(self, negotiator_id: str, ami: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
@@ -452,7 +452,7 @@ class Controller(NamedObject):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_enter', ami=ami, state=state, ufun=ufun, role=role)
+        return self.call(negotiator, 'join', ami=ami, state=state, ufun=ufun, role=role)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         """

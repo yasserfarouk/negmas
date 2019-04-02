@@ -10,7 +10,6 @@ from time import perf_counter
 
 import click
 import pandas as pd
-import pkg_resources
 import progressbar
 import yaml
 from tabulate import tabulate
@@ -20,7 +19,7 @@ from negmas import save_stats, tournaments
 from negmas.apps.scml import *
 from negmas.apps.scml.utils import anac2019_world, balance_calculator
 from negmas.helpers import humanize_time, unique_name
-from negmas.java import init_jnegmas_bridge
+from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 
 try:
     # disable a warning in yaml 1b1 version
@@ -71,6 +70,9 @@ def cli():
 @click.option('--competitors'
     , default='negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager'
     , help='A semicolon (;) separated list of agent types to use for the competition.')
+@click.option('--jcompetitors', '--java-competitors'
+    , default=''
+    , help='A semicolon (;) separated list of agent types to use for the competition.')
 @click.option('--parallel/--serial', default=True, help='Run a parallel/serial tournament on a single machine')
 @click.option('--distributed/--single-machine', default=False, help='Run a distributed tournament using dask')
 @click.option('--log', '-l', default='~/negmas/logs/tournaments',
@@ -84,8 +86,7 @@ def cli():
 @click.option('--port', default=8786, help='The IP port number a dask scheduler to run the distributed tournament.'
                                            ' Effective only if --distributed')
 def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosity, configs_only,
-               reveal_names, ip, port, runs, max_runs, randomize, competitors
-               ):
+               reveal_names, ip, port, runs, max_runs, randomize, competitors, jcompetitors):
     if timeout <= 0:
         timeout = None
     if name == 'random':
@@ -94,8 +95,24 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
         max_runs = None
     parallelism = 'distributed' if distributed else 'parallel' if parallel else 'serial'
     start = perf_counter()
+    all_competitors = competitors.split(';')
+    all_competitors_params = [dict() for _ in range(len(all_competitors))]
+    if jcompetitors is not None and len(jcompetitors) > 0:
+        jcompetitor_params = [{'java_class_name':_} for _ in jcompetitors.split(';')]
+        jcompetitors = ['negmas.apps.scml.JavaFactoryManager'] * len(jcompetitor_params)
+        all_competitors += jcompetitors
+        all_competitors_params += jcompetitor_params
+        print('You are using some Java agents. The tournament MUST run serially')
+        parallelism = 'serial'
+        if not jnegmas_bridge_is_running():
+            print('Error: You are using java competitors but jnegmas bridge is not running\n\nTo correct this issue'
+                  ' run the following command IN A DIFFERENT TERMINAL because it will block:\n\n'
+                  '$ negmas jnegmas')
+            exit(1)
     if ttype.lower() == 'anac2019':
-        results = tournaments.tournament(competitors=competitors.split(';'), agent_names_reveal_type=reveal_names
+        results = tournaments.tournament(competitors=all_competitors
+                                         , competitor_params=all_competitors_params
+                                         , agent_names_reveal_type=reveal_names
                                          , tournament_path=log, total_timeout=timeout
                                          , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
                                          ,
@@ -188,6 +205,7 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
     log_file_name = str(log_dir / 'log.txt')
     stats_file_name = str(log_dir / 'stats.json')
     params_file_name = str(log_dir / 'params.json')
+    exception = None
     world = SCMLWorld.chain_world(log_file_name=log_file_name, n_steps=steps
                                   , negotiation_speed=neg_speedup
                                   , n_intermediate_levels=levels
@@ -197,7 +215,7 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
                                   , consumption=consumption
                                   , consumer_kwargs=customer_kwargs
                                   , miner_kwargs=miner_kwargs
-                                  , manager_kwargs=factory_kwargs
+                                  , default_manager_params=factory_kwargs
                                   , transportation_delay=transport, time_limit=time, neg_time_limit=neg_time
                                   , neg_n_steps=neg_steps, default_signing_delay=sign
                                   , n_lines_per_factory=lines)
@@ -282,6 +300,7 @@ def genius(path, port, force):
 @click.option('--port', '-r', default=0, help='Port to run the jnegmas on. Pass 0 for the default value')
 def jnegmas(path, port):
     init_jnegmas_bridge(path=path if path != 'auto' else None, port=port)
+    input('Press C^c to quit')
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@ from negmas.common import NamedObject
 from negmas.events import Notification
 from negmas.helpers import get_class
 from negmas.helpers import snake_case
-from negmas.java import JavaCallerMixin, to_java, from_java, to_dict_for_java
+from negmas.java import JavaCallerMixin, to_java, from_java, to_dict_for_java, java_link, PYTHON_CLASS_IDENTIFIER
 from negmas.outcomes import Issue, Outcome
 from negmas.sao import AspirationNegotiator
 from negmas.utilities import UtilityValue, normalize
@@ -584,7 +584,9 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         return self._java_object.onNegRequestRejected(req_id, by)
 
     def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
-        return self._java_object.onNegRequestAccepted(req_id, mechanism)
+        return self._java_object.onNegRequestAccepted(req_id, java_link(mechanism, map=to_dict_for_java(mechanism
+                                                                                                        , add_type_field=False)
+                                                                        , copyable=False))
 
     def on_new_cfp(self, cfp: 'CFP'):
         return from_java(self._java_object.onNewCFP(to_java(cfp)))
@@ -593,7 +595,7 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         return self._java_object.onRemoveCFP(to_java(cfp))
 
     def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
-        self._java_object.onContractNullified(contract, bankrupt_partner, compensation)
+        self._java_object.onContractNullified(to_java(contract), bankrupt_partner, compensation)
 
     def on_agent_bankrupt(self, agent_id: str) -> None:
         self._java_object.onAgentBankrupt(agent_id)
@@ -602,10 +604,10 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         return self._java_object.confirmParialExecution(to_java(contract), to_java(breaches))
 
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
-        return self._java_object.onProductionFailure(failures)
+        return self._java_object.onProductionFailure(to_java(failures))
 
     def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
-        return self._java_object.confirmLoan(loan, bankrupt_if_rejected)
+        return self._java_object.confirmLoan(to_java(loan), bankrupt_if_rejected)
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
         return self._java_object.confirmContractExecution(to_java(contract))
@@ -618,29 +620,31 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
 
     def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: AgentMechanismInterface
                                , state: MechanismState) -> None:
-        return self._java_object.onNegotiationFailure(partners, annotation, mechanism, state)
+        return self._java_object.onNegotiationFailure(to_java(partners), annotation, java_link(mechanism)
+                                                      , to_java(state))
 
     def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
-        return self._java_object.onNegotiationSuccess(contract, mechanism)
+        return self._java_object.onNegotiationSuccess(to_java(contract), java_link(mechanism))
 
     def on_contract_signed(self, contract: Contract) -> None:
-        return self._java_object.onContractSigned(contract)
+        return self._java_object.onContractSigned(to_java(contract))
 
     def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
-        return self._java_object.onContractCancelled(contract, rejectors)
+        return self._java_object.onContractCancelled(to_java(contract), to_java(rejectors))
 
     def on_new_report(self, report: FinancialReport):
         pass
 
     def sign_contract(self, contract: Contract) -> Optional[str]:
-        return self._java_object.signContract(contract)
+        return from_java(self._java_object.signContract(to_java(contract)))
 
     def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
-        return from_java(self._java_object.setRenegotiationAgenda(contract, breaches))
+        return from_java(self._java_object.setRenegotiationAgenda(to_java(contract), to_java(breaches)))
 
     def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach],
                                          agenda: RenegotiationRequest) -> Optional[Negotiator]:
-        return from_java(self._java_object.respondToRenegotiationRequest(contract, breaches, agenda))
+        return from_java(self._java_object.respondToRenegotiationRequest(to_java(contract), to_java(breaches)
+                                                                         , to_java(agenda)))
 
     # handy constructors
     @classmethod
@@ -652,7 +656,7 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         return JavaFactoryManager(java_class_name='jnegmas.apps.scml.factory_managers.GreedyFactoryManager')
 
     def __init__(self, java_object=None
-                 , java_class_name: str = 'jnegmas.apps.scml.factory_managers.DoNothingFactoryManager'
+                 , java_class_name: str = None
                  , python_shadow: Optional[FactoryManager] = None
                  , auto_load_java: bool = False
                  , name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
@@ -665,10 +669,11 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         self.python_shadow = python_shadow_object
         self.init_java_bridge(java_object=java_object, java_class_name=java_class_name, auto_load_java=auto_load_java
                               , python_shadow_object=python_shadow_object)
-        if java_object is not None:
+        if java_object is None:
             map = to_dict_for_java(self)
+            map.pop(PYTHON_CLASS_IDENTIFIER, None)
             map['simulatorType'] = self.simulator_type.__class__.__name__
-            self._java_object.construct(map)
+            self._java_object.construct(to_java(map))
 
     def getNegotiationRequests(self):
         return to_java(self.requested_negotiations)

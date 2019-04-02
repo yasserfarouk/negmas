@@ -288,6 +288,13 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
                  if good_field(k)}
         if add_type_field:
             d[PYTHON_CLASS_IDENTIFIER] = value.__class__.__module__ + '.' + value.__class__.__name__
+
+        # ugly ugly ugly ugly
+        if '_NamedObject__uuid' in value.__dict__:
+            d['id'] = value.__dict__['_NamedObject__uuid']
+        if '_NamedObject__name' in value.__dict__:
+            d['name'] = value.__dict__['_NamedObject__name']
+
         return d
     if hasattr(value, '__slots__'):
         if deep:
@@ -320,23 +327,30 @@ def java_link(obj, map=None, copyable=False):
     class_name = obj.__class__.__module__ + '.' + obj.__class__.__name__
     lst = class_name.split('.')
     lst[0] = 'j' + lst[0]
+    if lst[-1].startswith('_Shadow'):
+        lst[-1] = lst[-1][len('_Shadow'):]
+    if lst[-1].startswith('Shadow'):
+        lst[-1] = lst[-1][len('Shadow'):]
     lst[-1] = 'Python' + lst[-1]
     class_name = '.'.join(lst)
-    obj = JNegmasGateway.gateway.entry_point.createJavaLink(obj, class_name)
+    java_obj = JNegmasGateway.gateway.entry_point.create(class_name, obj)
     if map is not None:
         if copyable:
-            obj.fromMap(map)
+            java_obj.fromMap(map)
         else:
-            obj.construct(map)
-    return obj
+            java_obj.construct(map)
+    return java_obj
 
 
-def to_java(value):
+def to_java(value, add_type_field=True, python_class_name: str = None):
     """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
     or string values
 
     Args:
         value: Any object
+        add_type_field: If true, the `PYTHON_CLASS_IDENTIFIER`  will be added with the python class field on it
+        python_class_name: It given it overrides the class name written when `add_type_field` is True otherwise, the
+        class name will be inferred as the __class__ of `value`.
 
     Remarks:
 
@@ -348,7 +362,9 @@ def to_java(value):
           `from_java`, `PYTHON_CLASS_IDENTIFIER`
 
     """
-    value = to_dict_for_java(value, deep=True, add_type_field=True)
+    if value is None:
+        return None
+    value = to_dict_for_java(value, deep=True, add_type_field=add_type_field)
     if isinstance(value, JavaObject):
         return value
     if isinstance(value, np.int64):
@@ -357,6 +373,8 @@ def to_java(value):
         for k, v in value.items():
             if isinstance(v, np.int64):
                 value[k] = int(v)
+        if add_type_field and python_class_name is not None:
+            value[PYTHON_CLASS_IDENTIFIER] = python_class_name
         return JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(value)
 
     if isinstance(value, Iterable) and not isinstance(value, str):
@@ -395,7 +413,7 @@ def from_java(d: Any, deep=True, remove_type_field=True, fallback_class_name: Op
     if isinstance(d, JavaSet):
         return {_ for _ in d}
     if isinstance(d, JavaMap):
-        d = {k: d[k] for k in d.keys()}
+        d = {snake_case(k): d[k] for k in d.keys()}
     if isinstance(d, JavaObject):
         d = JNegmasGateway.gateway.entry_point.toMap(d)
         d = {k: d[k] for k in d.keys()}

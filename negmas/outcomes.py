@@ -66,10 +66,10 @@ __all__ = [
 
 class ResponseType(Enum):
     """Possible answers to offers during negotiation."""
-    ACCEPT_OFFER = 1
-    NO_RESPONSE = 0
-    REJECT_OFFER = -2
-    END_NEGOTIATION = -3
+    ACCEPT_OFFER = 0
+    REJECT_OFFER = 1
+    END_NEGOTIATION = 2
+    NO_RESPONSE = 3
 
 
 class Issue(NamedObject):

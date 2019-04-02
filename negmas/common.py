@@ -248,45 +248,37 @@ class AgentMechanismInterface:
         return self.asdict()
 
 
-class _ShadowAgentMechanismInterface(AgentMechanismInterface, JavaCallerMixin):
+class _ShadowAgentMechanismInterface:
     """Used to represent an AMI to Java.
     """
 
     def randomOutcomes(self, n: int):
-        return self.python_shadow.random_outcomes(n)
+        return to_java(self.ami.random_outcomes(n))
 
     def discreteOutcomes(self, nMax: int):
-        return self.python_shadow.discrete_outcomes(n_max=nMax)
+        return to_java(self.ami.discrete_outcomes(n_max=nMax))
 
     def outcomeIndex(self, outcome) -> int:
-        return self.python_shadow.outcome_index(outcome)
+        return to_java(self.ami.outcome_index(outcome))
 
     def getParticipants(self) -> List[NegotiatorInfo]:
-        return to_java(self.python_shadow.participants)
+        return to_java(to_java(self.ami.participants))
+
+    def getOutcomes(self):
+        return to_java(to_java(self.ami.outcomes))
 
     def getState(self) -> MechanismState:
-        return to_java(self.python_shadow.state)
+        return to_java(self.ami.state)
 
     def getRequirements(self) -> typing.Dict[str, Any]:
-        return to_java(self.python_shadow.requirements)
+        return to_java(self.ami.requirements)
 
     def getNNegotiators(self) -> int:
-        return self.python_shadow.n_negotiators
+        return self.ami.n_negotiators
 
-    def __init__(self, ami: AgentMechanismInterface
-                 , java_class_name: str = 'jnegmas.common.PythonAgentMechanismInterface'
-                 , auto_load_java: bool = False):
-        super().__init__(id=ami.id, n_outcomes=ami.n_outcomes, issues=ami.issues, outcomes=ami.outcomes
-                         , time_limit=ami.time_limit, step_time_limit=ami.step_time_limit
-                         , n_steps=ami.n_steps, dynamic_entry=ami.dynamic_entry
-                         , max_n_agents=ami.max_n_agents, annotation=ami.annotation)
-        self.java_awi = None
-        self.python_shadow = ami
-        self.init_java_bridge(java_object=None, java_class_name=java_class_name, auto_load_java=auto_load_java
-                              , python_shadow_object=ami)
-        map = to_dict_for_java(self)
-        self._java_object.construct(map)
-
+    def __init__(self, ami: AgentMechanismInterface):
+        self.ami = ami
+        
     class Java:
         implements = ['jnegmas.common.AgentMechanismInterface']
 

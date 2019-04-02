@@ -114,7 +114,7 @@ class Contract(OutcomeType):
     """The time-step at which the contract should be signed"""
     signatures: List[Signature] = field(default_factory=list)
     """A list of signatures giving agent name, signature"""
-    mechanism_state: MechanismState = None
+    mechanism_state: Optional[MechanismState] = None
     """The mechanism state at the contract conclusion"""
     id: str = field(default_factory=lambda: str(uuid.uuid4()), init=True)
     """Object name"""
@@ -168,9 +168,6 @@ class Breach:
             'step': self.step,
             'resolved': None,
         }
-
-    def to_java(self):
-        return self.as_dict()
 
     class Java:
         implements = ['jnegmas.situated.Breach']
@@ -972,7 +969,8 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         cancelled = []
         if unsigned:
             for contract in unsigned:
-                if self._sign_contract(contract=contract):
+                rejectors = self._sign_contract(contract=contract)
+                if rejectors is not None and len(rejectors) == 0:
                     signed.append(contract)
                 else:
                     cancelled.append(contract)
@@ -1279,10 +1277,11 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         for partner in partners:
             partner.on_negotiation_success_(contract=contract, mechanism=mechanism)
         if signing_delay == 0:
-            signed = self._sign_contract(contract)
+            rejectors = self._sign_contract(contract)
+            signed = rejectors is not None and len(rejectors) == 0
             if signed and not force_signature_now:
                 self.on_contract_signed(contract=contract)
-            sign_status = "signed" if signed else "cancelled"
+            sign_status = "signed" if signed else f"cancelled by {rejectors if rejectors is not None else 'error!!'}"
         else:
             sign_status = f"to be signed at {contract.to_be_signed_at}"
             self.on_contract_cancelled(contract=contract)
@@ -1312,11 +1311,11 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.logdebug(f'Negotiation failure between {[_.name for _ in partners]}'
                       f' on annotation {negotiation.annotation} ')
 
-    def _sign_contract(self, contract: Contract) -> bool:
+    def _sign_contract(self, contract: Contract) -> Optional[List[str]]:
         """Called to sign a contract and returns whether or not it was signed"""
-        if self._contract_finalization_time(contract) >= self.n_steps or \
-            self._contract_execution_time(contract) < self.current_step:
-            return False
+        # if self._contract_finalization_time(contract) >= self.n_steps or \
+        #     self._contract_execution_time(contract) < self.current_step:
+        #     return None
         partners = [self.agents[_] for _ in contract.partners]
         signatures = list(zip(partners, (partner.sign_contract(contract=contract) for partner in partners)))
         rejectors = [partner for partner, signature in signatures if signature is None]
@@ -1336,7 +1335,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                 del self._saved_contracts[contract.id]
             for partner in partners:
                 partner.on_contract_cancelled_(contract=contract, rejectors=[_.id for _ in rejectors])
-        return len(rejectors) == 0
+        return [_.id for _ in rejectors]
 
     def on_contract_signed(self, contract: Contract) -> None:
         """Called to add a contract to the existing set of contract after it is signed
@@ -1479,7 +1478,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
     def _process_breach(self, contract: Contract, breaches: List[Breach]
                         , force_immediate_signing=True) -> Optional[Contract]:
-        contract = None
+        new_contract = None
 
         # calculate total breach level
         total_breach_levels = defaultdict(int)
@@ -1505,18 +1504,18 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                 results = self.run_negotiation(caller=agent, issues=agenda.issues
                                                , partners=[self.agents[_] for _ in contract.partners])
                 if results is not None:
-                    contract, mechanism = results
+                    new_contract, mechanism = results
                     self._register_contract(mechanism=mechanism, negotiation=None
                                             , force_signature_now=force_immediate_signing)
                     break
 
-        if contract is not None:
+        if new_contract is not None:
             for breach in breaches:
                 if self.save_resolved_breaches:
                     self._saved_breaches[breach.id]['resolved'] = True
                 else:
                     del self._saved_breaches[breach.id]
-            return contract
+            return new_contract
         for breach in breaches:
             if self.save_unresolved_breaches:
                 self._saved_breaches[breach.id]['resolved'] = False
