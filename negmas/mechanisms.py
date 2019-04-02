@@ -66,6 +66,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         keep_issue_names=True,
         annotation: Optional[Dict[str, Any]] = None,
         state_factory=MechanismState,
+        enable_callbacks=False,
         name=None,
     ):
         """
@@ -185,6 +186,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         self._error = False
         self._error_details = ''
         self.__discrete_outcomes: List[Outcome] = None
+        self._enable_callbacks = enable_callbacks
 
         self.agents_of_role = defaultdict(list)
         self.role_of_agent = {}
@@ -318,7 +320,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         if role is None:
             role = 'agent'
 
-        if negotiator.on_enter(ami=self.ami, state=self.state, ufun=ufun, role=role):
+        if negotiator.join(ami=self.ami, state=self.state, ufun=ufun, role=role):
             self._negotiators.append(negotiator)
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
@@ -345,7 +347,8 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         if not self.can_leave(agent):
             return None
         self._negotiators = self._negotiators[0:indx] + self._negotiators[indx + 1:]
-        agent.on_leave(self.ami, **kwargs)
+        if self._enable_callbacks:
+            agent.on_leave(self.ami, **kwargs)
         return True
 
     def add_requirements(self, requirements: dict) -> None:
@@ -595,8 +598,9 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
                 self._agreement, self._broken, self._timedout = None, False, False
                 self._history.append(self.state)
                 return self.state
-            for a in self.negotiators:
-                a.on_negotiation_start(state=self.state)
+            if self._enable_callbacks:
+                for a in self.negotiators:
+                    a.on_negotiation_start(state=self.state)
             self.announce(Event(type='negotiation_start', data=None))
         else:
             remaining_steps, remaining_time = self.remaining_steps, self.remaining_time
@@ -609,8 +613,9 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
                 self.on_negotiation_end()
                 return self.state
 
-        for agent in self._negotiators:
-            agent.on_round_start(state=self.state)
+        if self._enable_callbacks:
+            for agent in self._negotiators:
+                agent.on_round_start(state=self.state)
         step_start = time.perf_counter()
         result = self.round()
         step_time = time.perf_counter() - step_start
@@ -624,8 +629,9 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
         self._step += 1
-        for agent in self._negotiators:
-            agent.on_round_end(state=self.state)
+        if self._enable_callbacks:
+            for agent in self._negotiators:
+                agent.on_round_end(state=self.state)
         if not self._running:
             self.on_negotiation_end()
         self._history.append(self.state)
@@ -652,8 +658,9 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
             - When overriding this function you **MUST** call the base class version
         """
         self.logerror(f'Mechanism error: {self.state.error_details}')
-        for a in self.negotiators:
-            a.on_mechanism_error(state=self.state)
+        if self._enable_callbacks:
+            for a in self.negotiators:
+                a.on_mechanism_error(state=self.state)
 
     def on_negotiation_end(self) -> None:
         """
@@ -662,8 +669,9 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         Remarks:
             - When overriding this function you **MUST** call the base class version
         """
-        for a in self.negotiators:
-            a.on_negotiation_end(state=self.state)
+        if self._enable_callbacks:
+            for a in self.negotiators:
+                a.on_negotiation_end(state=self.state)
         self.announce(Event(type='negotiation_end', data={'agreement': self.agreement, 'state': self.state
             , 'annotation': self.ami.annotation}))
 

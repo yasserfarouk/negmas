@@ -9,7 +9,7 @@ from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
 if True:
-    from typing import Tuple, Union, Type, Iterable, Sequence, Optional, Callable
+    from typing import Tuple, Union, Type, Iterable, Sequence, Optional, Callable, Any, Dict
     from .factory_managers import FactoryManager
 
 __all__ = [
@@ -21,6 +21,7 @@ __all__ = [
 
 def anac2019_world(
     competitors: Sequence[Union[str, Type[FactoryManager]]] = ()
+    , params: Sequence[Dict[str, Any]] = ()
     , randomize: bool = True
     , log_file_name: str = None
     , name: str = None
@@ -60,6 +61,7 @@ def anac2019_world(
         n_intermediate:
         n_default_per_level:
         competitors: A list of class names for the competitors
+        params: A list of dictionaries giving parameters to pass to the competitors
         n_miners: number of miners of the single raw material
         n_factories_per_level: number of factories at every production level
         n_consumers: number of consumers of the final product
@@ -80,7 +82,7 @@ def anac2019_world(
         consumption: The consumption schedule will be sampled from a uniform distribution with these limits inclusive
         log_file_name: File name to store the logs
         negotiator_type: The negotiation factory used to create all negotiators
-        max_storage: maximum storage capacity for all factory negmas If None then it is unlimited
+        max_storage: maximum storage capacity for all factory managers If None then it is unlimited
 
 
     Returns:
@@ -93,6 +95,7 @@ def anac2019_world(
 
     """
     competitors = list(competitors)
+    params = list(params) if params is not None else [dict() for _ in range(len(competitors))]
     if n_factories_per_level == n_default_per_level and len(competitors) > 0:
         raise ValueError(f'All factories in all levels are occupied by the default factory manager. Either decrease'
                          f' n_default_per_level ({n_default_per_level}) or increase n_factories_per_level '
@@ -110,6 +113,7 @@ def anac2019_world(
     competitors = [get_class(c) if isinstance(c, str) else c for c in competitors]
     if len(competitors) < 1:
         competitors.append(GreedyFactoryManager)
+        params.append(dict())
     world = SCMLWorld.chain_world(log_file_name=log_file_name, n_steps=n_steps
                                   , agent_names_reveal_type=agent_names_reveal_type
                                   , negotiation_speed=negotiation_speed
@@ -121,7 +125,7 @@ def anac2019_world(
                                   , consumer_kwargs={'negotiator_type': negotiator_type
             , 'consumption_horizon': consumption_horizon}
                                   , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
-                                  , manager_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
+                                  , default_manager_params={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
             , 'sign_only_guaranteed_contracts': guaranteed_contracts
             , 'use_consumer': use_consumer
             , 'max_insurance_premium': max_insurance_premium}
@@ -133,6 +137,7 @@ def anac2019_world(
                                   , n_lines_per_factory=n_lines_per_factory
                                   , max_storage=max_storage
                                   , manager_types=competitors
+                                  , manager_params=params
                                   , n_default_per_level=n_default_per_level
                                   , randomize=randomize
                                   , name=name)

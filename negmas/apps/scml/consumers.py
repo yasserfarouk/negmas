@@ -269,7 +269,7 @@ class ScheduleDrivenConsumer(Consumer):
 
     def sign_contract(self, contract: Contract) -> Optional[str]:
         if contract is None:
-            return
+            return None
         cfp: CFP = contract.annotation['cfp']
         agreement = contract.agreement  # type: ignore
         schedule = self.profiles[cfp.product].schedule_at(agreement['time'])

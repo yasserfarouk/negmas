@@ -12,7 +12,7 @@ import time
 import traceback
 from os import PathLike
 from pathlib import Path
-from typing import Optional, List, Callable, Union, Type, Sequence
+from typing import Optional, List, Callable, Union, Type, Sequence, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -48,6 +48,7 @@ class WorldGenerator(Protocol):
     Args:
             name: world name. If None, a random name should be generated
             competitors: A list of `Agent` types that can be used to create the agents of the competitor types
+            params: A list of parameters to pass to the agent types
             log_File_name: A log file name to keep logs
             randomize: If true, competitors should be assigned randomly within the world. The meaning of "random
             assignment" can vary from a world to another. In general it should be the case that if randomize is False,
@@ -61,6 +62,7 @@ class WorldGenerator(Protocol):
     """
 
     def __call__(self, name: Optional[str] = None, competitors: Sequence[Type[Agent]] = ()
+                 , params: Sequence[Dict[str, Any]] = ()
                  , log_file_name: Optional[str] = None, randomize: bool = True, agent_names_reveal_type: bool = False
                  , **kwargs) -> World: ...
 
@@ -250,6 +252,7 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
 def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , world_generator: WorldGenerator
                , score_calculator: Callable[[World], WorldRunResults]
+               , competitor_params: Optional[Sequence[Dict[str, Any]]] = None
                , randomize=False
                , agent_names_reveal_type=False
                , n_agents_per_competitor=1
@@ -277,6 +280,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         world_generator: A functions to generate worlds for the tournament
         score_calculator: A function for calculating the score of a world *After it finishes running*
         competitors: A list of class names for the competitors
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
         randomize: If true, then instead of trying all possible permutations of assignment random shuffles will be used.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
         beginning).
@@ -310,15 +314,18 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     assert world_progress_callback is None or parallelism not in dask_options, f'Cannot use {parallelism} with a world callback'
     if name is None:
         name = unique_name('', add_time=True, rand_digits=0)
-    competitors = list(set(competitors))
+    competitors = list(competitors)
     if tournament_path.startswith('~'):
         tournament_path = Path.home() / ('/'.join(tournament_path.split('/')[1:]))
     tournament_path = (pathlib.Path(tournament_path) / name).absolute()
     tournament_path.mkdir(parents=True, exist_ok=True)
     if verbose:
         print(f'Results of Tournament {name} will be saved to {str(tournament_path)}')
+    if competitor_params is None:
+        competitor_params = [dict() for _ in range(len(competitors))]
     params = {
         'competitors': [get_class(_).__name__ if not isinstance(_, str) else _ for _ in competitors],
+        'params': competitor_params,
         'randomize': randomize,
         'n_runs': max_n_configs,
         'tournament_path': str(tournament_path),
@@ -335,27 +342,36 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     world_infos = []
     if randomize:
         for i in range(max_n_configs):
-            random.shuffle(competitors)
+            competitor_infos = list(zip(competitors, competitor_params))
+            random.shuffle(competitor_infos)
+            competitors = [_[0] for _ in competitor_infos]
+            competitor_params = [_[1] for _ in competitor_infos]
             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
             dir_name = tournament_path / world_name
-            world_info = {'name': world_name, 'competitors': competitors, 'log_file_name': str(dir_name / 'log.txt')
+            world_info = {'name': world_name, 'competitors': competitors, 'params': competitor_params
+                , 'log_file_name': str(dir_name / 'log.txt')
                 , 'randomize': True, 'agent_names_reveal_type': agent_names_reveal_type
                           , 'n_agents_per_competitor': n_agents_per_competitor
                 , '__dir_name': str(dir_name)}
             world_info.update(kwargs)
             world_infos += [world_info.copy() for _ in range(n_runs_per_config)]
     else:
-        c_list = list(itertools.permutations(competitors))
+        competitor_infos = list(zip(competitors, competitor_params))
+        c_list_infos = list(itertools.permutations(competitor_infos))
         if max_n_configs is not None:
-            if len(c_list) > max_n_configs:
-                print(f'Need {len(c_list)} permutations but allowed to only use {max_n_configs} of them'
-                      f' ({max_n_configs / len(c_list):0.2%})')
-                c_list = random.shuffle(c_list)[:max_n_configs]
+            if len(c_list_infos) > max_n_configs:
+                print(f'Need {len(c_list_infos)} permutations but allowed to only use {max_n_configs} of them'
+                      f' ({max_n_configs / len(c_list_infos):0.2%})')
+                random.shuffle(c_list_infos)
+                c_list_infos = c_list_infos[:max_n_configs]
 
-        for i, c in enumerate(c_list):
+        for i, cs in enumerate(c_list_infos):
+            c = [_[0] for _ in cs]
+            ps = [_[1] for _ in cs]
             world_name = unique_name(f'{i:05}', add_time=True, rand_digits=4)
             dir_name = tournament_path / world_name
-            world_info = {'name': world_name, 'competitors': list(c), 'log_file_name': str(dir_name / 'log.txt')
+            world_info = {'name': world_name, 'competitors': list(c), 'params': list(ps)
+                , 'log_file_name': str(dir_name / 'log.txt')
                 , 'randomize': False, 'agent_names_reveal_type': agent_names_reveal_type
                 , 'n_agents_per_competitor': n_agents_per_competitor
                 , '__dir_name': str(dir_name)}
