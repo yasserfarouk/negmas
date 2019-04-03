@@ -8,12 +8,12 @@ from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from typing import List, Optional, Any, TYPE_CHECKING
 
-from negmas.helpers import unique_name
-from negmas.java import to_java, JavaCallerMixin, to_dict_for_java
+from .helpers import unique_name
+from .java import to_java, to_dict_for_java, PYTHON_CLASS_IDENTIFIER
 
 if TYPE_CHECKING:
-    from negmas.mechanisms import Mechanism
-    from negmas.outcomes import Issue, Outcome
+    from .mechanisms import Mechanism
+    from .outcomes import Issue, Outcome
 
 __all__ = [
     'NamedObject',
@@ -244,40 +244,40 @@ class AgentMechanismInterface:
         """Converts the object to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
-    def to_java(self):
-        return self.asdict()
-
 
 class _ShadowAgentMechanismInterface:
     """Used to represent an AMI to Java.
     """
 
     def randomOutcomes(self, n: int):
-        return to_java(self.ami.random_outcomes(n))
+        return to_java(self.shadow.random_outcomes(n))
 
     def discreteOutcomes(self, nMax: int):
-        return to_java(self.ami.discrete_outcomes(n_max=nMax))
+        return to_java(self.shadow.discrete_outcomes(n_max=nMax))
 
     def outcomeIndex(self, outcome) -> int:
-        return to_java(self.ami.outcome_index(outcome))
+        return to_java(self.shadow.outcome_index(outcome))
 
     def getParticipants(self) -> List[NegotiatorInfo]:
-        return to_java(to_java(self.ami.participants))
+        return to_java(to_java(self.shadow.participants))
 
     def getOutcomes(self):
-        return to_java(to_java(self.ami.outcomes))
+        return to_java(to_java(self.shadow.outcomes))
 
     def getState(self) -> MechanismState:
-        return to_java(self.ami.state)
+        return to_java(self.shadow.state)
 
     def getRequirements(self) -> typing.Dict[str, Any]:
-        return to_java(self.ami.requirements)
+        return to_java(self.shadow.requirements)
 
     def getNNegotiators(self) -> int:
-        return self.ami.n_negotiators
+        return self.shadow.n_negotiators
 
     def __init__(self, ami: AgentMechanismInterface):
-        self.ami = ami
+        self.shadow = ami
+
+    def to_java(self):
+        return to_dict_for_java(self.shadow)
         
     class Java:
         implements = ['jnegmas.common.AgentMechanismInterface']

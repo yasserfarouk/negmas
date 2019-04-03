@@ -40,7 +40,7 @@ from negmas.helpers import Distribution
 from negmas.helpers import snake_case, gmap, ikeys, Floats
 from negmas.java import JavaCallerMixin, to_java
 from negmas.outcomes import sample_outcomes, OutcomeRange, Outcome, outcome_in_range, Issue, outcome_is_valid, \
-    OutcomeType
+    OutcomeType, outcome_as_dict
 
 if TYPE_CHECKING:
     from negmas.outcomes import OutcomeRange, Outcome
@@ -2271,17 +2271,10 @@ class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
         super().__init__(*args, **kwargs)
         self.init_java_bridge(java_object=java_object, java_class_name=java_class_name, auto_load_java=False)
         if java_object is None:
-            self._java_object.construct(to_java(self))
+            self._java_object.fromMap(to_java(self))
 
     def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
-        pass
+        return self._java_object.call(to_java(outcome_as_dict(offer)))
 
     def xml(self, issues: List[Issue]) -> str:
-        return ''
-
-    def call(self, offer: Outcome) -> Optional[UtilityValue]:
-        return self(offer)
-
-
-    class Java:
-        implements = ['jnegmas.utilities.UtilityFunction']
+        return 'Java UFun'

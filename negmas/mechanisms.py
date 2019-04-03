@@ -706,9 +706,10 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         })
         return self._state_factory(**current_state)
 
-    def pareto_frontier(self, n_max=None, sort_by_welfare=True, consider_costs=False) \
-        -> Tuple[List[Tuple[float]], List['Outcome']]:
-        ufuns = self._get_ufuns(consider_costs=consider_costs)
+    def pareto_frontier(self, n_max=None, sort_by_welfare=True) -> Tuple[List[Tuple[float]], List['Outcome']]:
+        ufuns = self._get_ufuns()
+        if any(_ is None for _ in ufuns):
+            return [], []
         frontier, indices = pareto_frontier(ufuns=ufuns, n_discretization=None
                                             , sort_by_welfare=sort_by_welfare
                                             , outcomes=self.discrete_outcomes(n_max=n_max))
@@ -720,16 +721,13 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
 
     __repr__ = __str__
 
-    def _get_ufuns(self, consider_costs=False):
+    def _get_ufuns(self):
         ufuns = []
         for a in self.negotiators:
-            if consider_costs:
-                ufuns.append(a.ufun)
-            else:
-                ufuns.append(a.utility_function)
+            ufuns.append(a.utility_function)
         return ufuns
 
-    def plot(self, consider_costs=False, plot_utils=True, plot_outcomes=True):
+    def plot(self, plot_utils=True, plot_outcomes=True):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
         if len(self.negotiators) > 2:
@@ -743,7 +741,7 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
             # history['relative_time'] = [_.relative_time for _ in self.history]
             # history['step'] = [_.step for _ in self.history]
             history = history.loc[~history.current_offer.isnull(), :]
-            ufuns = self._get_ufuns(consider_costs=consider_costs)
+            ufuns = self._get_ufuns()
             outcomes = self.outcomes
 
             utils = [tuple(f(o) for f in ufuns) for o in outcomes]

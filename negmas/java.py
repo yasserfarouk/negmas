@@ -18,7 +18,8 @@ from py4j.java_gateway import JavaGateway, GatewayParameters, CallbackServerPara
 #  somewhere
 from py4j.protocol import Py4JNetworkError
 
-from negmas.helpers import get_class, instantiate, camel_case, snake_case
+from .helpers import get_class, instantiate, camel_case, snake_case
+
 
 __all__ = [
     'JavaCallerMixin',
@@ -31,11 +32,11 @@ __all__ = [
     'from_java',
     'java_link',
     'to_dict_for_java',
+    'PYTHON_CLASS_IDENTIFIER',
 ]
 
 DEFAULT_JNEGMAS_PATH = 'external/jnegmas-1.0-SNAPSHOT-all.jar'
 PYTHON_CLASS_IDENTIFIER = '__python_class__'
-
 
 @contextmanager
 def jnegmas_connection(init: bool = False, path: Optional[str] = None, java_port=0
@@ -163,6 +164,7 @@ class JNegmasGateway:
         if cls.gateway is None:
             eager_load, auto_convert = True, True
             auto_field, auto_gc = True, False
+            propagate_exceptions = False
             if client_server:
                 cls.gateway = ClientServer(java_parameters=JavaParameters(port=java_port
                                                                           , auto_convert=auto_convert
@@ -170,7 +172,7 @@ class JNegmasGateway:
                                                                           , auto_gc=False, auto_field=auto_field
                                                                           , daemonize_memory_management=True),
                                            python_parameters=PythonParameters(port=python_port
-                                                                              , propagate_java_exceptions=True
+                                                                              , propagate_java_exceptions=propagate_exceptions
                                                                               , daemonize=True
                                                                               , eager_load=eager_load
                                                                               , auto_gc=auto_gc
@@ -182,7 +184,7 @@ class JNegmasGateway:
                                                     , daemonize_connections=True
                                                     , daemonize=True
                                                     , eager_load=eager_load
-                                                    , propagate_java_exceptions=True)
+                                                    , propagate_java_exceptions=propagate_exceptions)
                 cls.gateway = JavaGateway(gateway_parameters=GatewayParameters(port=java_port
                                                                                , auto_convert=auto_convert
                                                                                , auto_field=auto_field
@@ -274,7 +276,7 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
     if hasattr(value, 'to_java'):
         converted = value.to_java()
         if isinstance(converted, dict):
-            if add_type_field:
+            if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
                 converted[PYTHON_CLASS_IDENTIFIER] = value.__class__.__module__ + '.' + value.__class__.__name__
             return {java_identifier(k): v for k, v in converted.items()}
         else:
@@ -310,7 +312,7 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
     return value
 
 
-def java_link(obj, map=None, copyable=False):
+def java_link(obj, map=None):
     """
     Creates a link in java to the object given without copying it.
 
@@ -321,7 +323,7 @@ def java_link(obj, map=None, copyable=False):
         map is not None
 
     Returns:
-        A java object. Cannot be used dieectly in python but can be used as an argument to a call to of a java object.
+        A java object. Cannot be used directly in python but can be used as an argument to a call to of a java object.
 
     """
     class_name = obj.__class__.__module__ + '.' + obj.__class__.__name__
@@ -335,10 +337,9 @@ def java_link(obj, map=None, copyable=False):
     class_name = '.'.join(lst)
     java_obj = JNegmasGateway.gateway.entry_point.create(class_name, obj)
     if map is not None:
-        if copyable:
-            java_obj.fromMap(map)
-        else:
-            java_obj.construct(map)
+        java_obj.fromMap(map)
+    else:
+        java_obj.fromMap(to_dict_for_java(obj))
     return java_obj
 
 
@@ -381,7 +382,20 @@ def to_java(value, add_type_field=True, python_class_name: str = None):
         return ListConverter().convert([JNegmasGateway.gateway.entry_point.createJavaObjectFromMap(_)
                                         if isinstance(_, dict) else _ for _ in value]
                                        , JNegmasGateway.gateway._gateway_client)
-    raise RuntimeError(f'got {value} of type {type(value)} from to_dict_fo_java')
+    return value
+
+
+def python_identifier(k: str) -> str:
+    """
+    Converts a key to snake case keeping dunder keys alone
+
+    Args:
+        k: string to be converted
+
+    Returns:
+        snake-case string
+    """
+    return k if k.startswith('__') else snake_case(k)
 
 
 def from_java(d: Any, deep=True, remove_type_field=True, fallback_class_name: Optional[str] = None):
@@ -413,30 +427,59 @@ def from_java(d: Any, deep=True, remove_type_field=True, fallback_class_name: Op
     if isinstance(d, JavaSet):
         return {_ for _ in d}
     if isinstance(d, JavaMap):
-        d = {snake_case(k): d[k] for k in d.keys()}
-    if isinstance(d, JavaObject):
+        if deep:
+            d = {python_identifier(k): from_java(v) for k, v in d.items()}
+        else:
+            d = {python_identifier(k): v for k, v in d.items()}
+        deep = False
+    elif isinstance(d, JavaObject):
         d = JNegmasGateway.gateway.entry_point.toMap(d)
-        d = {k: d[k] for k in d.keys()}
+        if deep:
+            d = {python_identifier(k): from_java(v) for k, v in d.items()}
+        else:
+            d = {python_identifier(k): v for k, v in d.items()}
+        deep = False
     if isinstance(d, dict):
         if remove_type_field:
             python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
         else:
             python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
         if python_class_name is not None:
-            lst = python_class_name.split('.')
-            if lst[-1].startswith('Python'):
-                lst[-1] = lst[-1][len('Python'):]
-            python_class_name = '.'.join(lst)
-            python_class = get_class(python_class_name)
+            python_class_name = py_class_name(python_class_name)
+            if python_class_name.endswith('Issue'):
+                python_class = get_class('negmas.outcomes.Issue')
+            else:
+                python_class = get_class(python_class_name)
             # we resolve sub-objects first from the dict if deep is specified before calling from_java on the class
             if deep:
-                d = {snake_case(k): from_java(v) for k, v in d.items() if good_field(k)}
+                d = {python_identifier(k): from_java(v) for k, v in d.items() if good_field(k)}
             # from_java needs to do a shallow conversion from a dict as deep conversion is taken care of already.
             if hasattr(python_class, 'from_java'):
-                return python_class.from_java({snake_case(k): v for k, v in d.items()})
-            return python_class(**{snake_case(k): v for k, v in d.items() if good_field(k)})
+                return python_class.from_java({python_identifier(k): v for k, v in d.items()}, python_class_name)
+            if deep:
+                d = {python_identifier(k): from_java(v) for k, v in d.items() if good_field(k)}
+            else:
+                d = {python_identifier(k): v for k, v in d.items() if good_field(k)}
+            return python_class(**d)
         return d
     raise(ValueError(str(d)))
+
+
+def py_class_name(python_class_name: str) -> str:
+    """
+    Converts a class name that we got from Java to the corresponding class name in python
+
+    Args:
+        python_class_name:
+
+    Returns:
+
+    """
+    lst = python_class_name.split('.')
+    if lst[-1].startswith('Python'):
+        lst[-1] = lst[-1][len('Python'):]
+    python_class_name = '.'.join(lst)
+    return python_class_name
 
 
 class JavaCallerMixin:

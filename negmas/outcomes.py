@@ -38,10 +38,10 @@ import numpy as np
 import pkg_resources
 from dataclasses import dataclass, fields
 
-
-from negmas import NamedObject, NamedObject
-from negmas.generics import *
-from negmas.helpers import unique_name
+from .java import PYTHON_CLASS_IDENTIFIER
+from .common import NamedObject
+from .generics import *
+from .helpers import unique_name
 
 LARGE_NUMBER = 100
 __all__ = [
@@ -830,8 +830,33 @@ class Issue(NamedObject):
             return Issue(name=self.name, values=[_ for _ in self.values])
         return Issue(name=self.name, values=self.values)
 
-    class Java:
-        implements = ['jnegmas.outcomes.Issue']
+    @classmethod
+    def from_java(cls, d: Dict[str, Any], class_name: str) -> 'Issue':
+        if class_name.endswith('ListIssue'):
+            return Issue(name=d.get('name', None), values=d['values'])
+        if class_name.endswith('RangeIssue'):
+            return Issue(name=d.get('name', None), values=(d['min'], d['max']))
+        raise ValueError(f'Unknown issue type: {class_name} with dict {d} received from Java')
+
+    def to_java(self):
+        if self.values is None:
+            return None
+        if isinstance(self.values, tuple):
+            if isinstance(self.values[0], int):
+                return {'name': self.name, 'min': int(self.values[0]), 'max': int(self.values[0])
+                        , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.IntRangeIssue'}
+            else:
+                return {'name': self.name, 'min': float(self.values[0]), 'max': float(self.values[0])
+                    , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.DoubleRangeIssue'}
+        if isinstance(self.values, Iterable):
+            if isinstance(self.values[0], int):
+                return {'name': self.name, 'values': [int(_) for _ in self.values]
+                        , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.IntListIssue'}
+            elif isinstance(self.values[0], str):
+                return {'name': self.name, 'values': [str(_) for _ in self.values]
+                        , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.StringListIssue'}
+            return {'name': self.name, 'values': [float(_) for _ in self.values]
+                    , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.DoubleListIssue'}
 
 
 class Issues(object):
@@ -2722,7 +2747,8 @@ EPSILON = 1e-9
 
 def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
     """Converts the outcome to a dict no matter what was its type"""
-
+    if outcome is None:
+        return None
     if isinstance(outcome, dict):
         return outcome
     if isinstance(outcome, OutcomeType):
@@ -2734,7 +2760,8 @@ def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
 
 def outcome_as_tuple(outcome: Outcome):
     """Converts the outcome to a tuple no matter what was its type"""
-
+    if outcome is None:
+        return None
     if isinstance(outcome, tuple):
         return outcome
     if isinstance(outcome, OutcomeType):

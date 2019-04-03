@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.2.2
+-------------
+
+* modifications to achieve compatibility with JNegMAS 0.2.0
+* removing the unnecessary ufun property in Negotiator
+
+Release 0.2.0
+-------------
+
+* First ANAC 2019 SCML release
+* compatible with JNegMAS 0.2.0
+
 Release 0.1.45
 --------------
 

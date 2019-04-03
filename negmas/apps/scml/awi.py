@@ -5,7 +5,7 @@ from typing import Optional, List, Dict, Any
 
 from negmas import Issue
 from negmas.apps.scml.common import *
-from negmas.java import to_java, from_java
+from negmas.java import to_java, from_java, to_dict_for_java
 from negmas.situated import AgentWorldInterface, Contract, Action
 
 __all__ = [
@@ -329,48 +329,51 @@ class _ShadowSCMLAWI:
 
     """
 
+    def to_java(self):
+        return to_dict_for_java(self.shadow)
+
     def __init__(self, awi: SCMLAWI):
-        self.awi = awi
+        self.shadow = awi
 
     def getProducts(self):
-        return to_java(self.awi.products)
+        return to_java(self.shadow.products)
 
     def getProcesses(self):
-        return to_java(self.awi.processes)
+        return to_java(self.shadow.processes)
 
     def getState(self):
-        return to_java(self.awi.state)
+        return to_java(self.shadow.state)
 
     def relativeTime(self):
-        return self.awi.relative_time
+        return self.shadow.relative_time
 
     def getCurrentStep(self):
-        return self.awi.current_step
+        return self.shadow.current_step
 
     def getNSteps(self):
-        return self.awi.n_steps
+        return self.shadow.n_steps
 
     def getDefaultSigningDelay(self):
-        return self.awi.default_signing_delay
+        return self.shadow.default_signing_delay
 
     def requestNegotiation(self, cfp, req_id: str, roles=None, mechanism_name=None, mechanism_params=None):
-        return self.awi.request_negotiation(from_java(cfp), req_id, roles, mechanism_name, mechanism_params)
+        return self.shadow.request_negotiation(from_java(cfp), req_id, roles, mechanism_name, mechanism_params)
 
     def registerCFP(self, cfp: Dict[str, Any]) -> None:
         """Registers a CFP"""
-        self.awi.register_cfp(from_java(cfp))
+        self.shadow.register_cfp(from_java(cfp))
 
     def removeCFP(self, cfp: Dict[str, Any]) -> bool:
         """Removes a CFP"""
-        return self.awi.remove_cfp(from_java(cfp))
+        return self.shadow.remove_cfp(from_java(cfp))
 
     def registerInterest(self, products: List[int]) -> None:
         """registers interest in receiving callbacks about CFPs related to these products"""
-        self.awi.register_interest(from_java(products))
+        self.shadow.register_interest(from_java(products))
 
     def unregisterInterest(self, products: List[int]) -> None:
         """registers interest in receiving callbacks about CFPs related to these products"""
-        self.awi.unregister_interest(from_java(products))
+        self.shadow.unregister_interest(from_java(products))
 
     def evaluateInsurance(self, contract: Dict[str, Any], t: int = None) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
@@ -380,7 +383,7 @@ class _ShadowSCMLAWI:
             contract: hypothetical contract
             t: time at which the policy is to be bought. If None, it means current step
         """
-        result = self.awi.evaluate_insurance(from_java(contract), t)
+        result = self.shadow.evaluate_insurance(from_java(contract), t)
         if result < 0:
             return None
         return result
@@ -391,19 +394,19 @@ class _ShadowSCMLAWI:
         Remarks:
             The agent can call `evaluate_insurance` to find the premium that will be used.
         """
-        return self.awi.buy_insurance(from_java(contract))
+        return self.shadow.buy_insurance(from_java(contract))
 
     def loginfo(self, msg: str):
-        return self.awi.loginfo(msg)
+        return self.shadow.loginfo(msg)
 
     def logwarning(self, msg: str):
-        return self.awi.logwarning(msg)
+        return self.shadow.logwarning(msg)
 
     def logdebug(self, msg: str):
-        return self.awi.logdebug(msg)
+        return self.shadow.logdebug(msg)
 
     def logerror(self, msg: str):
-        return self.awi.logerror(msg)
+        return self.shadow.logerror(msg)
 
     class Java:
         implements = ['jnegmas.apps.scml.awi.SCMLAWI']

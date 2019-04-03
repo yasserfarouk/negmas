@@ -694,19 +694,19 @@ class CFP(OutcomeType):
         return self.penalty
 
     def to_java(self):
-        d = self.__dict__
-        d['min_time'], d['max_time'] = int(self.min_time), int(self.max_time)
-        d['min_quantity'], d['max_quantity'] = int(self.min_quantity), int(self.max_quantity)
-        d['min_unit_price'], d['max_unit_price'] = float(self.min_unit_price), float(self.max_unit_price)
-        d['min_penalty'] = float(self.min_penalty) if self.min_penalty is not None else None
-        d['max_penalty'] = float(self.max_penalty) if self.max_penalty is not None else None
-        d['min_signing_delay'] = int(self.min_signing_delay) if self.min_signing_delay is not None else None
-        d['max_signing_delay'] = int(self.max_signing_delay) if self.max_signing_delay is not None else None
-        d['money_resolution'] = float(self.money_resolution) if self.money_resolution is not None else 0.0
+        d = {'is_buy': self.is_buy, 'publisher': self.publisher, 'product': self.product, 'id': self.id,
+             'money_resolution': float(self.money_resolution) if self.money_resolution is not None else 0.0,
+             'min_time': int(self.min_time), 'max_time': int(self.max_time), 'min_quantity': int(self.min_quantity),
+             'max_quantity': int(self.max_quantity), 'min_unit_price': float(self.min_unit_price),
+             'max_unit_price': float(self.max_unit_price),
+             'min_penalty': float(self.min_penalty) if self.min_penalty is not None else None,
+             'max_penalty': float(self.max_penalty) if self.max_penalty is not None else None,
+             'min_signing_delay': int(self.min_signing_delay) if self.min_signing_delay is not None else None,
+             'max_signing_delay': int(self.max_signing_delay) if self.max_signing_delay is not None else None}
         return d
 
     @classmethod
-    def from_java(cls, idict: Dict[str, Any]) -> 'CFP':
+    def from_java(cls, idict: Dict[str, Any], class_name: Optional[str] = None) -> 'CFP':
         if idict['min_time'] == idict['max_time']:
             t = idict['min_time']
         else:
