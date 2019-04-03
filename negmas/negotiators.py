@@ -98,22 +98,6 @@ class Negotiator(NamedObject, Notifiable, ABC):
         return self._mechanism_id == negotiation_id
 
     @property
-    def ufun(self) -> Callable[['Outcome'], Optional['UtilityValue']]:
-        """
-        The utility function in the given negotiation. 
-        
-        Remarks:
-            - If no utility_function is internally stored, `ufun` still returns a valid callable that returns None 
-              for everything.
-            - This is what you should always call to get the utility of a given outcome.
-            - ufun(None) gives the `reserved_value` of this agent.
-        """
-        if self.utility_function is not None:
-            return self.utility_function
-        else:
-            return lambda x: None
-
-    @property
     def reserved_value(self):
         """Reserved value is what the agent gets if no agreement is reached in the negotiation."""
         if self.utility_function is None:

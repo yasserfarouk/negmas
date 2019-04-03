@@ -7,7 +7,7 @@ import numpy as np
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 
-from negmas.java import to_java
+from negmas.java import to_java, to_dict_for_java
 from .common import ManufacturingProfile, Job, Factory, NO_PRODUCTION
 
 __all__ = [
@@ -946,116 +946,119 @@ class _ShadowFactorySimulator:
     """
 
     def __init__(self, simulator: FactorySimulator):
-        self.simulator = simulator
+        self.shadow = simulator
 
     def maxStorage(self) -> int:
-        return to_java(self.simulator.max_storage)
+        return to_java(self.shadow.max_storage)
 
     def nSteps(self) -> int:
-        return to_java(self.simulator.n_steps)
+        return to_java(self.shadow.n_steps)
 
     def initialWallet(self) -> float:
-        return to_java(self.simulator.initial_wallet)
+        return to_java(self.shadow.initial_wallet)
 
     def initialStorage(self) -> List[int]:
-        return to_java(self.simulator.initial_storage.tolist())
+        return to_java(self.shadow.initial_storage.tolist())
 
     def nLines(self) -> int:
-        return to_java(self.simulator.n_lines)
+        return to_java(self.shadow.n_lines)
 
     def finalBalance(self) -> float:
-        return to_java(self.simulator.final_balance)
+        return to_java(self.shadow.final_balance)
 
     def walletTo(self, t: int) -> List[float]:
-        return to_java(self.simulator.wallet_to(t).tolist())
+        return to_java(self.shadow.wallet_to(t).tolist())
 
     def walletAt(self, t: int) -> float:
-        return to_java(self.simulator.wallet_at(t))
+        return to_java(self.shadow.wallet_at(t))
 
     def storageTo(self, t: int) -> List[int]:
-        return to_java(self.simulator.storage_to(t).tolinst())
+        return to_java(self.shadow.storage_to(t).tolinst())
 
     def storageAt(self, t: int) -> int:
-        return to_java(self.simulator.storage_at(t))
+        return to_java(self.shadow.storage_at(t))
 
     def line_schedules_to(self, t: int) -> List[List[int]]:
-        return to_java(self.simulator.line_schedules_to(t).tolist())
+        return to_java(self.shadow.line_schedules_to(t).tolist())
 
     def line_schedules_at(self, t: int) -> List[int]:
-        return to_java(self.simulator.line_schedules_at(t).tolist())
+        return to_java(self.shadow.line_schedules_at(t).tolist())
 
     def totalStorageTo(self, t: int) -> List[int]:
-        return to_java(self.simulator.total_storage_to(t).tolist())
+        return to_java(self.shadow.total_storage_to(t).tolist())
 
     def totalStorageAt(self, t: int) -> int:
-        return to_java(self.simulator.total_storage_at(t))
+        return to_java(self.shadow.total_storage_at(t))
 
     def reservedStorageTo(self, t: int) -> List[int]:
-        return to_java(self.simulator.reserved_storage_to(t).tolist())
+        return to_java(self.shadow.reserved_storage_to(t).tolist())
 
     def reservedStorageAt(self, t: int) -> int:
-        return to_java(self.simulator.reserved_storage_at(t))
+        return to_java(self.shadow.reserved_storage_at(t))
 
     def availableStorageTo(self, t: int) -> List[int]:
-        return to_java(self.simulator.available_storage_to(t).tolist())
+        return to_java(self.shadow.available_storage_to(t).tolist())
 
     def availableStorageAt(self, t: int) -> int:
-        return to_java(self.simulator.available_storage_at(t))
+        return to_java(self.shadow.available_storage_at(t))
 
     def loansTo(self, t: int) -> List[float]:
-        return to_java(self.simulator.loans_to(t).tolist())
+        return to_java(self.shadow.loans_to(t).tolist())
 
     def loansAt(self, t: int) -> float:
-        return to_java(self.simulator.loans_at(t))
+        return to_java(self.shadow.loans_at(t))
 
     def balanceTo(self, t: int) -> List[float]:
-        return to_java(self.simulator.balance_to(t).tolist())
+        return to_java(self.shadow.balance_to(t).tolist())
 
     def balanceAt(self, t: int) -> float:
-        return to_java(self.simulator.balance_at(t))
+        return to_java(self.shadow.balance_at(t))
 
     def fixedBefore(self) -> int:
-        return to_java(self.simulator.fixed_before)
+        return to_java(self.shadow.fixed_before)
 
     def setState(self, t: int, storage: List[int], wallet: float, loans: float, lineSchedules: List[int]) -> None:
-        self.simulator.set_state(t, storage=storage, wallet=wallet, loans=loans
-                                 , line_schedules=lineSchedules)
+        self.shadow.set_state(t, storage=storage, wallet=wallet, loans=loans
+                              , line_schedules=lineSchedules)
 
     def addLoan(self, total: float, t: int) -> bool:
-        return self.simulator.add_loan(total=total, t=t)
+        return self.shadow.add_loan(total=total, t=t)
 
     def receive(self, payment, t):
-        return self.simulator.receive(payment, t)
+        return self.shadow.receive(payment, t)
 
     def pay(self, payment, t, ignoreMoneyShortage):
-        return self.simulator.pay(payment, t, ignoreMoneyShortage)
+        return self.shadow.pay(payment, t, ignoreMoneyShortage)
 
     def transportTo(self, product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage):
-        return self.simulator.transport_to(product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage)
+        return self.shadow.transport_to(product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage)
 
     def buy(self, product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage):
-        return self.simulator.buy(product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage)
+        return self.shadow.buy(product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage)
 
     def sell(self, product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage):
-        return self.simulator.sell(product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage)
+        return self.shadow.sell(product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage)
 
     def schedule(self, job, ignoreInventoryShortage, ignoreMoneyShortage, ignoreSpaceShortage, override):
-        return self.simulator.schedule(job, ignoreInventoryShortage, ignoreMoneyShortage, ignoreSpaceShortage, override)
+        return self.shadow.schedule(job, ignoreInventoryShortage, ignoreMoneyShortage, ignoreSpaceShortage, override)
 
     def reserve(self, product, quantity, t):
         return self.reserve(product, quantity, t)
 
     def fixBefore(self, t):
-        return self.simulator.fix_before(t)
+        return self.shadow.fix_before(t)
 
     def bookmark(self):
-        return self.simulator.bookmark()
+        return self.shadow.bookmark()
 
     def rollback(self, bookmarkId):
-        return self.simulator.rollback(bookmarkId)
+        return self.shadow.rollback(bookmarkId)
 
     def deleteBookmark(self, bookmarkId):
-        return self.simulator.delete_bookmark(bookmarkId)
+        return self.shadow.delete_bookmark(bookmarkId)
+
+    def to_java(self):
+        return to_dict_for_java(self.shadow)
 
     class Java:
         implements = ['jengmas.apps.scml.simulators.FactorySimulator']

@@ -43,8 +43,8 @@ def test_genius_agent(init_genius):
     atlas3, agentx = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(atlas3.ufun(s.current_offer)) for s in p.history])
-    u2 = np.array([float(agentx.ufun(s.current_offer)) for s in p.history])
+    u1 = np.array([float(atlas3.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(agentx.utility_function(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -75,8 +75,8 @@ def test_genius_agent_step_limit(init_genius):
     atlas3, agentx = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(atlas3.ufun(s.current_offer)) for s in p.history])
-    u2 = np.array([float(agentx.ufun(s.current_offer)) for s in p.history])
+    u1 = np.array([float(atlas3.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(agentx.utility_function(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -106,8 +106,8 @@ def test_genius_agent_step_long_session(init_genius):
     p.add(a2)
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(a1.ufun(s.current_offer)) for s in p.history])
-    u2 = np.array([float(a2.ufun(s.current_offer)) for s in p.history])
+    u1 = np.array([float(a1.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(a2.utility_function(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -144,8 +144,8 @@ def test_genius_agent_same_utility(init_genius):
     p.add(a1)
     p.add(a2)
     p.run()
-    u1 = np.array([float(a1.ufun(s.current_offer)) for s in p.history])
-    u2 = np.array([float(a2.ufun(s.current_offer)) for s in p.history])
+    u1 = np.array([float(a1.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(a2.utility_function(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     assert len(u1) == 2
     assert welfare[0] == welfare[1] == 2.0

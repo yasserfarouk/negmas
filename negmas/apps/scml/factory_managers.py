@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 
 from negmas import Contract, Breach, Negotiator, MechanismState, AgentMechanismInterface, RenegotiationRequest, \
-    JavaSAONegotiator, UtilityFunction, JavaUtilityFunction
+    JavaSAONegotiator, UtilityFunction, JavaUtilityFunction, _ShadowAgentMechanismInterface
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.apps.scml.simulators import storage_as_array, temporary_transaction
 from negmas.common import NamedObject
@@ -584,9 +584,7 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         return self._java_object.onNegRequestRejected(req_id, by)
 
     def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
-        return self._java_object.onNegRequestAccepted(req_id, java_link(mechanism, map=to_dict_for_java(mechanism
-                                                                                                        , add_type_field=False)
-                                                                        , copyable=False))
+        return self._java_object.onNegRequestAccepted(req_id, java_link(_ShadowAgentMechanismInterface(mechanism)))
 
     def on_new_cfp(self, cfp: 'CFP'):
         return from_java(self._java_object.onNewCFP(to_java(cfp)))
@@ -620,11 +618,13 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
 
     def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: AgentMechanismInterface
                                , state: MechanismState) -> None:
-        return self._java_object.onNegotiationFailure(to_java(partners), annotation, java_link(mechanism)
+        return self._java_object.onNegotiationFailure(to_java(partners), annotation
+                                                      , java_link(_ShadowAgentMechanismInterface(mechanism))
                                                       , to_java(state))
 
     def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
-        return self._java_object.onNegotiationSuccess(to_java(contract), java_link(mechanism))
+        return self._java_object.onNegotiationSuccess(to_java(contract)
+                                                      , java_link(_ShadowAgentMechanismInterface(mechanism)))
 
     def on_contract_signed(self, contract: Contract) -> None:
         return self._java_object.onContractSigned(to_java(contract))
@@ -673,7 +673,7 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
             map = to_dict_for_java(self)
             map.pop(PYTHON_CLASS_IDENTIFIER, None)
             map['simulatorType'] = self.simulator_type.__class__.__name__
-            self._java_object.construct(to_java(map))
+            self._java_object.fromMap(to_java(map))
 
     def getNegotiationRequests(self):
         return to_java(self.requested_negotiations)
