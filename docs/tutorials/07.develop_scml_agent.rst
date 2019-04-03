@@ -14,17 +14,37 @@ The first step is to install negmas
 Once you have this library installed, you can start developing your
 factory manager:
 
+.. code:: ipython3
+
+    from negmas.apps.scml import FactoryManager
+    try:
+        class MyFactoryManager(FactoryManager):
+            """My factory manager"""
+        f = MyFactoryManager()
+    except Exception as e:
+        print(e)
+
+
+.. parsed-literal::
+
+    Can't instantiate abstract class MyFactoryManager with abstract methods confirm_contract_execution, confirm_loan, confirm_partial_execution, init, on_agent_bankrupt, on_contract_cancelled, on_contract_nullified, on_contract_signed, on_neg_request_accepted, on_neg_request_rejected, on_negotiation_failure, on_negotiation_success, on_new_cfp, on_new_report, on_production_failure, on_remove_cfp, respond_to_negotiation_request, respond_to_renegotiation_request, set_renegotiation_agenda, sign_contract, step
+
+
 You are told that you cannot instantiate your newly created class as did
-not implement the abstract (required) method ``on_negotiation_request``.
-That is actually the ONLY abstract method you need to implement.
+not implement the abstract (required) methods. These abstract methods
+are useful in giving you an idea of all the callback you should expect.
+
+If you want some default behavior implemented for you, you can inherit
+from one of the provided factory managers like
+``DoNothingFactoryManager`` and ``GreedyFactoryManager``. In this case,
+you only need to override the functions you modify
 
 .. code:: ipython3
 
     from negmas.apps.scml import DoNothingFactoryManager
-    import yaml
-    yaml.warnings({'YAMLLoadWarning': False}) # avoid a dask warning in newest yaml.
     class MyFactoryManager(DoNothingFactoryManager):
         """My factory manager"""
+
 
 As the
 `documentation <http://www.yasserm.com/negmas/negmas.apps.scml.html?highlight=on_negotiation_request#negmas.apps.scml.SCMLAgent.on_negotiation_request>`__
@@ -50,7 +70,8 @@ built-in greedy agent:
     
     results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
                                   , agent_names_reveal_type=True, n_runs_per_config=1
-                                  # , n_steps=10  # uncomment this for a faster test
+                                  , max_n_configs=10        # we are allowing only 10 worlds to run
+                                  , n_steps=20              # we are running each world for 20 steps only                              
                                  )
 
 You can see the scores that each individual factory manager got (just a
@@ -60,11 +81,138 @@ random sample):
 
     results.scores.head()
 
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_name</th>
+          <th>agent_type</th>
+          <th>log_file</th>
+          <th>score</th>
+          <th>stats_folder</th>
+          <th>world</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>my_1_0</td>
+          <td>my</td>
+          <td>None</td>
+          <td>0.000000</td>
+          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
+          <td>00003/20190403-191706sEaI</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>greedy_2_1</td>
+          <td>greedy</td>
+          <td>None</td>
+          <td>-0.024070</td>
+          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
+          <td>00003/20190403-191706sEaI</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>my_1_2</td>
+          <td>my</td>
+          <td>None</td>
+          <td>0.000000</td>
+          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
+          <td>00003/20190403-191706sEaI</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>greedy_1_3</td>
+          <td>greedy</td>
+          <td>None</td>
+          <td>-0.013795</td>
+          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
+          <td>00003/20190403-191706sEaI</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>my_2_4</td>
+          <td>my</td>
+          <td>None</td>
+          <td>0.000000</td>
+          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
+          <td>00003/20190403-191706sEaI</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
 You can also check the total scores for each factory manager type:
 
 .. code:: ipython3
 
     results.total_scores
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>agent_type</th>
+          <th>score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>my</td>
+          <td>0.000000</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>greedy</td>
+          <td>-0.009261</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
 
 If you want, you can check if these differences are statistically
 significant using a t-test:
@@ -73,11 +221,57 @@ significant using a t-test:
 
     results.ttest
 
-So the greedy factory manager is better than the do-nothing factory
-manager getting an average profit of *15%* compared with the expected
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>a</th>
+          <th>b</th>
+          <th>p</th>
+          <th>t</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>my</td>
+          <td>greedy</td>
+          <td>0.082363</td>
+          <td>1.746367</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+So the greedy factory manager is worse than the do-nothing factory
+manager getting an average loss of *8%* compared with the expected
 nothing (*0%*) for the do-nothing factory manager (as expected).
-Moreover, this difference is statistically significant as the p-value is
-< *0.000001*.
+Moreover, this difference is not statistically significant as the
+p-value is > *0.05*. That is actually to be expected as the
+greedy-factory-manager usually loses at the first 20 or so steps before
+starting to make profits. Try running the tournament for a longer
+time-span (e.g. 100 steps) but be careful thati
 
 Or, let's just find out who was the winner(s):
 
@@ -85,11 +279,26 @@ Or, let's just find out who was the winner(s):
 
     results.winners
 
+
+
+
+.. parsed-literal::
+
+    ['my']
+
+
+
 and what was its/their score:
 
 .. code:: ipython3
 
     print(results.winners_scores)
+
+
+.. parsed-literal::
+
+    [0.]
+
 
 This information and much more is also stored in a log folder that gives
 details of every world and total scores, etc. The default location of
