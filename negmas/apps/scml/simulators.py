@@ -1,3 +1,5 @@
+"""Simulators module implementing factory simulation"""
+
 import math
 import sys
 from abc import ABC, abstractmethod
@@ -37,10 +39,20 @@ def storage_as_array(storage: Dict[int, int], n_products: int) -> np.array:
 
 
 class FactorySimulator(ABC):
-    """Simulates a factory allowing for prediction of storage/balance in the future"""
+    """Simulates a factory allowing for prediction of storage/balance in the future.
+
+    Args:
+        initial_wallet: The initial amount of cash in the wallet
+        initial_storage: initial inventory
+        n_steps: number of simulation steps
+        n_products: number of products in the world
+        profiles: all profiles that the factory being simulated can run
+        max_storage: maximum available storage space.
+    """
 
     def __init__(self, initial_wallet: float, initial_storage: Dict[int, int], n_steps: int, n_products: int
                  , profiles: List[ManufacturingProfile], max_storage: Optional[int] = None):
+
         self._n_steps = n_steps
         self._max_storage = max_storage if max_storage is not None else sys.maxsize
         self._initial_wallet = initial_wallet
@@ -60,6 +72,7 @@ class FactorySimulator(ABC):
 
     @property
     def max_storage(self) -> Optional[int]:
+        """Maximum storage available"""
         return self._max_storage
 
     @property
