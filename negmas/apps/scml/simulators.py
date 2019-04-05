@@ -16,7 +16,6 @@ __all__ = [
     'FactorySimulator',
     'SlowFactorySimulator',
     'FastFactorySimulator',
-    'storage_as_array',
     'transaction',
     'temporary_transaction'
 ]
