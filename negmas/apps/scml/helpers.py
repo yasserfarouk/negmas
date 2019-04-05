@@ -2,7 +2,7 @@ from random import gauss
 import numpy as np
 
 __all__ = [
-    'pos_gauss', 'safe_max', 'zero_runs'
+    'pos_gauss', '_safe_max', 'zero_runs'
 ]
 
 
@@ -12,7 +12,7 @@ def pos_gauss(mu, sigma):
     return abs(x)
 
 
-def safe_max(a, b):
+def _safe_max(a, b):
     if a is None:
         return b
     if b is None:

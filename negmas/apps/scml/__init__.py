@@ -98,8 +98,10 @@ from .consumers import *
 from .miners import *
 from . import utils
 from . import helpers
+from .utils import *
+from .helpers import *
 from .simulators import *
 
 __all__ = common.__all__ + awi.__all__ + factory_managers.__all__ + bank.__all__ + insurance.__all__ \
-          + agent.__all__ \
+          + agent.__all__ + simulators.__all__ + utils.__all__ + helpers.__all__ \
           + schedulers.__all__ + world.__all__ + consumers.__all__ + miners.__all__ + ['utils', 'helpers']
