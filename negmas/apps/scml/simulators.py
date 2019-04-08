@@ -76,14 +76,17 @@ class FactorySimulator(ABC):
 
     @property
     def n_steps(self) -> int:
+        """Number of steps to predict ahead."""
         return self._n_steps
 
     @property
     def initial_wallet(self) -> float:
+        """Initial cash in wallet"""
         return self._initial_wallet
 
     @property
     def initial_storage(self) -> np.array:
+        """Initial inventory"""
         return self._initial_storage
 
     @property
@@ -103,64 +106,241 @@ class FactorySimulator(ABC):
     @abstractmethod
     def wallet_to(self, t: int) -> np.array:
         """
-        Returns the cash in wallet up to and including time t
+        Returns the cash in wallet up to and including time t.
+
         Args:
-            t:
+
+            t: Time
 
         Returns:
 
         """
 
     def wallet_at(self, t: int) -> float:
-        return self.wallet_to(t)[-1]
-
-    @abstractmethod
-    def storage_to(self, t: int) -> np.array:
         """
-        Returns the storage at time t
+        Returns the cash in wallet *at* a given timestep (given all simulated actions)
 
         Args:
+
             t:
 
         Returns:
 
         """
+        return self.wallet_to(t)[-1]
+
+    @abstractmethod
+    def storage_to(self, t: int) -> np.array:
+        """
+        Returns the storage of all products *up to* time t
+
+        Args:
+
+            t: Time
+
+        Returns:
+
+            An array of size `n_products` * `t` giving the quantity of each product in storage at every step up to `t`.
+        """
 
     def storage_at(self, t: int) -> np.array:
+        """
+        Returns the storage of all products *at* time t
+
+        Args:
+
+            t: Time
+
+        Returns:
+
+            An array of size `n_products` giving the quantity of each product in storage at time-step `t`.
+
+        See Also:
+
+            `storage_to` `wallet_at`
+
+        """
         return self.storage_to(t)[:, -1]
 
     @abstractmethod
     def line_schedules_to(self, t: int) -> np.array:
         """
-        Returns the schedule of each line
+        Returns the schedule of each line up to a given timestep
 
         Args:
+
             t: time
 
         Returns:
+
+            An array of `n_lines` * `t` values giving the schedule up to `t`.
+
+        Remarks:
+
             - A `NO_PRODUCTION` value means no production, otherwise the index of the process being run
         """
 
     def line_schedules_at(self, t: int) -> np.array:
+        """
+        Returns the schedule of each line at a given timestep
+
+        Args:
+
+            t: time
+
+        Returns:
+
+            An array of `n_lines` values giving the schedule up at `t`.
+
+        Remarks:
+
+            - A `NO_PRODUCTION` value means no production, otherwise the index of the process being run
+        """
         return self.line_schedules_to(t)[:, -1]
 
     def total_storage_to(self, t: int) -> np.array:
+        """
+        The total storage *up to* a given time
+
+        Args:
+
+            t: time
+
+        Returns:
+
+            an array of size `t` giving the total quantity of stored products in the inventory up to timestep `t`
+
+        See Also:
+
+            `total_storage_at` `storage_to`
+
+        """
         return self.storage_to(t).sum(axis=0)
 
     def total_storage_at(self, t: int) -> int:
+        """
+        The total storage *at* a given time
+
+        Args:
+
+            t: time
+
+        Returns:
+
+            an integer giving the total quantity of stored products in the inventory at timestep `t`
+
+        See Also:
+
+            `total_storage_to` `storage_at`
+
+        """
         return self.total_storage_to(t)[-1]
 
     def reserved_storage_to(self, t: int) -> np.array:
+        """
+        Returns the *reserved* storage of all products *up to* time t
+
+        Args:
+
+            t: Time
+
+        Returns:
+
+            An array of size `n_products` * `t` giving the quantity of each product reserved at every step up to `t`.
+
+        Remarks:
+
+            - Reserved storage *is counted* in calls to `storage_at` , `total_storage_at` , `storage_to`
+              , `total_storage_to`
+            - Reserving quantities of products is a tool that can be used to avoid double counting availability of given
+              products in the inventory for multiple contracts.
+
+        See Also:
+
+            `total_storage_at` `storage_at` `reserved_storage_at`
+
+        """
         return self._reserved_storage[:, :t + 1]
 
     def reserved_storage_at(self, t: int) -> np.array:
+        """
+        Returns the *reserved* storage of all products *at* time t
+
+        Args:
+
+            t: Time
+
+        Returns:
+
+            An array of size `n_products` giving the quantity of each product reserved at time-step `t`.
+
+        Remarks:
+
+            - Reserved storage *is counted* in calls to `storage_at` , `total_storage_at` , `storage_to`
+              , `total_storage_to`
+            - Reserving quantities of products is a tool that can be used to avoid double counting availability of given
+              products in the inventory for multiple contracts.
+
+        See Also:
+
+            `total_storage_to` `storage_to` `reserved_storage_at`
+
+        """
         return self._reserved_storage[:, t]
 
-    def available_storage_at(self, t: int) -> np.array:
-        return self.storage_at(t) - self.reserved_storage_at(t)
-
     def available_storage_to(self, t: int) -> np.array:
+        """
+        Returns the *available* storage of all products *up to* time t.
+
+        Args:
+
+            t: Time
+
+        Returns:
+
+            An array of size `n_products` * `t` giving the quantity of each product available at every step up to `t`.
+
+        Remarks:
+
+            - Available storage is defined as the difference between storage and reserved storage.
+            - Reserved storage *is counted* in calls to `storage_at` , `total_storage_at` , `storage_to`
+              , `total_storage_to`
+            - Reserving quantities of products is a tool that can be used to avoid double counting availability of given
+              products in the inventory for multiple contracts.
+
+        See Also:
+
+            `total_storage_to` `storage_to` `reserved_storage_to`
+
+        """
         return self.storage_to(t) - self.reserved_storage_to(t)
+
+    def available_storage_at(self, t: int) -> np.array:
+        """
+        Returns the *available* storage of all products *at* time t
+
+        Args:
+
+            t: Time
+
+        Returns:
+
+            An array of size `n_products` giving the quantity of each product available at time-step `t`.
+
+        Remarks:
+
+            - Available storage is defined as the difference between storage and reserved storage.
+            - Reserved storage *is counted* in calls to `storage_at` , `total_storage_at` , `storage_to`
+              , `total_storage_to`
+            - Reserving quantities of products is a tool that can be used to avoid double counting availability of given
+              products in the inventory for multiple contracts.
+
+        See Also:
+
+            `total_storage_to` `storage_to` `reserved_storage_at`
+
+        """
+        return self.storage_at(t) - self.reserved_storage_at(t)
 
     @abstractmethod
     def loans_to(self, t: int) -> np.array:
@@ -171,38 +351,52 @@ class FactorySimulator(ABC):
             t: time
 
         Returns:
-
+            An array of `t` real numbers giving the loans registered at time-steps up to `t`
         """
 
     def loans_at(self, t: int) -> float:
         """
         Returns loans at time t
+
         Args:
             t: time
-
-        Returns:
 
         """
         return self.loans_to(t)[-1]
 
     def balance_at(self, t: int) -> float:
         """
-        Returns the balance fo the factory at time t
+        Returns the balance fo the factory at time t.
+
         Args:
             t: time
 
-        Returns:
+        Remarks:
+
+            - The balance is defined as the cash in wallet minus loans
+
+        See Also:
+
+            `loans_at` `wallet_at`
 
         """
         return self.wallet_at(t) - self.loans_at(t)
 
     def balance_to(self, t: int) -> np.array:
         """
-        Returns the balance fo the factory at times <= t
+        Returns the balance fo the factory *up to* time t.
+
         Args:
+
             t: time
 
-        Returns:
+        Remarks:
+
+            - The balance is defined as the cash in wallet minus loans
+
+        See Also:
+
+            `loans_to` `wallet_to`
 
         """
         return self.wallet_to(t) - self.loans_to(t)
@@ -210,7 +404,12 @@ class FactorySimulator(ABC):
     @property
     @abstractmethod
     def fixed_before(self):
-        """Gives the time before which the schedule is fixed"""
+        """Gives the time before which the schedule is fixed.
+
+        See Also:
+            `fix_before`
+
+        """
 
     # -------------------------
     # OPERATIONS (UPDATE STATE)
@@ -218,28 +417,52 @@ class FactorySimulator(ABC):
 
     @abstractmethod
     def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
-        """Sets the current state at the given time-step. It implicitly causes a fix_before(t + 1)"""
+        """
+        Sets the current state at the given time-step. It implicitly causes a fix_before(t + 1)
+
+        Args:
+
+            t: Time step to set the state at
+            storage: quantity of every product (array of integers of size `n_products`)
+            wallet: Cash in wallet
+            loans: Loans
+            line_schedules: Line schedules (array of process numbers/NO_PRODUCTION of size `n_lines`)
+
+        """
 
     @abstractmethod
     def add_loan(self, total: float, t: int) -> bool:
         """
         Adds a loan at the given time
+
         Args:
-            total:
-            t: time
+
+            total: Total amount of the loan
+            t: time step to take the loan
 
         Returns:
+
+            Success or failure
+
+        Remarks:
+
+            - Taking a loan is simulated as reception of money. Payment back of the loan is not simulated in this call.
+              To simulate paying back the loan, use `pay` at the times of installment payments.
 
         """
 
     def receive(self, payment: float, t: int) -> bool:
         """
         Simulates receiving payment at time t
+
         Args:
-            payment:
+
+            payment: Amount received
             t: time
 
         Returns:
+
+            Success or failure
 
         """
         return self.pay(-payment, t)
@@ -250,12 +473,13 @@ class FactorySimulator(ABC):
         Simulate payment at time t
 
         Args:
-            payment:
+
+            payment: Amount payed
             t: time
             ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
 
         Returns:
-
+            Success or failure
         """
 
     @abstractmethod
@@ -265,13 +489,16 @@ class FactorySimulator(ABC):
         Simulates transporting products to/from storage at time t
 
         Args:
-            product:
-            quantity:
+
+            product: product ID (index)
+            quantity: quantity to transport
             t: time
             ignore_inventory_shortage: Ignore shortage in the `product` which may lead to negative storage[product]
             ignore_space_shortage:  Ignore the limit on total storage which may lead to total_storage > max_storage
 
         Returns:
+
+            Success or failure
 
         """
 
@@ -282,16 +509,25 @@ class FactorySimulator(ABC):
         Buy a given quantity of a product for a given price at some time t
 
         Args:
-            product:
-            quantity:
-            price:
+
+            product: Product to buy (ID/index)
+            quantity: quantity to buy
+            price: unit price
             t: time
             ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
             ignore_space_shortage:  Ignore the limit on total storage which may lead to total_storage > max_storage
 
         Returns:
 
+            Success or failure
+
+        Remarks:
+
             - buy cannot ever have inventory shortage
+
+        See Also:
+
+            `sell`
 
         """
 
@@ -302,14 +538,26 @@ class FactorySimulator(ABC):
         sell a given quantity of a product for a given price at some time t
 
         Args:
-            product:
-            quantity:
-            price:
+
+            product: Index/ID of the product to be sold
+            quantity: quantity to be sold
+            price: unit price
             t: time
             ignore_money_shortage: If True, shortage in money will be ignored and the wallet can go negative
             ignore_inventory_shortage: Ignore shortage in the `product` which may lead to negative storage[product]
 
         Returns:
+
+            Success or failure
+
+
+        Remarks:
+
+            - sell cannot ever have space shortage
+
+        See Also:
+
+            `buy`
 
         """
 
@@ -318,26 +566,41 @@ class FactorySimulator(ABC):
                  , override=True) -> bool:
         """
         Simulates scheduling the given job at its `time` and `line` optionally overriding whatever was already scheduled
+
         Args:
-            job:
+
+            job: Production job
             ignore_inventory_shortage: If true shortages in inputs will be ignored
             ignore_money_shortage: If true, shortage in money will be ignored
             ignore_space_shortage: If true, shortage in space will be ignored
-            override:
+            override: Whether the job should override any already registered job at its time-step
 
         Returns:
+
             Success/failure
         """
 
     def reserve(self, product: int, quantity: int, t: int) -> bool:
         """
-        Simulates reserving the given quantity of the given product at times >= t
+        Simulates reserving the given quantity of the given product at times >= t.
+
         Args:
-            product:
-            quantity:
+
+            product: Index/ID of the product being reserved
+            quantity: quantity being reserved
             t: time
 
         Returns:
+
+            Success/failure
+
+        Remarks:
+
+            - Reserved products show in calls to  `storage_at` , `total_storage_at` etc.
+            - Reserving a product does nothing more than mark some quantity as reserved for calls to
+              `reserved_storage_at` and `available_storage_at`.
+            - This feature can be used to simulate inventory hiding commands in the real factory and to avoid
+              double counting of inventory when calculating needs for future contracts.
 
         """
         self._reserved_storage[product, t] += quantity
@@ -353,9 +616,23 @@ class FactorySimulator(ABC):
         Fix the history before this point
 
         Args:
+
             t: time
 
         Returns:
+
+            Success/failure
+
+        Remarks:
+
+            - After this function is called at any time-step `t`, there is no way to change any component of the factory
+              state at any timestep before `t`.
+            - This function is useful for *fixing* any difference between the simulator and the real state (in
+              conjunction with `set_state`).
+
+        See Also:
+
+            `set_state` `fixed_before`
 
         """
 
@@ -364,7 +641,17 @@ class FactorySimulator(ABC):
         """Sets a bookmark to the current location
 
         Returns:
+
             bookmark ID
+
+        Remarks:
+
+            - Bookmarks can be used to implement transactions.
+
+
+        See Also:
+
+            `delete_bookmark` `rollback` `transaction` `temporary_transaction`
         """
 
     @abstractmethod
@@ -379,6 +666,9 @@ class FactorySimulator(ABC):
             - You can only rollback in the reverse order of bookmarks. If the bookmark ID given here is not the one
               at the top of the bookmarks stack, the rollback will fail (return False)
 
+        See Also:
+
+            `delete_bookmark` `rollback` `transaction` `temporary_transaction`
         """
 
     @abstractmethod
@@ -386,13 +676,21 @@ class FactorySimulator(ABC):
         """Commits everything since the bookmark so it cannot be rolled back
 
         Args:
+
             bookmark_id The bookmark ID returned from bookmark
+
+        Returns:
+
+            Success/failure
 
         Remarks:
 
-            - You can only rollback in the reverse order of bookmarks. If the bookmark ID given here is not the one
-              at the top of the bookmarks stack, the deletion will fail (return False)
+            - You can delete bookmarks in the reverse order of their creation only. If the bookmark ID given here is
+              not the one at the top of the bookmarks stack, the deletion will fail (return False).
 
+        See Also:
+
+            `delete_bookmark` `rollback` `transaction` `temporary_transaction`
         """
 
 
@@ -705,6 +1003,10 @@ class _FullBookmark:
 
 
 class FastFactorySimulator(FactorySimulator):
+    """
+    A faster implementation of the `FactorySimulator` interface (compared with `SlowFactorySimulator`.
+
+    """
 
     def _as_array(self, storage: Dict[int, int]) -> np.array:
         a = np.zeros(self._n_products)
