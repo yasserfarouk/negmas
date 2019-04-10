@@ -1867,10 +1867,13 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         renegotiation agenda when contract execution fails
 
         Args:
-            contract:
-            breaches:
+
+            contract: The contract being breached
+            breaches: All breaches on `contract`
 
         Returns:
+
+            Renegotiation agenda (issues to negotiate about to avoid reporting the breaches).
 
         """
 
@@ -1881,6 +1884,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         Called to respond to a renegotiation request
 
         Args:
+
             agenda:
             contract:
             breaches:
@@ -1898,8 +1902,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
 def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
     """
-    Saves the statistics of a world run
+    Saves the statistics of a world run.
+
     Args:
+
         world:
         log_dir:
         params:

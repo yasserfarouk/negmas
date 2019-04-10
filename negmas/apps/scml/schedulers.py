@@ -95,6 +95,7 @@ class Scheduler(ABC):
         """Rolls back to the given bookmark ID
 
         Args:
+
             bookmark_id The bookmark ID returned from bookmark
 
         Remarks:
@@ -109,6 +110,7 @@ class Scheduler(ABC):
         """Commits everything since the bookmark so it cannot be rolled back
 
         Args:
+
             bookmark_id The bookmark ID returned from bookmark
 
         Remarks:
@@ -139,6 +141,7 @@ class Scheduler(ABC):
         Schedules a set of contracts and returns either the search_for_schedule or None if infeasible
 
         Args:
+
             whatever it has scheduled before. If the state is given, it is taken as the initial state for scheduling
             contracts: The contracts to be scheduled
             assume_no_further_negotiations: whether to assume that more negotiations can take place (to secure
@@ -148,6 +151,7 @@ class Scheduler(ABC):
             start_at: The time at which to start scheduling. No jobs will be scheduled before this time.
 
         Returns:
+
             `ScheduleInfo` describing the schedulo and any production needs and updates to be carried out.
 
         """
@@ -182,6 +186,7 @@ class Scheduler(ABC):
         Schedules a set of contracts and returns either the search_for_schedule or None if infeasible
 
         Args:
+
             start:
             end:
             contracts:
@@ -191,6 +196,7 @@ class Scheduler(ABC):
 
         Returns:
 
+            Schedule information (See `ScheduleInfo` for its contents).
         """
 
 
@@ -211,8 +217,14 @@ class GreedyScheduler(Scheduler):
         """
 
         Args:
+
+            manager_id: ID of the factory manager using this scheduler.
+            awi: Agent-world interface (used to access insurance calculations and `n_steps`).
+            max_insurance_premium: Maximum insurance premium over which the factory maanger will not buy insuracne
+            horizon: Scheduling horizon (by default it is the number of simulation step in the AWI)
             add_catalog_prices: Whether to add total catalog price costs to costs of production
             strategy: How to schedule production. Possible values are earliest, latest, shortest, longest
+            profile_sorter: The method used to sort profiles that can produce the same product
 
         Remarks:
 
@@ -313,13 +325,16 @@ class GreedyScheduler(Scheduler):
         Schedules this contract if possible and returns information about the resulting schedule
 
         Args:
-            contract:
+
+            contract: The contract being scheduled
             assume_no_further_negotiations: If true no further negotiations will be assumed possible
-            end:
+            end: The scheduling horizon (None for the default).
             ensure_storage_for: The number of steps all needs must be in storage before they are consumed in production
             start_at: No jobs will be scheduled before that time.
 
         Returns:
+
+            Full schedule information including validity, line schedulers, production needs, etc (see `SchedulerInfo`).
 
         """
         ignore_failures = not assume_no_further_negotiations
@@ -474,6 +489,7 @@ class GreedyScheduler(Scheduler):
         Schedules a set of contracts and returns the `ScheduleInfo`.
 
         Args:
+
             contracts: Contracts to schedule
             assume_no_further_negotiations: If true, no further negotiations will be assumed to be possible
             end: The end of the simulation for the schedule (exclusive)

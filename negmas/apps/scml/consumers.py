@@ -239,10 +239,13 @@ class ScheduleDrivenConsumer(Consumer):
         renegotiation agenda when contract execution fails
 
         Args:
-            contract:
-            breaches:
+
+            contract: The contract that was breached about which re-negotiation is offered
+            breaches: The list of breaches by all parties for the breached contract.
 
         Returns:
+
+            None if renegotiation is not to be started, otherwise a re-negotiation agenda.
 
         """
         return None
@@ -253,11 +256,14 @@ class ScheduleDrivenConsumer(Consumer):
         Called to respond to a renegotiation request
 
         Args:
-            agenda:
-            contract:
-            breaches:
+
+            agenda: Renegotiatio agenda (issues to renegotiate about).
+            contract: The contract that was breached
+            breaches: All breaches on that contract
 
         Returns:
+
+            None to refuse to enter the negotiation, otherwise, a negotiator to use for this negotiation.
 
         """
         return None
