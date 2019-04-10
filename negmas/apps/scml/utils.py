@@ -53,6 +53,7 @@ def anac2019_world(
     Creates a world compatible with the ANAC 2019 competition. Note that
 
     Args:
+
         n_agents_per_competitor: Number of instantiations of each competing type.
         name: World name to use
         agent_names_reveal_type: If true, a snake_case version of the agent_type will prefix agent names
@@ -150,6 +151,7 @@ def balance_calculator(world: SCMLWorld) -> WorldRunResults:
     in their inventory.
 
     Args:
+
         world: The world which is assumed to be run up to the point at which the scores are to be calculated.
 
     Returns:
@@ -223,9 +225,11 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
         kwargs: Arguments to pass to the `world_generator` function
 
     Returns:
+
         `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
 
     Remarks:
+
         Default parameters will be used in the league with the exception of `parallelism` which may use distributed
         processing
 

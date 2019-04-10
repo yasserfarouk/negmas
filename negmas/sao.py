@@ -1,3 +1,6 @@
+"""
+Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.
+"""
 import random
 import time
 from abc import abstractmethod

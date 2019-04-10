@@ -80,6 +80,7 @@ class Issue(NamedObject):
             name: Name of the issue. If not given, a random name will be generated
 
     Examples:
+
         >>> print(Issue(['to be', 'not to be'], name='THE problem'))
         THE problem: ['to be', 'not to be']
         >>> print(Issue(3, name='Cars'))
@@ -93,6 +94,7 @@ class Issue(NamedObject):
         False
 
     Remarks:
+
         - Issues can be initialized by either an iterable of strings, an integer or a tuple of two real values with
           the following meanings:
           - ``iterable of strings``: This is an issue that can any value within the given set of values (strings)
@@ -203,52 +205,52 @@ class Issue(NamedObject):
     def to_genius(cls, issues: Iterable['Issue'], file_name: str, enumerate_integer: bool = True) -> None:
         """Exports a the domain issues to a GENIUS XML file.
 
-                Args:
+        Args:
 
-                    issues: The issues to be exported
-                    file_name (str): File name to export to
+            issues: The issues to be exported
+            file_name (str): File name to export to
 
-                Returns:
+        Returns:
 
-                    A List[Issue] or Dict[Issue]
+            A List[Issue] or Dict[Issue]
 
 
-                Examples:
+        Examples:
 
-                    >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-                    >>> Issue.to_genius(issues=issues, file_name = pkg_resources.resource_filename('negmas'
-                    ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-                    >>> issues2, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
-                    ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-                    >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
-                    Dell Macintosh HP
-                    60 Gb 80 Gb 120 Gb
-                    19'' LCD 20'' LCD 23'' LCD
-                    >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues2]))
-                    Dell Macintosh HP
-                    60 Gb 80 Gb 120 Gb
-                    19'' LCD 20'' LCD 23'' LCD
+            >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+            >>> Issue.to_genius(issues=issues, file_name = pkg_resources.resource_filename('negmas'
+            ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
+            >>> issues2, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+            ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
+            >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
+            Dell Macintosh HP
+            60 Gb 80 Gb 120 Gb
+            19'' LCD 20'' LCD 23'' LCD
+            >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues2]))
+            Dell Macintosh HP
+            60 Gb 80 Gb 120 Gb
+            19'' LCD 20'' LCD 23'' LCD
 
-                    - Forcing Single outcome
+            - Forcing Single outcome
 
-                    >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
-                    ...     , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
-                    >>> print(list(issues[0].all))
-                    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
-                    >>> Issue.to_genius(issues=issues, enumerate_integer=True
-                    ...     , file_name = pkg_resources.resource_filename('negmas'
-                    ...                                   , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-                    >>> issues3, _ = Issue.from_genius(file_name=pkg_resources.resource_filename('negmas'
-                    ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-                    >>> print([list(issue.all) for issue in issues3])
-                    [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26']]
+            >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
+            ...     , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
+            >>> print(list(issues[0].all))
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+            >>> Issue.to_genius(issues=issues, enumerate_integer=True
+            ...     , file_name = pkg_resources.resource_filename('negmas'
+            ...                                   , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
+            >>> issues3, _ = Issue.from_genius(file_name=pkg_resources.resource_filename('negmas'
+            ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
+            >>> print([list(issue.all) for issue in issues3])
+            [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26']]
 
-                Remarks:
-                    See ``from_xml_str`` for all the parameters
+        Remarks:
+            See ``from_xml_str`` for all the parameters
 
-                """
+        """
         with open(file_name, 'w') as f:
             f.write(cls.to_xml_str(issues=list(issues), enumerate_integer=enumerate_integer))
 
@@ -259,106 +261,106 @@ class Issue(NamedObject):
                      , max_n_outcomes: int = 1e6):
         """Exports a list/dict of issues from a GENIUS XML file.
 
-                Args:
+        Args:
 
-                    xml_str (str): The string containing GENIUS style XML domain issue definitions
-                    force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
-                    product of all issues in the input
-                    keep_value_names (bool): Keep names of values
-                    keep_issue_names (bool): Keep names of issues
-                    safe_parsing (bool): Turn on extra checks
-                    n_discretization (Optional[int]): If not None, real valued issues are discretized with the given
-                    number of values
-                    max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
+            xml_str (str): The string containing GENIUS style XML domain issue definitions
+            force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
+            product of all issues in the input
+            keep_value_names (bool): Keep names of values
+            keep_issue_names (bool): Keep names of issues
+            safe_parsing (bool): Turn on extra checks
+            n_discretization (Optional[int]): If not None, real valued issues are discretized with the given
+            number of values
+            max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
 
-                Returns:
+        Returns:
 
-                    - List[Issue] The issues (note that issue names will be stored in the name attribute of each issue if keep_issue_names)
-                    - List[dict] A list of agent information dicts each contains 'agent', 'class', 'utility_file_name'
+            - List[Issue] The issues (note that issue names will be stored in the name attribute of each issue if keep_issue_names)
+            - List[dict] A list of agent information dicts each contains 'agent', 'class', 'utility_file_name'
 
-                Examples:
+        Examples:
 
-                    >>> domain_file_name = pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
-                    >>> issue = issues[0]
-                    >>> print(issue.cardinality())
-                    27
-                    >>> print(list(issue.all))
-                    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+            >>> domain_file_name = pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
+            >>> issue = issues[0]
+            >>> print(issue.cardinality())
+            27
+            >>> print(list(issue.all))
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=True, keep_value_names=False, keep_issue_names=True)
-                    >>> print(issues[0].name)
-                    Laptop-Harddisk-External Monitor
-                    >>> print(len(issues))
-                    1
-                    >>> print(list(issues[0].all))
-                    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=True, keep_value_names=False, keep_issue_names=True)
+            >>> print(issues[0].name)
+            Laptop-Harddisk-External Monitor
+            >>> print(len(issues))
+            1
+            >>> print(list(issues[0].all))
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=True, keep_value_names=True, keep_issue_names=False)
-                    >>> issue = issues[0]
-                    >>> print(issue.cardinality())
-                    27
-                    >>> print('\\n'.join(list(issue.all)[:5]))
-                    Dell+60 Gb+19'' LCD
-                    Dell+60 Gb+20'' LCD
-                    Dell+60 Gb+23'' LCD
-                    Dell+80 Gb+19'' LCD
-                    Dell+80 Gb+20'' LCD
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=True, keep_value_names=True, keep_issue_names=False)
+            >>> issue = issues[0]
+            >>> print(issue.cardinality())
+            27
+            >>> print('\\n'.join(list(issue.all)[:5]))
+            Dell+60 Gb+19'' LCD
+            Dell+60 Gb+20'' LCD
+            Dell+60 Gb+23'' LCD
+            Dell+80 Gb+19'' LCD
+            Dell+80 Gb+20'' LCD
 
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=False, keep_issue_names=False, keep_value_names=True)
-                    >>> type(issues)
-                    <class 'list'>
-                    >>> str(issues[0])
-                    "0: ['Dell', 'Macintosh', 'HP']"
-                    >>> print([_.cardinality() for _ in issues])
-                    [3, 3, 3]
-                    >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
-                    Dell Macintosh HP
-                    60 Gb 80 Gb 120 Gb
-                    19'' LCD 20'' LCD 23'' LCD
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=False, keep_issue_names=False, keep_value_names=True)
+            >>> type(issues)
+            <class 'list'>
+            >>> str(issues[0])
+            "0: ['Dell', 'Macintosh', 'HP']"
+            >>> print([_.cardinality() for _ in issues])
+            [3, 3, 3]
+            >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
+            Dell Macintosh HP
+            60 Gb 80 Gb 120 Gb
+            19'' LCD 20'' LCD 23'' LCD
 
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=False, keep_issue_names=True, keep_value_names=True)
-                    >>> len(issues)
-                    3
-                    >>> str(issues[0])
-                    "Laptop: ['Dell', 'Macintosh', 'HP']"
-                    >>> print([_.cardinality() for _ in issues])
-                    [3, 3, 3]
-                    >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
-                    Dell Macintosh HP
-                    60 Gb 80 Gb 120 Gb
-                    19'' LCD 20'' LCD 23'' LCD
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=False, keep_issue_names=True, keep_value_names=True)
+            >>> len(issues)
+            3
+            >>> str(issues[0])
+            "Laptop: ['Dell', 'Macintosh', 'HP']"
+            >>> print([_.cardinality() for _ in issues])
+            [3, 3, 3]
+            >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
+            Dell Macintosh HP
+            60 Gb 80 Gb 120 Gb
+            19'' LCD 20'' LCD 23'' LCD
 
 
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
-                    >>> len(issues)
-                    3
-                    >>> type(issues)
-                    <class 'list'>
-                    >>> str(issues[0]).split(': ')[-1]
-                    '3'
-                    >>> print([_.cardinality() for _ in issues])
-                    [3, 3, 3]
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
+            >>> len(issues)
+            3
+            >>> type(issues)
+            <class 'list'>
+            >>> str(issues[0]).split(': ')[-1]
+            '3'
+            >>> print([_.cardinality() for _ in issues])
+            [3, 3, 3]
 
-                    >>> domain_file_name = pkg_resources.resource_filename('negmas'
-                    ...                              , resource_name='tests/data/fuzzyagent/single_issue_domain.xml')
-                    >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
-                    ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
-                    >>> len(issues)
-                    1
-                    >>> type(issues)
-                    <class 'list'>
-                    >>> str(issues[0]).split(': ')[-1]
-                    '(10.0, 40.0)'
-                    >>> print([_.cardinality() for _ in issues])
-                    [-1]
+            >>> domain_file_name = pkg_resources.resource_filename('negmas'
+            ...                              , resource_name='tests/data/fuzzyagent/single_issue_domain.xml')
+            >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
+            ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
+            >>> len(issues)
+            1
+            >>> type(issues)
+            <class 'list'>
+            >>> str(issues[0]).split(': ')[-1]
+            '(10.0, 40.0)'
+            >>> print([_.cardinality() for _ in issues])
+            [-1]
         """
         root = ET.fromstring(xml_str)
         if safe_parsing and root.tag != 'negotiation_template':
@@ -466,26 +468,26 @@ class Issue(NamedObject):
                     , max_n_outcomes: int = 1e6):
         """Imports a the domain issues from a GENIUS XML file.
 
-                Args:
+        Args:
 
-                    file_name (str): File name to import from
+            file_name (str): File name to import from
 
-                Returns:
+        Returns:
 
-                    A List[Issue] or Dict[Issue]
+            A List[Issue] or Dict[Issue]
 
 
-                Examples:
+        Examples:
 
-                    >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-                    >>> print([_.name for _ in issues])
-                    ['Laptop', 'Harddisk', 'External Monitor']
+            >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+            >>> print([_.name for _ in issues])
+            ['Laptop', 'Harddisk', 'External Monitor']
 
-                Remarks:
-                    See ``from_xml_str`` for all the parameters
+        Remarks:
+            See ``from_xml_str`` for all the parameters
 
-                """
+        """
         with open(file_name, 'r', encoding='utf-8') as f:
             xml_str = f.read()
             return cls.from_xml_str(xml_str=xml_str, force_single_issue=force_single_issue
@@ -713,6 +715,7 @@ class Issue(NamedObject):
         Samples some outcomes from the issue space defined by the list of issues
 
         Args:
+
             issues: List of issues to sample from
             n_outcomes: The number of outcomes required
             astype: The type of the outcomes. It can be `tuple`, `dict` or any `OutcomeType`
@@ -720,6 +723,7 @@ class Issue(NamedObject):
             fail_if_not_enough: IF given then an exception is raised if not enough outcomes are available
 
         Returns:
+
             a list of outcomes
 
         Examples:
@@ -863,11 +867,13 @@ class Issues(object):
     """Encodes a set of Issues.
 
     Args:
-            name-value pairs
+
+        name-value pairs
 
 
 
     Remarks:
+
         - Issues can be initialized by either an iterable of strings, an integer or a tuple of two real values with
           the following meanings:
           - ``iterable of strings``: This is an issue that can any value within the given set of values (strings)
@@ -1348,90 +1354,89 @@ def outcome_in_range(
     strict=False,
     fail_incomplete=False,
 ) -> bool:
-    """Tests that the outcome is contained within the given range of outcomes.
+    """
+    Tests that the outcome is contained within the given range of outcomes.
 
-        An outcome range defines a value or a range of values for each issue.
+    An outcome range defines a value or a range of values for each issue.
 
-        Args:
-            outcome: Outcome being tested
-            outcome_range: Outcome range being tested against
-            strict: Whether to enforce that all issues in the outcome must be mentioned in the outcome_range
-            fail_incomplete: If True then outcomes that do not sepcify a value for all keys in the outcome_range
-            will be considered not falling within it. If False then these outcomes will be considered falling
-            within the range given that the values for the issues mentioned in the outcome satisfy the range
-            constraints.
+    Args:
 
-        Examples:
+        outcome: Outcome being tested
+        outcome_range: Outcome range being tested against
+        strict: Whether to enforce that all issues in the outcome must be mentioned in the outcome_range
+        fail_incomplete: If True then outcomes that do not sepcify a value for all keys in the outcome_range
+        will be considered not falling within it. If False then these outcomes will be considered falling
+        within the range given that the values for the issues mentioned in the outcome satisfy the range
+        constraints.
 
-            >>> outcome_range = {'price': (0.0, 2.0), 'distance': [0.3, 0.4], 'type': ['a', 'b'], 'area': 3}
-            >>> outcome_range_2 = {'price': [(0.0, 1.0), (1.5, 2.0)], 'area': [(3, 4), (7, 9)]}
-            >>> outcome_in_range({'price':3.0}, outcome_range)
-            False
-            >>> outcome_in_range({'date': '2018.10.4'}, outcome_range)
-            True
-            >>> outcome_in_range({'date': '2018.10.4'}, outcome_range, strict=True)
-            False
-            >>> outcome_in_range({'area': 3}, outcome_range, fail_incomplete=True)
-            False
-            >>> outcome_in_range({'area': 3}, outcome_range)
-            True
-            >>> outcome_in_range({'type': 'c'}, outcome_range)
-            False
-            >>> outcome_in_range({'type': 'a'}, outcome_range)
-            True
-            >>> outcome_in_range({'date': '2018.10.4'}, outcome_range_2)
-            True
-            >>> outcome_in_range({'area': 3.1}, outcome_range_2)
-            True
-            >>> outcome_in_range({'area': 3}, outcome_range_2)
-            False
-            >>> outcome_in_range({'area': 5}, outcome_range_2)
-            False
-            >>> outcome_in_range({'price': 0.4}, outcome_range_2)
-            True
-            >>> outcome_in_range({'price': 0.4}, outcome_range_2, fail_incomplete=True)
-            False
-            >>> outcome_in_range({'price': 1.2}, outcome_range_2)
-            False
-            >>> outcome_in_range({'price': 0.4, 'area': 3.9}, outcome_range_2)
-            True
-            >>> outcome_in_range({'price': 0.4, 'area': 10}, outcome_range_2)
-            False
-            >>> outcome_in_range({'price': 1.2, 'area': 10}, outcome_range_2)
-            False
-            >>> outcome_in_range({'price': 1.2, 'area': 4}, outcome_range_2)
-            False
-            >>> outcome_in_range({'type': 'a'}, outcome_range_2)
-            True
-            >>> outcome_in_range({'type': 'a'}, outcome_range_2, strict=True)
-            False
-            >>> outcome_range = {'price': 10}
-            >>> outcome_in_range({'price': 10}, outcome_range)
-            True
-            >>> outcome_in_range({'price': 11}, outcome_range)
-            False
+    Examples:
 
-         Args:
-            outcome: The outcome to check
-            outcome_range: The outcome range
+        >>> outcome_range = {'price': (0.0, 2.0), 'distance': [0.3, 0.4], 'type': ['a', 'b'], 'area': 3}
+        >>> outcome_range_2 = {'price': [(0.0, 1.0), (1.5, 2.0)], 'area': [(3, 4), (7, 9)]}
+        >>> outcome_in_range({'price':3.0}, outcome_range)
+        False
+        >>> outcome_in_range({'date': '2018.10.4'}, outcome_range)
+        True
+        >>> outcome_in_range({'date': '2018.10.4'}, outcome_range, strict=True)
+        False
+        >>> outcome_in_range({'area': 3}, outcome_range, fail_incomplete=True)
+        False
+        >>> outcome_in_range({'area': 3}, outcome_range)
+        True
+        >>> outcome_in_range({'type': 'c'}, outcome_range)
+        False
+        >>> outcome_in_range({'type': 'a'}, outcome_range)
+        True
+        >>> outcome_in_range({'date': '2018.10.4'}, outcome_range_2)
+        True
+        >>> outcome_in_range({'area': 3.1}, outcome_range_2)
+        True
+        >>> outcome_in_range({'area': 3}, outcome_range_2)
+        False
+        >>> outcome_in_range({'area': 5}, outcome_range_2)
+        False
+        >>> outcome_in_range({'price': 0.4}, outcome_range_2)
+        True
+        >>> outcome_in_range({'price': 0.4}, outcome_range_2, fail_incomplete=True)
+        False
+        >>> outcome_in_range({'price': 1.2}, outcome_range_2)
+        False
+        >>> outcome_in_range({'price': 0.4, 'area': 3.9}, outcome_range_2)
+        True
+        >>> outcome_in_range({'price': 0.4, 'area': 10}, outcome_range_2)
+        False
+        >>> outcome_in_range({'price': 1.2, 'area': 10}, outcome_range_2)
+        False
+        >>> outcome_in_range({'price': 1.2, 'area': 4}, outcome_range_2)
+        False
+        >>> outcome_in_range({'type': 'a'}, outcome_range_2)
+        True
+        >>> outcome_in_range({'type': 'a'}, outcome_range_2, strict=True)
+        False
+        >>> outcome_range = {'price': 10}
+        >>> outcome_in_range({'price': 10}, outcome_range)
+        True
+        >>> outcome_in_range({'price': 11}, outcome_range)
+        False
 
-        Returns:
-            bool: Success or failure
+    Returns:
 
-        Remarks:
-            Outcome ranges specify regions in an outcome space. They can have any of the following conditions:
+        bool: Success or failure
 
-            - A key/issue not mentioned in the outcome range does not add any constraints meaning that **All**
-              values are acceptable except if strict == True. If strict == True then *NO* value will be accepted for issues
-              not in the outcome_range.
-            - A key/issue with the value None in the outcome range means **All** values on this issue are acceptable.
-              This is the same as having this key/issue removed from the outcome space
-            - A key/issue withe the value [] (empty list) accepts *NO* outcomes
-            - A key/issue with  a single value means that it is the only one acceptable
-            - A key/issue with a single 2-items tuple (min, max) means that any value within that range is acceptable.
-            - A key/issue with a list of values means an output is acceptable if it falls within the condition specified
-              by any of the values in the list (list == union). Each such value can be a single value, a 2-items
-              tuple or another list. Notice that lists of lists can always be combined into a single list of values
+    Remarks:
+        Outcome ranges specify regions in an outcome space. They can have any of the following conditions:
+
+        - A key/issue not mentioned in the outcome range does not add any constraints meaning that **All**
+          values are acceptable except if strict == True. If strict == True then *NO* value will be accepted for issues
+          not in the outcome_range.
+        - A key/issue with the value None in the outcome range means **All** values on this issue are acceptable.
+          This is the same as having this key/issue removed from the outcome space
+        - A key/issue withe the value [] (empty list) accepts *NO* outcomes
+        - A key/issue with  a single value means that it is the only one acceptable
+        - A key/issue with a single 2-items tuple (min, max) means that any value within that range is acceptable.
+        - A key/issue with a list of values means an output is acceptable if it falls within the condition specified
+          by any of the values in the list (list == union). Each such value can be a single value, a 2-items
+          tuple or another list. Notice that lists of lists can always be combined into a single list of values
 
     """
     if fail_incomplete and len(

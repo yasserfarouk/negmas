@@ -78,6 +78,7 @@ class PyEntryPoint:
         Creates a python object and returns it.
 
         Args:
+
             class_name: python full class name
             params: params to pass by value to the constructor of the object
 
@@ -246,6 +247,7 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
     or string values
 
     Args:
+
         value: Any object
         deep: Whether we should go deep in the encoding or do a shallow encoding
         add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
@@ -317,6 +319,7 @@ def java_link(obj, map=None):
     Creates a link in java to the object given without copying it.
 
     Args:
+
         obj: The object for which to create a java shadow
         map: construction parameters
         copyable: If true, we will assume that the java object is PyCopyable otherwise PyConstructable. Only checked if
@@ -348,6 +351,7 @@ def to_java(value, add_type_field=True, python_class_name: str = None):
     or string values
 
     Args:
+
         value: Any object
         add_type_field: If true, the `PYTHON_CLASS_IDENTIFIER`  will be added with the python class field on it
         python_class_name: It given it overrides the class name written when `add_type_field` is True otherwise, the
@@ -390,9 +394,11 @@ def python_identifier(k: str) -> str:
     Converts a key to snake case keeping dunder keys alone
 
     Args:
+
         k: string to be converted
 
     Returns:
+
         snake-case string
     """
     return k if k.startswith('__') else snake_case(k)
@@ -402,6 +408,7 @@ def from_java(d: Any, deep=True, remove_type_field=True, fallback_class_name: Op
     """Decodes a dict coming from java recovering all objects in the way
 
     Args:
+
         d: The value to be decoded. If it is not a dict, it is returned as it is.
         deep: If true, decode recursively
         remove_type_field: If true the field called `PYTHON_CLASS_IDENTIFIER` will be removed if found.
@@ -470,9 +477,12 @@ def py_class_name(python_class_name: str) -> str:
     Converts a class name that we got from Java to the corresponding class name in python
 
     Args:
-        python_class_name:
+
+        python_class_name: The class name we got from JNEgMAS
 
     Returns:
+
+        The class name in negmas.
 
     """
     lst = python_class_name.split('.')

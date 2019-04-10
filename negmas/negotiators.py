@@ -1,12 +1,5 @@
 """This module defines the interfaces to all negotiation agents (negotiators) in the platform.
 
-Few examples of negotiation agents are provided  in.sample.agent to make the
-interface more concrete. In general a user of the platform can implement a new
-agent by inheriting from one of the negotiators provided here and/or implement the
-functions specified (in languages with Duck typing like python inheretance is
-not needed).
-
-
 """
 import functools
 import math
