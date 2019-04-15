@@ -20,6 +20,7 @@ class SCMLAWI(AgentWorldInterface):
         """Registers a CFP"""
         self._world.n_new_cfps += 1
         cfp.money_resolution = self._world.money_resolution
+        cfp.publisher = self.agent.id # force the publisher to be the agent using this AWI.
         self.bb_record(section='cfps', key=cfp.id, value=cfp)
 
     def register_interest(self, products: List[int]) -> None:
