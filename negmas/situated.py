@@ -26,7 +26,6 @@ Simulation steps:
 
 """
 import copy
-import json
 import os
 import random
 import re
@@ -47,7 +46,7 @@ from dataclasses import dataclass, field
 from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
-from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name, snake_case
+from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name, snake_case, dump
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
@@ -838,7 +837,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             s (str): The string to log
 
         """
-        self.logger.info(f'{self._log_header()}: ' + s)
+        self.logger.info(f'{self._log_header()}: ' + s.strip())
 
     def logdebug(self, s) -> None:
         """logs debug-level information
@@ -847,7 +846,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             s (str): The string to log
 
         """
-        self.logger.debug(f'{self._log_header()}: ' + s)
+        self.logger.debug(f'{self._log_header()}: ' + s.strip())
 
     def logwarning(self, s) -> None:
         """logs warning-level information
@@ -856,7 +855,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             s (str): The string to log
 
         """
-        self.logger.warning(f'{self._log_header()}: ' + s)
+        self.logger.warning(f'{self._log_header()}: ' + s.strip())
 
     def logerror(self, s) -> None:
         """logs error-level information
@@ -865,7 +864,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             s (str): The string to log
 
         """
-        self.logger.error(f'{self._log_header()}: ' + s)
+        self.logger.error(f'{self._log_header()}: ' + s.strip())
 
     def set_bulletin_board(self, bulletin_board):
         self.bulletin_board = bulletin_board if bulletin_board is not None else BulletinBoard()
@@ -1413,6 +1412,19 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         self.unsigned_contracts[to_be_signed_at].add(contract)
         # self.saved_contracts.append(self._contract_record(contract))
 
+    def save_config(self, file_name: str):
+        """
+        Saves the config of the world as a yaml file
+
+        Args:
+            file_name: Name of file to save the config to
+
+        Returns:
+
+        """
+        with open(file_name, 'w') as file:
+            yaml.safe_dump(self.__dict__, file)
+
     @abstractmethod
     def _delete_executed_contracts(self) -> None:
         """Called after processing executable contracts at every simulation step to delete processed contracts"""
@@ -1568,8 +1580,6 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         Returns:
 
         """
-
-
 
 
 RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])
@@ -1916,12 +1926,8 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
     log_dir = Path(log_dir)
     os.makedirs(log_dir, exist_ok=True)
 
-    if params is not None:
-        with open(log_dir / 'params.json', 'w') as f:
-            json.dump(params, f, indent=4, sort_keys=True)
-
-    with open(log_dir / 'stats.json', 'w') as f:
-        json.dump(world.stats, f, indent=4, sort_keys=True)
+    dump(params, log_dir / 'params')
+    dump(world.stats, log_dir / 'stats')
 
     try:
         data = pd.DataFrame.from_dict(world.stats)

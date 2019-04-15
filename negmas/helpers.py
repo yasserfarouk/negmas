@@ -15,6 +15,8 @@ import sys
 from typing import List, Optional, Iterable, Union, Callable, Mapping, Any, Sequence, Tuple, Dict, Type
 from typing import TYPE_CHECKING
 
+from negmas import NEGMAS_CONFIG
+
 if TYPE_CHECKING:
     pass
 
@@ -53,7 +55,8 @@ __all__ = [
     'get_full_type_name',
     'instantiate',
     'humanize_time',
-    'gmap', 'ikeys', 'Floats'
+    'gmap', 'ikeys', 'Floats',
+    'DEFAULT_DUMP_EXTENSION', 'dump'
 ]
 # conveniently named classes
 
@@ -73,6 +76,8 @@ COMMON_LOG_FILE_NAME = './logs/{}_{}.txt'.format('log', datetime.datetime.now().
 MODULE_LOG_FILE_NAME: Dict[str, str] = dict()
 
 LOGS_BASE_DIR = './logs'
+
+DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get('default_dump_extension', 'yaml')
 
 
 class ReturnCause(Enum):
@@ -960,3 +965,36 @@ def humanize_time(secs, align=False, always_show_all_units=False):
             else:
                 parts.append("%2d%s%s" % (n, unit, ""))
     return ":".join(parts)
+
+
+def dump(d: Any, file_name: Union[str, os.PathLike]) -> None:
+    """
+    Saved an object depending on the extension of the file given. If the filename given has no extension,
+    `DEFAULT_DUMP_EXTENSION` will be used
+
+    Args:
+        d: Object to save
+        file_name: file name
+
+    Remarks:
+
+        - Supported formats are json, yaml
+        - If None is given, the file will be created but will be empty
+
+    """
+    file_name = pathlib.Path(file_name).expanduser().absolute()
+    if file_name.suffix == '':
+        file_name = pathlib.Path(str(file_name) + '.' + DEFAULT_DUMP_EXTENSION)
+
+    if d is None:
+        with open(file_name, 'w') as f:
+            pass
+
+    if file_name.suffix == '.json':
+        with open(file_name, 'w') as f:
+            json.dump(d, f, sort_keys=True, indent=2)
+    elif file_name.suffix == '.yaml':
+        with open(file_name, 'w') as f:
+            yaml.safe_dump(d, f)
+    else:
+        raise ValueError(f'Unkown extension {file_name.suffix} for {file_name}')

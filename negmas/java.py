@@ -31,7 +31,7 @@ __all__ = [
     'jnegmas_connection',
     'from_java',
     'java_link',
-    'to_dict_for_java',
+    'to_dict',
     'PYTHON_CLASS_IDENTIFIER',
 ]
 
@@ -242,7 +242,7 @@ def java_identifier(s: str):
     return s
 
 
-def to_dict_for_java(value, deep=True, add_type_field=True):
+def to_dict(value, deep=True, add_type_field=True, camel=True):
     """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
     or string values
 
@@ -252,6 +252,7 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
         deep: Whether we should go deep in the encoding or do a shallow encoding
         add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
         giving the type of `value`
+        camel: Convert to camel_case if True
 
     Remarks:
 
@@ -263,32 +264,37 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
           `from_java`, `PYTHON_CLASS_IDENTIFIER`
 
     """
+    def _j(s: str) -> str:
+        if camel:
+            return java_identifier(s)
+        return str(s)
+
     def good_field(k: str):
         return not k.startswith('python_') and not k.startswith('java') and not (k != PYTHON_CLASS_IDENTIFIER and k.startswith('_'))
     if isinstance(value, JavaObject):
         return value
     if isinstance(value, dict):
         if not deep:
-            return {java_identifier(k): v for k, v in value.items()}
-        return {java_identifier(k): to_dict_for_java(v) for k, v in value.items() if good_field(k)}
+            return {_j(k): v for k, v in value.items()}
+        return {_j(k): to_dict(v, add_type_field=add_type_field, camel=camel) for k, v in value.items() if good_field(k)}
     if isinstance(value, Iterable) and not deep:
         return value
     if isinstance(value, Iterable) and not isinstance(value, str):
-        return [to_dict_for_java(_) for _ in value]
+        return [to_dict(_, add_type_field=add_type_field, camel=camel) for _ in value]
     if hasattr(value, 'to_java'):
         converted = value.to_java()
         if isinstance(converted, dict):
             if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
                 converted[PYTHON_CLASS_IDENTIFIER] = value.__class__.__module__ + '.' + value.__class__.__name__
-            return {java_identifier(k): v for k, v in converted.items()}
+            return {_j(k): v for k, v in converted.items()}
         else:
             return converted
     if hasattr(value, '__dict__'):
         if deep:
-            d = {java_identifier(k): to_dict_for_java(v) for k, v in value.__dict__.items()
+            d = {_j(k): to_dict(v, add_type_field=add_type_field, camel=camel) for k, v in value.__dict__.items()
                  if good_field(k)}
         else:
-            d = {java_identifier(k): v for k, v in value.__dict__.items()
+            d = {_j(k): v for k, v in value.__dict__.items()
                  if good_field(k)}
         if add_type_field:
             d[PYTHON_CLASS_IDENTIFIER] = value.__class__.__module__ + '.' + value.__class__.__name__
@@ -302,9 +308,11 @@ def to_dict_for_java(value, deep=True, add_type_field=True):
         return d
     if hasattr(value, '__slots__'):
         if deep:
-            d = dict(zip((camel_case(k) for k in value.__slots__), (to_dict_for_java(getattr(value, _)) for _ in value.__slots__)))
+            d = dict(zip((_j(k) for k in value.__slots__)
+                         , (to_dict(getattr(value, _), add_type_field=add_type_field, camel=camel)
+                            for _ in value.__slots__)))
         else:
-            d = dict(zip((camel_case(k) for k in value.__slots__), (getattr(value, _) for _ in value.__slots__)))
+            d = dict(zip((_j(k) for k in value.__slots__), (getattr(value, _) for _ in value.__slots__)))
         if add_type_field:
             d[PYTHON_CLASS_IDENTIFIER] = value.__class__.__module__ + '.' + value.__class__.__name__
         return d
@@ -342,7 +350,7 @@ def java_link(obj, map=None):
     if map is not None:
         java_obj.fromMap(map)
     else:
-        java_obj.fromMap(to_dict_for_java(obj))
+        java_obj.fromMap(to_dict(obj))
     return java_obj
 
 
@@ -369,7 +377,7 @@ def to_java(value, add_type_field=True, python_class_name: str = None):
     """
     if value is None:
         return None
-    value = to_dict_for_java(value, deep=True, add_type_field=add_type_field)
+    value = to_dict(value, deep=True, add_type_field=add_type_field)
     if isinstance(value, JavaObject):
         return value
     if isinstance(value, np.int64):

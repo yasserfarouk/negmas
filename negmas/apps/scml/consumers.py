@@ -55,7 +55,7 @@ class ConsumptionProfile:
 
     @classmethod
     def random(cls):
-        return ConsumptionProfile(schedule=randint(1, 20), overconsumption=2 * random(), underconsumption=2 * random()
+        return ConsumptionProfile(schedule=randint(0, 5), overconsumption=2 * random(), underconsumption=2 * random()
                                   , cv=random(), beta_q=99 * random() + 1, beta_u=99 * random() + 1, tau_q=3 * random()
                                   , tau_u=random())
 

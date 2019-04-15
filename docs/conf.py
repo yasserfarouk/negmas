@@ -129,7 +129,7 @@ html_theme_options = {
     #'logo_only':
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
-    'titles_only': True
+    'titles_only': False
 }
 
 html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
