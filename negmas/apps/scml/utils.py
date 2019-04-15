@@ -101,7 +101,7 @@ def anac2019_config_generator(
     , profile_cost: Tuple[float, float] = (1, 4)
     , profile_time: Union[int, Tuple[int, int]] = 1
     , n_intermediate: Tuple[int, int] = (1, 4)
-    , min_n_factories: int = 2
+    , min_n_factories: int = 11
     , n_default_managers: Tuple[int, int] = (1, 4)
     , n_lines: int = 10
     , **kwargs
@@ -212,7 +212,7 @@ def anac2019_config_generator(
     config = {'world_params': dict(name=unique_name('', add_time=True, rand_digits=4), time_limit=7200,
                                    neg_time_limit=120, neg_n_steps=20, neg_step_time_limit=10, negotiation_speed=21,
                                    default_signing_delay=1, transportation_delay=0, no_bank=True,
-                                   breach_penalty_society=2.0, no_insurance=False, premium=0.1,
+                                   breach_penalty_society=0.02, no_insurance=False, premium=0.1,
                                    premium_time_increment=0.1, premium_breach_increment=0.1,
                                    max_allowed_breach_level=None, breach_penalty_society_min=0.0,
                                    breach_penalty_victim=0.0, breach_move_max_product=True,
