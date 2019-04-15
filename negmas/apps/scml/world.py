@@ -1092,7 +1092,12 @@ class SCMLWorld(World):
         cfp = contract.annotation['cfp']  # type: ignore
         breaches = set()
         quantity, unit_price = agreement['quantity'], agreement['unit_price']
-
+        if quantity < 1 or unit_price < 0.0:
+            self.loginfo(f'Contract with quantity {quantity} and unit price {unit_price} will be ignored: '
+                         f'{str(contract)}')
+            return breaches
+        if unit_price < 1e-7:
+            self.logdebug(f'Contract with zero unit_price ({unit_price}: {str(contract)}')
         # find out the values for vicitm and social penalties
         penalty_victim = agreement.get('penalty', None)
         if penalty_victim is not None and self.breach_penalty_victim is not None:
