@@ -77,7 +77,7 @@ MODULE_LOG_FILE_NAME: Dict[str, str] = dict()
 
 LOGS_BASE_DIR = './logs'
 
-DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get('default_dump_extension', 'yaml')
+DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get('default_dump_extension', 'json')
 
 
 class ReturnCause(Enum):
