@@ -428,7 +428,7 @@ class LoggerMixin(object):
 
         >>> from tempfile import mkstemp
         >>> _, f_name = mkstemp()
-        >>> l = LoggerMixin(f_name)
+        >>> l = LoggerMixin().init(f_name)
         >>> l.loginfo('test info')
         >>> l.logerror('test error')
         >>> l.logwarning('test warning')
@@ -446,12 +446,13 @@ class LoggerMixin(object):
 
     """
 
-    def __init__(self, file_name: Optional[str] = None, screen_log: bool=False) -> None:
+    def init(self, file_name: Optional[str] = None, screen_log: bool=False) -> 'LoggerMixin':
         """Constructor
 
         Constructs a logger agent
 
         Args:
+            screen_log: If true a log will be printed on the screen.
             file_name (str, optional): Defaults to None. File used for
 
         """
@@ -460,6 +461,7 @@ class LoggerMixin(object):
             self.logger = create_loggers(self.log_file_name)
         else:
             self.logger = create_loggers(self.log_file_name, screen_level=None)
+        return self
 
     def loginfo(self, s: str) -> None:
         """logs info-level information

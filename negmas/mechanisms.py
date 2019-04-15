@@ -43,7 +43,7 @@ class MechanismRoundResult:
 
 
 # noinspection PyAttributeOutsideInit
-class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
+class Mechanism(NamedObject, EventSource, ABC):
     """
     Base class for all negotiation Mechanisms.
 
@@ -657,7 +657,6 @@ class Mechanism(NamedObject, EventSource, LoggerMixin, ABC):
         Remarks:
             - When overriding this function you **MUST** call the base class version
         """
-        self.logerror(f'Mechanism error: {self.state.error_details}')
         if self._enable_callbacks:
             for a in self.negotiators:
                 a.on_mechanism_error(state=self.state)

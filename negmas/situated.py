@@ -751,7 +751,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
-        LoggerMixin.__init__(self, file_name=state['log_file_name'], screen_log=['screen_log'])
+        LoggerMixin.init(self, file_name=state['log_file_name'], screen_log=state['screen_log'])
         if 'log_file_name' in state.keys():
             del self.__dict__['log_file_name']
 
@@ -788,7 +788,7 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             neg_time_limit: Real-time limit on each single negotiation
             name: Name of the simulator
         """
-        LoggerMixin.__init__(self, file_name=log_file_name, screen_log=screen_log)
+        LoggerMixin.init(self, file_name=log_file_name, screen_log=screen_log)
         super().__init__()
         self.screen_log = screen_log
         self.bulletin_board: BulletinBoard = bulletin_board
