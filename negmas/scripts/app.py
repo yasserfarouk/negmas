@@ -80,8 +80,8 @@ def cli():
               help='Default location to save logs (A folder will be created under it)')
 @click.option('--verbosity', default=1, help='verbosity level (from 0 == silent to 1 == world progress)')
 @click.option('--configs-only/--run', default=False, help='configs_only')
-@click.option('--reveal-names/--hidden-names', default=False, help='Reveal agent names (should be used only for '
-                                                                   'debugging)')
+@click.option('--reveal-names/--hidden-names', default=True, help='Reveal agent names (should be used only for '
+                                                                  'debugging)')
 @click.option('--ip', default='127.0.0.1', help='The IP address for a dask scheduler to run the distributed tournament.'
                                                 ' Effective only if --distributed')
 @click.option('--port', default=8786, help='The IP port number a dask scheduler to run the distributed tournament.'
