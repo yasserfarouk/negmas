@@ -144,7 +144,7 @@ class ReactiveMiner(Miner):
             'quantity': lambda x: x ** tau_q / beta_q,
             'unit_price': lambda x: x ** tau_u / beta_u if x > 1e-7 else -2000.0,
         }, weights={'time': alpha_t, 'quantity': alpha_q, 'unit_price': alpha_u})
-            , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
+            , outcomes=cfp.outcomes, infeasible_cutoff=-1)
         if self.negotiator_type == AspirationNegotiator:
             negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher
                                               , dynamic_ufun=False, aspiration_type='boulware')

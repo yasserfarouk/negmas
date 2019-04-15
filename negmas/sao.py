@@ -13,7 +13,7 @@ import numpy as np
 from negmas.common import *
 from negmas.common import _ShadowAgentMechanismInterface
 from negmas.events import Notification
-from negmas.java import JavaCallerMixin, to_java, from_java, java_link, to_dict_for_java, JNegmasGateway, \
+from negmas.java import JavaCallerMixin, to_java, from_java, java_link, to_dict, JNegmasGateway, \
     python_identifier
 from negmas.mechanisms import MechanismRoundResult, Mechanism
 from negmas.negotiators import Negotiator, AspirationMixin, Controller
@@ -1248,7 +1248,7 @@ class _ShadowSAONegotiator:
         implements = ['jnegmas.sao.SAONegotiator']
 
     def to_java(self):
-        return to_dict_for_java(self.shadow)
+        return to_dict(self.shadow)
 
     def __init__(self, negotiator: SAONegotiator):
         self.shadow = negotiator

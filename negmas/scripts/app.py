@@ -4,6 +4,7 @@
 import os
 import traceback
 from functools import partial
+from math import factorial
 from pathlib import Path
 from pprint import pformat
 from time import perf_counter
@@ -15,9 +16,8 @@ import yaml
 from tabulate import tabulate
 
 import negmas
-from negmas import save_stats, tournaments
+from negmas import save_stats
 from negmas.apps.scml import *
-from negmas.apps.scml.utils import anac2019_world, balance_calculator
 from negmas.helpers import humanize_time, unique_name
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 
@@ -61,12 +61,13 @@ def cli():
 @click.option('--name', '-n', default='random',
               help='The name of the tournament. The special value "random" will result in a random name')
 @click.option('--steps', '-s', default=60, help='Number of steps.')
-@click.option('--ttype', '--tournament-type', '--tournament', default='anac2019'
-    , help='The config to use. Default is ANAC 2019')
+@click.option('--ttype', '--tournament-type', '--tournament', default='anac2019collusion'
+    , help='The config to use. Default is ANAC 2019. Options supprted are anac2019std, anac2019collusion, '
+           'anac2019sabotage')
 @click.option('--timeout', '-t', default=0, help='Timeout after the given number of seconds (0 for infinite)')
-@click.option('--runs', default=5, help='Number of runs for each configuration')
+@click.option('--configs', default=5, help='Number of unique configurations to generate.')
+@click.option('--runs', default=2, help='Number of runs for each configuration')
 @click.option('--max-runs', default=-1, help='Maximum total number of runs. Zero or negative numbers mean no limit')
-@click.option('--randomize/--permutations', default=False, help='Random worlds or try all permutations up to max-runs')
 @click.option('--competitors'
     , default='negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager'
     , help='A semicolon (;) separated list of agent types to use for the competition.')
@@ -86,19 +87,21 @@ def cli():
 @click.option('--port', default=8786, help='The IP port number a dask scheduler to run the distributed tournament.'
                                            ' Effective only if --distributed')
 def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosity, configs_only,
-               reveal_names, ip, port, runs, max_runs, randomize, competitors, jcompetitors):
+               reveal_names, ip, port, runs, configs, max_runs, competitors, jcompetitors):
     if timeout <= 0:
         timeout = None
     if name == 'random':
         name = None
     if max_runs <= 0:
         max_runs = None
+
+    worlds_per_config = None if max_runs is None else max_runs / (configs * runs)
+
     parallelism = 'distributed' if distributed else 'parallel' if parallel else 'serial'
-    start = perf_counter()
     all_competitors = competitors.split(';')
     all_competitors_params = [dict() for _ in range(len(all_competitors))]
     if jcompetitors is not None and len(jcompetitors) > 0:
-        jcompetitor_params = [{'java_class_name':_} for _ in jcompetitors.split(';')]
+        jcompetitor_params = [{'java_class_name': _} for _ in jcompetitors.split(';')]
         jcompetitors = ['negmas.apps.scml.JavaFactoryManager'] * len(jcompetitor_params)
         all_competitors += jcompetitors
         all_competitors_params += jcompetitor_params
@@ -109,21 +112,43 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
                   ' run the following command IN A DIFFERENT TERMINAL because it will block:\n\n'
                   '$ negmas jnegmas')
             exit(1)
-    if ttype.lower() == 'anac2019':
-        results = tournaments.tournament(competitors=all_competitors
-                                         , competitor_params=all_competitors_params
-                                         , agent_names_reveal_type=reveal_names
-                                         , tournament_path=log, total_timeout=timeout
-                                         , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
-                                         ,
-                                         world_progress_callback=print_world_progress if verbosity > 1 and not distributed else None
-                                         , name=name, verbose=verbosity > 0, n_runs_per_config=runs,
-                                         max_n_configs=max_runs
-                                         , world_generator=anac2019_world, score_calculator=balance_calculator
-                                         , configs_only=configs_only, randomize=randomize
-                                         , n_steps=steps)
+    prog_callback = print_world_progress if verbosity > 1 and not distributed else None
+
+    recommended = runs * configs * factorial(len(all_competitors) * (1 if "std" in ttype else 3))
+    if worlds_per_config < 1:
+        print(f'You need at least {(configs * runs)} runs even with a single permutation of managers.'
+              f'.\n\nSet --max-runs to at least {(configs * runs)} (Recommended {recommended})')
+        return
+    worlds_per_config = worlds_per_config if worlds_per_config is None else int(worlds_per_config)
+    if max_runs < recommended:
+        print(f'You are running {max_runs} worlds only but it is recommended to set {max_runs} to at least '
+              f'{recommended}. Will continue')
+
+    start = perf_counter()
+    if ttype.lower() == 'anac2019std':
+        results = anac2019_std(competitors=all_competitors
+                               , competitor_params=all_competitors_params
+                               , agent_names_reveal_type=reveal_names
+                               , tournament_path=log, total_timeout=timeout
+                               , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
+                               , world_progress_callback=prog_callback
+                               , name=name, verbose=verbosity > 0, n_runs_per_world=runs, n_configs=configs
+                               , max_worlds_per_config=worlds_per_config
+                               , configs_only=configs_only
+                               , n_steps=steps)
+    elif ttype.lower() in ('anac2019collusion', 'anac2019'):
+        results = anac2019_collusion(competitors=all_competitors
+                                     , competitor_params=all_competitors_params
+                                     , agent_names_reveal_type=reveal_names
+                                     , tournament_path=log, total_timeout=timeout
+                                     , parallelism=parallelism, scheduler_ip=ip, scheduler_port=port
+                                     , world_progress_callback=prog_callback
+                                     , name=name, verbose=verbosity > 0, n_runs_per_world=runs, n_configs=configs
+                                     , max_worlds_per_config=worlds_per_config
+                                     , configs_only=configs_only
+                                     , n_steps=steps)
     else:
-        print('Only anac2019 tournament type is supported')
+        print(f'{ttype.lower()} tournament type is not supported')
         exit(1)
     if configs_only:
         print(f'Saved all configs to {str(results)}')
@@ -203,8 +228,6 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
     log_dir = log_dir.absolute()
     os.makedirs(log_dir, exist_ok=True)
     log_file_name = str(log_dir / 'log.txt')
-    stats_file_name = str(log_dir / 'stats.json')
-    params_file_name = str(log_dir / 'params.json')
     exception = None
     world = SCMLWorld.chain_world(log_file_name=log_file_name, n_steps=steps
                                   , negotiation_speed=neg_speedup

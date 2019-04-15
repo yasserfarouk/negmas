@@ -9,7 +9,7 @@ import numpy as np
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 
-from negmas.java import to_java, to_dict_for_java
+from negmas.java import to_java, to_dict
 from .common import ManufacturingProfile, Job, Factory, NO_PRODUCTION
 
 __all__ = [
@@ -1372,7 +1372,7 @@ class _ShadowFactorySimulator:
         return self.shadow.delete_bookmark(bookmarkId)
 
     def to_java(self):
-        return to_dict_for_java(self.shadow)
+        return to_dict(self.shadow)
 
     class Java:
         implements = ['jengmas.apps.scml.simulators.FactorySimulator']
