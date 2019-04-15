@@ -236,6 +236,7 @@ def anac2019_config_generator(
               'manager_types': [get_full_type_name(_) if isinstance(_, FactoryManager) else _ for _ in manager_types],
               'manager_params': manager_params,
               'n_factories_per_level': n_f_list,
+              'agent_names_reveal_type': agent_names_reveal_type,
               }
     config.update(kwargs)
     return config
@@ -248,6 +249,7 @@ def anac2019_assigner(config: Dict[str, Any], max_n_worlds: int, n_agents_per_co
     n_competitors = len(competitors)
     params = list(params) if params is not None else [dict() for _ in range(n_competitors)]
     n_agents = (n_agents_per_competitor * n_competitors)
+    agent_names_reveal_type = config.pop('agent_names_reveal_type', False)
 
     try:
         n_permutations = math.factorial(n_agents)
@@ -284,6 +286,17 @@ def anac2019_assigner(config: Dict[str, Any], max_n_worlds: int, n_agents_per_co
         for k in range(max_n_worlds):
             shuffle(permutation)
             configs.append(_copy_config(config, k))
+
+    if agent_names_reveal_type:
+        for config in configs:
+            nxt = 0
+            for i, (t, p) in enumerate(zip(config['manager_types'], config['manager_params'])):
+                if p.get('name', '').startswith('_default__preassigned'):
+                    continue
+                p = p.copy()
+                p['name'] = f'{get_full_type_name(t) if not isinstance(t, str) else t}_{nxt}'
+                config['manager_params'][i] = p
+                nxt = nxt + 1
     return configs
 
 
@@ -297,7 +310,7 @@ def anac2019_world_generator(**kwargs):
     for f in kwargs['factories']:
         p = f['profile']
         factories.append(Factory(initial_storage={}, initial_wallet=f['initial_wallet'], max_storage=f['max_storage'],
-                                 id='f.id'
+                                 id=f'{f["id"]}'
                                  , profiles=[ManufacturingProfile(n_steps=p['n_steps'], cost=p['cost'], line=p['line']
                                                                   , process=processes[p['process.id']]
                                                                   , cancellation_cost=0.0, initial_pause_cost=0.0

@@ -856,17 +856,20 @@ class SCMLWorld(World):
 
     def set_consumers(self, consumers: List[Consumer]):
         self.consumers = consumers
-        [self.join(f, simulation_priority=CONSUMER_SIMULATION_PRIORITY) for f in consumers]
+        for f in consumers:
+            self.join(f, simulation_priority=CONSUMER_SIMULATION_PRIORITY)
 
     def set_miners(self, miners: List[Miner]):
         self.miners = miners
-        [self.join(f, simulation_priority=MINER_SIMULATION_PRIORITY) for f in miners]
+        for f in miners:
+            self.join(f, simulation_priority=MINER_SIMULATION_PRIORITY)
 
     def set_factory_managers(self, factory_managers: Optional[List[FactoryManager]]):
         if factory_managers is None:
             factory_managers = []
         self.factory_managers = factory_managers
-        [self.join(f, simulation_priority=MANAGER_SIMULATION_PRIORITY) for f in factory_managers]
+        for f in factory_managers:
+            self.join(f, simulation_priority=MANAGER_SIMULATION_PRIORITY)
 
     def set_processes(self, processes: Collection[Process]):
         if processes is None:
@@ -1006,9 +1009,13 @@ class SCMLWorld(World):
         for factory in self.factories:
             manager = self.f2a[factory.id]
             reports = factory.step()
-            self.logdebug(f'Factory {factory.id}: money={factory.wallet}'
-                          f', storage={str(dict(factory.storage))}'
-                          f', loans={factory.loans}')
+            if isinstance(manager, Consumer) or isinstance(manager, Miner):
+                self.logdebug(f'{manager.name}: money={factory.wallet}'
+                              f', storage={str(dict(factory.storage))}')
+            else:
+                self.logdebug(f'{manager.name} (Factory {factory.id}): money={factory.wallet}'
+                              f', storage={str(dict(factory.storage))}'
+                              f', loans={factory.loans}')
             for report in reports:
                 if not report.is_empty:
                     self.logdebug(f'PRODUCTION>> {manager.name}: {str(report)}')
