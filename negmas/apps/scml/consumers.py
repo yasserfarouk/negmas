@@ -200,12 +200,17 @@ class ScheduleDrivenConsumer(Consumer):
         if y == 0:
             result = -o
         elif q > y:
-            result = - o * (((q - y) / y) ** tau)
+            result = - o * abs(((q - y) / y) ** tau)
         elif q < y:
-            result = - u * (((y - q) / y) ** tau)
+            result = - u * abs(((y - q) / y) ** tau)
         else:
             result = 1.0
-        return math.exp(result)
+        result = math.exp(result)
+        if isinstance(result, complex):
+            result = abs(result)
+        if result is None:
+            result = -1000.0
+        return result
 
     def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
         if self.awi.is_bankrupt(partner):
