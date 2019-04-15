@@ -9,7 +9,7 @@ from dataclasses import dataclass, field, fields
 from typing import List, Optional, Any, TYPE_CHECKING
 
 from .helpers import unique_name
-from .java import to_java, to_dict_for_java, PYTHON_CLASS_IDENTIFIER
+from .java import to_java, to_dict, PYTHON_CLASS_IDENTIFIER
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
@@ -277,7 +277,7 @@ class _ShadowAgentMechanismInterface:
         self.shadow = ami
 
     def to_java(self):
-        return to_dict_for_java(self.shadow)
+        return to_dict(self.shadow)
         
     class Java:
         implements = ['jnegmas.common.AgentMechanismInterface']
