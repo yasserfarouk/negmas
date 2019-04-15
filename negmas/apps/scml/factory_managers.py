@@ -10,7 +10,7 @@ from negmas.common import NamedObject
 from negmas.events import Notification
 from negmas.helpers import get_class
 from negmas.helpers import snake_case
-from negmas.java import JavaCallerMixin, to_java, from_java, to_dict_for_java, java_link, PYTHON_CLASS_IDENTIFIER
+from negmas.java import JavaCallerMixin, to_java, from_java, to_dict, java_link, PYTHON_CLASS_IDENTIFIER
 from negmas.outcomes import Issue, Outcome
 from negmas.sao import AspirationNegotiator
 from negmas.utilities import UtilityValue, normalize
@@ -670,7 +670,7 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
         self.init_java_bridge(java_object=java_object, java_class_name=java_class_name, auto_load_java=auto_load_java
                               , python_shadow_object=python_shadow_object)
         if java_object is None:
-            map = to_dict_for_java(self)
+            map = to_dict(self)
             map.pop(PYTHON_CLASS_IDENTIFIER, None)
             map['simulatorType'] = self.simulator_type.__class__.__name__
             self._java_object.fromMap(to_java(map))

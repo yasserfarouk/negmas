@@ -5,7 +5,7 @@ from typing import Optional, List, Dict, Any
 
 from negmas import Issue
 from negmas.apps.scml.common import *
-from negmas.java import to_java, from_java, to_dict_for_java
+from negmas.java import to_java, from_java, to_dict
 from negmas.situated import AgentWorldInterface, Contract, Action
 
 __all__ = [
@@ -330,7 +330,7 @@ class _ShadowSCMLAWI:
     """
 
     def to_java(self):
-        return to_dict_for_java(self.shadow)
+        return to_dict(self.shadow)
 
     def __init__(self, awi: SCMLAWI):
         self.shadow = awi

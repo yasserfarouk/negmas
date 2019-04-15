@@ -1,12 +1,15 @@
+import copy
 import itertools
 import math
 import sys
+import uuid
 from collections import defaultdict
 from random import shuffle, random, randint, sample, choices
 from typing import Optional, Callable, Type, Sequence, Dict, Tuple, Iterable, Any, Union, Set, \
     Collection, List
 
 import numpy as np
+import yaml
 
 from negmas import AgentMechanismInterface
 from negmas.events import Event, EventSource
@@ -21,12 +24,26 @@ from .factory_managers import GreedyFactoryManager, FactoryManager
 from .insurance import DefaultInsuranceCompany
 from .miners import ReactiveMiner, MiningProfile, Miner
 
+CONSUMER_SIMULATION_PRIORITY = 1
+MANAGER_SIMULATION_PRIORITY = 2
+MINER_SIMULATION_PRIORITY = 3
+
 __all__ = [
     'SCMLWorld', 'Factory'
 ]
 
 
-def realin(rng: Union[Tuple[float, float], float]) -> float:
+def _realin(rng: Union[Tuple[float, float], float]) -> float:
+    """
+    Selects a random number within a range if given or the input if it was a float
+
+    Args:
+        rng: Range or single value
+
+    Returns:
+
+        the real within the given range
+    """
     if isinstance(rng, float):
         return rng
     if abs(rng[1] - rng[0]) < 1e-8:
@@ -34,7 +51,17 @@ def realin(rng: Union[Tuple[float, float], float]) -> float:
     return rng[0] + random() * (rng[1] - rng[0])
 
 
-def intin(rng: Union[Tuple[int, int], int]) -> int:
+def _intin(rng: Union[Tuple[int, int], int]) -> int:
+    """
+    Selects a random number within a range if given or the input if it was an int
+
+    Args:
+        rng: Range or single value
+
+    Returns:
+
+        the int within the given range
+    """
     if isinstance(rng, int):
         return rng
     if rng[0] == rng[1]:
@@ -53,12 +80,12 @@ class SCMLWorld(World):
                  , miners: List[Miner]
                  , factory_managers: Optional[List[FactoryManager]] = None
                  # timing parameters
-                 , n_steps=200
+                 , n_steps=120
                  , time_limit=60 * 90
-                 , neg_n_steps=100
-                 , neg_time_limit=3 * 60
+                 , neg_n_steps=20
+                 , neg_time_limit=2 * 60
                  , neg_step_time_limit=60
-                 , negotiation_speed=10
+                 , negotiation_speed=21
                  # bank parameters
                  , no_bank=False
                  , minimum_balance=0
@@ -211,8 +238,6 @@ class SCMLWorld(World):
 
         self.f2a: Dict[str, SCMLAgent] = {}
         self.a2f: Dict[str, Factory] = {}
-        assert len(self.factories) == len(self.factory_managers), \
-            f'{len(self.factories)} factories and {len(self.factory_managers)} managers'
         for factory, agent in zip(self.factories, self.factory_managers):
             self.f2a[factory.id] = agent
             self.a2f[agent.id] = factory
@@ -267,6 +292,53 @@ class SCMLWorld(World):
         """
         super().join(x=x, simulation_priority=simulation_priority)
 
+    def save_config(self, file_name: str) -> None:
+        d = {k: v for k, v in self.__dict__.items()}
+        d['factory_manager_types'] = {manager.id: manager.type_name for manager in self.factory_managers}
+        with open(file_name, 'w') as file:
+            yaml.safe_dump(d, file)
+
+    def assign_managers(self, factory_managers=Iterable[Union[str, Type[FactoryManager], FactoryManager]]
+                        , params: Optional[Iterable[Dict[str, Any]]] = None) -> None:
+        """
+        Assigns existing factories to new factory managers created from the given types and parameters or actual managers
+
+        Args:
+
+            factory_managers: An iterable of  `FactoryManager` objects type names or `FactoryManager` types to assign to
+            params: parameters of the newly created managers
+
+        Remarks:
+
+            - factories are assigned in the same order they exist in the local `factories` attribute cycling through
+              the input managers or types/params
+            - If a `FactoryManager` object is given instead of a type or a string in the `factory_managers` collection,
+              and the number of `factory_managers` is less than the number of factories in the world causing this object
+              to cycle for more than one factory, it is assigned to the first such factory but then deep copies of it
+              with new ids and names are assigned to the rest of the factories. That ensures that each manager has
+              exactly one factory and that all factories are assigned exactly one unique manager.
+        """
+        if params is None:
+            params = [dict()]
+        # todo add an exit function to agents and call it as they are leaving the world
+        self.factory_managers, self.a2f, self.f2a = [], {}, {}
+        for factory, (manager_type, manager_params) in zip(self.factories,
+                                                           itertools.cycle(zip(factory_managers
+                                                               , itertools.cycle(params)))):
+            if isinstance(manager_type, FactoryManager):
+                manager = manager_type
+                if manager.id in self.a2f.keys():
+                    manager = copy.deepcopy(manager)
+                    manager.id = uuid.uuid4()
+                    manager.name = unique_name(manager.name, add_time=False, rand_digits=4)
+            else:
+                manager = instantiate(manager_type, **manager_params)
+            self.join(manager, simulation_priority=MANAGER_SIMULATION_PRIORITY)
+            self.factory_managers.append(manager)
+            self.a2f[manager.id] = factory
+            self.f2a[factory.id] = manager
+            manager.init_()
+
     @classmethod
     def random_small(cls, n_production_levels: int = 1, n_factories: int = 10, factory_kwargs: Dict[str, Any] = None
                      , miner_kwargs: Dict[str, Any] = None, consumer_kwargs: Dict[str, Any] = None
@@ -287,8 +359,9 @@ class SCMLWorld(World):
     @classmethod
     def chain_world(cls, n_intermediate_levels=0, n_miners=5, n_factories_per_level=5
                     , n_consumers: Union[int, Tuple[int, int], List[int]] = 5
-                    , n_steps=200
+                    , n_steps=100
                     , n_lines_per_factory=10
+                    , n_max_assignable_factories=None
                     , log_file_name: str = None
                     , agent_names_reveal_type: bool = False
                     , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
@@ -315,6 +388,7 @@ class SCMLWorld(World):
         series with `n_intermediate_levels` intermediate levels between the single raw material and single final product
 
         Args:
+            n_max_assignable_factories: The maximum number of factories assigned to managers other than the default
             randomize: If true, the factory assignment is randomized
             n_default_per_level: The number of `GreedyFactoryManager` objects guaranteed at every level
             default_factory_manager_type: The `FactoryManager` type to use as the base for default_factory_managers. You
@@ -370,10 +444,9 @@ class SCMLWorld(World):
 
         products = [Product(id=0, name='p0', catalog_price=1.0, production_level=0, expires_in=0)]
         processes = []
-        miners = [instantiate(miner_type, profiles={products[-1].id: MiningProfile(cv=0)}, name=f'm_{i}'
+        miners = [instantiate(miner_type, profiles={products[-1].id: MiningProfile()}, name=f'm_{i}'
                               , **miner_kwargs) for i in range(n_miners)]
         factories, managers = [], []
-        n_steps_profile = 1
 
         def _s(x):
             return x if x is not None else 0
@@ -399,8 +472,8 @@ class SCMLWorld(World):
             for j in range(n_factories_per_level):
                 profiles = []
                 for k in range(n_lines_per_factory):
-                    profiles.append(ManufacturingProfile(n_steps=intin(process_time)
-                                                         , cost=realin(process_cost)
+                    profiles.append(ManufacturingProfile(n_steps=_intin(process_time)
+                                                         , cost=_realin(process_cost)
                                                          , initial_pause_cost=0
                                                          , running_pause_cost=0
                                                          , resumption_cost=0
@@ -409,7 +482,8 @@ class SCMLWorld(World):
                 factory = Factory(id=f'f{level + 1}_{j}', max_storage=max_storage, profiles=profiles
                                   , initial_storage={}, initial_wallet=initial_wallet_balances)
                 factories.append(factory)
-                if j >= n_default_per_level:
+                if j >= n_default_per_level and \
+                    (n_max_assignable_factories is None or len(assignable_factories) < n_max_assignable_factories):
                     assignable_factories.append((factory, level))
                 else:
                     default_factories.append(factory)
@@ -422,8 +496,8 @@ class SCMLWorld(World):
         if randomize:
             shuffle(assignable_factories)
         for j, ((factory, level), (params, manager_type)) in enumerate(zip(assignable_factories
-                                                                       , itertools.cycle(zip(manager_params
-                                                                                             , manager_types)))):
+            , itertools.cycle(zip(manager_params
+                , manager_types)))):
             manager_name = unique_name(base='', add_time=False, rand_digits=12)
             manager = manager_type(name=manager_name, **params)
             if agent_names_reveal_type:
@@ -436,12 +510,11 @@ class SCMLWorld(World):
             return consumption
 
         consumers = [
-            instantiate(consumer_type, profiles={products[-1].id: ConsumptionProfile(cv=0, schedule=create_schedule())}
+            instantiate(consumer_type, profiles={products[-1].id: ConsumptionProfile(schedule=create_schedule())}
                         , name=f'c_{i}', **consumer_kwargs) for i in range(n_consumers)]
-
-        return SCMLWorld(products=products, processes=processes, factories=factories  # type: ignore
-                         , consumers=consumers, miners=miners
-                         , factory_managers=managers, initial_wallet_balances=initial_wallet_balances, n_steps=n_steps
+        return SCMLWorld(products=products, processes=processes, factories=factories
+                         , consumers=consumers, miners=miners, n_steps=_intin(n_steps)
+                         , factory_managers=managers, initial_wallet_balances=initial_wallet_balances
                          , interest_rate=interest_rate, interest_max=interest_max, log_file_name=log_file_name
                          , negotiation_speed=negotiation_speed
                          , **kwargs)
@@ -563,9 +636,9 @@ class SCMLWorld(World):
                 return sample(last_level_products, min(k, len(last_level_products)))
 
         products = [Product(name=f'r_{ind}'
-                            , catalog_price=realin(raw_material_price)
+                            , catalog_price=_realin(raw_material_price)
                             , production_level=0, expires_in=0, id=ind)
-                    for ind in range(intin(n_raw_materials))]
+                    for ind in range(_intin(n_raw_materials))]
         raw_materials = products.copy()
         last_level_products = products  # last level of products
         old_products: List[Product] = []  # products not including last level
@@ -575,17 +648,17 @@ class SCMLWorld(World):
             product_prices: Dict[Product, List[float]] = defaultdict(
                 list)  # will keep the costs for generating products
             for process in new_processes:
-                process.inputs = set(InputOutput(product=_.index, quantity=intin(quantity_per_input)
-                                                 , step=realin(input_step))
+                process.inputs = set(InputOutput(product=_.index, quantity=_intin(quantity_per_input)
+                                                 , step=_realin(input_step))
                                      for _ in _sample_product(products=products, old_products=old_products
                                                               , last_level_products=last_level_products
-                                                              , k=intin(n_inputs_per_process)))
-                process.outputs = set(InputOutput(product=_.index, quantity=intin(quantity_per_output)
-                                                  , step=realin(output_step))
-                                      for _ in sample(new_products, intin(n_outputs_per_process)))
+                                                              , k=_intin(n_inputs_per_process)))
+                process.outputs = set(InputOutput(product=_.index, quantity=_intin(quantity_per_output)
+                                                  , step=_realin(output_step))
+                                      for _ in sample(new_products, _intin(n_outputs_per_process)))
                 process.historical_cost = sum(products[_.product].catalog_price * _.quantity
                                               for _ in process.inputs)
-                process.historical_cost *= 1 + realin(process_relative_cost)
+                process.historical_cost *= 1 + _realin(process_relative_cost)
                 for output in process.outputs:
                     product_prices[products[output.product]].append(process.historical_cost)
 
@@ -594,15 +667,15 @@ class SCMLWorld(World):
                 product.catalog_price = sum(product_prices[product]) / len(product_prices[product])
             return new_products, new_processes
 
-        n_levels = intin(n_production_levels)
+        n_levels = _intin(n_production_levels)
         if n_levels > 0:
             for level in range(n_levels):
                 new_products = [Product(name=f'intermediate_{level}_{ind}', production_level=level + 1
                                         , id=len(products) + ind, catalog_price=0, expires_in=0)
-                                for ind in range(intin(n_products_per_level))]
+                                for ind in range(_intin(n_products_per_level))]
                 new_processes = [Process(name=f'process_{level}_{ind}', production_level=level + 1
                                          , id=len(processes) + ind, historical_cost=0, inputs=set(), outputs=set())
-                                 for ind in range(intin(n_processes_per_level))]
+                                 for ind in range(_intin(n_processes_per_level))]
                 new_products, new_processes = _adjust_level_of_production(new_products, new_processes)
                 products += new_products
                 old_products += last_level_products
@@ -611,10 +684,10 @@ class SCMLWorld(World):
 
             final_products = [Product(name=f'f_{ind}', production_level=n_levels + 1
                                       , id=len(products) + ind, catalog_price=0, expires_in=0)
-                              for ind in range(intin(n_final_products))]
+                              for ind in range(_intin(n_final_products))]
             new_processes = [Process(name=f'process_final_{ind}', production_level=n_levels + 1
                                      , id=len(processes) + ind, historical_cost=0, inputs=set(), outputs=set())
-                             for ind in range(intin(n_processes_per_level))]
+                             for ind in range(_intin(n_processes_per_level))]
 
             final_products, new_processes = _adjust_level_of_production(final_products, new_processes)
             products += final_products
@@ -625,13 +698,13 @@ class SCMLWorld(World):
         if n_processes_per_line is None:
             n_processes_per_line = len(processes)
 
-        n_factories = intin(n_factories)
+        n_factories = _intin(n_factories)
         factories = []
         for i in range(n_factories):
             profiles = []
             if lines_are_similar:
-                line_processes = sample(processes, intin(n_processes_per_line))
-                profiles.extend([ManufacturingProfile(n_steps=intin(n_production_steps), cost=realin(cost_for_line)
+                line_processes = sample(processes, _intin(n_processes_per_line))
+                profiles.extend([ManufacturingProfile(n_steps=_intin(n_production_steps), cost=_realin(cost_for_line)
                                                       , initial_pause_cost=0
                                                       , running_pause_cost=0
                                                       , resumption_cost=0
@@ -639,16 +712,17 @@ class SCMLWorld(World):
                                  for _ in line_processes])
             else:
                 lines = []
-                for _ in range(intin(n_lines)):
-                    line_processes = sample(processes, intin(n_processes_per_line))
-                    profiles.extend([ManufacturingProfile(n_steps=intin(n_production_steps), cost=realin(cost_for_line)
-                                                          , initial_pause_cost=0
-                                                          , running_pause_cost=0
-                                                          , resumption_cost=0
-                                                          , cancellation_cost=0, line=i, process=_)
-                                     for _ in line_processes])
-            factories.append(Factory(profiles=profiles, max_storage=intin(max_storage), initial_storage={}
-                                     , initial_wallet=realin(initial_wallet_balance)))
+                for _ in range(_intin(n_lines)):
+                    line_processes = sample(processes, _intin(n_processes_per_line))
+                    profiles.extend(
+                        [ManufacturingProfile(n_steps=_intin(n_production_steps), cost=_realin(cost_for_line)
+                                              , initial_pause_cost=0
+                                              , running_pause_cost=0
+                                              , resumption_cost=0
+                                              , cancellation_cost=0, line=i, process=_)
+                         for _ in line_processes])
+            factories.append(Factory(profiles=profiles, max_storage=_intin(max_storage), initial_storage={}
+                                     , initial_wallet=_realin(initial_wallet_balance)))
 
         def _ensure_list(x):
             if isinstance(x, Iterable):
@@ -663,7 +737,7 @@ class SCMLWorld(World):
         factory_managers = [current(**factory_kwargs)
                             for current in choices(factory_manager_types_list, k=n_factories)]
         miners = [current(**miner_kwargs)
-                  for current in choices(miner_types_list, k=intin(n_miners))]
+                  for current in choices(miner_types_list, k=_intin(n_miners))]
         if n_products_per_miner is None:
             n_products_per_miner = len(raw_materials)
         if n_products_per_consumer is None:
@@ -671,14 +745,14 @@ class SCMLWorld(World):
         n_products_per_miner = min(n_products_per_miner, len(raw_materials))
         n_products_per_consumer = min(n_products_per_consumer, len(final_products))
         for miner in miners:
-            _n = intin(n_products_per_miner)
+            _n = _intin(n_products_per_miner)
             mining_profiles = dict(zip((_.index for _ in sample(raw_materials, _n))
                                        , [MiningProfile.random() for _ in range(_n)]))
             miner.set_profiles(mining_profiles)
         consumers = [current(**consumer_kwargs)
-                     for current in choices(consumer_types_list, k=intin(n_consumers))]
+                     for current in choices(consumer_types_list, k=_intin(n_consumers))]
         for consumer in consumers:
-            _n = intin(n_products_per_consumer)
+            _n = _intin(n_products_per_consumer)
             consumer_profiles = dict(zip((_.index for _ in sample(final_products, _n))
                                          , [ConsumptionProfile.random() for _ in range(_n)]))
             consumer.set_profiles(consumer_profiles)
@@ -782,17 +856,17 @@ class SCMLWorld(World):
 
     def set_consumers(self, consumers: List[Consumer]):
         self.consumers = consumers
-        [self.join(f, simulation_priority=1) for f in consumers]
+        [self.join(f, simulation_priority=CONSUMER_SIMULATION_PRIORITY) for f in consumers]
 
     def set_miners(self, miners: List[Miner]):
         self.miners = miners
-        [self.join(f, simulation_priority=3) for f in miners]
+        [self.join(f, simulation_priority=MINER_SIMULATION_PRIORITY) for f in miners]
 
     def set_factory_managers(self, factory_managers: Optional[List[FactoryManager]]):
         if factory_managers is None:
             factory_managers = []
         self.factory_managers = factory_managers
-        [self.join(f, simulation_priority=2) for f in factory_managers]
+        [self.join(f, simulation_priority=MANAGER_SIMULATION_PRIORITY) for f in factory_managers]
 
     def set_processes(self, processes: Collection[Process]):
         if processes is None:
@@ -844,9 +918,9 @@ class SCMLWorld(World):
                                  , quantity=action.params.get('quantity', 0))
         elif action.type in ('unhide_product', 'unhide_products', 'unhide_inventory'):
             factory.unhide_product(product=action.params.get('product', -1)
-                                 , quantity=action.params.get('quantity', 0))
+                                   , quantity=action.params.get('quantity', 0))
         elif action.type not in ('run', 'start', 'stop', 'pause', 'resume'):
-                raise ValueError(f'Unknown action {action.type} received {str(action)}')
+            raise ValueError(f'Unknown action {action.type} received {str(action)}')
 
         line, profile_index = action.params.get('line', None), action.params.get('profile', None)
         t = action.params.get('time', None)
