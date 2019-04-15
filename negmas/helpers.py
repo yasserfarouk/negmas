@@ -420,8 +420,8 @@ class LazyInitializable(object):
 class LoggerMixin(object):
     """Parent of all agents that can log to the console/file.
 
-    Args:
-        file_name (Optional[str]): File name to use for logging
+    You have to call `init` to set the log file and whether you want a screen log. After that you can call
+    log* functions to log.
 
     Examples:
         Create a temporary file to test with
