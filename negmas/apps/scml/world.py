@@ -1136,7 +1136,7 @@ class SCMLWorld(World):
                     penalty_values.append(0.0)
                     continue
                 # find out how much need to be paid for this penalty
-                penalty_value = penalty * product_breach
+                penalty_value = penalty * product_breach * quantity * unit_price
 
                 # society penalty may have a minimum. If so, make sure the penalty value is at least as large as that
                 if not is_victim and self.breach_penalty_society_min is not None:
