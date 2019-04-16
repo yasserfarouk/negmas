@@ -1,6 +1,34 @@
 History
 =======
 
+Release 0.2.5
+-------------
+
+- improvements to ufun representation to speedup computation
+- making default factory managers slightly less risky in their behavior in long simulations and more risky in short ones
+- adding jnegmas-setup and genius-setup commands to download and install jenegmas and genius bridge
+- removing the logger mixin and replaced it with parameters to World and SCMLWorld
+- added compact parameter to SCMLWorld, tournament, and world generators to reduce the memory footprint
+- added --compact/--debug to the command line tools to avoid memory and log explosion setting the default to --compact
+- improving implementation of consumer ufun for cases with negative schedule
+- changing the return type of SCMLAWI.state from Factory to FactoryState to avoid modifying the original factory. For efficiency reasons, the profiles list is passed as it is and it is possible to modify it but that is forbidden by the laws of the game.
+- Speeding up and correcting financial report reception.
+- Making bankruptcy reporting system-wide
+- avoiding execution of contracts with negative or no quantity and logging ones with zero unit price.
+- documentation update
+- bug fix to resolve an issue with ufun calculation for consumers in case of over consumption.
+- make the default behavior of negmas command to reveal agent types in their names
+- preventing agents from publishing CFPs with the ID of other agents
+- documentation update
+- improved Java support
+- added option default_dump_extension to ~/negmas/config.json to enable changing the format of dumps from json to yaml. Currently json is the default. This included adding a helper function helpers.dump() to dump in the selected format (or overriding it by providing a file extension).
+- completing compatibility with SCML description (minor change to the consumer profile)
+- added two new options to negmas tournament command: anac2019std and anac2019collusion to simulate these two tracks of the ANAC 2019 SCML. Sabotage version will be added later.
+- added two new functions in apps.scml.utils anac2019_std, anac2019_collusion to simulate these two tracks of the ANAC 2019 SCML. Sabotage version will be added later.
+- added assign_managers() method to SCMLWorld to allow post-init assignment of managers to factories.
+- updating simulator documentation
+
+
 Release 0.2.2
 -------------
 
