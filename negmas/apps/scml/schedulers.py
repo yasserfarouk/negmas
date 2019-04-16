@@ -206,7 +206,7 @@ class GreedyScheduler(Scheduler):
     def __getstate__(self):
         result = self.__dict__.copy()
         if 'fields' in result.keys():
-            del result['fields']
+            result.pop('fields', None)
 
     def __setstate__(self, state):
         self.__dict__ = state

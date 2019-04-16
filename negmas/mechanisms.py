@@ -366,7 +366,7 @@ class Mechanism(NamedObject, EventSource, ABC):
         """Adds requirements."""
         for r in requirements:
             if r in self._requirements.keys():
-                del self._requirements[r]
+                self._requirements.pop(r, None)
 
     @property
     def negotiators(self):
