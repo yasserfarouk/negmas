@@ -86,8 +86,10 @@ def cli():
                                                 ' Effective only if --distributed')
 @click.option('--port', default=8786, help='The IP port number a dask scheduler to run the distributed tournament.'
                                            ' Effective only if --distributed')
+@click.option('--compact/--debug', default=True, help='If True, effort is exerted to reduce the memory footprint which'
+                                                      'includes reducing logs dramatically.')
 def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosity, configs_only,
-               reveal_names, ip, port, runs, configs, max_runs, competitors, jcompetitors):
+               reveal_names, ip, port, runs, configs, max_runs, competitors, jcompetitors, compact):
     if timeout <= 0:
         timeout = None
     if name == 'random':
@@ -135,7 +137,7 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
                                , name=name, verbose=verbosity > 0, n_runs_per_world=runs, n_configs=configs
                                , max_worlds_per_config=worlds_per_config
                                , configs_only=configs_only
-                               , n_steps=steps)
+                               , n_steps=steps, compact=compact)
     elif ttype.lower() in ('anac2019collusion', 'anac2019'):
         results = anac2019_collusion(competitors=all_competitors
                                      , competitor_params=all_competitors_params
@@ -146,7 +148,7 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
                                      , name=name, verbose=verbosity > 0, n_runs_per_world=runs, n_configs=configs
                                      , max_worlds_per_config=worlds_per_config
                                      , configs_only=configs_only
-                                     , n_steps=steps)
+                                     , n_steps=steps, compact=compact)
     else:
         print(f'{ttype.lower()} tournament type is not supported')
         exit(1)
@@ -186,9 +188,11 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
 @click.option('--riskiness', default=0.0, help='How risky is the default factory manager')
 @click.option('--log', default='~/negmas/logs',
               help='Default location to save logs (A folder will be created under it)')
+@click.option('--compact/--debug', default=True, help='If True, effort is exerted to reduce the memory footprint which'
+                                                      'includes reducing logs dramatically.')
 def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumption, max_consumption
          , transport, time, neg_time
-         , neg_steps, sign, guaranteed, lines, retrials, use_consumer, max_insurance, riskiness, log):
+         , neg_steps, sign, guaranteed, lines, retrials, use_consumer, max_insurance, riskiness, log, compact):
     params = {
         "steps": steps,
         "levels": levels,
@@ -241,7 +245,7 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
                                   , default_manager_params=factory_kwargs
                                   , transportation_delay=transport, time_limit=time, neg_time_limit=neg_time
                                   , neg_n_steps=neg_steps, default_signing_delay=sign
-                                  , n_lines_per_factory=lines)
+                                  , n_lines_per_factory=lines, compact=compact)
     failed = False
     strt = perf_counter()
     try:

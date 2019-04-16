@@ -1,5 +1,6 @@
 import copy
 import itertools
+import logging
 import math
 import sys
 import uuid
@@ -125,7 +126,17 @@ class SCMLWorld(World):
                  , default_price_for_products_without_one=1
                  , compensation_fraction=0.5
                  # general parameters
-                 , log_file_name=None
+                 , log_file_name=''
+                 , log_to_screen: bool = False
+                 , log_file_level=logging.DEBUG
+                 , log_screen_level=logging.ERROR
+                 , save_mechanism_state_in_contract=False
+                 , compact=False
+                 , save_signed_contracts: bool = True
+                 , save_cancelled_contracts: bool = True
+                 , save_negotiations: bool = True
+                 , save_resolved_breaches: bool = True
+                 , save_unresolved_breaches: bool = True
                  , name: str = None):
         """
 
@@ -166,6 +177,13 @@ class SCMLWorld(World):
             log_file_name:
             name:
         """
+
+        if compact:
+            save_mechanism_state_in_contract = False
+            log_file_level = logging.ERROR
+            log_screen_level = logging.CRITICAL
+            save_cancelled_contracts = save_resolved_breaches = save_negotiations = False
+        self.compact = compact
         super().__init__(bulletin_board=None
                          , n_steps=n_steps, time_limit=time_limit
                          , negotiation_speed=negotiation_speed
@@ -174,9 +192,15 @@ class SCMLWorld(World):
                          , default_signing_delay=default_signing_delay
                          , start_negotiations_immediately=start_negotiations_immediately
                          , neg_step_time_limit=neg_step_time_limit
-                         , mechanisms={'negmas.sao.SAOMechanism': {}}
-                         , name=name)
+                         , mechanisms={'negmas.sao.SAOMechanism': {}}, log_to_screen=log_to_screen
+                         , log_file_level=log_file_level, log_screen_level=log_screen_level, name=name
+                         , save_signed_contracts=save_signed_contracts, save_negotiations=save_negotiations
+                         , save_cancelled_contracts=save_cancelled_contracts
+                         , save_resolved_breaches=save_resolved_breaches
+                         , save_unresolved_breaches=save_unresolved_breaches)
+
         self.compensation_fraction = compensation_fraction
+        self.save_mechanism_state_in_contract = save_mechanism_state_in_contract
         self.default_price_for_products_without_one = default_price_for_products_without_one
         self.agents: Dict[str, SCMLAgent] = {}  # just to help static type checkers
         if balance_at_max_interest is None:
@@ -1662,11 +1686,12 @@ class SCMLWorld(World):
             'penalty': contract.agreement.get('penalty', np.nan),
             'signing_delay': contract.agreement.get('signing_delay', 0),
             'signatures': '|'.join(str(_) for _ in contract.signatures),
-            'issues': contract.issues,
+            'issues': contract.issues if not self.compact else None,
             'seller': contract.annotation['seller'],
             'buyer': contract.annotation['buyer'],
         }
-        c.update(contract.annotation)
+        if not self.compact:
+            c.update(contract.annotation)
         c['n_neg_steps'] = contract.mechanism_state.step
         return c
 

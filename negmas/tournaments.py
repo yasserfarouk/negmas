@@ -74,7 +74,7 @@ class ConfigGenerator(Protocol):
     """
 
     def __call__(self, n_competitors: int, n_agents_per_competitor: int, agent_names_reveal_type: bool = False
-                 , **kwargs) -> Dict[str, Any]: ...
+                 , compact: bool = False, **kwargs) -> Dict[str, Any]: ...
 
 
 class ConfigAssigner(Protocol):
@@ -126,12 +126,13 @@ class TournamentResults:
     ttest: pd.DataFrame
 
 
-def run_world(world_params: dict, dry_run: bool = False):
+def run_world(world_params: dict, dry_run: bool = False, save_world_stats: bool = True):
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
         world_params: World info dict. See remarks for its parameters
         dry_run: If true, the world will not be run. Only configs will be saved
+        save_world_stats: If true, saves individual world stats
 
     Remarks:
 
@@ -164,12 +165,13 @@ def run_world(world_params: dict, dry_run: bool = False):
         if k in world_params.keys():
             del world_params[k]
     return _run_world(world_params=world_params, world_generator=world_generator, score_calculator=score_calculator
-                      , dry_run=dry_run)
+                      , dry_run=dry_run, save_world_stats=save_world_stats)
 
 
 def _run_world(world_params: dict, world_generator: WorldGenerator
                , score_calculator: Callable[[World, bool], WorldRunResults]
                , world_progress_callback: Callable[[Optional[World]], None] = None, dry_run: bool = False
+               , save_world_stats: bool = True
                ) -> Tuple[WorldRunResults, str]:
     """Runs a world and returns stats
 
@@ -177,8 +179,9 @@ def _run_world(world_params: dict, world_generator: WorldGenerator
         world_params: World info dict. See remarks for its parameters
         world_generator: World generator function.
         score_calculator: Score calculator function.
-        dry_run: If true, the world is not run. Its config is saved instead.
         world_progress_callback: world progress callback
+        dry_run: If true, the world is not run. Its config is saved instead.
+        save_world_stats: If true, saves individual world stats
 
     Returns:
 
@@ -214,12 +217,14 @@ def _run_world(world_params: dict, world_generator: WorldGenerator
             if not world.step():
                 break
             world_progress_callback(world)
-    save_stats(world=world, log_dir=dir_name)
+    if save_world_stats:
+        save_stats(world=world, log_dir=dir_name)
     scores = score_calculator(world, False)
     return scores, dir_name
 
 
-def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: str) -> pd.DataFrame:
+def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: str
+                      , save_world_stats: bool = True) -> pd.DataFrame:
     """
     Generates a dataframe with the results of this world run
 
@@ -227,6 +232,7 @@ def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: 
         results: Results of the world run
         tournament_name: tournament name
         dir_name: directory name to store the stats.
+        save_world_stats: It True, it will be assumed that world stats are saved
 
     Returns:
 
@@ -234,7 +240,7 @@ def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: 
 
     """
     log_file, world_name_ = results.log_file_name, results.world_name
-    if log_file is not None:
+    if save_world_stats and log_file is not None and pathlib.Path(log_file).exists():
         with open(log_file, 'a') as f:
             f.write(f'\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n')
     scores = []
@@ -245,7 +251,7 @@ def process_world_run(results: WorldRunResults, tournament_name: str, dir_name: 
 
 
 def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generator, tournament_progress_callback
-              , n_worlds, name, score_calculator, dry_run) -> List[pd.DataFrame]:
+              , n_worlds, name, score_calculator, dry_run, save_world_stats) -> List[pd.DataFrame]:
     """Runs the tournament on dask"""
 
     import distributed
@@ -263,7 +269,8 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
     client = distributed.Client(address=address, set_as_default=True)
     future_results = []
     for world_info in world_infos:
-        future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator, None, dry_run))
+        future_results.append(client.submit(_run_world, world_info, world_generator, score_calculator, None, dry_run
+                                            , save_world_stats))
     print(f'Submitted all processes to DASK ({len(world_infos)})')
     _strt = time.perf_counter()
     for i, (future, result) in enumerate(
@@ -272,7 +279,8 @@ def _run_dask(scheduler_ip, scheduler_port, verbose, world_infos, world_generato
             score_, dir_name = result
             if tournament_progress_callback is not None:
                 tournament_progress_callback(score_, i, n_worlds)
-            scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+            scores.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name))
+                          , save_world_stats=save_world_stats)
             if verbose:
                 _duration = time.perf_counter() - _strt
                 print(f'{i + 1:003} of {n_worlds:003} [{100 * (i + 1) / n_worlds:0.3}%] completed in '
@@ -309,6 +317,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                , name: str = None
                , verbose: bool = False
                , configs_only: bool = False
+               , compact: bool = False
                , **kwargs
                ) -> Union[TournamentResults, PathLike]:
     """
@@ -351,6 +360,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                                       processing
         verbose: Verbosity
         configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         kwargs: Arguments to pass to the `config_generator` function
 
     Returns:
@@ -410,7 +420,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     dump(params, tournament_path / 'params')
 
     configs = [config_generator(n_competitors=len(competitors), n_agents_per_competitor=n_agents_per_competitor
-                                , agent_names_reveal_type=agent_names_reveal_type, **kwargs)
+                                , agent_names_reveal_type=agent_names_reveal_type, compact=compact, **kwargs)
                for _ in range(n_configs)]
 
     dump(configs, tournament_path / 'base_configs')
@@ -463,11 +473,13 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
             try:
                 score_, _ = _run_world(world_params=world_params, world_generator=world_generator
                                         , world_progress_callback=world_progress_callback
-                                        , score_calculator=score_calculator, dry_run=configs_only)
+                                        , score_calculator=score_calculator, dry_run=configs_only
+                                       , save_world_stats=not compact)
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
                 scores_list.append(process_world_run(score_, tournament_name=name
-                                                     , dir_name=str(world_params['__dir_name'])))
+                                                     , dir_name=str(world_params['__dir_name'])
+                                                     , save_world_stats=not compact))
                 if verbose:
                     _duration = time.perf_counter() - strt
                     print(f'{i + 1:003} of {n_world_configs:003} [{(i + 1) / n_world_configs:.02%}] '
@@ -484,7 +496,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
         future_results = []
         for world_params in assigned:
             future_results.append(executor.submit(_run_world, world_params, world_generator, score_calculator
-                                                  , world_progress_callback, configs_only))
+                                                  , world_progress_callback, configs_only, not compact))
         if verbose:
             print(f'Submitted all processes ({len(assigned)})')
         _strt = time.perf_counter()
@@ -493,7 +505,8 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                 score_, dir_name = future.result()
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
-                scores_list.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)))
+                scores_list.append(process_world_run(score_, tournament_name=name, dir_name=str(dir_name)
+                                                     , save_world_stats=not compact))
                 if verbose:
                     _duration = time.perf_counter() - _strt
                     print(f'{i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] '
@@ -512,7 +525,8 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                 print(e)
     elif parallelism in dask_options:
         scores_list = _run_dask(scheduler_ip, scheduler_port, verbose, assigned, world_generator
-                                , tournament_progress_callback, n_world_configs, name, score_calculator, configs_only)
+                                , tournament_progress_callback, n_world_configs, name, score_calculator, configs_only
+                                , not compact)
     if configs_only:
         return config_path
     if verbose:
