@@ -407,7 +407,7 @@ class Controller(NamedObject):
             return
         response = negotiator.on_kill(cntxt=cntxt)
         if response or force:
-            del self._negotiators[negotiator_id]
+            self._negotiators.pop(negotiator_id, None)
 
     def join(self, negotiator_id: str, ami: AgentMechanismInterface, state: MechanismState
                  , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:

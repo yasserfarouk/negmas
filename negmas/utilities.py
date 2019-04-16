@@ -494,7 +494,7 @@ class UtilityFunction(ABC, NamedObject):
                                     issues[issue_key][item_key] = fun(value)
                                 found_values = True
                     if not found_values and issue_key in issues.keys():
-                        del issues[issue_key]
+                        issues.pop(issue_key, None)
                 else:
                     """Here goes the code for real-valued issues"""
 
