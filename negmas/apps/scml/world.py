@@ -12,6 +12,7 @@ import numpy as np
 import yaml
 
 from negmas import AgentMechanismInterface
+from negmas.apps.scml.common import FactoryState
 from negmas.events import Event, EventSource
 from negmas.helpers import instantiate, unique_name
 from negmas.outcomes import Issue
@@ -950,8 +951,12 @@ class SCMLWorld(World):
             callback(action, True)
         return True
 
-    def get_private_state(self, agent: 'Agent') -> Factory:
-        return self.a2f[agent.id]
+    def get_private_state(self, agent: 'Agent') -> FactoryState:
+        f = self.a2f[agent.id]
+        return FactoryState(storage=f.storage, wallet=f.wallet, loans=f.loans, max_storage=f.max_storage
+                            , line_schedules=f.line_schedules, hidden_money=f.hidden_money
+                            , hidden_storage=f.hidden_storage, n_lines=f.n_lines, profiles=f.profiles
+                            , next_step=f.next_step)
 
     def receive_financial_reports(self, agent: SCMLAgent, receive: bool, agents: Optional[List[str]]):
         """Registers interest/disinterest in receiving financial reports"""
@@ -1046,11 +1051,8 @@ class SCMLWorld(World):
                 # should already be complete by now
                 if cfp.max_time <= self.current_step:
                     toremove.append(key)
-                # new_cfps[key] = cfp
             for key in toremove:
                 self.bulletin_board.remove(section='cfps', query=key, query_keys=True)
-            # noinspection PyProtectedMember
-            # self.bulletin_board._data['cfps'] = new_cfps
 
     def _pre_step_stats(self):
         # noinspection PyProtectedMember
