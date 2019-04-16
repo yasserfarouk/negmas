@@ -216,6 +216,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         return schedule.final_balance
 
     def init(self):
+        self.negotiation_margin = min(self.negotiation_margin, int(self.awi.n_steps/2) + 1)
         if self.use_consumer:
             # @todo add the parameters of the consumption profile as parameters of the greedy factory manager
             self.consumer: ScheduleDrivenConsumer = ScheduleDrivenConsumer(profiles=dict(zip(self.consuming.keys()
@@ -367,7 +368,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             neg = self.negotiator_type(name=self.name + '>' + cfp.publisher)
         self.request_negotiation(negotiator=neg, cfp=cfp
                                  , ufun=normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp))
-                                                  , outcomes=cfp.outcomes, infeasible_cutoff=-1500))
+                                                  , outcomes=cfp.outcomes, infeasible_cutoff=-1))
 
     def _process_sell_cfp(self, cfp: 'CFP'):
         if self.awi.is_bankrupt(cfp.publisher):
