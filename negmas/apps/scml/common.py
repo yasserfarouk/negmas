@@ -172,7 +172,7 @@ class FactoryStatusUpdate:
             if self.storage[k] == 0:
                 to_remove.append(k)
         for k in to_remove:
-            del self.storage[k]
+            self.storage.pop(k, None)
 
     @classmethod
     def combine_sets(cls, dst: Dict[int, "FactoryStatusUpdate"], src: Dict[int, "FactoryStatusUpdate"]):
@@ -191,7 +191,7 @@ class FactoryStatusUpdate:
             if dst[i].balance == 0 and len(dst[i].storage) == 0:
                 to_remove.append(i)
         for i in to_remove:
-            del dst[i]
+            dst.pop(i, None)
         return None
 
     @property

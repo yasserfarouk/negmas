@@ -163,7 +163,7 @@ def run_world(world_params: dict, dry_run: bool = False, save_world_stats: bool 
     # delete the parameters not used by _run_world
     for k in ('__world_generator', '__tournament_name', '__score_calculator'):
         if k in world_params.keys():
-            del world_params[k]
+            world_params.pop(k, None)
     return _run_world(world_params=world_params, world_generator=world_generator, score_calculator=score_calculator
                       , dry_run=dry_run, save_world_stats=save_world_stats)
 
@@ -201,7 +201,7 @@ def _run_world(world_params: dict, world_generator: WorldGenerator
     """
     world_params = world_params.copy()
     dir_name = world_params['__dir_name']
-    del world_params['__dir_name']
+    world_params.pop('__dir_name', None)
     world = world_generator(**world_params)
     if dry_run:
         world.save_config(dir_name)

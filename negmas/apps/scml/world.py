@@ -1713,7 +1713,7 @@ class SCMLWorld(World):
         return self.contracts.get(self.current_step, [])
 
     def _delete_executed_contracts(self) -> None:
-        del self.contracts[self.current_step]
+        self.contracts.pop(self.current_step, None)
 
     def _contract_finalization_time(self, contract: Contract) -> int:
         """
