@@ -25,7 +25,7 @@ __all__ = ['Product', 'Process', 'InputOutput', 'RunningCommandInfo'
     , 'FactoryStatusUpdate', 'Job', 'ProductionNeed'
     , 'MissingInput', 'ProductionReport', 'ProductionFailure', 'FinancialReport'
     , 'SCMLAgreement', 'SCMLAction'
-    , 'CFP', 'Loan', 'InsurancePolicy', 'Factory']
+    , 'CFP', 'Loan', 'InsurancePolicy', 'Factory', 'FactoryState']
 
 
 @dataclass
@@ -870,6 +870,31 @@ class InsurancePolicy:
     contract: Contract
     at_time: int
     against: 'SCMLAgent'
+
+
+@dataclass
+class FactoryState:
+    """Read Only State of a factory"""
+    max_storage: int
+    """Maximum storage allowed in this factory"""
+    line_schedules: np.array
+    """An array of n_lines * n_steps giving the line schedules"""
+    storage: Dict[int, int]
+    """Mapping from product index to the amount available in the inventory"""
+    wallet: float
+    """Money available for purchases"""
+    hidden_money: float
+    """Amount of money hidden by the agent"""
+    hidden_storage: Dict[int, int]
+    """Mapping from product index to the amount hidden by the agent"""
+    loans: float
+    """The total money owned as loans"""
+    n_lines: int
+    """The number of lines in the factory, will be set using the `profiles` input"""
+    profiles: List[ManufacturingProfile]
+    """A list of profiles used to initialize the factory"""
+    next_step: int
+    """Next simulation step for this factory"""
 
 
 @dataclass

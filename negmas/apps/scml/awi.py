@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 
 from negmas import Issue
 from negmas.apps.scml.common import *
+from negmas.apps.scml.common import FactoryState
 from negmas.java import to_java, from_java, to_dict
 from negmas.situated import AgentWorldInterface, Contract, Action
 
@@ -182,10 +183,14 @@ class SCMLAWI(AgentWorldInterface):
         self._world.receive_financial_reports(self.agent, receive, agents)
 
     @property
-    def state(self) -> Factory:
+    def state(self) -> FactoryState:
         """Returns the private state of the agent in that world.
 
-        In the SCML world, that is a reference to its factory"""
+        In the SCML world, that is a reference to its factory. You are allowed to read information from the returned
+        `Factory` but **not to modify it or call ANY methods on it that modify the state**.
+
+
+        """
         return self._world.get_private_state(self.agent)
 
     @property
