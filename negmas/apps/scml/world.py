@@ -226,7 +226,7 @@ class SCMLWorld(World):
         self.set_consumers(consumers)
         self.set_factory_managers(factory_managers)
         self.money_resolution = money_resolution
-        self._financial_report_interest: Dict[str, set[str]] = defaultdict(set)
+        self._report_receivers: Dict[str, Set[SCMLAgent]] = defaultdict(set)
         # self._remove_processes_not_used_by_factories()
         # self._remove_products_not_used_by_processes()
         if catalog_prices_are_public or avg_process_cost_is_public:
@@ -953,21 +953,16 @@ class SCMLWorld(World):
     def get_private_state(self, agent: 'Agent') -> Factory:
         return self.a2f[agent.id]
 
-    def receive_financial_reports(self, agent: str, receive: bool, agents: Optional[List[str]]):
+    def receive_financial_reports(self, agent: SCMLAgent, receive: bool, agents: Optional[List[str]]):
         """Registers interest/disinterest in receiving financial reports"""
+        if agents is None:
+            agents = self.agents.keys()
         if receive:
-            if agents is not None:
-                for _ in agents:
-                    self._financial_report_interest[agent].add(_)
-            else:
-                self._financial_report_interest[agent].add('all')
+            for aid in agents:
+                self._report_receivers[aid].add(agent)
         else:
-            if agents is None:
-                self._financial_report_interest.pop(agent, None)
-            else:
-                self._financial_report_interest[agent] = self._financial_report_interest[agent] - set(agents)
-                if 'all' in self._financial_report_interest[agent]:
-                    self._financial_report_interest[agent] = set(self.agents)
+            for aid in agents:
+                self._report_receivers[aid].discard(agent)
 
     def _simulation_step(self):
         """A step of SCML simulation"""
@@ -998,6 +993,8 @@ class SCMLWorld(World):
                 if reports_time.get(self.current_step, None) is None:
                     reports_time[self.current_step] = {}
                 reports_time[self.current_step][agent.id] = report
+                for receiver in self._report_receivers[agent.id]:
+                    receiver.on_new_report(report)
 
         # run standing jobs
         # -----------------
@@ -1373,7 +1370,7 @@ class SCMLWorld(World):
                 #  seller is already registered by this time.
 
                 # the insurance company can give  as much as the buyer can buy. No loan is allowed here as the buyer was
-                # already offered a loan earlier because surely if they have a deficit they commited a funds breach
+                # already offered a loan earlier because surely if they have a deficit they committed a funds breach
                 # buyer_deficit = missing_quantity * unit_price - buyer_factory.wallet
                 # if buyer_deficit > 0:
                 #     self.bank.buy_loan(agent=buyer, amount=buyer_deficit, n_installments=self.loan_installments)
@@ -1483,11 +1480,8 @@ class SCMLWorld(World):
         """Marks the agent as bankrupt"""
         self.bulletin_board.record('bankruptcy', {'time': self.current_step,
                                                   }, key=agent.id)
-        # @todo can be implemented faster by keeping the reverse dict (i.e. from agent to everyone to inform about his
-        #  bakruptcy
         for receiver in itertools.chain(self.miners, self.consumers, self.factory_managers):
-            if agent.id in self._financial_report_interest.get(receiver.id, {}):
-                receiver.on_agent_bankrupt(agent.id)
+            receiver.on_agent_bankrupt(agent.id)
         # liquidate the bankrupt agent
         factory = self.a2f.get(agent.id, None)
         if factory is None:
