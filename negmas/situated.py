@@ -381,7 +381,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         if key is not None:
             try:
                 self.announce(Event('will_remove_record', data={'section': sec, 'key': key, 'value': sec[key]}))
-                del sec[key]
+                sec.pop(key, None)
                 return True
             except KeyError:
                 return False
@@ -397,7 +397,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
             return False
         for k in keys:
             self.announce(Event('will_remove_record', data={'section': sec, 'key': k, 'value': sec[k]}))
-            del sec[k]
+            sec.pop(k, None)
         return True
 
     @property
@@ -748,7 +748,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
     def __getstate__(self):
         state = self.__dict__.copy()
         if 'logger' in state.keys():
-            del state['logger']
+            state.pop('logger', None)
         return state
 
     def __setstate__(self, state):
@@ -953,7 +953,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                         else:
                             self._register_contract(mechanism.ami, negotiation)
                         if negotiation:
-                            del self._negotiations[mechanism.uuid]
+                            self._negotiations.pop(mechanism.uuid, None)
                 mechanisms = list((k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None)
                 current_step += 1
                 if n_steps is not None and current_step >= n_steps:
@@ -1049,7 +1049,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         # ------------------------------------------
         completed = list(k for k, _ in self._negotiations.items() if _ is not None and _.mechanism.completed)
         for key in completed:
-            del self._negotiations[key]
+            self._negotiations.pop(key, None)
 
         # update stats
         # ------------
@@ -1160,7 +1160,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     else:
                         self._register_contract(mechanism.ami, negotiation)
                     if negotiation:
-                        del self._negotiations[mechanism.uuid]
+                        self._negotiations.pop(mechanism.uuid, None)
         # self.loginfo(
         #    f'{caller.id} request was accepted')
         return neg
@@ -1340,7 +1340,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 record['breaches'] = ''
                 self._saved_contracts[contract.id] = record
             else:
-                del self._saved_contracts[contract.id]
+                self._saved_contracts.pop(contract.id, None)
             for partner in partners:
                 partner.on_contract_cancelled_(contract=contract, rejectors=[_.id for _ in rejectors])
         return [_.id for _ in rejectors]
@@ -1367,7 +1367,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             record['breaches'] = ''
             self._saved_contracts[contract.id] = record
         else:
-            del self._saved_contracts[contract.id]
+            self._saved_contracts.pop(contract.id, None)
 
     def on_contract_cancelled(self, contract):
         """Called whenever a concluded contract is not signed (cancelled)
@@ -1535,13 +1535,13 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 if self.save_resolved_breaches:
                     self._saved_breaches[breach.id]['resolved'] = True
                 else:
-                    del self._saved_breaches[breach.id]
+                    self._saved_breaches.pop(breach.id, None)
             return new_contract
         for breach in breaches:
             if self.save_unresolved_breaches:
                 self._saved_breaches[breach.id]['resolved'] = False
             else:
-                del self._saved_breaches[breach.id]
+                self._saved_breaches.pop(breach.id, None)
             self._register_breach(breach)
         return None
 
