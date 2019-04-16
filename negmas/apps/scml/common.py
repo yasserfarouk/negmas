@@ -45,7 +45,7 @@ class Product:
 
     def __str__(self):
         """String representation is simply the name"""
-        return self.name + (f'(cp:{self.catalog_price})' if self.catalog_price is not None else "")
+        return self.name + (f'(cp:{self.catalog_price:0.02f})' if self.catalog_price is not None else "")
 
     def __post_init__(self):
         global g_last_product_id
@@ -439,7 +439,7 @@ class CFP(OutcomeType):
     """Unique CFP ID"""
 
     def __str__(self):
-        s = f'{self.publisher}: {"buy" if self.is_buy else "sell"} '
+        s = f'{"buy" if self.is_buy else "sell"} '
         s += f'{self.product} '
         s += f'(t: {self.time}, u: {self.unit_price}, q: {self.quantity}'
         if self.penalty is not None:

@@ -139,20 +139,22 @@ class ReactiveMiner(Miner):
         tau_t = pos_gauss(profile.tau_t, profile.cv)
         tau_q = pos_gauss(profile.tau_q, profile.cv)
 
-        ufun = normalize(LinearUtilityAggregationFunction(issue_utilities={
+        ufun = LinearUtilityAggregationFunction(issue_utilities={
             'time': lambda x: x ** tau_t / beta_t,
             'quantity': lambda x: x ** tau_q / beta_q,
             'unit_price': lambda x: x ** tau_u / beta_u if x > 1e-7 else -2000.0,
         }, weights={'time': alpha_t, 'quantity': alpha_q, 'unit_price': alpha_u})
-            , outcomes=cfp.outcomes, infeasible_cutoff=-1)
+        ufun.reserved_value = cfp.money_resolution if cfp.money_resolution is not None else 0.1
+        # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
         if self.negotiator_type == AspirationNegotiator:
-            negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher
+            negotiator = self.negotiator_type(name=self.name + '*' + cfp.publisher
                                               , dynamic_ufun=False, aspiration_type='boulware')
         else:
-            negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + cfp.publisher)
+            negotiator = self.negotiator_type(name=self.name + '*' + cfp.publisher)
         self.n_neg_trials[cfp.id] += 1
         self.request_negotiation(cfp=cfp, negotiator=negotiator
-                                 , ufun=normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None))
+                                 , ufun=ufun)
+        # normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None)
 
     def on_new_cfp(self, cfp: 'CFP'):
         if self.reactive:

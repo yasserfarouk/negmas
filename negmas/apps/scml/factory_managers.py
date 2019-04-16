@@ -12,8 +12,7 @@ from negmas.helpers import get_class
 from negmas.helpers import snake_case
 from negmas.java import JavaCallerMixin, to_java, from_java, to_dict, java_link, PYTHON_CLASS_IDENTIFIER
 from negmas.outcomes import Issue, Outcome
-from negmas.sao import AspirationNegotiator
-from negmas.utilities import UtilityValue, normalize
+from negmas.utilities import UtilityValue
 from .agent import SCMLAgent
 from .awi import _ShadowSCMLAWI, SCMLAWI
 from .common import SCMLAgreement, Factory, INVALID_UTILITY, CFP, Loan, ProductionFailure, FinancialReport
@@ -216,14 +215,13 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         return schedule.final_balance
 
     def init(self):
-        self.negotiation_margin = min(self.negotiation_margin, int(self.awi.n_steps/2) + 1)
+        self.negotiation_margin = max(self.negotiation_margin,
+                                      int(round(len(self.products) * max(0.0, 1.0 - self.riskiness))))
         if self.use_consumer:
             # @todo add the parameters of the consumption profile as parameters of the greedy factory manager
-            self.consumer: ScheduleDrivenConsumer = ScheduleDrivenConsumer(profiles=dict(zip(self.consuming.keys()
-                                                                                             , (ConsumptionProfile(
-                    schedule=[_] * self.awi.n_steps)
-                                                                                                 for _ in
-                                                                                                 itertools.repeat(0))))
+            profiles = dict(zip(self.consuming.keys(),
+                                (ConsumptionProfile(schedule=[_] * self.awi.n_steps) for _ in itertools.repeat(0))))
+            self.consumer: ScheduleDrivenConsumer = ScheduleDrivenConsumer(profiles=profiles
                                                                            , consumption_horizon=self.awi.n_steps,
                                                                            immediate_cfp_update=True
                                                                            , name=self.name)
@@ -243,8 +241,10 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             return self.consumer.respond_to_negotiation_request(cfp=cfp, partner=partner)
         else:
             neg = self.negotiator_type(name=self.name + '*' + partner, **self.negotiator_params)
-            neg.utility_function = normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp)),
-                                             outcomes=cfp.outcomes, infeasible_cutoff=0)
+            neg.utility_function = self.ufun_factory(self, self._create_annotation(cfp=cfp))
+            neg.utility_function.reserved_value = cfp.money_resolution if cfp.money_resolution is not None else 0.1
+            # neg.utility_function = normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp)),
+            #                                 outcomes=cfp.outcomes, infeasible_cutoff=0)
             return neg
 
     def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface):
@@ -362,13 +362,12 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             return
         if not self.can_produce(cfp=cfp):
             return
-        if self.negotiator_type == AspirationNegotiator:
-            neg = self.negotiator_type(assume_normalized=True, name=self.name + '>' + cfp.publisher)
-        else:
-            neg = self.negotiator_type(name=self.name + '>' + cfp.publisher)
+        neg = self.negotiator_type(name=self.name + '>' + cfp.publisher, **self.negotiator_params)
+        ufun = self.ufun_factory(self, self._create_annotation(cfp=cfp))
+        ufun.reserved_value = cfp.money_resolution if cfp.money_resolution is not None else 0.1
         self.request_negotiation(negotiator=neg, cfp=cfp
-                                 , ufun=normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp))
-                                                  , outcomes=cfp.outcomes, infeasible_cutoff=-1))
+                                 , ufun=ufun)
+        #normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
 
     def _process_sell_cfp(self, cfp: 'CFP'):
         if self.awi.is_bankrupt(cfp.publisher):

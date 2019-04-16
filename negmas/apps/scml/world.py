@@ -1753,17 +1753,25 @@ class SCMLWorld(World):
         return n_contracts / n_negs if n_negs != 0 else np.nan
 
     @property
+    def cancellation_rate(self) -> float:
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        n_negs = sum(self.stats["n_negotiations"])
+        n_contracts = len(self._saved_contracts)
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _['signed']])
+        return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
+
+    @property
     def contract_execution_fraction(self) -> float:
         """Fraction of signed contracts successfully executed"""
         n_executed = sum(self.stats['n_contracts_executed'])
-        n_contracts = len(self._saved_contracts)
-        return n_executed / n_contracts if n_contracts > 0 else np.nan
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _['signed']])
+        return n_executed / n_signed_contracts if n_signed_contracts > 0 else np.nan
 
     @property
     def breach_rate(self) -> float:
         """Fraction of signed contracts that led to breaches"""
         n_breaches = sum(self.stats['n_breaches'])
-        n_contracts = len(self._saved_contracts)
-        if n_contracts != 0:
-            return n_breaches / n_contracts
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _['signed']])
+        if n_signed_contracts != 0:
+            return n_breaches / n_signed_contracts
         return np.nan

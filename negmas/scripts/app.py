@@ -283,21 +283,21 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
     if len(world.saved_contracts) > 0:
         data = pd.DataFrame(world.saved_contracts)
         data = data.sort_values(['delivery_time'])
-        data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                               , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'nullified_at'
-                               , 'cfp']]
+        data = data.loc[data.signed_at >= 0, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time'
+                        , 'unit_price', 'quantity', 'product_name', 'n_neg_steps', 'signed_at']]
+        data.columns = ['seller_type', 'buyer_type', 'seller', 'buyer', 't', 'price', 'q', 'product', 'steps'
+                        , 'signed']
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
         n_contracts = len(world.saved_contracts)
         winners = [f'{_.name} gaining {world.a2f[_.id].balance / world.a2f[_.id].initial_balance - 1.0:0.0%}'
                    for _ in world.winners]
-        print_and_log(f'{n_contracts} contracts :-) [N. Negotiations: {n_negs}'
-                      f', Agreement Rate: {world.agreement_rate:0.0%}]')
-        print_and_log(f'Executed: {world.contract_execution_fraction:0.0%}'
-                      f', Breached: {world.breach_rate:0.0%}'
-                      f', N. Executed: {n_executed}'
-                      f', Business size: {world.business_size}\n'
+        print_and_log(f'{n_contracts} contracts :-) [N. Negotiations: {n_negs}, Agreement Rate: '
+                      f'{world.agreement_rate:0.0%}]')
+        print_and_log(f'Cancelled: {world.cancellation_rate:0.0%}, Executed: {world.contract_execution_fraction:0.0%}'
+                      f', Breached: {world.breach_rate:0.0%}, N. Executed: {n_executed}, Business size: '
+                      f'{world.business_size}\n'
                       f'Winners: {winners}\n'
                       f'Running Time {humanize_time(elapsed)}')
     else:
