@@ -37,12 +37,6 @@ __all__ = [
     'create_loggers',
     # 'MultiIssueUtilityFunctionMapping',
     'ReturnCause',
-    # The cause for returning from a sync call
-    # 'LazyInitializable',    # A class that allows setting initialization parameters later
-    # via a set_params() call
-    'LoggerMixin',
-    # Adds the ability to log to screen and file
-    # The base for all named _entities in the system
     'Distribution',  # A probability distribution
     'snake_case',
     'camel_case',
@@ -415,89 +409,6 @@ class LazyInitializable(object):
             - You should **never** call `adjust_params()` directly anywhere.
         """
         pass
-
-
-class LoggerMixin(object):
-    """Parent of all agents that can log to the console/file.
-
-    You have to call `init` to set the log file and whether you want a screen log. After that you can call
-    log* functions to log.
-
-    Examples:
-        Create a temporary file to test with
-
-        >>> from tempfile import mkstemp
-        >>> _, f_name = mkstemp()
-        >>> l = LoggerMixin().init(f_name)
-        >>> l.loginfo('test info')
-        >>> l.logerror('test error')
-        >>> l.logwarning('test warning')
-        >>> l.logdebug('test debug')
-        >>> with open(f_name, 'r') as f:
-        ...     lines = f.readlines()
-        >>> ('INFO - test info' in lines[0]) if len(lines) > 0 else True
-        True
-        >>> ('ERROR - test error' in lines[1]) if len(lines) > 1 else True
-        True
-        >>> ('WARNING - test warning' in lines[2])  if len(lines) > 2 else True
-        True
-        >>> ('DEBUG - test debug' in lines[3])  if len(lines) > 3 else True
-        True
-
-    """
-
-    def init(self, file_name: Optional[str] = None, screen_log: bool=False) -> 'LoggerMixin':
-        """Constructor
-
-        Constructs a logger agent
-
-        Args:
-            screen_log: If true a log will be printed on the screen.
-            file_name (str, optional): Defaults to None. File used for
-
-        """
-        self.log_file_name = file_name
-        if screen_log:
-            self.logger = create_loggers(self.log_file_name)
-        else:
-            self.logger = create_loggers(self.log_file_name, screen_level=None)
-        return self
-
-    def loginfo(self, s: str) -> None:
-        """logs info-level information
-
-        Args:
-            s (str): The string to log
-
-        """
-        self.logger.info(s)
-
-    def logdebug(self, s) -> None:
-        """logs debug-level information
-
-        Args:
-            s (str): The string to log
-
-        """
-        self.logger.debug(s)
-
-    def logwarning(self, s) -> None:
-        """logs warning-level information
-
-        Args:
-            s (str): The string to log
-
-        """
-        self.logger.warning(s)
-
-    def logerror(self, s) -> None:
-        """logs error-level information
-
-        Args:
-            s (str): The string to log
-
-        """
-        self.logger.error(s)
 
 
 class Distribution(object):

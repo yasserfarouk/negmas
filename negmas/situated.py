@@ -26,6 +26,7 @@ Simulation steps:
 
 """
 import copy
+import logging
 import os
 import random
 import re
@@ -46,7 +47,8 @@ from dataclasses import dataclass, field
 from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
-from negmas.helpers import ConfigReader, LoggerMixin, instantiate, get_class, unique_name, snake_case, dump
+from negmas.helpers import ConfigReader, instantiate, get_class, unique_name, snake_case, dump, \
+    create_loggers
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
@@ -403,6 +405,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         """This property is intended for use only by the world manager. No other agent is allowed to use it"""
         return self._data
 
+
 def safe_min(a, b):
     """Returns min(a, b) assuming None is less than anything."""
     if a is None:
@@ -734,7 +737,7 @@ class AgentWorldInterface:
         implements = ['jnegmas.situated.AgentWorldInterface']
 
 
-class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
+class World(EventSink, EventSource, ConfigReader, ABC):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
 
@@ -746,14 +749,13 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
         state = self.__dict__.copy()
         if 'logger' in state.keys():
             del state['logger']
-        state['log_file_name'] = self.log_file_name
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
-        LoggerMixin.init(self, file_name=state['log_file_name'], screen_log=state['screen_log'])
-        if 'log_file_name' in state.keys():
-            del self.__dict__['log_file_name']
+        self.logger = create_loggers(file_name=self.log_file_name, module_name=None
+                                     , screen_level=self.log_screen_level if self.log_to_screen else None
+                                     , file_level=self.log_file_level, app_wide_log_file=True)
 
     def __init__(self, bulletin_board: BulletinBoard = None
                  , n_steps=10000
@@ -765,8 +767,10 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
                  , default_signing_delay=0
                  , breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR
                  , log_file_name=''
+                 , log_to_screen: bool = False
+                 , log_file_level=logging.DEBUG
+                 , log_screen_level=logging.ERROR
                  , mechanisms: Dict[str, Dict[str, Any]] = None
-                 , screen_log: bool = False
                  , awi_type: str = 'negmas.situated.AgentWorldInterface'
                  , start_negotiations_immediately: bool = False
                  , save_signed_contracts: bool = True
@@ -788,9 +792,14 @@ class World(EventSink, EventSource, ConfigReader, LoggerMixin, ABC):
             neg_time_limit: Real-time limit on each single negotiation
             name: Name of the simulator
         """
-        LoggerMixin.init(self, file_name=log_file_name, screen_log=screen_log)
         super().__init__()
-        self.screen_log = screen_log
+        self.log_file_name = log_file_name
+        self.log_file_level = log_file_level
+        self.log_screen_level = log_screen_level
+        self.log_to_screen = log_to_screen
+        self.logger = create_loggers(file_name=log_file_name, module_name=None
+                                     , screen_level=log_screen_level if log_to_screen else None
+                                     , file_level=log_file_level, app_wide_log_file=True)
         self.bulletin_board: BulletinBoard = bulletin_board
         self.set_bulletin_board(bulletin_board=bulletin_board)
         self._negotiations: Dict[str, NegotiationInfo] = {}

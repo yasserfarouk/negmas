@@ -18,7 +18,7 @@ from negmas.common import AgentMechanismInterface, MechanismState ,register_all_
 from negmas.common import NegotiatorInfo
 from negmas.events import *
 from negmas.generics import ikeys
-from negmas.helpers import snake_case, LoggerMixin
+from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
 
 __all__ = [

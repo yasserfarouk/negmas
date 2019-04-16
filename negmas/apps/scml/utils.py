@@ -104,6 +104,7 @@ def anac2019_config_generator(
     , min_n_factories: int = 11
     , n_default_managers: Tuple[int, int] = (1, 4)
     , n_lines: int = 10
+    , compact: bool = True
     , **kwargs
 ) -> Dict[str, Any]:
     if isinstance(n_intermediate, Iterable):
@@ -219,7 +220,7 @@ def anac2019_config_generator(
                                    initial_wallet_balances=1000.0, money_resolution=0.5, transfer_delay=0,
                                    start_negotiations_immediately=False, catalog_profit=0.15,
                                    financial_reports_period=10, default_price_for_products_without_one=1,
-                                   compensation_fraction=0.5, n_steps=n_steps, **kwargs),
+                                   compensation_fraction=0.5, n_steps=n_steps, compact=compact, **kwargs),
               'products': [to_dict(p, add_type_field=False, camel=False) for p in products],
               'processes': [to_dict(p, add_type_field=False, camel=False) for p in processes],
               'factories': [
@@ -237,6 +238,7 @@ def anac2019_config_generator(
               'manager_params': manager_params,
               'n_factories_per_level': n_f_list,
               'agent_names_reveal_type': agent_names_reveal_type,
+              'compact': compact,
               }
     config.update(kwargs)
     return config
@@ -367,6 +369,7 @@ def anac2019_world(
     , n_steps=100
     , time_limit=60 * 90
     , n_default_per_level: int = 5
+    , compact: bool = False
 
 ) -> SCMLWorld:
     """
@@ -403,7 +406,7 @@ def anac2019_world(
         log_file_name: File name to store the logs
         negotiator_type: The negotiation factory used to create all negotiators
         max_storage: maximum storage capacity for all factory managers If None then it is unlimited
-
+        compact: If True, then compact logs will be created to reduce memory footprint
 
     Returns:
         SCMLWorld ready to run
@@ -460,7 +463,7 @@ def anac2019_world(
                                   , manager_params=params
                                   , n_default_per_level=n_default_per_level
                                   , randomize=randomize
-                                  , name=name)
+                                  , name=name, compact=compact)
 
     return world
 
@@ -517,6 +520,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                         , name: str = None
                         , verbose: bool = False
                         , configs_only=False
+                        , compact=False
                         , **kwargs
                         ) -> Union[TournamentResults, PathLike]:
     """
@@ -565,6 +569,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                               , scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
                               , tournament_progress_callback=tournament_progress_callback
                               , world_progress_callback=world_progress_callback, name=name, verbose=verbose
+                              , compact=compact
                               , configs_only=configs_only, **kwargs)
 
 
@@ -583,6 +588,7 @@ def anac2019_std(competitors: Sequence[Union[str, Type[FactoryManager]]]
                  , name: str = None
                  , verbose: bool = False
                  , configs_only=False
+                 , compact=False
                  , **kwargs
                  ) -> Union[TournamentResults, PathLike]:
     """
@@ -611,6 +617,7 @@ def anac2019_std(competitors: Sequence[Union[str, Type[FactoryManager]]]
                                       processing
         verbose: Verbosity
         configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         kwargs: Arguments to pass to the `world_generator` function
 
     Returns:
@@ -635,7 +642,7 @@ def anac2019_std(competitors: Sequence[Union[str, Type[FactoryManager]]]
                       , world_generator=anac2019_world_generator
                       , config_generator=anac2019_config_generator
                       , config_assigner=anac2019_assigner
-                      , score_calculator=balance_calculator, **kwargs)
+                      , score_calculator=balance_calculator, compact=compact, **kwargs)
 
 
 def anac2019_collusion(competitors: Sequence[Union[str, Type[FactoryManager]]]
@@ -654,6 +661,7 @@ def anac2019_collusion(competitors: Sequence[Union[str, Type[FactoryManager]]]
                        , name: str = None
                        , verbose: bool = False
                        , configs_only=False
+                       , compact=False
                        , **kwargs
                        ) -> Union[TournamentResults, PathLike]:
     """
@@ -683,6 +691,7 @@ def anac2019_collusion(competitors: Sequence[Union[str, Type[FactoryManager]]]
                                       processing
         verbose: Verbosity
         configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         kwargs: Arguments to pass to the `world_generator` function
 
     Returns:
@@ -707,4 +716,4 @@ def anac2019_collusion(competitors: Sequence[Union[str, Type[FactoryManager]]]
                       , world_generator=anac2019_world_generator
                       , config_generator=anac2019_config_generator
                       , config_assigner=anac2019_assigner
-                      , score_calculator=balance_calculator, **kwargs)
+                      , score_calculator=balance_calculator, compact=compact, **kwargs)
