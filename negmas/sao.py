@@ -769,13 +769,15 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
 
 class AspirationNegotiator(SAONegotiator, AspirationMixin):
     def __init__(self, name=None, ufun=None, parent: Controller = None, max_aspiration=0.95, aspiration_type='boulware'
-                 , dynamic_ufun=True, randomize_offer=False, can_propose=True, assume_normalized=True):
+                 , dynamic_ufun=True, randomize_offer=False, can_propose=True, assume_normalized=False):
         super().__init__(name=name, assume_normalized=assume_normalized, parent=parent, ufun=ufun)
         self.aspiration_init(max_aspiration=max_aspiration, aspiration_type=aspiration_type)
         self.ordered_outcomes = []
         self.dynamic_ufun = dynamic_ufun
         self.randomize_offer = randomize_offer
         self._max_aspiration = self.max_aspiration
+        self.ufun_max = None
+        self.ufun_min = None
         self.__ufun_modified = False
         self.add_capabilities(
             {
@@ -802,10 +804,13 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     def _update_ordered_outcomes(self):
         outcomes = self._ami.discrete_outcomes()
-        if not self.assume_normalized:
-            self.utility_function = normalize(self.utility_function, outcomes=outcomes, infeasible_cutoff=-1e-6)
         self.ordered_outcomes = sorted([(self.utility_function(outcome), outcome) for outcome in outcomes]
                                        , key=lambda x: x[0], reverse=True)
+        if not self.assume_normalized:
+            self.ufun_max = self.ordered_outcomes[0][0]
+            self.ufun_min = self.ordered_outcomes[-1][0]
+            if self.reserved_value is not None and self.ufun_min < self.reserved_value:
+                self.ufun_min = self.reserved_value
 
     def on_notification(self, notification: Notification, notifier: str):
         super().on_notification(notification, notifier)
@@ -828,7 +833,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         u = self.utility_function(offer)
         if u is None:
             return ResponseType.REJECT_OFFER
-        asp = self.aspiration(state.relative_time)
+        asp = self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min) + self.ufun_min
         if u >= asp and u >= self.reserved_value:
             return ResponseType.ACCEPT_OFFER
         if asp < self.reserved_value:
@@ -836,7 +841,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         return ResponseType.REJECT_OFFER
 
     def propose(self, state: MechanismState) -> Optional['Outcome']:
-        asp = self.aspiration(state.relative_time)
+        asp = self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min) + self.ufun_min
         if asp < self.reserved_value:
             return None
         for i, (u, o) in enumerate(self.ordered_outcomes):

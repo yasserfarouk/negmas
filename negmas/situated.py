@@ -1333,14 +1333,14 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             for partner in partners:
                 partner.on_contract_signed_(contract=contract)
         else:
-            if self.save_cancelled_contracts:
-                record = self._contract_record(contract)
-                record['signed'] = False
-                record['executed'] = None
-                record['breaches'] = ''
-                self._saved_contracts[contract.id] = record
-            else:
-                self._saved_contracts.pop(contract.id, None)
+            # if self.save_cancelled_contracts:
+            record = self._contract_record(contract)
+            record['signed'] = False
+            record['executed'] = None
+            record['breaches'] = ''
+            self._saved_contracts[contract.id] = record
+            # else:
+            #     self._saved_contracts.pop(contract.id, None)
             for partner in partners:
                 partner.on_contract_cancelled_(contract=contract, rejectors=[_.id for _ in rejectors])
         return [_.id for _ in rejectors]
