@@ -223,17 +223,14 @@ class ScheduleDrivenConsumer(Consumer):
         beta_u = pos_gauss(profile.beta_u, profile.cv)
         tau_u = pos_gauss(profile.tau_u, profile.cv)
         tau_q = pos_gauss(profile.tau_q, profile.cv)
-        ufun = normalize(ComplexWeightedUtilityFunction(ufuns=[
+        ufun = ComplexWeightedUtilityFunction(ufuns=[
             MappingUtilityFunction(mapping=lambda x: 1 - x['unit_price'] ** tau_u / beta_u)
             , MappingUtilityFunction(mapping=functools.partial(ScheduleDrivenConsumer._qufun
                                                                , tau=tau_q, profile=profile))]
             , weights=[alpha_u, alpha_q], name=self.name + '_' + partner)
-            , outcomes=cfp.outcomes, infeasible_cutoff=-1500)
-        if self.negotiator_type == AspirationNegotiator:
-            negotiator = self.negotiator_type(assume_normalized=True, name=self.name + '*' + partner
-                                              , aspiration_type='boulware')
-        else:
-            negotiator = self.negotiator_type(name=self.name + '*' + partner)
+        ufun.reserved_value = -1500
+        #ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1500)
+        negotiator = self.negotiator_type(name=self.name + '*' + partner)
         negotiator.name = self.name + '_' + partner
         negotiator.utility_function = ufun
         return negotiator
