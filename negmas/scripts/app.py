@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """The NegMAS universal command line tool"""
-
+import json
 import os
 import traceback
 from functools import partial
@@ -8,6 +8,7 @@ from math import factorial
 from pathlib import Path
 from pprint import pformat
 from time import perf_counter
+import urllib.request
 
 import click
 import pandas as pd
@@ -29,6 +30,9 @@ except:
 
 n_completed = 0
 n_total = 0
+
+JNEGMAS_JAR_NAME = 'jnegmas-0.2.1-all.jar'
+GENIUS_JAR_NAME = 'genius-8.0.4-bridge.jar'
 
 
 def print_progress(_, i, n) -> None:
@@ -327,7 +331,50 @@ def genius(path, port, force):
 @click.option('--port', '-r', default=0, help='Port to run the jnegmas on. Pass 0 for the default value')
 def jnegmas(path, port):
     init_jnegmas_bridge(path=path if path != 'auto' else None, port=port)
-    input('Press C^c to quit')
+    input('Press C^c to quit. You may also need to kill any remaining java processes manually')
+
+
+def download_and_set(key, url, file_name):
+    """
+    Downloads a file and sets the corresponding key in ~/negmas/config.json
+
+    Args:
+        key: Key name in config.json
+        url: URL to download from
+        file_name: file name
+
+    Returns:
+
+    """
+    config_path = Path.home() / 'negmas'
+    jar_path = config_path / 'files'
+    jar_path.mkdir(parents=True, exist_ok=True)
+    jar_path = jar_path / file_name
+    urllib.request.urlretrieve(url, jar_path)
+    config = {}
+    config_file = config_path / 'config.json'
+    if config_file.exists():
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+    config[key] = str(jar_path)
+    with open(config_file, 'w') as f:
+        json.dump(config, fp=f, sort_keys=True, indent=4)
+
+
+@cli.command(help='Downloads jnegmas and updates your settings')
+def jnegmas_setup():
+    url = f'http://www.yasserm.com/scml/{JNEGMAS_JAR_NAME}'
+    print(f'Downloading: {url}', end='', flush=True)
+    download_and_set(key='jnegmas_jar', url=url, file_name='jnegmas.jar')
+    print(' done successfully')
+
+
+@cli.command(help='Downloads the genius bridge and updates your settings')
+def genius_setup():
+    url = f'http://www.yasserm.com/scml/{GENIUS_JAR_NAME}'
+    print(f'Downloading: {url}', end='', flush=True)
+    download_and_set(key='genius_bridge_jar', url=url, file_name='jnegmas.jar')
+    print(' done successfully')
 
 
 if __name__ == '__main__':
