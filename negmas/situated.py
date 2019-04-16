@@ -1965,7 +1965,7 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
             data = pd.DataFrame(world.signed_contracts)
             data = data.sort_values(['delivery_time'])
             data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                                   , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+                                , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
             data.to_csv(str(log_dir / 'signed_contracts.csv'), index_label='index')
         else:
             with open(log_dir / 'signed_contracts.csv', 'w') as f:
@@ -1976,7 +1976,7 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
             data = pd.DataFrame(world.cancelled_contracts)
             data = data.sort_values(['delivery_time'])
             data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                                   , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+                                , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
             data.to_csv(str(log_dir / 'cancelled_contracts.csv'), index_label='index')
         else:
             with open(log_dir / 'cancelled_contracts.csv', 'w') as f:
@@ -1988,7 +1988,7 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
             data = data.sort_values(['delivery_time'])
             data.to_csv(str(log_dir / 'contracts_full_info.csv'), index_label='index')
             data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                                   , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+                                , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
             if world.save_signed_contracts and world.save_cancelled_contracts:
                 data.to_csv(str(log_dir / 'all_contracts.csv'), index_label='index')
         else:
