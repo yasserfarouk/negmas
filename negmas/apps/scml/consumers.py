@@ -197,17 +197,17 @@ class ScheduleDrivenConsumer(Consumer):
         u = profile.underconsumption
         if q == 0 and y != 0:
             return 0.0
-        if y == 0:
-            result = -o
+        if y <= 0:
+            result = - o * ((q - y) ** tau)
         elif q > y:
-            result = - o * abs(((q - y) / y) ** tau)
+            result = - o * (((q - y) / y) ** tau)
         elif q < y:
-            result = - u * abs(((y - q) / y) ** tau)
+            result = - u * (((y - q) / y) ** tau)
         else:
             result = 1.0
         result = math.exp(result)
         if isinstance(result, complex):
-            result = abs(result)
+            result = result.real
         if result is None:
             result = -1000.0
         return result
