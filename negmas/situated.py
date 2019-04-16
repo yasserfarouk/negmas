@@ -1943,49 +1943,57 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
         data.to_csv(str(log_dir / 'stats.csv'), index_label='index')
     except:
         pass
-    if len(world.saved_negotiations) > 0:
-        data = pd.DataFrame(world.saved_negotiations)
-        data.to_csv(str(log_dir / 'negotiations.csv'), index_label='index')
-    else:
-        with open(log_dir / 'negotiations.csv', 'w') as f:
-            f.write('')
 
-    if len(world.saved_breaches) > 0:
-        data = pd.DataFrame(world.saved_breaches)
-        data.to_csv(str(log_dir / 'breaches.csv'), index_label='index')
-    else:
-        with open(log_dir / 'breaches.csv', 'w') as f:
-            f.write('')
+    if world.save_negotiations:
+        if len(world.saved_negotiations) > 0:
+            data = pd.DataFrame(world.saved_negotiations)
+            data.to_csv(str(log_dir / 'negotiations.csv'), index_label='index')
+        else:
+            with open(log_dir / 'negotiations.csv', 'w') as f:
+                f.write('')
 
-    if len(world.signed_contracts) > 0:
-        data = pd.DataFrame(world.signed_contracts)
-        data = data.sort_values(['delivery_time'])
-        data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                               , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
-        data.to_csv(str(log_dir / 'signed_contracts.csv'), index_label='index')
-    else:
-        with open(log_dir / 'signed_contracts.csv', 'w') as f:
-            f.write('')
+    if world.save_resolved_breaches or world.save_unresolved_breaches:
+        if len(world.saved_breaches) > 0:
+            data = pd.DataFrame(world.saved_breaches)
+            data.to_csv(str(log_dir / 'breaches.csv'), index_label='index')
+        else:
+            with open(log_dir / 'breaches.csv', 'w') as f:
+                f.write('')
 
-    if len(world.cancelled_contracts) > 0:
-        data = pd.DataFrame(world.cancelled_contracts)
-        data = data.sort_values(['delivery_time'])
-        data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                               , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
-        data.to_csv(str(log_dir / 'cancelled_contracts.csv'), index_label='index')
-    else:
-        with open(log_dir / 'cancelled_contracts.csv', 'w') as f:
-            f.write('')
+    if world.save_signed_contracts:
+        if len(world.signed_contracts) > 0:
+            data = pd.DataFrame(world.signed_contracts)
+            data = data.sort_values(['delivery_time'])
+            data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
+                                   , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+            data.to_csv(str(log_dir / 'signed_contracts.csv'), index_label='index')
+        else:
+            with open(log_dir / 'signed_contracts.csv', 'w') as f:
+                f.write('')
 
-    if len(world.saved_contracts) > 0:
-        data = pd.DataFrame(world.saved_contracts)
-        data = data.sort_values(['delivery_time'])
-        data.to_csv(str(log_dir / 'contracts_full_info.csv'), index_label='index')
-        data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                               , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
-        data.to_csv(str(log_dir / 'all_contracts.csv'), index_label='index')
-    else:
-        with open(log_dir / 'contracts_full_info.csv', 'w') as f:
-            f.write('')
-        with open(log_dir / 'all_contracts.csv', 'w') as f:
-            f.write('')
+    if world.save_cancelled_contracts:
+        if len(world.cancelled_contracts) > 0:
+            data = pd.DataFrame(world.cancelled_contracts)
+            data = data.sort_values(['delivery_time'])
+            data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
+                                   , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+            data.to_csv(str(log_dir / 'cancelled_contracts.csv'), index_label='index')
+        else:
+            with open(log_dir / 'cancelled_contracts.csv', 'w') as f:
+                f.write('')
+
+    if world.save_signed_contracts or world.save_cancelled_contracts:
+        if len(world.saved_contracts) > 0:
+            data = pd.DataFrame(world.saved_contracts)
+            data = data.sort_values(['delivery_time'])
+            data.to_csv(str(log_dir / 'contracts_full_info.csv'), index_label='index')
+            data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
+                                   , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+            if world.save_signed_contracts and world.save_cancelled_contracts:
+                data.to_csv(str(log_dir / 'all_contracts.csv'), index_label='index')
+        else:
+            with open(log_dir / 'contracts_full_info.csv', 'w') as f:
+                f.write('')
+            if world.save_signed_contracts and world.save_cancelled_contracts:
+                with open(log_dir / 'all_contracts.csv', 'w') as f:
+                    f.write('')
