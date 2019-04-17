@@ -7,7 +7,13 @@ import pkg_resources
 import pytest
 
 from negmas.apps.scml import *
-from negmas.apps.scml import InputOutput, Job, FactoryStatusUpdate, GreedyScheduler, ProductionFailure
+from negmas.apps.scml import (
+    InputOutput,
+    Job,
+    FactoryStatusUpdate,
+    GreedyScheduler,
+    ProductionFailure,
+)
 from negmas.situated import Contract
 
 
@@ -65,15 +71,22 @@ from negmas.situated import Contract
 
 
 def logdir():
-    return pkg_resources.resource_filename('negmas', resource_name='tests')
+    return pkg_resources.resource_filename("negmas", resource_name="tests")
 
 
 def test_can_run_a_random_tiny_scml_world():
-    world = SCMLWorld.chain_world(log_file_name='', n_steps=5, n_factories_per_level=1
-                                  , consumer_kwargs={'negotiator_type': 'negmas.sao.NiceNegotiator', 'consumption_horizon': 2}
-                                  # , factory_kwargs={'max_insurance_premium': 100}
-                                  , miner_kwargs={'negotiator_type': 'negmas.sao.NiceNegotiator'}
-                                  )
+    world = SCMLWorld.chain_world(
+        log_file_name="",
+        n_steps=5,
+        n_factories_per_level=1,
+        consumer_kwargs={
+            "negotiator_type": "negmas.sao.NiceNegotiator",
+            "consumption_horizon": 2,
+        }
+        # , factory_kwargs={'max_insurance_premium': 100}
+        ,
+        miner_kwargs={"negotiator_type": "negmas.sao.NiceNegotiator"},
+    )
     world.run()
     # print('')
     # for key in sorted(world.stats.keys()):
@@ -88,16 +101,21 @@ def test_can_run_a_random_tiny_scml_world():
 
 
 def test_can_run_a_random_tiny_scml_world_no_immediate():
-    world = SCMLWorld.chain_world(log_file_name='', n_steps=5)
+    world = SCMLWorld.chain_world(log_file_name="", n_steps=5)
     world.run()
 
 
 def test_can_run_a_random_tiny_scml_world_with_insurance():
-    world = SCMLWorld.chain_world(log_file_name='', n_steps=5
-                                  # , factory_kwargs={'max_insurance_premium': 1e6}
-                                  , consumer_kwargs={'negotiator_type': 'negmas.sao.NiceNegotiator'}
-                                  , miner_kwargs={'negotiator_type': 'negmas.sao.NiceNegotiator'})
+    world = SCMLWorld.chain_world(
+        log_file_name="",
+        n_steps=5
+        # , factory_kwargs={'max_insurance_premium': 1e6}
+        ,
+        consumer_kwargs={"negotiator_type": "negmas.sao.NiceNegotiator"},
+        miner_kwargs={"negotiator_type": "negmas.sao.NiceNegotiator"},
+    )
     world.run()
+
 
 # @settings(max_examples=50)
 # @given(horizon=st.sampled_from([None, 10, 50, 100, 500]),
@@ -137,32 +155,45 @@ def test_can_run_a_random_tiny_scml_world_with_linear_production():
     n_factory_levels = 0
     n_factories_per_level = 2
     n_steps = 10
-    world = SCMLWorld.chain_world(n_intermediate_levels=n_factory_levels - 1, log_file_name='', n_steps=n_steps
-                                  , n_factories_per_level=n_factories_per_level
-                                  , default_signing_delay=signing_delay
-                                  , consumer_kwargs={'consumption_horizon': horizon
-                                              , 'negotiator_type': 'negmas.sao.NiceNegotiator'}
-                                  , miner_kwargs={'negotiator_type': 'negmas.sao.NiceNegotiator'}
-                                  )
+    world = SCMLWorld.chain_world(
+        n_intermediate_levels=n_factory_levels - 1,
+        log_file_name="",
+        n_steps=n_steps,
+        n_factories_per_level=n_factories_per_level,
+        default_signing_delay=signing_delay,
+        consumer_kwargs={
+            "consumption_horizon": horizon,
+            "negotiator_type": "negmas.sao.NiceNegotiator",
+        },
+        miner_kwargs={"negotiator_type": "negmas.sao.NiceNegotiator"},
+    )
     world.run()
-    assert sum(world.stats['n_contracts_concluded']) > 0
+    assert sum(world.stats["n_contracts_concluded"]) > 0
 
 
 def test_can_run_a_random_tiny_scml_world_with_no_factory():
     n_steps = 10
-    world = SCMLWorld.chain_world(n_intermediate_levels=-1, log_file_name='', n_steps=n_steps
-                                  , negotiation_speed=None)
+    world = SCMLWorld.chain_world(
+        n_intermediate_levels=-1,
+        log_file_name="",
+        n_steps=n_steps,
+        negotiation_speed=None,
+    )
     world.run()
     # print('')
     # for key in sorted(world.stats.keys()):
     #     print(f'{key}:{world.stats[key]}')
-    assert world.stats['n_negotiations'][0] >= n_steps - 1, "at least n negotiations occur where n is the number of " \
-                                                            "steps - 1"
-    assert world.stats['n_negotiations'][2:] == [0] * (len(world.stats['n_negotiations']) - 2), "All negotiations " \
-                                                                                                "happen in steps 0, 1"
-    assert sum(world.stats['n_contracts_concluded']) >= sum(world.stats['n_contracts_signed']), "some contracts signed"
-    assert sum(world.stats['n_breaches']) == 0, "No breaches"
-    assert sum(world.stats['market_size']) == 0, "No change in the market size"
+    assert world.stats["n_negotiations"][0] >= n_steps - 1, (
+        "at least n negotiations occur where n is the number of " "steps - 1"
+    )
+    assert world.stats["n_negotiations"][2:] == [0] * (
+        len(world.stats["n_negotiations"]) - 2
+    ), ("All negotiations " "happen in steps 0, 1")
+    assert sum(world.stats["n_contracts_concluded"]) >= sum(
+        world.stats["n_contracts_signed"]
+    ), "some contracts signed"
+    assert sum(world.stats["n_breaches"]) == 0, "No breaches"
+    assert sum(world.stats["market_size"]) == 0, "No change in the market size"
 
     # data = pd.DataFrame(data=world.saved_contracts).loc[:, ["buyer", "seller", "product", "quantity", "delivery_time"
     # , "unit_price", "penalty", "signing_delay", "concluded_at", "signed_at", "issues", "cfp"]]
@@ -172,17 +203,23 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory():
 def test_can_run_a_random_tiny_scml_world_with_no_factory_finite_horizon():
     n_steps = 5
     horizon = n_steps // 2
-    world = SCMLWorld.chain_world(n_intermediate_levels=-1, log_file_name='', n_steps=n_steps
-                                  , consumer_kwargs={'consumption_horizon': horizon})
+    world = SCMLWorld.chain_world(
+        n_intermediate_levels=-1,
+        log_file_name="",
+        n_steps=n_steps,
+        consumer_kwargs={"consumption_horizon": horizon},
+    )
     world.run()
     # print('')
     # for key in sorted(world.stats.keys()):
     #     print(f'{key}:{world.stats[key]}')
-    #assert world.stats['n_negotiations'][0] >= horizon - 1, "at least n negotiations occur where n is the number of " \
+    # assert world.stats['n_negotiations'][0] >= horizon - 1, "at least n negotiations occur where n is the number of " \
     #                                                        "horizon - 1"
-    assert sum(world.stats['n_contracts_concluded']) >= sum(world.stats['n_contracts_signed']), "all contracts signed"
-    assert sum(world.stats['n_breaches']) == 0, "No breaches"
-    assert sum(world.stats['market_size']) == 0, "No change in the market size"
+    assert sum(world.stats["n_contracts_concluded"]) >= sum(
+        world.stats["n_contracts_signed"]
+    ), "all contracts signed"
+    assert sum(world.stats["n_breaches"]) == 0, "No breaches"
+    assert sum(world.stats["market_size"]) == 0, "No change in the market size"
 
     # data = pd.DataFrame(data=world.saved_contracts).loc[:, ["buyer", "seller", "product", "quantity", "delivery_time"
     # , "unit_price", "penalty", "signing_delay", "concluded_at", "signed_at", "issues", "cfp"]]
@@ -191,18 +228,26 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_finite_horizon():
 
 def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay():
     n_steps = 10
-    world = SCMLWorld.chain_world(n_intermediate_levels=-1, log_file_name='', n_steps=n_steps, default_signing_delay=1)
+    world = SCMLWorld.chain_world(
+        n_intermediate_levels=-1,
+        log_file_name="",
+        n_steps=n_steps,
+        default_signing_delay=1,
+    )
     world.run()
     # print('')
     # for key in sorted(world.stats.keys()):
     #     print(f'{key}:{world.stats[key]}')
-    assert world.stats['n_negotiations'][0] >= n_steps - 1, "at least n negotiations occur where n is the number of " \
-                                                            "steps - 1"
-    #assert world.stats['n_negotiations'][1:] == [0] * (len(world.stats['n_negotiations']) - 1), "All negotiations " \
+    assert world.stats["n_negotiations"][0] >= n_steps - 1, (
+        "at least n negotiations occur where n is the number of " "steps - 1"
+    )
+    # assert world.stats['n_negotiations'][1:] == [0] * (len(world.stats['n_negotiations']) - 1), "All negotiations " \
     #                                                                                           "happen in step 0"
-    assert sum(world.stats['n_contracts_concluded']) >= sum(world.stats['n_contracts_signed']), "all contracts signed"
-    assert sum(world.stats['n_breaches']) == 0, "No breaches"
-    assert sum(world.stats['market_size']) == 0, "No change in the market size"
+    assert sum(world.stats["n_contracts_concluded"]) >= sum(
+        world.stats["n_contracts_signed"]
+    ), "all contracts signed"
+    assert sum(world.stats["n_breaches"]) == 0, "No breaches"
+    assert sum(world.stats["market_size"]) == 0, "No change in the market size"
 
     # data = pd.DataFrame(data=world.saved_contracts).loc[:, ["buyer", "seller", "product", "quantity", "delivery_time"
     # , "unit_price", "penalty", "signing_delay", "concluded_at", "signed_at", "issues", "cfp"]]
@@ -212,21 +257,25 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay():
 def test_can_run_a_random_tiny_scml_world_with_no_factory_with_delay_no_immediate_neg():
     n_steps = 10
     horizon = 4
-    world = SCMLWorld.chain_world(n_intermediate_levels=-1, log_file_name='', n_steps=n_steps
-                                  , default_signing_delay=1
-                                  , consumer_kwargs={'immediate_cfp_update': False
-                                                           , 'consumption_horizon': horizon})
+    world = SCMLWorld.chain_world(
+        n_intermediate_levels=-1,
+        log_file_name="",
+        n_steps=n_steps,
+        default_signing_delay=1,
+        consumer_kwargs={"immediate_cfp_update": False, "consumption_horizon": horizon},
+    )
     world.run()
     # print('')
     # for key in sorted(world.stats.keys()):
     #     print(f'{key}:{world.stats[key]}')
-    #assert world.stats['n_negotiations'][0] >= horizon - 1, "at least n negotiations occur where n is the number of " \
+    # assert world.stats['n_negotiations'][0] >= horizon - 1, "at least n negotiations occur where n is the number of " \
     #                                                        "horizon - 1"
-    assert sum(world.stats['n_contracts_concluded']) >= world.stats['n_contracts_concluded'][-1] + \
-           sum(world.stats['n_contracts_signed']), "some contracts signed"
-    assert sum(world.stats['n_breaches']) == 0, "No breaches"
-    assert sum(world.stats['market_size']) == 0, "No change in the market size"
+    assert sum(world.stats["n_contracts_concluded"]) >= world.stats[
+        "n_contracts_concluded"
+    ][-1] + sum(world.stats["n_contracts_signed"]), "some contracts signed"
+    assert sum(world.stats["n_breaches"]) == 0, "No breaches"
+    assert sum(world.stats["market_size"]) == 0, "No change in the market size"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main(args=[__file__])

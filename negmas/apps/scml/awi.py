@@ -9,9 +9,7 @@ from negmas.apps.scml.common import FactoryState
 from negmas.java import to_java, from_java, to_dict
 from negmas.situated import AgentWorldInterface, Contract, Action
 
-__all__ = [
-    'SCMLAWI',
-]
+__all__ = ["SCMLAWI"]
 
 
 class SCMLAWI(AgentWorldInterface):
@@ -150,8 +148,10 @@ class SCMLAWI(AgentWorldInterface):
         """Registers a CFP"""
         self._world.n_new_cfps += 1
         cfp.money_resolution = self._world.money_resolution
-        cfp.publisher = self.agent.id # force the publisher to be the agent using this AWI.
-        self.bb_record(section='cfps', key=cfp.id, value=cfp)
+        cfp.publisher = (
+            self.agent.id
+        )  # force the publisher to be the agent using this AWI.
+        self.bb_record(section="cfps", key=cfp.id, value=cfp)
 
     def register_interest(self, products: List[int]) -> None:
         """registers interest in receiving callbacks about CFPs related to these products"""
@@ -165,7 +165,7 @@ class SCMLAWI(AgentWorldInterface):
         """Removes a CFP"""
         if self.agent.id != cfp.publisher:
             return False
-        return self.bb_remove(section='cfps', key=str(hash(cfp)))
+        return self.bb_remove(section="cfps", key=str(hash(cfp)))
 
     def evaluate_insurance(self, contract: Contract, t: int = None) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
@@ -185,20 +185,26 @@ class SCMLAWI(AgentWorldInterface):
         """
         return self._world.buy_insurance(contract=contract, agent=self.agent)
 
-    def _create_annotation(self, cfp: 'CFP'):
+    def _create_annotation(self, cfp: "CFP"):
         """Creates full annotation based on a cfp that the agent is receiving"""
         partners = [self.agent.id, cfp.publisher]
-        annotation = {'cfp': cfp, 'partners': partners}
+        annotation = {"cfp": cfp, "partners": partners}
         if cfp.is_buy:
-            annotation['seller'] = self.agent.id
-            annotation['buyer'] = cfp.publisher
+            annotation["seller"] = self.agent.id
+            annotation["buyer"] = cfp.publisher
         else:
-            annotation['buyer'] = self.agent.id
-            annotation['seller'] = cfp.publisher
+            annotation["buyer"] = self.agent.id
+            annotation["seller"] = cfp.publisher
         return annotation
 
-    def request_negotiation(self, cfp: CFP, req_id: str, roles: List[str] = None, mechanism_name: str = None
-                            , mechanism_params: Dict[str, Any] = None) -> bool:
+    def request_negotiation(
+        self,
+        cfp: CFP,
+        req_id: str,
+        roles: List[str] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+    ) -> bool:
         """
         Requests a negotiation with the publisher of a given CFP
 
@@ -222,29 +228,36 @@ class SCMLAWI(AgentWorldInterface):
 
         """
         default_annotation = self._create_annotation(cfp)
-        return super().request_negotiation_about(issues=cfp.issues, req_id=req_id,
-                                                 partners=default_annotation['partners']
-                                                 , roles=roles, annotation=default_annotation,
-                                                 mechanism_name=mechanism_name
-                                                 , mechanism_params=mechanism_params)
+        return super().request_negotiation_about(
+            issues=cfp.issues,
+            req_id=req_id,
+            partners=default_annotation["partners"],
+            roles=roles,
+            annotation=default_annotation,
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+        )
 
-    def request_negotiation_about(self
-                                  , issues: List[Issue]
-                                  , partners: List[str]
-                                  , req_id: str
-                                  , roles: List[str] = None
-                                  , annotation: Optional[Dict[str, Any]] = None
-                                  , mechanism_name: str = None
-                                  , mechanism_params: Dict[str, Any] = None
-                                  ):
+    def request_negotiation_about(
+        self,
+        issues: List[Issue],
+        partners: List[str],
+        req_id: str,
+        roles: List[str] = None,
+        annotation: Optional[Dict[str, Any]] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+    ):
         """
         Overrides the method of the same name in the base class to disable it in SCM Worlds.
 
         **Do not call this method**
 
         """
-        raise RuntimeError('request_negotiation_about should never be called directly in the SCM world'
-                           ', call request_negotiation instead.')
+        raise RuntimeError(
+            "request_negotiation_about should never be called directly in the SCM world"
+            ", call request_negotiation instead."
+        )
 
     def is_bankrupt(self, agent_id: str) -> bool:
         """
@@ -257,7 +270,7 @@ class SCMLAWI(AgentWorldInterface):
             The bankruptcy state of the agent
 
         """
-        return bool(self.bb_read('bankruptcy', key=agent_id))
+        return bool(self.bb_read("bankruptcy", key=agent_id))
 
     def reports_for(self, agent_id: str) -> List[FinancialReport]:
         """
@@ -269,7 +282,7 @@ class SCMLAWI(AgentWorldInterface):
         Returns:
 
         """
-        reports = self.bb_read('reports_agent', key=agent_id)
+        reports = self.bb_read("reports_agent", key=agent_id)
         if reports is None:
             return []
         return reports
@@ -287,15 +300,19 @@ class SCMLAWI(AgentWorldInterface):
             A dictionary with agent IDs in keys and their financial reports at the given time as values
         """
         if step is None:
-            reports = self.bb_query(section='reports_time', query=None)
-            reports = self.bb_read('reports_time', key=str(max([int(_) for _ in reports.keys()])))
+            reports = self.bb_query(section="reports_time", query=None)
+            reports = self.bb_read(
+                "reports_time", key=str(max([int(_) for _ in reports.keys()]))
+            )
         else:
-            reports = self.bb_read('reports_time', key=str(step))
+            reports = self.bb_read("reports_time", key=str(step))
         if reports is None:
             return {}
         return reports
 
-    def receive_financial_reports(self, receive: bool = True, agents: Optional[List[str]] = None) -> None:
+    def receive_financial_reports(
+        self, receive: bool = True, agents: Optional[List[str]] = None
+    ) -> None:
         """
         Registers/unregisters interest in receiving financial reports
 
@@ -334,8 +351,13 @@ class SCMLAWI(AgentWorldInterface):
 
     # sugar functions (implementing actions that can all be done through execute
 
-    def schedule_production(self, profile: int, step: int, contract: Optional[Contract] = None,
-                            override: bool = True) -> None:
+    def schedule_production(
+        self,
+        profile: int,
+        step: int,
+        contract: Optional[Contract] = None,
+        override: bool = True,
+    ) -> None:
         """
         Schedules production on the agent's factory
 
@@ -346,10 +368,21 @@ class SCMLAWI(AgentWorldInterface):
             override: Whether to override existing production jobs schedules at the same time.
 
         """
-        self.execute(action=Action(type='run', params={'profile': profile, 'time': step
-                                                       , 'contract': contract, 'override': override}))
+        self.execute(
+            action=Action(
+                type="run",
+                params={
+                    "profile": profile,
+                    "time": step,
+                    "contract": contract,
+                    "override": override,
+                },
+            )
+        )
 
-    def stop_production(self, line: int, step: int, contract: Optional[Contract], override: bool = True):
+    def stop_production(
+        self, line: int, step: int, contract: Optional[Contract], override: bool = True
+    ):
         """
         Stops/cancels production scheduled at the given line at the given time.
 
@@ -359,7 +392,7 @@ class SCMLAWI(AgentWorldInterface):
             contract: The contract for which the job is scheduled (optional)
             override: Whether to override existing production jobs schedules at the same time.
         """
-        self.execute(action=Action(type='stop', params={'line': line, 'time': step}))
+        self.execute(action=Action(type="stop", params={"line": line, "time": step}))
 
     cancel_production = stop_production
     """
@@ -382,9 +415,18 @@ class SCMLAWI(AgentWorldInterface):
 
             - Notice that actions that require the profile member of Job (run) never use the line member and vice versa.
         """
-        self.execute(action=Action(type=job.action, params={'profile': job.profile, 'time': job.time
-                                                            , 'line': job.line
-                                                            , 'contract': contract, 'override': job.override}))
+        self.execute(
+            action=Action(
+                type=job.action,
+                params={
+                    "profile": job.profile,
+                    "time": job.time,
+                    "line": job.line,
+                    "contract": contract,
+                    "override": job.override,
+                },
+            )
+        )
 
     def hide_inventory(self, product: int, quantity: int) -> None:
         """
@@ -401,7 +443,11 @@ class SCMLAWI(AgentWorldInterface):
               exists is hidden
             - hiding is always immediate
         """
-        self.execute(action=Action(type='hide_product', params={'product': product, 'quantity': quantity}))
+        self.execute(
+            action=Action(
+                type="hide_product", params={"product": product, "quantity": quantity}
+            )
+        )
 
     def hide_funds(self, amount: float) -> None:
         """
@@ -416,7 +462,7 @@ class SCMLAWI(AgentWorldInterface):
             - if the current cash in the agent's wallet is less than the amount to be hidden, all the cash is hidden.
             - hiding is always immediate
         """
-        self.execute(action=Action(type='hide_funds', params={'amount': amount}))
+        self.execute(action=Action(type="hide_funds", params={"amount": amount}))
 
     def unhide_inventory(self, product: int, quantity: int) -> None:
         """
@@ -433,7 +479,11 @@ class SCMLAWI(AgentWorldInterface):
               exists is hidden
             - hiding is always immediate
         """
-        self.execute(action=Action(type='unhide_product', params={'product': product, 'quantity': quantity}))
+        self.execute(
+            action=Action(
+                type="unhide_product", params={"product": product, "quantity": quantity}
+            )
+        )
 
     def unhide_funds(self, amount: float) -> None:
         """
@@ -448,7 +498,7 @@ class SCMLAWI(AgentWorldInterface):
             - if the current cash in the agent's wallet is less than the amount to be hidden, all the cash is hidden.
             - hiding is always immediate
         """
-        self.execute(action=Action(type='unhide_funds', params={'amount': amount}))
+        self.execute(action=Action(type="unhide_funds", params={"amount": amount}))
 
 
 class _ShadowSCMLAWI:
@@ -491,8 +541,12 @@ class _ShadowSCMLAWI:
     def getDefaultSigningDelay(self):
         return self.shadow.default_signing_delay
 
-    def requestNegotiation(self, cfp, req_id: str, roles=None, mechanism_name=None, mechanism_params=None):
-        return self.shadow.request_negotiation(from_java(cfp), req_id, roles, mechanism_name, mechanism_params)
+    def requestNegotiation(
+        self, cfp, req_id: str, roles=None, mechanism_name=None, mechanism_params=None
+    ):
+        return self.shadow.request_negotiation(
+            from_java(cfp), req_id, roles, mechanism_name, mechanism_params
+        )
 
     def registerCFP(self, cfp: Dict[str, Any]) -> None:
         """Registers a CFP"""
@@ -510,7 +564,9 @@ class _ShadowSCMLAWI:
         """registers interest in receiving callbacks about CFPs related to these products"""
         self.shadow.unregister_interest(from_java(products))
 
-    def evaluateInsurance(self, contract: Dict[str, Any], t: int = None) -> Optional[float]:
+    def evaluateInsurance(
+        self, contract: Dict[str, Any], t: int = None
+    ) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
 
         Args:
@@ -544,5 +600,4 @@ class _ShadowSCMLAWI:
         return self.shadow.logerror(msg)
 
     class Java:
-        implements = ['jnegmas.apps.scml.awi.SCMLAWI']
-
+        implements = ["jnegmas.apps.scml.awi.SCMLAWI"]

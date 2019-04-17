@@ -9,19 +9,19 @@ other modules of the library.
 from typing import Iterable, Union, Mapping, Sequence, Callable, Any, Tuple, Dict
 
 __all__ = [
-    'IterableMapping',  # A mapping combining dicts, lists, tuples, and generators
-    'GenericMapping',
+    "IterableMapping",  # A mapping combining dicts, lists, tuples, and generators
+    "GenericMapping",
     # An iterable mapping or a callable (e.g. function/functor)
     # GenericMapping functions (apply to GMapping and IterableMapping)
-    'gmap',  # An index on an IterableMapping or a call on a Callable
-    'gget',
+    "gmap",  # An index on an IterableMapping or a call on a Callable
+    "gget",
     # Like `gmap` but can return a default value
     # IterableMapping functions (apply only to IterableMappings)
-    'ienumerate',  # enumerates a mapping as key-value pairs
-    'iitems', # enumerates a mapping as key-value pairs
-    'ivalues',  # enumerates all values in a mapping (no keys)
-    'ikeys',  # enumerates all keys in a mapping (no values)
-    'iget',  # Similar to `gget` but applies only to IterableMappings
+    "ienumerate",  # enumerates a mapping as key-value pairs
+    "iitems",  # enumerates a mapping as key-value pairs
+    "ivalues",  # enumerates all values in a mapping (no keys)
+    "ikeys",  # enumerates all keys in a mapping (no values)
+    "iget",  # Similar to `gget` but applies only to IterableMappings
 ]
 # Generic classes that work with a variety of python mappings like collections or callables
 IterableMapping = Union[Mapping, Sequence]
@@ -49,7 +49,7 @@ def gmap(group: GenericMapping, param: Any) -> Any:
     Returns:
 
     """
-    if hasattr(group, '__call__'):
+    if hasattr(group, "__call__"):
         return group(param)  # type: ignore
 
     return group[param]  # type: ignore
@@ -88,7 +88,7 @@ def gget(x: GenericMapping, _key: Any, default=None) -> Any:
     Returns:
 
     """
-    if hasattr(x, 'apply'):
+    if hasattr(x, "apply"):
         # noinspection PyBroadException
         try:
             return x(_key)  # type: ignore
@@ -138,7 +138,9 @@ def ienumerate(x: IterableMapping) -> Iterable[Tuple[Any, Any]]:
     else:
         return enumerate(x)
 
+
 iitems = ienumerate
+
 
 def ivalues(x: IterableMapping) -> Iterable[Any]:
     """Returns all keys of the iterable.

@@ -37,7 +37,18 @@ from collections import defaultdict, namedtuple
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Sized
-from typing import Optional, List, Any, Tuple, Callable, Union, Iterable, Set, Iterator, Collection
+from typing import (
+    Optional,
+    List,
+    Any,
+    Tuple,
+    Callable,
+    Union,
+    Iterable,
+    Set,
+    Iterator,
+    Collection,
+)
 
 import numpy as np
 import pandas as pd
@@ -47,32 +58,39 @@ from dataclasses import dataclass, field
 from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
-from negmas.helpers import ConfigReader, instantiate, get_class, unique_name, snake_case, dump, \
-    create_loggers
+from negmas.helpers import (
+    ConfigReader,
+    instantiate,
+    get_class,
+    unique_name,
+    snake_case,
+    dump,
+    create_loggers,
+)
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
 
 __all__ = [
-    'Action',  # An action that an `Agent` can execute in the `World`.
-    'Contract',  # A agreement definition which encapsulates an agreement with partners and extra information
-    'Breach',  # A breach in executing a contract
-    'BreachProcessing',
-    'Agent',  # Negotiator capable of engaging in multiple negotiations
-    'BulletinBoard',
-    'World',
-    'Entity',
-    'AgentWorldInterface',  # the interface though which an agent can interact with the world
-    'NegotiationInfo',
-    'RenegotiationRequest',
-    'save_stats',
+    "Action",  # An action that an `Agent` can execute in the `World`.
+    "Contract",  # A agreement definition which encapsulates an agreement with partners and extra information
+    "Breach",  # A breach in executing a contract
+    "BreachProcessing",
+    "Agent",  # Negotiator capable of engaging in multiple negotiations
+    "BulletinBoard",
+    "World",
+    "Entity",
+    "AgentWorldInterface",  # the interface though which an agent can interact with the world
+    "NegotiationInfo",
+    "RenegotiationRequest",
+    "save_stats",
 ]
 
-PROTOCOL_CLASS_NAME_FIELD = '__mechanism_class_name'
+PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 
 try:
     # disable a warning in yaml 1b1 version
-    yaml.warnings({'YAMLLoadWarning': False})
+    yaml.warnings({"YAMLLoadWarning": False})
 except:
     pass
 
@@ -80,22 +98,24 @@ except:
 @dataclass
 class Action:
     """An action that an `Agent` can execute in a `World` through the `Simulator`."""
+
     type: str
     """Action name."""
     params: dict
     """Any extra parameters to be passed for the action."""
 
     def __str__(self):
-        return f'{self.type}: {self.params}'
+        return f"{self.type}: {self.params}"
 
 
-Signature = namedtuple('Signature', ['id', 'signature'])
+Signature = namedtuple("Signature", ["id", "signature"])
 """A signature with the name of signature and her signature"""
 
 
 @dataclass
 class Contract(OutcomeType):
     """A agreement definition which encapsulates an agreement with partners and extra information"""
+
     partners: List[str] = field(default_factory=list)
     """The partners"""
     agreement: OutcomeType = None
@@ -128,7 +148,7 @@ class Contract(OutcomeType):
         return self.id.__hash__()
 
     class Java:
-        implements = ['jnegmas.situated.Contract']
+        implements = ["jnegmas.situated.Contract"]
 
 
 @dataclass
@@ -154,28 +174,29 @@ class Breach:
         return self.id.__hash__()
 
     def __str__(self):
-        return f'Breach ({self.level} {self.type}) by {self.perpetrator} on {self.contract.id} at {self.step}'
+        return f"Breach ({self.level} {self.type}) by {self.perpetrator} on {self.contract.id} at {self.step}"
 
     def as_dict(self):
         return {
-            'contract': str(self.contract),
-            'contract_id': self.contract.id,
-            'type': self.type,
-            'level': self.level,
-            'id': self.id,
-            'perpetrator': self.perpetrator,
-            'perpetrator_type': self.perpetrator.__class__.__name__,
-            'victims': [_ for _ in self.victims],
-            'step': self.step,
-            'resolved': None,
+            "contract": str(self.contract),
+            "contract_id": self.contract.id,
+            "type": self.type,
+            "level": self.level,
+            "id": self.id,
+            "perpetrator": self.perpetrator,
+            "perpetrator_type": self.perpetrator.__class__.__name__,
+            "victims": [_ for _ in self.victims],
+            "step": self.step,
+            "resolved": None,
         }
 
     class Java:
-        implements = ['jnegmas.situated.Breach']
+        implements = ["jnegmas.situated.Breach"]
 
 
 class BreachProcessing(Enum):
     """The way breaches are to be handled"""
+
     NONE = 0
     """The breach should always be reported in the breach list and no re-negotiation is allowed."""
     VICTIM_THEN_PERPETRATOR = 1
@@ -198,12 +219,13 @@ class RenegotiationRequest:
     later_time: int
 
     """
-    publisher: 'Agent'
+
+    publisher: "Agent"
     issues: List[Issue]
     annotation: Dict[str, Any] = field(default_factory=dict)
 
     class Java:
-        implements = ['jnegmas.situated.RenegotiationRequest']
+        implements = ["jnegmas.situated.RenegotiationRequest"]
 
 
 class Entity(NamedObject):
@@ -221,11 +243,21 @@ class Entity(NamedObject):
     def short_type_name(self):
         """Returns a short name of the type of this entity"""
         long_name = self.type_name
-        name = long_name.split('.')[-1].lower().replace('factory_manager', '').replace('manager', '')
-        name = name.replace('factory', '').replace('agent', '').replace('miner', '').replace('consumer', '')
-        if long_name.startswith('jnegmas'):
-            name = f'j-{name}'
-        name = name.strip('_')
+        name = (
+            long_name.split(".")[-1]
+            .lower()
+            .replace("factory_manager", "")
+            .replace("manager", "")
+        )
+        name = (
+            name.replace("factory", "")
+            .replace("agent", "")
+            .replace("miner", "")
+            .replace("consumer", "")
+        )
+        if long_name.startswith("jnegmas"):
+            name = f"j-{name}"
+        name = name.strip("_")
         return name
 
 
@@ -263,7 +295,9 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         """
         self._data[name] = {}
 
-    def query(self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False) -> Optional[Dict[str, Any]]:
+    def query(
+        self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False
+    ) -> Optional[Dict[str, Any]]:
         """
         Returns all records in the given section/sections of the bulletin-board that satisfy the query
 
@@ -286,11 +320,17 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
 
         """
         if section is None:
-            return self.query(section=[_ for _ in self._data.keys() if not _.startswith('_')]
-                              , query=query, query_keys=query_keys)
+            return self.query(
+                section=[_ for _ in self._data.keys() if not _.startswith("_")],
+                query=query,
+                query_keys=query_keys,
+            )
 
         if isinstance(section, Iterable) and not isinstance(section, str):
-            results = [self.query(section=_, query=query, query_keys=query_keys) for _ in section]
+            results = [
+                self.query(section=_, query=query, query_keys=query_keys)
+                for _ in section
+            ]
             if len(results) == 0:
                 return dict()
             final: Dict[str, Any] = {}
@@ -309,7 +349,7 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
 
     @classmethod
     def satisfies(cls, value: Any, query: Any) -> bool:
-        method = getattr(value, 'satisfies', None)
+        method = getattr(value, "satisfies", None)
         if method is not None and isinstance(method, Callable):
             return method(query)
         if isinstance(value, dict) and isinstance(query, dict):
@@ -317,7 +357,9 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
                 if value.get(k, None) != v:
                     return False
         else:
-            raise ValueError(f'Cannot check satisfaction of {type(query)} against value {type(value)}')
+            raise ValueError(
+                f"Cannot check satisfaction of {type(query)} against value {type(value)}"
+            )
         return True
 
     def read(self, section: str, key: str) -> Any:
@@ -356,11 +398,19 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         else:
             skey = key
         self._data[section][skey] = value
-        self.announce(Event('new_record', data={'section': section, 'key': skey, 'value': value}))
+        self.announce(
+            Event("new_record", data={"section": section, "key": skey, "value": value})
+        )
 
-    def remove(self, section: Optional[Union[List[str], str]], *
-               , query: Optional[Any] = None, key: str = None, query_keys: bool = False
-               , value: Any = None) -> bool:
+    def remove(
+        self,
+        section: Optional[Union[List[str], str]],
+        *,
+        query: Optional[Any] = None,
+        key: str = None,
+        query_keys: bool = False,
+        value: Any = None,
+    ) -> bool:
         """
         Removes a value or a set of values from the bulletin Board
 
@@ -375,11 +425,18 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
             bool: Success of failure
         """
         if section is None:
-            return self.remove(section=[_ for _ in self._data.keys() if not _.startswith('_')]
-                               , query=query, key=key, query_keys=query_keys)
+            return self.remove(
+                section=[_ for _ in self._data.keys() if not _.startswith("_")],
+                query=query,
+                key=key,
+                query_keys=query_keys,
+            )
 
         if isinstance(section, Iterable) and not isinstance(section, str):
-            return all(self.remove(section=_, query=query, key=key, query_keys=query_keys) for _ in section)
+            return all(
+                self.remove(section=_, query=query, key=key, query_keys=query_keys)
+                for _ in section
+            )
 
         sec = self._data.get(section, None)
         if sec is None:
@@ -391,7 +448,12 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
                     break
         if key is not None:
             try:
-                self.announce(Event('will_remove_record', data={'section': sec, 'key': key, 'value': sec[key]}))
+                self.announce(
+                    Event(
+                        "will_remove_record",
+                        data={"section": sec, "key": key, "value": sec[key]},
+                    )
+                )
                 sec.pop(key, None)
                 return True
             except KeyError:
@@ -407,7 +469,12 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
         if len(keys) == 0:
             return False
         for k in keys:
-            self.announce(Event('will_remove_record', data={'section': sec, 'key': k, 'value': sec[k]}))
+            self.announce(
+                Event(
+                    "will_remove_record",
+                    data={"section": sec, "key": k, "value": sec[k]},
+                )
+            )
             sec.pop(k, None)
         return True
 
@@ -429,23 +496,33 @@ def safe_min(a, b):
 @dataclass
 class NegotiationInfo:
     """Saves information about a negotiation"""
+
     mechanism: Optional[Mechanism]
-    partners: List['Agent']
+    partners: List["Agent"]
     annotation: Dict[str, Any]
-    issues: List['Issue']
+    issues: List["Issue"]
     requested_at: int
-    rejectors: Optional[List['Agent']] = None
+    rejectors: Optional[List["Agent"]] = None
 
 
 class MechanismFactory:
     """A mechanism creation class. It can invite agents to join a mechanism and then run it."""
 
-    def __init__(self, world: 'World', mechanism_name: str, mechanism_params: Dict[str, Any]
-                 , issues: List['Issue'], req_id: str
-                 , caller: 'Agent', partners: List['Agent'], roles: Optional[List[str]] = None
-                 , annotation: Dict[str, Any] = None, neg_n_steps: int = None, neg_time_limit: int = None
-                 , neg_step_time_limit=None
-                 ):
+    def __init__(
+        self,
+        world: "World",
+        mechanism_name: str,
+        mechanism_params: Dict[str, Any],
+        issues: List["Issue"],
+        req_id: str,
+        caller: "Agent",
+        partners: List["Agent"],
+        roles: Optional[List[str]] = None,
+        annotation: Dict[str, Any] = None,
+        neg_n_steps: int = None,
+        neg_time_limit: int = None,
+        neg_step_time_limit=None,
+    ):
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller
         self.partners = partners
@@ -459,9 +536,12 @@ class MechanismFactory:
         self.issues = issues
         self.mechanism = None
 
-    def _create_negotiation_session(self, mechanism: Mechanism
-                                    , responses: Iterator[Tuple[Negotiator, str]]
-                                    , partners: List["Agent"]) -> Mechanism:
+    def _create_negotiation_session(
+        self,
+        mechanism: Mechanism,
+        responses: Iterator[Tuple[Negotiator, str]],
+        partners: List["Agent"],
+    ) -> Mechanism:
         if self.neg_n_steps is not None:
             mechanism.ami.n_steps = self.neg_n_steps
         if self.neg_time_limit is not None:
@@ -469,45 +549,61 @@ class MechanismFactory:
         if self.neg_step_time_limit is not None:
             mechanism.ami.step_time_limit = self.neg_step_time_limit
         for partner in partners:
-            mechanism.register_listener(event_type='negotiation_end', listener=partner)
+            mechanism.register_listener(event_type="negotiation_end", listener=partner)
         for _negotiator, _role in responses:
             mechanism.add(negotiator=_negotiator, role=_role)
         return mechanism
 
-    def _start_negotiation(self, mechanism_name, mechanism_params, roles, caller, partners,
-                           annotation
-                           , issues, req_id) -> Optional[NegotiationInfo]:
+    def _start_negotiation(
+        self,
+        mechanism_name,
+        mechanism_params,
+        roles,
+        caller,
+        partners,
+        annotation,
+        issues,
+        req_id,
+    ) -> Optional[NegotiationInfo]:
         """Tries to prepare the negotiation to start by asking everyone to join"""
         mechanisms = self.world.mechanisms
         if issues is None:
             caller.on_neg_request_rejected_(req_id=req_id, by=None)
             return None
-        if mechanisms is not None and mechanism_name is not None and mechanism_name not in mechanisms.keys():
+        if (
+            mechanisms is not None
+            and mechanism_name is not None
+            and mechanism_name not in mechanisms.keys()
+        ):
             caller.on_neg_request_rejected_(req_id=req_id, by=None)
             return None
         if mechanisms is not None and mechanism_name is not None:
-            mechanism_name = mechanisms[mechanism_name].pop(PROTOCOL_CLASS_NAME_FIELD, mechanism_name)
+            mechanism_name = mechanisms[mechanism_name].pop(
+                PROTOCOL_CLASS_NAME_FIELD, mechanism_name
+            )
         if mechanism_params is None:
             mechanism_params = {}
         if mechanisms and mechanisms.get(mechanism_name, None) is not None:
             mechanism_params.update(mechanisms[mechanism_name])
         # mechanism_params = {k: v for k, v in mechanism_params.items() if k != PROTOCOL_CLASS_NAME_FIELD}
-        mechanism_params['n_steps'] = self.neg_n_steps
-        mechanism_params['time_limit'] = self.neg_time_limit
-        mechanism_params['step_time_limit'] = self.neg_step_time_limit
-        mechanism_params['issues'] = issues
-        mechanism_params['annotation'] = annotation
-        mechanism_params['name'] = '-'.join(_.id for _ in partners)
+        mechanism_params["n_steps"] = self.neg_n_steps
+        mechanism_params["time_limit"] = self.neg_time_limit
+        mechanism_params["step_time_limit"] = self.neg_step_time_limit
+        mechanism_params["issues"] = issues
+        mechanism_params["annotation"] = annotation
+        mechanism_params["name"] = "-".join(_.id for _ in partners)
         if mechanism_name is None:
             if mechanisms is not None and len(mechanisms) == 1:
                 mechanism_name = list(mechanisms.keys())[0]
             else:
-                mechanism_name = 'negmas.sao.SAOMechanism'
+                mechanism_name = "negmas.sao.SAOMechanism"
         try:
             mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
         except:
             mechanism = None
-            self.world.logerror(f'Failed to create {mechanism_name} with params {mechanism_params}')
+            self.world.logerror(
+                f"Failed to create {mechanism_name} with params {mechanism_params}"
+            )
         self.mechanism = mechanism
         if mechanism is None:
             return None
@@ -516,30 +612,55 @@ class MechanismFactory:
             roles = [None] * len(partners)
 
         partner_names = [p.id for p in partners]
-        responses = [partner.respond_to_negotiation_request_(initiator=caller.id, partners=partner_names, issues=issues
-                                                             , annotation=annotation, role=role
-                                                             , mechanism=mechanism.ami
-                                                             , req_id=req_id if partner == caller else None)
-                     for role, partner in zip(roles, partners)]
+        responses = [
+            partner.respond_to_negotiation_request_(
+                initiator=caller.id,
+                partners=partner_names,
+                issues=issues,
+                annotation=annotation,
+                role=role,
+                mechanism=mechanism.ami,
+                req_id=req_id if partner == caller else None,
+            )
+            for role, partner in zip(roles, partners)
+        ]
         if not all(responses):
             rejectors = [p for p, response in zip(partners, responses) if not response]
             caller.on_neg_request_rejected_(req_id=req_id, by=[_.id for _ in rejectors])
-            self.world.loginfo(f'{caller.id} request was rejected by {rejectors}')
-            return NegotiationInfo(mechanism=None, partners=partners, annotation=annotation, issues=issues
-                                   , rejectors=rejectors, requested_at=self.world.current_step)
-        mechanism = self._create_negotiation_session(mechanism=mechanism
-                                                     , responses=zip(responses, roles), partners=partners)
-        neg_info = NegotiationInfo(mechanism=mechanism, partners=partners, annotation=annotation, issues=issues
-                                   , requested_at=self.world.current_step)
+            self.world.loginfo(f"{caller.id} request was rejected by {rejectors}")
+            return NegotiationInfo(
+                mechanism=None,
+                partners=partners,
+                annotation=annotation,
+                issues=issues,
+                rejectors=rejectors,
+                requested_at=self.world.current_step,
+            )
+        mechanism = self._create_negotiation_session(
+            mechanism=mechanism, responses=zip(responses, roles), partners=partners
+        )
+        neg_info = NegotiationInfo(
+            mechanism=mechanism,
+            partners=partners,
+            annotation=annotation,
+            issues=issues,
+            requested_at=self.world.current_step,
+        )
         caller.on_neg_request_accepted_(req_id=req_id, mechanism=mechanism.ami)
-        self.world.loginfo(f'{caller.id} request was accepted')
+        self.world.loginfo(f"{caller.id} request was accepted")
         return neg_info
 
     def init(self) -> Optional[NegotiationInfo]:
-        return self._start_negotiation(mechanism_name=self.mechanism_name, mechanism_params=self.mechanism_params
-                                       , roles=self.roles, caller=self.caller, partners=self.partners
-                                       , annotation=self.annotation, issues=self.issues
-                                       , req_id=self.req_id)
+        return self._start_negotiation(
+            mechanism_name=self.mechanism_name,
+            mechanism_params=self.mechanism_params,
+            roles=self.roles,
+            caller=self.caller,
+            partners=self.partners,
+            annotation=self.annotation,
+            issues=self.issues,
+            req_id=self.req_id,
+        )
 
 
 class AgentWorldInterface:
@@ -552,10 +673,12 @@ class AgentWorldInterface:
         self._world, agent_id = state
         self.agent = self._world.agents[agent_id]
 
-    def __init__(self, world: 'World', agent: 'Agent'):
+    def __init__(self, world: "World", agent: "Agent"):
         self._world, self.agent = world, agent
 
-    def execute(self, action: Action, callback: Callable[[Action, bool], Any] = None) -> bool:
+    def execute(
+        self, action: Action, callback: Callable[[Action, bool], Any] = None
+    ) -> bool:
         """Executes an action in the world simulation"""
         return self._world.execute(action=action, agent=self.agent, callback=callback)
 
@@ -583,15 +706,16 @@ class AgentWorldInterface:
     def default_signing_delay(self) -> int:
         return self._world.default_signing_delay
 
-    def request_negotiation_about(self
-                                  , issues: List[Issue]
-                                  , partners: List[str]
-                                  , req_id: str
-                                  , roles: List[str] = None
-                                  , annotation: Optional[Dict[str, Any]] = None
-                                  , mechanism_name: str = None
-                                  , mechanism_params: Dict[str, Any] = None
-                                  ) -> bool:
+    def request_negotiation_about(
+        self,
+        issues: List[Issue],
+        partners: List[str],
+        req_id: str,
+        roles: List[str] = None,
+        annotation: Optional[Dict[str, Any]] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+    ) -> bool:
         """
         Requests to start a negotiation with some other agents
 
@@ -620,10 +744,16 @@ class AgentWorldInterface:
 
         """
         partner_agents = [self._world.agents[_] for _ in partners]
-        return self._world.request_negotiation_about(req_id=req_id, caller=self.agent
-                                                     , partners=partner_agents
-                                                     , roles=roles, issues=issues, annotation=annotation
-                                                     , mechanism_name=mechanism_name, mechanism_params=mechanism_params)
+        return self._world.request_negotiation_about(
+            req_id=req_id,
+            caller=self.agent,
+            partners=partner_agents,
+            roles=roles,
+            issues=issues,
+            annotation=annotation,
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+        )
 
     def loginfo(self, msg: str) -> None:
         """
@@ -673,8 +803,9 @@ class AgentWorldInterface:
         """
         self._world.logerror(msg)
 
-    def bb_query(self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False) -> Optional[
-        Dict[str, Any]]:
+    def bb_query(
+        self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False
+    ) -> Optional[Dict[str, Any]]:
         """
         Returns all records in the given section/sections of the bulletin-board that satisfy the query
 
@@ -696,7 +827,9 @@ class AgentWorldInterface:
             - Key queries use regular expressions and match from the beginning using the standard re.match function
 
         """
-        return self._world.bulletin_board.query(section=section, query=query, query_keys=query_keys)
+        return self._world.bulletin_board.query(
+            section=section, query=query, query_keys=query_keys
+        )
 
     def bb_read(self, section: str, key: str) -> Optional[Any]:
         """
@@ -725,9 +858,15 @@ class AgentWorldInterface:
         """
         return self._world.bulletin_board.record(section=section, value=value, key=key)
 
-    def bb_remove(self, section: Optional[Union[List[str], str]], *
-                  , query: Optional[Any] = None, key: str = None, query_keys: bool = False
-                  , value: Any = None) -> bool:
+    def bb_remove(
+        self,
+        section: Optional[Union[List[str], str]],
+        *,
+        query: Optional[Any] = None,
+        key: str = None,
+        query_keys: bool = False,
+        value: Any = None,
+    ) -> bool:
         """
         Removes a value or a set of values from the bulletin Board
 
@@ -741,11 +880,12 @@ class AgentWorldInterface:
         Returns:
             bool: Success of failure
         """
-        return self._world.bulletin_board.remove(section=section, query=query, key=key, query_keys=query_keys
-                                                 , value=value)
+        return self._world.bulletin_board.remove(
+            section=section, query=query, key=key, query_keys=query_keys, value=value
+        )
 
     class Java:
-        implements = ['jnegmas.situated.AgentWorldInterface']
+        implements = ["jnegmas.situated.AgentWorldInterface"]
 
 
 class World(EventSink, EventSource, ConfigReader, ABC):
@@ -758,39 +898,45 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        if 'logger' in state.keys():
-            state.pop('logger', None)
+        if "logger" in state.keys():
+            state.pop("logger", None)
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
-        self.logger = create_loggers(file_name=self.log_file_name, module_name=None
-                                     , screen_level=self.log_screen_level if self.log_to_screen else None
-                                     , file_level=self.log_file_level, app_wide_log_file=True)
+        self.logger = create_loggers(
+            file_name=self.log_file_name,
+            module_name=None,
+            screen_level=self.log_screen_level if self.log_to_screen else None,
+            file_level=self.log_file_level,
+            app_wide_log_file=True,
+        )
 
-    def __init__(self, bulletin_board: BulletinBoard = None
-                 , n_steps=10000
-                 , time_limit=60 * 60
-                 , negotiation_speed=None
-                 , neg_n_steps=100
-                 , neg_time_limit=3 * 60
-                 , neg_step_time_limit=60
-                 , default_signing_delay=0
-                 , breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR
-                 , log_file_name=''
-                 , log_to_screen: bool = False
-                 , log_file_level=logging.DEBUG
-                 , log_screen_level=logging.ERROR
-                 , mechanisms: Dict[str, Dict[str, Any]] = None
-                 , awi_type: str = 'negmas.situated.AgentWorldInterface'
-                 , start_negotiations_immediately: bool = False
-                 , save_signed_contracts: bool = True
-                 , save_cancelled_contracts: bool = True
-                 , save_negotiations: bool = True
-                 , save_resolved_breaches: bool = True
-                 , save_unresolved_breaches: bool = True
-                 , name=None
-                 ):
+    def __init__(
+        self,
+        bulletin_board: BulletinBoard = None,
+        n_steps=10000,
+        time_limit=60 * 60,
+        negotiation_speed=None,
+        neg_n_steps=100,
+        neg_time_limit=3 * 60,
+        neg_step_time_limit=60,
+        default_signing_delay=0,
+        breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR,
+        log_file_name="",
+        log_to_screen: bool = False,
+        log_file_level=logging.DEBUG,
+        log_screen_level=logging.ERROR,
+        mechanisms: Dict[str, Dict[str, Any]] = None,
+        awi_type: str = "negmas.situated.AgentWorldInterface",
+        start_negotiations_immediately: bool = False,
+        save_signed_contracts: bool = True,
+        save_cancelled_contracts: bool = True,
+        save_negotiations: bool = True,
+        save_resolved_breaches: bool = True,
+        save_unresolved_breaches: bool = True,
+        name=None,
+    ):
         """
 
         Args:
@@ -808,9 +954,13 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.log_file_level = log_file_level
         self.log_screen_level = log_screen_level
         self.log_to_screen = log_to_screen
-        self.logger = create_loggers(file_name=log_file_name, module_name=None
-                                     , screen_level=log_screen_level if log_to_screen else None
-                                     , file_level=log_file_level, app_wide_log_file=True)
+        self.logger = create_loggers(
+            file_name=log_file_name,
+            module_name=None,
+            screen_level=log_screen_level if log_to_screen else None,
+            file_level=log_file_level,
+            app_wide_log_file=True,
+        )
         self.bulletin_board: BulletinBoard = bulletin_board
         self.set_bulletin_board(bulletin_board=bulletin_board)
         self._negotiations: Dict[str, NegotiationInfo] = {}
@@ -836,8 +986,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
         self.awi_type = get_class(awi_type, scope=globals())
-        self.name = name if name is not None else unique_name(base=self.__class__.__name__, add_time=True
-                                                              , rand_digits=5)
+        self.name = (
+            name
+            if name is not None
+            else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
+        )
         self._stats: Dict[str, List[Any]] = defaultdict(list)
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
@@ -848,7 +1001,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
         self.agents: Dict[str, Agent] = {}
         self.immediate_negotiations = start_negotiations_immediately
-        self.loginfo(f'{self.name}: World Created')
+        self.loginfo(f"{self.name}: World Created")
 
     def loginfo(self, s: str) -> None:
         """logs info-level information
@@ -857,7 +1010,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             s (str): The string to log
 
         """
-        self.logger.info(f'{self._log_header()}: ' + s.strip())
+        self.logger.info(f"{self._log_header()}: " + s.strip())
 
     def logdebug(self, s) -> None:
         """logs debug-level information
@@ -866,7 +1019,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             s (str): The string to log
 
         """
-        self.logger.debug(f'{self._log_header()}: ' + s.strip())
+        self.logger.debug(f"{self._log_header()}: " + s.strip())
 
     def logwarning(self, s) -> None:
         """logs warning-level information
@@ -875,7 +1028,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             s (str): The string to log
 
         """
-        self.logger.warning(f'{self._log_header()}: ' + s.strip())
+        self.logger.warning(f"{self._log_header()}: " + s.strip())
 
     def logerror(self, s) -> None:
         """logs error-level information
@@ -884,10 +1037,12 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             s (str): The string to log
 
         """
-        self.logger.error(f'{self._log_header()}: ' + s.strip())
+        self.logger.error(f"{self._log_header()}: " + s.strip())
 
     def set_bulletin_board(self, bulletin_board):
-        self.bulletin_board = bulletin_board if bulletin_board is not None else BulletinBoard()
+        self.bulletin_board = (
+            bulletin_board if bulletin_board is not None else BulletinBoard()
+        )
         self.bulletin_board.add_section("breaches")
         self.bulletin_board.add_section("stats")
         self.bulletin_board.add_section("settings")
@@ -915,8 +1070,14 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
         if self.time_limit is None and self.n_steps is None:
             return 0.0
-        relative_step = (self.current_step + 1) / self.n_steps if self.n_steps is not None else np.nan
-        relative_time = self.time / self.time_limit if self.time_limit is not None else np.nan
+        relative_step = (
+            (self.current_step + 1) / self.n_steps
+            if self.n_steps is not None
+            else np.nan
+        )
+        relative_time = (
+            self.time / self.time_limit if self.time_limit is not None else np.nan
+        )
         return max([relative_step, relative_time])
 
     @property
@@ -931,7 +1092,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         # we do not report breachs with no victims
         if breach.victims is None or len(breach.victims) < 1:
             return
-        self.bulletin_board.record(section='breaches', key=breach.id, value=self._breach_record(breach))
+        self.bulletin_board.record(
+            section="breaches", key=breach.id, value=self._breach_record(breach)
+        )
 
     @property
     def saved_negotiations(self) -> List[Dict[str, Any]]:
@@ -944,13 +1107,19 @@ class World(EventSink, EventSource, ConfigReader, ABC):
     def step(self) -> bool:
         """A single simulation step"""
         if self.current_step >= self.n_steps:
-            self.logerror(f'Asked  to step after the simulation ({self.n_steps}). Will just ignore this')
+            self.logerror(
+                f"Asked  to step after the simulation ({self.n_steps}). Will just ignore this"
+            )
             return False
-        self.loginfo(f'{len(self._negotiations)} Negotiations/{len(self._entities)} _entities')
+        self.loginfo(
+            f"{len(self._negotiations)} Negotiations/{len(self._entities)} _entities"
+        )
 
         def _run_negotiations(n_steps: Optional[int] = None):
             """ Runs all bending negotiations """
-            mechanisms = list((k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None)
+            mechanisms = list(
+                (k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None
+            )
             current_step = 0
             while len(mechanisms) > 0:
                 random.shuffle(mechanisms)
@@ -960,12 +1129,18 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     if agreement is not None or is_broken:  # or not mechanism.running:
                         negotiation = self._negotiations.get(puuid, None)
                         if agreement is None:
-                            self._register_failed_negotiation(mechanism.ami, negotiation)
+                            self._register_failed_negotiation(
+                                mechanism.ami, negotiation
+                            )
                         else:
                             self._register_contract(mechanism.ami, negotiation)
                         if negotiation:
                             self._negotiations.pop(mechanism.uuid, None)
-                mechanisms = list((k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None)
+                mechanisms = list(
+                    (k, _.mechanism)
+                    for k, _ in self._negotiations.items()
+                    if _ is not None
+                )
                 current_step += 1
                 if n_steps is not None and current_step >= n_steps:
                     break
@@ -978,7 +1153,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         activity_level = 0
 
         self._pre_step_stats()
-        self._stats['n_registered_negotiations_before'].append(len(self._negotiations))
+        self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
 
         # sign contacts that are to be signed in this step
         # ------------------------------------------------
@@ -1015,7 +1190,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         # execute contracts that are executable at this step
         # --------------------------------------------------
-        current_contracts = [_ for _ in self._get_executable_contracts() if _.nullified_at is None]
+        current_contracts = [
+            _ for _ in self._get_executable_contracts() if _.nullified_at is None
+        ]
         if len(current_contracts) > 0:
             # remove expired contracts
             executed = set()
@@ -1027,15 +1204,17 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 for contract in current_contracts:
                     contract_breaches = self._execute_contract(contract)
                     if len(contract_breaches) < 1:
-                        self._saved_contracts[contract.id]['executed'] = True
-                        self._saved_contracts[contract.id]['breaches'] = ''
+                        self._saved_contracts[contract.id]["executed"] = True
+                        self._saved_contracts[contract.id]["breaches"] = ""
                         executed.add(contract)
                         n_new_contract_executions += 1
                         activity_level += self._contract_size(contract)
                         # something_executed = True # @todo I am disabling this for now as this approach may result in multiple loans
                     else:
-                        self._saved_contracts[contract.id]['executed'] = False
-                        self._saved_contracts[contract.id]['breaches'] = '; '.join(str(_) for _ in current_contracts)
+                        self._saved_contracts[contract.id]["executed"] = False
+                        self._saved_contracts[contract.id]["breaches"] = "; ".join(
+                            str(_) for _ in current_contracts
+                        )
                         breached_contracts.append((contract, contract_breaches))
                         for b in contract_breaches:
                             self._saved_breaches[b.id] = b.as_dict()
@@ -1043,7 +1222,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             for contract, contract_breaches in breached_contracts:
                 resolution = self._process_breach(contract, list(contract_breaches))
                 n_new_breaches += 1 - int(resolution is not None)
-                self._complete_contract_execution(contract, list(contract_breaches), resolution)
+                self._complete_contract_execution(
+                    contract, list(contract_breaches), resolution
+                )
 
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
@@ -1058,23 +1239,28 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         # remove all negotiations that are completed
         # ------------------------------------------
-        completed = list(k for k, _ in self._negotiations.items() if _ is not None and _.mechanism.completed)
+        completed = list(
+            k
+            for k, _ in self._negotiations.items()
+            if _ is not None and _.mechanism.completed
+        )
         for key in completed:
             self._negotiations.pop(key, None)
 
         # update stats
         # ------------
         n_total_contracts = n_new_contract_executions + n_new_breaches
-        self._stats['n_contracts_executed'].append(n_new_contract_executions)
-        self._stats['n_contracts_cancelled'].append(self.__n_contracts_cancelled)
-        self._stats['n_breaches'].append(n_new_breaches)
-        self._stats['breach_level'].append(n_new_breaches / n_total_contracts
-                                           if n_total_contracts > 0 else np.nan)
-        self._stats['n_contracts_signed'].append(self.__n_contracts_signed)
-        self._stats['n_contracts_concluded'].append(self.__n_contracts_concluded)
-        self._stats['n_negotiations'].append(self.__n_negotiations)
-        self._stats['n_registered_negotiations_after'].append(len(self._negotiations))
-        self._stats['activity_level'].append(activity_level)
+        self._stats["n_contracts_executed"].append(n_new_contract_executions)
+        self._stats["n_contracts_cancelled"].append(self.__n_contracts_cancelled)
+        self._stats["n_breaches"].append(n_new_breaches)
+        self._stats["breach_level"].append(
+            n_new_breaches / n_total_contracts if n_total_contracts > 0 else np.nan
+        )
+        self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
+        self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
+        self._stats["n_negotiations"].append(self.__n_negotiations)
+        self._stats["n_registered_negotiations_after"].append(len(self._negotiations))
+        self._stats["activity_level"].append(activity_level)
         self._post_step_stats()
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
@@ -1091,17 +1277,20 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
     @property
     def resolved_breaches(self) -> List[Dict[str, Any]]:
-        return list(_ for _ in self._saved_breaches.values() if _['resolved'])
+        return list(_ for _ in self._saved_breaches.values() if _["resolved"])
 
     @property
     def unresolved_breaches(self) -> List[Dict[str, Any]]:
-        return list(_ for _ in self._saved_breaches.values() if not _['resolved'])
+        return list(_ for _ in self._saved_breaches.values() if not _["resolved"])
 
     def run(self):
         """Runs the simulation until it ends"""
         self._start_time = time.monotonic()
         for _ in range(self.n_steps):
-            if self.time_limit is not None and (time.monotonic() - self._start_time) >= self.time_limit:
+            if (
+                self.time_limit is not None
+                and (time.monotonic() - self._start_time) >= self.time_limit
+            ):
                 break
             if not self.step():
                 break
@@ -1119,12 +1308,12 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         """
         # super().register(x) # If we inherit from session, we can do that but it is not needed as we do not do string
         # based resolution now
-        if hasattr(x, '_world'):
+        if hasattr(x, "_world"):
             x._world = self
-        if hasattr(x, 'step_'):
+        if hasattr(x, "step_"):
             self._entities[simulation_priority].add(x)
 
-    def join(self, x: 'Agent', simulation_priority: int = 0):
+    def join(self, x: "Agent", simulation_priority: int = 0):
         """Add an agent to the world.
 
         Args:
@@ -1134,21 +1323,38 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         Returns:
 
         """
-        self.loginfo(f'{x.name} joined')
+        self.loginfo(f"{x.name} joined")
         self.register(x, simulation_priority=simulation_priority)
         self.agents[x.id] = x
         x.awi = self.awi_type(self, x)
 
-    def _register_negotiation(self, mechanism_name, mechanism_params, roles, caller, partners
-                              , annotation
-                              , issues, req_id, run_to_completion=False) -> Optional[NegotiationInfo]:
+    def _register_negotiation(
+        self,
+        mechanism_name,
+        mechanism_params,
+        roles,
+        caller,
+        partners,
+        annotation,
+        issues,
+        req_id,
+        run_to_completion=False,
+    ) -> Optional[NegotiationInfo]:
         """Registers a negotiation and returns the list of rejectors if any or None"""
-        factory = MechanismFactory(world=self, mechanism_name=mechanism_name, mechanism_params=mechanism_params
-                                   , issues=issues, req_id=req_id, caller=caller, partners=partners
-                                   , roles=roles, annotation=annotation
-                                   , neg_n_steps=self.neg_n_steps
-                                   , neg_time_limit=self.neg_time_limit
-                                   , neg_step_time_limit=self.neg_step_time_limit)
+        factory = MechanismFactory(
+            world=self,
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+            issues=issues,
+            req_id=req_id,
+            caller=caller,
+            partners=partners,
+            roles=roles,
+            annotation=annotation,
+            neg_n_steps=self.neg_n_steps,
+            neg_time_limit=self.neg_time_limit,
+            neg_step_time_limit=self.neg_step_time_limit,
+        )
         neg = factory.init()
         if neg is None:
             return None
@@ -1176,14 +1382,17 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         #    f'{caller.id} request was accepted')
         return neg
 
-    def request_negotiation_about(self, req_id: str
-                                  , caller: "Agent"
-                                  , issues: List[Issue]
-                                  , partners: List["Agent"]
-                                  , roles: List[str] = None
-                                  , annotation: Optional[Dict[str, Any]] = None
-                                  , mechanism_name: str = None
-                                  , mechanism_params: Dict[str, Any] = None) -> bool:
+    def request_negotiation_about(
+        self,
+        req_id: str,
+        caller: "Agent",
+        issues: List[Issue],
+        partners: List["Agent"],
+        roles: List[str] = None,
+        annotation: Optional[Dict[str, Any]] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+    ) -> bool:
         """
         Requests to start a negotiation with some other agents
 
@@ -1206,24 +1415,35 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             `on_neg_request_rejected` about the status of the negotiation.
 
         """
-        self.loginfo(f'{caller.name} requested '
-                     f'{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]} (ID {req_id})')
-        neg = self._register_negotiation(mechanism_name=mechanism_name, mechanism_params=mechanism_params
-                                         , roles=roles, caller=caller
-                                         , partners=partners, annotation=annotation, issues=issues
-                                         , req_id=req_id, run_to_completion=False)
+        self.loginfo(
+            f"{caller.name} requested "
+            f"{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]} (ID {req_id})"
+        )
+        neg = self._register_negotiation(
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+            roles=roles,
+            caller=caller,
+            partners=partners,
+            annotation=annotation,
+            issues=issues,
+            req_id=req_id,
+            run_to_completion=False,
+        )
         success = neg is not None and neg.mechanism is not None
 
         return success
 
-    def run_negotiation(self, caller: "Agent"
-                        , issues: Collection[Issue]
-                        , partners: Collection["Agent"]
-                        , roles: Collection[str] = None
-                        , annotation: Optional[Dict[str, Any]] = None
-                        , mechanism_name: str = None
-                        , mechanism_params: Dict[str, Any] = None) -> Optional[
-        Tuple[Contract, AgentMechanismInterface]]:
+    def run_negotiation(
+        self,
+        caller: "Agent",
+        issues: Collection[Issue],
+        partners: Collection["Agent"],
+        roles: Collection[str] = None,
+        annotation: Optional[Dict[str, Any]] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+    ) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
         """
         Requests to start a negotiation with some other agents
 
@@ -1244,34 +1464,54 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             Contract: The agreed upon contract if negotiation was successful otherwise, None.
 
         """
-        self.loginfo(f'{caller.name} requested immediate negotiation '
-                     f'{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]}')
-        neg = self._register_negotiation(mechanism_name=mechanism_name, mechanism_params=mechanism_params, roles=roles
-                                         , caller=caller, partners=partners, annotation=annotation, issues=issues
-                                         , req_id=None, run_to_completion=True)
+        self.loginfo(
+            f"{caller.name} requested immediate negotiation "
+            f"{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]}"
+        )
+        neg = self._register_negotiation(
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+            roles=roles,
+            caller=caller,
+            partners=partners,
+            annotation=annotation,
+            issues=issues,
+            req_id=None,
+            run_to_completion=True,
+        )
         if neg and neg.mechanism:
             mechanism = neg.mechanism
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
-                self._register_failed_negotiation(mechanism=mechanism.ami, negotiation=neg)
+                self._register_failed_negotiation(
+                    mechanism=mechanism.ami, negotiation=neg
+                )
             else:
-                contract = self._register_contract(mechanism=mechanism.ami, negotiation=neg, force_signature_now=True)
+                contract = self._register_contract(
+                    mechanism=mechanism.ami, negotiation=neg, force_signature_now=True
+                )
             return contract, mechanism.ami
         return None
 
     def _log_header(self):
         if self.time is None:
-            return f'{self.name} (not started)'
-        return f'{self.current_step}/{self.n_steps} [{self.relative_time:0.2%}]'
+            return f"{self.name} (not started)"
+        return f"{self.current_step}/{self.n_steps} [{self.relative_time:0.2%}]"
 
-    def _register_contract(self, mechanism, negotiation, force_signature_now=False) -> Optional[Contract]:
+    def _register_contract(
+        self, mechanism, negotiation, force_signature_now=False
+    ) -> Optional[Contract]:
         partners = negotiation.partners
         if self.save_negotiations:
-            _stats = {'final_status': 'failed', 'partners': [_.id for _ in partners]
-                , 'partner_types': [_.__class__.__name__ for _ in partners]
-                , 'ended_at': self.current_step, 'requested_at': negotiation.requested_at
-                , 'mechanism_type': mechanism.__class__.__name__}
+            _stats = {
+                "final_status": "failed",
+                "partners": [_.id for _ in partners],
+                "partner_types": [_.__class__.__name__ for _ in partners],
+                "ended_at": self.current_step,
+                "requested_at": negotiation.requested_at,
+                "mechanism_type": mechanism.__class__.__name__,
+            }
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
         if mechanism.state.agreement is None or negotiation is None:
@@ -1280,7 +1520,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         if force_signature_now:
             signing_delay = 0
         else:
-            signing_delay = mechanism.state.agreement.get('signing_delay', self.default_signing_delay)
+            signing_delay = mechanism.state.agreement.get(
+                "signing_delay", self.default_signing_delay
+            )
         contract = Contract(
             partners=list(_.id for _ in partners),
             annotation=negotiation.annotation,
@@ -1289,10 +1531,12 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             concluded_at=self.current_step,
             to_be_signed_at=self.current_step + signing_delay,
             signed_at=signed_at,
-            mechanism_state=mechanism.state
+            mechanism_state=mechanism.state,
         )
         if not force_signature_now:
-            self.on_contract_concluded(contract, to_be_signed_at=self.current_step + signing_delay)
+            self.on_contract_concluded(
+                contract, to_be_signed_at=self.current_step + signing_delay
+            )
         for partner in partners:
             partner.on_negotiation_success_(contract=contract, mechanism=mechanism)
         if signing_delay == 0:
@@ -1300,16 +1544,27 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             signed = rejectors is not None and len(rejectors) == 0
             if signed and not force_signature_now:
                 self.on_contract_signed(contract=contract)
-            sign_status = "signed" if signed else f"cancelled by {rejectors if rejectors is not None else 'error!!'}"
+            sign_status = (
+                "signed"
+                if signed
+                else f"cancelled by {rejectors if rejectors is not None else 'error!!'}"
+            )
         else:
             sign_status = f"to be signed at {contract.to_be_signed_at}"
             self.on_contract_cancelled(contract=contract)
         if negotiation.annotation is not None:
-            annot_ = dict(zip(negotiation.annotation.keys(), (str(_) for _ in negotiation.annotation.values())))
+            annot_ = dict(
+                zip(
+                    negotiation.annotation.keys(),
+                    (str(_) for _ in negotiation.annotation.values()),
+                )
+            )
         else:
-            annot_ = ''
-        self.logdebug(f'Contract<{"immediate-signature-forced" if force_signature_now else ""}> [{sign_status}]: {[_.name for _ in partners]}'
-                      f' > {str(mechanism.state.agreement)} on annotation {annot_}')
+            annot_ = ""
+        self.logdebug(
+            f'Contract<{"immediate-signature-forced" if force_signature_now else ""}> [{sign_status}]: {[_.name for _ in partners]}'
+            f" > {str(mechanism.state.agreement)} on annotation {annot_}"
+        )
         return contract
 
     def _register_failed_negotiation(self, mechanism, negotiation) -> None:
@@ -1317,18 +1572,28 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         mechanism_state = mechanism.state
         annotation = negotiation.annotation
         if self.save_negotiations:
-            _stats = {'final_status': 'failed', 'partners': [_.id for _ in partners]
-                , 'partner_types': [_.__class__.__name__ for _ in partners]
-                , 'ended_at': self.current_step, 'requested_at': negotiation.requested_at
-                , 'mechanism_type': mechanism.__class__.__name__}
+            _stats = {
+                "final_status": "failed",
+                "partners": [_.id for _ in partners],
+                "partner_types": [_.__class__.__name__ for _ in partners],
+                "ended_at": self.current_step,
+                "requested_at": negotiation.requested_at,
+                "mechanism_type": mechanism.__class__.__name__,
+            }
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
         for partner in partners:
-            partner.on_negotiation_failure_(partners=[_.id for _ in partners], annotation=annotation
-                                            , mechanism=mechanism, state=mechanism_state)
+            partner.on_negotiation_failure_(
+                partners=[_.id for _ in partners],
+                annotation=annotation,
+                mechanism=mechanism,
+                state=mechanism_state,
+            )
 
-        self.logdebug(f'Negotiation failure between {[_.name for _ in partners]}'
-                      f' on annotation {negotiation.annotation} ')
+        self.logdebug(
+            f"Negotiation failure between {[_.name for _ in partners]}"
+            f" on annotation {negotiation.annotation} "
+        )
 
     def _sign_contract(self, contract: Contract) -> Optional[List[str]]:
         """Called to sign a contract and returns whether or not it was signed"""
@@ -1336,24 +1601,33 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         #     self._contract_execution_time(contract) < self.current_step:
         #     return None
         partners = [self.agents[_] for _ in contract.partners]
-        signatures = list(zip(partners, (partner.sign_contract(contract=contract) for partner in partners)))
+        signatures = list(
+            zip(
+                partners,
+                (partner.sign_contract(contract=contract) for partner in partners),
+            )
+        )
         rejectors = [partner for partner, signature in signatures if signature is None]
         if len(rejectors) == 0:
-            contract.signatures = [Signature(id=a.id, signature=s) for a, s in signatures]
+            contract.signatures = [
+                Signature(id=a.id, signature=s) for a, s in signatures
+            ]
             contract.signed_at = self.current_step
             for partner in partners:
                 partner.on_contract_signed_(contract=contract)
         else:
             # if self.save_cancelled_contracts:
             record = self._contract_record(contract)
-            record['signed'] = False
-            record['executed'] = None
-            record['breaches'] = ''
+            record["signed"] = False
+            record["executed"] = None
+            record["breaches"] = ""
             self._saved_contracts[contract.id] = record
             # else:
             #     self._saved_contracts.pop(contract.id, None)
             for partner in partners:
-                partner.on_contract_cancelled_(contract=contract, rejectors=[_.id for _ in rejectors])
+                partner.on_contract_cancelled_(
+                    contract=contract, rejectors=[_.id for _ in rejectors]
+                )
         return [_.id for _ in rejectors]
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -1373,9 +1647,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.unsigned_contracts[self.current_step].remove(contract)
         record = self._contract_record(contract)
         if self.save_signed_contracts:
-            record['signed'] = True
-            record['executed'] = None
-            record['breaches'] = ''
+            record["signed"] = True
+            record["executed"] = None
+            record["breaches"] = ""
             self._saved_contracts[contract.id] = record
         else:
             self._saved_contracts.pop(contract.id, None)
@@ -1408,11 +1682,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
     @property
     def signed_contracts(self) -> List[Dict[str, Any]]:
-        return list(_ for _ in self._saved_contracts.values() if _['signed'])
+        return list(_ for _ in self._saved_contracts.values() if _["signed"])
 
     @property
     def cancelled_contracts(self) -> List[Dict[str, Any]]:
-        return list(_ for _ in self._saved_contracts.values() if not _['signed'])
+        return list(_ for _ in self._saved_contracts.values() if not _["signed"])
 
     def on_contract_concluded(self, contract: Contract, to_be_signed_at: int) -> None:
         """Called to add a contract to the existing set of contract after it is signed
@@ -1442,7 +1716,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         Returns:
 
         """
-        with open(file_name, 'w') as file:
+        with open(file_name, "w") as file:
             yaml.safe_dump(self.__dict__, file)
 
     @abstractmethod
@@ -1464,7 +1738,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         pass
 
     @abstractmethod
-    def _contract_execution_order(self, contracts: Collection[Contract]) -> Collection[Contract]:
+    def _contract_execution_order(
+        self, contracts: Collection[Contract]
+    ) -> Collection[Contract]:
         """Orders the contracts in a specific time-step that are about to be executed"""
 
     @abstractmethod
@@ -1491,11 +1767,13 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             - You must call super() implementation of this method before doing anything
 
         """
-        self.loginfo(f'Executing {str(contract)}')
+        self.loginfo(f"Executing {str(contract)}")
         return set()
 
     @abstractmethod
-    def _complete_contract_execution(self, contract: Contract, breaches: List[Breach], resolution: Contract) -> None:
+    def _complete_contract_execution(
+        self, contract: Contract, breaches: List[Breach], resolution: Contract
+    ) -> None:
         """
         Called after breach resolution is completed for contracts for which some potential breaches occurred.
 
@@ -1508,8 +1786,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         """
 
-    def _process_breach(self, contract: Contract, breaches: List[Breach]
-                        , force_immediate_signing=True) -> Optional[Contract]:
+    def _process_breach(
+        self, contract: Contract, breaches: List[Breach], force_immediate_signing=True
+    ) -> Optional[Contract]:
         new_contract = None
 
         # calculate total breach level
@@ -1518,50 +1797,63 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             total_breach_levels[breach.perpetrator] += breach.level
 
         # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
-        for agent_name, _ in sorted(zip(total_breach_levels.keys(), total_breach_levels.values()), key=lambda x: x[1]):
+        for agent_name, _ in sorted(
+            zip(total_breach_levels.keys(), total_breach_levels.values()),
+            key=lambda x: x[1],
+        ):
             agent = self.agents[agent_name]
-            agenda = agent.set_renegotiation_agenda(contract=contract, breaches=breaches)
+            agenda = agent.set_renegotiation_agenda(
+                contract=contract, breaches=breaches
+            )
             if agenda is None:
                 continue
             negotiators = []
             for partner in contract.partners:
-                negotiator = self.agents[partner].respond_to_renegotiation_request(contract=contract
-                                                                                   , breaches=breaches
-                                                                                   , agenda=agenda)
+                negotiator = self.agents[partner].respond_to_renegotiation_request(
+                    contract=contract, breaches=breaches, agenda=agenda
+                )
                 if negotiator is None:
                     break
                 negotiators.append(negotiator)
             else:
                 # everyone accepted this renegotiation
-                results = self.run_negotiation(caller=agent, issues=agenda.issues
-                                               , partners=[self.agents[_] for _ in contract.partners])
+                results = self.run_negotiation(
+                    caller=agent,
+                    issues=agenda.issues,
+                    partners=[self.agents[_] for _ in contract.partners],
+                )
                 if results is not None:
                     new_contract, mechanism = results
-                    self._register_contract(mechanism=mechanism, negotiation=None
-                                            , force_signature_now=force_immediate_signing)
+                    self._register_contract(
+                        mechanism=mechanism,
+                        negotiation=None,
+                        force_signature_now=force_immediate_signing,
+                    )
                     break
 
         if new_contract is not None:
             for breach in breaches:
                 if self.save_resolved_breaches:
-                    self._saved_breaches[breach.id]['resolved'] = True
+                    self._saved_breaches[breach.id]["resolved"] = True
                 else:
                     self._saved_breaches.pop(breach.id, None)
             return new_contract
         for breach in breaches:
             if self.save_unresolved_breaches:
-                self._saved_breaches[breach.id]['resolved'] = False
+                self._saved_breaches[breach.id]["resolved"] = False
             else:
                 self._saved_breaches.pop(breach.id, None)
             self._register_breach(breach)
         return None
 
     @abstractmethod
-    def execute(self, action: Action, agent: 'Agent', callback: Callable = None) -> bool:
+    def execute(
+        self, action: Action, agent: "Agent", callback: Callable = None
+    ) -> bool:
         """Executes the given action by the given agent"""
 
     @abstractmethod
-    def get_private_state(self, agent: 'Agent') -> dict:
+    def get_private_state(self, agent: "Agent") -> dict:
         """Reads the private state of the given agent"""
 
     @abstractmethod
@@ -1602,11 +1894,15 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         """
 
 
-RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])
+RunningNegotiationInfo = namedtuple(
+    "RunningNegotiationInfo", ["negotiator", "annotation", "uuid", "extra"]
+)
 """Keeps track of running negotiations for an agent"""
 
-NegotiationRequestInfo = namedtuple('NegotiationRequestInfo', ['partners', 'issues', 'annotation', 'uuid'
-    , 'negotiator', 'extra'])
+NegotiationRequestInfo = namedtuple(
+    "NegotiationRequestInfo",
+    ["partners", "issues", "annotation", "uuid", "negotiator", "extra"],
+)
 """Keeps track to negotiation requests that an agent sent"""
 
 
@@ -1666,9 +1962,14 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """Sets the Agent-world interface. Should only be called by the world."""
         self._awi = awi
 
-    def _add_negotiation_request_info(self, issues: List[Issue], partners: List[str]
-                                      , annotation: Optional[Dict[str, Any]], negotiator: Optional[Negotiator]
-                                      , extra: Optional[Dict[str, Any]]) -> str:
+    def _add_negotiation_request_info(
+        self,
+        issues: List[Issue],
+        partners: List[str],
+        annotation: Optional[Dict[str, Any]],
+        negotiator: Optional[Negotiator],
+        extra: Optional[Dict[str, Any]],
+    ) -> str:
         """
         Creates a new `NegotiationRequestInfo` record and returns its ID
 
@@ -1684,21 +1985,27 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
         """
         req_id = str(uuid.uuid4())
-        self._requested_negotiations[req_id] = NegotiationRequestInfo(issues=issues, partners=partners
-                                                                      , annotation=annotation
-                                                                      , negotiator=negotiator, extra=extra, uuid=req_id)
+        self._requested_negotiations[req_id] = NegotiationRequestInfo(
+            issues=issues,
+            partners=partners,
+            annotation=annotation,
+            negotiator=negotiator,
+            extra=extra,
+            uuid=req_id,
+        )
         return req_id
 
-    def _request_negotiation(self
-                             , issues: List[Issue]
-                             , partners: List[str]
-                             , roles: List[str] = None
-                             , annotation: Optional[Dict[str, Any]] = None
-                             , mechanism_name: str = None
-                             , mechanism_params: Dict[str, Any] = None
-                             , negotiator: Negotiator = None
-                             , extra: Optional[Dict[str, Any]] = None
-                             ) -> bool:
+    def _request_negotiation(
+        self,
+        issues: List[Issue],
+        partners: List[str],
+        roles: List[str] = None,
+        annotation: Optional[Dict[str, Any]] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+        negotiator: Negotiator = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """
         Requests to start a negotiation with some other agents
 
@@ -1730,11 +2037,22 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
 
         """
-        req_id = self._add_negotiation_request_info(issues=issues, partners=partners, annotation=annotation
-                                                    , negotiator=negotiator, extra=extra)
-        return self.awi.request_negotiation_about(issues=issues, partners=partners, req_id=req_id, roles=roles
-                                                  , annotation=annotation, mechanism_name=mechanism_name
-                                                  , mechanism_params=mechanism_params)
+        req_id = self._add_negotiation_request_info(
+            issues=issues,
+            partners=partners,
+            annotation=annotation,
+            negotiator=negotiator,
+            extra=extra,
+        )
+        return self.awi.request_negotiation_about(
+            issues=issues,
+            partners=partners,
+            req_id=req_id,
+            roles=roles,
+            annotation=annotation,
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+        )
 
     def init_(self):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
@@ -1746,9 +2064,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
     def on_event(self, event: Event, sender: EventSource):
         if not isinstance(sender, Mechanism) and not isinstance(sender, Mechanism):
-            raise ValueError(f'Sender of the negotiation end event is of type {sender.__class__.__name__} '
-                             f'not Mechanism!!')
-        if event.type == 'negotiation_end':
+            raise ValueError(
+                f"Sender of the negotiation end event is of type {sender.__class__.__name__} "
+                f"not Mechanism!!"
+            )
+        if event.type == "negotiation_end":
             # will be sent by the World once a negotiation in which this agent is involved is completed            l
             mechanism_id = sender.id
             self._running_negotiations.pop(mechanism_id, None)
@@ -1775,19 +2095,27 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         neg = self._requested_negotiations[req_id].negotiator
         annotation = self._requested_negotiations[req_id].annotation
         self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
-            extra=self._requested_negotiations[req_id].extra
-            , negotiator=neg, annotation=annotation
-            , uuid=req_id)
+            extra=self._requested_negotiations[req_id].extra,
+            negotiator=neg,
+            annotation=annotation,
+            uuid=req_id,
+        )
         self._requested_negotiations.pop(req_id, None)
 
-    def on_negotiation_failure_(self, partners: List[str], annotation: Dict[str, Any],
-                                mechanism: AgentMechanismInterface
-                                , state: MechanismState) -> None:
+    def on_negotiation_failure_(
+        self,
+        partners: List[str],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        state: MechanismState,
+    ) -> None:
         """Called whenever a negotiation ends without agreement"""
         self.on_negotiation_failure(partners, annotation, mechanism, state)
         self._running_negotiations.pop(mechanism.id, None)
 
-    def on_negotiation_success_(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+    def on_negotiation_success_(
+        self, contract: Contract, mechanism: AgentMechanismInterface
+    ) -> None:
         """Called whenever a negotiation ends with agreement"""
         self.on_negotiation_success(contract, mechanism)
         self._unsigned_contracts.add(contract)
@@ -1806,21 +2134,33 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         if contract in self._unsigned_contracts:
             self._unsigned_contracts.remove(contract)
 
-    def respond_to_negotiation_request_(self, initiator: str, partners: List[str], issues: List[Issue]
-                                        , annotation: Dict[str, Any], mechanism: AgentMechanismInterface,
-                                        role: Optional[str]
-                                        , req_id: Optional[str]) -> Optional[Negotiator]:
+    def respond_to_negotiation_request_(
+        self,
+        initiator: str,
+        partners: List[str],
+        issues: List[Issue],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        role: Optional[str],
+        req_id: Optional[str],
+    ) -> Optional[Negotiator]:
         """Called when a negotiation request is received"""
         if req_id is not None:
             info = self._requested_negotiations.get(req_id, None)
             if info and info.negotiator is not None:
                 return info.negotiator
-        return self._respond_to_negotiation_request(initiator=initiator, partners=partners, issues=issues
-                                                    , annotation=annotation, mechanism=mechanism, role=role
-                                                    , req_id=req_id)
+        return self._respond_to_negotiation_request(
+            initiator=initiator,
+            partners=partners,
+            issues=issues,
+            annotation=annotation,
+            mechanism=mechanism,
+            role=role,
+            req_id=req_id,
+        )
 
     def __str__(self):
-        return f'{self.name}'
+        return f"{self.name}"
 
     __repr__ = __str__
 
@@ -1833,9 +2173,16 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
 
     @abstractmethod
-    def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                        , annotation: Dict[str, Any], mechanism: AgentMechanismInterface
-                                        , role: Optional[str], req_id: Optional[str]) -> Optional[Negotiator]:
+    def _respond_to_negotiation_request(
+        self,
+        initiator: str,
+        partners: List[str],
+        issues: List[Issue],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        role: Optional[str],
+        req_id: Optional[str],
+    ) -> Optional[Negotiator]:
         """
         Called by the mechanism to ask for joining a negotiation. The agent can refuse by returning a None
 
@@ -1874,12 +2221,19 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """Called when a requested negotiation is accepted"""
 
     @abstractmethod
-    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any], mechanism: AgentMechanismInterface
-                               , state: MechanismState) -> None:
+    def on_negotiation_failure(
+        self,
+        partners: List[str],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        state: MechanismState,
+    ) -> None:
         """Called whenever a negotiation ends without agreement"""
 
     @abstractmethod
-    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+    def on_negotiation_success(
+        self, contract: Contract, mechanism: AgentMechanismInterface
+    ) -> None:
         """Called whenever a negotiation ends with agreement"""
 
     @abstractmethod
@@ -1891,7 +2245,9 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """Called whenever at least a partner did not sign the contract"""
 
     @abstractmethod
-    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> Optional[RenegotiationRequest]:
         """
         Received by partners in ascending order of their total breach levels in order to set the
         renegotiation agenda when contract execution fails
@@ -1908,8 +2264,9 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """
 
     @abstractmethod
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
+    def respond_to_renegotiation_request(
+        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+    ) -> Optional[Negotiator]:
         """
         Called to respond to a renegotiation request
 
@@ -1946,65 +2303,110 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
     log_dir = Path(log_dir)
     os.makedirs(log_dir, exist_ok=True)
 
-    dump(params, log_dir / 'params')
-    dump(world.stats, log_dir / 'stats')
+    dump(params, log_dir / "params")
+    dump(world.stats, log_dir / "stats")
 
     try:
         data = pd.DataFrame.from_dict(world.stats)
-        data.to_csv(str(log_dir / 'stats.csv'), index_label='index')
+        data.to_csv(str(log_dir / "stats.csv"), index_label="index")
     except:
         pass
 
     if world.save_negotiations:
         if len(world.saved_negotiations) > 0:
             data = pd.DataFrame(world.saved_negotiations)
-            data.to_csv(str(log_dir / 'negotiations.csv'), index_label='index')
+            data.to_csv(str(log_dir / "negotiations.csv"), index_label="index")
         else:
-            with open(log_dir / 'negotiations.csv', 'w') as f:
-                f.write('')
+            with open(log_dir / "negotiations.csv", "w") as f:
+                f.write("")
 
     if world.save_resolved_breaches or world.save_unresolved_breaches:
         if len(world.saved_breaches) > 0:
             data = pd.DataFrame(world.saved_breaches)
-            data.to_csv(str(log_dir / 'breaches.csv'), index_label='index')
+            data.to_csv(str(log_dir / "breaches.csv"), index_label="index")
         else:
-            with open(log_dir / 'breaches.csv', 'w') as f:
-                f.write('')
+            with open(log_dir / "breaches.csv", "w") as f:
+                f.write("")
 
     if world.save_signed_contracts:
         if len(world.signed_contracts) > 0:
             data = pd.DataFrame(world.signed_contracts)
-            data = data.sort_values(['delivery_time'])
-            data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                                , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
-            data.to_csv(str(log_dir / 'signed_contracts.csv'), index_label='index')
+            data = data.sort_values(["delivery_time"])
+            data = data.loc[
+                :,
+                [
+                    "seller_type",
+                    "buyer_type",
+                    "seller_name",
+                    "buyer_name",
+                    "delivery_time",
+                    "unit_price",
+                    "quantity",
+                    "product_name",
+                    "n_neg_steps",
+                    "signed_at",
+                    "concluded_at",
+                    "cfp",
+                ],
+            ]
+            data.to_csv(str(log_dir / "signed_contracts.csv"), index_label="index")
         else:
-            with open(log_dir / 'signed_contracts.csv', 'w') as f:
-                f.write('')
+            with open(log_dir / "signed_contracts.csv", "w") as f:
+                f.write("")
 
     if world.save_cancelled_contracts:
         if len(world.cancelled_contracts) > 0:
             data = pd.DataFrame(world.cancelled_contracts)
-            data = data.sort_values(['delivery_time'])
-            data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                                , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
-            data.to_csv(str(log_dir / 'cancelled_contracts.csv'), index_label='index')
+            data = data.sort_values(["delivery_time"])
+            data = data.loc[
+                :,
+                [
+                    "seller_type",
+                    "buyer_type",
+                    "seller_name",
+                    "buyer_name",
+                    "delivery_time",
+                    "unit_price",
+                    "quantity",
+                    "product_name",
+                    "n_neg_steps",
+                    "signed_at",
+                    "concluded_at",
+                    "cfp",
+                ],
+            ]
+            data.to_csv(str(log_dir / "cancelled_contracts.csv"), index_label="index")
         else:
-            with open(log_dir / 'cancelled_contracts.csv', 'w') as f:
-                f.write('')
+            with open(log_dir / "cancelled_contracts.csv", "w") as f:
+                f.write("")
 
     if world.save_signed_contracts or world.save_cancelled_contracts:
         if len(world.saved_contracts) > 0:
             data = pd.DataFrame(world.saved_contracts)
-            data = data.sort_values(['delivery_time'])
-            data.to_csv(str(log_dir / 'contracts_full_info.csv'), index_label='index')
-            data = data.loc[:, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time', 'unit_price'
-                                , 'quantity', 'product_name', 'n_neg_steps', 'signed_at', 'concluded_at', 'cfp']]
+            data = data.sort_values(["delivery_time"])
+            data.to_csv(str(log_dir / "contracts_full_info.csv"), index_label="index")
+            data = data.loc[
+                :,
+                [
+                    "seller_type",
+                    "buyer_type",
+                    "seller_name",
+                    "buyer_name",
+                    "delivery_time",
+                    "unit_price",
+                    "quantity",
+                    "product_name",
+                    "n_neg_steps",
+                    "signed_at",
+                    "concluded_at",
+                    "cfp",
+                ],
+            ]
             if world.save_signed_contracts and world.save_cancelled_contracts:
-                data.to_csv(str(log_dir / 'all_contracts.csv'), index_label='index')
+                data.to_csv(str(log_dir / "all_contracts.csv"), index_label="index")
         else:
-            with open(log_dir / 'contracts_full_info.csv', 'w') as f:
-                f.write('')
+            with open(log_dir / "contracts_full_info.csv", "w") as f:
+                f.write("")
             if world.save_signed_contracts and world.save_cancelled_contracts:
-                with open(log_dir / 'all_contracts.csv', 'w') as f:
-                    f.write('')
+                with open(log_dir / "all_contracts.csv", "w") as f:
+                    f.write("")

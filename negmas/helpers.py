@@ -12,7 +12,19 @@ import math
 import pathlib
 import string
 import sys
-from typing import List, Optional, Iterable, Union, Callable, Mapping, Any, Sequence, Tuple, Dict, Type
+from typing import (
+    List,
+    Optional,
+    Iterable,
+    Union,
+    Callable,
+    Mapping,
+    Any,
+    Sequence,
+    Tuple,
+    Dict,
+    Type,
+)
 from typing import TYPE_CHECKING
 
 from negmas import NEGMAS_CONFIG
@@ -34,23 +46,26 @@ from negmas.generics import *
 import copy
 
 __all__ = [
-    'create_loggers',
+    "create_loggers",
     # 'MultiIssueUtilityFunctionMapping',
-    'ReturnCause',
-    'Distribution',  # A probability distribution
-    'snake_case',
-    'camel_case',
-    'unique_name',
-    'is_nonzero_file',
-    'pretty_string',
-    'ConfigReader',
-    'get_class',
-    'import_by_name',
-    'get_full_type_name',
-    'instantiate',
-    'humanize_time',
-    'gmap', 'ikeys', 'Floats',
-    'DEFAULT_DUMP_EXTENSION', 'dump'
+    "ReturnCause",
+    "Distribution",  # A probability distribution
+    "snake_case",
+    "camel_case",
+    "unique_name",
+    "is_nonzero_file",
+    "pretty_string",
+    "ConfigReader",
+    "get_class",
+    "import_by_name",
+    "get_full_type_name",
+    "instantiate",
+    "humanize_time",
+    "gmap",
+    "ikeys",
+    "Floats",
+    "DEFAULT_DUMP_EXTENSION",
+    "dump",
 ]
 # conveniently named classes
 
@@ -65,13 +80,15 @@ IterableMappings = List[IterableMapping]
 ParamLists = Iterable[ParamList]
 Floats = List[float]
 
-COMMON_LOG_FILE_NAME = './logs/{}_{}.txt'.format('log', datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+COMMON_LOG_FILE_NAME = "./logs/{}_{}.txt".format(
+    "log", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+)
 
 MODULE_LOG_FILE_NAME: Dict[str, str] = dict()
 
-LOGS_BASE_DIR = './logs'
+LOGS_BASE_DIR = "./logs"
 
-DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get('default_dump_extension', 'json')
+DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get("default_dump_extension", "json")
 
 
 class ReturnCause(Enum):
@@ -85,7 +102,7 @@ def create_loggers(
     module_name: Optional[str] = None,
     screen_level: Optional[int] = logging.WARNING,
     file_level: Optional[int] = logging.DEBUG,
-    format_str: str = '%(asctime)s - %(levelname)s - %(message)s',
+    format_str: str = "%(asctime)s - %(levelname)s - %(message)s",
     colored: bool = True,
     app_wide_log_file: bool = True,
     module_wide_log_file: bool = False,
@@ -114,25 +131,25 @@ def create_loggers(
 
     """
     if module_name is None:
-        module_name = __file__.split('/')[-1][:-3]
+        module_name = __file__.split("/")[-1][:-3]
     # create logger if it does not already exist
     logger = logging.getLogger(module_name)
     if len(logger.handlers) > 0:
         return logger
     logger.setLevel(logging.DEBUG)
     # create formatter
-    if colored and 'colorlog' in sys.modules and os.isatty(2):
-        date_format = '%Y-%m-%d %H:%M:%S'
-        cformat = '%(log_color)s' + format_str
+    if colored and "colorlog" in sys.modules and os.isatty(2):
+        date_format = "%Y-%m-%d %H:%M:%S"
+        cformat = "%(log_color)s" + format_str
         formatter = colorlog.ColoredFormatter(
             cformat,
             date_format,
             log_colors={
-                'DEBUG': 'reset',
-                'INFO': 'green',
-                'WARNING': 'yellow',
-                'ERROR': 'red',
-                'CRITICAL': 'bold_red',
+                "DEBUG": "reset",
+                "INFO": "green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
             },
         )
     else:
@@ -153,13 +170,15 @@ def create_loggers(
             elif module_wide_log_file and module_name in MODULE_LOG_FILE_NAME.keys():
                 file_name = MODULE_LOG_FILE_NAME[module_name]
             else:
-                file_name = '{}/{}_{}.txt'.format(LOGS_BASE_DIR,
-                    module_name, datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+                file_name = "{}/{}_{}.txt".format(
+                    LOGS_BASE_DIR,
+                    module_name,
+                    datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                 )
                 MODULE_LOG_FILE_NAME[module_name] = file_name
 
-            os.makedirs(f'{LOGS_BASE_DIR}', exist_ok=True)
-        os.makedirs(os.path.dirname(file_name), exist_ok=True) # type: ignore
+            os.makedirs(f"{LOGS_BASE_DIR}", exist_ok=True)
+        os.makedirs(os.path.dirname(file_name), exist_ok=True)  # type: ignore
         file_logger = logging.FileHandler(file_name)
         file_logger.setLevel(file_level)
         file_logger.setFormatter(formatter)
@@ -183,14 +202,14 @@ def snake_case(s: str) -> str:
     Returns:
         str: converted string
     """
-    return re.sub(
-        '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '_\\1', s
-    ).lower().strip(
-        '_'
+    return (
+        re.sub("(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))", "_\\1", s).lower().strip("_")
     )
 
 
-def camel_case(s: str, capitalize_first: bool = False, lower_first: bool = False) -> str:
+def camel_case(
+    s: str, capitalize_first: bool = False, lower_first: bool = False
+) -> str:
     """ Converts a string from snake_case to CamelCase
 
     Example:
@@ -214,15 +233,15 @@ def camel_case(s: str, capitalize_first: bool = False, lower_first: bool = False
     """
     if len(s) < 1:
         return s
-    parts = s.split('_')
+    parts = s.split("_")
     if capitalize_first:
         parts = [_.capitalize() for _ in parts]
     elif lower_first:
-        parts = [parts[0].lower()] +  [_.capitalize() for _ in parts[1:]]
+        parts = [parts[0].lower()] + [_.capitalize() for _ in parts[1:]]
     else:
         parts = [parts[0]] + [_.capitalize() for _ in parts[1:]]
 
-    return ''.join(parts)
+    return "".join(parts)
 
 
 def unique_name(base: str, add_time=True, rand_digits=8) -> str:
@@ -248,15 +267,13 @@ def unique_name(base: str, add_time=True, rand_digits=8) -> str:
     """
     if rand_digits > 0:
         characters = string.ascii_letters + string.digits
-        password = "".join(
-            random.choice(characters) for _ in range(rand_digits)
-        )
+        password = "".join(random.choice(characters) for _ in range(rand_digits))
     else:
-        password = ''
+        password = ""
     if add_time:
-        _time = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        _time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     else:
-        _time = ''
+        _time = ""
     sub = _time + password
     return os.path.join(base, sub) if len(sub) > 0 else base
 
@@ -286,15 +303,15 @@ def pretty_string(src: Any, tab_size=2, compact=False) -> str:
             - This function assumes that the patterns `` "`` and ``":`` do not appear anywhere in the input.
               If they appear, the space, : will be removed.
         """
-    s = _pretty_string(src, dpth=0, current_key='', tab_size=tab_size)
+    s = _pretty_string(src, dpth=0, current_key="", tab_size=tab_size)
     if compact:
-        return s.replace('\n', '')
+        return s.replace("\n", "")
 
     else:
-        return s.replace(' "', ' ').replace('":', ':')
+        return s.replace(' "', " ").replace('":', ":")
 
 
-def _pretty_string(src, dpth=0, current_key='', tab_size=2) -> str:
+def _pretty_string(src, dpth=0, current_key="", tab_size=2) -> str:
     """Recursively print nested elements.
 
     Args:
@@ -307,24 +324,24 @@ def _pretty_string(src, dpth=0, current_key='', tab_size=2) -> str:
     """
 
     def tabs(n):
-        return ' ' * n * tab_size  # or 2 or 8 or...
+        return " " * n * tab_size  # or 2 or 8 or...
 
-    output = ''
+    output = ""
     if isinstance(src, dict):
-        output += tabs(dpth) + '{\n'
+        output += tabs(dpth) + "{\n"
         for key, value in src.items():
-            output += _pretty_string(value, dpth + 1, key) + '\n'
-        output += tabs(dpth) + '}'
+            output += _pretty_string(value, dpth + 1, key) + "\n"
+        output += tabs(dpth) + "}"
     elif isinstance(src, list) or isinstance(src, tuple):
-        output += tabs(dpth) + '[\n'
+        output += tabs(dpth) + "[\n"
         for litem in src:
-            output += _pretty_string(litem, dpth + 1) + '\n'
-        output += tabs(dpth) + ']'
+            output += _pretty_string(litem, dpth + 1) + "\n"
+        output += tabs(dpth) + "]"
     else:
         if len(current_key) > 0:
-            output += (tabs(dpth) + '"%s":%s' % (current_key, src))
+            output += tabs(dpth) + '"%s":%s' % (current_key, src)
         else:
-            output += (tabs(dpth) + '%s' % src)
+            output += tabs(dpth) + "%s" % src
     return output
 
 
@@ -436,27 +453,27 @@ class Distribution(object):
 
     """
 
-    def __init__(
-        self,
-        dtype: str,
-        **kwargs,
-    ) -> None:
+    def __init__(self, dtype: str, **kwargs) -> None:
         super().__init__()
         dist = getattr(stats, dtype.lower(), None)
         if dist is None:
-            raise ValueError(f'Unknown distribution {dtype}')
-        if 'loc' not in kwargs.keys():
-            kwargs['loc'] = 0.0
-        if 'scale' not in kwargs.keys():
-            kwargs['scale'] = 1.0
+            raise ValueError(f"Unknown distribution {dtype}")
+        if "loc" not in kwargs.keys():
+            kwargs["loc"] = 0.0
+        if "scale" not in kwargs.keys():
+            kwargs["scale"] = 1.0
 
         self.dist = dist(**kwargs)
         self.dtype = dtype
         self.__cached = None
 
     @classmethod
-    def around(cls, value: float = 0.5, range: Tuple[float, float] = (0.0, 1.0),
-               uncertainty: float = 0.5) -> 'Distribution':
+    def around(
+        cls,
+        value: float = 0.5,
+        range: Tuple[float, float] = (0.0, 1.0),
+        uncertainty: float = 0.5,
+    ) -> "Distribution":
         """
         Generates a uniform distribution around the input value in the given range with given uncertainty
 
@@ -469,18 +486,20 @@ class Distribution(object):
             Distribution A uniform distribution around `value` with uncertainty (scale) `uncertainty`
         """
         if uncertainty >= 1.0:
-            return cls(dtype='uniform', loc=range[0], scale=range[1])
+            return cls(dtype="uniform", loc=range[0], scale=range[1])
         if uncertainty <= 0.0:
-            return cls(dtype='uniform', loc=value, scale=0.0)
+            return cls(dtype="uniform", loc=value, scale=0.0)
         scale = uncertainty * (range[1] - range[0])
         loc = max(range[0], (random.random() - 1.0) * scale + value)
         if loc + scale > range[1]:
-            loc -= (loc + scale - range[1])
-        return cls(dtype='uniform', loc=loc, scale=scale)
+            loc -= loc + scale - range[1]
+        return cls(dtype="uniform", loc=loc, scale=scale)
 
     def mean(self) -> float:
-        if self.dtype != 'uniform':
-            raise NotImplementedError('Only uniform distributions are supported for now')
+        if self.dtype != "uniform":
+            raise NotImplementedError(
+                "Only uniform distributions are supported for now"
+            )
         if self.scale < 1e-6:
             return self.loc
         mymean = self.dist.mean()
@@ -492,26 +511,22 @@ class Distribution(object):
     def __and__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             return float(other)
-        if self.dtype == 'uniform':
+        if self.dtype == "uniform":
             beg = max(self.loc, other.loc)
             end = min(self.scale + self.loc, other.loc + other.scale)
-            return Distribution(self.dtype
-                                , loc=beg
-                                , scale=end - beg
-                                )
+            return Distribution(self.dtype, loc=beg, scale=end - beg)
         raise NotImplementedError()
 
     def __or__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             return float(other)
-        if self.dtype == 'uniform':
-            raise NotImplementedError('Current implementation assumes an overlap otherwise a mixture must be returned')
+        if self.dtype == "uniform":
+            raise NotImplementedError(
+                "Current implementation assumes an overlap otherwise a mixture must be returned"
+            )
             beg = min(self.loc, other.loc)
             end = max(self.scale + self.loc, other.loc + other.scale)
-            return Distribution(self.dtype
-                                , loc=beg
-                                , scale=end - beg
-                                )
+            return Distribution(self.dtype, loc=beg, scale=end - beg)
         raise NotImplementedError()
 
     def prob(self, val: float) -> float:
@@ -524,16 +539,16 @@ class Distribution(object):
 
     @property
     def loc(self):
-        return self.dist.kwds.get('loc', 0.0)
+        return self.dist.kwds.get("loc", 0.0)
 
     @property
     def scale(self):
-        return self.dist.kwds.get('scale', 0.0)
+        return self.dist.kwds.get("scale", 0.0)
 
     def __str__(self):
-        if self.dtype == 'uniform':
-            return f'U({self.loc}, {self.loc+self.scale})'
-        return f'{self.dtype}(loc:{self.loc}, scale:{self.scale})'
+        if self.dtype == "uniform":
+            return f"U({self.loc}, {self.loc+self.scale})"
+        return f"{self.dtype}(loc:{self.loc}, scale:{self.scale})"
 
     def __copy__(self):
         cls = self.__class__
@@ -574,7 +589,6 @@ _inflect_engine = inflect.engine()
 
 
 class ConfigReader:
-
     @classmethod
     def _parse_children_config(cls, children, scope):
         """Parses children in the given scope"""
@@ -587,11 +601,15 @@ class ConfigReader:
                 if class_name is None:
                     class_name = stringcase.pascalcase(k)
                 the_class = get_class(class_name=class_name, scope=scope)
-                obj, obj_children = the_class.from_config(config=v, ignore_children=False, try_parsing_children=True
-                                                                        , scope=scope)
+                obj, obj_children = the_class.from_config(
+                    config=v,
+                    ignore_children=False,
+                    try_parsing_children=True,
+                    scope=scope,
+                )
                 if obj_children is not None and len(obj_children) > 0:
                     remaining_children[k] = obj_children
-                setter_name = 'set_' + k
+                setter_name = "set_" + k
                 if hasattr(cls, setter_name):
                     setters.append((setter_name, obj))
                 else:
@@ -602,12 +620,16 @@ class ConfigReader:
                     singular = k
                 if class_name is None:
                     class_name = stringcase.pascalcase(singular)
-                setter_name = 'set_' + k
+                setter_name = "set_" + k
                 objs = []
                 for current in list(v):
                     the_class = get_class(class_name=class_name, scope=scope)
-                    obj = the_class.from_config(config=current, ignore_children=True
-                                                              , try_parsing_children=True, scope=scope)
+                    obj = the_class.from_config(
+                        config=current,
+                        ignore_children=True,
+                        try_parsing_children=True,
+                        scope=scope,
+                    )
                     objs.append(obj)
                 if hasattr(cls, setter_name):
                     setters.append((setter_name, objs))
@@ -629,14 +651,16 @@ class ConfigReader:
               the rest will be ignored. This can be used to add comments
 
         """
-        keys = key.split(':')
+        keys = key.split(":")
         if len(keys) == 1:
             return keys[0], None
         else:
             return keys[0], keys[1]
 
     @classmethod
-    def read_config(cls, config: Union[str, dict], section: str = None) -> Dict[str, Any]:
+    def read_config(
+        cls, config: Union[str, dict], section: str = None
+    ) -> Dict[str, Any]:
         """
         Reads the configuration from a file or a dict and prepares it for parsing
 
@@ -658,41 +682,45 @@ class ConfigReader:
                 return os.path.exists(nm) and not os.path.isdir(nm)
 
             if not exists(config):
-                name = pathlib.Path('./') / pathlib.Path(config)
+                name = pathlib.Path("./") / pathlib.Path(config)
                 if exists(name):
                     config = str(name.absolute())
                 else:
-                    name = (pathlib.Path('./.negmas') / config).absolute()
+                    name = (pathlib.Path("./.negmas") / config).absolute()
                     if exists(name):
                         config = str(name)
                     else:
-                        name = (pathlib.Path(os.path.expanduser('~/.negmas')) / config).absolute()
+                        name = (
+                            pathlib.Path(os.path.expanduser("~/.negmas")) / config
+                        ).absolute()
                         if exists(name):
                             config = str(name)
                         else:
-                            raise ValueError(f'Cannot find config in {config}.')
-            with open(config, 'r') as f:
-                if config.endswith('.json'):
+                            raise ValueError(f"Cannot find config in {config}.")
+            with open(config, "r") as f:
+                if config.endswith(".json"):
                     config = json.load(f)
-                elif config.endswith('.cfg'):
+                elif config.endswith(".cfg"):
                     config = eval(f.read())
-                elif config.endswith('.yaml') or config.endswith('.yml'):
+                elif config.endswith(".yaml") or config.endswith(".yml"):
                     config = yaml.safe_load(f)
                 else:
-                    raise ValueError(f'Cannot parse {config}')
+                    raise ValueError(f"Cannot parse {config}")
 
         if section is not None:
             config = config[section]  # type: ignore
 
-        return config # type: ignore
+        return config  # type: ignore
 
     @classmethod
-    def from_config(cls
-                    , config: Union[str, dict]
-                    , section: str = None
-                    , ignore_children: bool = True
-                    , try_parsing_children: bool = True
-                    , scope=None):
+    def from_config(
+        cls,
+        config: Union[str, dict],
+        section: str = None,
+        ignore_children: bool = True,
+        try_parsing_children: bool = True,
+        scope=None,
+    ):
         """
         Creates an object of this class given the configuration info
 
@@ -732,29 +760,44 @@ class ConfigReader:
 
         # now we have a dict called config which has our configuration
 
-        myconfig = {}   # parts of the config that can directly be parsed
-        children = {}   # parts of the config that need further parsing
-        setters = []  # the setters are those configs that have a set_ function for them.
+        myconfig = {}  # parts of the config that can directly be parsed
+        children = {}  # parts of the config that need further parsing
+        setters = (
+            []
+        )  # the setters are those configs that have a set_ function for them.
 
         def _is_simple(x):
             """Tests whether the input can directly be parsed"""
-            return x is None or isinstance(x, int) or isinstance(x, str) or isinstance(x, float) or \
-                   (isinstance(x, Iterable) and not isinstance(x, dict) and all(_is_simple(_) for _ in list(x)))
+            return (
+                x is None
+                or isinstance(x, int)
+                or isinstance(x, str)
+                or isinstance(x, float)
+                or (
+                    isinstance(x, Iterable)
+                    and not isinstance(x, dict)
+                    and all(_is_simple(_) for _ in list(x))
+                )
+            )
 
         def _set_simple_config(key, v) -> Optional[Dict[str, Any]]:
             """Sets a simple value v for key taken into accout its class and the class we are constructing"""
             key_name, class_name = cls._split_key(key)
-            _setter = 'set_' + key_name
+            _setter = "set_" + key_name
             params = {}
             if hasattr(cls, _setter):
                 setters.append((_setter, v))
                 return None
-            params[key_name] = v if class_name is None else get_class(class_name=class_name, scope=scope)(v)
+            params[key_name] = (
+                v
+                if class_name is None
+                else get_class(class_name=class_name, scope=scope)(v)
+            )
             return params
 
         # read the configs key by key and try to parse anything that is simple enough to parse
 
-        for k, v in config.items(): # type: ignore
+        for k, v in config.items():  # type: ignore
             if isinstance(v, Dict):
                 children[k] = v
             elif isinstance(v, Iterable) and not isinstance(v, str):
@@ -766,7 +809,7 @@ class ConfigReader:
                     if val is not None:
                         myconfig.update(val)
                 else:
-                    children[k] = v # type: ignore
+                    children[k] = v  # type: ignore
             else:
                 # that is a simple value of the form k:class_name = v. We construct class_name (if it exists) with v
                 val = _set_simple_config(k, v)
@@ -777,17 +820,20 @@ class ConfigReader:
 
         if len(children) > 0 and try_parsing_children:
             if scope is None:
-                ValueError(f'scope is None but that is not allowed. You must pass scope=globals() or scope=locals() to '
-                           f'from_config. If your classes are defined in the global scope pass globals() and if they '
-                           f'are defined in local scope then pass locals(). You can only pass scope=None if you are '
-                           f'sure that all of the constructor parameters of the class you are creating are simple '
-                           f'values like ints floats and strings.')
-            parsed_conf, remaining_children, setters = cls._parse_children_config(children=children
-                                                                                  , scope=scope)
+                ValueError(
+                    f"scope is None but that is not allowed. You must pass scope=globals() or scope=locals() to "
+                    f"from_config. If your classes are defined in the global scope pass globals() and if they "
+                    f"are defined in local scope then pass locals(). You can only pass scope=None if you are "
+                    f"sure that all of the constructor parameters of the class you are creating are simple "
+                    f"values like ints floats and strings."
+                )
+            parsed_conf, remaining_children, setters = cls._parse_children_config(
+                children=children, scope=scope
+            )
             myconfig.update(parsed_conf)
             children = remaining_children
 
-        main_object = cls(**myconfig) # type: ignore
+        main_object = cls(**myconfig)  # type: ignore
 
         if try_parsing_children:
             # we will only have setters if we have children
@@ -811,9 +857,9 @@ class Proxy:
 
 def get_full_type_name(t: Union[Type[Any], Callable]) -> str:
     """Gets the ful typename of a type. You *should not* pass an instance to this function but it may just work."""
-    if not hasattr(t, '__module__') and not hasattr(t, '__name__'):
+    if not hasattr(t, "__module__") and not hasattr(t, "__name__"):
         t = type(t)
-    return t.__module__ + '.' + t.__name__
+    return t.__module__ + "." + t.__name__
 
 
 def import_by_name(full_name: str) -> Any:
@@ -821,35 +867,43 @@ def import_by_name(full_name: str) -> Any:
     if not isinstance(full_name, str):
         return full_name
     modules: List[str] = []
-    parts = full_name.split('.')
+    parts = full_name.split(".")
     modules = parts[:-1]
-    module_name = '.'.join(modules)
+    module_name = ".".join(modules)
     item_name = parts[:-1]
     if len(modules) < 1:
-        raise ValueError(f'Cannot get the object {item_name} in module {module_name}  (modules {modules})')
+        raise ValueError(
+            f"Cannot get the object {item_name} in module {module_name}  (modules {modules})"
+        )
     module = importlib.import_module(module_name)
     return getattr(module, item_name)
 
 
-def get_class(class_name: Union[str, Type], module_name: str = None, scope: dict = None) -> Type:
+def get_class(
+    class_name: Union[str, Type], module_name: str = None, scope: dict = None
+) -> Type:
     """Imports and creates a class object for the given class name"""
     if not isinstance(class_name, str):
         return class_name
     modules: List[str] = []
     if module_name is not None:
-        modules = module_name.split('.')
-    modules += class_name.split('.')
+        modules = module_name.split(".")
+    modules += class_name.split(".")
     if len(modules) < 1:
-        raise ValueError(f'Cannot get the class {class_name} in module {module_name}  (modules {modules})')
+        raise ValueError(
+            f"Cannot get the class {class_name} in module {module_name}  (modules {modules})"
+        )
     class_name = stringcase.pascalcase(modules[-1])
     if len(modules) < 2:
         return eval(class_name, scope)
-    module_name = '.'.join(modules[:-1])
+    module_name = ".".join(modules[:-1])
     module = importlib.import_module(module_name)
     return getattr(module, class_name)
 
 
-def instantiate(class_name: Union[str, Type], module_name: str = None, scope: dict = None, **kwargs) -> Any:
+def instantiate(
+    class_name: Union[str, Type], module_name: str = None, scope: dict = None, **kwargs
+) -> Any:
     """Imports and instantiates an object of a class"""
     return get_class(class_name, module_name)(**kwargs)
 
@@ -896,18 +950,18 @@ def dump(d: Any, file_name: Union[str, os.PathLike]) -> None:
 
     """
     file_name = pathlib.Path(file_name).expanduser().absolute()
-    if file_name.suffix == '':
-        file_name = pathlib.Path(str(file_name) + '.' + DEFAULT_DUMP_EXTENSION)
+    if file_name.suffix == "":
+        file_name = pathlib.Path(str(file_name) + "." + DEFAULT_DUMP_EXTENSION)
 
     if d is None:
-        with open(file_name, 'w') as f:
+        with open(file_name, "w") as f:
             pass
 
-    if file_name.suffix == '.json':
-        with open(file_name, 'w') as f:
+    if file_name.suffix == ".json":
+        with open(file_name, "w") as f:
             json.dump(d, f, sort_keys=True, indent=2)
-    elif file_name.suffix == '.yaml':
-        with open(file_name, 'w') as f:
+    elif file_name.suffix == ".yaml":
+        with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
     else:
-        raise ValueError(f'Unkown extension {file_name.suffix} for {file_name}')
+        raise ValueError(f"Unkown extension {file_name.suffix} for {file_name}")

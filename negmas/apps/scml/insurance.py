@@ -12,10 +12,7 @@ from .common import InsurancePolicy, Factory
 if TYPE_CHECKING:
     from .world import SCMLWorld
 
-__all__ = [
-    'DefaultInsuranceCompany',
-    'InsuranceCompany'
-]
+__all__ = ["DefaultInsuranceCompany", "InsuranceCompany"]
 
 
 class InsuranceCompany(Agent, ABC):
@@ -25,9 +22,16 @@ class InsuranceCompany(Agent, ABC):
         super().__init__(*args, **kwargs)
         self._world: Optional[SCMLWorld] = None
 
-    def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
-                                        annotation: Dict[str, Any], mechanism: AgentMechanismInterface,
-                                        role: Optional[str], req_id: Optional[str]) -> Optional[Negotiator]:
+    def _respond_to_negotiation_request(
+        self,
+        initiator: str,
+        partners: List[str],
+        issues: List[Issue],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        role: Optional[str],
+        req_id: Optional[str],
+    ) -> Optional[Negotiator]:
         pass
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
@@ -36,11 +40,18 @@ class InsuranceCompany(Agent, ABC):
     def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
         pass
 
-    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
-                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+    def on_negotiation_failure(
+        self,
+        partners: List[str],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        state: MechanismState,
+    ) -> None:
         pass
 
-    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+    def on_negotiation_success(
+        self, contract: Contract, mechanism: AgentMechanismInterface
+    ) -> None:
         pass
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -52,17 +63,31 @@ class InsuranceCompany(Agent, ABC):
     def sign_contract(self, contract: Contract) -> Optional[str]:
         pass
 
-    def respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue],
-                                       annotation: Dict[str, Any], mechanism: Mechanism, role: Optional[str],
-                                       req_id: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(
+        self,
+        initiator: str,
+        partners: List[str],
+        issues: List[Issue],
+        annotation: Dict[str, Any],
+        mechanism: Mechanism,
+        role: Optional[str],
+        req_id: str,
+    ) -> Optional[Negotiator]:
         pass
 
 
 class DefaultInsuranceCompany(InsuranceCompany):
     """Represents an insurance company in the world"""
 
-    def __init__(self, premium: float, premium_breach_increment: float, premium_time_increment: float
-                 , a2f: Dict[str, Factory], disabled=False, name: str = None):
+    def __init__(
+        self,
+        premium: float,
+        premium_breach_increment: float,
+        premium_time_increment: float,
+        a2f: Dict[str, Factory],
+        disabled=False,
+        name: str = None,
+    ):
         super().__init__(name=name)
         self.premium_breach_increment = premium_breach_increment
         self.premium = premium
@@ -76,15 +101,19 @@ class DefaultInsuranceCompany(InsuranceCompany):
     def init(self):
         pass
 
-    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> Optional[RenegotiationRequest]:
         return None
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
-        raise ValueError('The insurance company does not receive callbacks')
+    def respond_to_renegotiation_request(
+        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+    ) -> Optional[Negotiator]:
+        raise ValueError("The insurance company does not receive callbacks")
 
-    def evaluate_insurance(self, contract: Contract, insured: SCMLAgent, against: SCMLAgent
-                           , t: int = None) -> Optional[float]:
+    def evaluate_insurance(
+        self, contract: Contract, insured: SCMLAgent, against: SCMLAgent, t: int = None
+    ) -> Optional[float]:
         """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
 
         Args:
@@ -111,18 +140,22 @@ class DefaultInsuranceCompany(InsuranceCompany):
             dt = max(0, t - contract.signed_at)
 
         # fail if the insurance is to be bought at or after the agreed upon delivery time
-        if t >= contract.agreement.get('time', -1):
+        if t >= contract.agreement.get("time", -1):
             return None
 
         # find the total breach of the agent I am insuring against. The more this is, the more expensive the insurance
-        breaches = self.awi.bb_query(section='breaches', query={'perpetrator': against})
+        breaches = self.awi.bb_query(section="breaches", query={"perpetrator": against})
         b = 0
         if breaches is not None:
             for _, breach in breaches.items():
                 b += breach.level
-        return (self.premium + b * self.premium_breach_increment) * (1 + self.premium_time_increment * dt)
+        return (self.premium + b * self.premium_breach_increment) * (
+            1 + self.premium_time_increment * dt
+        )
 
-    def buy_insurance(self, contract: Contract, insured: SCMLAgent, against: SCMLAgent) -> Optional[InsurancePolicy]:
+    def buy_insurance(
+        self, contract: Contract, insured: SCMLAgent, against: SCMLAgent
+    ) -> Optional[InsurancePolicy]:
         """Buys insurance for the contract by the premium calculated by the insurance company.
 
         Remarks:
@@ -130,13 +163,20 @@ class DefaultInsuranceCompany(InsuranceCompany):
         """
         if self.disabled:
             return None
-        premium = self.evaluate_insurance(contract=contract, t=self.awi.current_step, insured=insured, against=against)
+        premium = self.evaluate_insurance(
+            contract=contract, t=self.awi.current_step, insured=insured, against=against
+        )
         factory = self.a2f[insured.id]
         if premium is None or factory.wallet < premium:
             return None
         factory.pay(premium)
         self.wallet += premium
-        policy = InsurancePolicy(contract=contract, at_time=self.awi.current_step, against=against, premium=premium)
+        policy = InsurancePolicy(
+            contract=contract,
+            at_time=self.awi.current_step,
+            against=against,
+            premium=premium,
+        )
         self.insured_contracts[(contract, against.id)] = policy
         return policy
 

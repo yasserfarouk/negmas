@@ -14,13 +14,13 @@ __all__ = [
     "EventSink",
     "Notification",
     "Notifier",
-    "Notifiable"
+    "Notifiable",
 ]
 
 
 @dataclass
 class Event:
-    __slots__ = ['type', 'data']
+    __slots__ = ["type", "data"]
     type: str
     data: Any
 
@@ -52,13 +52,13 @@ class EventSink:
 
 @dataclass
 class Notification:
-    __slots__ = ['type', 'data']
+    __slots__ = ["type", "data"]
     type: str
     data: Any
 
 
 class Notifier(NamedObject):
-    def notify(self, notifiable: 'Notifiable', notification: Notification):
+    def notify(self, notifiable: "Notifiable", notification: Notification):
         notifiable.on_notification(notification=notification, notifier=self.id)
 
 

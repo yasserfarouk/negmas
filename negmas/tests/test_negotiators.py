@@ -3,14 +3,19 @@ from typing import List
 import numpy as np
 import pytest
 
-from negmas import ToughNegotiator, SAOMechanism, \
-    AspirationNegotiator, OnlyBestNegotiator, SAOController
+from negmas import (
+    ToughNegotiator,
+    SAOMechanism,
+    AspirationNegotiator,
+    OnlyBestNegotiator,
+    SAOController,
+)
 from negmas.utilities import RandomUtilityFunction
 
 
 def test_tough_asp_negotiator():
     a1 = ToughNegotiator(dynamic_ufun=False)
-    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type='conceder')
+    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type="conceder")
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
@@ -28,7 +33,7 @@ def test_tough_asp_negotiator():
 
 def test_best_only_asp_negotiator():
     a1 = OnlyBestNegotiator(dynamic_ufun=False, min_utility=0.9, top_fraction=0.1)
-    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type='conceder')
+    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type="conceder")
     outcomes = [(_,) for _ in range(20)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
@@ -40,19 +45,28 @@ def test_best_only_asp_negotiator():
     a2offers = [s.current_offer for s in neg.history if s.current_proposer == a2.id]
     assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
-        assert len(set(a1offers)) <= 2 and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9
+        assert (
+            len(set(a1offers)) <= 2
+            and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9
+        )
     assert len(set(a2offers)) >= 1
 
 
 def test_controller():
     n_sessions = 5
-    c = SAOController(default_negotiator_type='negmas.sao.AspirationNegotiator'
-                      , default_negotiator_params={'aspiration_type': 'conceder'})
+    c = SAOController(
+        default_negotiator_type="negmas.sao.AspirationNegotiator",
+        default_negotiator_params={"aspiration_type": "conceder"},
+    )
     sessions = [SAOMechanism(outcomes=10, n_steps=10) for _ in range(n_sessions)]
     for session in sessions:
-        session.add(AspirationNegotiator(aspiration_type='conceder')
-                    , ufun=RandomUtilityFunction(outcomes=session.outcomes))
-        session.add(c.create_negotiator(), ufun=RandomUtilityFunction(outcomes=session.outcomes))
+        session.add(
+            AspirationNegotiator(aspiration_type="conceder"),
+            ufun=RandomUtilityFunction(outcomes=session.outcomes),
+        )
+        session.add(
+            c.create_negotiator(), ufun=RandomUtilityFunction(outcomes=session.outcomes)
+        )
     completed: List[int] = []
     while len(completed) < n_sessions:
         for i, session in enumerate(sessions):
@@ -64,5 +78,5 @@ def test_controller():
     # we are just asserting that the controller runs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main(args=[__file__])

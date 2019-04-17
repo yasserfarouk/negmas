@@ -1,9 +1,7 @@
 from random import gauss
 import numpy as np
 
-__all__ = [
-    'pos_gauss', '_safe_max', 'zero_runs'
-]
+__all__ = ["pos_gauss", "_safe_max", "zero_runs"]
 
 
 def pos_gauss(mu, sigma):

@@ -13,11 +13,11 @@ from negmas.java import to_java, to_dict
 from .common import ManufacturingProfile, Job, Factory, NO_PRODUCTION
 
 __all__ = [
-    'FactorySimulator',
-    'SlowFactorySimulator',
-    'FastFactorySimulator',
-    'transaction',
-    'temporary_transaction'
+    "FactorySimulator",
+    "SlowFactorySimulator",
+    "FastFactorySimulator",
+    "transaction",
+    "temporary_transaction",
 ]
 
 
@@ -49,8 +49,15 @@ class FactorySimulator(ABC):
         max_storage: maximum available storage space.
     """
 
-    def __init__(self, initial_wallet: float, initial_storage: Dict[int, int], n_steps: int, n_products: int
-                 , profiles: List[ManufacturingProfile], max_storage: Optional[int] = None):
+    def __init__(
+        self,
+        initial_wallet: float,
+        initial_storage: Dict[int, int],
+        n_steps: int,
+        n_products: int,
+        profiles: List[ManufacturingProfile],
+        max_storage: Optional[int] = None,
+    ):
 
         self._n_steps = n_steps
         self._max_storage = max_storage if max_storage is not None else sys.maxsize
@@ -260,7 +267,7 @@ class FactorySimulator(ABC):
             `total_storage_at` `storage_at` `reserved_storage_at`
 
         """
-        return self._reserved_storage[:, :t + 1]
+        return self._reserved_storage[:, : t + 1]
 
     def reserved_storage_at(self, t: int) -> np.array:
         """
@@ -416,7 +423,14 @@ class FactorySimulator(ABC):
     # -------------------------
 
     @abstractmethod
-    def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
+    def set_state(
+        self,
+        t: int,
+        storage: np.array,
+        wallet: float,
+        loans: float,
+        line_schedules: np.array,
+    ) -> None:
         """
         Sets the current state at the given time-step. It implicitly causes a fix_before(t + 1)
 
@@ -483,8 +497,14 @@ class FactorySimulator(ABC):
         """
 
     @abstractmethod
-    def transport_to(self, product: int, quantity: int, t: int
-                     , ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+    def transport_to(
+        self,
+        product: int,
+        quantity: int,
+        t: int,
+        ignore_inventory_shortage: bool = True,
+        ignore_space_shortage: bool = True,
+    ) -> bool:
         """
         Simulates transporting products to/from storage at time t
 
@@ -503,8 +523,15 @@ class FactorySimulator(ABC):
         """
 
     @abstractmethod
-    def buy(self, product: int, quantity: int, price: int, t: int
-            , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+    def buy(
+        self,
+        product: int,
+        quantity: int,
+        price: int,
+        t: int,
+        ignore_money_shortage: bool = True,
+        ignore_space_shortage: bool = True,
+    ) -> bool:
         """
         Buy a given quantity of a product for a given price at some time t
 
@@ -532,8 +559,15 @@ class FactorySimulator(ABC):
         """
 
     @abstractmethod
-    def sell(self, product: int, quantity: int, price: int, t: int
-             , ignore_money_shortage: bool = True, ignore_inventory_shortage: bool = True) -> bool:
+    def sell(
+        self,
+        product: int,
+        quantity: int,
+        price: int,
+        t: int,
+        ignore_money_shortage: bool = True,
+        ignore_inventory_shortage: bool = True,
+    ) -> bool:
         """
         sell a given quantity of a product for a given price at some time t
 
@@ -562,8 +596,14 @@ class FactorySimulator(ABC):
         """
 
     @abstractmethod
-    def schedule(self, job: Job, ignore_inventory_shortage=True, ignore_money_shortage=True, ignore_space_shortage=True
-                 , override=True) -> bool:
+    def schedule(
+        self,
+        job: Job,
+        ignore_inventory_shortage=True,
+        ignore_money_shortage=True,
+        ignore_space_shortage=True,
+        override=True,
+    ) -> bool:
         """
         Simulates scheduling the given job at its `time` and `line` optionally overriding whatever was already scheduled
 
@@ -697,13 +737,24 @@ class FactorySimulator(ABC):
 @dataclass
 class _Bookmark:
     id: int
-    jobs: Dict[int, List[int]] = field(default_factory=lambda: defaultdict(list), init=False)
-    buy_contracts: Dict[int, List[int]] = field(default_factory=lambda: defaultdict(list), init=False)
-    sell_contracts: Dict[int, List[int]] = field(default_factory=lambda: defaultdict(list), init=False)
-    payment_updates: Dict[int, float] = field(default_factory=lambda: defaultdict(float), init=False)
-    loans_updates: Dict[int, float] = field(default_factory=lambda: defaultdict(float), init=False)
-    storage_updates: Dict[int, Dict[int, int]] = field(default_factory=lambda: defaultdict(lambda: defaultdict(int))
-                                                       , init=False)
+    jobs: Dict[int, List[int]] = field(
+        default_factory=lambda: defaultdict(list), init=False
+    )
+    buy_contracts: Dict[int, List[int]] = field(
+        default_factory=lambda: defaultdict(list), init=False
+    )
+    sell_contracts: Dict[int, List[int]] = field(
+        default_factory=lambda: defaultdict(list), init=False
+    )
+    payment_updates: Dict[int, float] = field(
+        default_factory=lambda: defaultdict(float), init=False
+    )
+    loans_updates: Dict[int, float] = field(
+        default_factory=lambda: defaultdict(float), init=False
+    )
+    storage_updates: Dict[int, Dict[int, int]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(int)), init=False
+    )
 
 
 @dataclass
@@ -726,7 +777,14 @@ class SlowFactorySimulator(FactorySimulator):
           up operations
     """
 
-    def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
+    def set_state(
+        self,
+        t: int,
+        storage: np.array,
+        wallet: float,
+        loans: float,
+        line_schedules: np.array,
+    ) -> None:
         for i, s in enumerate(storage):
             d = s - self.storage_at(t)[i]
             if d == 0.0:
@@ -744,22 +802,40 @@ class SlowFactorySimulator(FactorySimulator):
             if expected == actual:
                 continue
             if expected == NO_PRODUCTION:
-                raise ValueError(f'Expected no production at time {t} on line {i} but actually process '
-                                 f'{actual} is running')
+                raise ValueError(
+                    f"Expected no production at time {t} on line {i} but actually process "
+                    f"{actual} is running"
+                )
             if expected != actual and actual != NO_PRODUCTION:
-                raise ValueError(f'Expected process {expected} at time {t} on line {i} but actually process '
-                                 f'{actual} is running')
+                raise ValueError(
+                    f"Expected process {expected} at time {t} on line {i} but actually process "
+                    f"{actual} is running"
+                )
             self._line_schedules[i, t] = actual
         self.fix_before(t + 1)
-        self._saved_states[t].append(_State(t=t, storage=storage.copy(), wallet=wallet, loans=loans
-                                            , line_schedules=line_schedules.copy()))
+        self._saved_states[t].append(
+            _State(
+                t=t,
+                storage=storage.copy(),
+                wallet=wallet,
+                loans=loans,
+                line_schedules=line_schedules.copy(),
+            )
+        )
 
     def delete_bookmark(self, bookmark_id: int) -> bool:
         if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
-            raise ValueError(f'there is no active bookmark to delete')
-        self._bookmarks, self._bookmarked_at = self._bookmarks[:-1], self._bookmarked_at[:-1]
-        self._active_bookmark = self._bookmarks[-1] if len(self._bookmarks) > 0 else None
-        self._active_bookmarked_at = self._bookmarked_at[-1] if len(self._bookmarked_at) > 0 else -1
+            raise ValueError(f"there is no active bookmark to delete")
+        self._bookmarks, self._bookmarked_at = (
+            self._bookmarks[:-1],
+            self._bookmarked_at[:-1],
+        )
+        self._active_bookmark = (
+            self._bookmarks[-1] if len(self._bookmarks) > 0 else None
+        )
+        self._active_bookmarked_at = (
+            self._bookmarked_at[-1] if len(self._bookmarked_at) > 0 else -1
+        )
         return True
 
     def bookmark(self) -> int:
@@ -772,7 +848,7 @@ class SlowFactorySimulator(FactorySimulator):
 
     def rollback(self, bookmark_id: int) -> bool:
         if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
-            raise ValueError(f'there is no active bookmark to rollback')
+            raise ValueError(f"there is no active bookmark to rollback")
         for t, payment in self._active_bookmark.payment_updates.items():
             self._payment_updates[t] += payment
         for t, payment in self._active_bookmark.loans_updates.items():
@@ -782,11 +858,21 @@ class SlowFactorySimulator(FactorySimulator):
             for k, v in storage:
                 s[k] -= v
         for t, rolled_indices in self._active_bookmark.jobs.items():
-            self._jobs[t] = [_ for i, _ in enumerate(self._jobs[t]) if i not in rolled_indices]
+            self._jobs[t] = [
+                _ for i, _ in enumerate(self._jobs[t]) if i not in rolled_indices
+            ]
         for t, rolled_indices in self._active_bookmark.buy_contracts.items():
-            self._buy_contracts[t] = [_ for i, _ in enumerate(self._buy_contracts[t]) if i not in rolled_indices]
+            self._buy_contracts[t] = [
+                _
+                for i, _ in enumerate(self._buy_contracts[t])
+                if i not in rolled_indices
+            ]
         for t, rolled_indices in self._active_bookmark.sell_contracts.items():
-            self._sell_contracts[t] = [_ for i, _ in enumerate(self._sell_contracts[t]) if i not in rolled_indices]
+            self._sell_contracts[t] = [
+                _
+                for i, _ in enumerate(self._sell_contracts[t])
+                if i not in rolled_indices
+            ]
 
         if self._factory.next_step != self._bookmarked_at:
             self.goto(self._active_bookmarked_at)
@@ -806,21 +892,42 @@ class SlowFactorySimulator(FactorySimulator):
         self._fixed_before = t
         invalid = [i for i, bt in enumerate(self._bookmarked_at) if bt < t]
         self._bookmarks = [_ for i, _ in enumerate(self._bookmarks) if i not in invalid]
-        self._bookmarked_at = [_ for i, _ in enumerate(self._bookmarked_at) if i not in invalid]
+        self._bookmarked_at = [
+            _ for i, _ in enumerate(self._bookmarked_at) if i not in invalid
+        ]
         return True
 
-    def __init__(self, initial_wallet: float, initial_storage: Dict[int, int], n_steps: int, n_products: int
-                 , profiles: List[ManufacturingProfile], max_storage: Optional[int]):
-        super().__init__(initial_wallet=initial_wallet, initial_storage=initial_storage, n_steps=n_steps
-                         , n_products=n_products, profiles=profiles, max_storage=max_storage)
-        self._factory = Factory(initial_storage=initial_storage, initial_wallet=initial_wallet
-                                , profiles=profiles, max_storage=max_storage)
+    def __init__(
+        self,
+        initial_wallet: float,
+        initial_storage: Dict[int, int],
+        n_steps: int,
+        n_products: int,
+        profiles: List[ManufacturingProfile],
+        max_storage: Optional[int],
+    ):
+        super().__init__(
+            initial_wallet=initial_wallet,
+            initial_storage=initial_storage,
+            n_steps=n_steps,
+            n_products=n_products,
+            profiles=profiles,
+            max_storage=max_storage,
+        )
+        self._factory = Factory(
+            initial_storage=initial_storage,
+            initial_wallet=initial_wallet,
+            profiles=profiles,
+            max_storage=max_storage,
+        )
         self._jobs: Dict[int, List[(Job, bool, bool, bool, bool)]] = defaultdict(list)
         self._buy_contracts: Dict[int, List[(int, int, float)]] = defaultdict(list)
         self._sell_contracts: Dict[int, List[(int, int, float)]] = defaultdict(list)
         self._payment_updates: Dict[int, float] = defaultdict(float)
         self._loans_updates: Dict[int, float] = defaultdict(float)
-        self._storage_updates: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+        self._storage_updates: Dict[int, Dict[int, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
         self._wallet = np.zeros(n_steps)
         self._loans = np.zeros(n_steps)
         self._storage = np.zeros(shape=(n_products, n_steps))
@@ -839,13 +946,21 @@ class SlowFactorySimulator(FactorySimulator):
         self._wallet[t] = self._factory.wallet
         self._loans[t] = self._factory.loans
         self._storage[:, t] = self._as_array(self._factory.storage)
-        self._line_schedules[:, t] = np.array(list(NO_PRODUCTION if command.is_none else command.profile.process.id
-                                                   for command in self._factory.commands))
+        self._line_schedules[:, t] = np.array(
+            list(
+                NO_PRODUCTION if command.is_none else command.profile.process.id
+                for command in self._factory.commands
+            )
+        )
 
     def reset_to(self, t: int) -> None:
-        self._factory = Factory(initial_storage={i: v for i, v in enumerate(self._initial_storage) if v != 0}
-                                , initial_wallet=self._initial_wallet
-                                , profiles=self._profiles)
+        self._factory = Factory(
+            initial_storage={
+                i: v for i, v in enumerate(self._initial_storage) if v != 0
+            },
+            initial_wallet=self._initial_wallet,
+            profiles=self._profiles,
+        )
         for step in range(t + 1):
             self._factory.receive(payment=self._payment_updates.get(step, 0.0))
             self._factory.add_loan(total=self._loans_updates.get(step, 0.0))
@@ -912,31 +1027,33 @@ class SlowFactorySimulator(FactorySimulator):
 
     def wallet_to(self, t: int) -> np.array:
         if t < self._fixed_before:
-            return self._wallet[:t + 1]
+            return self._wallet[: t + 1]
         self.goto(t)
-        return self._wallet[:t + 1]
+        return self._wallet[: t + 1]
 
     def line_schedules_to(self, t: int) -> np.array:
         if t < self._fixed_before:
-            return self._storage[:, :t + 1]
+            return self._storage[:, : t + 1]
         self.goto(t)
-        return self._line_schedules[:, :t + 1]
+        return self._line_schedules[:, : t + 1]
 
     def storage_to(self, t: int) -> np.array:
         if t < self._fixed_before:
-            return self._storage[:, :t + 1]
+            return self._storage[:, : t + 1]
         self.goto(t)
-        return self._storage[:, :t + 1]
+        return self._storage[:, : t + 1]
 
     def loans_to(self, t: int) -> float:
         if t < self._fixed_before:
-            return self._loans[:t + 1]
+            return self._loans[: t + 1]
         self.goto(t)
-        return self._loans[:t + 1]
+        return self._loans[: t + 1]
 
     def add_loan(self, total: float, t: int) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         self._loans_updates[t] += total
         if self._active_bookmark:
             self._active_bookmark.loans_updates[t] += total
@@ -944,15 +1061,26 @@ class SlowFactorySimulator(FactorySimulator):
 
     def pay(self, payment: float, t: int, ignore_money_shortage: bool = True) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         self._payment_updates[t] += payment
         if self._active_bookmark:
             self._active_bookmark.payment_updates[t] += payment
         return True
 
-    def transport_to(self, product: int, quantity: int, t: int, ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+    def transport_to(
+        self,
+        product: int,
+        quantity: int,
+        t: int,
+        ignore_inventory_shortage: bool = True,
+        ignore_space_shortage: bool = True,
+    ) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         s = self._storage_updates[t]
         s[product] += quantity
         if self._active_bookmark:
@@ -960,28 +1088,63 @@ class SlowFactorySimulator(FactorySimulator):
             s[product] += quantity
         return True
 
-    def schedule(self, job: Job, ignore_inventory_shortage=True, ignore_money_shortage=True, ignore_space_shortage=True
-                 , override=True) -> bool:
+    def schedule(
+        self,
+        job: Job,
+        ignore_inventory_shortage=True,
+        ignore_money_shortage=True,
+        ignore_space_shortage=True,
+        override=True,
+    ) -> bool:
         t = job.time
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
-        self._jobs[t].append((job, override, ignore_inventory_shortage, ignore_money_shortage, ignore_space_shortage))
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
+        self._jobs[t].append(
+            (
+                job,
+                override,
+                ignore_inventory_shortage,
+                ignore_money_shortage,
+                ignore_space_shortage,
+            )
+        )
         if self._active_bookmark:
             self._active_bookmark.jobs[t].append(len(self._jobs[t]))
         return True
 
-    def buy(self, product: int, quantity: int, price: int, t: int
-            , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+    def buy(
+        self,
+        product: int,
+        quantity: int,
+        price: int,
+        t: int,
+        ignore_money_shortage: bool = True,
+        ignore_space_shortage: bool = True,
+    ) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         self._buy_contracts[t].append((product, quantity, price))
         if self._active_bookmark:
             self._active_bookmark.buy_contracts[t].append(len(self._buy_contracts[t]))
         return True
 
-    def sell(self, product: int, quantity: int, price: int, t: int, ignore_money_shortage: bool = True, ignore_inventory_shortage: bool = True) -> bool:
+    def sell(
+        self,
+        product: int,
+        quantity: int,
+        price: int,
+        t: int,
+        ignore_money_shortage: bool = True,
+        ignore_inventory_shortage: bool = True,
+    ) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         self._sell_contracts[t].append((product, quantity, price))
         if self._active_bookmark:
             self._active_bookmark.sell_contracts[t].append(len(self._sell_contracts[t]))
@@ -1014,19 +1177,40 @@ class FastFactorySimulator(FactorySimulator):
             a[k] = v
         return a
 
-    def __init__(self, initial_wallet: float, initial_storage: Dict[int, int], n_steps: int, n_products: int
-                 , profiles: List[ManufacturingProfile], max_storage: Optional[int]):
-        super().__init__(initial_wallet=initial_wallet, initial_storage=initial_storage, n_steps=n_steps
-                         , n_products=n_products, profiles=profiles, max_storage=max_storage)
+    def __init__(
+        self,
+        initial_wallet: float,
+        initial_storage: Dict[int, int],
+        n_steps: int,
+        n_products: int,
+        profiles: List[ManufacturingProfile],
+        max_storage: Optional[int],
+    ):
+        super().__init__(
+            initial_wallet=initial_wallet,
+            initial_storage=initial_storage,
+            n_steps=n_steps,
+            n_products=n_products,
+            profiles=profiles,
+            max_storage=max_storage,
+        )
         self._wallet = np.ones(n_steps) * initial_wallet
         self._loans = np.zeros(n_steps)
-        self._storage = np.repeat(self._as_array(initial_storage).reshape((n_products, 1)), n_steps, axis=1)
+        self._storage = np.repeat(
+            self._as_array(initial_storage).reshape((n_products, 1)), n_steps, axis=1
+        )
         self._total_storage = self._storage.sum(axis=0)
-        factory = Factory(initial_storage=initial_storage, initial_wallet=initial_wallet, profiles=profiles
-                          , max_storage=max_storage)
+        factory = Factory(
+            initial_storage=initial_storage,
+            initial_wallet=initial_wallet,
+            profiles=profiles,
+            max_storage=max_storage,
+        )
         self._profiles = factory.profiles
         self._n_lines = factory.n_lines
-        self._line_schedules = np.ones(shape=(self._n_lines, self._n_steps)) * NO_PRODUCTION
+        self._line_schedules = (
+            np.ones(shape=(self._n_lines, self._n_steps)) * NO_PRODUCTION
+        )
         self._has_jobs = np.zeros(shape=(self._n_lines, self._n_steps), dtype=bool)
         self._fixed_before = 0
         self._bookmarks: List[_FullBookmark] = []
@@ -1048,10 +1232,10 @@ class FastFactorySimulator(FactorySimulator):
         return self._wallet[-1] - self._loans[-1]
 
     def wallet_to(self, t: int) -> np.array:
-        return self._wallet[:t + 1]
+        return self._wallet[: t + 1]
 
     def storage_to(self, t: int) -> np.array:
-        return self._storage[:, :t + 1]
+        return self._storage[:, : t + 1]
 
     def line_schedules_to(self, t: int) -> np.array:
         return self._line_schedules[:, : t + 1]
@@ -1061,14 +1245,18 @@ class FastFactorySimulator(FactorySimulator):
 
     def add_loan(self, total: float, t: int) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         self._loans[t:] += total
         return True
 
     def pay(self, payment: float, t: int, ignore_money_shortage: bool = True) -> bool:
         # @todo add minimum balance
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         b = self._wallet[t:]
         b -= payment
         if b.min() < 0:
@@ -1076,10 +1264,19 @@ class FastFactorySimulator(FactorySimulator):
             return False
         return True
 
-    def transport_to(self, product: int, quantity: int, t: int, ignore_inventory_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+    def transport_to(
+        self,
+        product: int,
+        quantity: int,
+        t: int,
+        ignore_inventory_shortage: bool = True,
+        ignore_space_shortage: bool = True,
+    ) -> bool:
         # @todo add minimum storage
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         s, total = self._storage[product, t:].view(), self._total_storage[t:]
         s += quantity
         total += quantity
@@ -1089,10 +1286,19 @@ class FastFactorySimulator(FactorySimulator):
             return False
         return True
 
-    def buy(self, product: int, quantity: int, price: int, t: int
-            , ignore_money_shortage: bool = True, ignore_space_shortage: bool = True) -> bool:
+    def buy(
+        self,
+        product: int,
+        quantity: int,
+        price: int,
+        t: int,
+        ignore_money_shortage: bool = True,
+        ignore_space_shortage: bool = True,
+    ) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         s, total = self._storage[product, t:].view(), self._total_storage[t:]
         s += quantity
         total += quantity
@@ -1105,9 +1311,19 @@ class FastFactorySimulator(FactorySimulator):
             return False
         return True
 
-    def sell(self, product: int, quantity: int, price: int, t: int, ignore_money_shortage: bool = True, ignore_inventory_shortage: bool = True) -> bool:
+    def sell(
+        self,
+        product: int,
+        quantity: int,
+        price: int,
+        t: int,
+        ignore_money_shortage: bool = True,
+        ignore_inventory_shortage: bool = True,
+    ) -> bool:
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         s, total = self._storage[product, t:].view(), self._total_storage[t:]
         s -= quantity
         total -= quantity
@@ -1120,43 +1336,64 @@ class FastFactorySimulator(FactorySimulator):
             return False
         return True
 
-    def schedule(self, job: Job, ignore_inventory_shortage=True, ignore_money_shortage=True, ignore_space_shortage=True
-                 , override=True) -> bool:
+    def schedule(
+        self,
+        job: Job,
+        ignore_inventory_shortage=True,
+        ignore_money_shortage=True,
+        ignore_space_shortage=True,
+        override=True,
+    ) -> bool:
         t, job_override = job.time, job.override
         if t < self._fixed_before:
-            raise ValueError(f'Cannot run operations in the past (t={t}, fixed before {self._fixed_before})')
+            raise ValueError(
+                f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
+            )
         if job_override:
-            raise NotImplementedError(f'{self.__class__.__name__} does not support scheduling jobs with overriding')
+            raise NotImplementedError(
+                f"{self.__class__.__name__} does not support scheduling jobs with overriding"
+            )
         # job_line = job.line # only useful for stop/pause/resume that are not supported
         profile = self._profiles[job.profile]
-        inputs, outputs, length, cost = profile.process.inputs, profile.process.outputs, profile.n_steps, profile.cost
+        inputs, outputs, length, cost = (
+            profile.process.inputs,
+            profile.process.outputs,
+            profile.n_steps,
+            profile.cost,
+        )
         line = profile.line
 
         # confirm that there is no other jobs already scheduled at this exact time:
         if self._has_jobs[line, t]:
             if override:
-                raise NotImplementedError(f'{self.__class__.__name__} does not support scheduling more than a single '
-                                          f'job at any time-step/line')
+                raise NotImplementedError(
+                    f"{self.__class__.__name__} does not support scheduling more than a single "
+                    f"job at any time-step/line"
+                )
             return False
 
         # confirm that the line is not busy. If it was busy, and we are not overriding, fail.
-        if not job_override and np.any(self._line_schedules[line, t:t + length] != NO_PRODUCTION):
+        if not job_override and np.any(
+            self._line_schedules[line, t : t + length] != NO_PRODUCTION
+        ):
             return False
 
         # confirm that there is enough money to start production
         if (not ignore_money_shortage) and np.any(self._wallet[t:] < cost):
             return False
         # bookmark to be able to rollback at any error
-        if job.action == 'run':
+        if job.action == "run":
             with transaction(self) as bookmark:
                 if not self.pay(cost, t):
                     self.rollback(bookmark)
                     return False
-                self._line_schedules[line, t:t + length] = profile.process.id
+                self._line_schedules[line, t : t + length] = profile.process.id
                 for i in inputs:
                     it = int(math.floor(i.step * length) + t)
                     p, q = i.product, i.quantity
-                    if (not ignore_inventory_shortage) and np.any(self._storage[p, it:] < q):
+                    if (not ignore_inventory_shortage) and np.any(
+                        self._storage[p, it:] < q
+                    ):
                         self.rollback(bookmark)
                         return False
                     s, total = self._storage[p, it:].view(), self._total_storage[it:]
@@ -1165,14 +1402,18 @@ class FastFactorySimulator(FactorySimulator):
                 for o in outputs:
                     ot = int(math.ceil(o.step * length) + t)
                     p, q = o.product, o.quantity
-                    if (not ignore_space_shortage) and np.any(self._total_storage[ot:] + q > self.max_storage):
+                    if (not ignore_space_shortage) and np.any(
+                        self._total_storage[ot:] + q > self.max_storage
+                    ):
                         self.rollback(bookmark)
                         return False
                     s, total = self._storage[p, ot:].view(), self._total_storage[ot:]
                     s += q
                     total += q
             return True
-        raise NotImplementedError(f'{self.__class__.__name__} does not support scheduling {job.action} jobs')
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support scheduling {job.action} jobs"
+        )
 
     def fix_before(self, t: int) -> bool:
         self._fixed_before = t
@@ -1180,30 +1421,46 @@ class FastFactorySimulator(FactorySimulator):
 
     def delete_bookmark(self, bookmark_id: int) -> bool:
         if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
-            raise ValueError(f'there is no active bookmark to delete')
+            raise ValueError(f"there is no active bookmark to delete")
         self._bookmarks = self._bookmarks[:-1]
-        self._active_bookmark = self._bookmarks[-1] if len(self._bookmarks) > 0 else None
+        self._active_bookmark = (
+            self._bookmarks[-1] if len(self._bookmarks) > 0 else None
+        )
         return True
 
     def bookmark(self) -> int:
-        bookmark = _FullBookmark(id=len(self._bookmarks), wallet=self._wallet.copy(), loans=self._loans.copy()
-                                 , storage=self._storage.copy(), line_schedules=self._line_schedules.copy()
-                                 , has_jobs=self._has_jobs.copy())
+        bookmark = _FullBookmark(
+            id=len(self._bookmarks),
+            wallet=self._wallet.copy(),
+            loans=self._loans.copy(),
+            storage=self._storage.copy(),
+            line_schedules=self._line_schedules.copy(),
+            has_jobs=self._has_jobs.copy(),
+        )
         self._bookmarks.append(bookmark)
         self._active_bookmark = bookmark
         return bookmark.id
 
     def rollback(self, bookmark_id: int) -> bool:
         if self._active_bookmark is None or self._active_bookmark.id != bookmark_id:
-            raise ValueError(f'there is no active bookmark to rollback')
+            raise ValueError(f"there is no active bookmark to rollback")
         b = self._active_bookmark
         self._wallet, self._loans, self._storage = b.wallet, b.loans, b.storage
         self._line_schedules, self._has_jobs = b.line_schedules, b.has_jobs
         self._total_storage = self._storage.sum(axis=0)
         return True
 
-    def set_state(self, t: int, storage: np.array, wallet: float, loans: float, line_schedules: np.array) -> None:
-        self._storage[:, t:] += storage.reshape(self._n_products, 1) - self._storage[:, t].reshape(self._n_products, 1)
+    def set_state(
+        self,
+        t: int,
+        storage: np.array,
+        wallet: float,
+        loans: float,
+        line_schedules: np.array,
+    ) -> None:
+        self._storage[:, t:] += storage.reshape(self._n_products, 1) - self._storage[
+            :, t
+        ].reshape(self._n_products, 1)
         self._wallet[t:] += wallet - self._wallet[t]
         self._loans[t:] += loans - self._loans[t]
 
@@ -1226,7 +1483,7 @@ class FastFactorySimulator(FactorySimulator):
         self.fix_before(t)
 
     class Java:
-        implements = ['jnegmas.apps.scml.simulators.FactorySimulator']
+        implements = ["jnegmas.apps.scml.simulators.FactorySimulator"]
 
 
 @contextmanager
@@ -1331,9 +1588,17 @@ class _ShadowFactorySimulator:
     def fixedBefore(self) -> int:
         return to_java(self.shadow.fixed_before)
 
-    def setState(self, t: int, storage: List[int], wallet: float, loans: float, lineSchedules: List[int]) -> None:
-        self.shadow.set_state(t, storage=storage, wallet=wallet, loans=loans
-                              , line_schedules=lineSchedules)
+    def setState(
+        self,
+        t: int,
+        storage: List[int],
+        wallet: float,
+        loans: float,
+        lineSchedules: List[int],
+    ) -> None:
+        self.shadow.set_state(
+            t, storage=storage, wallet=wallet, loans=loans, line_schedules=lineSchedules
+        )
 
     def addLoan(self, total: float, t: int) -> bool:
         return self.shadow.add_loan(total=total, t=t)
@@ -1344,17 +1609,42 @@ class _ShadowFactorySimulator:
     def pay(self, payment, t, ignoreMoneyShortage):
         return self.shadow.pay(payment, t, ignoreMoneyShortage)
 
-    def transportTo(self, product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage):
-        return self.shadow.transport_to(product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage)
+    def transportTo(
+        self, product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage
+    ):
+        return self.shadow.transport_to(
+            product, quantity, t, ignoreInventoryShortage, ignoreSpaceShortage
+        )
 
-    def buy(self, product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage):
-        return self.shadow.buy(product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage)
+    def buy(
+        self, product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage
+    ):
+        return self.shadow.buy(
+            product, quantity, price, t, ignoreMoneyShortage, ignoreSpaceShortage
+        )
 
-    def sell(self, product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage):
-        return self.shadow.sell(product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage)
+    def sell(
+        self, product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage
+    ):
+        return self.shadow.sell(
+            product, quantity, price, t, ignoreMoneyShortage, ignoreInventoryShortage
+        )
 
-    def schedule(self, job, ignoreInventoryShortage, ignoreMoneyShortage, ignoreSpaceShortage, override):
-        return self.shadow.schedule(job, ignoreInventoryShortage, ignoreMoneyShortage, ignoreSpaceShortage, override)
+    def schedule(
+        self,
+        job,
+        ignoreInventoryShortage,
+        ignoreMoneyShortage,
+        ignoreSpaceShortage,
+        override,
+    ):
+        return self.shadow.schedule(
+            job,
+            ignoreInventoryShortage,
+            ignoreMoneyShortage,
+            ignoreSpaceShortage,
+            override,
+        )
 
     def reserve(self, product, quantity, t):
         return self.reserve(product, quantity, t)
@@ -1375,5 +1665,4 @@ class _ShadowFactorySimulator:
         return to_dict(self.shadow)
 
     class Java:
-        implements = ['jengmas.apps.scml.simulators.FactorySimulator']
-
+        implements = ["jengmas.apps.scml.simulators.FactorySimulator"]

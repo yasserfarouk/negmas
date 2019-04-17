@@ -11,14 +11,20 @@ from ...negotiators import Negotiator
 from ...outcomes import Issue
 from ...situated import Agent
 from ...situated import Contract, Breach
-from .common import ManufacturingProfileCompiled, ProductManufacturingInfo, Process, Product, Loan, CFP, FinancialReport
+from .common import (
+    ManufacturingProfileCompiled,
+    ProductManufacturingInfo,
+    Process,
+    Product,
+    Loan,
+    CFP,
+    FinancialReport,
+)
 
 if TYPE_CHECKING:
     from .awi import SCMLAWI
 
-__all__ = [
-    'SCMLAgent'
-]
+__all__ = ["SCMLAgent"]
 
 
 class SCMLAgent(Agent):
@@ -50,7 +56,7 @@ class SCMLAgent(Agent):
         """List of processes in the system"""
 
     @property
-    def awi(self) -> 'SCMLAWI':
+    def awi(self) -> "SCMLAWI":
         """Returns the Agent-World-Interface through which the agent does all of its actions in the world.
 
         A single excption is request_negotiation for which it is recommended to actually call the helper method
@@ -58,7 +64,7 @@ class SCMLAgent(Agent):
         return self._awi
 
     @awi.setter
-    def awi(self, awi: 'SCMLAWI'):
+    def awi(self, awi: "SCMLAWI"):
         """Sets the AWI. Not to be used by agents. Only used by the world simulation itself."""
         self._awi = awi
 
@@ -81,13 +87,19 @@ class SCMLAgent(Agent):
         self.products = self.awi.products  # type: ignore
         # noinspection PyUnresolvedReferences
         self.processes = self.awi.processes  # type: ignore
-        self.negotiation_speed_multiple = self.awi.bb_read('settings', 'negotiation_speed_multiple')
-        self.immediate_negotiations = self.awi.bb_read('settings', 'immediate_negotiations')
-        self.transportation_delay = self.awi.bb_read(section='settings', key='transportation_delay')
+        self.negotiation_speed_multiple = self.awi.bb_read(
+            "settings", "negotiation_speed_multiple"
+        )
+        self.immediate_negotiations = self.awi.bb_read(
+            "settings", "immediate_negotiations"
+        )
+        self.transportation_delay = self.awi.bb_read(
+            section="settings", key="transportation_delay"
+        )
 
         factory = self.awi.state
         if factory is None:
-            raise ValueError('Cannot init any SCMLAgent without specifying a factory')
+            raise ValueError("Cannot init any SCMLAgent without specifying a factory")
         profiles = factory.profiles
         self.line_profiles = defaultdict(list)
         self.process_profiles = defaultdict(list)
@@ -96,26 +108,34 @@ class SCMLAgent(Agent):
         self.consuming = defaultdict(list)
         p2i = dict(zip(self.processes, range(len(self.processes))))
         for index, profile in enumerate(profiles):
-            compiled = ManufacturingProfileCompiled.from_manufacturing_profile(profile=profile, process2ind=p2i)
+            compiled = ManufacturingProfileCompiled.from_manufacturing_profile(
+                profile=profile, process2ind=p2i
+            )
             self.compiled_profiles.append(compiled)
             self.line_profiles[profile.line].append(compiled)
             self.process_profiles[profile.process].append(compiled)
             process = profile.process
             for outpt in process.outputs:
                 step = int(math.ceil(outpt.step * profile.n_steps))
-                self.producing[outpt.product].append(ProductManufacturingInfo(profile=index
-                                                                              , quantity=outpt.quantity
-                                                                              , step=step))
+                self.producing[outpt.product].append(
+                    ProductManufacturingInfo(
+                        profile=index, quantity=outpt.quantity, step=step
+                    )
+                )
 
             for inpt in process.inputs:
                 step = int(math.floor(inpt.step * profile.n_steps))
-                self.consuming[inpt.product].append(ProductManufacturingInfo(profile=index
-                                                                             , quantity=inpt.quantity
-                                                                             , step=step))
-        self.awi.register_interest(list(set(itertools.chain(self.producing.keys(), self.consuming.keys()))))
+                self.consuming[inpt.product].append(
+                    ProductManufacturingInfo(
+                        profile=index, quantity=inpt.quantity, step=step
+                    )
+                )
+        self.awi.register_interest(
+            list(set(itertools.chain(self.producing.keys(), self.consuming.keys())))
+        )
         self.init()
 
-    def can_expect_agreement(self, cfp: 'CFP', margin: int):
+    def can_expect_agreement(self, cfp: "CFP", margin: int):
         """
         Checks if it is possible in principle to get an agreement on this CFP by the time it becomes executable
         Args:
@@ -125,23 +145,33 @@ class SCMLAgent(Agent):
         Returns:
 
         """
-        return cfp.max_time >= self.awi.current_step + 1 - int(self.immediate_negotiations) + margin
+        return (
+            cfp.max_time
+            >= self.awi.current_step + 1 - int(self.immediate_negotiations) + margin
+        )
 
-    def _create_annotation(self, cfp: 'CFP'):
+    def _create_annotation(self, cfp: "CFP"):
         """Creates full annotation based on a cfp that the agent is receiving"""
         partners = [self.id, cfp.publisher]
-        annotation = {'cfp': cfp, 'partners': partners}
+        annotation = {"cfp": cfp, "partners": partners}
         if cfp.is_buy:
-            annotation['seller'] = self.id
-            annotation['buyer'] = cfp.publisher
+            annotation["seller"] = self.id
+            annotation["buyer"] = cfp.publisher
         else:
-            annotation['buyer'] = self.id
-            annotation['seller'] = cfp.publisher
+            annotation["buyer"] = self.id
+            annotation["seller"] = cfp.publisher
         return annotation
 
-    def _respond_to_negotiation_request(self, initiator: str, partners: List[str], issues: List[Issue]
-                                        , annotation: Dict[str, Any], mechanism: AgentMechanismInterface
-                                        , role: Optional[str], req_id: Optional[str]) -> Optional[Negotiator]:
+    def _respond_to_negotiation_request(
+        self,
+        initiator: str,
+        partners: List[str],
+        issues: List[Issue],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        role: Optional[str],
+        req_id: Optional[str],
+    ) -> Optional[Negotiator]:
         """
         Called by the mechanism to ask for joining a negotiation. The agent can refuse by returning a None
 
@@ -163,10 +193,12 @@ class SCMLAgent(Agent):
               call it
 
         """
-        cfp = annotation['cfp']
+        cfp = annotation["cfp"]
         return self.respond_to_negotiation_request(cfp=cfp, partner=cfp.publisher)
 
-    def request_negotiation(self, cfp: CFP, negotiator: Negotiator = None, ufun: UtilityFunction = None) -> bool:
+    def request_negotiation(
+        self, cfp: CFP, negotiator: Negotiator = None, ufun: UtilityFunction = None
+    ) -> bool:
         """
         Requests a negotiation from the AWI while keeping track of available negotiation requests
 
@@ -182,9 +214,13 @@ class SCMLAgent(Agent):
         """
         if negotiator is not None and ufun is not None:
             negotiator.utility_function = ufun
-        req_id = self._add_negotiation_request_info(issues=cfp.issues, partners=[self.id, cfp.publisher]
-                                                    , annotation=None
-                                                    , negotiator=negotiator, extra=None)
+        req_id = self._add_negotiation_request_info(
+            issues=cfp.issues,
+            partners=[self.id, cfp.publisher],
+            annotation=None,
+            negotiator=negotiator,
+            extra=None,
+        )
         return self.awi.request_negotiation(cfp=cfp, req_id=req_id)
 
     # ------------------------------------------------------------------
@@ -197,7 +233,9 @@ class SCMLAgent(Agent):
         breached"""
 
     @abstractmethod
-    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+    def on_contract_nullified(
+        self, contract: Contract, bankrupt_partner: str, compensation: float
+    ) -> None:
         """Will be called whenever a contract the agent is involved in is nullified because another partner went
         bankrupt"""
 
@@ -225,7 +263,9 @@ class SCMLAgent(Agent):
         """
 
     @abstractmethod
-    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+    def confirm_partial_execution(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> bool:
         """Will be called whenever a contract cannot be fully executed due to breaches by the other partner.
 
         Args:
@@ -244,15 +284,17 @@ class SCMLAgent(Agent):
         return True
 
     @abstractmethod
-    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(
+        self, cfp: "CFP", partner: str
+    ) -> Optional[Negotiator]:
         """Called when a prospective partner requests a negotiation to start"""
 
     @abstractmethod
-    def on_new_cfp(self, cfp: 'CFP'):
+    def on_new_cfp(self, cfp: "CFP"):
         """Called when a new CFP for a product for which the agent registered interest is published"""
 
     @abstractmethod
-    def on_remove_cfp(self, cfp: 'CFP'):
+    def on_remove_cfp(self, cfp: "CFP"):
         """Called when a new CFP for a product for which the agent registered interest is removed"""
 
     @abstractmethod

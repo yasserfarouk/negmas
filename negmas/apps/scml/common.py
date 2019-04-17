@@ -19,18 +19,37 @@ INVALID_UTILITY = -2000
 g_last_product_id = 0
 g_last_process_id = 0
 
-__all__ = ['Product', 'Process', 'InputOutput', 'RunningCommandInfo'
-    , 'INVALID_STEP', 'NO_PRODUCTION', 'INVALID_UTILITY'
-    , 'ManufacturingProfile', 'ManufacturingProfileCompiled', 'ProductManufacturingInfo'
-    , 'FactoryStatusUpdate', 'Job', 'ProductionNeed'
-    , 'MissingInput', 'ProductionReport', 'ProductionFailure', 'FinancialReport'
-    , 'SCMLAgreement', 'SCMLAction'
-    , 'CFP', 'Loan', 'InsurancePolicy', 'Factory', 'FactoryState']
+__all__ = [
+    "Product",
+    "Process",
+    "InputOutput",
+    "RunningCommandInfo",
+    "INVALID_STEP",
+    "NO_PRODUCTION",
+    "INVALID_UTILITY",
+    "ManufacturingProfile",
+    "ManufacturingProfileCompiled",
+    "ProductManufacturingInfo",
+    "FactoryStatusUpdate",
+    "Job",
+    "ProductionNeed",
+    "MissingInput",
+    "ProductionReport",
+    "ProductionFailure",
+    "FinancialReport",
+    "SCMLAgreement",
+    "SCMLAction",
+    "CFP",
+    "Loan",
+    "InsurancePolicy",
+    "Factory",
+    "FactoryState",
+]
 
 
 @dataclass
 class Product:
-    __slots__ = ['id', 'production_level', 'name', 'expires_in', 'catalog_price']
+    __slots__ = ["id", "production_level", "name", "expires_in", "catalog_price"]
     """A product that can be transacted in."""
     id: int
     """Product index. Must be set during construction and **MUST** be unique for products in the same world"""
@@ -45,7 +64,9 @@ class Product:
 
     def __str__(self):
         """String representation is simply the name"""
-        return self.name + (f'(cp:{self.catalog_price:0.02f})' if self.catalog_price is not None else "")
+        return self.name + (
+            f"(cp:{self.catalog_price:0.02f})" if self.catalog_price is not None else ""
+        )
 
     def __post_init__(self):
         global g_last_product_id
@@ -62,7 +83,8 @@ class Product:
 @dataclass(frozen=True)
 class InputOutput:
     """An input/output to a production process"""
-    __slots__ = ['product', 'quantity', 'step']
+
+    __slots__ = ["product", "quantity", "step"]
     product: int
     """Index of the product used as input or output"""
     quantity: int
@@ -73,7 +95,14 @@ class InputOutput:
 
 @dataclass
 class Process:
-    __slots__ = ['id', 'production_level', 'name', 'inputs', 'outputs', 'historical_cost']
+    __slots__ = [
+        "id",
+        "production_level",
+        "name",
+        "inputs",
+        "outputs",
+        "historical_cost",
+    ]
     id: int
     """A manufacturing process."""
     production_level: int
@@ -91,7 +120,9 @@ class Process:
 
     def __str__(self):
         """String representation is simply the name"""
-        return self.name + (f'(cp:{self.historical_cost})' if self.historical_cost is not None else "")
+        return self.name + (
+            f"(cp:{self.historical_cost})" if self.historical_cost is not None else ""
+        )
 
     def __post_init__(self):
         global g_last_process_id
@@ -116,8 +147,17 @@ class ManufacturingProfile:
         `Factory`
 
     """
-    __slots__ = ['n_steps', 'cost', 'initial_pause_cost', 'running_pause_cost', 'resumption_cost'
-        , 'cancellation_cost', 'line', 'process']
+
+    __slots__ = [
+        "n_steps",
+        "cost",
+        "initial_pause_cost",
+        "running_pause_cost",
+        "resumption_cost",
+        "cancellation_cost",
+        "line",
+        "process",
+    ]
     n_steps: int
     """Number of steps needed to complete the manufacturing"""
     cost: float
@@ -138,7 +178,7 @@ class ManufacturingProfile:
 
 @dataclass
 class FactoryStatusUpdate:
-    __slots__ = ['balance', 'storage']
+    __slots__ = ["balance", "storage"]
     balance: float
     """The update to the balance"""
     storage: Dict[int, int]
@@ -175,7 +215,11 @@ class FactoryStatusUpdate:
             self.storage.pop(k, None)
 
     @classmethod
-    def combine_sets(cls, dst: Dict[int, "FactoryStatusUpdate"], src: Dict[int, "FactoryStatusUpdate"]):
+    def combine_sets(
+        cls,
+        dst: Dict[int, "FactoryStatusUpdate"],
+        src: Dict[int, "FactoryStatusUpdate"],
+    ):
         """
         Combines a set of updates over time with another in place (overriding `first`)
         Args:
@@ -196,20 +240,24 @@ class FactoryStatusUpdate:
 
     @property
     def is_empty(self):
-        return self.balance == 0 and (len(self.storage) == 0 or sum(self.storage.values()) == 0)
+        return self.balance == 0 and (
+            len(self.storage) == 0 or sum(self.storage.values()) == 0
+        )
 
     @classmethod
     def empty(cls):
         return FactoryStatusUpdate(balance=0.0, storage={})
 
     def __str__(self):
-        return f'balance: {self.balance}, ' + \
-               f'{str({k: v for k, v in self.storage.items()}) if self.storage is not None else ""}'
+        return (
+            f"balance: {self.balance}, "
+            + f'{str({k: v for k, v in self.storage.items()}) if self.storage is not None else ""}'
+        )
 
 
 @dataclass
 class RunningCommandInfo:
-    __slots__ = ['profile', 'beg', 'end', 'action', 'updates', 'step', 'paused']
+    __slots__ = ["profile", "beg", "end", "action", "updates", "step", "paused"]
     profile: ManufacturingProfile
     """The manufacturing profile associated with this command. Most importantly, it gives the process and line"""
     beg: int
@@ -224,7 +272,7 @@ class RunningCommandInfo:
     """True if the command is paused"""
     action: str
     """The command type. For the current implementation it will always be run or none for no command"""
-    updates: Dict[int, 'FactoryStatusUpdate']
+    updates: Dict[int, "FactoryStatusUpdate"]
     """The status updates implied by this command with their times relative to `beg`"""
 
     @property
@@ -240,26 +288,35 @@ class RunningCommandInfo:
     def __str__(self):
         # if self.is_none:
         #     return 'No command'
-        return f'{self.action} {self.profile.process.id} [{self.beg}:{self.end - 1}]'
+        return f"{self.action} {self.profile.process.id} [{self.beg}:{self.end - 1}]"
 
     @property
     def is_none(self):
-        return self.action == 'none'
+        return self.action == "none"
 
     @is_none.setter
     def is_none(self, is_none):
-        self.action = 'none'
+        self.action = "none"
 
     @classmethod
     def do_nothing(cls):
         # noinspection PyTypeChecker
-        return cls(profile=None, beg=-1, end=-1, action='none', updates={}, step=0, paused=False)
+        return cls(
+            profile=None,
+            beg=-1,
+            end=-1,
+            action="none",
+            updates={},
+            step=0,
+            paused=False,
+        )
 
 
 @dataclass
 class Job:
     """Describes a job to be run on one production line of a `Factory`."""
-    __slots__ = ['profile', 'time', 'line', 'action', 'contract', 'override']
+
+    __slots__ = ["profile", "time", "line", "action", "contract", "override"]
     profile: int
     """The process for run commands"""
     time: int
@@ -278,10 +335,10 @@ class Job:
         s = f'{self.action} {self.profile if self.action == "run" else ""} at {self.time} on {self.line}'
         s += f'{" override" if self.override else ""}'
         if self.contract is not None:
-            s += f' for {self.contract.id}'
+            s += f" for {self.contract.id}"
         return s
 
-    def is_cancelling(self, job: 'Job') -> bool:
+    def is_cancelling(self, job: "Job") -> bool:
         """
         Determines if the given jobs cancels this one
 
@@ -293,16 +350,25 @@ class Job:
         """
         if self.line != job.line:
             return False
-        return job.action == 'cancel' or \
-               (self.action in ('run', 'start') and job.action == 'stop') or \
-               (self.action == 'pause' and job.action == 'resume') or \
-               (self.action == 'resume' and job.action == 'pause')
+        return (
+            job.action == "cancel"
+            or (self.action in ("run", "start") and job.action == "stop")
+            or (self.action == "pause" and job.action == "resume")
+            or (self.action == "resume" and job.action == "pause")
+        )
 
 
 @dataclass
 class ProductionNeed:
     """Describes some quantity of a product that is needed to honor a (sell) contract."""
-    __slots__ = ['product', 'needed_for', 'quantity_to_buy', 'quantity_in_storage', 'step']
+
+    __slots__ = [
+        "product",
+        "needed_for",
+        "quantity_to_buy",
+        "quantity_in_storage",
+        "step",
+    ]
     product: int
     """The product needed"""
     needed_for: Contract
@@ -316,23 +382,25 @@ class ProductionNeed:
 
     def __str__(self):
         """String representation is simply the name"""
-        return f'Need {self.quantity_to_buy} ({self.quantity_in_storage} exist) of {self.product} at ' + \
-               f' {self.step} for {self.needed_for}'
+        return (
+            f"Need {self.quantity_to_buy} ({self.quantity_in_storage} exist) of {self.product} at "
+            + f" {self.step} for {self.needed_for}"
+        )
 
 
 @dataclass
 class MissingInput:
-    __slots__ = ['product', 'quantity']
+    __slots__ = ["product", "quantity"]
     product: int
     quantity: int
 
     def __str__(self):
-        return f'{self.product}: {self.quantity}'
+        return f"{self.product}: {self.quantity}"
 
 
 @dataclass
 class ProductionFailure:
-    __slots__ = ['line', 'command', 'missing_inputs', 'missing_money', 'missing_space']
+    __slots__ = ["line", "command", "missing_inputs", "missing_money", "missing_space"]
     line: int
     """ID of the line that failed"""
     command: RunningCommandInfo
@@ -345,13 +413,13 @@ class ProductionFailure:
     """The amount space needed in storage but not found"""
 
     def __str__(self):
-        s = f'{str(self.command)} on {self.line} failed:'
+        s = f"{str(self.command)} on {self.line} failed:"
         if self.missing_money > 0:
-            s += f' money {self.missing_money}'
+            s += f" money {self.missing_money}"
         if len(self.missing_inputs) > 0:
-            s += f' inputs: {[str(_) for _ in self.missing_inputs]}'
+            s += f" inputs: {[str(_) for _ in self.missing_inputs]}"
         if self.missing_space > 0:
-            s += f' space {self.missing_space}'
+            s += f" space {self.missing_space}"
         return s
 
 
@@ -384,19 +452,19 @@ class ProductionReport:
 
     def __str__(self):
         if self.is_empty:
-            return ''
-        s = f'{self.line}: '
+            return ""
+        s = f"{self.line}: "
         if self.failed:
-            s += f'{str(self.failure)} '
+            s += f"{str(self.failure)} "
         else:
             if self.started is not None and self.finished is not None:
-                s += f'started/finished {str(self.started)} '
+                s += f"started/finished {str(self.started)} "
             elif self.started is not None:
-                s += f'started {str(self.started)} '
+                s += f"started {str(self.started)} "
             elif self.finished is not None:
-                s += f'finished {str(self.finished)} '
+                s += f"finished {str(self.finished)} "
         if not self.updates.is_empty:
-            s += f'{str(self.updates)}'
+            s += f"{str(self.updates)}"
         return s
 
 
@@ -417,6 +485,7 @@ class SCMLAgreement(OutcomeType):
 @dataclass
 class CFP(OutcomeType):
     """A Call for proposal upon which a negotiation can start"""
+
     is_buy: bool
     """If true, the author wants to buy otherwise to sell. Non-negotiable."""
     publisher: str
@@ -440,13 +509,13 @@ class CFP(OutcomeType):
 
     def __str__(self):
         s = f'{"buy" if self.is_buy else "sell"} '
-        s += f'{self.product} '
-        s += f'(t: {self.time}, u: {self.unit_price}, q: {self.quantity}'
+        s += f"{self.product} "
+        s += f"(t: {self.time}, u: {self.unit_price}, q: {self.quantity}"
         if self.penalty is not None:
-            s += f', penalty: {self.penalty}'
+            s += f", penalty: {self.penalty}"
         if self.signing_delay is not None:
-            s += f', sign after: {self.signing_delay}'
-        s += ')'
+            s += f", sign after: {self.signing_delay}"
+        s += ")"
         return s
 
     def satisfies(self, query: Dict[str, Any]) -> bool:
@@ -492,9 +561,14 @@ class CFP(OutcomeType):
 
         """
 
-        def _overlap(a: Union[int, float, Tuple[float, float], List[float], Tuple[int, int], List[int]]
-                     , b: Union[float, Tuple[float, float], List[float], int, Tuple[int, int], List[int]]):
-
+        def _overlap(
+            a: Union[
+                int, float, Tuple[float, float], List[float], Tuple[int, int], List[int]
+            ],
+            b: Union[
+                float, Tuple[float, float], List[float], int, Tuple[int, int], List[int]
+            ],
+        ):
             def _test_single(a, b):
                 if not isinstance(b, Iterable):
                     return a == b
@@ -516,36 +590,36 @@ class CFP(OutcomeType):
             return any(_test_single(_, b) for _ in a)
 
         for k, v in query.items():
-            if k == 'is_buy' and self.is_buy != v:
+            if k == "is_buy" and self.is_buy != v:
                 return False
-            if k == 'publisher' and self.publisher != v:
+            if k == "publisher" and self.publisher != v:
                 return False
-            if k == 'publishers' and self.publisher not in v:
+            if k == "publishers" and self.publisher not in v:
                 return False
-            if k == 'products' and self.product not in v:
+            if k == "products" and self.product not in v:
                 return False
-            if k == 'product_ids' and self.product not in v:
+            if k == "product_ids" and self.product not in v:
                 return False
-            if k == 'product_indices' and self.product not in v:
+            if k == "product_indices" and self.product not in v:
                 return False
-            if k == 'product' and self.product != v:
+            if k == "product" and self.product != v:
                 return False
-            if k == 'product_id' and self.product != v:
+            if k == "product_id" and self.product != v:
                 return False
-            if k == 'product_index' and self.product != v:
+            if k == "product_index" and self.product != v:
                 return False
-            if k == 'time' and not _overlap(v, self.time):
+            if k == "time" and not _overlap(v, self.time):
                 return False
-            if k == 'unit_price' and not _overlap(v, self.unit_price):
+            if k == "unit_price" and not _overlap(v, self.unit_price):
                 return False
-            if k == 'penalty':
+            if k == "penalty":
                 if self.penalty is None and v is None:
                     return True
                 if self.penalty is None or v is None:
                     return False
                 if not _overlap(v, self.penalty):
                     return False
-            if k == 'quantity' and not _overlap(v, self.quantity):
+            if k == "quantity" and not _overlap(v, self.quantity):
                 return False
         return True
 
@@ -558,16 +632,28 @@ class CFP(OutcomeType):
                 if x[0] == x[1]:
                     if ensure_list and self.money_resolution is not None:
                         if ensure_int:
-                            return [int(math.floor(x[0] / self.money_resolution) * self.money_resolution)]
-                        return [math.floor(x[0] / self.money_resolution) * self.money_resolution]
+                            return [
+                                int(
+                                    math.floor(x[0] / self.money_resolution)
+                                    * self.money_resolution
+                                )
+                            ]
+                        return [
+                            math.floor(x[0] / self.money_resolution)
+                            * self.money_resolution
+                        ]
                     else:
                         if ensure_int:
                             return [int(x[0])]
                         return [x[0]]
                 if isinstance(x[0], float) or isinstance(x[1], float):
-                    xs = (int(math.floor(x[0] / self.money_resolution))
-                          , int(math.floor(x[1] / self.money_resolution)))
-                    xs = list(_ * self.money_resolution for _ in range(xs[0], xs[1] + 1))
+                    xs = (
+                        int(math.floor(x[0] / self.money_resolution)),
+                        int(math.floor(x[1] / self.money_resolution)),
+                    )
+                    xs = list(
+                        _ * self.money_resolution for _ in range(xs[0], xs[1] + 1)
+                    )
                 elif isinstance(x[0], int):
                     xs = list(range(x[0], x[1] + 1))
                 else:
@@ -575,8 +661,16 @@ class CFP(OutcomeType):
                 if len(xs) == 0:
                     if ensure_list and self.money_resolution is not None:
                         if ensure_int:
-                            return [int(math.floor(x[0] / self.money_resolution) * self.money_resolution)]
-                        return [math.floor(x[0] / self.money_resolution) * self.money_resolution]
+                            return [
+                                int(
+                                    math.floor(x[0] / self.money_resolution)
+                                    * self.money_resolution
+                                )
+                            ]
+                        return [
+                            math.floor(x[0] / self.money_resolution)
+                            * self.money_resolution
+                        ]
                     if ensure_int:
                         return [int(x[0])]
                     return [x[0]]
@@ -591,14 +685,38 @@ class CFP(OutcomeType):
                 return [int(x)]
             return [x]
 
-        issues = [Issue(name='time', values=_values(self.time, ensure_list=True, ensure_int=True))
-            , Issue(name='quantity', values=_values(self.quantity, ensure_list=True, ensure_int=True))
-            , Issue(name='unit_price', values=_values(self.unit_price, ensure_list=self.money_resolution is not None))]
+        issues = [
+            Issue(
+                name="time",
+                values=_values(self.time, ensure_list=True, ensure_int=True),
+            ),
+            Issue(
+                name="quantity",
+                values=_values(self.quantity, ensure_list=True, ensure_int=True),
+            ),
+            Issue(
+                name="unit_price",
+                values=_values(
+                    self.unit_price, ensure_list=self.money_resolution is not None
+                ),
+            ),
+        ]
         if self.penalty is not None:
-            issues.append(Issue(name='penalty'
-                                , values=_values(self.penalty, ensure_list=self.money_resolution is not None)))
+            issues.append(
+                Issue(
+                    name="penalty",
+                    values=_values(
+                        self.penalty, ensure_list=self.money_resolution is not None
+                    ),
+                )
+            )
         if self.signing_delay is not None:
-            issues.append(Issue(name='signing_delay', values=_values(self.quantity, ensure_list=True, ensure_int=True)))
+            issues.append(
+                Issue(
+                    name="signing_delay",
+                    values=_values(self.quantity, ensure_list=True, ensure_int=True),
+                )
+            )
         return issues
 
     @property
@@ -694,49 +812,80 @@ class CFP(OutcomeType):
         return self.penalty
 
     def to_java(self):
-        d = {'is_buy': self.is_buy, 'publisher': self.publisher, 'product': self.product, 'id': self.id,
-             'money_resolution': float(self.money_resolution) if self.money_resolution is not None else 0.0,
-             'min_time': int(self.min_time), 'max_time': int(self.max_time), 'min_quantity': int(self.min_quantity),
-             'max_quantity': int(self.max_quantity), 'min_unit_price': float(self.min_unit_price),
-             'max_unit_price': float(self.max_unit_price),
-             'min_penalty': float(self.min_penalty) if self.min_penalty is not None else None,
-             'max_penalty': float(self.max_penalty) if self.max_penalty is not None else None,
-             'min_signing_delay': int(self.min_signing_delay) if self.min_signing_delay is not None else None,
-             'max_signing_delay': int(self.max_signing_delay) if self.max_signing_delay is not None else None}
+        d = {
+            "is_buy": self.is_buy,
+            "publisher": self.publisher,
+            "product": self.product,
+            "id": self.id,
+            "money_resolution": float(self.money_resolution)
+            if self.money_resolution is not None
+            else 0.0,
+            "min_time": int(self.min_time),
+            "max_time": int(self.max_time),
+            "min_quantity": int(self.min_quantity),
+            "max_quantity": int(self.max_quantity),
+            "min_unit_price": float(self.min_unit_price),
+            "max_unit_price": float(self.max_unit_price),
+            "min_penalty": float(self.min_penalty)
+            if self.min_penalty is not None
+            else None,
+            "max_penalty": float(self.max_penalty)
+            if self.max_penalty is not None
+            else None,
+            "min_signing_delay": int(self.min_signing_delay)
+            if self.min_signing_delay is not None
+            else None,
+            "max_signing_delay": int(self.max_signing_delay)
+            if self.max_signing_delay is not None
+            else None,
+        }
         return d
 
     @classmethod
-    def from_java(cls, idict: Dict[str, Any], class_name: Optional[str] = None) -> 'CFP':
-        if idict['min_time'] == idict['max_time']:
-            t = idict['min_time']
+    def from_java(
+        cls, idict: Dict[str, Any], class_name: Optional[str] = None
+    ) -> "CFP":
+        if idict["min_time"] == idict["max_time"]:
+            t = idict["min_time"]
         else:
-            t = (idict['min_time'], idict['max_time'])
-        if idict['min_quantity'] == idict['max_quantity']:
-            q = idict['min_quantity']
+            t = (idict["min_time"], idict["max_time"])
+        if idict["min_quantity"] == idict["max_quantity"]:
+            q = idict["min_quantity"]
         else:
-            q = (idict['min_quantity'], idict['max_quantity'])
-        if idict['min_unit_price'] == idict['max_unit_price']:
-            up = idict['min_unit_price']
+            q = (idict["min_quantity"], idict["max_quantity"])
+        if idict["min_unit_price"] == idict["max_unit_price"]:
+            up = idict["min_unit_price"]
         else:
-            up = (idict['min_unit_price'], idict['max_unit_price'])
-        if not idict.get('min_penalty', None) or not idict.get('max_penalty', None):
+            up = (idict["min_unit_price"], idict["max_unit_price"])
+        if not idict.get("min_penalty", None) or not idict.get("max_penalty", None):
             p = None
         else:
-            if idict['min_penalty'] == idict['max_penalty']:
-                p = idict['min_penalty']
+            if idict["min_penalty"] == idict["max_penalty"]:
+                p = idict["min_penalty"]
             else:
-                p = (idict['min_penalty'], idict['max_penalty'])
-        if not idict.get('min_signing_delay', None) or not idict.get('max_signing_delay', None):
+                p = (idict["min_penalty"], idict["max_penalty"])
+        if not idict.get("min_signing_delay", None) or not idict.get(
+            "max_signing_delay", None
+        ):
             s = None
         else:
-            if idict['min_signing_delay'] == idict['max_signing_delay']:
-                s = idict['min_signing_delay']
+            if idict["min_signing_delay"] == idict["max_signing_delay"]:
+                s = idict["min_signing_delay"]
             else:
-                s = (idict['min_signing_delay'], idict['max_signing_delay'])
+                s = (idict["min_signing_delay"], idict["max_signing_delay"])
 
-        return cls(is_buy=idict['is_buy'], publisher=idict['publisher'], product=idict['product'], time=t, unit_price=up
-                   , quantity=q, penalty=p, signing_delay=s, money_resolution=idict.get('money_resolution', None)
-                   , id=idict.get('id', None))
+        return cls(
+            is_buy=idict["is_buy"],
+            publisher=idict["publisher"],
+            product=idict["product"],
+            time=t,
+            unit_price=up,
+            quantity=q,
+            penalty=p,
+            signing_delay=s,
+            money_resolution=idict.get("money_resolution", None),
+            id=idict.get("id", None),
+        )
 
 
 @dataclass
@@ -759,8 +908,17 @@ class ManufacturingProfileCompiled:
         `Factory`
 
     """
-    __slots__ = ['n_steps', 'cost', 'initial_pause_cost', 'running_pause_cost', 'resumption_cost', 'cancellation_cost'
-        , 'line', 'process']
+
+    __slots__ = [
+        "n_steps",
+        "cost",
+        "initial_pause_cost",
+        "running_pause_cost",
+        "resumption_cost",
+        "cancellation_cost",
+        "line",
+        "process",
+    ]
     n_steps: int
     """Number of steps needed to complete the manufacturing"""
     cost: float
@@ -779,14 +937,19 @@ class ManufacturingProfileCompiled:
     """The `Process` index"""
 
     @classmethod
-    def from_manufacturing_profile(cls, profile: ManufacturingProfile, process2ind: Dict[Process, int]):
-        return ManufacturingProfileCompiled(n_steps=profile.n_steps, cost=profile.cost
-                                            , initial_pause_cost=profile.initial_pause_cost
-                                            , running_pause_cost=profile.running_pause_cost
-                                            , resumption_cost=profile.resumption_cost
-                                            , cancellation_cost=profile.cancellation_cost
-                                            , line=profile.line
-                                            , process=process2ind[profile.process])
+    def from_manufacturing_profile(
+        cls, profile: ManufacturingProfile, process2ind: Dict[Process, int]
+    ):
+        return ManufacturingProfileCompiled(
+            n_steps=profile.n_steps,
+            cost=profile.cost,
+            initial_pause_cost=profile.initial_pause_cost,
+            running_pause_cost=profile.running_pause_cost,
+            resumption_cost=profile.resumption_cost,
+            cancellation_cost=profile.cancellation_cost,
+            line=profile.line,
+            process=process2ind[profile.process],
+        )
 
 
 @dataclass
@@ -796,7 +959,8 @@ class ProductManufacturingInfo:
     See Also:
         `consuming` and `producing` of `Factory`
     """
-    __slots__ = ['profile', 'quantity', 'step']
+
+    __slots__ = ["profile", "quantity", "step"]
     profile: int
     """The `ManufacturingProfile` index"""
     quantity: int
@@ -808,6 +972,7 @@ class ProductManufacturingInfo:
 @dataclass
 class FinancialReport:
     """Reports that financial standing of an agent at a given time in the simulation"""
+
     agent: str
     """Agent ID"""
     step: int
@@ -830,7 +995,11 @@ class FinancialReport:
             - If the inventory was not calculated (due to having at least one product with unknown catalog price),
               it is used as zero in the equation.
         """
-        return self.cash + self.inventory - self.liabilities if self.inventory is not None else self.cash - self.liabilities
+        return (
+            self.cash + self.inventory - self.liabilities
+            if self.inventory is not None
+            else self.cash - self.liabilities
+        )
 
 
 @dataclass
@@ -849,18 +1018,24 @@ class Loan:
     """The number of installments"""
 
     def __str__(self):
-        return f'{self.amount} @ {self.interest} paid in {self.n_installments} [{self.installment} each] ' \
-            f'for a total {self.total} [starts at {self.starts_at}]'
+        return (
+            f"{self.amount} @ {self.interest} paid in {self.n_installments} [{self.installment} each] "
+            f"for a total {self.total} [starts at {self.starts_at}]"
+        )
 
     class Java:
-        implements = ['jnegmas.apps.scml.common.Loan']
+        implements = ["jnegmas.apps.scml.common.Loan"]
 
 
-RunningNegotiationInfo = namedtuple('RunningNegotiationInfo', ['negotiator', 'annotation', 'uuid', 'extra'])
+RunningNegotiationInfo = namedtuple(
+    "RunningNegotiationInfo", ["negotiator", "annotation", "uuid", "extra"]
+)
 """Keeps track of running negotiations for an agent"""
 
-NegotiationRequestInfo = namedtuple('NegotiationRequestInfo', ['partners', 'issues', 'annotation', 'uuid'
-    , 'negotiator', 'extra'])
+NegotiationRequestInfo = namedtuple(
+    "NegotiationRequestInfo",
+    ["partners", "issues", "annotation", "uuid", "negotiator", "extra"],
+)
 """Keeps track to negotiation requests that an agent sent"""
 
 
@@ -869,12 +1044,13 @@ class InsurancePolicy:
     premium: float
     contract: Contract
     at_time: int
-    against: 'SCMLAgent'
+    against: "SCMLAgent"
 
 
 @dataclass
 class FactoryState:
     """Read Only State of a factory"""
+
     max_storage: int
     """Maximum storage allowed in this factory"""
     line_schedules: np.array
@@ -900,6 +1076,7 @@ class FactoryState:
 @dataclass
 class Factory:
     """Represents a factory within an SCML world. It is only accessed by the World so it need not be made public."""
+
     initial_storage: InitVar[Dict[int, int]]
     """Initial storage"""
     initial_wallet: InitVar[float] = 0.0
@@ -919,7 +1096,9 @@ class Factory:
     _commands: np.array = field(init=False)
     """The production command currently running"""
     _line_schedules: np.array = field(init=False)
-    _storage: Dict[int, int] = field(default_factory=lambda: defaultdict(int), init=False)
+    _storage: Dict[int, int] = field(
+        default_factory=lambda: defaultdict(int), init=False
+    )
     """Mapping from product index to the amount available in the inventory"""
     _total_storage: int = field(init=False, default=0)
     """Total storage"""
@@ -927,7 +1106,9 @@ class Factory:
     """Money available for purchases"""
     _hidden_money: float = field(default=0, init=False)
     """Amount of money hidden by the agent"""
-    _hidden_storage: Dict[int, int] = field(default_factory=lambda: defaultdict(int), init=False)
+    _hidden_storage: Dict[int, int] = field(
+        default_factory=lambda: defaultdict(int), init=False
+    )
     """Mapping from product index to the amount hidden by the agent"""
     _loans: float = field(default=0.0, init=False)
     """The total money owned as loans"""
@@ -937,7 +1118,9 @@ class Factory:
     """The jobs waiting to be run on the factory"""
     _next_step: int = field(init=False, default=0)
     """Current simulation step"""
-    _carried_updates: FactoryStatusUpdate = field(init=False, default_factory=lambda: FactoryStatusUpdate.empty())
+    _carried_updates: FactoryStatusUpdate = field(
+        init=False, default_factory=lambda: FactoryStatusUpdate.empty()
+    )
     """Carried updates from last executed command"""
 
     def __post_init__(self, initial_storage: Dict[int, int], initial_wallet=0.0):
@@ -950,7 +1133,9 @@ class Factory:
         for profile in self.profiles:
             profile.line = mapping[profile.line]
         self._n_lines = len(given_lines)
-        self._commands = np.array([RunningCommandInfo.do_nothing() for _ in range(self._n_lines)])
+        self._commands = np.array(
+            [RunningCommandInfo.do_nothing() for _ in range(self._n_lines)]
+        )
         self._line_schedules = np.ones(self._n_lines, dtype=int) * NO_PRODUCTION
         self._storage = defaultdict(int)
         self._total_storage = 0
@@ -1017,16 +1202,20 @@ class Factory:
 
     def pay(self, payment: float) -> None:
         if self._wallet - payment < self.min_balance:
-            raise ValueError(f'Cannot pay {payment} as  we have only {self._wallet}')
+            raise ValueError(f"Cannot pay {payment} as  we have only {self._wallet}")
         self._wallet -= payment
 
     def transport_to(self, product: int, quantity: int) -> None:
         if self._storage[product] + quantity < self.min_storage:
-            raise ValueError(f'Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} '
-                             f'(min {self.min_storage}, max {self.max_storage})')
+            raise ValueError(
+                f"Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} "
+                f"(min {self.min_storage}, max {self.max_storage})"
+            )
         if self._total_storage + quantity > self.max_storage:
-            raise ValueError(f'Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} '
-                             f'(min {self.min_storage}, max {self.max_storage})')
+            raise ValueError(
+                f"Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} "
+                f"(min {self.min_storage}, max {self.max_storage})"
+            )
         self._storage[product] += quantity
         self._total_storage += quantity
 
@@ -1035,16 +1224,20 @@ class Factory:
 
     def buy(self, product: int, quantity: int, price: float) -> None:
         if self._wallet < price or self._total_storage + quantity > self.max_storage:
-            raise ValueError(f'Cannot buy {quantity} (total {self._total_storage}/{sum(self._storage.values())}) of '
-                             f'{product} for {price} (wallet {self._wallet} / balance {self.balance})')
+            raise ValueError(
+                f"Cannot buy {quantity} (total {self._total_storage}/{sum(self._storage.values())}) of "
+                f"{product} for {price} (wallet {self._wallet} / balance {self.balance})"
+            )
         self._wallet -= price
         self._storage[product] += quantity
         self._total_storage += quantity
 
     def sell(self, product: int, quantity: int, price: float) -> None:
         if self._storage[product] < quantity + self.min_storage:
-            raise ValueError(f'Cannot sell {quantity} (have {self._storage[product]}) of '
-                             f'{product} for {price} (wallet {self._wallet} / balance {self.balance})')
+            raise ValueError(
+                f"Cannot sell {quantity} (have {self._storage[product]}) of "
+                f"{product} for {price} (wallet {self._wallet} / balance {self.balance})"
+            )
         self._storage[product] -= quantity
         self._total_storage -= quantity
         self._wallet += price
@@ -1084,11 +1277,13 @@ class Factory:
         """
         # you can only schedule jobs at the following simulation step
         t, line, profile = job.time, job.line, self.profiles[job.profile]
-        if job.action in ('run', 'start'):
+        if job.action in ("run", "start"):
             line = profile.line
         if t < self._next_step - 1 or line >= self._n_lines or line < 0:
-            raise ValueError(f'cannot schedule at time {t} (current {self._next_step - 1}) on line {line} '
-                             f'of {self._n_lines}')
+            raise ValueError(
+                f"cannot schedule at time {t} (current {self._next_step - 1}) on line {line} "
+                f"of {self._n_lines}"
+            )
         existing_job = self._jobs.get((t, line), None)
         if existing_job is None:
             self._jobs[(t, line)] = job
@@ -1097,7 +1292,9 @@ class Factory:
             del self._jobs[(t, line)]
             return
         if not override:
-            raise ValueError(f'Job {str(existing_job)} is scheduled at {t} and overriding is not allowed')
+            raise ValueError(
+                f"Job {str(existing_job)} is scheduled at {t} and overriding is not allowed"
+            )
         self._jobs[(t, line)] = job
 
     def _apply_updates(self, updates: FactoryStatusUpdate) -> None:
@@ -1111,14 +1308,22 @@ class Factory:
     def step(self) -> List[ProductionReport]:
         reports = []
         if not self._carried_updates.is_empty:
-            reports.append(ProductionReport(line=-1, started=None, continuing=None, finished=None, failure=None
-                                            , updates=self._carried_updates))
+            reports.append(
+                ProductionReport(
+                    line=-1,
+                    started=None,
+                    continuing=None,
+                    finished=None,
+                    failure=None,
+                    updates=self._carried_updates,
+                )
+            )
             self._apply_updates(self._carried_updates)
             self._carried_updates = FactoryStatusUpdate.empty()
         for line in range(self._n_lines):
             # step the current production process
             if self._commands[line].ended_before(self._next_step):
-                self._commands[line].action = 'none'
+                self._commands[line].action = "none"
             report = self._step_line(line=line)
             reports.append(report)
             self._apply_updates(report.updates)
@@ -1147,12 +1352,23 @@ class Factory:
         process = profile.process
         n, cost = profile.n_steps, profile.cost
         updates = defaultdict(lambda: FactoryStatusUpdate.empty())
-        command = RunningCommandInfo(action='run', profile=profile, beg=t, end=t + n, updates=updates, paused=False
-                                     , step=0)
+        command = RunningCommandInfo(
+            action="run",
+            profile=profile,
+            beg=t,
+            end=t + n,
+            updates=updates,
+            paused=False,
+            step=0,
+        )
         for need in process.inputs:
-            updates[int(math.floor(need.step * n))].storage[need.product] -= need.quantity
+            updates[int(math.floor(need.step * n))].storage[
+                need.product
+            ] -= need.quantity
         for output in process.outputs:
-            updates[int(math.ceil(output.step * n))].storage[output.product] += output.quantity
+            updates[int(math.ceil(output.step * n))].storage[
+                output.product
+            ] += output.quantity
         updates[0].balance -= cost
 
         # cancel the running command by stopping it and then run the new command
@@ -1182,7 +1398,10 @@ class Factory:
         if running_command.is_none:
             return
         running_command.updates[running_command.step].combine(
-            FactoryStatusUpdate(balance=-running_command.profile.initial_pause_cost, storage={}))
+            FactoryStatusUpdate(
+                balance=-running_command.profile.initial_pause_cost, storage={}
+            )
+        )
         running_command.paused = True
 
     def _resume(self, line: int) -> None:
@@ -1207,8 +1426,9 @@ class Factory:
         if running_command.is_none:
             return
         profile = running_command.profile
-        running_command.updates[running_command.step].combine(FactoryStatusUpdate(balance=-profile.resumption_cost
-                                                                                  , storage={}))
+        running_command.updates[running_command.step].combine(
+            FactoryStatusUpdate(balance=-profile.resumption_cost, storage={})
+        )
         running_command.paused = False
 
     def _stop(self, line: int) -> None:
@@ -1235,8 +1455,11 @@ class Factory:
         t = self._next_step
         running_command.paused = False
         running_command.end = t + 1
-        running_command.updates = {running_command.step: running_command.updates[running_command.step].combine
-        (FactoryStatusUpdate(balance=-profile.cancellation_cost, storage={}))}
+        running_command.updates = {
+            running_command.step: running_command.updates[running_command.step].combine(
+                FactoryStatusUpdate(balance=-profile.cancellation_cost, storage={})
+            )
+        }
 
     def _step_line(self, line: int) -> ProductionReport:
         """
@@ -1253,19 +1476,25 @@ class Factory:
         job = self._jobs.get((t, line), None)
         updates = FactoryStatusUpdate.empty()
         if job is None and running_command.is_none:
-            return ProductionReport(updates=updates, continuing=None, started=None, finished=None
-                                    , failure=None, line=line)
+            return ProductionReport(
+                updates=updates,
+                continuing=None,
+                started=None,
+                finished=None,
+                failure=None,
+                line=line,
+            )
         if job is not None:
-            if job.action in ('run', 'start'):
+            if job.action in ("run", "start"):
                 self._run(profile=self.profiles[job.profile], override=job.override)
-            elif job.action == 'pause':
+            elif job.action == "pause":
                 self._pause(line=job.line)
-            elif job.action == 'resume':
+            elif job.action == "resume":
                 self._resume(line=job.line)
-            elif job.action == 'stop':
+            elif job.action == "stop":
                 self._stop(line=job.line)
             else:
-                raise ValueError(f'action {job.action} is unknown')
+                raise ValueError(f"action {job.action} is unknown")
             del self._jobs[(t, line)]
 
         # now all updates in the command are correct except for the running pause cost which we add here
@@ -1273,18 +1502,24 @@ class Factory:
         profile = running_command.profile
         if running_command.paused:
             running_command.end += 1
-            running_command.updates = {k + 1: v for k, v in running_command.updates.items()}
+            running_command.updates = {
+                k + 1: v for k, v in running_command.updates.items()
+            }
             running_command.updates[running_command.step].combine(
-                FactoryStatusUpdate(balance=-profile.running_pause_cost, storage={}))
+                FactoryStatusUpdate(balance=-profile.running_pause_cost, storage={})
+            )
         updates = running_command.updates.get(running_command.step, None)
         if not running_command.paused:
             running_command.step += 1
         if updates is None or updates.is_empty:
-            return ProductionReport(updates=FactoryStatusUpdate.empty()
-                                    , continuing=running_command if running_command.beg < t else None
-                                    , started=running_command if running_command.beg == t else None
-                                    , finished=running_command if running_command.end <= t + 1 else None
-                                    , failure=None, line=line)
+            return ProductionReport(
+                updates=FactoryStatusUpdate.empty(),
+                continuing=running_command if running_command.beg < t else None,
+                started=running_command if running_command.beg == t else None,
+                finished=running_command if running_command.end <= t + 1 else None,
+                failure=None,
+                line=line,
+            )
         if updates is not None:
             del running_command.updates[running_command.step - 1]
         available_storage = self.max_storage - self._total_storage
@@ -1298,7 +1533,9 @@ class Factory:
         for product_id, quantity in updates.storage.items():
             if quantity < 0 and self._storage.get(product_id, 0) < -quantity:
                 failed = True
-                missing_inputs.append(MissingInput(product=product_id, quantity=-quantity))
+                missing_inputs.append(
+                    MissingInput(product=product_id, quantity=-quantity)
+                )
             elif quantity > 0:
                 available_storage -= quantity
                 if available_storage < 0:
@@ -1306,19 +1543,33 @@ class Factory:
                     missing_space -= available_storage
                     available_storage = 0
         if failed:
-            running_command.action = 'none'
-            failure = ProductionFailure(line=line, command=running_command, missing_money=missing_money
-                                        , missing_inputs=missing_inputs, missing_space=missing_space)
-            return ProductionReport(updates=FactoryStatusUpdate.empty()
-                                    , continuing=running_command if running_command.beg < t else None
-                                    , started=running_command if running_command.beg == t else None
-                                    , finished=running_command if running_command.end <= t + 1 else None
-                                    , failure=failure, line=line)
+            running_command.action = "none"
+            failure = ProductionFailure(
+                line=line,
+                command=running_command,
+                missing_money=missing_money,
+                missing_inputs=missing_inputs,
+                missing_space=missing_space,
+            )
+            return ProductionReport(
+                updates=FactoryStatusUpdate.empty(),
+                continuing=running_command if running_command.beg < t else None,
+                started=running_command if running_command.beg == t else None,
+                finished=running_command if running_command.end <= t + 1 else None,
+                failure=failure,
+                line=line,
+            )
         if running_command.ended_before(t + 1):
-            self._carried_updates.combine(running_command.updates.get(running_command.step
-                                                                      , FactoryStatusUpdate.empty()))
-        return ProductionReport(updates=updates
-                                , continuing=running_command if running_command.beg < t else None
-                                , started=running_command if running_command.beg == t else None
-                                , finished=running_command if running_command.end <= t + 1 else None
-                                , failure=None, line=line)
+            self._carried_updates.combine(
+                running_command.updates.get(
+                    running_command.step, FactoryStatusUpdate.empty()
+                )
+            )
+        return ProductionReport(
+            updates=updates,
+            continuing=running_command if running_command.beg < t else None,
+            started=running_command if running_command.beg == t else None,
+            finished=running_command if running_command.end <= t + 1 else None,
+            failure=None,
+            line=line,
+        )
