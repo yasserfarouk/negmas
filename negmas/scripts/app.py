@@ -75,6 +75,7 @@ def cli():
 @click.option('--competitors'
     , default='negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager'
     , help='A semicolon (;) separated list of agent types to use for the competition.')
+@click.option('--factories', default=5, help='Minimum numbers of factories to have per level.')
 @click.option('--jcompetitors', '--java-competitors'
     , default=''
     , help='A semicolon (;) separated list of agent types to use for the competition.')
@@ -382,6 +383,11 @@ def genius_setup():
     print(f'Downloading: {url}', end='', flush=True)
     download_and_set(key='genius_bridge_jar', url=url, file_name='jnegmas.jar')
     print(' done successfully')
+
+
+@cli.command(help='Prints NegMAS version')
+def version():
+    print(negmas.__version__)
 
 
 if __name__ == '__main__':
