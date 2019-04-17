@@ -14,11 +14,16 @@ import typing
 from typing import Optional, List, Tuple, Sequence
 
 import pkg_resources
-from py4j.java_gateway import (
-    JavaGateway, CallbackServerParameters, GatewayParameters)
+from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 from py4j.protocol import Py4JNetworkError
 
-from negmas import SAONegotiator, make_discounted_ufun, get_domain_issues, NEGMAS_CONFIG, CONFIG_KEY_GENIUS_BRIDGE_JAR
+from negmas import (
+    SAONegotiator,
+    make_discounted_ufun,
+    get_domain_issues,
+    NEGMAS_CONFIG,
+    CONFIG_KEY_GENIUS_BRIDGE_JAR,
+)
 from negmas import ResponseType, load_genius_domain
 from negmas.common import *
 from negmas.utilities import UtilityFunction
@@ -31,9 +36,9 @@ if typing.TYPE_CHECKING:
     from negmas import Outcome
 
 __all__ = [
-    'GeniusNegotiator',  # Most abstract kind of agent
-    'init_genius_bridge',
-    'genius_bridge_is_running'
+    "GeniusNegotiator",  # Most abstract kind of agent
+    "init_genius_bridge",
+    "genius_bridge_is_running",
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
@@ -45,167 +50,167 @@ python_port: int = 0
 
 
 all_agent_based_agents = [
-    'agents.TestingAgent',
-    'agents.SimpleANAC2013Agent',
-    'agents.UIAgentExtended',
-    'agents.SimilarityAgent',
-    'agents.OptimalBidderU',
-    'agents.TestAgent',
-    'agents.SimpleTFTAgent',
-    'agents.BayesianAgentForAuction',
-    'agents.ABMPAgent',
-    'agents.RandomIncreasingUtilAgent',
-    'agents.OptimalBidder',
-    'agents.SimpleAgentSavingBidHistory',
-    'agents.SimpleAgent',
-    'agents.UIAgent',
-    'agents.DecUtilAgent',
-    'agents.FuzzyAgent',
-    'agents.TAgent',
-    'agents.anac.y2013.AgentKF.AgentKF',
-    'agents.anac.y2013.MetaAgent.portfolio.BRAMAgent2.BRAMAgent2',
-    'agents.anac.y2013.MetaAgent.portfolio.IAMhaggler2012.agents2011.SouthamptonAgent',
-    'agents.anac.y2013.MetaAgent.portfolio.OMACagent.OMACagent',
-    'agents.anac.y2013.MetaAgent.portfolio.AgentLG.AgentLG',
-    'agents.anac.y2013.MetaAgent.portfolio.AgentMR.AgentMR',
-    'agents.anac.y2013.MetaAgent.portfolio.CUHKAgent.CUHKAgent',
-    'agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent',
-    'agents.anac.y2013.MetaAgent.MetaAgent2013',
-    'agents.anac.y2013.GAgent.AgentI',
-    'agents.anac.y2013.SlavaAgent.SlavaAgent',
-    'agents.anac.y2013.TMFAgent.TMFAgent',
-    'agents.anac.y2014.DoNA.DoNA',
-    'agents.anac.y2014.DoNA.ClearDefaultStrategy',
-    'agents.anac.y2014.AgentQuest.AgentQuest',
-    'agents.anac.y2014.BraveCat.necessaryClasses.BOAagent',
-    'agents.anac.y2014.Gangster.Gangster',
-    'agents.anac.y2014.Aster.Aster',
-    'agents.anac.y2014.AgentTRP.AgentTRP',
-    'agents.anac.y2014.E2Agent.AnacSampleAgent',
-    'agents.anac.y2014.Sobut.Sobut',
-    'agents.anac.y2014.AgentYK.AgentYK',
-    'agents.anac.y2014.KGAgent.KGAgent',
-    'agents.anac.y2014.SimpaticoAgent.Simpatico',
-    'agents.anac.y2014.Atlas.Atlas',
-    'agents.anac.y2014.AgentTD.AgentTD',
-    'agents.anac.y2014.ArisawaYaki.ArisawaYaki',
-    'agents.anac.y2014.Flinch.Flinch',
-    'agents.anac.y2014.AgentWhale.WhaleAgent',
-    'agents.anac.y2014.AgentM.AgentM',
-    'agents.anac.y2012.BRAMAgent2.BRAMAgent2',
-    'agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent',
-    'agents.anac.y2012.OMACagent.OMACagent',
-    'agents.anac.y2012.AgentLG.AgentLG',
-    'agents.anac.y2012.MetaAgent.agents.GYRL.GYRL',
-    'agents.anac.y2012.MetaAgent.agents.ShAgent.ShAgent',
-    'agents.anac.y2012.MetaAgent.agents.Chameleon.Chameleon',
-    'agents.anac.y2012.MetaAgent.agents.SimpleAgentNew.SimpleAgentNew',
-    'agents.anac.y2012.MetaAgent.agents.LYY.LYYAgent',
-    'agents.anac.y2012.MetaAgent.agents.WinnerAgent.WinnerAgent2',
-    'agents.anac.y2012.MetaAgent.agents.DNAgent.DNAgent',
-    'agents.anac.y2012.MetaAgent.agents.MrFriendly.MrFriendly',
-    'agents.anac.y2012.MetaAgent.MetaAgent',
-    'agents.anac.y2012.AgentMR.AgentMR',
-    'agents.anac.y2012.CUHKAgent.CUHKAgent',
-    'agents.anac.y2017.geneking.GeneKing',
-    'agents.anac.y2010.AgentFSEGA.AgentFSEGA',
-    'agents.anac.y2010.Yushu.Yushu',
-    'agents.anac.y2010.Nozomi.Nozomi',
-    'agents.anac.y2010.AgentSmith.AgentSmith',
-    'agents.anac.y2010.Southampton.SouthamptonAgentNoExtras',
-    'agents.anac.y2010.Southampton.SouthamptonAgentExtrasInterface',
-    'agents.anac.y2010.Southampton.SouthamptonAgent',
-    'agents.anac.y2010.AgentK.Agent_K',
-    'agents.anac.y2011.TheNegotiator.TheNegotiator',
-    'agents.anac.y2011.ValueModelAgent.ValueModelAgent',
-    'agents.anac.y2011.HardHeaded.KLH',
-    'agents.anac.y2011.Gahboninho.Gahboninho',
-    'agents.anac.y2011.AgentK2.Agent_K2',
-    'agents.anac.y2011.BramAgent.BRAMAgent',
-    'agents.anac.y2011.IAMhaggler2011.IAMhaggler2011',
-    'agents.anac.y2011.Nice_Tit_for_Tat.BilateralAgent',
-    'agents.BayesianAgent',
-    'agents.ABMPAgent2',
-    'agents.QOAgent',
-    'agents.SimpleAgt2',
+    "agents.TestingAgent",
+    "agents.SimpleANAC2013Agent",
+    "agents.UIAgentExtended",
+    "agents.SimilarityAgent",
+    "agents.OptimalBidderU",
+    "agents.TestAgent",
+    "agents.SimpleTFTAgent",
+    "agents.BayesianAgentForAuction",
+    "agents.ABMPAgent",
+    "agents.RandomIncreasingUtilAgent",
+    "agents.OptimalBidder",
+    "agents.SimpleAgentSavingBidHistory",
+    "agents.SimpleAgent",
+    "agents.UIAgent",
+    "agents.DecUtilAgent",
+    "agents.FuzzyAgent",
+    "agents.TAgent",
+    "agents.anac.y2013.AgentKF.AgentKF",
+    "agents.anac.y2013.MetaAgent.portfolio.BRAMAgent2.BRAMAgent2",
+    "agents.anac.y2013.MetaAgent.portfolio.IAMhaggler2012.agents2011.SouthamptonAgent",
+    "agents.anac.y2013.MetaAgent.portfolio.OMACagent.OMACagent",
+    "agents.anac.y2013.MetaAgent.portfolio.AgentLG.AgentLG",
+    "agents.anac.y2013.MetaAgent.portfolio.AgentMR.AgentMR",
+    "agents.anac.y2013.MetaAgent.portfolio.CUHKAgent.CUHKAgent",
+    "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent",
+    "agents.anac.y2013.MetaAgent.MetaAgent2013",
+    "agents.anac.y2013.GAgent.AgentI",
+    "agents.anac.y2013.SlavaAgent.SlavaAgent",
+    "agents.anac.y2013.TMFAgent.TMFAgent",
+    "agents.anac.y2014.DoNA.DoNA",
+    "agents.anac.y2014.DoNA.ClearDefaultStrategy",
+    "agents.anac.y2014.AgentQuest.AgentQuest",
+    "agents.anac.y2014.BraveCat.necessaryClasses.BOAagent",
+    "agents.anac.y2014.Gangster.Gangster",
+    "agents.anac.y2014.Aster.Aster",
+    "agents.anac.y2014.AgentTRP.AgentTRP",
+    "agents.anac.y2014.E2Agent.AnacSampleAgent",
+    "agents.anac.y2014.Sobut.Sobut",
+    "agents.anac.y2014.AgentYK.AgentYK",
+    "agents.anac.y2014.KGAgent.KGAgent",
+    "agents.anac.y2014.SimpaticoAgent.Simpatico",
+    "agents.anac.y2014.Atlas.Atlas",
+    "agents.anac.y2014.AgentTD.AgentTD",
+    "agents.anac.y2014.ArisawaYaki.ArisawaYaki",
+    "agents.anac.y2014.Flinch.Flinch",
+    "agents.anac.y2014.AgentWhale.WhaleAgent",
+    "agents.anac.y2014.AgentM.AgentM",
+    "agents.anac.y2012.BRAMAgent2.BRAMAgent2",
+    "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
+    "agents.anac.y2012.OMACagent.OMACagent",
+    "agents.anac.y2012.AgentLG.AgentLG",
+    "agents.anac.y2012.MetaAgent.agents.GYRL.GYRL",
+    "agents.anac.y2012.MetaAgent.agents.ShAgent.ShAgent",
+    "agents.anac.y2012.MetaAgent.agents.Chameleon.Chameleon",
+    "agents.anac.y2012.MetaAgent.agents.SimpleAgentNew.SimpleAgentNew",
+    "agents.anac.y2012.MetaAgent.agents.LYY.LYYAgent",
+    "agents.anac.y2012.MetaAgent.agents.WinnerAgent.WinnerAgent2",
+    "agents.anac.y2012.MetaAgent.agents.DNAgent.DNAgent",
+    "agents.anac.y2012.MetaAgent.agents.MrFriendly.MrFriendly",
+    "agents.anac.y2012.MetaAgent.MetaAgent",
+    "agents.anac.y2012.AgentMR.AgentMR",
+    "agents.anac.y2012.CUHKAgent.CUHKAgent",
+    "agents.anac.y2017.geneking.GeneKing",
+    "agents.anac.y2010.AgentFSEGA.AgentFSEGA",
+    "agents.anac.y2010.Yushu.Yushu",
+    "agents.anac.y2010.Nozomi.Nozomi",
+    "agents.anac.y2010.AgentSmith.AgentSmith",
+    "agents.anac.y2010.Southampton.SouthamptonAgentNoExtras",
+    "agents.anac.y2010.Southampton.SouthamptonAgentExtrasInterface",
+    "agents.anac.y2010.Southampton.SouthamptonAgent",
+    "agents.anac.y2010.AgentK.Agent_K",
+    "agents.anac.y2011.TheNegotiator.TheNegotiator",
+    "agents.anac.y2011.ValueModelAgent.ValueModelAgent",
+    "agents.anac.y2011.HardHeaded.KLH",
+    "agents.anac.y2011.Gahboninho.Gahboninho",
+    "agents.anac.y2011.AgentK2.Agent_K2",
+    "agents.anac.y2011.BramAgent.BRAMAgent",
+    "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
+    "agents.anac.y2011.Nice_Tit_for_Tat.BilateralAgent",
+    "agents.BayesianAgent",
+    "agents.ABMPAgent2",
+    "agents.QOAgent",
+    "agents.SimpleAgt2",
 ]
 all_party_based_agents = [
-    'agents.ai2014.group12.Group12',
-    'agents.ai2014.group7.Group7',
-    'agents.ai2014.group9.Group9',
-    'agents.ai2014.group8.Group8',
-    'agents.ai2014.group1.Group1',
-    'agents.ai2014.group6.Group6',
-    'agents.ai2014.group11.Group11',
-    'agents.ai2014.group10.Group10',
-    'agents.ai2014.group3.Group3',
-    'agents.ai2014.group4.Group4',
-    'agents.ai2014.group5.Group5',
-    'agents.ai2014.group2.Group2',
-    'agents.anac.y2015.Mercury.Mercury',
-    'agents.anac.y2015.RandomDance.RandomDance',
-    'agents.anac.y2015.cuhkagent2015.CUHKAgent2015',
-    'agents.anac.y2015.SENGOKU.SENGOKU',
-    'agents.anac.y2015.DrageKnight.DrageKnight',
-    'agents.anac.y2015.meanBot.MeanBot',
-    'agents.anac.y2015.Phoenix.PhoenixParty',
-    'agents.anac.y2015.pokerface.PokerFace',
-    'agents.anac.y2015.agenth.AgentH',
-    'agents.anac.y2015.ParsAgent.ParsAgent',
-    'agents.anac.y2015.AgentHP.AgentHP',
-    'agents.anac.y2015.JonnyBlack.JonnyBlack',
-    'agents.anac.y2015.xianfa.XianFaAgent',
-    'agents.anac.y2015.AresParty.AresParty',
-    'agents.anac.y2015.fairy.kawaii',
-    'agents.anac.y2015.Atlas3.Atlas3',
-    'agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent',
-    'agents.anac.y2015.AgentW.AgentW',
-    'agents.anac.y2015.AgentNeo.Groupn',
-    'agents.anac.y2015.agentBuyogV2.AgentBuyogMain',
-    'agents.anac.y2015.AgentX.AgentX',
-    'agents.anac.y2015.pnegotiator.BayesLearner',
-    'agents.anac.y2015.pnegotiator.PNegotiator',
-    'agents.anac.y2015.group2.Group2',
-    'agents.anac.y2017.agentkn.AgentKN',
-    'agents.anac.y2017.tucagent.TucAgent',
-    'agents.anac.y2017.mosateam.Mosa',
-    'agents.anac.y2017.parscat2.ParsCat2',
-    'agents.anac.y2017.geneking.GeneKing',
-    'agents.anac.y2017.parsagent3.ShahAgent',
-    'agents.anac.y2017.mamenchis.Mamenchis',
-    'agents.anac.y2017.madagent.MadAgent',
-    'agents.anac.y2017.agentf.AgentF',
-    'agents.anac.y2017.farma.Farma17',
-    'agents.anac.y2017.caduceusdc16.CaduceusDC16',
-    'agents.anac.y2017.limitator.Imitator',
-    'agents.anac.y2017.simpleagent.SimpleAgent',
-    'agents.anac.y2017.rubick.Rubick',
-    'agents.anac.y2017.ponpokoagent.PonPokoAgent',
-    'agents.anac.y2017.group3.Group3',
-    'agents.anac.y2017.gin.Gin',
-    'agents.anac.y2017.tangxun.taxibox',
-    'agents.anac.y2016.terra.Terra',
-    'agents.anac.y2016.maxoops.MaxOops',
-    'agents.anac.y2016.grandma.GrandmaAgent',
-    'agents.anac.y2016.clockworkagent.ClockworkAgent',
-    'agents.anac.y2016.parscat.ParsCat',
-    'agents.anac.y2016.caduceus.Caduceus',
-    'agents.anac.y2016.caduceus.agents.RandomDance.RandomDance',
-    'agents.anac.y2016.caduceus.agents.kawaii.kawaii',
-    'agents.anac.y2016.caduceus.agents.Caduceus.Caduceus',
-    'agents.anac.y2016.caduceus.agents.ParsAgent.ParsAgent',
-    'agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong',
-    'agents.anac.y2016.caduceus.agents.Atlas3.Atlas3',
-    'agents.anac.y2016.agentlight.AgentLight',
-    'agents.anac.y2016.pars2.ParsAgent2',
-    'agents.anac.y2016.yxagent.YXAgent',
-    'agents.anac.y2016.farma.Farma',
-    'agents.anac.y2016.syagent.SYAgent',
-    'agents.anac.y2016.ngent.Ngent',
-    'agents.anac.y2016.agenthp2.AgentHP2_main',
-    'agents.anac.y2016.atlas3.Atlas32016',
-    'agents.anac.y2016.agentsmith.AgentSmith2016',
-    'agents.anac.y2016.myagent.MyAgent',
+    "agents.ai2014.group12.Group12",
+    "agents.ai2014.group7.Group7",
+    "agents.ai2014.group9.Group9",
+    "agents.ai2014.group8.Group8",
+    "agents.ai2014.group1.Group1",
+    "agents.ai2014.group6.Group6",
+    "agents.ai2014.group11.Group11",
+    "agents.ai2014.group10.Group10",
+    "agents.ai2014.group3.Group3",
+    "agents.ai2014.group4.Group4",
+    "agents.ai2014.group5.Group5",
+    "agents.ai2014.group2.Group2",
+    "agents.anac.y2015.Mercury.Mercury",
+    "agents.anac.y2015.RandomDance.RandomDance",
+    "agents.anac.y2015.cuhkagent2015.CUHKAgent2015",
+    "agents.anac.y2015.SENGOKU.SENGOKU",
+    "agents.anac.y2015.DrageKnight.DrageKnight",
+    "agents.anac.y2015.meanBot.MeanBot",
+    "agents.anac.y2015.Phoenix.PhoenixParty",
+    "agents.anac.y2015.pokerface.PokerFace",
+    "agents.anac.y2015.agenth.AgentH",
+    "agents.anac.y2015.ParsAgent.ParsAgent",
+    "agents.anac.y2015.AgentHP.AgentHP",
+    "agents.anac.y2015.JonnyBlack.JonnyBlack",
+    "agents.anac.y2015.xianfa.XianFaAgent",
+    "agents.anac.y2015.AresParty.AresParty",
+    "agents.anac.y2015.fairy.kawaii",
+    "agents.anac.y2015.Atlas3.Atlas3",
+    "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent",
+    "agents.anac.y2015.AgentW.AgentW",
+    "agents.anac.y2015.AgentNeo.Groupn",
+    "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
+    "agents.anac.y2015.AgentX.AgentX",
+    "agents.anac.y2015.pnegotiator.BayesLearner",
+    "agents.anac.y2015.pnegotiator.PNegotiator",
+    "agents.anac.y2015.group2.Group2",
+    "agents.anac.y2017.agentkn.AgentKN",
+    "agents.anac.y2017.tucagent.TucAgent",
+    "agents.anac.y2017.mosateam.Mosa",
+    "agents.anac.y2017.parscat2.ParsCat2",
+    "agents.anac.y2017.geneking.GeneKing",
+    "agents.anac.y2017.parsagent3.ShahAgent",
+    "agents.anac.y2017.mamenchis.Mamenchis",
+    "agents.anac.y2017.madagent.MadAgent",
+    "agents.anac.y2017.agentf.AgentF",
+    "agents.anac.y2017.farma.Farma17",
+    "agents.anac.y2017.caduceusdc16.CaduceusDC16",
+    "agents.anac.y2017.limitator.Imitator",
+    "agents.anac.y2017.simpleagent.SimpleAgent",
+    "agents.anac.y2017.rubick.Rubick",
+    "agents.anac.y2017.ponpokoagent.PonPokoAgent",
+    "agents.anac.y2017.group3.Group3",
+    "agents.anac.y2017.gin.Gin",
+    "agents.anac.y2017.tangxun.taxibox",
+    "agents.anac.y2016.terra.Terra",
+    "agents.anac.y2016.maxoops.MaxOops",
+    "agents.anac.y2016.grandma.GrandmaAgent",
+    "agents.anac.y2016.clockworkagent.ClockworkAgent",
+    "agents.anac.y2016.parscat.ParsCat",
+    "agents.anac.y2016.caduceus.Caduceus",
+    "agents.anac.y2016.caduceus.agents.RandomDance.RandomDance",
+    "agents.anac.y2016.caduceus.agents.kawaii.kawaii",
+    "agents.anac.y2016.caduceus.agents.Caduceus.Caduceus",
+    "agents.anac.y2016.caduceus.agents.ParsAgent.ParsAgent",
+    "agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong",
+    "agents.anac.y2016.caduceus.agents.Atlas3.Atlas3",
+    "agents.anac.y2016.agentlight.AgentLight",
+    "agents.anac.y2016.pars2.ParsAgent2",
+    "agents.anac.y2016.yxagent.YXAgent",
+    "agents.anac.y2016.farma.Farma",
+    "agents.anac.y2016.syagent.SYAgent",
+    "agents.anac.y2016.ngent.Ngent",
+    "agents.anac.y2016.agenthp2.AgentHP2_main",
+    "agents.anac.y2016.atlas3.Atlas32016",
+    "agents.anac.y2016.agentsmith.AgentSmith2016",
+    "agents.anac.y2016.myagent.MyAgent",
 ]
 
 agent_based_negotiators = []
@@ -221,50 +226,50 @@ party_based_negotiators = [
     # 'agents.ai2014.group4.Group4',
     # 'agents.ai2014.group5.Group5',
     # 'agents.ai2014.group2.Group2',
-    'agents.anac.y2015.Mercury.Mercury',
-    'agents.anac.y2015.RandomDance.RandomDance',
-    'agents.anac.y2015.cuhkagent2015.CUHKAgent2015',
-    'agents.anac.y2015.SENGOKU.SENGOKU',
-    'agents.anac.y2015.DrageKnight.DrageKnight',
-    'agents.anac.y2015.meanBot.MeanBot',
-    'agents.anac.y2015.Phoenix.PhoenixParty',
-    'agents.anac.y2015.pokerface.PokerFace',
-    'agents.anac.y2015.agenth.AgentH',
-    'agents.anac.y2015.ParsAgent.ParsAgent',
+    "agents.anac.y2015.Mercury.Mercury",
+    "agents.anac.y2015.RandomDance.RandomDance",
+    "agents.anac.y2015.cuhkagent2015.CUHKAgent2015",
+    "agents.anac.y2015.SENGOKU.SENGOKU",
+    "agents.anac.y2015.DrageKnight.DrageKnight",
+    "agents.anac.y2015.meanBot.MeanBot",
+    "agents.anac.y2015.Phoenix.PhoenixParty",
+    "agents.anac.y2015.pokerface.PokerFace",
+    "agents.anac.y2015.agenth.AgentH",
+    "agents.anac.y2015.ParsAgent.ParsAgent",
     # 'agents.anac.y2015.JonnyBlack.JonnyBlack',
-    'agents.anac.y2015.AresParty.AresParty',
-    'agents.anac.y2015.fairy.kawaii',
-    'agents.anac.y2015.Atlas3.Atlas3',
-    'agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent',
-    'agents.anac.y2015.AgentNeo.Groupn',
-    'agents.anac.y2015.agentBuyogV2.AgentBuyogMain',
-    'agents.anac.y2015.AgentX.AgentX',
+    "agents.anac.y2015.AresParty.AresParty",
+    "agents.anac.y2015.fairy.kawaii",
+    "agents.anac.y2015.Atlas3.Atlas3",
+    "agents.anac.y2015.TUDMixedStrategyAgent.TUDMixedStrategyAgent",
+    "agents.anac.y2015.AgentNeo.Groupn",
+    "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
+    "agents.anac.y2015.AgentX.AgentX",
     # 'agents.anac.y2015.pnegotiator.BayesLearner',
     # 'agents.anac.y2015.pnegotiator.PNegotiator',
     # 'agents.anac.y2015.group2.Group2',
-    'agents.anac.y2017.tucagent.TucAgent',
-    'agents.anac.y2017.agentf.AgentF',
-    'agents.anac.y2017.ponpokoagent.PonPokoAgent',
-    'agents.anac.y2017.tangxun.taxibox',
-    'agents.anac.y2016.terra.Terra',
-    'agents.anac.y2016.grandma.GrandmaAgent',
-    'agents.anac.y2016.clockworkagent.ClockworkAgent',
-    'agents.anac.y2016.parscat.ParsCat',
-    'agents.anac.y2016.caduceus.Caduceus',
-    'agents.anac.y2016.caduceus.agents.RandomDance.RandomDance',
-    'agents.anac.y2016.caduceus.agents.kawaii.kawaii',
-    'agents.anac.y2016.caduceus.agents.Caduceus.Caduceus',
-    'agents.anac.y2016.caduceus.agents.ParsAgent.ParsAgent',
-    'agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong',
-    'agents.anac.y2016.caduceus.agents.Atlas3.Atlas3',
-    'agents.anac.y2016.pars2.ParsAgent2',
-    'agents.anac.y2016.yxagent.YXAgent',
-    'agents.anac.y2016.farma.Farma',
-    'agents.anac.y2016.syagent.SYAgent',
-    'agents.anac.y2016.ngent.Ngent',
-    'agents.anac.y2016.atlas3.Atlas32016',
-    'agents.anac.y2016.agentsmith.AgentSmith2016',
-    'agents.anac.y2016.myagent.MyAgent',
+    "agents.anac.y2017.tucagent.TucAgent",
+    "agents.anac.y2017.agentf.AgentF",
+    "agents.anac.y2017.ponpokoagent.PonPokoAgent",
+    "agents.anac.y2017.tangxun.taxibox",
+    "agents.anac.y2016.terra.Terra",
+    "agents.anac.y2016.grandma.GrandmaAgent",
+    "agents.anac.y2016.clockworkagent.ClockworkAgent",
+    "agents.anac.y2016.parscat.ParsCat",
+    "agents.anac.y2016.caduceus.Caduceus",
+    "agents.anac.y2016.caduceus.agents.RandomDance.RandomDance",
+    "agents.anac.y2016.caduceus.agents.kawaii.kawaii",
+    "agents.anac.y2016.caduceus.agents.Caduceus.Caduceus",
+    "agents.anac.y2016.caduceus.agents.ParsAgent.ParsAgent",
+    "agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong",
+    "agents.anac.y2016.caduceus.agents.Atlas3.Atlas3",
+    "agents.anac.y2016.pars2.ParsAgent2",
+    "agents.anac.y2016.yxagent.YXAgent",
+    "agents.anac.y2016.farma.Farma",
+    "agents.anac.y2016.syagent.SYAgent",
+    "agents.anac.y2016.ngent.Ngent",
+    "agents.anac.y2016.atlas3.Atlas32016",
+    "agents.anac.y2016.agentsmith.AgentSmith2016",
+    "agents.anac.y2016.myagent.MyAgent",
 ]
 
 
@@ -289,31 +294,35 @@ def init_genius_bridge(path: str = None, port: int = 0, force: bool = False) -> 
     if genius_bridge_is_running(port):
         return True
     if not force and common_gateway is not None and common_port == port:
-        print('Java already initialized')
+        print("Java already initialized")
         return True
 
     path = NEGMAS_CONFIG.get(CONFIG_KEY_GENIUS_BRIDGE_JAR, None)
     if path is None:
-        print('Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path'
-              'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
-              ' to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n'
-              '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'              
-              'You can find the jar at http://www.yasserm.com/scml/genius-8.0.4-bridge.jar')
+        print(
+            "Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path"
+            'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
+            " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
+            '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'
+            "You can find the jar at http://www.yasserm.com/scml/genius-8.0.4-bridge.jar"
+        )
         return False
     path = pathlib.Path(path).expanduser().absolute()
     try:
         subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
-            f'java -jar {path} --die-on-exit {port}'
-            , shell=True)
+            f"java -jar {path} --die-on-exit {port}", shell=True
+        )
     except (OSError, TimeoutError, RuntimeError, ValueError):
         return False
     time.sleep(0.5)
-    gateway = JavaGateway(gateway_parameters=GatewayParameters(port=port),
-                          callback_server_parameters=CallbackServerParameters(port=0))
+    gateway = JavaGateway(
+        gateway_parameters=GatewayParameters(port=port),
+        callback_server_parameters=CallbackServerParameters(port=0),
+    )
     python_port = gateway.get_callback_server().get_listening_port()
     gateway.java_gateway_server.resetCallbackClient(
-        gateway.java_gateway_server.getCallbackClient().getAddress(),
-        python_port)
+        gateway.java_gateway_server.getCallbackClient().getAddress(), python_port
+    )
 
     common_gateway = gateway
     common_port = port
@@ -323,23 +332,28 @@ def init_genius_bridge(path: str = None, port: int = 0, force: bool = False) -> 
 class GeniusNegotiator(SAONegotiator):
     """Encapsulates a Genius Negotiator"""
 
-    def __init__(self, java_class_name: str
-                 , port: int = None
-                 , domain_file_name: str = None
-                 , utility_file_name: str = None
-                 , keep_issue_names: bool = True
-                 , keep_value_names: bool = True
-                 , auto_load_java: bool = False
-                 , can_propose=True
-                 , genius_bridge_path: str = None
-                 , name: str = None):
+    def __init__(
+        self,
+        java_class_name: str,
+        port: int = None,
+        domain_file_name: str = None,
+        utility_file_name: str = None,
+        keep_issue_names: bool = True,
+        keep_value_names: bool = True,
+        auto_load_java: bool = False,
+        can_propose=True,
+        genius_bridge_path: str = None,
+        name: str = None,
+    ):
         super().__init__(name=name)
-        self.capabilities['propose'] = can_propose
-        self.add_capabilities({'genius': True})
+        self.capabilities["propose"] = can_propose
+        self.add_capabilities({"genius": True})
         self.java = None
         self.java_class_name = java_class_name
         self.port = port
-        self.connected = self._connect(path=genius_bridge_path, port=self.port, auto_load_java=auto_load_java)
+        self.connected = self._connect(
+            path=genius_bridge_path, port=self.port, auto_load_java=auto_load_java
+        )
         self.java_uuid = self._create()
         self.uuid = self.java_uuid
         self.name = self.java_uuid
@@ -350,14 +364,19 @@ class GeniusNegotiator(SAONegotiator):
         self.utility_function, self.discount = None, None
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
-            self.issues = get_domain_issues(domain_file_name=domain_file_name, keep_issue_names=True
-                                            , keep_value_names=True)
+            self.issues = get_domain_issues(
+                domain_file_name=domain_file_name,
+                keep_issue_names=True,
+                keep_value_names=True,
+            )
             self.issue_names = [_.name for _ in self.issues]
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         if utility_file_name is not None:
-            self.utility_function, self.discount = UtilityFunction.from_genius(utility_file_name
-                                                                               , keep_issue_names=keep_issue_names
-                                                                               , keep_value_names=keep_value_names)
+            self.utility_function, self.discount = UtilityFunction.from_genius(
+                utility_file_name,
+                keep_issue_names=keep_issue_names,
+                keep_value_names=keep_value_names,
+            )
         self.base_utility = self.utility_function
         pass
 
@@ -381,16 +400,19 @@ class GeniusNegotiator(SAONegotiator):
         return r
 
     @classmethod
-    def random_negotiator(cls, agent_based=True, party_based=True
-                          , port: int = None
-                          , domain_file_name: str = None
-                          , utility_file_name: str = None
-                          , keep_issue_names: bool = True
-                          , keep_value_names: bool = True
-                          , auto_load_java: bool = False
-                          , can_propose = True
-                          , name: str = None
-                          ) -> 'GeniusNegotiator':
+    def random_negotiator(
+        cls,
+        agent_based=True,
+        party_based=True,
+        port: int = None,
+        domain_file_name: str = None,
+        utility_file_name: str = None,
+        keep_issue_names: bool = True,
+        keep_value_names: bool = True,
+        auto_load_java: bool = False,
+        can_propose=True,
+        name: str = None,
+    ) -> "GeniusNegotiator":
         """
         Returns an agent with a random class name
 
@@ -404,11 +426,17 @@ class GeniusNegotiator(SAONegotiator):
         """
         agent_names = cls.negotiators(agent_based=agent_based, party_based=party_based)
         agent_name = agent_names[random.randint(0, len(agent_names) - 1)]
-        return GeniusNegotiator(java_class_name=agent_name, port=port, domain_file_name=domain_file_name
-                                , utility_file_name=utility_file_name, keep_issue_names=keep_issue_names
-                                , keep_value_names=keep_value_names
-                                , auto_load_java=auto_load_java, can_propose=can_propose
-                                , name=name)
+        return GeniusNegotiator(
+            java_class_name=agent_name,
+            port=port,
+            domain_file_name=domain_file_name,
+            utility_file_name=utility_file_name,
+            keep_issue_names=keep_issue_names,
+            keep_value_names=keep_value_names,
+            auto_load_java=auto_load_java,
+            can_propose=can_propose,
+            name=name,
+        )
 
     @property
     def is_connected(self):
@@ -469,7 +497,9 @@ class GeniusNegotiator(SAONegotiator):
                 return True
             else:
                 port = DEFAULT_JAVA_PORT
-        gateway = JavaGateway(gateway_parameters=GatewayParameters(port=port, auto_close=True))
+        gateway = JavaGateway(
+            gateway_parameters=GatewayParameters(port=port, auto_close=True)
+        )
         if gateway is None:
             self.java = None
             return False
@@ -489,25 +519,31 @@ class GeniusNegotiator(SAONegotiator):
         super().on_negotiation_start(state=state)
         info = self._ami
         if self.discount is not None and self.discount != 1.0:
-            self.utility_function = make_discounted_ufun(self.utility_function, info=info
-                                                , discount_per_round=self.discount, power_per_round=1.0)
+            self.utility_function = make_discounted_ufun(
+                self.utility_function,
+                info=info,
+                discount_per_round=self.discount,
+                power_per_round=1.0,
+            )
         n_steps = -1 if info.n_steps is None else int(info.n_steps)  # number of steps
-        n_seconds = -1 if info.time_limit is None else int(info.time_limit)  # time limit
+        n_seconds = (
+            -1 if info.time_limit is None else int(info.time_limit)
+        )  # time limit
         if n_steps * n_seconds > 0:
             # n_seconds take precedence
             n_steps = -1
         self.java.on_negotiation_start(
-            self.java_uuid  # java_uuid
-            , info.n_negotiators  # number of agents
-            , n_steps
-            , n_seconds
-            , n_seconds > 0
-            , self.domain_file_name  # domain file
-            , self.utility_file_name  # Negotiator file
+            self.java_uuid,  # java_uuid
+            info.n_negotiators,  # number of agents
+            n_steps,
+            n_seconds,
+            n_seconds > 0,
+            self.domain_file_name,  # domain file
+            self.utility_file_name,  # Negotiator file
         )
 
-    def propose(self, state: MechanismState) -> 'Outcome':
-        if not self.capabilities['propose']:
+    def propose(self, state: MechanismState) -> "Outcome":
+        if not self.capabilities["propose"]:
             return None
         if self._my_last_offer is None:  # never responded before
             response, outcome = self.parse(self.java.choose_action(self.java_uuid))
@@ -521,12 +557,12 @@ class GeniusNegotiator(SAONegotiator):
         self._my_last_offer = None
         return tmp
 
-    def respond(self, state: MechanismState, offer: 'Outcome') -> 'ResponseType':
+    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         action = self.java.choose_action(self.java_uuid)
         response, self._my_last_offer = self.parse(action)
         return response
 
-    def parse(self, action: str) -> Tuple[Optional[ResponseType], Optional['Outcome']]:
+    def parse(self, action: str) -> Tuple[Optional[ResponseType], Optional["Outcome"]]:
         """
         Parses an action into and a ResponseType and an Outcome (if one is included)
         Args:
@@ -537,75 +573,92 @@ class GeniusNegotiator(SAONegotiator):
         """
         response, outcome = None, None
         id, typ_, bid_str = action.split(FIELD_SEP)
-        if typ_ in ('Offer',) and (bid_str is not None and len(bid_str) > 0):
+        if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:
                 if self.keep_issue_names:
-                    outcome = {_[0]: _[1] for _ in [_.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)]}
+                    outcome = {
+                        _[0]: _[1]
+                        for _ in [
+                            _.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)
+                        ]
+                    }
                 else:
-                    outcome = tuple(_.split(INTERNAL_SEP)[1] for _ in bid_str.split(ENTRY_SEP))
+                    outcome = tuple(
+                        _.split(INTERNAL_SEP)[1] for _ in bid_str.split(ENTRY_SEP)
+                    )
             except:
-                print(f'Failed for bid string: {bid_str} of action {action}')
-        if typ_ == 'Offer':
+                print(f"Failed for bid string: {bid_str} of action {action}")
+        if typ_ == "Offer":
             response = ResponseType.REJECT_OFFER
-        elif typ_ == 'Accept':
+        elif typ_ == "Accept":
             response = ResponseType.ACCEPT_OFFER
-        elif typ_ == 'EndNegotiation':
+        elif typ_ == "EndNegotiation":
             response = ResponseType.END_NEGOTIATION
         else:
-            raise ValueError(f'Unknown response: {typ_} in action {action}')
+            raise ValueError(f"Unknown response: {typ_} in action {action}")
         return response, outcome
 
     def _outcome2str(self, outcome):
-        output = ''
+        output = ""
         if not isinstance(outcome, dict):
             outcome_dict = dict(zip(self.issue_names, outcome))
         else:
             outcome_dict = outcome
         for i, v in outcome_dict.items():
-            output += f'{i}{INTERNAL_SEP}{v}{ENTRY_SEP}'
-        output = output[:-len(ENTRY_SEP)]
+            output += f"{i}{INTERNAL_SEP}{v}{ENTRY_SEP}"
+        output = output[: -len(ENTRY_SEP)]
         return output
 
     def __str__(self):
-        name = super().__str__().split('/')
-        return '/'.join(name[:-1]) + f'/{self.java_class_name}/' + name[-1]
+        name = super().__str__().split("/")
+        return "/".join(name[:-1]) + f"/{self.java_class_name}/" + name[-1]
 
-    def on_partner_proposal(self, state: MechanismState, agent_id: str, offer: 'Outcome'):
+    def on_partner_proposal(
+        self, state: MechanismState, agent_id: str, offer: "Outcome"
+    ):
         if agent_id is self.id:
             return
-        agent_info = [_ for _ in self._ami.participants if _.id != self.id and _.id == agent_id]
+        agent_info = [
+            _ for _ in self._ami.participants if _.id != self.id and _.id == agent_id
+        ]
         if len(agent_info) == 0:
             return
         agent_info = agent_info[0]
-        #if agent_info.type == 'genius_negotiator':
+        # if agent_info.type == 'genius_negotiator':
         #    return
-        self.java.receive_message(self.java_uuid
-                                  , agent_id, 'Offer'
-                                  , self._outcome2str(offer))
+        self.java.receive_message(
+            self.java_uuid, agent_id, "Offer", self._outcome2str(offer)
+        )
 
-    def on_partner_response(self, state: MechanismState, agent_id: str, outcome: 'Outcome', response: 'ResponseType'):
+    def on_partner_response(
+        self,
+        state: MechanismState,
+        agent_id: str,
+        outcome: "Outcome",
+        response: "ResponseType",
+    ):
         if agent_id is self.id:
             return
-        agent_info = [_ for _ in self._ami.participants if _.id != self.id and _.id == agent_id]
+        agent_info = [
+            _ for _ in self._ami.participants if _.id != self.id and _.id == agent_id
+        ]
         if len(agent_info) == 0:
             return
         if outcome is None:
             return
         agent_info = agent_info[0]
-        #if agent_info.type == 'genius_negotiator':
+        # if agent_info.type == 'genius_negotiator':
         #    return
         bid = self._outcome2str(outcome)
         if response == ResponseType.END_NEGOTIATION:
-            resp = 'EndNegotiation'
+            resp = "EndNegotiation"
         elif response == ResponseType.ACCEPT_OFFER:
-            resp = 'Accept'
+            resp = "Accept"
         elif response == ResponseType.REJECT_OFFER:
-            resp = 'Reject'
+            resp = "Reject"
         else:
             return
-        self.java.receive_message(self.java_uuid
-                                  , agent_id
-                                  , resp, bid)
+        self.java.receive_message(self.java_uuid, agent_id, resp, bid)
 
 
 def genius_bridge_is_running(port: int = None) -> bool:
@@ -624,7 +677,7 @@ def genius_bridge_is_running(port: int = None) -> bool:
         port = DEFAULT_JAVA_PORT
     s = socket.socket()
     try:
-        s.connect(('127.0.0.1', port))
+        s.connect(("127.0.0.1", port))
         return True
     except ConnectionRefusedError:
         return False
@@ -634,4 +687,3 @@ def genius_bridge_is_running(port: int = None) -> bool:
         return False
     finally:
         s.close()
-

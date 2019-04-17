@@ -8,8 +8,17 @@ from random import randint, random, shuffle
 import numpy as np
 
 from negmas import Agent
-from negmas.apps.scml import Product, MiningProfile, ReactiveMiner, ScheduleDrivenConsumer, InputOutput, \
-    Process, ManufacturingProfile, Factory, ConsumptionProfile
+from negmas.apps.scml import (
+    Product,
+    MiningProfile,
+    ReactiveMiner,
+    ScheduleDrivenConsumer,
+    InputOutput,
+    Process,
+    ManufacturingProfile,
+    Factory,
+    ConsumptionProfile,
+)
 from negmas.helpers import get_class, instantiate, unique_name, get_full_type_name
 from negmas.java import to_dict
 from negmas.tournaments import WorldRunResults, TournamentResults, tournament
@@ -18,15 +27,26 @@ from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
 if True:
-    from typing import Tuple, Union, Type, Iterable, Sequence, Optional, Callable, Any, Dict, List
+    from typing import (
+        Tuple,
+        Union,
+        Type,
+        Iterable,
+        Sequence,
+        Optional,
+        Callable,
+        Any,
+        Dict,
+        List,
+    )
     from .factory_managers import FactoryManager
 
 __all__ = [
-    'anac2019_world',
-    'anac2019_tournament',
-    'anac2019_collusion',
-    'anac2019_std',
-    'balance_calculator',
+    "anac2019_world",
+    "anac2019_tournament",
+    "anac2019_collusion",
+    "anac2019_std",
+    "balance_calculator",
 ]
 
 
@@ -45,7 +65,9 @@ def integer_cut(n: int, l: int, l_m: Union[int, List[int]]) -> List[int]:
         l_m = [l_m] * l
     sizes = np.asarray(l_m)
     if n < sizes.sum():
-        raise ValueError(f'Cannot generate {l} numbers summing to {n}  with a minimum summing to {sizes.sum()}')
+        raise ValueError(
+            f"Cannot generate {l} numbers summing to {n}  with a minimum summing to {sizes.sum()}"
+        )
     while sizes.sum() < n:
         sizes[randint(0, l - 1)] += 1
     return list(sizes.tolist())
@@ -88,25 +110,25 @@ def _intin(rng: Union[Tuple[int, int], int]) -> int:
 
 
 def anac2019_config_generator(
-    n_competitors: int
-    , n_agents_per_competitor: int
-    , agent_names_reveal_type: bool = False
-    , *
-    , consumption_schedule: Tuple[int, int] = (0, 5)
-    , consumption_horizon: Tuple[int, int] = (10, 15)
-    , n_retrials: Union[int, Tuple[int, int]] = 5
-    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-    , n_steps: Union[int, Tuple[int, int]] = (50, 100)
-    , n_miners: Union[int, Tuple[int, int]] = 5
-    , n_consumers: Union[int, Tuple[int, int]] = 5
-    , profile_cost: Tuple[float, float] = (1, 4)
-    , profile_time: Union[int, Tuple[int, int]] = 1
-    , n_intermediate: Tuple[int, int] = (1, 4)
-    , min_n_factories: int = 5
-    , n_default_managers: Tuple[int, int] = (1, 4)
-    , n_lines: int = 10
-    , compact: bool = True
-    , **kwargs
+    n_competitors: int,
+    n_agents_per_competitor: int,
+    agent_names_reveal_type: bool = False,
+    *,
+    consumption_schedule: Tuple[int, int] = (0, 5),
+    consumption_horizon: Tuple[int, int] = (10, 15),
+    n_retrials: Union[int, Tuple[int, int]] = 5,
+    negotiator_type: str = "negmas.sao.AspirationNegotiator",
+    n_steps: Union[int, Tuple[int, int]] = (50, 100),
+    n_miners: Union[int, Tuple[int, int]] = 5,
+    n_consumers: Union[int, Tuple[int, int]] = 5,
+    profile_cost: Tuple[float, float] = (1, 4),
+    profile_time: Union[int, Tuple[int, int]] = 1,
+    n_intermediate: Tuple[int, int] = (1, 4),
+    min_n_factories: int = 5,
+    n_default_managers: Tuple[int, int] = (1, 4),
+    n_lines: int = 10,
+    compact: bool = True,
+    **kwargs,
 ) -> Dict[str, Any]:
     if isinstance(n_intermediate, Iterable):
         n_intermediate = list(n_intermediate)
@@ -118,39 +140,60 @@ def anac2019_config_generator(
     miner_type = ReactiveMiner
     consumer_type = ScheduleDrivenConsumer
 
-    consumer_kwargs = {'negotiator_type': negotiator_type, 'consumption_horizon': _intin(consumption_horizon)}
-    miner_kwargs = {'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
+    consumer_kwargs = {
+        "negotiator_type": negotiator_type,
+        "consumption_horizon": _intin(consumption_horizon),
+    }
+    miner_kwargs = {"negotiator_type": negotiator_type, "n_retrials": n_retrials}
     if negotiator_type is not None:
         for args in (consumer_kwargs, miner_kwargs):
-            if 'negotiator_type' not in args.keys():
-                args['negotiator_type'] = negotiator_type
+            if "negotiator_type" not in args.keys():
+                args["negotiator_type"] = negotiator_type
 
     n_intermediate_levels = randint(*n_intermediate)
 
-    products = [Product(id=0, name='p0', catalog_price=1.0, production_level=0, expires_in=0)]
+    products = [
+        Product(id=0, name="p0", catalog_price=1.0, production_level=0, expires_in=0)
+    ]
     processes = []
-    miners = [instantiate(miner_type, profiles={products[-1].id: MiningProfile()}, name=f'm_{i}'
-                          , **miner_kwargs) for i in range(n_miners)]
+    miners = [
+        instantiate(
+            miner_type,
+            profiles={products[-1].id: MiningProfile()},
+            name=f"m_{i}",
+            **miner_kwargs,
+        )
+        for i in range(n_miners)
+    ]
     factories = []
 
     def _s(x):
         return x if x is not None else 0
 
     if isinstance(profile_cost, tuple):
-        historical_cost = (profile_cost[0] + profile_cost[1])/2.0
+        historical_cost = (profile_cost[0] + profile_cost[1]) / 2.0
     else:
         historical_cost = profile_cost
-    historical_cost = (historical_cost*0.85, historical_cost*1.15)
+    historical_cost = (historical_cost * 0.85, historical_cost * 1.15)
 
     for level in range(n_intermediate_levels + 1):
-        p = Process(name=f'p{level + 1}', inputs=[InputOutput(product=level, quantity=1, step=0.0)]
-                    , production_level=level + 1
-                    , outputs=[InputOutput(product=level + 1, quantity=1, step=1.0)]
-                    , historical_cost=_realin(historical_cost)
-                    , id=level)
-        new_product = Product(name=f'p{level + 1}', catalog_price=products[-1].catalog_price + p.historical_cost
-                              # keep this to the world to calculate _s(products[-1].catalog_price) + level + 1
-                              , production_level=level + 1, id=level + 1, expires_in=0)
+        p = Process(
+            name=f"p{level + 1}",
+            inputs=[InputOutput(product=level, quantity=1, step=0.0)],
+            production_level=level + 1,
+            outputs=[InputOutput(product=level + 1, quantity=1, step=1.0)],
+            historical_cost=_realin(historical_cost),
+            id=level,
+        )
+        new_product = Product(
+            name=f"p{level + 1}",
+            catalog_price=products[-1].catalog_price + p.historical_cost
+            # keep this to the world to calculate _s(products[-1].catalog_price) + level + 1
+            ,
+            production_level=level + 1,
+            id=level + 1,
+            expires_in=0,
+        )
         processes.append(p)
         products.append(new_product)
 
@@ -159,7 +202,7 @@ def anac2019_config_generator(
     n_defaults = []
     for level in range(n_intermediate_levels + 1):
         n_defaults.append(_intin(n_default_managers))
-    n_agents = (n_agents_per_competitor * n_competitors)
+    n_agents = n_agents_per_competitor * n_competitors
     n_a_list = integer_cut(n_agents, n_intermediate_levels + 1, 0)
     for i, n_a in enumerate(n_a_list):
         if n_a + n_defaults[i] < min_n_factories:
@@ -167,100 +210,190 @@ def anac2019_config_generator(
     n_f_list = [a + b for a, b in zip(n_defaults, n_a_list)]
     n_factories = sum(n_f_list)
 
-    default_manager_params = {'negotiator_type': negotiator_type, 'n_retrials': n_retrials
-        , 'sign_only_guaranteed_contracts': False
-        , 'use_consumer': True
-        , 'max_insurance_premium': float('inf')}
+    default_manager_params = {
+        "negotiator_type": negotiator_type,
+        "n_retrials": n_retrials,
+        "sign_only_guaranteed_contracts": False,
+        "use_consumer": True,
+        "max_insurance_premium": float("inf"),
+    }
     manager_types = [None] * n_factories
     manager_params = [None] * n_factories
     first_in_level = 0
     for level in range(n_intermediate_levels + 1):
         n_d = n_defaults[level]
         n_f = n_f_list[level]
-        assert n_d <= n_f, f'Got {n_f} total factories at level {level} out of which {n_d} are default!!'
+        assert (
+            n_d <= n_f
+        ), f"Got {n_f} total factories at level {level} out of which {n_d} are default!!"
         for j in range(n_f):
             profiles = []
             factory_time = _intin(profile_time)
             factory_cost = _realin(profile_cost)
             for k in range(n_lines):
-                profiles.append(ManufacturingProfile(n_steps=factory_time
-                                                     , cost=factory_cost
-                                                     , initial_pause_cost=0
-                                                     , running_pause_cost=0
-                                                     , resumption_cost=0
-                                                     , cancellation_cost=0
-                                                     , line=k, process=processes[level]))
-            factory = Factory(id=f'f{level + 1}_{j}', max_storage=sys.maxsize, profiles=profiles
-                              , initial_storage={}, initial_wallet=1000.0)
+                profiles.append(
+                    ManufacturingProfile(
+                        n_steps=factory_time,
+                        cost=factory_cost,
+                        initial_pause_cost=0,
+                        running_pause_cost=0,
+                        resumption_cost=0,
+                        cancellation_cost=0,
+                        line=k,
+                        process=processes[level],
+                    )
+                )
+            factory = Factory(
+                id=f"f{level + 1}_{j}",
+                max_storage=sys.maxsize,
+                profiles=profiles,
+                initial_storage={},
+                initial_wallet=1000.0,
+            )
             factories.append(factory)
-            if j >= n_f - n_d: # default managers are last managers in the list
-                manager_types[first_in_level + j] = 'negmas.apps.scml.factory_managers.GreedyFactoryManager'
+            if j >= n_f - n_d:  # default managers are last managers in the list
+                manager_types[
+                    first_in_level + j
+                ] = "negmas.apps.scml.factory_managers.GreedyFactoryManager"
                 params_ = default_manager_params.copy()
                 if agent_names_reveal_type:
-                    params_['name'] = f'_df_{level + 1}_{j}'
+                    params_["name"] = f"_df_{level + 1}_{j}"
                 else:
-                    params_['name'] = None
+                    params_["name"] = None
                 manager_params[first_in_level + j] = params_
         first_in_level += n_f
 
     def create_schedule():
         if isinstance(consumption_schedule, tuple) and len(consumption_schedule) == 2:
-            return list(np.random.randint(consumption_schedule[0], consumption_schedule[1], n_steps).tolist())
+            return list(
+                np.random.randint(
+                    consumption_schedule[0], consumption_schedule[1], n_steps
+                ).tolist()
+            )
         return consumption_schedule
 
     consumers = [
-        instantiate(consumer_type, profiles={products[-1].id: ConsumptionProfile(schedule=create_schedule())}
-                    , name=f'c_{i}', **consumer_kwargs) for i in range(n_consumers)]
+        instantiate(
+            consumer_type,
+            profiles={products[-1].id: ConsumptionProfile(schedule=create_schedule())},
+            name=f"c_{i}",
+            **consumer_kwargs,
+        )
+        for i in range(n_consumers)
+    ]
 
-    config = {'world_params': dict(name=unique_name('', add_time=True, rand_digits=4), time_limit=7200,
-                                   neg_time_limit=120, neg_n_steps=20, neg_step_time_limit=10, negotiation_speed=21,
-                                   default_signing_delay=1, transportation_delay=0, no_bank=True,
-                                   breach_penalty_society=0.02, no_insurance=False, premium=0.1,
-                                   premium_time_increment=0.1, premium_breach_increment=0.1,
-                                   max_allowed_breach_level=None, breach_penalty_society_min=0.0,
-                                   breach_penalty_victim=0.0, breach_move_max_product=True,
-                                   initial_wallet_balances=1000.0, money_resolution=0.5, transfer_delay=0,
-                                   start_negotiations_immediately=False, catalog_profit=0.15,
-                                   financial_reports_period=10, default_price_for_products_without_one=1,
-                                   compensation_fraction=0.5, n_steps=n_steps, compact=compact, **kwargs),
-              'products': [to_dict(p, add_type_field=False, camel=False) for p in products],
-              'processes': [to_dict(p, add_type_field=False, camel=False) for p in processes],
-              'factories': [
-                  {'profile': {'n_steps': f.profiles[0].n_steps, 'cost': f.profiles[0].cost, 'line': f.profiles[0].line
-                      , 'process.id': f.profiles[0].process.id}
-                      , 'max_storage': sys.maxsize, 'initial_wallet': 1000.0, 'id': f.id, 'n_lines': n_lines}
-                  for f in factories],
-              'miners': [dict(id=m.id, name=m.name, type=get_full_type_name(miner_type), args=miner_kwargs,
-                              profiles={k: to_dict(v, add_type_field=False, camel=False)
-                                        for k, v in m.profiles.items()}) for m in miners],
-              'consumers': [dict(id=c.id, name=c.name, type=get_full_type_name(consumer_type), args=consumer_kwargs,
-                                 profiles={k: to_dict(v, add_type_field=False, camel=False)
-                                           for k, v in c.profiles.items()}) for c in consumers],
-              'manager_types': [get_full_type_name(_) if isinstance(_, FactoryManager) else _ for _ in manager_types],
-              'manager_params': manager_params,
-              'n_factories_per_level': n_f_list,
-              'agent_names_reveal_type': agent_names_reveal_type,
-              'compact': compact,
-              }
+    config = {
+        "world_params": dict(
+            name=unique_name("", add_time=True, rand_digits=4),
+            time_limit=7200,
+            neg_time_limit=120,
+            neg_n_steps=20,
+            neg_step_time_limit=10,
+            negotiation_speed=21,
+            default_signing_delay=1,
+            transportation_delay=0,
+            no_bank=True,
+            breach_penalty_society=0.02,
+            no_insurance=False,
+            premium=0.1,
+            premium_time_increment=0.1,
+            premium_breach_increment=0.1,
+            max_allowed_breach_level=None,
+            breach_penalty_society_min=0.0,
+            breach_penalty_victim=0.0,
+            breach_move_max_product=True,
+            initial_wallet_balances=1000.0,
+            money_resolution=0.5,
+            transfer_delay=0,
+            start_negotiations_immediately=False,
+            catalog_profit=0.15,
+            financial_reports_period=10,
+            default_price_for_products_without_one=1,
+            compensation_fraction=0.5,
+            n_steps=n_steps,
+            compact=compact,
+            **kwargs,
+        ),
+        "products": [to_dict(p, add_type_field=False, camel=False) for p in products],
+        "processes": [to_dict(p, add_type_field=False, camel=False) for p in processes],
+        "factories": [
+            {
+                "profile": {
+                    "n_steps": f.profiles[0].n_steps,
+                    "cost": f.profiles[0].cost,
+                    "line": f.profiles[0].line,
+                    "process.id": f.profiles[0].process.id,
+                },
+                "max_storage": sys.maxsize,
+                "initial_wallet": 1000.0,
+                "id": f.id,
+                "n_lines": n_lines,
+            }
+            for f in factories
+        ],
+        "miners": [
+            dict(
+                id=m.id,
+                name=m.name,
+                type=get_full_type_name(miner_type),
+                args=miner_kwargs,
+                profiles={
+                    k: to_dict(v, add_type_field=False, camel=False)
+                    for k, v in m.profiles.items()
+                },
+            )
+            for m in miners
+        ],
+        "consumers": [
+            dict(
+                id=c.id,
+                name=c.name,
+                type=get_full_type_name(consumer_type),
+                args=consumer_kwargs,
+                profiles={
+                    k: to_dict(v, add_type_field=False, camel=False)
+                    for k, v in c.profiles.items()
+                },
+            )
+            for c in consumers
+        ],
+        "manager_types": [
+            get_full_type_name(_) if isinstance(_, FactoryManager) else _
+            for _ in manager_types
+        ],
+        "manager_params": manager_params,
+        "n_factories_per_level": n_f_list,
+        "agent_names_reveal_type": agent_names_reveal_type,
+        "compact": compact,
+    }
     config.update(kwargs)
     return config
 
 
-def anac2019_assigner(config: Dict[str, Any], max_n_worlds: int, n_agents_per_competitor: int = 1
-                      , competitors: Sequence[Type[Agent]] = (), params: Sequence[Dict[str, Any]] = ()
-                      ) -> List[Dict[str, Any]]:
-    competitors = list(get_full_type_name(_) if not isinstance(_, str) and _ is not None else _ for _ in competitors)
+def anac2019_assigner(
+    config: Dict[str, Any],
+    max_n_worlds: int,
+    n_agents_per_competitor: int = 1,
+    competitors: Sequence[Type[Agent]] = (),
+    params: Sequence[Dict[str, Any]] = (),
+) -> List[Dict[str, Any]]:
+    competitors = list(
+        get_full_type_name(_) if not isinstance(_, str) and _ is not None else _
+        for _ in competitors
+    )
     n_competitors = len(competitors)
-    params = list(params) if params is not None else [dict() for _ in range(n_competitors)]
-    n_agents = (n_agents_per_competitor * n_competitors)
-    agent_names_reveal_type = config.pop('agent_names_reveal_type', False)
+    params = (
+        list(params) if params is not None else [dict() for _ in range(n_competitors)]
+    )
+    n_agents = n_agents_per_competitor * n_competitors
+    agent_names_reveal_type = config.pop("agent_names_reveal_type", False)
 
     try:
         n_permutations = math.factorial(n_agents)
     except ArithmeticError:
         n_permutations = None
 
-    manager_types = config['manager_types']
+    manager_types = config["manager_types"]
 
     assignable_factories = [i for i, mtype in enumerate(manager_types) if mtype is None]
 
@@ -270,20 +403,22 @@ def anac2019_assigner(config: Dict[str, Any], max_n_worlds: int, n_agents_per_co
 
     def _copy_config(c, indx):
         new_config = copy.deepcopy(c)
-        new_config['world_params']['name'] += f'{indx:05d}'
+        new_config["world_params"]["name"] += f"{indx:05d}"
         for i, (a, p) in enumerate(permutation):
-            new_config['manager_types'][assignable_factories[i]] = a
-            new_config['manager_params'][assignable_factories[i]] = p
+            new_config["manager_types"][assignable_factories[i]] = a
+            new_config["manager_params"][assignable_factories[i]] = p
         return new_config
 
-    if n_permutations is not None and (max_n_worlds is None or n_permutations <= max_n_worlds):
+    if n_permutations is not None and (
+        max_n_worlds is None or n_permutations <= max_n_worlds
+    ):
         k = 0
         for permutation in itertools.permutations(zip(agents, agent_params)):
             assert len(permutation) == len(assignable_factories)
             configs.append(_copy_config(config, k))
             k += 1
     elif max_n_worlds is None:
-        raise ValueError(f'Did not give max_n_worlds and cannot find n_permutations.')
+        raise ValueError(f"Did not give max_n_worlds and cannot find n_permutations.")
     else:
         permutation = list(zip(agents, agent_params))
         assert len(permutation) == len(assignable_factories)
@@ -292,96 +427,149 @@ def anac2019_assigner(config: Dict[str, Any], max_n_worlds: int, n_agents_per_co
             configs.append(_copy_config(config, k))
 
     def shorten(long_name):
-        name = long_name.split('.')[-1].lower().replace('factory_manager', '').replace('manager', '')
-        name = name.replace('factory', '').replace('agent', '').replace('miner', 'm').replace('consumer', '')
-        if long_name.startswith('jnegmas'):
-            name = f'j:{name}'
+        name = (
+            long_name.split(".")[-1]
+            .lower()
+            .replace("factory_manager", "")
+            .replace("manager", "")
+        )
+        name = (
+            name.replace("factory", "")
+            .replace("agent", "")
+            .replace("miner", "m")
+            .replace("consumer", "")
+        )
+        if long_name.startswith("jnegmas"):
+            name = f"j:{name}"
         return name
 
     if agent_names_reveal_type:
         for config in configs:
             nxt = 0
-            for i, (t, p, f) in enumerate(zip(config['manager_types'], config['manager_params'], config['factories'])):
-                if p.get('name', '').startswith('_df_'):
+            for i, (t, p, f) in enumerate(
+                zip(
+                    config["manager_types"],
+                    config["manager_params"],
+                    config["factories"],
+                )
+            ):
+                if p.get("name", "").startswith("_df_"):
                     continue
                 p = p.copy()
-                name_ = t.short_type_name if isinstance(t, Entity) else get_full_type_name(t) if not isinstance(t, str)\
+                name_ = (
+                    t.short_type_name
+                    if isinstance(t, Entity)
+                    else get_full_type_name(t)
+                    if not isinstance(t, str)
                     else shorten(t)
-                p['name'] = f'{name_}@{f["id"][1:]}'
-                config['manager_params'][i] = p
+                )
+                p["name"] = f'{name_}@{f["id"][1:]}'
+                config["manager_params"][i] = p
                 nxt = nxt + 1
     return configs
 
 
 def anac2019_world_generator(**kwargs):
-    products = [Product(**p) for p in kwargs['products']]
-    processes = [Process(**p) for p in kwargs['processes']]
+    products = [Product(**p) for p in kwargs["products"]]
+    processes = [Process(**p) for p in kwargs["processes"]]
     for process in processes:
         process.inputs = [InputOutput(**io) for io in process.inputs]
         process.outputs = [InputOutput(**io) for io in process.outputs]
     factories = []
-    for f in kwargs['factories']:
-        p = f['profile']
-        factories.append(Factory(initial_storage={}, initial_wallet=f['initial_wallet'], max_storage=f['max_storage'],
-                                 id=f'{f["id"]}'
-                                 , profiles=[ManufacturingProfile(n_steps=p['n_steps'], cost=p['cost'], line=p['line']
-                                                                  , process=processes[p['process.id']]
-                                                                  , cancellation_cost=0.0, initial_pause_cost=0.0
-                                                                  , resumption_cost=0, running_pause_cost=0.0)
-                                             for _ in range(f['n_lines'])]))
+    for f in kwargs["factories"]:
+        p = f["profile"]
+        factories.append(
+            Factory(
+                initial_storage={},
+                initial_wallet=f["initial_wallet"],
+                max_storage=f["max_storage"],
+                id=f'{f["id"]}',
+                profiles=[
+                    ManufacturingProfile(
+                        n_steps=p["n_steps"],
+                        cost=p["cost"],
+                        line=p["line"],
+                        process=processes[p["process.id"]],
+                        cancellation_cost=0.0,
+                        initial_pause_cost=0.0,
+                        resumption_cost=0,
+                        running_pause_cost=0.0,
+                    )
+                    for _ in range(f["n_lines"])
+                ],
+            )
+        )
     miners = []
-    for m in kwargs['miners']:
-        miner = instantiate(m['type'], **m['args'], name=m['name']
-                            , profiles={k: MiningProfile(**v) for k, v in m['profiles'].items()})
-        miner.id = m['id']
+    for m in kwargs["miners"]:
+        miner = instantiate(
+            m["type"],
+            **m["args"],
+            name=m["name"],
+            profiles={k: MiningProfile(**v) for k, v in m["profiles"].items()},
+        )
+        miner.id = m["id"]
         miners.append(miner)
 
     consumers = []
-    for c in kwargs['consumers']:
-        consumer = instantiate(c['type'], **c['args'], name=c['name']
-                               , profiles={k: ConsumptionProfile(**v) for k, v in c['profiles'].items()})
-        consumer.id = c['id']
+    for c in kwargs["consumers"]:
+        consumer = instantiate(
+            c["type"],
+            **c["args"],
+            name=c["name"],
+            profiles={k: ConsumptionProfile(**v) for k, v in c["profiles"].items()},
+        )
+        consumer.id = c["id"]
         consumers.append(consumer)
 
-    kwargs.pop('n_factories_per_level', None)
-    manager_types = kwargs.pop('manager_types', [])
-    manager_params = kwargs.pop('manager_params', [])
-    managers = [instantiate(mt, **mp) for mt, mp in zip(manager_types, itertools.cycle(manager_params))]
-    world = SCMLWorld(products=products, processes=processes, factories=factories, consumers=consumers
-                      , miners=miners, factory_managers=managers, **kwargs['world_params'])
+    kwargs.pop("n_factories_per_level", None)
+    manager_types = kwargs.pop("manager_types", [])
+    manager_params = kwargs.pop("manager_params", [])
+    managers = [
+        instantiate(mt, **mp)
+        for mt, mp in zip(manager_types, itertools.cycle(manager_params))
+    ]
+    world = SCMLWorld(
+        products=products,
+        processes=processes,
+        factories=factories,
+        consumers=consumers,
+        miners=miners,
+        factory_managers=managers,
+        **kwargs["world_params"],
+    )
     return world
 
 
 def anac2019_world(
-    competitors: Sequence[Union[str, Type[FactoryManager]]] = ()
-    , params: Sequence[Dict[str, Any]] = ()
-    , randomize: bool = True
-    , log_file_name: str = None
-    , name: str = None
-    , agent_names_reveal_type: bool = False
-    , n_intermediate: Tuple[int, int] = (1, 4)
-    , n_miners=5
-    , n_factories_per_level=11
-    , n_agents_per_competitor=1
-    , n_consumers=5
-    , n_lines_per_factory=10
-    , guaranteed_contracts=False
-    , use_consumer=True
-    , max_insurance_premium=100, n_retrials=5
-    , negotiator_type: str = 'negmas.sao.AspirationNegotiator'
-    , transportation_delay=0
-    , default_signing_delay=0
-    , max_storage=sys.maxsize
-    , consumption_horizon=15
-    , consumption=(3, 5)
-    , negotiation_speed=21
-    , neg_time_limit=60 * 4
-    , neg_n_steps=20
-    , n_steps=100
-    , time_limit=60 * 90
-    , n_default_per_level: int = 5
-    , compact: bool = False
-
+    competitors: Sequence[Union[str, Type[FactoryManager]]] = (),
+    params: Sequence[Dict[str, Any]] = (),
+    randomize: bool = True,
+    log_file_name: str = None,
+    name: str = None,
+    agent_names_reveal_type: bool = False,
+    n_intermediate: Tuple[int, int] = (1, 4),
+    n_miners=5,
+    n_factories_per_level=11,
+    n_agents_per_competitor=1,
+    n_consumers=5,
+    n_lines_per_factory=10,
+    guaranteed_contracts=False,
+    use_consumer=True,
+    max_insurance_premium=100,
+    n_retrials=5,
+    negotiator_type: str = "negmas.sao.AspirationNegotiator",
+    transportation_delay=0,
+    default_signing_delay=0,
+    max_storage=sys.maxsize,
+    consumption_horizon=15,
+    consumption=(3, 5),
+    negotiation_speed=21,
+    neg_time_limit=60 * 4,
+    neg_n_steps=20,
+    n_steps=100,
+    time_limit=60 * 90,
+    n_default_per_level: int = 5,
+    compact: bool = False,
 ) -> SCMLWorld:
     """
     Creates a world compatible with the ANAC 2019 competition. Note that
@@ -429,52 +617,72 @@ def anac2019_world(
 
     """
     competitors = list(competitors)
-    params = list(params) if params is not None else [dict() for _ in range(len(competitors))]
+    params = (
+        list(params)
+        if params is not None
+        else [dict() for _ in range(len(competitors))]
+    )
     if n_factories_per_level == n_default_per_level and len(competitors) > 0:
-        raise ValueError(f'All factories in all levels are occupied by the default factory manager. Either decrease'
-                         f' n_default_per_level ({n_default_per_level}) or increase n_factories_per_level '
-                         f' ({n_factories_per_level})')
+        raise ValueError(
+            f"All factories in all levels are occupied by the default factory manager. Either decrease"
+            f" n_default_per_level ({n_default_per_level}) or increase n_factories_per_level "
+            f" ({n_factories_per_level})"
+        )
     if isinstance(n_intermediate, Iterable):
         n_intermediate = list(n_intermediate)
     else:
         n_intermediate = [n_intermediate, n_intermediate]
     max_insurance_premium = None if max_insurance_premium < 0 else max_insurance_premium
     n_competitors = len(competitors)
-    n_intermediate_levels_min = int(math.ceil(n_competitors / (n_factories_per_level - n_default_per_level))) - 1
+    n_intermediate_levels_min = (
+        int(math.ceil(n_competitors / (n_factories_per_level - n_default_per_level)))
+        - 1
+    )
     if n_intermediate_levels_min > n_intermediate[1]:
-        raise ValueError(f'Need {n_intermediate_levels_min} intermediate levels to run {n_competitors} competitors')
+        raise ValueError(
+            f"Need {n_intermediate_levels_min} intermediate levels to run {n_competitors} competitors"
+        )
     n_intermediate[0] = max(n_intermediate_levels_min, n_intermediate[0])
     competitors = [get_class(c) if isinstance(c, str) else c for c in competitors]
     if len(competitors) < 1:
         competitors.append(GreedyFactoryManager)
         params.append(dict())
-    world = SCMLWorld.chain_world(log_file_name=log_file_name, n_steps=n_steps
-                                  , agent_names_reveal_type=agent_names_reveal_type
-                                  , negotiation_speed=negotiation_speed
-                                  , n_intermediate_levels=randint(*n_intermediate)
-                                  , n_miners=n_miners
-                                  , n_consumers=n_consumers
-                                  , n_factories_per_level=n_factories_per_level
-                                  , consumption=consumption
-                                  , consumer_kwargs={'negotiator_type': negotiator_type
-            , 'consumption_horizon': consumption_horizon}
-                                  , miner_kwargs={'negotiator_type': negotiator_type, 'n_retrials': n_retrials}
-                                  , default_manager_params={'negotiator_type': negotiator_type, 'n_retrials': n_retrials
-            , 'sign_only_guaranteed_contracts': guaranteed_contracts
-            , 'use_consumer': use_consumer
-            , 'max_insurance_premium': max_insurance_premium}
-                                  , transportation_delay=transportation_delay
-                                  , time_limit=time_limit
-                                  , neg_time_limit=neg_time_limit
-                                  , neg_n_steps=neg_n_steps
-                                  , default_signing_delay=default_signing_delay
-                                  , n_lines_per_factory=n_lines_per_factory
-                                  , max_storage=max_storage
-                                  , manager_types=competitors
-                                  , manager_params=params
-                                  , n_default_per_level=n_default_per_level
-                                  , randomize=randomize
-                                  , name=name, compact=compact)
+    world = SCMLWorld.chain_world(
+        log_file_name=log_file_name,
+        n_steps=n_steps,
+        agent_names_reveal_type=agent_names_reveal_type,
+        negotiation_speed=negotiation_speed,
+        n_intermediate_levels=randint(*n_intermediate),
+        n_miners=n_miners,
+        n_consumers=n_consumers,
+        n_factories_per_level=n_factories_per_level,
+        consumption=consumption,
+        consumer_kwargs={
+            "negotiator_type": negotiator_type,
+            "consumption_horizon": consumption_horizon,
+        },
+        miner_kwargs={"negotiator_type": negotiator_type, "n_retrials": n_retrials},
+        default_manager_params={
+            "negotiator_type": negotiator_type,
+            "n_retrials": n_retrials,
+            "sign_only_guaranteed_contracts": guaranteed_contracts,
+            "use_consumer": use_consumer,
+            "max_insurance_premium": max_insurance_premium,
+        },
+        transportation_delay=transportation_delay,
+        time_limit=time_limit,
+        neg_time_limit=neg_time_limit,
+        neg_n_steps=neg_n_steps,
+        default_signing_delay=default_signing_delay,
+        n_lines_per_factory=n_lines_per_factory,
+        max_storage=max_storage,
+        manager_types=competitors,
+        manager_params=params,
+        n_default_per_level=n_default_per_level,
+        randomize=randomize,
+        name=name,
+        compact=compact,
+    )
 
     return world
 
@@ -496,12 +704,12 @@ def balance_calculator(world: SCMLWorld, dry_run: bool) -> WorldRunResults:
     result = WorldRunResults(world_name=world.name, log_file_name=world.log_file_name)
     initial_balances = []
     for manager in world.factory_managers:
-        if '_df_' in manager.id:
+        if "_df_" in manager.id:
             continue
         initial_balances.append(world.a2f[manager.id].initial_balance)
     normalize = all(_ != 0 for _ in initial_balances)
     for manager in world.factory_managers:
-        if '_df_' in manager.id:
+        if "_df_" in manager.id:
             continue
         factory = world.a2f[manager.id]
         result.names.append(manager.name)
@@ -509,31 +717,34 @@ def balance_calculator(world: SCMLWorld, dry_run: bool) -> WorldRunResults:
         if dry_run:
             result.scores.append(None)
         if normalize:
-            result.scores.append((factory.balance - factory.initial_balance) / factory.initial_balance)
+            result.scores.append(
+                (factory.balance - factory.initial_balance) / factory.initial_balance
+            )
         else:
             result.scores.append(factory.balance - factory.initial_balance)
     return result
 
 
-def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
-                        , agent_names_reveal_type=False
-                        , n_configs: int = 5
-                        , max_worlds_per_config: int = 1000
-                        , n_runs_per_world: int = 5
-                        , n_agents_per_competitor: int = 5
-                        , tournament_path: str = './logs/tournaments'
-                        , total_timeout: Optional[int] = 7200
-                        , parallelism='parallel'
-                        , scheduler_ip: Optional[str] = None
-                        , scheduler_port: Optional[str] = None
-                        , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None
-                        , world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None
-                        , name: str = None
-                        , verbose: bool = False
-                        , configs_only=False
-                        , compact=False
-                        , **kwargs
-                        ) -> Union[TournamentResults, PathLike]:
+def anac2019_tournament(
+    competitors: Sequence[Union[str, Type[FactoryManager]]],
+    agent_names_reveal_type=False,
+    n_configs: int = 5,
+    max_worlds_per_config: int = 1000,
+    n_runs_per_world: int = 5,
+    n_agents_per_competitor: int = 5,
+    tournament_path: str = "./logs/tournaments",
+    total_timeout: Optional[int] = 7200,
+    parallelism="parallel",
+    scheduler_ip: Optional[str] = None,
+    scheduler_port: Optional[str] = None,
+    tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None,
+    world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None,
+    name: str = None,
+    verbose: bool = False,
+    configs_only=False,
+    compact=False,
+    **kwargs,
+) -> Union[TournamentResults, PathLike]:
     """
     The function used to run ANAC 2019 SCML tournament (collusion track).
 
@@ -574,35 +785,47 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
         processing
 
     """
-    return anac2019_collusion(competitors=competitors, agent_names_reveal_type=agent_names_reveal_type
-                              , n_configs=n_configs, max_worlds_per_config=max_worlds_per_config
-                              , n_runs_per_world=n_runs_per_world, n_agents_per_competitor=n_agents_per_competitor
-                              , tournament_path=tournament_path, total_timeout=total_timeout, parallelism=parallelism
-                              , scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
-                              , tournament_progress_callback=tournament_progress_callback
-                              , world_progress_callback=world_progress_callback, name=name, verbose=verbose
-                              , compact=compact
-                              , configs_only=configs_only, **kwargs)
+    return anac2019_collusion(
+        competitors=competitors,
+        agent_names_reveal_type=agent_names_reveal_type,
+        n_configs=n_configs,
+        max_worlds_per_config=max_worlds_per_config,
+        n_runs_per_world=n_runs_per_world,
+        n_agents_per_competitor=n_agents_per_competitor,
+        tournament_path=tournament_path,
+        total_timeout=total_timeout,
+        parallelism=parallelism,
+        scheduler_ip=scheduler_ip,
+        scheduler_port=scheduler_port,
+        tournament_progress_callback=tournament_progress_callback,
+        world_progress_callback=world_progress_callback,
+        name=name,
+        verbose=verbose,
+        compact=compact,
+        configs_only=configs_only,
+        **kwargs,
+    )
 
 
-def anac2019_std(competitors: Sequence[Union[str, Type[FactoryManager]]]
-                 , agent_names_reveal_type=False
-                 , n_configs: int = 5
-                 , max_worlds_per_config: int = 1000
-                 , n_runs_per_world: int = 5
-                 , tournament_path: str = './logs/tournaments'
-                 , total_timeout: Optional[int] = 7200
-                 , parallelism='parallel'
-                 , scheduler_ip: Optional[str] = None
-                 , scheduler_port: Optional[str] = None
-                 , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None
-                 , world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None
-                 , name: str = None
-                 , verbose: bool = False
-                 , configs_only=False
-                 , compact=False
-                 , **kwargs
-                 ) -> Union[TournamentResults, PathLike]:
+def anac2019_std(
+    competitors: Sequence[Union[str, Type[FactoryManager]]],
+    agent_names_reveal_type=False,
+    n_configs: int = 5,
+    max_worlds_per_config: int = 1000,
+    n_runs_per_world: int = 5,
+    tournament_path: str = "./logs/tournaments",
+    total_timeout: Optional[int] = 7200,
+    parallelism="parallel",
+    scheduler_ip: Optional[str] = None,
+    scheduler_port: Optional[str] = None,
+    tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None,
+    world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None,
+    name: str = None,
+    verbose: bool = False,
+    configs_only=False,
+    compact=False,
+    **kwargs,
+) -> Union[TournamentResults, PathLike]:
     """
     The function used to run ANAC 2019 SCML tournament (standard track).
 
@@ -642,40 +865,52 @@ def anac2019_std(competitors: Sequence[Union[str, Type[FactoryManager]]]
         processing
 
     """
-    return tournament(competitors=competitors, agent_names_reveal_type=agent_names_reveal_type
-                      , n_configs=n_configs, n_runs_per_world=n_runs_per_world,
-                      max_worlds_per_config=max_worlds_per_config
-                      , tournament_path=tournament_path, total_timeout=total_timeout
-                      , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
-                      , tournament_progress_callback=tournament_progress_callback
-                      , world_progress_callback=world_progress_callback, name=name, verbose=verbose
-                      , configs_only=configs_only
-                      , n_agents_per_competitor=1
-                      , world_generator=anac2019_world_generator
-                      , config_generator=anac2019_config_generator
-                      , config_assigner=anac2019_assigner
-                      , score_calculator=balance_calculator, compact=compact, **kwargs)
+    return tournament(
+        competitors=competitors,
+        agent_names_reveal_type=agent_names_reveal_type,
+        n_configs=n_configs,
+        n_runs_per_world=n_runs_per_world,
+        max_worlds_per_config=max_worlds_per_config,
+        tournament_path=tournament_path,
+        total_timeout=total_timeout,
+        parallelism=parallelism,
+        scheduler_ip=scheduler_ip,
+        scheduler_port=scheduler_port,
+        tournament_progress_callback=tournament_progress_callback,
+        world_progress_callback=world_progress_callback,
+        name=name,
+        verbose=verbose,
+        configs_only=configs_only,
+        n_agents_per_competitor=1,
+        world_generator=anac2019_world_generator,
+        config_generator=anac2019_config_generator,
+        config_assigner=anac2019_assigner,
+        score_calculator=balance_calculator,
+        compact=compact,
+        **kwargs,
+    )
 
 
-def anac2019_collusion(competitors: Sequence[Union[str, Type[FactoryManager]]]
-                       , agent_names_reveal_type=False
-                       , n_configs: int = 5
-                       , max_worlds_per_config: int = 1000
-                       , n_runs_per_world: int = 5
-                       , n_agents_per_competitor: int = 5
-                       , tournament_path: str = './logs/tournaments'
-                       , total_timeout: Optional[int] = 7200
-                       , parallelism='parallel'
-                       , scheduler_ip: Optional[str] = None
-                       , scheduler_port: Optional[str] = None
-                       , tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None
-                       , world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None
-                       , name: str = None
-                       , verbose: bool = False
-                       , configs_only=False
-                       , compact=False
-                       , **kwargs
-                       ) -> Union[TournamentResults, PathLike]:
+def anac2019_collusion(
+    competitors: Sequence[Union[str, Type[FactoryManager]]],
+    agent_names_reveal_type=False,
+    n_configs: int = 5,
+    max_worlds_per_config: int = 1000,
+    n_runs_per_world: int = 5,
+    n_agents_per_competitor: int = 5,
+    tournament_path: str = "./logs/tournaments",
+    total_timeout: Optional[int] = 7200,
+    parallelism="parallel",
+    scheduler_ip: Optional[str] = None,
+    scheduler_port: Optional[str] = None,
+    tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None,
+    world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None,
+    name: str = None,
+    verbose: bool = False,
+    configs_only=False,
+    compact=False,
+    **kwargs,
+) -> Union[TournamentResults, PathLike]:
     """
     The function used to run ANAC 2019 SCML tournament (collusion track).
 
@@ -716,16 +951,27 @@ def anac2019_collusion(competitors: Sequence[Union[str, Type[FactoryManager]]]
         processing
 
     """
-    return tournament(competitors=competitors, agent_names_reveal_type=agent_names_reveal_type
-                      , n_configs=n_configs, n_runs_per_world=n_runs_per_world,
-                      max_worlds_per_config=max_worlds_per_config
-                      , tournament_path=tournament_path, total_timeout=total_timeout
-                      , n_agents_per_competitor=n_agents_per_competitor
-                      , parallelism=parallelism, scheduler_ip=scheduler_ip, scheduler_port=scheduler_port
-                      , tournament_progress_callback=tournament_progress_callback
-                      , world_progress_callback=world_progress_callback, name=name, verbose=verbose
-                      , configs_only=configs_only
-                      , world_generator=anac2019_world_generator
-                      , config_generator=anac2019_config_generator
-                      , config_assigner=anac2019_assigner
-                      , score_calculator=balance_calculator, compact=compact, **kwargs)
+    return tournament(
+        competitors=competitors,
+        agent_names_reveal_type=agent_names_reveal_type,
+        n_configs=n_configs,
+        n_runs_per_world=n_runs_per_world,
+        max_worlds_per_config=max_worlds_per_config,
+        tournament_path=tournament_path,
+        total_timeout=total_timeout,
+        n_agents_per_competitor=n_agents_per_competitor,
+        parallelism=parallelism,
+        scheduler_ip=scheduler_ip,
+        scheduler_port=scheduler_port,
+        tournament_progress_callback=tournament_progress_callback,
+        world_progress_callback=world_progress_callback,
+        name=name,
+        verbose=verbose,
+        configs_only=configs_only,
+        world_generator=anac2019_world_generator,
+        config_generator=anac2019_config_generator,
+        config_assigner=anac2019_assigner,
+        score_calculator=balance_calculator,
+        compact=compact,
+        **kwargs,
+    )

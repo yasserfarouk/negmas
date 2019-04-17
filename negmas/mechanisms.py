@@ -14,18 +14,19 @@ from dataclasses import dataclass
 
 from negmas.utilities import UtilityFunction, MappingUtilityFunction, pareto_frontier
 from negmas.outcomes import outcome_is_valid, Issue, Outcome, enumerate_outcomes
-from negmas.common import AgentMechanismInterface, MechanismState ,register_all_mechanisms, NamedObject
+from negmas.common import (
+    AgentMechanismInterface,
+    MechanismState,
+    register_all_mechanisms,
+    NamedObject,
+)
 from negmas.common import NegotiatorInfo
 from negmas.events import *
 from negmas.generics import ikeys
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
 
-__all__ = [
-    'Mechanism',
-    'Protocol',
-    'MechanismRoundResult',
-]
+__all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
 
 
 @dataclass
@@ -34,11 +35,11 @@ class MechanismRoundResult:
     """True only if END_NEGOTIATION was selected by one agent"""
     timedout: bool = False
     """True if a timeout occurred. Usually not used"""
-    agreement: Optional['Outcome'] = None
+    agreement: Optional["Outcome"] = None
     """The agreement if any"""
     error: bool = False
     """True if an error occurred in the mechanism"""
-    error_details: str = ''
+    error_details: str = ""
     """Error message"""
 
 
@@ -49,13 +50,14 @@ class Mechanism(NamedObject, EventSource, ABC):
 
     Override the `round` function of this class to implement a round of your mechanism
     """
-    all: Dict[str, 'Mechanism'] = {}
+
+    all: Dict[str, "Mechanism"] = {}
     register_all_mechanisms(all)
 
     def __init__(
         self,
-        issues: List['Issue'] = None,
-        outcomes: Union[int, List['Outcome']] = None,
+        issues: List["Issue"] = None,
+        outcomes: Union[int, List["Outcome"]] = None,
         n_steps: int = None,
         time_limit: float = None,
         step_time_limit: float = None,
@@ -90,7 +92,9 @@ class Mechanism(NamedObject, EventSource, ABC):
         # parameters fixed for all runs
         if issues is None:
             if outcomes is None:
-                raise ValueError('Not issues or outcomes are given to this mechanism. Cannot be constructed')
+                raise ValueError(
+                    "Not issues or outcomes are given to this mechanism. Cannot be constructed"
+                )
             else:
                 if isinstance(outcomes, int):
                     outcomes = [(_,) for _ in range(outcomes)]
@@ -102,7 +106,9 @@ class Mechanism(NamedObject, EventSource, ABC):
                 for issue in range(n_issues):
                     vals = list(set([_[issue] for _ in outcomes]))
                     issues.append(vals)
-                __issues = [Issue(_, name=name_) for _, name_ in zip(issues, issue_names)]
+                __issues = [
+                    Issue(_, name=name_) for _, name_ in zip(issues, issue_names)
+                ]
         else:
             __issues = list(issues)
             if outcomes is None and cache_outcomes:
@@ -118,17 +124,22 @@ class Mechanism(NamedObject, EventSource, ABC):
                             if n_outcomes > max_n_outcomes:
                                 break
                         else:
-                            outcomes = enumerate_outcomes(__issues, keep_issue_names=keep_issue_names)
+                            outcomes = enumerate_outcomes(
+                                __issues, keep_issue_names=keep_issue_names
+                            )
 
                 except ValueError:
                     pass
             elif outcomes is not None:
                 issue_names = [_.name for _ in issues]
-                assert (keep_issue_names and isinstance(outcomes[0], dict)) or \
-                       (not keep_issue_names and isinstance(outcomes[0], tuple)), f"Either you request to keep issue" \
-                    f" names but use tuple outcomes or " \
-                    f"vice versa (names={keep_issue_names}" \
+                assert (keep_issue_names and isinstance(outcomes[0], dict)) or (
+                    not keep_issue_names and isinstance(outcomes[0], tuple)
+                ), (
+                    f"Either you request to keep issue"
+                    f" names but use tuple outcomes or "
+                    f"vice versa (names={keep_issue_names}"
                     f", type={type(outcomes[0])})"
+                )
                 if keep_issue_names:
                     for i, outcome in enumerate(outcomes):
                         assert list(outcome.keys()) == issue_names
@@ -152,16 +163,16 @@ class Mechanism(NamedObject, EventSource, ABC):
 
         self.id = str(uuid.uuid4())
         self.ami = AgentMechanismInterface(
-            id=self.id
-            , n_outcomes=None if outcomes is None else len(outcomes)
-            , issues=__issues
-            , outcomes=__outcomes
-            , time_limit=time_limit
-            , n_steps=n_steps
-            , step_time_limit = step_time_limit
-            , dynamic_entry=dynamic_entry
-            , max_n_agents=max_n_agents
-            , annotation=annotation
+            id=self.id,
+            n_outcomes=None if outcomes is None else len(outcomes),
+            issues=__issues,
+            outcomes=__outcomes,
+            time_limit=time_limit,
+            n_steps=n_steps,
+            step_time_limit=step_time_limit,
+            dynamic_entry=dynamic_entry,
+            max_n_agents=max_n_agents,
+            annotation=annotation,
         )
 
         self._history = []
@@ -184,7 +195,7 @@ class Mechanism(NamedObject, EventSource, ABC):
         self._timedout = False
         self._running = False
         self._error = False
-        self._error_details = ''
+        self._error_details = ""
         self.__discrete_outcomes: List[Outcome] = None
         self._enable_callbacks = enable_callbacks
 
@@ -199,17 +210,21 @@ class Mechanism(NamedObject, EventSource, ABC):
     @property
     def participants(self) -> List[NegotiatorInfo]:
         """Returns a list of all participant names"""
-        return [NegotiatorInfo(name=_.name, id=_.id, type=snake_case(_.__class__.__name__))
-                for _ in self.negotiators]
+        return [
+            NegotiatorInfo(name=_.name, id=_.id, type=snake_case(_.__class__.__name__))
+            for _ in self.negotiators
+        ]
 
-    def is_valid(self, outcome: 'Outcome'):
+    def is_valid(self, outcome: "Outcome"):
         """Checks whether the outcome is valid given the issues"""
         if self.ami.issues is None or len(self.ami.issues) == 0:
-            raise ValueError('I do not have any issues to check')
+            raise ValueError("I do not have any issues to check")
 
         return outcome_is_valid(outcome, self.ami.issues)
 
-    def discrete_outcomes(self, n_max: int = None, astype: Type['Outcome'] = dict) -> List['Outcome']:
+    def discrete_outcomes(
+        self, n_max: int = None, astype: Type["Outcome"] = dict
+    ) -> List["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
@@ -227,21 +242,36 @@ class Mechanism(NamedObject, EventSource, ABC):
             return self.outcomes
         if self.__discrete_outcomes is None:
             if all(issue.is_discrete() for issue in self.issues):
-                self.__discrete_outcomes = Issue.sample(issues=self.issues, n_outcomes=n_max, astype=astype
-                                                    , with_replacement=False, fail_if_not_enough=False)
+                self.__discrete_outcomes = Issue.sample(
+                    issues=self.issues,
+                    n_outcomes=n_max,
+                    astype=astype,
+                    with_replacement=False,
+                    fail_if_not_enough=False,
+                )
             else:
-                self.__discrete_outcomes = Issue.sample(issues=self.issues
-                                                        , n_outcomes=n_max if n_max is not None else 100
-                                                        , astype=astype, with_replacement=False
-                                                        , fail_if_not_enough=False)
+                self.__discrete_outcomes = Issue.sample(
+                    issues=self.issues,
+                    n_outcomes=n_max if n_max is not None else 100,
+                    astype=astype,
+                    with_replacement=False,
+                    fail_if_not_enough=False,
+                )
         return self.__discrete_outcomes
 
-    def random_outcomes(self, n: int = 1, astype: Type[Outcome] = dict) -> List['Outcome']:
+    def random_outcomes(
+        self, n: int = 1, astype: Type[Outcome] = dict
+    ) -> List["Outcome"]:
         """Returns random offers"""
         if self.ami.issues is None or len(self.ami.issues) == 0:
-            raise ValueError('I do not have any issues to generate offers from')
-        return Issue.sample(issues=self.issues, n_outcomes=n, astype=astype, with_replacement=False
-                            , fail_if_not_enough=False)
+            raise ValueError("I do not have any issues to generate offers from")
+        return Issue.sample(
+            issues=self.issues,
+            n_outcomes=n,
+            astype=astype,
+            with_replacement=False,
+            fail_if_not_enough=False,
+        )
 
     @property
     def time(self) -> Optional[float]:
@@ -270,9 +300,13 @@ class Mechanism(NamedObject, EventSource, ABC):
             return None
 
         relative_step = (
-                            self._step + 1
-                        ) / self.ami.n_steps if self.ami.n_steps is not None else -1.0
-        relative_time = self.time / self.ami.time_limit if self.ami.time_limit is not None else -1.0
+            (self._step + 1) / self.ami.n_steps
+            if self.ami.n_steps is not None
+            else -1.0
+        )
+        relative_time = (
+            self.time / self.ami.time_limit if self.ami.time_limit is not None else -1.0
+        )
         return max([relative_step, relative_time])
 
     @property
@@ -283,8 +317,14 @@ class Mechanism(NamedObject, EventSource, ABC):
 
         return self.ami.n_steps - self._step
 
-    def add(self, negotiator: 'Negotiator', *, ufun: Optional['UtilityFunction'] = None
-            , role: Optional[str] = None, **kwargs) -> Optional[bool]:
+    def add(
+        self,
+        negotiator: "Negotiator",
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[bool]:
         """Add an agent to the negotiation.
 
         Args:
@@ -315,10 +355,12 @@ class Mechanism(NamedObject, EventSource, ABC):
             if isinstance(ufun, dict):
                 ufun = MappingUtilityFunction(mapping=ufun, ami=self.ami)
             else:
-                ufun = MappingUtilityFunction(mapping=dict(zip(self.outcomes, ufun)), ami=self.ami)
+                ufun = MappingUtilityFunction(
+                    mapping=dict(zip(self.outcomes, ufun)), ami=self.ami
+                )
 
         if role is None:
-            role = 'agent'
+            role = "agent"
 
         if negotiator.join(ami=self.ami, state=self.state, ufun=ufun, role=role):
             self._negotiators.append(negotiator)
@@ -328,7 +370,7 @@ class Mechanism(NamedObject, EventSource, ABC):
             return True
         return None
 
-    def remove(self, agent: 'Negotiator', **kwargs) -> Optional[bool]:
+    def remove(self, agent: "Negotiator", **kwargs) -> Optional[bool]:
         """Remove the agent from the negotiation.
 
         Args:
@@ -346,7 +388,7 @@ class Mechanism(NamedObject, EventSource, ABC):
 
         if not self.can_leave(agent):
             return None
-        self._negotiators = self._negotiators[0:indx] + self._negotiators[indx + 1:]
+        self._negotiators = self._negotiators[0:indx] + self._negotiators[indx + 1 :]
         if self._enable_callbacks:
             agent.on_leave(self.ami, **kwargs)
         return True
@@ -354,10 +396,9 @@ class Mechanism(NamedObject, EventSource, ABC):
     def add_requirements(self, requirements: dict) -> None:
         """Adds requirements."""
         requirements = {
-            k: set(v) if isinstance(v, list) else v
-            for k, v in requirements.items()
+            k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
         }
-        if hasattr(self, '_requirements'):
+        if hasattr(self, "_requirements"):
             self._requirements.update(requirements)
         else:
             self._requirements = requirements
@@ -394,8 +435,7 @@ class Mechanism(NamedObject, EventSource, ABC):
         ],
     ):
         self._requirements = {
-            k: set(v) if isinstance(v, list) else v
-            for k, v in requirements.items()
+            k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
         }
 
     @property
@@ -445,7 +485,11 @@ class Mechanism(NamedObject, EventSource, ABC):
                     match = v[0] <= c[0] <= v[1] or v[0] <= c[1] <= v[1]
                 else:
                     # c is range and cutoff_utility is not a range
-                    match = any(c[0] <= _ <= c[1] for _ in v) if isinstance(v, set) else c[0] <= v <= c[1]
+                    match = (
+                        any(c[0] <= _ <= c[1] for _ in v)
+                        if isinstance(v, set)
+                        else c[0] <= v <= c[1]
+                    )
             elif isinstance(c, list) or isinstance(c, set):
                 # c is list
                 if isinstance(v, tuple):
@@ -467,7 +511,7 @@ class Mechanism(NamedObject, EventSource, ABC):
 
         return True
 
-    def can_participate(self, agent: 'Negotiator') -> bool:
+    def can_participate(self, agent: "Negotiator") -> bool:
         """Checks if the agent can participate in this type of negotiation in general.
 
         Args:
@@ -535,15 +579,21 @@ class Mechanism(NamedObject, EventSource, ABC):
 
     def can_accept_more_agents(self) -> bool:
         """Whether the mechanism can **currently** accept more negotiators."""
-        return True if self.ami.max_n_agents is None or self._negotiators is None else len(
-            self._negotiators
-        ) < self.ami.max_n_agents
+        return (
+            True
+            if self.ami.max_n_agents is None or self._negotiators is None
+            else len(self._negotiators) < self.ami.max_n_agents
+        )
 
-    def can_leave(self, agent: 'Negotiator') -> bool:
+    def can_leave(self, agent: "Negotiator") -> bool:
         """Can the agent leave now?"""
-        return True if self.ami.dynamic_entry else not self.ami.state.running and agent in self._negotiators
+        return (
+            True
+            if self.ami.dynamic_entry
+            else not self.ami.state.running and agent in self._negotiators
+        )
 
-    def can_enter(self, agent: 'Negotiator') -> bool:
+    def can_enter(self, agent: "Negotiator") -> bool:
         """Whether the agent can enter the negotiation now."""
         return self.can_accept_more_agents() and self.can_participate(agent)
 
@@ -601,7 +651,7 @@ class Mechanism(NamedObject, EventSource, ABC):
             if self._enable_callbacks:
                 for a in self.negotiators:
                     a.on_negotiation_start(state=self.state)
-            self.announce(Event(type='negotiation_start', data=None))
+            self.announce(Event(type="negotiation_start", data=None))
         else:
             remaining_steps, remaining_time = self.remaining_steps, self.remaining_time
             if (remaining_steps is not None and remaining_steps <= 0) or (
@@ -622,10 +672,17 @@ class Mechanism(NamedObject, EventSource, ABC):
         self._error, self._error_details = result.error, result.error_details
         if self._error:
             self.on_mechanism_error()
-        if self.ami.step_time_limit is not None and step_time > self.ami.step_time_limit:
+        if (
+            self.ami.step_time_limit is not None
+            and step_time > self.ami.step_time_limit
+        ):
             self._broken, self._timedout, self._agreement = False, True, None
         else:
-            self._broken, self._timedout, self._agreement = result.broken, result.timedout, result.agreement
+            self._broken, self._timedout, self._agreement = (
+                result.broken,
+                result.timedout,
+                result.agreement,
+            )
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
         self._step += 1
@@ -671,8 +728,16 @@ class Mechanism(NamedObject, EventSource, ABC):
         if self._enable_callbacks:
             for a in self.negotiators:
                 a.on_negotiation_end(state=self.state)
-        self.announce(Event(type='negotiation_end', data={'agreement': self.agreement, 'state': self.state
-            , 'annotation': self.ami.annotation}))
+        self.announce(
+            Event(
+                type="negotiation_end",
+                data={
+                    "agreement": self.agreement,
+                    "state": self.state,
+                    "annotation": self.ami.annotation,
+                },
+            )
+        )
 
     def on_negotiation_start(self) -> bool:
         """Called before starting the negotiation. If it returns False then negotiation will end immediately"""
@@ -690,28 +755,35 @@ class Mechanism(NamedObject, EventSource, ABC):
             current_state = {}
         else:
             current_state = dict(current_state)
-        current_state.update({
-            'running': self._running,
-            'step': self._step,
-            'time': self.time,
-            'relative_time': self.relative_time,
-            'broken': self._broken,
-            'timedout': self._timedout,
-            'started': self._started,
-            'agreement': self._agreement,
-            'n_negotiators': len(self.negotiators),
-            'has_error': self._error,
-            'error_details': self._error_details
-        })
+        current_state.update(
+            {
+                "running": self._running,
+                "step": self._step,
+                "time": self.time,
+                "relative_time": self.relative_time,
+                "broken": self._broken,
+                "timedout": self._timedout,
+                "started": self._started,
+                "agreement": self._agreement,
+                "n_negotiators": len(self.negotiators),
+                "has_error": self._error,
+                "error_details": self._error_details,
+            }
+        )
         return self._state_factory(**current_state)
 
-    def pareto_frontier(self, n_max=None, sort_by_welfare=True) -> Tuple[List[Tuple[float]], List['Outcome']]:
+    def pareto_frontier(
+        self, n_max=None, sort_by_welfare=True
+    ) -> Tuple[List[Tuple[float]], List["Outcome"]]:
         ufuns = self._get_ufuns()
         if any(_ is None for _ in ufuns):
             return [], []
-        frontier, indices = pareto_frontier(ufuns=ufuns, n_discretization=None
-                                            , sort_by_welfare=sort_by_welfare
-                                            , outcomes=self.discrete_outcomes(n_max=n_max))
+        frontier, indices = pareto_frontier(
+            ufuns=ufuns,
+            n_discretization=None,
+            sort_by_welfare=sort_by_welfare,
+            outcomes=self.discrete_outcomes(n_max=n_max),
+        )
         return frontier, [self.discrete_outcomes(n_max=n_max)[_] for _ in indices]
 
     def __str__(self):
@@ -729,8 +801,9 @@ class Mechanism(NamedObject, EventSource, ABC):
     def plot(self, plot_utils=True, plot_outcomes=True):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
+
         if len(self.negotiators) > 2:
-            print('Cannot visualize negotiations with more than 2 negotiators')
+            print("Cannot visualize negotiations with more than 2 negotiators")
         else:
             # has_front = int(len(self.outcomes[0]) <2)
             has_front = 1
@@ -745,7 +818,7 @@ class Mechanism(NamedObject, EventSource, ABC):
 
             utils = [tuple(f(o) for f in ufuns) for o in outcomes]
             agent_names = [a.name for a in self.negotiators]
-            history['offer_index'] = [outcomes.index(_) for _ in history.current_offer]
+            history["offer_index"] = [outcomes.index(_) for _ in history.current_offer]
             frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
             frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
             if plot_utils:
@@ -753,7 +826,9 @@ class Mechanism(NamedObject, EventSource, ABC):
             if plot_outcomes:
                 fig_outcome = plt.figure()
             gs_util = gridspec.GridSpec(n_agents, has_front + 1) if plot_utils else None
-            gs_outcome = gridspec.GridSpec(n_agents, has_front + 1) if plot_outcomes else None
+            gs_outcome = (
+                gridspec.GridSpec(n_agents, has_front + 1) if plot_outcomes else None
+            )
             axs_util, axs_outcome = [], []
 
             for a in range(n_agents):
@@ -761,25 +836,41 @@ class Mechanism(NamedObject, EventSource, ABC):
                     if plot_utils:
                         axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
                     if plot_outcomes:
-                        axs_outcome.append(fig_outcome.add_subplot(gs_outcome[a, has_front]))
+                        axs_outcome.append(
+                            fig_outcome.add_subplot(gs_outcome[a, has_front])
+                        )
                 else:
                     if plot_utils:
-                        axs_util.append(fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0]))
+                        axs_util.append(
+                            fig_util.add_subplot(
+                                gs_util[a, has_front], sharex=axs_util[0]
+                            )
+                        )
                     if plot_outcomes:
-                        axs_outcome.append(fig_outcome.add_subplot(gs_outcome[a, has_front], sharex=axs_outcome[0]))
+                        axs_outcome.append(
+                            fig_outcome.add_subplot(
+                                gs_outcome[a, has_front], sharex=axs_outcome[0]
+                            )
+                        )
                 if plot_utils:
                     axs_util[-1].set_ylabel(agent_names[a])
                 if plot_outcomes:
                     axs_outcome[-1].set_ylabel(agent_names[a])
-            for a, (au, ao) in enumerate(zip(itertools.chain(axs_util, itertools.repeat(None))
-                , itertools.chain(axs_outcome, itertools.repeat(None)))):
+            for a, (au, ao) in enumerate(
+                zip(
+                    itertools.chain(axs_util, itertools.repeat(None)),
+                    itertools.chain(axs_outcome, itertools.repeat(None)),
+                )
+            ):
                 if au is None and ao is None:
                     break
-                h = history.loc[history.current_proposer == self.negotiators[a].id, ['relative_time', 'offer_index'
-                                                                            , 'current_offer']]
-                h['utility'] = h['current_offer'].apply(ufuns[a])
+                h = history.loc[
+                    history.current_proposer == self.negotiators[a].id,
+                    ["relative_time", "offer_index", "current_offer"],
+                ]
+                h["utility"] = h["current_offer"].apply(ufuns[a])
                 if plot_outcomes:
-                    ao.plot(h.relative_time, h['offer_index'])
+                    ao.plot(h.relative_time, h["offer_index"])
                 if plot_utils:
                     au.plot(h.relative_time, h.utility)
                     au.set_ylim(0.0, 1.0)
@@ -787,61 +878,97 @@ class Mechanism(NamedObject, EventSource, ABC):
             if has_front:
                 if plot_utils:
                     axu = fig_util.add_subplot(gs_util[:, 0])
-                    axu.scatter([_[0] for _ in utils], [_[1] for _ in utils], label='outcomes', color='gray'
-                                , marker='s', s=20)
+                    axu.scatter(
+                        [_[0] for _ in utils],
+                        [_[1] for _ in utils],
+                        label="outcomes",
+                        color="gray",
+                        marker="s",
+                        s=20,
+                    )
                 if plot_outcomes:
                     axo = fig_outcome.add_subplot(gs_outcome[:, 0])
-                clrs = ('blue', 'green')
+                clrs = ("blue", "green")
                 if plot_utils:
                     for a in range(n_agents):
-                        h = history.loc[history.current_proposer == self.negotiators[a].id, ['relative_time', 'offer_index'
-                                                                                            , 'current_offer']]
-                        h['u0'] = h['current_offer'].apply(ufuns[0])
-                        h['u1'] = h['current_offer'].apply(ufuns[1])
-                        axu.scatter(h.u0, h.u1, color=clrs[a], label=f'{agent_names[a]}')
+                        h = history.loc[
+                            history.current_proposer == self.negotiators[a].id,
+                            ["relative_time", "offer_index", "current_offer"],
+                        ]
+                        h["u0"] = h["current_offer"].apply(ufuns[0])
+                        h["u1"] = h["current_offer"].apply(ufuns[1])
+                        axu.scatter(
+                            h.u0, h.u1, color=clrs[a], label=f"{agent_names[a]}"
+                        )
                 if plot_outcomes:
                     steps = sorted(history.step.unique().tolist())
                     aoffers = [[], []]
                     for step in steps[::2]:
                         offrs = []
                         for a in range(n_agents):
-                            a_offer = history.loc[(history.current_proposer == agent_names[a]) &
-                                                  ((history.step == step) | (history.step == step + 1)), 'offer_index']
+                            a_offer = history.loc[
+                                (history.current_proposer == agent_names[a])
+                                & ((history.step == step) | (history.step == step + 1)),
+                                "offer_index",
+                            ]
                             if len(a_offer) > 0:
                                 offrs.append(a_offer.values[-1])
                         if len(offrs) == 2:
                             aoffers[0].append(offrs[0])
                             aoffers[1].append(offrs[1])
-                    axo.scatter(aoffers[0], aoffers[1], color=clrs[0],
-                                label=f'offers')
+                    axo.scatter(aoffers[0], aoffers[1], color=clrs[0], label=f"offers")
 
                 if self.state.agreement is not None:
                     if plot_utils:
-                        axu.scatter([ufuns[0](self.state.agreement)], [ufuns[1](self.state.agreement)]
-                                , color='black', marker='*', s=120, label='SCMLAgreement')
+                        axu.scatter(
+                            [ufuns[0](self.state.agreement)],
+                            [ufuns[1](self.state.agreement)],
+                            color="black",
+                            marker="*",
+                            s=120,
+                            label="SCMLAgreement",
+                        )
                     if plot_outcomes:
-                        axo.scatter([outcomes.index(self.state.agreement)], [outcomes.index(self.state.agreement)]
-                                , color='black', marker='*', s=120, label='SCMLAgreement')
+                        axo.scatter(
+                            [outcomes.index(self.state.agreement)],
+                            [outcomes.index(self.state.agreement)],
+                            color="black",
+                            marker="*",
+                            s=120,
+                            label="SCMLAgreement",
+                        )
 
                 if plot_utils:
                     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-                    axu.scatter(f1, f2, label='frontier', color='red', marker='x')
+                    axu.scatter(f1, f2, label="frontier", color="red", marker="x")
                     axu.legend()
-                    axu.set_xlabel(agent_names[0] + ' utility')
-                    axu.set_ylabel(agent_names[1] + ' utility')
+                    axu.set_xlabel(agent_names[0] + " utility")
+                    axu.set_ylabel(agent_names[1] + " utility")
                     if self.agreement is not None:
                         pareto_distance = 1e9
                         cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
                         for pu in frontier:
-                            dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
+                            dist = math.sqrt(
+                                (pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2
+                            )
                             if dist < pareto_distance:
                                 pareto_distance = dist
-                        axu.text(0, 0.95, f'Pareto-distance={pareto_distance:5.2}', verticalalignment='top'
-                                 , transform=axu.transAxes)
+                        axu.text(
+                            0,
+                            0.95,
+                            f"Pareto-distance={pareto_distance:5.2}",
+                            verticalalignment="top",
+                            transform=axu.transAxes,
+                        )
 
                 if plot_outcomes:
-                    axo.scatter(frontier_outcome_indices, frontier_outcome_indices, color='red', marker='x'
-                                , label='frontier')
+                    axo.scatter(
+                        frontier_outcome_indices,
+                        frontier_outcome_indices,
+                        color="red",
+                        marker="x",
+                        label="frontier",
+                    )
                     axo.legend()
                     axo.set_xlabel(agent_names[0])
                     axo.set_ylabel(agent_names[1])
@@ -859,7 +986,9 @@ class Mechanism(NamedObject, EventSource, ABC):
             MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.
 
         """
-        raise NotImplementedError('You must inherit from Mechanism and override its round() function')
+        raise NotImplementedError(
+            "You must inherit from Mechanism and override its round() function"
+        )
 
     def extra_state(self) -> Optional[Dict[str, Any]]:
         """Returns any extra state information to be kept in the `state` and `history` properties"""
@@ -868,4 +997,3 @@ class Mechanism(NamedObject, EventSource, ABC):
 
 Protocol = Mechanism
 """An alias for `Mechanism`"""
-

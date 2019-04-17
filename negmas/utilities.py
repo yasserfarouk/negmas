@@ -26,8 +26,20 @@ import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import reduce
 from operator import mul
-from typing import MutableMapping, Mapping, Union, Optional, Any, Sequence, Callable, Dict, List, Iterable, Tuple, \
-    Collection
+from typing import (
+    MutableMapping,
+    Mapping,
+    Union,
+    Optional,
+    Any,
+    Sequence,
+    Callable,
+    Dict,
+    List,
+    Iterable,
+    Tuple,
+    Collection,
+)
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -39,49 +51,53 @@ from negmas.generics import GenericMapping, ienumerate, iget, ivalues
 from negmas.helpers import Distribution
 from negmas.helpers import snake_case, gmap, ikeys, Floats
 from negmas.java import JavaCallerMixin, to_java
-from negmas.outcomes import sample_outcomes, OutcomeRange, Outcome, outcome_in_range, Issue, outcome_is_valid, \
-    OutcomeType, outcome_as_dict
+from negmas.outcomes import (
+    sample_outcomes,
+    OutcomeRange,
+    Outcome,
+    outcome_in_range,
+    Issue,
+    outcome_is_valid,
+    OutcomeType,
+    outcome_as_dict,
+)
 
 if TYPE_CHECKING:
     from negmas.outcomes import OutcomeRange, Outcome
 
 __all__ = [
-    'UtilityDistribution',
-    'UtilityValue',
-    'UtilityFunction',
-    'ConstUFun',
-    'LinDiscountedUFun',
-    'ExpDiscountedUFun',
-    'MappingUtilityFunction',
-    'LinearUtilityAggregationFunction',
-    'NonLinearUtilityAggregationFunction',
-    'HyperRectangleUtilityFunction',
-    'NonlinearHyperRectangleUtilityFunction',
-    'ComplexWeightedUtilityFunction',
-    'ComplexNonlinearUtilityFunction',
-    'IPUtilityFunction',
-    'pareto_frontier',
-    'make_discounted_ufun',
-    'normalize',
-    'JavaUtilityFunction',
-    'RandomUtilityFunction',
+    "UtilityDistribution",
+    "UtilityValue",
+    "UtilityFunction",
+    "ConstUFun",
+    "LinDiscountedUFun",
+    "ExpDiscountedUFun",
+    "MappingUtilityFunction",
+    "LinearUtilityAggregationFunction",
+    "NonLinearUtilityAggregationFunction",
+    "HyperRectangleUtilityFunction",
+    "NonlinearHyperRectangleUtilityFunction",
+    "ComplexWeightedUtilityFunction",
+    "ComplexNonlinearUtilityFunction",
+    "IPUtilityFunction",
+    "pareto_frontier",
+    "make_discounted_ufun",
+    "normalize",
+    "JavaUtilityFunction",
+    "RandomUtilityFunction",
 ]
 
 
 # Helper Types just used to make type hinting more readable
 OutcomeUtilityMapping = Union[
-    Callable[
-        [Union['Outcome', int, str, float]], 'UtilityValue'
-    ],
-    Mapping[
-        Union[Sequence, Mapping, int, str, float], 'UtilityValue'
-    ],
+    Callable[[Union["Outcome", int, str, float]], "UtilityValue"],
+    Mapping[Union[Sequence, Mapping, int, str, float], "UtilityValue"],
 ]
 OutcomeUtilityMappings = List[OutcomeUtilityMapping]
 """Maps from multi-issue or single-issue outcomes to Negotiator values."""
 IssueUtilityFunctionMapping = Union[  # type: ignore
-    Callable[['Issue'], 'UtilityFunction'],  # type: ignore
-    Mapping['Issue', 'UtilityFunction'],  # type: ignore
+    Callable[["Issue"], "UtilityFunction"],  # type: ignore
+    Mapping["Issue", "UtilityFunction"],  # type: ignore
 ]  # type: ignore
 IssueUtilityFunctionMappings = List[IssueUtilityFunctionMapping]
 
@@ -113,8 +129,12 @@ class UtilityFunction(ABC, NamedObject):
 
     """
 
-    def __init__(self, name: Optional[str] = None, ami: AgentMechanismInterface = None
-                 , reserved_value: Optional[UtilityValue] = 0.0) -> None:
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        ami: AgentMechanismInterface = None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+    ) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
         self.ami = ami
@@ -158,13 +178,14 @@ class UtilityFunction(ABC, NamedObject):
             See ``from_xml_str`` for all the parameters
 
         """
-        with open(file_name, 'r') as f:
+        with open(file_name, "r") as f:
             xml_str = f.read()
             return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
     @classmethod
-    def to_genius(cls, u: 'UtilityFunction', issues: List[Issue]
-                  , file_name: str, **kwargs):
+    def to_genius(
+        cls, u: "UtilityFunction", issues: List[Issue], file_name: str, **kwargs
+    ):
         """Exports a utility function from a GENIUS XML file.
 
         Args:
@@ -196,12 +217,13 @@ class UtilityFunction(ABC, NamedObject):
             See ``to_xml_str`` for all the parameters
 
         """
-        with open(file_name, 'w') as f:
+        with open(file_name, "w") as f:
             f.write(cls.to_xml_str(u=u, issues=issues, **kwargs))
 
     @classmethod
-    def to_xml_str(cls, u: 'UtilityFunction', issues: List[Issue]
-                   , discount_factor=None) -> str:
+    def to_xml_str(
+        cls, u: "UtilityFunction", issues: List[Issue], discount_factor=None
+    ) -> str:
         """Exports a utility function to a well formatted string
 
 
@@ -210,31 +232,36 @@ class UtilityFunction(ABC, NamedObject):
             n_issues = len(issues)
         else:
             n_issues = 0
-        output = f'<utility_space type="any" number_of_issues="{n_issues}">\n' \
-                 f'<objective index="1" etype="objective" type="objective" description="" name="any">\n'
+        output = (
+            f'<utility_space type="any" number_of_issues="{n_issues}">\n'
+            f'<objective index="1" etype="objective" type="objective" description="" name="any">\n'
+        )
 
         output += u.xml(issues=issues)
-        if '</objective>' not in output:
-            output += '</objective>\n'
+        if "</objective>" not in output:
+            output += "</objective>\n"
             if discount_factor is not None:
                 output += f'<discount_factor value="{discount_factor}" />\n'
-        if u.reserved_value is not None and '<reservation value' not in output:
+        if u.reserved_value is not None and "<reservation value" not in output:
             output += f'<reservation value="{u.reserved_value}" />\n'
-        if '</utility_space>' not in output:
-            output += '</utility_space>\n'
+        if "</utility_space>" not in output:
+            output += "</utility_space>\n"
         return output
 
     @classmethod
-    def from_xml_str(cls, xml_str: str, domain_issues: Optional[List[Issue]] = None
-                     , force_single_issue=False
-                     , keep_issue_names=True
-                     , keep_value_names=True
-                     , safe_parsing=True
-                     , normalize_utility=True
-                     , max_n_outcomes: int = 1e6
-                     , ignore_discount=False
-                     , ignore_reserved=False
-                     ):
+    def from_xml_str(
+        cls,
+        xml_str: str,
+        domain_issues: Optional[List[Issue]] = None,
+        force_single_issue=False,
+        keep_issue_names=True,
+        keep_value_names=True,
+        safe_parsing=True,
+        normalize_utility=True,
+        max_n_outcomes: int = 1e6,
+        ignore_discount=False,
+        ignore_reserved=False,
+    ):
         """Imports a utility function from a GENIUS XML string.
 
                 Args:
@@ -305,24 +332,26 @@ class UtilityFunction(ABC, NamedObject):
 
         """
         root = ET.fromstring(xml_str)
-        if safe_parsing and root.tag != 'utility_space':
-            raise ValueError(f'Root tag is {root.tag}: Expected utility_space')
+        if safe_parsing and root.tag != "utility_space":
+            raise ValueError(f"Root tag is {root.tag}: Expected utility_space")
 
         if domain_issues is not None:
             if isinstance(domain_issues, list):
-                domain_issues: Dict[str, Issue] = dict(zip([_.name for _ in domain_issues], domain_issues))
+                domain_issues: Dict[str, Issue] = dict(
+                    zip([_.name for _ in domain_issues], domain_issues)
+                )
             elif isinstance(domain_issues, Issue) and force_single_issue:
                 domain_issues = dict(zip([domain_issues.name], [domain_issues]))
         objective = None
         reserved_value = 0.0
         discount_factor = 0.0
         for child in root:
-            if child.tag == 'objective':
+            if child.tag == "objective":
                 objective = child
-            elif child.tag == 'reservation':
-                reserved_value = float(child.attrib['value'])
-            elif child.tag == 'discount_factor':
-                discount_factor = float(child.attrib['value'])
+            elif child.tag == "reservation":
+                reserved_value = float(child.attrib["value"])
+            elif child.tag == "discount_factor":
+                discount_factor = float(child.attrib["value"])
 
         if objective is None:
             if safe_parsing:
@@ -337,26 +366,31 @@ class UtilityFunction(ABC, NamedObject):
         rects, rect_utils = [], []
 
         def _get_hyperrects(ufun, max_utility, utiltype=float):
-            utype = ufun.attrib.get('type', 'none')
-            uweight = float(ufun.attrib.get('weight', 1))
-            uagg = ufun.attrib.get('aggregation', 'sum')
-            if uagg != 'sum':
-                raise ValueError(f'Hypervolumes combined using {uagg} are not supported (only sum is supported)')
+            utype = ufun.attrib.get("type", "none")
+            uweight = float(ufun.attrib.get("weight", 1))
+            uagg = ufun.attrib.get("aggregation", "sum")
+            if uagg != "sum":
+                raise ValueError(
+                    f"Hypervolumes combined using {uagg} are not supported (only sum is supported)"
+                )
             total_util = utiltype(0)
             rects = []
             rect_utils = []
-            if utype == 'PlainUfun':
+            if utype == "PlainUfun":
                 for rect in ufun:
-                    util = utiltype(rect.attrib.get('utility', 0))
-                    total_util += (util if util > 0 else 0)
+                    util = utiltype(rect.attrib.get("utility", 0))
+                    total_util += util if util > 0 else 0
                     ranges = {}
                     rect_utils.append(util * uweight)
                     for r in rect:
-                        key = issue_keys[int(r.attrib['index']) - 1]
-                        ranges[key] = (utiltype(r.attrib['min']), utiltype(r.attrib['max']))
+                        key = issue_keys[int(r.attrib["index"]) - 1]
+                        ranges[key] = (
+                            utiltype(r.attrib["min"]),
+                            utiltype(r.attrib["max"]),
+                        )
                     rects.append(ranges)
             else:
-                raise ValueError(f'Unknown ufun type {utype}')
+                raise ValueError(f"Unknown ufun type {utype}")
             total_util = total_util if max_utility is None else max_utility
             if normalize_utility:
                 for i, u in enumerate(rect_utils):
@@ -364,63 +398,89 @@ class UtilityFunction(ABC, NamedObject):
             return rects, rect_utils
 
         for child in objective:
-            if child.tag == 'weight':
-                indx = int(child.attrib['index']) - 1
-                weights[indx] = float(child.attrib['value'])
-            elif child.tag == 'utility_function' or child.tag == 'utility':
+            if child.tag == "weight":
+                indx = int(child.attrib["index"]) - 1
+                weights[indx] = float(child.attrib["value"])
+            elif child.tag == "utility_function" or child.tag == "utility":
                 utility_tag = child
-                max_utility = child.attrib.get('maxutility', None)
+                max_utility = child.attrib.get("maxutility", None)
                 if max_utility is not None:
                     max_utility = float(max_utility)
                 ufun_found = False
                 for ufun in utility_tag:
-                    if ufun.tag == 'ufun':
+                    if ufun.tag == "ufun":
                         ufun_found = True
                         _r, _u = _get_hyperrects(ufun, max_utility)
                         rects += _r
                         rect_utils += _u
                 if not ufun_found:
-                    raise ValueError(f'Cannot find ufun tag inside a utility_function tag')
+                    raise ValueError(
+                        f"Cannot find ufun tag inside a utility_function tag"
+                    )
 
-            elif child.tag == 'issue':
-                indx = int(child.attrib['index']) - 1
-                myname = child.attrib['name']
+            elif child.tag == "issue":
+                indx = int(child.attrib["index"]) - 1
+                myname = child.attrib["name"]
                 issue_key = myname if keep_issue_names else indx
                 if domain_issues is not None and myname not in domain_issues.keys():
-                    raise ValueError(f'Issue {myname} is not in the input issue names ({domain_issues.keys()})')
-                issue_info[issue_key] = {'name': myname, 'index': indx}
+                    raise ValueError(
+                        f"Issue {myname} is not in the input issue names ({domain_issues.keys()})"
+                    )
+                issue_info[issue_key] = {"name": myname, "index": indx}
                 issue_keys[indx] = issue_key
-                info = {'type': 'discrete', 'etype': 'discrete', 'vtype': 'discrete'}
-                for a in ('type', 'etype', 'vtype'):
+                info = {"type": "discrete", "etype": "discrete", "vtype": "discrete"}
+                for a in ("type", "etype", "vtype"):
                     info[a] = child.attrib.get(a, info[a])
-                mytype = info['type']
+                mytype = info["type"]
                 value_scale = None
                 value_shift = None
-                if mytype == 'discrete':
+                if mytype == "discrete":
                     issues[issue_key] = {}
-                    if domain_issues is not None and domain_issues[myname].is_continuous():
-                        raise ValueError(f'Got a {mytype} issue but expected a continuous valued issue')
+                    if (
+                        domain_issues is not None
+                        and domain_issues[myname].is_continuous()
+                    ):
+                        raise ValueError(
+                            f"Got a {mytype} issue but expected a continuous valued issue"
+                        )
                     # issues[indx]['items'] = {}
-                elif mytype in ('integer', 'real'):
-                    lower, upper = child.attrib.get('lowerbound', None), child.attrib.get('upperbound', None)
+                elif mytype in ("integer", "real"):
+                    lower, upper = (
+                        child.attrib.get("lowerbound", None),
+                        child.attrib.get("upperbound", None),
+                    )
                     for rng_child in child:
-                        if rng_child.tag == 'range':
-                            lower, upper = rng_child.attrib.get('lowerbound', lower), rng_child.attrib.get(
-                                'upperbound', upper)
-                    if mytype == 'integer':
+                        if rng_child.tag == "range":
+                            lower, upper = (
+                                rng_child.attrib.get("lowerbound", lower),
+                                rng_child.attrib.get("upperbound", upper),
+                            )
+                    if mytype == "integer":
                         issues[issue_key] = {}
-                        if domain_issues is not None and domain_issues[myname].is_continuous():
-                            raise ValueError(f'Got a {mytype} issue but expected a continuous valued issue')
+                        if (
+                            domain_issues is not None
+                            and domain_issues[myname].is_continuous()
+                        ):
+                            raise ValueError(
+                                f"Got a {mytype} issue but expected a continuous valued issue"
+                            )
                         # issues[indx]['items'] = {}
                         lower, upper = int(lower), int(upper)
                         for i in range(lower, upper + 1):
-                            if domain_issues is not None and not outcome_is_valid((i,), [domain_issues[myname]]):
-                                raise ValueError(f'Value {i} is not in the domain issue values: '
-                                                 f'{domain_issues[myname].values}')
+                            if domain_issues is not None and not outcome_is_valid(
+                                (i,), [domain_issues[myname]]
+                            ):
+                                raise ValueError(
+                                    f"Value {i} is not in the domain issue values: "
+                                    f"{domain_issues[myname].values}"
+                                )
                             issues[issue_key][i] = i if keep_value_names else i - lower
                     else:
                         lower, upper = float(lower), float(upper)
-                        if domain_issues is not None and not domain_issues[myname].is_continuous():
+                        if (
+                            domain_issues is not None
+                            and not domain_issues[myname].is_continuous()
+                        ):
                             n_steps = domain_issues[myname].cardinality()
                             delta = (n_steps - 1) / (upper - lower)
                             value_shift = -lower * delta
@@ -428,67 +488,105 @@ class UtilityFunction(ABC, NamedObject):
                             lower, upper = 0, n_steps - 1
                             issues[issue_key] = {}
                             for i in range(lower, upper + 1):
-                                issues[issue_key][i] = str(i) if keep_value_names else i - lower
+                                issues[issue_key][i] = (
+                                    str(i) if keep_value_names else i - lower
+                                )
                         else:
                             real_issues[issue_key] = {}
-                            real_issues[issue_key]['range'] = (lower, upper)
-                            real_issues[issue_key]['key'] = issue_key
+                            real_issues[issue_key]["range"] = (lower, upper)
+                            real_issues[issue_key]["key"] = issue_key
                 else:
-                    raise ValueError(f'Unknown type: {mytype}')
-                if mytype in 'discrete' or 'integer' or 'real':
+                    raise ValueError(f"Unknown type: {mytype}")
+                if mytype in "discrete" or "integer" or "real":
                     found_values = False
                     for item in child:
-                        if item.tag == 'item':
-                            if mytype == 'real':
-                                raise ValueError(f'cannot specify item utilities for real type')
-                            item_indx = int(item.attrib['index']) - 1
-                            item_name: str = item.attrib.get('value', None)
+                        if item.tag == "item":
+                            if mytype == "real":
+                                raise ValueError(
+                                    f"cannot specify item utilities for real type"
+                                )
+                            item_indx = int(item.attrib["index"]) - 1
+                            item_name: str = item.attrib.get("value", None)
                             if item_name is None:
                                 continue
-                            item_key = item_name if keep_value_names and item_name is not None else item_indx
+                            item_key = (
+                                item_name
+                                if keep_value_names and item_name is not None
+                                else item_indx
+                            )
                             if domain_issues is not None:
                                 domain_all = list(domain_issues[myname].all)
-                                if len(domain_all) > 0 and isinstance(domain_all[0], int):
+                                if len(domain_all) > 0 and isinstance(
+                                    domain_all[0], int
+                                ):
                                     item_key = int(item_key)
-                                if len(domain_all) > 0 and isinstance(domain_all[0], int):
+                                if len(domain_all) > 0 and isinstance(
+                                    domain_all[0], int
+                                ):
                                     item_name = int(item_name)
                                 if item_name not in domain_all:
                                     raise ValueError(
-                                        f'Value {item_name} is not in the domain issue values: '
-                                        f'{domain_issues[myname].values}')
-                                if len(domain_all) > 0 and isinstance(domain_all[0], int):
+                                        f"Value {item_name} is not in the domain issue values: "
+                                        f"{domain_issues[myname].values}"
+                                    )
+                                if len(domain_all) > 0 and isinstance(
+                                    domain_all[0], int
+                                ):
                                     item_name = str(item_name)
-                            if mytype == 'integer':
+                            if mytype == "integer":
                                 item_key = int(item_key)
-                            issues[issue_key][item_key] = float(item.attrib.get('evaluation', reserved_value))
+                            issues[issue_key][item_key] = float(
+                                item.attrib.get("evaluation", reserved_value)
+                            )
                             found_values = True
-                        elif item.tag == 'evaluator':
-                            if item.attrib['ftype'] == 'linear':
-                                offset = item.attrib.get('offset', item.attrib.get('parameter0', 0.0))
-                                slope = item.attrib.get('slope', item.attrib.get('parameter1', 1.0))
+                        elif item.tag == "evaluator":
+                            if item.attrib["ftype"] == "linear":
+                                offset = item.attrib.get(
+                                    "offset", item.attrib.get("parameter0", 0.0)
+                                )
+                                slope = item.attrib.get(
+                                    "slope", item.attrib.get("parameter1", 1.0)
+                                )
                                 offset, slope = float(offset), float(slope)
                                 if value_scale is None:
                                     fun = lambda x: offset + slope * float(x)
                                 else:
-                                    fun = lambda x: offset + slope * (value_scale * float(x) + value_shift)
-                            elif item.attrib['ftype'] == 'triangular':
-                                strt = item.attrib.get('parameter0', 0.0)
-                                end = item.attrib.get('parameter1', 1.0)
-                                middle = item.attrib.get('parameter2', 1.0)
-                                strt, end, middle = float(strt), float(end), float(middle)
+                                    fun = lambda x: offset + slope * (
+                                        value_scale * float(x) + value_shift
+                                    )
+                            elif item.attrib["ftype"] == "triangular":
+                                strt = item.attrib.get("parameter0", 0.0)
+                                end = item.attrib.get("parameter1", 1.0)
+                                middle = item.attrib.get("parameter2", 1.0)
+                                strt, end, middle = (
+                                    float(strt),
+                                    float(end),
+                                    float(middle),
+                                )
                                 offset1, slope1 = strt, (middle - strt)
                                 offset2, slope2 = middle, (middle - end)
                                 if value_scale is None:
-                                    fun = lambda x: offset1 + slope1 * float(
-                                        x) if x < middle else offset2 + slope2 * float(x)
+                                    fun = (
+                                        lambda x: offset1 + slope1 * float(x)
+                                        if x < middle
+                                        else offset2 + slope2 * float(x)
+                                    )
                                 else:
-                                    fun = lambda x: offset1 + slope1 * (value_scale * float(
-                                        x) + value_shift) if x < middle else offset2 + slope2 * (
-                                        value_scale * float(x) + value_shift)
+                                    fun = (
+                                        lambda x: offset1
+                                        + slope1
+                                        * (value_scale * float(x) + value_shift)
+                                        if x < middle
+                                        else offset2
+                                        + slope2
+                                        * (value_scale * float(x) + value_shift)
+                                    )
                             else:
-                                raise ValueError(f'Unknown ftype {item.attrib["ftype"]}')
-                            if mytype == 'real' and value_scale is None:
-                                real_issues[issue_key]['fun'] = fun
+                                raise ValueError(
+                                    f'Unknown ftype {item.attrib["ftype"]}'
+                                )
+                            if mytype == "real" and value_scale is None:
+                                real_issues[issue_key]["fun"] = fun
                             else:
                                 for item_key, value in issues[issue_key].items():
                                     issues[issue_key][item_key] = fun(value)
@@ -504,13 +602,23 @@ class UtilityFunction(ABC, NamedObject):
         #    for i, issue in enumerate(issues):
         #        issues[i] = [issue[_] for _ in issue.keys()]
 
-        if safe_parsing and (len(weights) > 0 and len(weights) != len(issues) + len(real_issues)
-                             and len(weights) != len(issues)):
-            raise ValueError(f'Got {len(weights)} weights for {len(issues)} issues and {len(real_issues)} real issues')
+        if safe_parsing and (
+            len(weights) > 0
+            and len(weights) != len(issues) + len(real_issues)
+            and len(weights) != len(issues)
+        ):
+            raise ValueError(
+                f"Got {len(weights)} weights for {len(issues)} issues and {len(real_issues)} real issues"
+            )
 
-        if force_single_issue and \
-            (len(rects) > 0 or len(real_issues) > 1 or (len(real_issues) > 0 and len(issues) > 0)):
-            raise ValueError(f'Cannot force single issue with a hyper-volumes based function')
+        if force_single_issue and (
+            len(rects) > 0
+            or len(real_issues) > 1
+            or (len(real_issues) > 0 and len(issues) > 0)
+        ):
+            raise ValueError(
+                f"Cannot force single issue with a hyper-volumes based function"
+            )
 
         # add utilities specified not as hyper-rectangles
         u = None
@@ -518,7 +626,7 @@ class UtilityFunction(ABC, NamedObject):
             if len(weights) > 0:
                 for key, issue in zip(ikeys(issues), ivalues(issues)):
                     try:
-                        w = weights[issue_info[key]['index']]
+                        w = weights[issue_info[key]["index"]]
                     except:
                         w = 1.0
                     for item_key in ikeys(issue):
@@ -531,16 +639,27 @@ class UtilityFunction(ABC, NamedObject):
                     if n_outcomes > max_n_outcomes:
                         return None, reserved_value, discount_factor
                 if keep_value_names:
-                    names = itertools.product(*[[str(item_key).replace('&', '-') for item_key in ikeys(items)]
-                                                for issue_key, items in zip(ikeys(issues), ivalues(issues))])
-                    names = map(lambda items: ('+'.join(items),), names)
+                    names = itertools.product(
+                        *[
+                            [
+                                str(item_key).replace("&", "-")
+                                for item_key in ikeys(items)
+                            ]
+                            for issue_key, items in zip(ikeys(issues), ivalues(issues))
+                        ]
+                    )
+                    names = map(lambda items: ("+".join(items),), names)
                 else:
                     if n_outcomes is None:
                         n_items = [len(_) for _ in ivalues(issues)]
                         n_outcomes = reduce(mul, n_items, 1)
                     names = [(_,) for _ in range(n_outcomes)]
-                utils = itertools.product(*[[item_utility for item_utility in ivalues(items)]
-                                            for issue_key, items in zip(ikeys(issues), ivalues(issues))])
+                utils = itertools.product(
+                    *[
+                        [item_utility for item_utility in ivalues(items)]
+                        for issue_key, items in zip(ikeys(issues), ivalues(issues))
+                    ]
+                )
                 utils = map(lambda vals: sum(vals), utils)
                 if normalize_utility:
                     utils = list(utils)
@@ -554,8 +673,12 @@ class UtilityFunction(ABC, NamedObject):
             else:
                 utils = None
                 if normalize_utility:
-                    utils = itertools.product(*[[item_utility for item_utility in ivalues(items)]
-                                                for issue_key, items in zip(ikeys(issues), ivalues(issues))])
+                    utils = itertools.product(
+                        *[
+                            [item_utility for item_utility in ivalues(items)]
+                            for issue_key, items in zip(ikeys(issues), ivalues(issues))
+                        ]
+                    )
                     utils = list(map(lambda vals: sum(vals), utils))
                     umax, umin = max(utils), min(utils)
                     factor = umax - umin
@@ -566,35 +689,49 @@ class UtilityFunction(ABC, NamedObject):
                         factor = 1.0
                     for key, issue in ienumerate(issues):
                         for item_key in ikeys(issue):
-                            issues[key][item_key] = issues[key][item_key] / factor - offset
+                            issues[key][item_key] = (
+                                issues[key][item_key] / factor - offset
+                            )
                 if len(issues) > 1:
-                    u = LinearUtilityAggregationFunction(
-                        issue_utilities=issues
-                    )
+                    u = LinearUtilityAggregationFunction(issue_utilities=issues)
                 else:
                     first_key = list(ikeys(issues))[0]
                     if utils is None:
                         utils = ivalues(issues[first_key])
                     if keep_issue_names:
-                        u = MappingUtilityFunction(dict(zip([(_,) for _ in ikeys(issues[first_key])], utils)))
+                        u = MappingUtilityFunction(
+                            dict(zip([(_,) for _ in ikeys(issues[first_key])], utils))
+                        )
                     else:
-                        u = MappingUtilityFunction(dict(zip([(_,) for _ in range(len(utils))], utils)))
+                        u = MappingUtilityFunction(
+                            dict(zip([(_,) for _ in range(len(utils))], utils))
+                        )
 
         # add real_valued issues
         if len(real_issues) > 0:
             if len(weights) > 0:
                 for key, issue in zip(ikeys(real_issues), ivalues(real_issues)):
                     try:
-                        w = weights[issue_info[key]['index']]
+                        w = weights[issue_info[key]["index"]]
                     except:
                         w = 1.0
-                    issue['fun_final'] = lambda x: w * issue['fun'](x)
+                    issue["fun_final"] = lambda x: w * issue["fun"](x)
             if normalize_utility:
                 n_items_to_test = 10
                 utils = itertools.product(
-                    *[[issue['fun'](_) for _ in np.linspace(issue['range'][0], issue['range'][1], num=n_items_to_test
-                                                            , endpoint=True)]
-                      for key, issue in zip(ikeys(real_issues), ivalues(real_issues))])
+                    *[
+                        [
+                            issue["fun"](_)
+                            for _ in np.linspace(
+                                issue["range"][0],
+                                issue["range"][1],
+                                num=n_items_to_test,
+                                endpoint=True,
+                            )
+                        ]
+                        for key, issue in zip(ikeys(real_issues), ivalues(real_issues))
+                    ]
+                )
                 utils = list(map(lambda vals: sum(vals), utils))
                 umax, umin = max(utils), min(utils)
                 factor = umax - umin
@@ -604,13 +741,16 @@ class UtilityFunction(ABC, NamedObject):
                     offset = 0.0
                     factor = 1.0
                 for key, issue in real_issues.items():
-                    issue['fun_final'] = lambda x: w * issue['fun'](x) / factor - offset
+                    issue["fun_final"] = lambda x: w * issue["fun"](x) / factor - offset
             u_real = LinearUtilityAggregationFunction(
-                issue_utilities={_['key']: _['fun_final'] for _ in real_issues.values()})
+                issue_utilities={_["key"]: _["fun_final"] for _ in real_issues.values()}
+            )
             if u is None:
                 u = u_real
             else:
-                u = ComplexWeightedUtilityFunction(ufuns=[u, u_real], weights=[1.0, 1.0])
+                u = ComplexWeightedUtilityFunction(
+                    ufuns=[u, u_real], weights=[1.0, 1.0]
+                )
 
         # add hyper rectangles issues
         if len(rects) > 0:
@@ -620,7 +760,9 @@ class UtilityFunction(ABC, NamedObject):
             if u is None:
                 u = uhyper
             else:
-                u = ComplexWeightedUtilityFunction(ufuns=[u, uhyper], weights=[1.0, 1.0])
+                u = ComplexWeightedUtilityFunction(
+                    ufuns=[u, uhyper], weights=[1.0, 1.0]
+                )
         if reserved_value is not None and not ignore_reserved and u is not None:
             u.reserved_value = reserved_value
         if ignore_discount:
@@ -649,9 +791,14 @@ class UtilityFunction(ABC, NamedObject):
         return None
 
     @classmethod
-    def approximate(cls, ufuns: List['UtilityFunction'], issues: Iterable['Issue'], n_outcomes: int, min_per_dim=5
-                    , force_single_issue=False) -> Tuple[
-        List['MappingUtilityFunction'], List['Outcome'], List['Issue']]:
+    def approximate(
+        cls,
+        ufuns: List["UtilityFunction"],
+        issues: Iterable["Issue"],
+        n_outcomes: int,
+        min_per_dim=5,
+        force_single_issue=False,
+    ) -> Tuple[List["MappingUtilityFunction"], List["Outcome"], List["Issue"]]:
         """
 
         Args:
@@ -666,8 +813,13 @@ class UtilityFunction(ABC, NamedObject):
 
         """
         issues = list(issues)
-        outcomes = sample_outcomes(issues=issues, keep_issue_names=False, min_per_dim=min_per_dim
-                                   , expansion_policy='null', n_outcomes=n_outcomes)
+        outcomes = sample_outcomes(
+            issues=issues,
+            keep_issue_names=False,
+            min_per_dim=min_per_dim,
+            expansion_policy="null",
+            n_outcomes=n_outcomes,
+        )
         if force_single_issue:
             output_outcomes = [(_,) for _ in range(n_outcomes)]
             output_issues = [Issue(values=len(output_outcomes))]
@@ -677,8 +829,10 @@ class UtilityFunction(ABC, NamedObject):
             for i in range(len(issues)):
                 vals = np.unique(np.array([_[i] for _ in outcomes])).tolist()
                 issue_values.append(vals)
-            output_issues = [Issue(name=issue.name, values=issue_vals)
-                             for issue, issue_vals in zip(issues, issue_values)]
+            output_issues = [
+                Issue(name=issue.name, values=issue_vals)
+                for issue, issue_vals in zip(issues, issue_values)
+            ]
 
         utils = []
         for ufun in ufuns:
@@ -687,12 +841,14 @@ class UtilityFunction(ABC, NamedObject):
 
         return utils, output_outcomes, output_issues
 
-    def compare(self, o1, o2) -> 'UtilityValue':
+    def compare(self, o1, o2) -> "UtilityValue":
         """Compares the two outcomes and returns a measure of the difference between their utilities"""
         u1, u2 = self(o1), self(o2)
         if isinstance(u1, float) and isinstance(u2, float):
             return u1 - u2
-        raise NotImplementedError('Should calculate the integration [(u1-u2) du1 du2] but not implemented yet.')
+        raise NotImplementedError(
+            "Should calculate the integration [(u1-u2) du1 du2] but not implemented yet."
+        )
 
     @abstractmethod
     def xml(self, issues: List[Issue]) -> str:
@@ -723,9 +879,7 @@ class UtilityFunction(ABC, NamedObject):
             str: utility_function type
         """
         return snake_case(
-            self.__class__.__name__.replace('Function', '').replace(
-                'Utility', ''
-            )
+            self.__class__.__name__.replace("Function", "").replace("Utility", "")
         )
 
     @property
@@ -733,7 +887,7 @@ class UtilityFunction(ABC, NamedObject):
         """Returns the utility_function base type ignoring discounting and similar wrappings."""
         return self.type
 
-    def eu(self, offer: 'Outcome') -> Optional[float]:
+    def eu(self, offer: "Outcome") -> Optional[float]:
         """Calculate the expected utility_function value.
 
             Args:
@@ -747,11 +901,13 @@ class UtilityFunction(ABC, NamedObject):
         return float(v) if v is not None else None
 
     @classmethod
-    def generate_bilateral(cls, outcomes: Union[int, List[Outcome]]
-                           , conflict_level: float = 0.5
-                           , conflict_delta=0.005
-                           , win_win=0.5) \
-        -> Tuple['UtilityFunction', 'UtilityFunction']:
+    def generate_bilateral(
+        cls,
+        outcomes: Union[int, List[Outcome]],
+        conflict_level: float = 0.5,
+        conflict_delta=0.005,
+        win_win=0.5,
+    ) -> Tuple["UtilityFunction", "UtilityFunction"]:
         """Generates a couple of utility functions
 
         Args:
@@ -787,28 +943,32 @@ class UtilityFunction(ABC, NamedObject):
         rand = np.random.random(n_outcomes)
         if conflict_level > 0.5:
             conflicting = 1.0 - u1 + conflict_delta * np.random.random(n_outcomes)
-            u2 = conflicting * conflict_level + rand * (1-conflict_level)
+            u2 = conflicting * conflict_level + rand * (1 - conflict_level)
         elif conflict_level < 0.5:
-            same = u1  + conflict_delta * np.random.random(n_outcomes)
+            same = u1 + conflict_delta * np.random.random(n_outcomes)
             u2 = same * (1 - conflict_level) + rand * conflict_level
         else:
             u2 = rand
 
-        #todo implement win_win correctly. Order the ufun then make outcomes with good outcome even better and vice
+        # todo implement win_win correctly. Order the ufun then make outcomes with good outcome even better and vice
         # versa
-        #u2 += u2 * win_win
-        #u2 += np.random.random(n_outcomes) * conflict_delta
+        # u2 += u2 * win_win
+        # u2 += np.random.random(n_outcomes) * conflict_delta
         u1 -= u1.min()
         u2 -= u2.min()
         u1 = u1 / u1.max()
         u2 = u2 / u2.max()
         if random.random() > 0.5:
             u1, u2 = u2, u1
-        return MappingUtilityFunction(dict(zip(outcomes, u1))), MappingUtilityFunction(dict(zip(outcomes, u2)))
+        return (
+            MappingUtilityFunction(dict(zip(outcomes, u1))),
+            MappingUtilityFunction(dict(zip(outcomes, u2))),
+        )
 
     @classmethod
-    def generate_random_bilateral(cls, outcomes: Union[int, List[Outcome]]) \
-        -> Tuple['UtilityFunction', 'UtilityFunction']:
+    def generate_random_bilateral(
+        cls, outcomes: Union[int, List[Outcome]]
+    ) -> Tuple["UtilityFunction", "UtilityFunction"]:
         """Generates a couple of utility functions
 
         Args:
@@ -829,11 +989,15 @@ class UtilityFunction(ABC, NamedObject):
         u2 -= u2.min()
         u1 /= u1.max()
         u2 /= u2.max()
-        return MappingUtilityFunction(dict(zip(outcomes, u1))), MappingUtilityFunction(dict(zip(outcomes, u2)))
+        return (
+            MappingUtilityFunction(dict(zip(outcomes, u1))),
+            MappingUtilityFunction(dict(zip(outcomes, u2))),
+        )
 
     @classmethod
-    def generate_random(cls, n: int, outcomes: Union[int, List[Outcome]]
-                        , normalized: bool = True) -> List['UtilityFunction']:
+    def generate_random(
+        cls, n: int, outcomes: Union[int, List[Outcome]], normalized: bool = True
+    ) -> List["UtilityFunction"]:
         """Generates a couple of utility functions
 
         Args:
@@ -856,8 +1020,13 @@ class UtilityFunction(ABC, NamedObject):
         return ufuns
 
     @classmethod
-    def conflict_level(cls, u1: 'UtilityFunction', u2: 'UtilityFunction', outcomes: Union[int, List['Outcome']]
-                       , max_tests: int=10000) -> float:
+    def conflict_level(
+        cls,
+        u1: "UtilityFunction",
+        u2: "UtilityFunction",
+        outcomes: Union[int, List["Outcome"]],
+        max_tests: int = 10000,
+    ) -> float:
         """
         Finds the conflict level in these two ufuns
 
@@ -892,8 +1061,8 @@ class UtilityFunction(ABC, NamedObject):
         p1, p2 = points[order, 0], points[order, 1]
         signs = []
         trial = 0
-        for i in range(n_outcomes-1):
-            for j in range(i+1, n_outcomes):
+        for i in range(n_outcomes - 1):
+            for j in range(i + 1, n_outcomes):
                 if trial >= max_tests:
                     break
                 trial += 1
@@ -901,15 +1070,22 @@ class UtilityFunction(ABC, NamedObject):
                 o21, o22 = p2[i], p2[j]
                 if o12 == o11 and o21 == o22:
                     continue
-                signs.append(int((o12 > o11 and o21 > o22) or (o12 < o11 and o21 < o22)))
+                signs.append(
+                    int((o12 > o11 and o21 > o22) or (o12 < o11 and o21 < o22))
+                )
         signs = np.array(signs)
         if len(signs) == 0:
             return None
         return signs.mean()
 
     @classmethod
-    def winwin_level(cls, u1: 'UtilityFunction', u2: 'UtilityFunction', outcomes: Union[int, List['Outcome']]
-                       , max_tests: int = 10000) -> float:
+    def winwin_level(
+        cls,
+        u1: "UtilityFunction",
+        u2: "UtilityFunction",
+        outcomes: Union[int, List["Outcome"]],
+        max_tests: int = 10000,
+    ) -> float:
         """
         Finds the conflict level in these two ufuns
 
@@ -936,7 +1112,9 @@ class UtilityFunction(ABC, NamedObject):
         order = np.random.permutation(np.array(range(n_outcomes)))
         p1, p2 = points[order, 0], points[order, 1]
         signs = []
-        for trial, (i, j) in enumerate(zip(range(n_outcomes - 1), range(1, n_outcomes))):
+        for trial, (i, j) in enumerate(
+            zip(range(n_outcomes - 1), range(1, n_outcomes))
+        ):
             if trial >= max_tests:
                 break
             o11, o12 = p1[i], p1[j]
@@ -950,7 +1128,7 @@ class UtilityFunction(ABC, NamedObject):
                 if o21 == o22:
                     win = o12 - o11
                 else:
-                    win = (o12 - o11) + (o22-o21)
+                    win = (o12 - o11) + (o22 - o21)
             else:
                 if o21 == o22:
                     win = o11 - o12
@@ -963,7 +1141,7 @@ class UtilityFunction(ABC, NamedObject):
         return signs.mean()
 
 
-UtilityFunctions = List['UtilityFunction']
+UtilityFunctions = List["UtilityFunction"]
 
 
 class ExpDiscountedUFun(UtilityFunction):
@@ -977,10 +1155,16 @@ class ExpDiscountedUFun(UtilityFunction):
 
     """
 
-    def __init__(self, ufun: UtilityFunction, ami: 'AgentMechanismInterface'
-                 , beta: Optional[float] = None, factor: Union[str, Callable[[
-                                                                                 'AgentMechanismInterface'], float]] = 'step'
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, dynamic_reservation=True):
+    def __init__(
+        self,
+        ufun: UtilityFunction,
+        ami: "AgentMechanismInterface",
+        beta: Optional[float] = None,
+        factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
+        name=None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        dynamic_reservation=True,
+    ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufun = ufun
         self.beta = beta
@@ -1001,19 +1185,19 @@ class ExpDiscountedUFun(UtilityFunction):
 
     def xml(self, issues: List[Issue]) -> str:
         output = self.ufun.xml(issues)
-        output += '</objective>\n'
+        output += "</objective>\n"
         factor = None
         if self.factor is not None:
             factor = str(self.factor)
         if self.beta is not None:
             output += f'<discount_factor value="{self.beta}" '
-            if factor is not None and factor != 'step':
+            if factor is not None and factor != "step":
                 output += f' variable="{factor}" '
-            output += '/>\n'
+            output += "/>\n"
         return output
 
     def __str__(self):
-        return f'{self.ufun.type}-cost:{self.beta} based on {self.factor}'
+        return f"{self.ufun.type}-cost:{self.beta} based on {self.factor}"
 
     def __getattr__(self, item):
         return getattr(self.ufun, item)
@@ -1024,7 +1208,7 @@ class ExpDiscountedUFun(UtilityFunction):
 
     @property
     def type(self):
-        return self.ufun.type + '_exponentially_discounted'
+        return self.ufun.type + "_exponentially_discounted"
 
 
 class LinDiscountedUFun(UtilityFunction):
@@ -1040,11 +1224,17 @@ class LinDiscountedUFun(UtilityFunction):
 
     """
 
-    def __init__(self, ufun: UtilityFunction, ami: 'AgentMechanismInterface'
-                 , cost: Optional[float] = None
-                 , factor: Union[str, Callable[['AgentMechanismInterface'], float]] = 'step'
-                 , power: float = 1.0
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, dynamic_reservation=True):
+    def __init__(
+        self,
+        ufun: UtilityFunction,
+        ami: "AgentMechanismInterface",
+        cost: Optional[float] = None,
+        factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
+        power: float = 1.0,
+        name=None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        dynamic_reservation=True,
+    ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufun = ufun
         self.cost = cost
@@ -1066,22 +1256,22 @@ class LinDiscountedUFun(UtilityFunction):
 
     def xml(self, issues: List[Issue]) -> str:
         output = self.ufun.xml(issues)
-        output += '</objective>\n'
+        output += "</objective>\n"
         factor = None
         if self.factor is not None:
             factor = str(self.factor)
         if self.cost is not None:
             output += f'<cost value="{self.cost}" '
-            if factor is not None and factor != 'step':
+            if factor is not None and factor != "step":
                 output += f' variable="{factor}" '
             if self.power is not None and self.power != 1.0:
                 output += f' power="{self.power}" '
-            output += '/>\n'
+            output += "/>\n"
 
         return output
 
     def __str__(self):
-        return f'{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}'
+        return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
 
     def __getattr__(self, item):
         return getattr(self.ufun, item)
@@ -1092,11 +1282,17 @@ class LinDiscountedUFun(UtilityFunction):
 
     @property
     def type(self):
-        return self.ufun.type + '_linearly_discounted'
+        return self.ufun.type + "_linearly_discounted"
 
 
 class ConstUFun(UtilityFunction):
-    def __init__(self, value: float, name=None, reserved_value: Optional[float] = 0.0, ami: AgentMechanismInterface=None):
+    def __init__(
+        self,
+        value: float,
+        name=None,
+        reserved_value: Optional[float] = 0.0,
+        ami: AgentMechanismInterface = None,
+    ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.value = value
 
@@ -1112,44 +1308,71 @@ class ConstUFun(UtilityFunction):
         return str(self.value)
 
 
-def make_discounted_ufun(ufun: 'UtilityFunction', ami: 'AgentMechanismInterface'
-                         , cost_per_round: float = None
-                         , power_per_round: float = None
-                         , discount_per_round: float = None
-                         , cost_per_relative_time: float = None
-                         , power_per_relative_time: float = None
-                         , discount_per_relative_time: float = None
-                         , cost_per_real_time: float = None
-                         , power_per_real_time: float = None
-                         , discount_per_real_time: float = None
-                         , dynamic_reservation: bool = True
-                         ):
+def make_discounted_ufun(
+    ufun: "UtilityFunction",
+    ami: "AgentMechanismInterface",
+    cost_per_round: float = None,
+    power_per_round: float = None,
+    discount_per_round: float = None,
+    cost_per_relative_time: float = None,
+    power_per_relative_time: float = None,
+    discount_per_relative_time: float = None,
+    cost_per_real_time: float = None,
+    power_per_real_time: float = None,
+    discount_per_real_time: float = None,
+    dynamic_reservation: bool = True,
+):
     if cost_per_round is not None and cost_per_round > 0.0:
-        ufun = LinDiscountedUFun(ufun=ufun, ami=ami
-                                 , cost=cost_per_round, factor='step', power=power_per_round
-                                 , dynamic_reservation=dynamic_reservation)
+        ufun = LinDiscountedUFun(
+            ufun=ufun,
+            ami=ami,
+            cost=cost_per_round,
+            factor="step",
+            power=power_per_round,
+            dynamic_reservation=dynamic_reservation,
+        )
     if cost_per_relative_time is not None and cost_per_relative_time > 0.0:
-        ufun = LinDiscountedUFun(ufun=ufun, ami=ami
-                                 , cost=cost_per_relative_time, factor='relative_time'
-                                 , power=power_per_relative_time
-                                 , dynamic_reservation=dynamic_reservation)
+        ufun = LinDiscountedUFun(
+            ufun=ufun,
+            ami=ami,
+            cost=cost_per_relative_time,
+            factor="relative_time",
+            power=power_per_relative_time,
+            dynamic_reservation=dynamic_reservation,
+        )
     if cost_per_real_time is not None and cost_per_real_time > 0.0:
-        ufun = LinDiscountedUFun(ufun=ufun, ami=ami
-                                 , cost=cost_per_real_time, factor='real_time'
-                                 , power=power_per_real_time
-                                 , dynamic_reservation=dynamic_reservation)
+        ufun = LinDiscountedUFun(
+            ufun=ufun,
+            ami=ami,
+            cost=cost_per_real_time,
+            factor="real_time",
+            power=power_per_real_time,
+            dynamic_reservation=dynamic_reservation,
+        )
     if discount_per_round is not None and discount_per_round > 0.0:
-        ufun = ExpDiscountedUFun(ufun=ufun, ami=ami
-                                 , beta=discount_per_round, factor='step'
-                                 , dynamic_reservation=dynamic_reservation)
+        ufun = ExpDiscountedUFun(
+            ufun=ufun,
+            ami=ami,
+            beta=discount_per_round,
+            factor="step",
+            dynamic_reservation=dynamic_reservation,
+        )
     if discount_per_relative_time is not None and discount_per_relative_time > 0.0:
-        ufun = ExpDiscountedUFun(ufun=ufun, ami=ami
-                                 , beta=discount_per_relative_time, factor='relative_time'
-                                 , dynamic_reservation=dynamic_reservation)
+        ufun = ExpDiscountedUFun(
+            ufun=ufun,
+            ami=ami,
+            beta=discount_per_relative_time,
+            factor="relative_time",
+            dynamic_reservation=dynamic_reservation,
+        )
     if discount_per_real_time is not None and discount_per_real_time > 0.0:
-        ufun = ExpDiscountedUFun(ufun=ufun, ami=ami
-                                 , beta=discount_per_real_time, factor='real_time'
-                                 , dynamic_reservation=dynamic_reservation)
+        ufun = ExpDiscountedUFun(
+            ufun=ufun,
+            ami=ami,
+            beta=discount_per_real_time,
+            factor="real_time",
+            dynamic_reservation=dynamic_reservation,
+        )
     return ufun
 
 
@@ -1212,7 +1435,9 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             MutableMapping[Any, GenericMapping], Sequence[GenericMapping]
         ],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
+        name: Optional[str] = None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.issue_utilities = issue_utilities
@@ -1222,13 +1447,11 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             for k in ikeys(self.issue_utilities):
                 self.weights[k] = 1.0
         for k, v in ienumerate(self.issue_utilities):
-            self.issue_utilities[k] = v if isinstance(
-                v, UtilityFunction
-            ) else MappingUtilityFunction(
-                v
+            self.issue_utilities[k] = (
+                v if isinstance(v, UtilityFunction) else MappingUtilityFunction(v)
             )
 
-    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
+    def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
         u = ExactUtilityValue(0.0)
@@ -1323,7 +1546,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             <BLANKLINE>
 
         """
-        output = ''
+        output = ""
         keys = list(ikeys(issues))
         for i, k in enumerate(keys):
             issue_name = iget(issues, k).name
@@ -1331,15 +1554,23 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             vals = iget(issues, k).all
             for indx, v in enumerate(vals):
                 u = gmap(iget(self.issue_utilities, k), v)
-                v_ = v if not (isinstance(v, tuple) or isinstance(v, list)) else '-'.join([str(_) for _ in v])
-                output += f'    <item index="{indx+1}" value="{v_}" evaluation="{u}" />\n'
-            output += '</issue>\n'
+                v_ = (
+                    v
+                    if not (isinstance(v, tuple) or isinstance(v, list))
+                    else "-".join([str(_) for _ in v])
+                )
+                output += (
+                    f'    <item index="{indx+1}" value="{v_}" evaluation="{u}" />\n'
+                )
+            output += "</issue>\n"
         for i, k in enumerate(keys):
-            output += f'<weight index="{i+1}" value="{iget(self.weights, k)}">\n</weight>\n'
+            output += (
+                f'<weight index="{i+1}" value="{iget(self.weights, k)}">\n</weight>\n'
+            )
         return output
 
     def __str__(self):
-        return f'u: {self.issue_utilities}\n w: {self.weights}'
+        return f"u: {self.issue_utilities}\n w: {self.weights}"
 
 
 class MappingUtilityFunction(UtilityFunction):
@@ -1396,14 +1627,18 @@ class MappingUtilityFunction(UtilityFunction):
     """
 
     def __init__(
-        self, mapping: OutcomeUtilityMapping, default=None, name: str = None,
-        reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
+        self,
+        mapping: OutcomeUtilityMapping,
+        default=None,
+        name: str = None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.mapping = mapping
         self.default = default
 
-    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
+    def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         # noinspection PyBroadException
         if offer is None:
             return self.reserved_value
@@ -1440,38 +1675,45 @@ class MappingUtilityFunction(UtilityFunction):
             <BLANKLINE>
         """
         if len(issues) > 1:
-            raise ValueError('Cannot call xml() on a mapping utility function with more than one issue')
+            raise ValueError(
+                "Cannot call xml() on a mapping utility function with more than one issue"
+            )
         if issues is not None:
             issue_names = [_.name for _ in issues]
             key = issue_names[0]
         else:
-            key = '0'
+            key = "0"
         output = f'<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="{key}">\n'
         if isinstance(self.mapping, Callable):
             for i, k in enumerate(issues[key].all):
                 if isinstance(k, tuple) or isinstance(k, list):
-                    k = '-'.join([str(_) for _ in k])
-                output += f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n' \
-                          f'    </item>\n'
+                    k = "-".join([str(_) for _ in k])
+                output += (
+                    f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n'
+                    f"    </item>\n"
+                )
         else:
             for i, (k, v) in enumerate(ienumerate(self.mapping)):
                 if isinstance(k, tuple) or isinstance(k, list):
-                    k = '-'.join([str(_) for _ in k])
-                output += f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n' \
-                          f'    </item>\n'
-        output += '</issue>\n'
+                    k = "-".join([str(_) for _ in k])
+                output += (
+                    f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n'
+                    f"    </item>\n"
+                )
+        output += "</issue>\n"
         output += '<weight index="1" value="1.0">\n</weight>\n'
         return output
 
     def __str__(self) -> str:
-        return f'mapping: {self.mapping}\ndefault: {self.default}'
+        return f"mapping: {self.mapping}\ndefault: {self.default}"
 
 
 class RandomUtilityFunction(MappingUtilityFunction):
     """A random utility function for a discrete outcome space"""
+
     def __init__(self, outcomes: List[Outcome]):
         if len(outcomes) < 1:
-            raise ValueError('Cannot create a random utility function without outcomes')
+            raise ValueError("Cannot create a random utility function without outcomes")
         if isinstance(outcomes[0], tuple):
             pass
         else:
@@ -1522,24 +1764,26 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
     """
 
     def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f'Cannot convert {self.__class__.__name__} to xml')
+        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def __init__(
         self,
         issue_utilities: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
+        name: Optional[str] = None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.issue_utilities = issue_utilities
         self.f = f
 
-    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
+    def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
         if self.issue_utilities is None:
             raise ValueError(
-                'No issue utilities were set. Call set_params() or use the constructor'
+                "No issue utilities were set. Call set_params() or use the constructor"
             )
 
         u = {}
@@ -1655,19 +1899,25 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             </utility_function>
 
         """
-        output = ''
+        output = ""
         for i, issue in enumerate(ivalues(issues)):
             name = issue.name
             if isinstance(issue.values, tuple):
-                output += f'<issue index="{i+1}" name="{name}" vtype="real" type="real" etype="real">\n' \
-                          f'    <range lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}"></range>\n' \
-                          f'</issue>'
+                output += (
+                    f'<issue index="{i+1}" name="{name}" vtype="real" type="real" etype="real">\n'
+                    f'    <range lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}"></range>\n'
+                    f"</issue>"
+                )
             elif isinstance(issue.values, int):
-                output += f'<issue index="{i+1}" name="{name}" vtype="integer" type="integer" etype="integer" ' \
-                          f'lowerbound="0" upperbound="{issue.values - 1}"/>\n'
+                output += (
+                    f'<issue index="{i+1}" name="{name}" vtype="integer" type="integer" etype="integer" '
+                    f'lowerbound="0" upperbound="{issue.values - 1}"/>\n'
+                )
             else:
-                output += f'<issue index="{i+1}" name="{name}" vtype="integer" type="integer" etype="integer" ' \
-                          f'lowerbound="{min(issue.values)}" upperbound="{max(issue.values)}"/>\n'
+                output += (
+                    f'<issue index="{i+1}" name="{name}" vtype="integer" type="integer" etype="integer" '
+                    f'lowerbound="{min(issue.values)}" upperbound="{max(issue.values)}"/>\n'
+                )
         # todo find the real maxutility
         output += '<utility_function maxutility="-1.0">\n    <ufun type="PlainUfun" weight="1" aggregation="sum">\n'
         for rect, u, w in zip(self.outcome_ranges, self.mappings, self.weights):
@@ -1682,9 +1932,11 @@ class HyperRectangleUtilityFunction(UtilityFunction):
                     mn, mx = values
                 else:
                     mn, mx = min(values), max(values)
-                output += f'            <INCLUDES index="{indx}" min="{mn}" max="{mx}" />\n'
-            output += f'        </hyperRectangle>\n'
-        output += '    </ufun>\n</utility_function>'
+                output += (
+                    f'            <INCLUDES index="{indx}" min="{mn}" max="{mx}" />\n'
+                )
+            output += f"        </hyperRectangle>\n"
+        output += "    </ufun>\n</utility_function>"
         return output
 
     def __init__(
@@ -1695,7 +1947,9 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         *,
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
+        name: Optional[str] = None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.outcome_ranges = outcome_ranges
@@ -1709,7 +1963,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         if self.weights is None:
             self.weights = [1.0] * len(self.outcome_ranges)
 
-    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
+    def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
         u = ExactUtilityValue(0.0)
@@ -1719,17 +1973,13 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             # fail on any outcome_range that constrains issues not in the presented outcome
             if outcome_range is not None and set(ikeys(outcome_range)) - set(
                 ikeys(offer)
-            ) != set(
-                []
-            ):
+            ) != set([]):
                 if self.ignore_issues_not_in_input:
                     continue
 
                 return None
 
-            elif outcome_range is None or outcome_in_range(
-                offer, outcome_range
-            ):
+            elif outcome_range is None or outcome_in_range(offer, outcome_range):
                 if isinstance(mapping, float):
                     u += weight * mapping
                 else:
@@ -1758,26 +2008,28 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
     """
 
     def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f'Cannot convert {self.__class__.__name__} to xml')
+        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def __init__(
         self,
         hypervolumes: Iterable[OutcomeRange],
         mappings: OutcomeUtilityMappings,
         f: Callable[[List[UtilityValue]], UtilityValue],
-        name: Optional[str] = None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None
+        name: Optional[str] = None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.hypervolumes = hypervolumes
         self.mappings = mappings
         self.f = f
 
-    def __call__(self, offer: Optional['Outcome']) -> Optional[UtilityValue]:
+    def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
         if not isinstance(self.hypervolumes, Iterable):
             raise ValueError(
-                'Hypervolumes are not set. Call set_params() or pass them through the constructor.'
+                "Hypervolumes are not set. Call set_params() or pass them through the constructor."
             )
 
         u = []
@@ -1797,9 +2049,14 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
 
         """
 
-    def __init__(self, ufuns: Iterable[UtilityFunction]
-                 , weights: Optional[Iterable[float]] = None
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None):
+    def __init__(
+        self,
+        ufuns: Iterable[UtilityFunction],
+        weights: Optional[Iterable[float]] = None,
+        name=None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
+    ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufuns = list(ufuns)
         if weights is None:
@@ -1835,7 +2092,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
         return u if not failure else None
 
     def xml(self, issues: List[Issue]) -> str:
-        output = ''
+        output = ""
         # @todo implement weights. Here I assume they are always 1.0
         for f, w in zip(self.ufuns, self.weights):
             output += f.xml(issues)
@@ -1852,9 +2109,14 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
 
     """
 
-    def __init__(self, ufuns: Iterable[UtilityFunction]
-                 , combination_function=Callable[[Iterable[UtilityValue]], UtilityValue]
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None):
+    def __init__(
+        self,
+        ufuns: Iterable[UtilityFunction],
+        combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
+        name=None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
+    ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
@@ -1880,7 +2142,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         return self.combination_function([f(offer) for f in self.ufuns])
 
     def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f'Cannot convert {self.__class__.__name__} to xml')
+        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
 
 class IPUtilityFunction(UtilityFunction):
@@ -1909,14 +2171,24 @@ class IPUtilityFunction(UtilityFunction):
 
     """
 
-    def __init__(self, outcomes: Iterable['Outcome']
-                 , distributions: Iterable['UtilityDistribution'] = None
-                 , issue_names: Iterable[str] = None
-                 , name=None, reserved_value: Optional[UtilityValue] = 0.0, ami: AgentMechanismInterface=None):
+    def __init__(
+        self,
+        outcomes: Iterable["Outcome"],
+        distributions: Iterable["UtilityDistribution"] = None,
+        issue_names: Iterable[str] = None,
+        name=None,
+        reserved_value: Optional[UtilityValue] = 0.0,
+        ami: AgentMechanismInterface = None,
+    ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
-        outcomes, distributions = list(outcomes), (list(distributions) if distributions is not None else None)
+        outcomes, distributions = (
+            list(outcomes),
+            (list(distributions) if distributions is not None else None),
+        )
         if len(outcomes) < 1:
-            raise ValueError('IPUtilityFunction cannot be initialized with zero outcomes')
+            raise ValueError(
+                "IPUtilityFunction cannot be initialized with zero outcomes"
+            )
         self.tupelized = False
 
         self.n_issues = len(outcomes[0])
@@ -1928,13 +2200,18 @@ class IPUtilityFunction(UtilityFunction):
         self.issue_keys = dict(zip(range(self.n_issues), self.issue_names))
 
         if not isinstance(outcomes[0], tuple):
-            outcomes = [tuple(iget(_, key, None) for key in self.issue_names) for _ in outcomes]
+            outcomes = [
+                tuple(iget(_, key, None) for key in self.issue_names) for _ in outcomes
+            ]
             self.tupelized = True
         if distributions is None:
-            distributions = [UtilityDistribution(dtype='uniform', loc=0.0, scale=1.0) for _ in range(len(outcomes))]
+            distributions = [
+                UtilityDistribution(dtype="uniform", loc=0.0, scale=1.0)
+                for _ in range(len(outcomes))
+            ]
         self.distributions = dict(zip(outcomes, distributions))
 
-    def distribution(self, outcome: 'Outcome') -> 'UtilityValue':
+    def distribution(self, outcome: "Outcome") -> "UtilityValue":
         """
         Returns the distributon associated with a specific outcome
         Args:
@@ -1946,9 +2223,13 @@ class IPUtilityFunction(UtilityFunction):
         return self.distributions[self.key(outcome)]
 
     @classmethod
-    def from_ufun(cls, u: MappingUtilityFunction, range: Tuple[float, float] = (0.0, 1.0)
-                  , uncertainty: float = 0.5
-                  , variability: float = 0.0) -> 'IPUtilityFunction':
+    def from_ufun(
+        cls,
+        u: MappingUtilityFunction,
+        range: Tuple[float, float] = (0.0, 1.0),
+        uncertainty: float = 0.5,
+        variability: float = 0.0,
+    ) -> "IPUtilityFunction":
         """
         Generates a distribution from which `u` may have been sampled
         Args:
@@ -1983,14 +2264,24 @@ class IPUtilityFunction(UtilityFunction):
             a new IPUtilityFunction
         """
         if isinstance(u.mapping, dict):
-            return cls.from_mapping(u.mapping, range=range, uncertainty=uncertainty, variability=variability)
-        return cls.from_mapping(dict(zip(ikeys(u.mapping), ivalues(u.mapping)))
-                                , range=range, uncertainty=uncertainty, variability=variability)
+            return cls.from_mapping(
+                u.mapping, range=range, uncertainty=uncertainty, variability=variability
+            )
+        return cls.from_mapping(
+            dict(zip(ikeys(u.mapping), ivalues(u.mapping))),
+            range=range,
+            uncertainty=uncertainty,
+            variability=variability,
+        )
 
     @classmethod
-    def from_mapping(cls, mapping: Dict['Outcome', float], range: Tuple[float, float] = (0.0, 1.0)
-                     , uncertainty: float = 0.5
-                     , variability: float = 0.0) -> 'IPUtilityFunction':
+    def from_mapping(
+        cls,
+        mapping: Dict["Outcome", float],
+        range: Tuple[float, float] = (0.0, 1.0),
+        uncertainty: float = 0.5,
+        variability: float = 0.0,
+    ) -> "IPUtilityFunction":
         """
         Generates a distribution from which `u` may have been sampled
         Args:
@@ -2029,10 +2320,17 @@ class IPUtilityFunction(UtilityFunction):
         elif variability <= 0.0:
             uncertainties = [uncertainty] * len(outcomes)
         else:
-            uncertainties = (uncertainty + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty).tolist()
-        return IPUtilityFunction(outcomes=outcomes
-                                 , distributions=[Distribution.around(value=mapping[o], uncertainty=u, range=range)
-                                                  for o, u in zip(outcomes, uncertainties)])
+            uncertainties = (
+                uncertainty
+                + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty
+            ).tolist()
+        return IPUtilityFunction(
+            outcomes=outcomes,
+            distributions=[
+                Distribution.around(value=mapping[o], uncertainty=u, range=range)
+                for o, u in zip(outcomes, uncertainties)
+            ],
+        )
 
     def __str__(self):
         return pprint.pformat(self.distributions)
@@ -2055,9 +2353,11 @@ class IPUtilityFunction(UtilityFunction):
 
             MappingUtilityFunction
         """
-        return MappingUtilityFunction(mapping={o: d.sample(1)[0] for o, d in self.distributions.items()})
+        return MappingUtilityFunction(
+            mapping={o: d.sample(1)[0] for o, d in self.distributions.items()}
+        )
 
-    def key(self, outcome: 'Outcome'):
+    def key(self, outcome: "Outcome"):
         """
         Returns the key of the given outcome in self.distributions.
 
@@ -2123,10 +2423,12 @@ class IPUtilityFunction(UtilityFunction):
         return self.distributions[offer]
 
     def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f'Cannot convert {self.__class__.__name__} to xml')
+        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
 
-def _pareto_frontier(points, eps=-1e-18, sort_by_welfare=False) -> Tuple[List[Tuple[float]], List[int]]:
+def _pareto_frontier(
+    points, eps=-1e-18, sort_by_welfare=False
+) -> Tuple[List[Tuple[float]], List[int]]:
     """Finds the pareto-frontier of a set of points
 
     Args:
@@ -2158,19 +2460,21 @@ def _pareto_frontier(points, eps=-1e-18, sort_by_welfare=False) -> Tuple[List[Tu
             if np.any(current_better):
                 if not np.any(current_worse):
                     # current dominates f, append it, remove f and scan for anything else dominated by current
-                    for j, (_, g) in enumerate(frontier[i + 1:]):
+                    for j, (_, g) in enumerate(frontier[i + 1 :]):
                         if np.all(current == g):
-                            frontier = frontier[:i] + frontier[i + 1:]
+                            frontier = frontier[:i] + frontier[i + 1 :]
                             break
                         if np.any(current > g) and not np.any(current < g):
-                            frontier = frontier[:j] + frontier[j + 1:]
+                            frontier = frontier[:j] + frontier[j + 1 :]
                     else:
                         frontier[i] = (indices[p], current)
                 else:
                     # neither current nor f dominate each other, append current only if it is not
                     # dominated by anything in frontier
-                    for j, (_, g) in enumerate(frontier[i + 1:]):
-                        if np.all(current == g) or (np.any(g > current) and not np.any(current > g)):
+                    for j, (_, g) in enumerate(frontier[i + 1 :]):
+                        if np.all(current == g) or (
+                            np.any(g > current) and not np.any(current > g)
+                        ):
                             break
                     else:
                         frontier.append((indices[p], current))
@@ -2181,9 +2485,13 @@ def _pareto_frontier(points, eps=-1e-18, sort_by_welfare=False) -> Tuple[List[Tu
     return [tuple(_[1]) for _ in frontier], [_[0] for _ in frontier]
 
 
-def pareto_frontier(ufuns: Iterable[UtilityFunction], outcomes: Iterable[Outcome] = None
-                    , issues: Iterable[Issue] = None, n_discretization: Optional[int] = 10
-                    , sort_by_welfare=False) -> Tuple[List[Tuple[float]], List[int]]:
+def pareto_frontier(
+    ufuns: Iterable[UtilityFunction],
+    outcomes: Iterable[Outcome] = None,
+    issues: Iterable[Issue] = None,
+    n_discretization: Optional[int] = 10,
+    sort_by_welfare=False,
+) -> Tuple[List[Tuple[float]], List[int]]:
     """Finds all pareto-optimal outcomes in the list
 
     Args:
@@ -2209,13 +2517,20 @@ def pareto_frontier(ufuns: Iterable[UtilityFunction], outcomes: Iterable[Outcome
     if outcomes is None:
         if issues is None:
             return [], []
-        outcomes = itertools.product(*[issue.alli(n=n_discretization) for issue in issues])
+        outcomes = itertools.product(
+            *[issue.alli(n=n_discretization) for issue in issues]
+        )
     points = [[ufun(outcome) for ufun in ufuns] for outcome in outcomes]
     return _pareto_frontier(points, sort_by_welfare=sort_by_welfare)
 
 
-def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[float, float] = (0.0, 1.0)
-              , epsilon: float = 1e-6, infeasible_cutoff: Optional[float] = -1000.0) -> UtilityFunction:
+def normalize(
+    ufun: UtilityFunction,
+    outcomes: Collection[Outcome],
+    rng: Tuple[float, float] = (0.0, 1.0),
+    epsilon: float = 1e-6,
+    infeasible_cutoff: Optional[float] = -1000.0,
+) -> UtilityFunction:
     """Normalizes a utility function to the range [0, 1]
 
     Args:
@@ -2244,32 +2559,59 @@ def normalize(ufun: UtilityFunction, outcomes: Collection[Outcome], rng: Tuple[f
         if -epsilon <= mn <= 1 + epsilon:
             return ufun
         else:
-            r = float(ufun.reserved_value)/mn if ufun.reserved_value is not None and mn != 0.0 else 0.0
+            r = (
+                float(ufun.reserved_value) / mn
+                if ufun.reserved_value is not None and mn != 0.0
+                else 0.0
+            )
             if infeasible_cutoff is not None:
-                return ComplexNonlinearUtilityFunction(ufuns=[ufun],
-                                                       combination_function=lambda x: infeasible_cutoff if x[0] is None
-                                                                                 else x[0] if x[0] < infeasible_cutoff
-                                                                                           else 0.5*x[0]/mn)
+                return ComplexNonlinearUtilityFunction(
+                    ufuns=[ufun],
+                    combination_function=lambda x: infeasible_cutoff
+                    if x[0] is None
+                    else x[0]
+                    if x[0] < infeasible_cutoff
+                    else 0.5 * x[0] / mn,
+                )
             else:
-                return ComplexWeightedUtilityFunction(ufuns=[ufun], weights=[0.5/mn], name=ufun.name + '-normalized'
-                                                      , reserved_value=r, ami=ufun.ami)
+                return ComplexWeightedUtilityFunction(
+                    ufuns=[ufun],
+                    weights=[0.5 / mn],
+                    name=ufun.name + "-normalized",
+                    reserved_value=r,
+                    ami=ufun.ami,
+                )
     scale = (rng[1] - rng[0]) / (mx - mn)
-    r = scale*(ufun.reserved_value - mn) if ufun.reserved_value else 0.0
+    r = scale * (ufun.reserved_value - mn) if ufun.reserved_value else 0.0
     if infeasible_cutoff is not None:
-        return ComplexNonlinearUtilityFunction(ufuns=[ufun],
-                                               combination_function=lambda x: infeasible_cutoff if x[0] is None
-                                                                                 else x[0] if x[0] < infeasible_cutoff
-                                                                                    else scale * (x[0] - mn) + rng[0])
+        return ComplexNonlinearUtilityFunction(
+            ufuns=[ufun],
+            combination_function=lambda x: infeasible_cutoff
+            if x[0] is None
+            else x[0]
+            if x[0] < infeasible_cutoff
+            else scale * (x[0] - mn) + rng[0],
+        )
     else:
-        return ComplexWeightedUtilityFunction(ufuns=[ufun, ConstUFun(-mn + rng[0] / scale)], weights=[scale, scale]
-                                              , name=ufun.name + '-normalized', reserved_value=r, ami=ufun.ami)
+        return ComplexWeightedUtilityFunction(
+            ufuns=[ufun, ConstUFun(-mn + rng[0] / scale)],
+            weights=[scale, scale],
+            name=ufun.name + "-normalized",
+            reserved_value=r,
+            ami=ufun.ami,
+        )
 
 
 class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
     """A utility function implemented in Java"""
+
     def __init__(self, java_object, java_class_name: Optional[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.init_java_bridge(java_object=java_object, java_class_name=java_class_name, auto_load_java=False)
+        self.init_java_bridge(
+            java_object=java_object,
+            java_class_name=java_class_name,
+            auto_load_java=False,
+        )
         if java_object is None:
             self._java_object.fromMap(to_java(self))
 
@@ -2277,4 +2619,4 @@ class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
         return self._java_object.call(to_java(outcome_as_dict(offer)))
 
     def xml(self, issues: List[Issue]) -> str:
-        return 'Java UFun'
+        return "Java UFun"

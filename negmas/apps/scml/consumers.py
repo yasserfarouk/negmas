@@ -17,23 +17,23 @@ from negmas.outcomes import Issue
 from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
-from negmas.utilities import normalize, ComplexWeightedUtilityFunction, MappingUtilityFunction
+from negmas.utilities import (
+    normalize,
+    ComplexWeightedUtilityFunction,
+    MappingUtilityFunction,
+)
 from .common import CFP
 from .agent import SCMLAgent
 from .helpers import pos_gauss
 
-if True: #
+if True:  #
     from typing import Dict, Any, List, Optional, Union, Tuple
     from .common import Loan
 
 if TYPE_CHECKING:
     from .awi import SCMLAWI
 
-__all__ = [
-    'Consumer',
-    'ConsumptionProfile',
-    'ScheduleDrivenConsumer'
-]
+__all__ = ["Consumer", "ConsumptionProfile", "ScheduleDrivenConsumer"]
 
 
 @dataclass
@@ -55,9 +55,16 @@ class ConsumptionProfile:
 
     @classmethod
     def random(cls):
-        return ConsumptionProfile(schedule=randint(0, 5), overconsumption=2 * random(), underconsumption=2 * random()
-                                  , cv=random(), beta_q=99 * random() + 1, beta_u=99 * random() + 1, tau_q=3 * random()
-                                  , tau_u=random())
+        return ConsumptionProfile(
+            schedule=randint(0, 5),
+            overconsumption=2 * random(),
+            underconsumption=2 * random(),
+            cv=random(),
+            beta_q=99 * random() + 1,
+            beta_u=99 * random() + 1,
+            tau_q=3 * random(),
+            tau_u=random(),
+        )
 
     def schedule_at(self, time: int) -> int:
         if isinstance(self.schedule, int):
@@ -80,12 +87,17 @@ class ConsumptionProfile:
         if isinstance(self.schedule, int):
             self.schedule = [self.schedule] * n_steps
         elif len(self.schedule) < n_steps:
-            self.schedule = list(itertools.chain(*([self.schedule] * int(math.ceil(n_steps / len(self.schedule))))))
+            self.schedule = list(
+                itertools.chain(
+                    *([self.schedule] * int(math.ceil(n_steps / len(self.schedule))))
+                )
+            )
         self.schedule[time % len(self.schedule)] = value
 
 
 class Consumer(SCMLAgent, ABC):
     """Base class of all consumer classes"""
+
     pass
 
 
@@ -101,36 +113,50 @@ class ScheduleDrivenConsumer(Consumer):
     def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
         pass
 
-    def on_negotiation_failure(self, partners: List[str], annotation: Dict[str, Any],
-                               mechanism: AgentMechanismInterface, state: MechanismState) -> None:
+    def on_negotiation_failure(
+        self,
+        partners: List[str],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        state: MechanismState,
+    ) -> None:
         pass
 
-    def on_negotiation_success(self, contract: Contract, mechanism: AgentMechanismInterface) -> None:
+    def on_negotiation_success(
+        self, contract: Contract, mechanism: AgentMechanismInterface
+    ) -> None:
         pass
 
     def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
         pass
 
-    def on_contract_nullified(self, contract: Contract, bankrupt_partner: str, compensation: float) -> None:
+    def on_contract_nullified(
+        self, contract: Contract, bankrupt_partner: str, compensation: float
+    ) -> None:
         pass
 
     def on_agent_bankrupt(self, agent_id: str) -> None:
         pass
 
-    def confirm_partial_execution(self, contract: Contract, breaches: List[Breach]) -> bool:
+    def confirm_partial_execution(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> bool:
         return True
 
-    def on_remove_cfp(self, cfp: 'CFP'):
+    def on_remove_cfp(self, cfp: "CFP"):
         pass
 
     MAX_UNIT_PRICE = 1e5
     RELATIVE_MAX_PRICE = 2
 
-    def __init__(self, profiles: Dict[int, ConsumptionProfile] = None
-                 , negotiator_type='negmas.sao.AspirationNegotiator'
-                 , consumption_horizon: Optional[int] = 20
-                 , immediate_cfp_update: bool = True
-                 , name=None):
+    def __init__(
+        self,
+        profiles: Dict[int, ConsumptionProfile] = None,
+        negotiator_type="negmas.sao.AspirationNegotiator",
+        consumption_horizon: Optional[int] = 20,
+        immediate_cfp_update: bool = True,
+        name=None,
+    ):
         super().__init__(name=name)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
         self.profiles: Dict[int, ConsumptionProfile] = dict()
@@ -140,7 +166,7 @@ class ScheduleDrivenConsumer(Consumer):
         self.consumption_horizon = consumption_horizon
         self.immediate_cfp_update = immediate_cfp_update
 
-    def on_new_cfp(self, cfp: 'CFP') -> None:
+    def on_new_cfp(self, cfp: "CFP") -> None:
         pass  # consumers never respond to CFPs
 
     def init(self):
@@ -157,32 +183,58 @@ class ScheduleDrivenConsumer(Consumer):
         product = self.products[p]
         awi: SCMLAWI = self.awi
         if current_schedule <= 0:
-            awi.bb_remove(section='cfps', query={'publisher': self.id, 'time': t, 'product_index': p})
+            awi.bb_remove(
+                section="cfps",
+                query={"publisher": self.id, "time": t, "product_index": p},
+            )
             return
-        max_price = ScheduleDrivenConsumer.RELATIVE_MAX_PRICE * product.catalog_price if product.catalog_price is not None \
+        max_price = (
+            ScheduleDrivenConsumer.RELATIVE_MAX_PRICE * product.catalog_price
+            if product.catalog_price is not None
             else ScheduleDrivenConsumer.MAX_UNIT_PRICE
-        cfps = awi.bb_query(section='cfps', query={'publisher': self.id, 'time': t, 'product': p})
+        )
+        cfps = awi.bb_query(
+            section="cfps", query={"publisher": self.id, "time": t, "product": p}
+        )
         if cfps is not None and len(cfps) > 0:
             for _, cfp in cfps.items():
                 if cfp.max_quantity != current_schedule:
-                    cfp = CFP(is_buy=True, publisher=self.id, product=p
-                              , time=t, unit_price=(0, max_price), quantity=(1, current_schedule))
-                    awi.bb_remove(section='cfps', query={'publisher': self.id, 'time': t
-                        , 'product': p})
+                    cfp = CFP(
+                        is_buy=True,
+                        publisher=self.id,
+                        product=p,
+                        time=t,
+                        unit_price=(0, max_price),
+                        quantity=(1, current_schedule),
+                    )
+                    awi.bb_remove(
+                        section="cfps",
+                        query={"publisher": self.id, "time": t, "product": p},
+                    )
                     awi.register_cfp(cfp)
                     break
         else:
-            cfp = CFP(is_buy=True, publisher=self.id, product=p
-                      , time=t, unit_price=(0, max_price), quantity=(1, current_schedule))
+            cfp = CFP(
+                is_buy=True,
+                publisher=self.id,
+                product=p,
+                time=t,
+                unit_price=(0, max_price),
+                quantity=(1, current_schedule),
+            )
             awi.register_cfp(cfp)
 
     def step(self):
         if self.consumption_horizon is None:
             horizon = self.awi.n_steps
         else:
-            horizon = min(self.awi.current_step + self.consumption_horizon + 1, self.awi.n_steps)
+            horizon = min(
+                self.awi.current_step + self.consumption_horizon + 1, self.awi.n_steps
+            )
         for p, profile in self.profiles.items():
-            for t in range(self.awi.current_step, horizon):  # + self.transportation_delay
+            for t in range(
+                self.awi.current_step, horizon
+            ):  # + self.transportation_delay
                 self.register_product_cfps(p=p, t=t, profile=profile)
 
     def confirm_contract_execution(self, contract: Contract) -> bool:
@@ -191,18 +243,18 @@ class ScheduleDrivenConsumer(Consumer):
     @staticmethod
     def _qufun(outcome: Dict[str, Any], tau: float, profile: ConsumptionProfile):
         """The ufun value for quantity"""
-        q, t = outcome['quantity'], outcome['time']
+        q, t = outcome["quantity"], outcome["time"]
         y = profile.schedule_within(t)
         o = profile.overconsumption
         u = profile.underconsumption
         if q == 0 and y != 0:
             return 0.0
         if y <= 0:
-            result = - o * ((q - y) ** tau)
+            result = -o * ((q - y) ** tau)
         elif q > y:
-            result = - o * (((q - y) / y) ** tau)
+            result = -o * (((q - y) / y) ** tau)
         elif q < y:
-            result = - u * (((y - q) / y) ** tau)
+            result = -u * (((y - q) / y) ** tau)
         else:
             result = 1.0
         result = math.exp(result)
@@ -212,30 +264,45 @@ class ScheduleDrivenConsumer(Consumer):
             result = -1000.0
         return result
 
-    def respond_to_negotiation_request(self, cfp: "CFP", partner: str) -> Optional[Negotiator]:
+    def respond_to_negotiation_request(
+        self, cfp: "CFP", partner: str
+    ) -> Optional[Negotiator]:
         if self.awi.is_bankrupt(partner):
             return None
         profile = self.profiles[cfp.product]
         if profile.cv == 0:
             alpha_u, alpha_q = profile.alpha_u, profile.alpha_q
         else:
-            alpha_u, alpha_q = tuple(dirichlet((profile.alpha_u, profile.alpha_q), size=1)[0])
+            alpha_u, alpha_q = tuple(
+                dirichlet((profile.alpha_u, profile.alpha_q), size=1)[0]
+            )
         beta_u = pos_gauss(profile.beta_u, profile.cv)
         tau_u = pos_gauss(profile.tau_u, profile.cv)
         tau_q = pos_gauss(profile.tau_q, profile.cv)
-        ufun = ComplexWeightedUtilityFunction(ufuns=[
-            MappingUtilityFunction(mapping=lambda x: 1 - x['unit_price'] ** tau_u / beta_u)
-            , MappingUtilityFunction(mapping=functools.partial(ScheduleDrivenConsumer._qufun
-                                                               , tau=tau_q, profile=profile))]
-            , weights=[alpha_u, alpha_q], name=self.name + '_' + partner)
+        ufun = ComplexWeightedUtilityFunction(
+            ufuns=[
+                MappingUtilityFunction(
+                    mapping=lambda x: 1 - x["unit_price"] ** tau_u / beta_u
+                ),
+                MappingUtilityFunction(
+                    mapping=functools.partial(
+                        ScheduleDrivenConsumer._qufun, tau=tau_q, profile=profile
+                    )
+                ),
+            ],
+            weights=[alpha_u, alpha_q],
+            name=self.name + "_" + partner,
+        )
         ufun.reserved_value = -1500
-        #ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1500)
-        negotiator = self.negotiator_type(name=self.name + '*' + partner)
-        negotiator.name = self.name + '_' + partner
+        # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1500)
+        negotiator = self.negotiator_type(name=self.name + "*" + partner)
+        negotiator.name = self.name + "_" + partner
         negotiator.utility_function = ufun
         return negotiator
 
-    def set_renegotiation_agenda(self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]:
+    def set_renegotiation_agenda(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> Optional[RenegotiationRequest]:
         """
         Received by partners in ascending order of their total breach levels in order to set the
         renegotiation agenda when contract execution fails
@@ -252,8 +319,9 @@ class ScheduleDrivenConsumer(Consumer):
         """
         return None
 
-    def respond_to_renegotiation_request(self, contract: Contract, breaches: List[Breach]
-                                         , agenda: RenegotiationRequest) -> Optional[Negotiator]:
+    def respond_to_renegotiation_request(
+        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+    ) -> Optional[Negotiator]:
         """
         Called to respond to a renegotiation request
 
@@ -278,29 +346,30 @@ class ScheduleDrivenConsumer(Consumer):
     def sign_contract(self, contract: Contract) -> Optional[str]:
         if contract is None:
             return None
-        cfp: CFP = contract.annotation['cfp']
+        cfp: CFP = contract.annotation["cfp"]
         agreement = contract.agreement  # type: ignore
-        schedule = self.profiles[cfp.product].schedule_at(agreement['time'])
-        if schedule - agreement['quantity'] < 0:
+        schedule = self.profiles[cfp.product].schedule_at(agreement["time"])
+        if schedule - agreement["quantity"] < 0:
             return None
         return self.id
 
     def on_contract_signed(self, contract: Contract):
         if contract is None:
             return
-        cfp: CFP = contract.annotation['cfp']
+        cfp: CFP = contract.annotation["cfp"]
         agreement = contract.agreement  # type: ignore
-        self.secured_quantities[cfp.product] += agreement['quantity']
-        old_quantity = self.profiles[cfp.product].schedule_at(agreement['time'])
-        new_quantity = old_quantity - agreement['quantity']
-        t = agreement['time']
-        self.profiles[cfp.product].set_schedule_at(time=t
-                                                   , value=new_quantity
-                                                   , n_steps=self.awi.n_steps)
+        self.secured_quantities[cfp.product] += agreement["quantity"]
+        old_quantity = self.profiles[cfp.product].schedule_at(agreement["time"])
+        new_quantity = old_quantity - agreement["quantity"]
+        t = agreement["time"]
+        self.profiles[cfp.product].set_schedule_at(
+            time=t, value=new_quantity, n_steps=self.awi.n_steps
+        )
         if self.immediate_cfp_update and new_quantity != old_quantity:
-            self.register_product_cfps(p=cfp.product, t=t, profile=self.profiles[cfp.product])
+            self.register_product_cfps(
+                p=cfp.product, t=t, profile=self.profiles[cfp.product]
+            )
         for negotiation in self._running_negotiations.values():
-            self.notify(negotiation.negotiator, Notification(type='ufun_modified', data=None))
-
-
-
+            self.notify(
+                negotiation.negotiator, Notification(type="ufun_modified", data=None)
+            )

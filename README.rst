@@ -34,7 +34,8 @@
         :target: https://negmas/readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/ambv/black
 
 NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.
 The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulations

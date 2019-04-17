@@ -31,7 +31,16 @@ import xml.etree.ElementTree as ET
 from enum import Enum
 from functools import reduce
 from operator import mul
-from typing import Optional, Collection, List, Generator, Iterable, Sequence, Union, Type
+from typing import (
+    Optional,
+    Collection,
+    List,
+    Generator,
+    Iterable,
+    Sequence,
+    Union,
+    Type,
+)
 from typing import Tuple, Mapping, Dict, Any
 
 import numpy as np
@@ -45,27 +54,28 @@ from .helpers import unique_name
 
 LARGE_NUMBER = 100
 __all__ = [
-    'Outcome',
-    'OutcomeType',
-    'OutcomeRange',
-    'ResponseType',
-    'Issue',
-    'Issues',
-    'outcome_is_valid',
-    'outcome_is_complete',
-    'outcome_range_is_valid',
-    'outcome_range_is_complete',
-    'outcome_in_range',
-    'enumerate_outcomes',
-    'sample_outcomes',
-    'outcome_as_dict',
-    'outcome_as_tuple',
-    'num_outcomes',
+    "Outcome",
+    "OutcomeType",
+    "OutcomeRange",
+    "ResponseType",
+    "Issue",
+    "Issues",
+    "outcome_is_valid",
+    "outcome_is_complete",
+    "outcome_range_is_valid",
+    "outcome_range_is_complete",
+    "outcome_in_range",
+    "enumerate_outcomes",
+    "sample_outcomes",
+    "outcome_as_dict",
+    "outcome_as_tuple",
+    "num_outcomes",
 ]
 
 
 class ResponseType(Enum):
     """Possible answers to offers during negotiation."""
+
     ACCEPT_OFFER = 0
     REJECT_OFFER = 1
     END_NEGOTIATION = 2
@@ -116,8 +126,7 @@ class Issue(NamedObject):
         self.values = values
 
     @classmethod
-    def to_xml_str(cls, issues: List['Issue']
-                   , enumerate_integer: bool = True) -> str:
+    def to_xml_str(cls, issues: List["Issue"], enumerate_integer: bool = True) -> str:
         """Converts the list of issues into a well-formed xml string
 
         Examples:
@@ -178,31 +187,39 @@ class Issue(NamedObject):
 
 
         """
-        output = f'<negotiation_template>\n<utility_space number_of_issues="{len(issues)}">\n' \
-                 f'<objective description="" etype="objective" index="0" name="root" type="objective">\n'
+        output = (
+            f'<negotiation_template>\n<utility_space number_of_issues="{len(issues)}">\n'
+            f'<objective description="" etype="objective" index="0" name="root" type="objective">\n'
+        )
         for indx, issue in enumerate(issues):
             if isinstance(issue.values, int):
                 if enumerate_integer:
                     output += f'    <issue etype="discrete" index="{indx+1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
                     for i, v in enumerate(range(issue.values)):
                         output += f'        <item index="{i+1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
-                    output += '    </issue>\n'
+                    output += "    </issue>\n"
                 else:
-                    output += f'    <issue etype="integer" index="{indx+1}" name="{issue.name}" type="integer" vtype="integer"' \
-                              f' lowerbound="0" upperbound="{issue.values-1}" />\n'
+                    output += (
+                        f'    <issue etype="integer" index="{indx+1}" name="{issue.name}" type="integer" vtype="integer"'
+                        f' lowerbound="0" upperbound="{issue.values-1}" />\n'
+                    )
             elif isinstance(issue.values, tuple):
-                output += f'    <issue etype="real" index="{indx+1}" name="{issue.name}" type="real" vtype="real">\n' \
-                          f'        <range lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}"></range>\n    </issue>\n'
+                output += (
+                    f'    <issue etype="real" index="{indx+1}" name="{issue.name}" type="real" vtype="real">\n'
+                    f'        <range lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}"></range>\n    </issue>\n'
+                )
             else:
                 output += f'    <issue etype="discrete" index="{indx+1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
                 for i, v in enumerate(issue.values):
                     output += f'        <item index="{i+1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
-                output += '    </issue>\n'
-        output += f'</objective>\n</utility_space>\n</negotiation_template>'
+                output += "    </issue>\n"
+        output += f"</objective>\n</utility_space>\n</negotiation_template>"
         return output
 
     @classmethod
-    def to_genius(cls, issues: Iterable['Issue'], file_name: str, enumerate_integer: bool = True) -> None:
+    def to_genius(
+        cls, issues: Iterable["Issue"], file_name: str, enumerate_integer: bool = True
+    ) -> None:
         """Exports a the domain issues to a GENIUS XML file.
 
         Args:
@@ -251,14 +268,22 @@ class Issue(NamedObject):
             See ``from_xml_str`` for all the parameters
 
         """
-        with open(file_name, 'w') as f:
-            f.write(cls.to_xml_str(issues=list(issues), enumerate_integer=enumerate_integer))
+        with open(file_name, "w") as f:
+            f.write(
+                cls.to_xml_str(issues=list(issues), enumerate_integer=enumerate_integer)
+            )
 
     @classmethod
-    def from_xml_str(cls, xml_str: str
-                     , force_single_issue=False, keep_value_names=True, keep_issue_names=True, safe_parsing=True
-                     , n_discretization: Optional[int] = None
-                     , max_n_outcomes: int = 1e6):
+    def from_xml_str(
+        cls,
+        xml_str: str,
+        force_single_issue=False,
+        keep_value_names=True,
+        keep_issue_names=True,
+        safe_parsing=True,
+        n_discretization: Optional[int] = None,
+        max_n_outcomes: int = 1e6,
+    ):
         """Exports a list/dict of issues from a GENIUS XML file.
 
         Args:
@@ -363,57 +388,68 @@ class Issue(NamedObject):
             [-1]
         """
         root = ET.fromstring(xml_str)
-        if safe_parsing and root.tag != 'negotiation_template':
-            raise ValueError(f'Root tag is {root.tag}: negotiation_template')
+        if safe_parsing and root.tag != "negotiation_template":
+            raise ValueError(f"Root tag is {root.tag}: negotiation_template")
 
         utility_space = None
         agents = []
         for child in root:
-            if child.tag == 'utility_space':
+            if child.tag == "utility_space":
                 utility_space = child
                 for _ in utility_space:
-                    if _.tag == 'objective':
+                    if _.tag == "objective":
                         utility_space = _
                         break
-            elif child.tag == 'agent':
+            elif child.tag == "agent":
                 agents.append(child.attrib)
 
         if utility_space is None:
             if safe_parsing:
-                raise ValueError(f'No objective child was found in the root')
+                raise ValueError(f"No objective child was found in the root")
             utility_space = root
         weights = {}
         issues = {}
         issue_info = {}
         all_discrete = True
         for child in utility_space:
-            if child.tag == 'issue':
-                indx = int(child.attrib['index']) - 1
-                myname = child.attrib['name']
+            if child.tag == "issue":
+                indx = int(child.attrib["index"]) - 1
+                myname = child.attrib["name"]
                 issue_key = myname if keep_issue_names else indx
-                issue_info[issue_key] = {'name': myname, 'index': indx}
-                info = {'type': 'discrete', 'etype': 'discrete', 'vtype': 'discrete'}
-                for a in ('type', 'etype', 'vtype'):
+                issue_info[issue_key] = {"name": myname, "index": indx}
+                info = {"type": "discrete", "etype": "discrete", "vtype": "discrete"}
+                for a in ("type", "etype", "vtype"):
                     info[a] = child.attrib.get(a, info[a])
-                mytype = info['type']
-                if mytype == 'discrete':
+                mytype = info["type"]
+                if mytype == "discrete":
                     issues[issue_key] = []
                     for item in child:
-                        if item.tag == 'item':
-                            item_indx = int(item.attrib['index']) - 1
-                            item_name = item.attrib.get('value', None)
-                            item_key = item_name if keep_value_names and item_name is not None else item_indx
-                            if item_key not in issues[issue_key]:  # ignore repeated items
+                        if item.tag == "item":
+                            item_indx = int(item.attrib["index"]) - 1
+                            item_name = item.attrib.get("value", None)
+                            item_key = (
+                                item_name
+                                if keep_value_names and item_name is not None
+                                else item_indx
+                            )
+                            if (
+                                item_key not in issues[issue_key]
+                            ):  # ignore repeated items
                                 issues[issue_key].append(item_key)
                     if not keep_value_names:
                         issues[issue_key] = len(issues[issue_key])
-                elif mytype in ('integer', 'real'):
-                    lower, upper = child.attrib.get('lowerbound', None), child.attrib.get('upperbound', None)
+                elif mytype in ("integer", "real"):
+                    lower, upper = (
+                        child.attrib.get("lowerbound", None),
+                        child.attrib.get("upperbound", None),
+                    )
                     for rng_child in child:
-                        if rng_child.tag == 'range':
-                            lower, upper = rng_child.attrib.get('lowerbound', lower), rng_child.attrib.get('upperbound',
-                                                                                                           upper)
-                    if mytype == 'integer':
+                        if rng_child.tag == "range":
+                            lower, upper = (
+                                rng_child.attrib.get("lowerbound", lower),
+                                rng_child.attrib.get("upperbound", upper),
+                            )
+                    if mytype == "integer":
                         lower, upper = int(lower), int(upper)
                         if keep_value_names:
                             issues[issue_key] = list(range(lower, upper + 1))
@@ -427,16 +463,22 @@ class Issue(NamedObject):
                             issues[issue_key] = n_discretization
                 else:
                     # I should add the real-valued issues code here
-                    raise ValueError(f'Unknown type: {mytype}')
+                    raise ValueError(f"Unknown type: {mytype}")
             else:
-                raise ValueError(f'Unknown child for objective: {child.tag}')
+                raise ValueError(f"Unknown child for objective: {child.tag}")
 
         for key, value in zip(ikeys(issues), ivalues(issues)):
-            issues[key] = Issue(values=value,
-                                name=issue_info[key]['name'] if keep_issue_names else str(issue_info[key]['index']))
+            issues[key] = Issue(
+                values=value,
+                name=issue_info[key]["name"]
+                if keep_issue_names
+                else str(issue_info[key]["index"]),
+            )
         issues = list(issues.values())
         if force_single_issue:
-            issue_name_ = '-'.join([_.name for _ in issues]) if keep_issue_names else '0'
+            issue_name_ = (
+                "-".join([_.name for _ in issues]) if keep_issue_names else "0"
+            )
             if all_discrete or n_discretization is not None:
                 n_outcomes = None
                 if max_n_outcomes is not None:
@@ -446,11 +488,19 @@ class Issue(NamedObject):
                         return None, None
                 if keep_value_names:
                     if len(issues) > 1:
-                        all_values = itertools.product(*[[str(_) for _ in issue.alli(n=n_discretization)]
-                                                         for issue_key, issue in zip(range(len(issues)), issues)])
-                        all_values = list(map(lambda items: '+'.join(items), all_values))
+                        all_values = itertools.product(
+                            *[
+                                [str(_) for _ in issue.alli(n=n_discretization)]
+                                for issue_key, issue in zip(range(len(issues)), issues)
+                            ]
+                        )
+                        all_values = list(
+                            map(lambda items: "+".join(items), all_values)
+                        )
                     else:
-                        all_values = [str(_) for _ in issues[0].alli(n=n_discretization)]
+                        all_values = [
+                            str(_) for _ in issues[0].alli(n=n_discretization)
+                        ]
                     issues = [Issue(values=all_values, name=issue_name_)]
                 else:
                     if n_outcomes is None:
@@ -462,10 +512,16 @@ class Issue(NamedObject):
         return issues, agents
 
     @classmethod
-    def from_genius(cls, file_name: str, force_single_issue=False, keep_value_names=True, keep_issue_names=True,
-                    safe_parsing=True
-                    , n_discretization: Optional[int] = None
-                    , max_n_outcomes: int = 1e6):
+    def from_genius(
+        cls,
+        file_name: str,
+        force_single_issue=False,
+        keep_value_names=True,
+        keep_issue_names=True,
+        safe_parsing=True,
+        n_discretization: Optional[int] = None,
+        max_n_outcomes: int = 1e6,
+    ):
         """Imports a the domain issues from a GENIUS XML file.
 
         Args:
@@ -488,15 +544,20 @@ class Issue(NamedObject):
             See ``from_xml_str`` for all the parameters
 
         """
-        with open(file_name, 'r', encoding='utf-8') as f:
+        with open(file_name, "r", encoding="utf-8") as f:
             xml_str = f.read()
-            return cls.from_xml_str(xml_str=xml_str, force_single_issue=force_single_issue
-                                    , keep_value_names=keep_value_names, keep_issue_names=keep_issue_names
-                                    , safe_parsing=safe_parsing, n_discretization=n_discretization
-                                    , max_n_outcomes=max_n_outcomes)
+            return cls.from_xml_str(
+                xml_str=xml_str,
+                force_single_issue=force_single_issue,
+                keep_value_names=keep_value_names,
+                keep_issue_names=keep_issue_names,
+                safe_parsing=safe_parsing,
+                n_discretization=n_discretization,
+                max_n_outcomes=max_n_outcomes,
+            )
 
     @staticmethod
-    def n_outcomes(issues: Iterable['Issue']) -> int:
+    def n_outcomes(issues: Iterable["Issue"]) -> int:
         """Returns the total number of outcomes in a set of issues. `-1` indicates infinity"""
         n = 1
         for issue in issues:
@@ -511,7 +572,7 @@ class Issue(NamedObject):
         issues: Sequence[Union[int, List[str], Tuple[float, float]]],
         counts: Optional[Sequence[int]] = None,
         names: Optional[Sequence[str]] = None,
-    ) -> List['Issue']:
+    ) -> List["Issue"]:
         """Generates a set of issues with given parameters. Each is optionally repeated
 
         Args:
@@ -547,16 +608,14 @@ class Issue(NamedObject):
             str: either 'continuous' or 'discrete'
 
         """
-        if isinstance(self.values, tuple) and isinstance(
-            self.values[0], float
-        ):
-            return 'continuous'
+        if isinstance(self.values, tuple) and isinstance(self.values[0], float):
+            return "continuous"
 
         elif isinstance(self.values, int) or isinstance(self.values, list):
-            return 'discrete'
+            return "discrete"
 
         raise ValueError(
-            'Unknown type. Note that a Tuple[int, int] is not allowed as a range.'
+            "Unknown type. Note that a Tuple[int, int] is not allowed as a range."
         )
 
     def is_continuous(self) -> bool:
@@ -566,7 +625,7 @@ class Issue(NamedObject):
             bool: continuous or not
 
         """
-        return self.type.startswith('c')
+        return self.type.startswith("c")
 
     def is_discrete(self) -> bool:
         """Test whether the issue is a discrete issue
@@ -575,7 +634,7 @@ class Issue(NamedObject):
             bool: discrete or not
 
         """
-        return self.type.startswith('d')
+        return self.type.startswith("d")
 
     @property
     def all(self) -> Generator:
@@ -591,9 +650,7 @@ class Issue(NamedObject):
 
         """
         if self.is_continuous():
-            raise ValueError(
-                'Cannot return all possibilities of a continuous issue'
-            )
+            raise ValueError("Cannot return all possibilities of a continuous issue")
 
         if isinstance(self.values, int):
             yield from range(self.values)
@@ -615,8 +672,10 @@ class Issue(NamedObject):
         """
         if self.is_continuous():
             if n is None:
-                raise ValueError('Real valued issue with no discretization value')
-            yield from np.linspace(self.values[0], self.values[1], num=n, endpoint=True).tolist()
+                raise ValueError("Real valued issue with no discretization value")
+            yield from np.linspace(
+                self.values[0], self.values[1], num=n, endpoint=True
+            ).tolist()
 
         if isinstance(self.values, int):
             yield from range(self.values)
@@ -639,20 +698,22 @@ class Issue(NamedObject):
             return random.randint(0, self.values - 1)
 
         elif self.is_continuous():
-            return random.random() * (
-                self.values[1] - self.values[0]
-            ) + self.values[
-                       0
-                   ]  # type: ignore
+            return (
+                random.random() * (self.values[1] - self.values[0]) + self.values[0]
+            )  # type: ignore
 
         return random.choice(self.values)  # type: ignore
 
-    def rand_outcomes(self, n: int, with_replacement=False, fail_if_not_enough=False) -> Iterable["Outcome"]:
+    def rand_outcomes(
+        self, n: int, with_replacement=False, fail_if_not_enough=False
+    ) -> Iterable["Outcome"]:
         """Picks a random valid value."""
         if isinstance(self.values, int):
             if n > self.values and not with_replacement:
                 if fail_if_not_enough:
-                    raise ValueError(f'Cannot sample {n} outcomes out of {self.values} without replacement')
+                    raise ValueError(
+                        f"Cannot sample {n} outcomes out of {self.values} without replacement"
+                    )
                 else:
                     return [_ for _ in range(self.values)]
             if with_replacement:
@@ -661,17 +722,27 @@ class Issue(NamedObject):
                 return random.shuffle([_ for _ in range(self.values)])[:n]
         elif self.is_continuous():
             if with_replacement:
-                return (np.random.rand(n) * (self.values[1] - self.values[0]) + self.values[0]).tolist()
+                return (
+                    np.random.rand(n) * (self.values[1] - self.values[0])
+                    + self.values[0]
+                ).tolist()
             else:
-                return np.linspace(self.values[0], self.values[1], num=n, endpoint=True).tolist()
+                return np.linspace(
+                    self.values[0], self.values[1], num=n, endpoint=True
+                ).tolist()
 
         if n > len(self.values) and not with_replacement:
             if fail_if_not_enough:
-                raise ValueError(f'Cannot sample {n} outcomes out of {self.values} without replacement')
+                raise ValueError(
+                    f"Cannot sample {n} outcomes out of {self.values} without replacement"
+                )
             else:
                 return self.values
-        return np.random.choice(np.asarray(self.values, dtype=type(self.values[0])), size=n
-                                , replace=with_replacement).tolist()
+        return np.random.choice(
+            np.asarray(self.values, dtype=type(self.values[0])),
+            size=n,
+            replace=with_replacement,
+        ).tolist()
 
     rand_valid = rand
 
@@ -681,17 +752,22 @@ class Issue(NamedObject):
             return random.randint(self.values + 1, 2 * self.values)
 
         elif self.is_continuous():
-            return random.random() * (self.values[1]) + self.values[
-                1
-            ] + 1e-3  # type: ignore
+            return (
+                random.random() * (self.values[1]) + self.values[1] + 1e-3
+            )  # type: ignore
 
-        pick = unique_name('') + str(random.choice(self.values)) + unique_name(
-            ''
+        pick = (
+            unique_name("") + str(random.choice(self.values)) + unique_name("")
         )  # type: ignore
         return pick
 
     @classmethod
-    def enumerate(cls, issues: Collection['Issue'], max_n_outcomes: int=None, astype: Type = dict) -> List["Outcome"]:
+    def enumerate(
+        cls,
+        issues: Collection["Issue"],
+        max_n_outcomes: int = None,
+        astype: Type = dict,
+    ) -> List["Outcome"]:
         n = num_outcomes(issues)
         if n is None:
             return cls.sample(issues=issues, n_outcomes=max_n_outcomes, astype=astype)
@@ -709,8 +785,14 @@ class Issue(NamedObject):
         return outcomes
 
     @classmethod
-    def sample(cls, issues: Collection['Issue'], n_outcomes: int, astype: Type = dict
-               , with_replacement: bool=True, fail_if_not_enough=True) -> List["Outcome"]:
+    def sample(
+        cls,
+        issues: Collection["Issue"],
+        n_outcomes: int,
+        astype: Type = dict,
+        with_replacement: bool = True,
+        fail_if_not_enough=True,
+    ) -> List["Outcome"]:
         """
         Samples some outcomes from the issue space defined by the list of issues
 
@@ -768,17 +850,30 @@ class Issue(NamedObject):
 
         """
         n_total = num_outcomes(issues)
-        if n_total is not None and n_outcomes is not None and n_total < n_outcomes \
-            and fail_if_not_enough and not with_replacement:
-            raise ValueError(f'Cannot sample {n_outcomes} from a total of possible {n_total} outcomes')
+        if (
+            n_total is not None
+            and n_outcomes is not None
+            and n_total < n_outcomes
+            and fail_if_not_enough
+            and not with_replacement
+        ):
+            raise ValueError(
+                f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes"
+            )
         if n_total is not None and n_outcomes is None:
             values = enumerate_outcomes(issues=issues, keep_issue_names=False)
         elif n_total is None and n_outcomes is None:
-            raise ValueError(f'Cannot sample unknown number of outcomes from continuous outcome spaces')
+            raise ValueError(
+                f"Cannot sample unknown number of outcomes from continuous outcome spaces"
+            )
         else:
             samples = []
             for issue in issues:
-                samples.append(issue.rand_outcomes(n=n_outcomes, with_replacement=True, fail_if_not_enough=True))
+                samples.append(
+                    issue.rand_outcomes(
+                        n=n_outcomes, with_replacement=True, fail_if_not_enough=True
+                    )
+                )
             values = []
             for i in range(n_outcomes):
                 values.append([s[i] for s in samples])
@@ -790,8 +885,17 @@ class Issue(NamedObject):
                 remaining = n_outcomes - len(tmp_values)
                 n_max_trials, i = 10, 0
                 while remaining < 0 and i < n_max_trials:
-                    tmp_values = tmp_values.union(set(cls.sample(issues=issues, n_outcomes=remaining, astype=tuple
-                                                         , with_replacement=True, fail_if_not_enough=False)))
+                    tmp_values = tmp_values.union(
+                        set(
+                            cls.sample(
+                                issues=issues,
+                                n_outcomes=remaining,
+                                astype=tuple,
+                                with_replacement=True,
+                                fail_if_not_enough=False,
+                            )
+                        )
+                    )
                     i += 1
                 values = list(tmp_values)
 
@@ -806,7 +910,7 @@ class Issue(NamedObject):
         return outcomes
 
     @property
-    def outcome_range(self) -> 'OutcomeRange':
+    def outcome_range(self) -> "OutcomeRange":
         """An outcome range that represents the full space of the issues"""
         outcome_range = {}
         if self.is_continuous():
@@ -816,7 +920,7 @@ class Issue(NamedObject):
         return outcome_range
 
     def __str__(self):
-        return f'{self.name}: {self.values}'
+        return f"{self.name}: {self.values}"
 
     __repr__ = __str__
 
@@ -835,32 +939,51 @@ class Issue(NamedObject):
         return Issue(name=self.name, values=self.values)
 
     @classmethod
-    def from_java(cls, d: Dict[str, Any], class_name: str) -> 'Issue':
-        if class_name.endswith('ListIssue'):
-            return Issue(name=d.get('name', None), values=d['values'])
-        if class_name.endswith('RangeIssue'):
-            return Issue(name=d.get('name', None), values=(d['min'], d['max']))
-        raise ValueError(f'Unknown issue type: {class_name} with dict {d} received from Java')
+    def from_java(cls, d: Dict[str, Any], class_name: str) -> "Issue":
+        if class_name.endswith("ListIssue"):
+            return Issue(name=d.get("name", None), values=d["values"])
+        if class_name.endswith("RangeIssue"):
+            return Issue(name=d.get("name", None), values=(d["min"], d["max"]))
+        raise ValueError(
+            f"Unknown issue type: {class_name} with dict {d} received from Java"
+        )
 
     def to_java(self):
         if self.values is None:
             return None
         if isinstance(self.values, tuple):
             if isinstance(self.values[0], int):
-                return {'name': self.name, 'min': int(self.values[0]), 'max': int(self.values[0])
-                        , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.IntRangeIssue'}
+                return {
+                    "name": self.name,
+                    "min": int(self.values[0]),
+                    "max": int(self.values[0]),
+                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntRangeIssue",
+                }
             else:
-                return {'name': self.name, 'min': float(self.values[0]), 'max': float(self.values[0])
-                    , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.DoubleRangeIssue'}
+                return {
+                    "name": self.name,
+                    "min": float(self.values[0]),
+                    "max": float(self.values[0]),
+                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleRangeIssue",
+                }
         if isinstance(self.values, Iterable):
             if isinstance(self.values[0], int):
-                return {'name': self.name, 'values': [int(_) for _ in self.values]
-                        , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.IntListIssue'}
+                return {
+                    "name": self.name,
+                    "values": [int(_) for _ in self.values],
+                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntListIssue",
+                }
             elif isinstance(self.values[0], str):
-                return {'name': self.name, 'values': [str(_) for _ in self.values]
-                        , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.StringListIssue'}
-            return {'name': self.name, 'values': [float(_) for _ in self.values]
-                    , PYTHON_CLASS_IDENTIFIER: 'negmas.outcomes.DoubleListIssue'}
+                return {
+                    "name": self.name,
+                    "values": [str(_) for _ in self.values],
+                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.StringListIssue",
+                }
+            return {
+                "name": self.name,
+                "values": [float(_) for _ in self.values],
+                PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleListIssue",
+            }
 
 
 class Issues(object):
@@ -925,7 +1048,7 @@ class Issues(object):
             bool: continuous or not
 
         """
-        return any(_.startswith('c') for _ in self.types)
+        return any(_.startswith("c") for _ in self.types)
 
     def is_finite(self) -> bool:
         """Test whether all issues are discrete (finite outcome space)
@@ -934,7 +1057,7 @@ class Issues(object):
             bool: discrete or not
 
         """
-        return all(_.startswith('d') for _ in self.types)
+        return all(_.startswith("d") for _ in self.types)
 
     @property
     def all(self) -> Generator:
@@ -947,9 +1070,7 @@ class Issues(object):
 
         """
         if self.is_infinite():
-            raise ValueError(
-                'Cannot return all possibilities of a continuous issues'
-            )
+            raise ValueError("Cannot return all possibilities of a continuous issues")
 
         yield from itertools.product(_.all for _ in self.issues)
 
@@ -968,7 +1089,7 @@ class Issues(object):
         return {_.name: _.rand_invalid() for _ in self.issues}
 
     @property
-    def outcome_range(self) -> 'OutcomeRange':
+    def outcome_range(self) -> "OutcomeRange":
         """An outcome range that represents the full space of the issues"""
         outcome_range = {}
         for issue in self.issues:
@@ -979,7 +1100,7 @@ class Issues(object):
         return outcome_range
 
     def __str__(self):
-        return '\n'.join([str(_) for _ in self.issues])
+        return "\n".join([str(_) for _ in self.issues])
 
 
 @dataclass
@@ -1050,11 +1171,15 @@ class OutcomeType:
             return default
 
 
-Outcome = Union[OutcomeType, Tuple[Union[int, float, str, list]], Dict[Union[int, str], Union[int, float, str, list]]]
+Outcome = Union[
+    OutcomeType,
+    Tuple[Union[int, float, str, list]],
+    Dict[Union[int, str], Union[int, float, str, list]],
+]
 """An outcome is either a tuple of values or a dict with name/value pairs."""
 
-Outcomes = List['Outcome']
-OutcomeRanges = List['OutcomeRange']
+Outcomes = List["Outcome"]
+OutcomeRanges = List["OutcomeRange"]
 
 
 OutcomeRange = Mapping[
@@ -1083,8 +1208,9 @@ def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
     return n
 
 
-def enumerate_outcomes(issues: Iterable[Issue], keep_issue_names=True) \
-    -> Optional[Union[List['Outcome'], Dict[str, 'Outcome']]]:
+def enumerate_outcomes(
+    issues: Iterable[Issue], keep_issue_names=True
+) -> Optional[Union[List["Outcome"], Dict[str, "Outcome"]]]:
     """Enumerates all outcomes of this set of issues if possible
 
     Args:
@@ -1105,9 +1231,13 @@ def enumerate_outcomes(issues: Iterable[Issue], keep_issue_names=True) \
     return outcomes
 
 
-def sample_outcomes(issues: Iterable[Issue], n_outcomes: Optional[int] = None, keep_issue_names=True
-                    , min_per_dim=5, expansion_policy=None) \
-    -> Optional[List[Optional['Outcome']]]:
+def sample_outcomes(
+    issues: Iterable[Issue],
+    n_outcomes: Optional[int] = None,
+    keep_issue_names=True,
+    min_per_dim=5,
+    expansion_policy=None,
+) -> Optional[List[Optional["Outcome"]]]:
     """Discretizes the issue space and returns either a predefined number of outcomes or uniform samples
 
     Args:
@@ -1159,8 +1289,14 @@ def sample_outcomes(issues: Iterable[Issue], n_outcomes: Optional[int] = None, k
         else:
             n_per_issue = min_per_dim
         for i, issue in enumerate(continuous):
-            issues[indx[i]] = Issue(name=issue.name, values=list(np.linspace(issue.values[0], issue.values[1],
-                                                                        num=n_per_issue, endpoint=True).tolist()))
+            issues[indx[i]] = Issue(
+                name=issue.name,
+                values=list(
+                    np.linspace(
+                        issue.values[0], issue.values[1], num=n_per_issue, endpoint=True
+                    ).tolist()
+                ),
+            )
 
     cardinality = 1
     for issue in issues:
@@ -1171,11 +1307,11 @@ def sample_outcomes(issues: Iterable[Issue], n_outcomes: Optional[int] = None, k
 
     if cardinality < n_outcomes:
         outcomes = list(enumerate_outcomes(issues, keep_issue_names=keep_issue_names))
-        if expansion_policy == 'no' or expansion_policy is None:
+        if expansion_policy == "no" or expansion_policy is None:
             return outcomes
-        elif expansion_policy == 'null':
+        elif expansion_policy == "null":
             return outcomes + [None] * (n_outcomes - cardinality)
-        elif expansion_policy == 'repeat':
+        elif expansion_policy == "repeat":
             n_reps = n_outcomes // cardinality
             n_rem = n_outcomes % cardinality
             if n_reps > 1:
@@ -1185,7 +1321,11 @@ def sample_outcomes(issues: Iterable[Issue], n_outcomes: Optional[int] = None, k
                 outcomes += outcomes[:n_rem]
             return outcomes
 
-    return list(random.sample(enumerate_outcomes(issues, keep_issue_names=keep_issue_names), n_outcomes))
+    return list(
+        random.sample(
+            enumerate_outcomes(issues, keep_issue_names=keep_issue_names), n_outcomes
+        )
+    )
 
 
 def _is_single(x):
@@ -1238,8 +1378,7 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
             return False
 
         elif isinstance(issue.values, tuple) and (
-            isinstance(value, str)
-            or not issue.values[0] < value < issue.values[1]
+            isinstance(value, str) or not issue.values[0] < value < issue.values[1]
         ):
             return False
 
@@ -1439,9 +1578,10 @@ def outcome_in_range(
           tuple or another list. Notice that lists of lists can always be combined into a single list of values
 
     """
-    if fail_incomplete and len(
-        set(ikeys(outcome_range)).difference(ikeys(outcome))
-    ) > 0:
+    if (
+        fail_incomplete
+        and len(set(ikeys(outcome_range)).difference(ikeys(outcome))) > 0
+    ):
         return False
 
     for key, value in ienumerate(outcome):
@@ -1481,6 +1621,7 @@ def outcome_in_range(
             continue
 
     return True
+
 
 #
 # def _make_iterable(
@@ -2773,4 +2914,4 @@ def outcome_as_tuple(outcome: Outcome):
         return outcome.astuple()
     if isinstance(outcome, dict):
         return list(outcome.values())
-    raise ValueError(f'Unknown type for outcome {type(outcome)}')
+    raise ValueError(f"Unknown type for outcome {type(outcome)}")

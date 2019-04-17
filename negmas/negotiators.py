@@ -17,11 +17,7 @@ if TYPE_CHECKING:
     from negmas.outcomes import Outcome
     from negmas.utilities import UtilityValue, UtilityFunction
 
-__all__ = [
-    'Negotiator',  # Most abstract kind of agent
-    'AspirationMixin',
-    'Controller',
-]
+__all__ = ["Negotiator", "AspirationMixin", "Controller"]  # Most abstract kind of agent
 
 
 class Negotiator(NamedObject, Notifiable, ABC):
@@ -38,12 +34,16 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
     """
 
-    def __init__(self, name: str = None, ufun: Optional['UtilityFunction'] = None
-                 , parent: 'Controller' = None) -> None:
+    def __init__(
+        self,
+        name: str = None,
+        ufun: Optional["UtilityFunction"] = None,
+        parent: "Controller" = None,
+    ) -> None:
         super().__init__(name=name)
         self.__parent = parent
-        self._capabilities = {'enter': True, 'leave': True}
-        self.add_capabilities({'evaluate': True, 'compare': True})
+        self._capabilities = {"enter": True, "leave": True}
+        self.add_capabilities({"evaluate": True, "compare": True})
         self._mechanism_id = None
         self._ami = None
         self._initial_state = None
@@ -52,16 +52,21 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._role = None
 
     def __getattribute__(self, item):
-        if item in ('id', 'name') or item.startswith('_'):
+        if item in ("id", "name") or item.startswith("_"):
             return super().__getattribute__(item)
-        parent = super().__getattribute__('__dict__').get('_Negotiator__parent', None)
+        parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
         if parent is None:
             return super().__getattribute__(item)
         attr = getattr(parent, item, None)
         if attr is None:
             return super().__getattribute__(item)
         if isinstance(attr, Callable):
-            return functools.partial(attr, negotiator_id=super().__getattribute__('__dict__')['_NamedObject__uuid'])
+            return functools.partial(
+                attr,
+                negotiator_id=super().__getattribute__("__dict__")[
+                    "_NamedObject__uuid"
+                ],
+            )
         return super().__getattribute__(item)
 
     def before_death(self, cntxt: Dict[str, Any]) -> bool:
@@ -117,15 +122,21 @@ class Negotiator(NamedObject, Notifiable, ABC):
             It is the responsibility of the caller to be really capable of added capabilities.
 
         """
-        if hasattr(self, '_capabilities'):
+        if hasattr(self, "_capabilities"):
             self._capabilities.update(capabilities)
         else:
             self._capabilities = capabilities
 
             # CALL BACKS
 
-    def join(self, ami: AgentMechanismInterface, state: MechanismState
-                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
+    def join(
+        self,
+        ami: AgentMechanismInterface,
+        state: MechanismState,
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: str = "agent",
+    ) -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
@@ -233,24 +244,20 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
     def on_notification(self, notification: Notification, notifier: str):
         if notifier != self._mechanism_id:
-            raise ValueError(f'Notification is coming from unknown {notifier}')
-        if notification.type == 'negotiation_start':
+            raise ValueError(f"Notification is coming from unknown {notifier}")
+        if notification.type == "negotiation_start":
             self.on_negotiation_start(state=notification.data)
-        elif notification.type == 'round_start':
+        elif notification.type == "round_start":
             self.on_round_start(state=notification.data)
-        elif notification.type == 'round_end':
+        elif notification.type == "round_end":
             self.on_round_end(state=notification.data)
-        elif notification.type == 'negotiation_end':
+        elif notification.type == "negotiation_end":
             self.on_negotiation_end(state=notification.data)
 
     def __str__(self):
-        return f'{self.name}'
+        return f"{self.name}"
 
-    def compare(
-        self,
-        first: 'Outcome',
-        second: 'Outcome',
-    ) -> Optional['UtilityValue']:
+    def compare(self, first: "Outcome", second: "Outcome") -> Optional["UtilityValue"]:
         """
         Compares two offers using the `ufun`
 
@@ -267,14 +274,18 @@ class Negotiator(NamedObject, Notifiable, ABC):
         return self.utility_function.compare(first, second)
 
     class Java:
-        implements = ['jnegmas.negotiators.Negotiator']
+        implements = ["jnegmas.negotiators.Negotiator"]
 
 
 class AspirationMixin:
     """Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class."""
 
-    def aspiration_init(self
-                        , max_aspiration: float, aspiration_type: Union[str, int, float], above_reserved_value=True):
+    def aspiration_init(
+        self,
+        max_aspiration: float,
+        aspiration_type: Union[str, int, float],
+        above_reserved_value=True,
+    ):
         """
 
         Args:
@@ -282,7 +293,7 @@ class AspirationMixin:
             aspiration_type:
             above_reserved_value:
         """
-        self.add_capabilities({'aspiration': True})
+        self.add_capabilities({"aspiration": True})
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
         self.e = 1.0
@@ -290,14 +301,14 @@ class AspirationMixin:
             self.e = float(aspiration_type)
         elif isinstance(aspiration_type, float):
             self.e = aspiration_type
-        elif aspiration_type == 'boulware':
+        elif aspiration_type == "boulware":
             self.e = 4.0
-        elif aspiration_type == 'linear':
+        elif aspiration_type == "linear":
             self.e = 1.0
-        elif aspiration_type == 'conceder':
+        elif aspiration_type == "conceder":
             self.e = 0.25
         else:
-            raise ValueError(f'Unknown aspiration type {aspiration_type}')
+            raise ValueError(f"Unknown aspiration type {aspiration_type}")
         self.above_reserved = above_reserved_value
 
     def aspiration(self, t: float) -> float:
@@ -311,10 +322,16 @@ class AspirationMixin:
             aspiration level
         """
         if t is None:
-            raise ValueError(f'Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!')
+            raise ValueError(
+                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
+            )
         if self.e < 1e-7:
             return 0.0
-        pmin = self.reserved_value if self.above_reserved and self.reserved_value is not None else 0.0
+        pmin = (
+            self.reserved_value
+            if self.above_reserved and self.reserved_value is not None
+            else 0.0
+        )
         return pmin + (self.max_aspiration - pmin) * (1.0 - math.pow(t, self.e))
 
 
@@ -327,11 +344,14 @@ class Controller(NamedObject):
 
     """
 
-    def __init__(self, default_negotiator_type: Union[str, Type[Negotiator]] = None
-                 , default_negotiator_params: Dict[str, Any] = None
-                 , name: str = None):
+    def __init__(
+        self,
+        default_negotiator_type: Union[str, Type[Negotiator]] = None,
+        default_negotiator_params: Dict[str, Any] = None,
+        name: str = None,
+    ):
         super().__init__(name=name)
-        self._negotiators: Dict[str, Tuple['Negotiator', Dict[str, Any]]] = {}
+        self._negotiators: Dict[str, Tuple["Negotiator", Dict[str, Any]]] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
@@ -339,9 +359,13 @@ class Controller(NamedObject):
         self.__default_negotiator_type = default_negotiator_type
         self.__default_negotiator_params = default_negotiator_params
 
-    def create_negotiator(self, negotiator_type: Union[str, Type[Negotiator]] = None
-                          , name: str = None
-                          , cntxt: Dict[str, None] = None, **kwargs) -> Negotiator:
+    def create_negotiator(
+        self,
+        negotiator_type: Union[str, Type[Negotiator]] = None,
+        name: str = None,
+        cntxt: Dict[str, None] = None,
+        **kwargs,
+    ) -> Negotiator:
         """
         Creates a negotiator passing it the context
 
@@ -362,9 +386,13 @@ class Controller(NamedObject):
         elif isinstance(negotiator_type, str):
             negotiator_type = get_class(negotiator_type)
         if negotiator_type is None:
-            raise ValueError('No negotiator type is passed and no default negotiator type is defined for this '
-                             'controller')
-        new_negotiator = negotiator_type(name=name, parent=self, **self.__default_negotiator_params, **kwargs)
+            raise ValueError(
+                "No negotiator type is passed and no default negotiator type is defined for this "
+                "controller"
+            )
+        new_negotiator = negotiator_type(
+            name=name, parent=self, **self.__default_negotiator_params, **kwargs
+        )
         if new_negotiator is not None:
             self._negotiators[new_negotiator.id] = (new_negotiator, cntxt)
         return new_negotiator
@@ -409,8 +437,15 @@ class Controller(NamedObject):
         if response or force:
             self._negotiators.pop(negotiator_id, None)
 
-    def join(self, negotiator_id: str, ami: AgentMechanismInterface, state: MechanismState
-                 , *, ufun: Optional['UtilityFunction'] = None, role: str = 'agent') -> bool:
+    def join(
+        self,
+        negotiator_id: str,
+        ami: AgentMechanismInterface,
+        state: MechanismState,
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: str = "agent",
+    ) -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
@@ -428,8 +463,8 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'join', ami=ami, state=state, ufun=ufun, role=role)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "join", ami=ami, state=state, ufun=ufun, role=role)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -446,8 +481,8 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_negotiation_start', state=state)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_negotiation_start", state=state)
 
     def on_round_start(self, negotiator_id: str, state: MechanismState) -> None:
         """A call back called at each negotiation round start
@@ -463,8 +498,8 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_round_start', state=state)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_round_start", state=state)
 
     def on_mechanism_error(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -482,8 +517,8 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_mechanism_error', state=state)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_mechanism_error", state=state)
 
     def on_round_end(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -500,8 +535,8 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_round_end', state=state)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_round_end", state=state)
 
     def on_leave(self, negotiator_id: str, state: MechanismState) -> None:
         """A call back called after leaving a negotiation.
@@ -518,8 +553,8 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_leave', state=state)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_leave", state=state)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -536,14 +571,18 @@ class Controller(NamedObject):
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_negotiation_end', state=state)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_negotiation_end", state=state)
 
-    def on_notification(self, negotiator_id: str, notification: Notification, notifier: str):
+    def on_notification(
+        self, negotiator_id: str, notification: Notification, notifier: str
+    ):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
-            raise ValueError(f'Unknown negotiator {negotiator_id}')
-        return self.call(negotiator, 'on_notification', notification=notification, notifier=notifier)
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(
+            negotiator, "on_notification", notification=notification, notifier=notifier
+        )
 
     def __str__(self):
-        return f'{self.name}'
+        return f"{self.name}"

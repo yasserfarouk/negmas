@@ -4,32 +4,32 @@ from negmas.outcomes import Issue
 
 @fixture()
 def bissue():
-    return Issue(['be', 'not b'], name='binary')
+    return Issue(["be", "not b"], name="binary")
 
 
 @fixture()
 def hamlet():
-    return Issue(['val {}'.format(_) for _ in range(5)], name='THE problem')
+    return Issue(["val {}".format(_) for _ in range(5)], name="THE problem")
 
 
 @fixture()
 def uissue():
-    return Issue(['val {}'.format(_) for _ in range(5)])
+    return Issue(["val {}".format(_) for _ in range(5)])
 
 
 @fixture()
 def cissue():
-    return Issue((0.0, 1.0), name='c')
+    return Issue((0.0, 1.0), name="c")
 
 
 @fixture()
 def dissue():
-    return Issue(10, name='d')
+    return Issue(10, name="d")
 
 
 @fixture()
 def sissue():
-    return Issue(['val {}'.format(_) for _ in range(5)], name='s')
+    return Issue(["val {}".format(_) for _ in range(5)], name="s")
 
 
 @fixture()
