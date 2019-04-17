@@ -64,7 +64,7 @@ def cli():
 @cli.command(help='Run a tournament between candidate agent types')
 @click.option('--name', '-n', default='random',
               help='The name of the tournament. The special value "random" will result in a random name')
-@click.option('--steps', '-s', default=60, help='Number of steps.')
+@click.option('--steps', '-s', default=100, help='Number of steps.')
 @click.option('--ttype', '--tournament-type', '--tournament', default='anac2019collusion'
     , help='The config to use. Default is ANAC 2019. Options supported are anac2019std, anac2019collusion, '
            'anac2019sabotage')
@@ -143,7 +143,15 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
         if n_worlds > 100:
             print(f'You are running the maximum possible number of permutations for each configuration. This is roughly'
                   f' {n_worlds} simulations (each for {steps} steps). That will take a VERY long time.'
-                  f'\n\nYou can limit the maximum number of worlds to run by setting --max-runs=integer.')
+                  f'\n\nYou can reduce the number of simulations by setting --configs (currently {configs}) or --runs'
+                  f' (currently {runs}) to a lower value. If you are running a collusion competition, you can reduce'
+                  f' the number of simulations '
+                  f'{factorial(n_agents_per_competitor * len(all_competitors))/factorial(len(all_competitors))} times '
+                  f'by running a standard competition (--ttype=anac2019std).'
+                  f'\nFinally, you can limit the maximum number of worlds to run by setting --max-runs=integer.')
+            if ttype == 'anac2019collusion':
+                n_new = factorial(len(all_competitors)) * runs * configs
+                print(f'If you use --ttype=anac2019std (standard competition), the number of simulations will be {n_new}')
             if not input(f'Are you sure you want to run {n_worlds} simulations?').lower().startswith('y'):
                 exit(0)
 
@@ -183,7 +191,7 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
 
 
 @cli.command(help='Run an SCML world simulation')
-@click.option('--steps', default=120, help='Number of steps.')
+@click.option('--steps', default=100, help='Number of steps.')
 @click.option('--levels', default=3, help='Number of intermediate production levels (processes). '
                                           '-1 means a single product and no factories.')
 @click.option('--neg-speedup', default=21, help='Negotiation Speedup.')
