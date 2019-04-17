@@ -64,7 +64,7 @@ def cli():
 @cli.command(help='Run a tournament between candidate agent types')
 @click.option('--name', '-n', default='random',
               help='The name of the tournament. The special value "random" will result in a random name')
-@click.option('--steps', '-s', default=60, help='Number of steps.')
+@click.option('--steps', '-s', default=100, help='Number of steps.')
 @click.option('--ttype', '--tournament-type', '--tournament', default='anac2019collusion'
     , help='The config to use. Default is ANAC 2019. Options supported are anac2019std, anac2019collusion, '
            'anac2019sabotage')
@@ -183,7 +183,7 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
 
 
 @cli.command(help='Run an SCML world simulation')
-@click.option('--steps', default=120, help='Number of steps.')
+@click.option('--steps', default=100, help='Number of steps.')
 @click.option('--levels', default=3, help='Number of intermediate production levels (processes). '
                                           '-1 means a single product and no factories.')
 @click.option('--neg-speedup', default=21, help='Negotiation Speedup.')
