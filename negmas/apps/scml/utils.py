@@ -561,6 +561,7 @@ def anac2019_tournament(competitors: Sequence[Union[str, Type[FactoryManager]]]
                                       processing
         verbose: Verbosity
         configs_only: If true, a config file for each
+        compact: If true, effort will be made to reduce memory footprint including disableing most logs
         kwargs: Arguments to pass to the `world_generator` function
 
     Returns:
