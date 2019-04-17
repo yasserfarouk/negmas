@@ -30,7 +30,7 @@ class SCMLAgent(Agent):
         self.line_profiles: Dict[int, ManufacturingProfileCompiled] = {}
         """A mapping specifying for each `Process` index, all the profiles used to run it in the factory"""
         self.process_profiles: Dict[int, ManufacturingProfileCompiled] = {}
-        """A mapping specifying for each line index, all the profiles that can be run on it"""
+        """A mapping specifying for each `Process` index, all the profiles used to run it in the factory"""
         self.producing: Dict[int, List[ProductManufacturingInfo]] = defaultdict(list)
         """Mapping from a product to all manufacturing processes that can generate it"""
         self.consuming: Dict[int, List[ProductManufacturingInfo]] = defaultdict(list)
@@ -38,10 +38,16 @@ class SCMLAgent(Agent):
         self.compiled_profiles: List[ManufacturingProfileCompiled] = []
         """All the profiles to be used by the factory belonging to this agent compiled to use indices"""
         self.immediate_negotiations = False
+        """Whether or not negotiations start immediately upon registration (default is to start on the next production 
+        step)"""
         self.negotiation_speed_multiple: int = 1
+        """The number of negotiation rounds (steps) conducted in a single production step"""
         self.transportation_delay: int = 0
+        """Transportation delay in the system. Default is zero"""
         self.products: List[Product] = []
+        """List of products in the system"""
         self.processes: List[Process] = []
+        """List of processes in the system"""
 
     @property
     def awi(self) -> 'SCMLAWI':

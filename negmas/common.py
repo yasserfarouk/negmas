@@ -316,6 +316,7 @@ class NamedObject(object):
 
     @property
     def name(self):
+        """A convenient name of the entity (intended primarily for printing/logging/debugging)."""
         return self.__name
 
     @name.setter
@@ -324,6 +325,7 @@ class NamedObject(object):
 
     @property
     def uuid(self):
+        """The unique ID of this entity"""
         return self.__uuid
 
     @uuid.setter
@@ -332,6 +334,7 @@ class NamedObject(object):
 
     @property
     def id(self):
+        """The unique ID of this entity"""
         return self.__uuid
 
     @id.setter

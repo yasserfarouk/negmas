@@ -101,6 +101,11 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
     if max_runs <= 0:
         max_runs = None
 
+    if not compact:
+        if not reveal_names:
+            print('You are running the tournament with --debug. Will reveal agent types in their names')
+        reveal_names = True
+
     worlds_per_config = None if max_runs is None else max_runs / (configs * runs)
 
     parallelism = 'distributed' if distributed else 'parallel' if parallel else 'serial'
@@ -152,7 +157,8 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
                                      , name=name, verbose=verbosity > 0, n_runs_per_world=runs, n_configs=configs
                                      , max_worlds_per_config=worlds_per_config
                                      , configs_only=configs_only
-                                     , n_steps=steps, compact=compact)
+                                     , n_steps=steps, compact=compact
+                                     )
     else:
         print(f'{ttype.lower()} tournament type is not supported')
         exit(1)
@@ -249,7 +255,8 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
                                   , default_manager_params=factory_kwargs
                                   , transportation_delay=transport, time_limit=time, neg_time_limit=neg_time
                                   , neg_n_steps=neg_steps, default_signing_delay=sign
-                                  , n_lines_per_factory=lines, compact=compact)
+                                  , n_lines_per_factory=lines, compact=compact
+                                  , agent_names_reveal_type=True)
     failed = False
     strt = perf_counter()
     try:

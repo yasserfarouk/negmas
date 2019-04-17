@@ -29,19 +29,161 @@ __all__ = [
 
 
 class FactoryManager(SCMLAgent, ABC):
-    """Base factory manager class that will be inherited by participant negmas in ANAC 2019"""
+    """Base factory manager class that will be inherited by participant negmas in ANAC 2019.
 
-    @property
-    def type_name(self):
-        return super().type_name.replace('_factory_manager', '')
+    The agent can access the world simulation in one of two ways:
+
+    1. Attributes and methods available in the Agent-World-Interface (See `SCMLAWI` documentation for those).
+    2. Attributes and methods in the `FactoryManager` object itself. All factory managers will have the following
+       attributes and methods that simplify the interaction with the world simulation. Some of these attributes/methods
+       are convenient ways to access functionality already available in the agent's internal `SCMLAWI`.
+
+    **Attributes**
+
+    *Agent information*
+
+    - `id` : The unique ID assigned to this agent. This is unique system-wide and is what is used in contracts, CFPs,
+      etc.
+    - `name`: A name of the agent used for display purposes only. The simulator never accesses or uses this name except
+      in printing and logging.
+    - `uuid` : Another name of the `id` .
+    - `type_name` : A string giving the type of the agent (as a fully qualified python class name).
+
+    *Capabilities/Profiles*
+
+    - `line_profiles` : A mapping specifying for each line index, all the profiles that can be run on it
+    - `process_profiles` : A mapping specifying for each `Process` index, all the profiles used to run it in the factory
+    - `producing` : Mapping from a product index to all manufacturing processes that can generate it
+    - `consuming` : Mapping from a product index to all manufacturing processes that can consume it
+    - `compiled_profiles` : All the profiles to be used by the factory belonging to this agent compiled to use process
+      indices
+    - `max_storage` : Maximum storage available to the agent. Zero, None or float('inf') all indicate unlimited storage.
+
+    *Production Graph* (also accessible through *awi*)
+
+    - `products` : List of products in the system
+    - `processes` : List of processes in the system
+
+    *Helper Objects*
+
+    - `awi` : The `SCMLAWI` instance assigned to this agent. It can be used to interact with the simulation (See
+      `SCMLAWI` documentation).
+    - `simulator` : A `FactorySimulator` object that can be used to simulate what happens in the `Factory` assigned to
+      this agent when given operations are conducted (e.g. production, paying money, etc).
+
+    *Negotiations/Contracts*
+
+    - `requested_negotiations` : A dynamic list of negotiations currently requested by the agent but not started.
+      *Correct management of this list is only possible if the agent **always** uses `request_negotiation` method of
+      this class (see methods later) rather than directly calling request_method on the `SCMLAWI` ( `awi` ) member.
+    - `running_negotiations` : A dynamic list of negotiations currently running involving this agent.
+      *Correct management of this list is only possible if the agent **always** uses `request_negotiation` method of
+      this class (see methods later) rather than directly calling request_method on the `SCMLAWI` ( `awi` ) member.
+    - `unsigned_contracts` : A dynamic list of negotiations contracts concluded involving this agent but not yet signed.
+      *Correct management of this list is only possible if the agent **always** uses `request_negotiation` method of
+      this class (see methods later) rather than directly calling request_method on the `SCMLAWI` ( `awi` ) member.
+
+    *Simulation attributes* (also accessible through *awi*)
+
+    - `transportation_delay` : The transportation delay in the system.
+    - `current_step` : Current simulation step.
+    - `immediate_negotiations` : Whether or not negotiations start immediately upon registration (default is to start on
+      the next production step)
+    - `negotiation_speed_multiple` : The number of negotiation rounds (steps) conducted in a single production step
+    - `transportation_delay` : Transportation delay in the system. Default is zero
+
+
+    **Methods** (Callable by the agent)
+
+    *Actions on the world*
+
+    - `request_negotiation` : Called to request a negotiation based on a `CFP` .
+
+    *Scheduling and simulation helpers*
+
+    - `can_expect_agreement` : Checks if it is possible in principle to get an agreement on this CFP by the time it
+      becomes executable.
+
+
+    **Callbacks** (Callable by the simulation)
+
+    *Decision callbacks* (Called to make decisions)
+
+        - Negotiation and Contracts
+
+            - `respond_to_negotiation_request` : Decide whether or not to engage in a negotiation on a `CFP` that was
+              published earlier by this factory manager. If accepted, the agent should return a `SAONegotiator` object.
+            - `sign_contract` : Decide whether or not to sign the contract. If accepted, the agent should return its own ID.
+            - `confirm_contract_execution` : Decide whether or not to go on with executing a contract that the agent already
+              signed. If rejected (by returning `False` ), a refusal-to-execute breach will be recorded.
+
+        - Breach related
+
+            - `confirm_partial_execution` : Decide whether the agent agrees to partial execution. Called only when the
+              the partner of this agent commits a partial breach (of level < 1) and this agent commits no breaches.
+            - `set_renegotiation_agenda` : Decide what are the issues and ranges of acceptable values to re-negotiate about.
+              Called only in case of breaches.
+            - `respond_to_renegotiation_request` : Decide whether or not to engage in a re-negotiation.
+
+        - Financial
+
+            - `confirm_loan` : Decide whether or not to accept an offered loan. *In ANAC 2019 league, loans are not allowed
+              and this callback will never be called by the simulator.
+
+    *Time-dependent callbacks* (Information callback called at predefined times)
+
+        - `init` : Called once before any production or negotiations to initiate the agent.
+        - `step` : Called at every production step.
+
+    *Information callbacks* (Called to inform the agent about events)
+
+        - CFP related
+
+            - `on_new_cfp` : Called whenever a `CFP` on a `Product` for which the agent has already registered interest
+              (using `register_interest` method of its `awi`) is published. By default all agents register interest in the
+              products they can consume or produce according to their profiles.
+            - `on_remove_cfp` : Called whenever a `CFP` on a `Product` for which the agent has already registered interest
+              (using `register_interest` method of its `awi`) is removed from the bulletin-board.
+
+        - Negotiation related
+
+            - `on_neg_request_accepted` : Called when a negotiation request of the agent is accepted
+            - `on_neg_request_rejected` : Called when a negotiation request of the agent is rejected
+            - `on_negotiation_success` : Called when a negotiation of which the agent is a party succeeds with an agreement.
+            - `on_negotiation_failure` : Called when a negotiation of which the agent is a party ends without agreement.
+
+        - Contract related
+
+            - `on_contract_cancelled` : Called whenever a `Contract` of which the agent is a party is cancelled because the
+              other party refused to sign it.
+            - `on_contract_signed` : Called whenever a `Contract` of which the agent is a party is signed by both patners.
+            - `on_contract_nullified` : Called whenever a `Contract` of which the agent is a party is nullified by the
+              simulator as a part of bankruptcy processing.
+
+        - Production related
+
+            - `on_production_failure` : Called whenever a scheduled production (see `SCMLAWI` for production commands) fails
+
+        - About other agents
+
+            - `on_agent_bankrupt` : Called whenever another agent goes bankrupt
+            - `on_new_report` : Called whenever a new report of another agent for which this agent has registered interest
+              is published. Interest is registered using the agent's `awi` 's `receive_financial_reports` method.
+
+    """
 
     def __init__(self, name=None, simulator_type: Union[str, Type[FactorySimulator]] = FastFactorySimulator):
         super().__init__(name=name)
         self.transportation_delay = 0
+        """Transportation delay in the world"""
         self.simulator: Optional[FactorySimulator] = None
+        """The simulator used by this agent"""
         self.simulator_type: Type[FactorySimulator] = get_class(simulator_type, scope=globals())
+        """Simulator type (as a class)"""
         self.current_step = 0
+        """Current simulation step"""
         self.max_storage: int = 0
+        """Maximum storage available to the agent"""
 
     def init_(self):
         state: Factory = self.awi.state
