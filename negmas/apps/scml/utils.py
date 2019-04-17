@@ -177,7 +177,7 @@ def anac2019_config_generator(
     for level in range(n_intermediate_levels + 1):
         n_d = n_defaults[level]
         n_f = n_f_list[level]
-        assert n_d < n_f, f'Got {n_f} total factories at level {level} out of which {n_d} are default!!'
+        assert n_d <= n_f, f'Got {n_f} total factories at level {level} out of which {n_d} are default!!'
         for j in range(n_f):
             profiles = []
             factory_time = _intin(profile_time)

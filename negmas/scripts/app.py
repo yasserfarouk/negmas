@@ -3,12 +3,12 @@
 import json
 import os
 import traceback
+import urllib.request
 from functools import partial
 from math import factorial
 from pathlib import Path
 from pprint import pformat
 from time import perf_counter
-import urllib.request
 
 import click
 import pandas as pd
@@ -66,7 +66,7 @@ def cli():
               help='The name of the tournament. The special value "random" will result in a random name')
 @click.option('--steps', '-s', default=60, help='Number of steps.')
 @click.option('--ttype', '--tournament-type', '--tournament', default='anac2019collusion'
-    , help='The config to use. Default is ANAC 2019. Options supprted are anac2019std, anac2019collusion, '
+    , help='The config to use. Default is ANAC 2019. Options supported are anac2019std, anac2019collusion, '
            'anac2019sabotage')
 @click.option('--timeout', '-t', default=0, help='Timeout after the given number of seconds (0 for infinite)')
 @click.option('--configs', default=5, help='Number of unique configurations to generate.')
@@ -94,7 +94,7 @@ def cli():
 @click.option('--compact/--debug', default=True, help='If True, effort is exerted to reduce the memory footprint which'
                                                       'includes reducing logs dramatically.')
 def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosity, configs_only,
-               reveal_names, ip, port, runs, configs, max_runs, competitors, jcompetitors, compact):
+               reveal_names, ip, port, runs, configs, max_runs, competitors, jcompetitors, compact, factories):
     if timeout <= 0:
         timeout = None
     if name == 'random':
@@ -106,8 +106,9 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
         if not reveal_names:
             print('You are running the tournament with --debug. Will reveal agent types in their names')
         reveal_names = True
+        verbosity = max(1, verbosity)
 
-    worlds_per_config = None if max_runs is None else max_runs / (configs * runs)
+    worlds_per_config = None if max_runs is None else int(round(max_runs / (configs * runs)))
 
     parallelism = 'distributed' if distributed else 'parallel' if parallel else 'serial'
     all_competitors = competitors.split(';')
@@ -127,14 +128,24 @@ def tournament(name, steps, parallel, distributed, ttype, timeout, log, verbosit
     prog_callback = print_world_progress if verbosity > 1 and not distributed else None
 
     recommended = runs * configs * factorial(len(all_competitors) * (1 if "std" in ttype else 3))
-    if worlds_per_config < 1:
+    if worlds_per_config is not None and worlds_per_config < 1:
         print(f'You need at least {(configs * runs)} runs even with a single permutation of managers.'
               f'.\n\nSet --max-runs to at least {(configs * runs)} (Recommended {recommended})')
         return
-    worlds_per_config = worlds_per_config if worlds_per_config is None else int(worlds_per_config)
-    if max_runs < recommended:
+
+    if max_runs is not None and max_runs < recommended:
         print(f'You are running {max_runs} worlds only but it is recommended to set {max_runs} to at least '
               f'{recommended}. Will continue')
+
+    if worlds_per_config is None:
+        n_agents_per_competitor = 1 if ttype == 'anac2019std' else 3
+        n_worlds = factorial(n_agents_per_competitor * len(all_competitors)) * runs * configs
+        if n_worlds > 100:
+            print(f'You are running the maximum possible number of permutations for each configuration. This is roughly'
+                  f' {n_worlds} simulations (each for {steps} steps). That will take a VERY long time.'
+                  f'\n\nYou can limit the maximum number of worlds to run by setting --max-runs=integer.')
+            if not input(f'Are you sure you want to run {n_worlds} simulations?').lower().startswith('y'):
+                exit(0)
 
     start = perf_counter()
     if ttype.lower() == 'anac2019std':
@@ -292,9 +303,9 @@ def scml(steps, levels, neg_speedup, negotiator, agents, horizon, min_consumptio
         data = pd.DataFrame(world.saved_contracts)
         data = data.sort_values(['delivery_time'])
         data = data.loc[data.signed_at >= 0, ['seller_type', 'buyer_type', 'seller_name', 'buyer_name', 'delivery_time'
-                        , 'unit_price', 'quantity', 'product_name', 'n_neg_steps', 'signed_at']]
+            , 'unit_price', 'quantity', 'product_name', 'n_neg_steps', 'signed_at']]
         data.columns = ['seller_type', 'buyer_type', 'seller', 'buyer', 't', 'price', 'q', 'product', 'steps'
-                        , 'signed']
+            , 'signed']
         print_and_log(tabulate(data, headers='keys', tablefmt='psql'))
         n_executed = sum(world.stats['n_contracts_executed'])
         n_negs = sum(world.stats["n_negotiations"])
