@@ -81,7 +81,7 @@ class SCMLWorld(World):
                  , miners: List[Miner]
                  , factory_managers: Optional[List[FactoryManager]] = None
                  # timing parameters
-                 , n_steps=120
+                 , n_steps=100
                  , time_limit=60 * 90
                  , neg_n_steps=20
                  , neg_time_limit=2 * 60
