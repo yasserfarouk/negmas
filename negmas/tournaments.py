@@ -376,9 +376,9 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
                       f', max_worlds_per_config ({max_worlds_per_config})'
                       f', and n_runs_per_world ({n_runs_per_world}).')
 
-    if n_runs_per_world is None or n_configs is None or max_worlds_per_config is None:
-        raise ValueError(f'Values for n_configs ({n_configs}), max_worlds_per_config ({max_worlds_per_config})'
-                         f', and n_runs_per_world ({n_runs_per_world}) must all be given or possible to calculate '
+    if n_runs_per_world is None or n_configs is None:
+        raise ValueError(f'Values for n_configs ({n_configs})'
+                         f', and n_runs_per_world ({n_runs_per_world}) must be given or possible to calculate '
                          f'from max_n_configs ({max_n_configs}) and n_runs_per_config ({n_runs_per_config})')
     dask_options = ('dist', 'distributed', 'dask', 'd')
     multiprocessing_options = ('local', 'parallel', 'par', 'p')
@@ -423,6 +423,9 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
 
     dump(configs, tournament_path / 'base_configs')
 
+    if verbose:
+        print(f'Will run {len(configs)}  different base world configurations ({parallelism})', flush=True)
+
     assigned = list(itertools.chain(*[config_assigner(config=c, max_n_worlds=max_worlds_per_config
                                                       , n_agents_per_competitor=n_agents_per_competitor
                                                       , competitors=competitors, params=competitor_params)
@@ -432,6 +435,9 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
 
     dump(params, tournament_path / 'params')
     dump(assigned, tournament_path / 'assigned_configs')
+
+    if verbose:
+        print(f'Will run {len(assigned)}  different factory/manager assignments ({parallelism})', flush=True)
 
     assigned = list(itertools.chain(*([assigned] * n_runs_per_world)))
 
@@ -462,7 +468,7 @@ def tournament(competitors: Sequence[Union[str, Type[Agent]]]
     n_world_configs = len(assigned)
 
     if verbose:
-        print(f'Will run {n_world_configs}  total world simulations ({parallelism})')
+        print(f'Will run {n_world_configs}  total world simulations ({parallelism})', flush=True)
     if parallelism in serial_options:
         strt = time.perf_counter()
         for i, world_params in enumerate(assigned):
