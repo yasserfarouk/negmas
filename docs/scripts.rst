@@ -12,11 +12,15 @@ The set of supported commands are:
 genius                Run a Genius Bridge. This bridge allows you to use GeniusNegotiator
                       agents. Please notice that this command by-default runs in the
                       foreground preventing further input to the terminal.
+genius-setup          Downloads the genius bridge and updates your settings.
+jnegmas               Start the bridge to JNegMAS (to use Java agents in worlds)
+jnegmas-setup         Downloads jnegmas and updates your settings
 scml                  Runs an SCML world
 tournament            Runs a tournament
+version               Prints NegMAS version
 ===============       ==============================================================
 
-Genius Bridge (genius negmas)
+Genius Bridge (negmas genius)
 -----------------------------
 
 The command ``genius`` can be used to start a JVM running the Genius_ platform allowing `GeniusNegotiator` objects
@@ -39,7 +43,7 @@ This tool supports the following *optional* arguments:
 ===============       ==============================================================
 -p, --path TEXT       Path to genius-8.0.4.jar with embedded NegLoader [OPTIONAL]
 1. -r, --port INTEGER Port to run the NegLoader on. Pass 0 for the default
-                    value [OPTIONAL]
+                      value [OPTIONAL]
 1. --force/--no-force Force trial even if an earlier instance exists [OPTIONAL]
 1. --help             Show help message and exit.
 ===============       ==============================================================
@@ -98,6 +102,9 @@ These are the *optional* arguments of this tool:
                            [default: 0.0]
 --log TEXT                 Default location to save logs (A folder will be
                            created under it)  [default: ~/negmas/logs]
+--compact / --debug        If --compact, effort is exerted to reduce the memory
+                           footprint whichincludes reducing logs
+                           dramatically.  [default: --compact]
 --help                     Show help message and exit.
 =========================  =================================================
 
@@ -110,19 +117,20 @@ folder will contain the following files:
 =======================    ========     ====================================
 File Name                  Format       Content
 =======================    ========     ====================================
-all_contracts.csv             CSV        A record of all contracts
-contracts_full_info.csv       CSV        A record of all contracts with added information about the CFPs
-cancelled_contracts.csv       CSV        Contracts that were cancelled because one partner refused to sign it
+all_contracts.csv             CSV        A record of all contracts [filled only if --debug is specified]
+contracts_full_info.csv       CSV        A record of all contracts with added information about the CFPs  [filled only if --debug is specified]
+cancelled_contracts.csv       CSV        Contracts that were cancelled because one partner refused to sign it  [filled only if --debug is specified]
 signed_contracts.csv          CSV        Contracts that were actually signed
-negotiations.csv              CSV        A record of all negotiations
+negotiations.csv              CSV        A record of all negotiations  [filled only if --debug is specified]
 breaches.csv                  CSV        A record of all breaches
 stats.csv                     CSV        Helpful statistics about the state of the world at every timestep
                                          (e.g. N. negotiations, N. Contracts Executed, etc) in CSV format
 stats.json                    JSON       Helpful statistics about the state of the world at every timestep
                                          (e.g. N. negotiations, N. Contracts Executed, etc) in JSON format
 params.json                   JSON       The arguments used to run the world
-logs.txt                      TXT        A log file giving details of most important events during the simulation
+logs.txt                      TXT        A log file giving details of most important events during the simulation  [filled only if --debug is specified]
 =======================    ========     ====================================
+
 
 
 Tournament Command (negmas tournament)
@@ -154,19 +162,28 @@ These are the *optional* arguments of this tool:
 --runs INTEGER                      Number of runs for each configuration [default: 5]
 --max-runs INTEGER                  Maximum total number of runs. Zero or negative numbers mean no
                                     limit  [default:-1]
---randomize / --permutations        Random worlds or try all permutations up to max-runs
-                                    [default: False]
--c, --competitors TEXT              A semicolon (;) separated list of agent types to use for the
+--configs INTEGER                   Number of unique configurations to generate.
+                                    [default: 5]
+--runs INTEGER                      Number of runs for each configuration
+                                    [default: 2]
+--max-runs INTEGER                  Maximum total number of runs. Zero or
+                                    negative numbers mean no limit  [default:
+                                    -1]
+--factories INTEGER                 Minimum numbers of factories to have per
+                                    level.  [default: 5]
+--competitors TEXT                  A semicolon (;) separated list of agent types to use for the
                                     competition.
                                     [default:negmas.apps.scml.DoNothingFactoryManager;
                                     negmas.apps.scml.GreedyFactoryManager]
+--jcompetitors, --java-competitors  A semicolon (;) separated list of agent
+                                    types to use for the competition.
 --parallel / --serial               Run a parallel/serial tournament on a single machine
                                     [default: True]
 --distributed / --single-machine    Run a distributed tournament using dask [default: False]
 -l, --log TEXT                      Default location to save logs (A folder will be created under
                                     it)  [default:~/negmas/logs/tournaments]
---verbose INTEGER                   verbosity level (from 0 == silent to 1 == world progress)
-                                    [default: 0]
+--verbosity INTEGER                 verbosity level (from 0 == silent to 1 ==
+                                    world progress)  [default: 1]
 --configs-only / --run              configs_only  [default: False]
 --reveal-names / --hidden-names     Reveal agent names (should be used only for debugging)
                                     [default: False]
@@ -176,6 +193,9 @@ These are the *optional* arguments of this tool:
 --port INTEGER                      The IP port number a dask scheduler to run
                                     the distributed tournament. Effective only
                                     if --distributed  [default: 8786]
+--compact / --debug                 If --compact, effort is exerted to reduce the memory
+                                    footprint whichincludes reducing logs
+                                    dramatically.  [default: --compact]
 --help                              Show help message and exit.
 =================================   ==============================================================
 
@@ -194,6 +214,9 @@ configs                     FOLDER       Contains one json file for each world
                                          re-run this world using `run_world` function in the `tournament`
                                          module.
 params.json                 JSON         The parameters used to create this tournament
+base_configs.json           JSON         The base configurations used in the tournament (without agent/factory
+                                         assignments.
+assigned_configs.json       JSON         The configurations used after assigning factories to managers
 scores.csv                  CSV          Scores of every agent in every world
 total_scores.csv            CSV          Scores of every agent **type** averaged over all runs
 winners.csv                 CSV          Winner *types* and their average scores
@@ -202,7 +225,8 @@ ttest.csv                   CSV          Results of a factorial TTEST comparing 
 =================           ========     =================================================================
 
 Other than these files, a folder with the same number as the corresponding config file in the configs folder, keeps full
-statistics/log of every world (see the `SCML World Runner` section for the contents of this folder.
+statistics/log of every world *but only if --debug is specified* (see the `SCML World Runner` section for the contents of
+this folder.
 
 
 

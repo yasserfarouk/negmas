@@ -1,6 +1,21 @@
 History
 =======
 
+Release 0.2.6
+-------------
+
+- documentation update
+- setting default world runs to 100 steps
+- rounding catalog prices and historical costs to money resolution
+- better defaults for negmas tournaments
+- adding warnings when running too many simulations.
+- added version command to negmas
+- corrected the way min_factories_per_level is handled during tournament config creation.
+- added --factories to negmas tournament command to control the minimum number of factories per level.
+- improving naming of managers and factories for debugging purposes
+- forcing reveal-names when giving debug option to any negmas command
+- adding short_type_name to all Entity objects for convenient printing
+
 Release 0.2.5
 -------------
 
@@ -27,7 +42,6 @@ Release 0.2.5
 - added two new functions in apps.scml.utils anac2019_std, anac2019_collusion to simulate these two tracks of the ANAC 2019 SCML. Sabotage version will be added later.
 - added assign_managers() method to SCMLWorld to allow post-init assignment of managers to factories.
 - updating simulator documentation
-
 
 Release 0.2.2
 -------------
