@@ -13,6 +13,7 @@ from negmas.apps.scml import Product, MiningProfile, ReactiveMiner, ScheduleDriv
 from negmas.helpers import get_class, instantiate, unique_name, get_full_type_name
 from negmas.java import to_dict
 from negmas.tournaments import WorldRunResults, TournamentResults, tournament
+from negmas.situated import Entity
 from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
@@ -176,6 +177,7 @@ def anac2019_config_generator(
     for level in range(n_intermediate_levels + 1):
         n_d = n_defaults[level]
         n_f = n_f_list[level]
+        assert n_d < n_f, f'Got {n_f} total factories at level {level} out of which {n_d} are default!!'
         for j in range(n_f):
             profiles = []
             factory_time = _intin(profile_time)
@@ -191,11 +193,11 @@ def anac2019_config_generator(
             factory = Factory(id=f'f{level + 1}_{j}', max_storage=sys.maxsize, profiles=profiles
                               , initial_storage={}, initial_wallet=1000.0)
             factories.append(factory)
-            if j < n_d:
+            if j >= n_f - n_d: # default managers are last managers in the list
                 manager_types[first_in_level + j] = 'negmas.apps.scml.factory_managers.GreedyFactoryManager'
                 params_ = default_manager_params.copy()
                 if agent_names_reveal_type:
-                    params_['name'] = f'_default__preassigned__greedy_{level + 1}_{j}'
+                    params_['name'] = f'_df_{level + 1}_{j}'
                 else:
                     params_['name'] = None
                 manager_params[first_in_level + j] = params_
@@ -289,14 +291,23 @@ def anac2019_assigner(config: Dict[str, Any], max_n_worlds: int, n_agents_per_co
             shuffle(permutation)
             configs.append(_copy_config(config, k))
 
+    def shorten(long_name):
+        name = long_name.split('.')[-1].lower().replace('factory_manager', '').replace('manager', '')
+        name = name.replace('factory', '').replace('agent', '').replace('miner', 'm').replace('consumer', '')
+        if long_name.startswith('jnegmas'):
+            name = f'j:{name}'
+        return name
+
     if agent_names_reveal_type:
         for config in configs:
             nxt = 0
-            for i, (t, p) in enumerate(zip(config['manager_types'], config['manager_params'])):
-                if p.get('name', '').startswith('_default__preassigned'):
+            for i, (t, p, f) in enumerate(zip(config['manager_types'], config['manager_params'], config['factories'])):
+                if p.get('name', '').startswith('_df_'):
                     continue
                 p = p.copy()
-                p['name'] = f'{get_full_type_name(t) if not isinstance(t, str) else t}_{nxt}'
+                name_ = t.short_type_name if isinstance(t, Entity) else get_full_type_name(t) if not isinstance(t, str)\
+                    else shorten(t)
+                p['name'] = f'{name_}@{f["id"][1:]}'
                 config['manager_params'][i] = p
                 nxt = nxt + 1
     return configs
@@ -485,12 +496,12 @@ def balance_calculator(world: SCMLWorld, dry_run: bool) -> WorldRunResults:
     result = WorldRunResults(world_name=world.name, log_file_name=world.log_file_name)
     initial_balances = []
     for manager in world.factory_managers:
-        if '_default__preassigned__' in manager.id:
+        if '_df_' in manager.id:
             continue
         initial_balances.append(world.a2f[manager.id].initial_balance)
     normalize = all(_ != 0 for _ in initial_balances)
     for manager in world.factory_managers:
-        if '_default__preassigned__' in manager.id:
+        if '_df_' in manager.id:
             continue
         factory = world.a2f[manager.id]
         result.names.append(manager.name)

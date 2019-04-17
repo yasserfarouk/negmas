@@ -15,7 +15,136 @@ __all__ = [
 
 
 class SCMLAWI(AgentWorldInterface):
-    """A single contact point between SCML agents and the world simulation."""
+    """A single contact point between SCML agents and the world simulation.
+
+    The agent can access the world simulation in one of two ways:
+
+    1. Attributes and methods available in this Agent-World-Interface
+    2. Attributes and methods in the `FactoryManager` object itself which provide handy shortcuts
+       to the agent-world interface
+
+    **Attributes**
+
+    *Simulation settings*
+
+    - `current_step` : Current simulation step
+    - `default_signing_delay` : The grace period allowed between contract conclusion and signature
+      by default (i.e. if not agreed upon during the negotiation)
+    - `n_steps` : Total number of simulation steps.
+    - `relative_time` : The fraction of total simulation time elapsed (it will be a number between 0 and 1)
+
+    *Production Graph*
+
+    - `products` : A list of `Product` objects giving all products defined in the world simulation
+    - `processes` : A list of `Process` objects giving all products defined in the world simulation
+
+    *Agent Related*
+
+    - `state` : The current private state available to the agent. In SCML it is a `FactoryState` object.
+
+    **Methods**
+
+    *Production Control*
+
+    - `schedule_job` : Schedules a `Job` for production sometime in the future
+    - `schedule_production` : Schedules production using profile number instead of a `Job` object
+    - `cancel_production` : Cancels already scheduled production (if it did not start yet) or stop a running
+      production.
+    - `execute` : A general function to execute any command on the factory. There is no need to directly call
+      this function as the SCMLAWI provides convenient functions (e.g. `schedule_job` , `hide_funds` , etc)
+      to achieve the same goal without having to worry about creating `Action` objects
+
+    *Storage and Wallet Control*
+
+    - `hide_funds` : Hides funds from the view of the simulator. Note that when bankruptcy is considered, hidden
+      funds are visible to the simulator.
+    - `hide_inventory` : Hides inventory from the view of the simulator. Note that when bankruptcy is considered, hidden
+      funds are visible to the simulator.
+    - `unhide_funds` : Un-hides funds hidden earlier with a call to `hide_funds`
+    - `unhide_inventory` : Un-hides inventory hidden earlier with a call to `hide_inventory`
+
+    *Negotiation and CFP Control*
+
+    - `register_cfp` : Registers a Call-for-Proposals on the bulletin board.
+    - `remove_cfp` : Removes a Call-for-Proposals from the  bulletin board.
+    - `request_negotiation` : Requests a negotiation based on the content of a CFP published on the bulletin-board.
+      *It is recommended not to use this method directly and to request negotiations using the
+      request_negotiation method of `FactoryManager` (i.e. use self.request_negotiation instead
+      of self.awi.request_negotiation). This makes it possible for NegMAS to keep track of
+      existing `requested_negotiations` and `running_negotiations` for you.
+
+    *Notification Control*
+
+    - `receive_financial_reports` : Register/unregisters interest in receiving financial reports for an agent, a set of
+      agents or all agents.
+    - `register_interest` : registers interest in receiving CFPs about a set of products. By default all
+      `FactoryManager` objects are registered to receive all CFPs for any product they
+      can produce or need to consumer according to their line-profiles.
+    - `unregister_interest` : unregisters interest in receiving CFPs about a set of products.
+
+    *Information about Other Agents*
+
+    - `is_bankrupt` : Asks about the bankruptcy status of an agent
+    - `receive_financial_reports` : Register/unregisters interest in receiving financial reports for an agent, a set of
+      agents or all agents.
+    - `reports_at` : reads *all* financial reports produced at a given time-step
+    - `reports_for` : reads *all* financial reports of a given agent
+
+    *Financial Control*
+
+    - `evaluate_insurance` : Asks for the premium to be paid for insuring against partner breaches
+      for a given contract
+    - `buy_insurance` : Buys an insurance against partner breaches for a given contract
+
+    *Bulletin-Board*
+
+    The bulletin-board is a key-value store. These methods allows the agent to interact with it. *The `SCMLAWI` provides
+    convenient functions for recording to the bulletin-board so you mostly need to use read/query functions*.
+
+    - `bb_read` : Reads a complete section or a single value from the bulletin-board
+    - `bb_query` : Returns all records in the given section/sections of the bulletin-board that satisfy a query
+    - `bb_record` : Registers a record in the bulletin-board.
+    - `bb_remove` : Removes a record from the bulletin-board.
+
+    The following list of sections are available in the SCML Bulletin-Board (Use the exact string for the ``section``
+    parameter of any method starting with ``bb_``):
+
+    - **cfps**: All CFPs currently on the board. The key is the CFP ID
+    - **products**: A list of all products. The key is the product index/ID
+    - **processes**: A list of all processes. The key is the product index/ID
+    - **bankruptcy**: The bankruptcy list giving names of all bankrupt agents.
+    - **reports_time**: Financial reports indexed by time.
+    - **reports_agent**: Financial reports indexed by agent
+    - **breaches**: Breach-list indexed by breach ID giving all breaches committed in the system
+    - **settings**: Static settings of the simulation.
+
+      The following settings are currently available:
+
+      - *breach_penalty_society*: Penalty of breaches paid to society (as a fraction of contract value). This is always
+        paid for every breach whether or not there is a negotiated breach.
+      - *breach_penalty_victim*: Penalty of breaches paid to victim (as a fraction of contract value). This is always
+        paid for every breach whether or not there is a negotiated breach.
+      - *immediate_negotiations*: Whether negotiations start immediately when registered (the other possibility -- which
+        is the default -- is for them to start at the next production step).
+      - *negotiation_speed_multiple*: Number of negotiation steps that finish in a single production step.
+      - *negotiation_n_steps*: Maximum allowed number of steps (rounds) in any negotiation
+      - *negotiation_step_time_limit*: The maximum real-time allowed for each negotiation step (round)
+      - *negotiation_time_limit*: The time limit for a complete negotiation.
+      - *transportation_delay*: Transportation delay when products are moved between factories. Default is zero.
+      - *transfer_delay*: The delay in transferring funds between factories when executing a contract. Default is zero.
+      - *n_steps*: Number of simulation steps
+      - *time_limit*: Time limit for the complete simulation
+
+    - stats: Global statistics about the simulation. **Not available for SCML 2019 league**.
+
+    *Logging*
+
+    - `logerror` : Logs an error in the world simulation log file
+    - `logwarning` : Logs a warning in the world simulation log file
+    - `loginfo` : Logs information in the world simulation log file
+    - `logdebug` : Logs debug information in the world simulation log file
+
+    """
 
     def register_cfp(self, cfp: CFP) -> None:
         """Registers a CFP"""

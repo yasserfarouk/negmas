@@ -13,7 +13,6 @@ import numpy as np
 import yaml
 
 from negmas import AgentMechanismInterface
-from negmas.apps.scml.common import FactoryState
 from negmas.events import Event, EventSource
 from negmas.helpers import instantiate, unique_name
 from negmas.outcomes import Issue
@@ -236,6 +235,14 @@ class SCMLWorld(World):
         self.bulletin_board.record(section='settings', key='negotiation_step_time_limit', value=neg_step_time_limit)
         self.bulletin_board.record(section='settings', key='negotiation_time_limit', value=neg_time_limit)
         self.bulletin_board.record(section='settings', key='transportation_delay', value=transportation_delay)
+        self.bulletin_board.record(section='settings', key='default_signing_delay', value=default_signing_delay)
+        self.bulletin_board.record(section='settings', key='breach_penalty_society_min'
+                                   , value=breach_penalty_society_min)
+        self.bulletin_board.record(section='settings', key='financial_reports_period'
+                                   , value=financial_reports_period)
+        self.bulletin_board.record(section='settings', key='transfer_delay', value=transfer_delay)
+        self.bulletin_board.record(section='settings', key='n_steps', value=n_steps)
+        self.bulletin_board.record(section='settings', key='time_limit', value=time_limit)
         self.avg_process_cost_is_public = avg_process_cost_is_public
         self.catalog_prices_are_public = catalog_prices_are_public
         self.initial_wallet_balances = initial_wallet_balances
@@ -319,7 +326,7 @@ class SCMLWorld(World):
 
     def save_config(self, file_name: str) -> None:
         d = {k: v for k, v in self.__dict__.items()}
-        d['factory_manager_types'] = {manager.id: manager.type_name for manager in self.factory_managers}
+        d['factory_manager_types'] = {manager.id: manager.short_type_name for manager in self.factory_managers}
         with open(file_name, 'w') as file:
             yaml.safe_dump(d, file)
 
@@ -471,7 +478,7 @@ class SCMLWorld(World):
         processes = []
         miners = [instantiate(miner_type, profiles={products[-1].id: MiningProfile()}, name=f'm_{i}'
                               , **miner_kwargs) for i in range(n_miners)]
-        factories, managers = [], []
+        factories, managers = [], [None] * ((n_intermediate_levels + 1) * n_factories_per_level)
 
         def _s(x):
             return x if x is not None else 0
@@ -509,25 +516,25 @@ class SCMLWorld(World):
                 factories.append(factory)
                 if j >= n_default_per_level and \
                     (n_max_assignable_factories is None or len(assignable_factories) < n_max_assignable_factories):
-                    assignable_factories.append((factory, level))
+                    assignable_factories.append(j + level * n_factories_per_level)
                 else:
-                    default_factories.append(factory)
-            for j, factory in enumerate(default_factories):
-                manager_name = unique_name(base='_default__preassigned__', add_time=False, rand_digits=12)
+                    default_factories.append(j + level * n_factories_per_level)
+            for j, indx in enumerate(default_factories):
+                manager_name = unique_name(base='_df_', add_time=False, rand_digits=12)
                 manager = _DefaultFactoryManager(name=manager_name, **default_manager_params)
                 if agent_names_reveal_type:
-                    manager.name = f'_default__preassigned__{manager.type_name}_{level + 1}_{j}'
-                managers.append(manager)
+                    manager.name = f'_df_{manager.short_type_name}@{level + 1}_{j}'
+                managers[indx] = manager
         if randomize:
             shuffle(assignable_factories)
-        for j, ((factory, level), (params, manager_type)) in enumerate(zip(assignable_factories
-            , itertools.cycle(zip(manager_params
-                , manager_types)))):
-            manager_name = unique_name(base='', add_time=False, rand_digits=12)
+        for j, (index, (params, manager_type)) in enumerate(zip(assignable_factories, itertools.cycle(zip(manager_params
+            , manager_types)))):
+            factory = factories[index]
+            manager_name = f"{unique_name(base='', add_time=False, rand_digits=12)}@{factory.id}"
             manager = manager_type(name=manager_name, **params)
             if agent_names_reveal_type:
-                manager.name = f'{manager.type_name}_{level + 1}_{j}'
-            managers.append(manager)
+                manager.name = f'{manager.short_type_name}@{factory.id[1:]}'
+            managers[index] = manager
 
         def create_schedule():
             if isinstance(consumption, tuple) and len(consumption) == 2:

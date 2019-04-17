@@ -217,6 +217,17 @@ class Entity(NamedObject):
         """Returns the name of the type of this entity"""
         return snake_case(self.__class__.__name__)
 
+    @property
+    def short_type_name(self):
+        """Returns a short name of the type of this entity"""
+        long_name = self.type_name
+        name = long_name.split('.')[-1].lower().replace('factory_manager', '').replace('manager', '')
+        name = name.replace('factory', '').replace('agent', '').replace('miner', '').replace('consumer', '')
+        if long_name.startswith('jnegmas'):
+            name = f'j-{name}'
+        name = name.strip('_')
+        return name
+
 
 class BulletinBoard(Entity, EventSource, ConfigReader):
     """The bulletin-board which carries all public information. It consists of sections each with a dictionary of records.
