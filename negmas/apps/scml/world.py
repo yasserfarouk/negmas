@@ -215,6 +215,7 @@ class SCMLWorld(World):
         self.bulletin_board.add_section("reports_time")
         self.bulletin_board.add_section("reports_agent")
         self.minimum_balance = minimum_balance
+        self.money_resolution = money_resolution
         self.transportation_delay = transportation_delay
         self.breach_penalty_society = breach_penalty_society
         self.breach_move_max_product = breach_move_max_product
@@ -257,7 +258,7 @@ class SCMLWorld(World):
         self.set_miners(miners)
         self.set_consumers(consumers)
         self.set_factory_managers(factory_managers)
-        self.money_resolution = money_resolution
+
         self._report_receivers: Dict[str, Set[SCMLAgent]] = defaultdict(set)
         # self._remove_processes_not_used_by_factories()
         # self._remove_products_not_used_by_processes()
@@ -885,6 +886,16 @@ class SCMLWorld(World):
         if not self.catalog_prices_are_public:
             for product in self.products:
                 product.catalog_price = None
+
+        if self.money_resolution is not None:
+            for product in self.products:
+                if product.catalog_price is not None:
+                    product.catalog_price = math.floor(product.catalog_price /
+                                                       self.money_resolution) * self.money_resolution
+            for process in self.processes:
+                if process.historical_cost is not None:
+                    process.historical_cost = math.floor(process.historical_cost /
+                                                         self.money_resolution) * self.money_resolution
 
     def set_consumers(self, consumers: List[Consumer]):
         self.consumers = consumers
