@@ -102,7 +102,7 @@ def anac2019_config_generator(
     , profile_cost: Tuple[float, float] = (1, 4)
     , profile_time: Union[int, Tuple[int, int]] = 1
     , n_intermediate: Tuple[int, int] = (1, 4)
-    , min_n_factories: int = 11
+    , min_n_factories: int = 5
     , n_default_managers: Tuple[int, int] = (1, 4)
     , n_lines: int = 10
     , compact: bool = True
@@ -163,7 +163,7 @@ def anac2019_config_generator(
     n_a_list = integer_cut(n_agents, n_intermediate_levels + 1, 0)
     for i, n_a in enumerate(n_a_list):
         if n_a + n_defaults[i] < min_n_factories:
-            n_defaults[i] += min_n_factories - n_a + n_defaults[i]
+            n_defaults[i] += min_n_factories - (n_a + n_defaults[i])
     n_f_list = [a + b for a, b in zip(n_defaults, n_a_list)]
     n_factories = sum(n_f_list)
 
