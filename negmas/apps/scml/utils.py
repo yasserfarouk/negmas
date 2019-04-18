@@ -426,7 +426,9 @@ def anac2019_assigner(
             shuffle(permutation)
             configs.append(_copy_config(config, k))
 
-    def shorten(long_name):
+    def shorten(long_name: str, d: Dict[str, Any]) -> str:
+        if long_name.endswith("JavaFactoryManager"):
+            long_name = d.get("java_class_name", long_name)
         name = (
             long_name.split(".")[-1]
             .lower()
@@ -461,7 +463,7 @@ def anac2019_assigner(
                     if isinstance(t, Entity)
                     else get_full_type_name(t)
                     if not isinstance(t, str)
-                    else shorten(t)
+                    else shorten(t, config["manager_params"][i])
                 )
                 p["name"] = f'{name_}@{f["id"][1:]}'
                 config["manager_params"][i] = p
