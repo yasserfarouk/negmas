@@ -1071,6 +1071,8 @@ class FactoryState:
     """A list of profiles used to initialize the factory"""
     next_step: int
     """Next simulation step for this factory"""
+    commands: np.array
+    """The production command currently running"""
 
 
 @dataclass

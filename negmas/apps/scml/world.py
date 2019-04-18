@@ -1346,6 +1346,7 @@ class SCMLWorld(World):
             n_lines=f.n_lines,
             profiles=f.profiles,
             next_step=f.next_step,
+            commands=f.commands,
         )
 
     def receive_financial_reports(
