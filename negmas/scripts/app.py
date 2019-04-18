@@ -31,7 +31,7 @@ except:
 n_completed = 0
 n_total = 0
 
-JNEGMAS_JAR_NAME = "jnegmas-0.2.3-all.jar"
+JNEGMAS_JAR_NAME = "jnegmas-0.2.4-all.jar"
 GENIUS_JAR_NAME = "genius-8.0.4-bridge.jar"
 
 
