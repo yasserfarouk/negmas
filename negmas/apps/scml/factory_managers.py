@@ -18,7 +18,7 @@ from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.apps.scml.simulators import storage_as_array, temporary_transaction
 from negmas.common import NamedObject
 from negmas.events import Notification
-from negmas.helpers import get_class
+from negmas.helpers import get_class, instantiate
 from negmas.helpers import snake_case
 from negmas.java import (
     JavaCallerMixin,
@@ -29,6 +29,7 @@ from negmas.java import (
     PYTHON_CLASS_IDENTIFIER,
 )
 from negmas.outcomes import Issue, Outcome
+from negmas.sao import _ShadowSAONegotiator
 from negmas.utilities import UtilityValue
 from .agent import SCMLAgent
 from .awi import _ShadowSCMLAWI, SCMLAWI
@@ -1081,16 +1082,24 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
     ):
         super().__init__(name=name, simulator_type=simulator_type)
         self.java_awi = None
+        if java_class_name is not None:
+            stem = java_class_name.split(".")[-1]
+            if stem.endswith("GreedyFactoryManager") or stem.endswith("GFM"):
+                python_shadow = GreedyFactoryManager(
+                    name=self.name, simulator_type=self.simulator_type
+                )
+                python_shadow.id = self.id
         if python_shadow is None:
-            python_shadow_object = self
+            python_shadow = self
         else:
-            python_shadow_object = python_shadow
-        self.python_shadow = python_shadow_object
+            python_shadow = python_shadow
+        self.python_shadow = python_shadow
+        self._callback_shadow = self.python_shadow
         self.init_java_bridge(
             java_object=java_object,
             java_class_name=java_class_name,
             auto_load_java=auto_load_java,
-            python_shadow_object=python_shadow_object,
+            python_shadow_object=self,
         )
         if java_object is None:
             map = to_dict(self)
@@ -1112,6 +1121,148 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
             JavaSAONegotiator(negotiator, None),
             JavaUtilityFunction(ufun, None),
         )
+
+    def getLineProfiles(self):
+        return to_java(self.line_profiles)
+
+    def getProducing(self):
+        return to_java(self.producing)
+
+    def getConsuming(self):
+        return to_java(self.consuming)
+
+    def getCompiledProfiles(self):
+        return to_java(self.compiled_profiles)
+
+    def getProducts(self):
+        return to_java(self.products)
+
+    def getProcesses(self):
+        return to_java(self.processes)
+
+    def getContracts(self):
+        return to_java(self.contracts)
+
+    def getRequestedNegotiations(self):
+        return to_java(self.requested_negotiations)
+
+    def getRunningNegotiations(self):
+        return to_java(self.running_negotiations)
+
+    def requestNegotiation(
+        self, cfp: CFP, negotiator: Negotiator = None, ufun: UtilityFunction = None
+    ) -> bool:
+        return self.request_negotiation(
+            from_java(cfp),
+            JavaSAONegotiator(negotiator, None),
+            JavaUtilityFunction(ufun, None),
+        )
+
+    def getID(self):
+        return self.id
+
+    def setID(self, value):
+        self.id = value
+
+    def getName(self):
+        return self.name
+
+    def setName(self, value):
+        self.name = value
+
+    def initPython(self):
+        return self._callback_shadow.init()
+
+    def stepPython(self):
+        return self._callback_shadow.step()
+
+    def onNegRequestRejected(self, req_id, rejectors):
+        return self._callback_shadow.on_neg_request_rejected(
+            req_id, from_java(rejectors)
+        )
+
+    def onNegRequestAccepted(self, req_id, mechanism):
+        return self._callback_shadow.on_neg_request_accepted(
+            req_id, from_java(mechanism)
+        )
+
+    def onNewCFP(self, cfp):
+        return self._callback_shadow.on_new_cfp(from_java(cfp))
+
+    def onRemoveCFP(self, cfp):
+        return self._callback_shadow.on_remove_cfp(from_java(cfp))
+
+    def onContractNullified(self, contract, bankruptPartner, compensation):
+        return self._callback_shadow.on_contract_nullified(
+            from_java(contract), bankruptPartner, compensation
+        )
+
+    def onAgentBankrupt(self, agentId):
+        return self._callback_shadow.on_agent_bankrupt(agentId)
+
+    def confirmPartialExecution(self, contract, breaches):
+        return self._callback_shadow.confirm_partial_execution(
+            from_java(contract), from_java(breaches)
+        )
+
+    def onProductionFailure(self, failures):
+        return self._callback_shadow.on_production_failure(from_java(failures))
+
+    def confirmLoan(self, loan, bankruptIfRejected):
+        return self._callback_shadow.confirm_loan(from_java(loan), bankruptIfRejected)
+
+    def confirmContractExecution(self, contract):
+        return self._callback_shadow.confirm_contract_execution(from_java(contract))
+
+    def respondToNegotiationRequest(self, cfp, partner):
+        result = self._callback_shadow.respond_to_negotiation_request(
+            from_java(cfp), partner
+        )
+        if result is None:
+            return None
+        return _ShadowSAONegotiator(result)
+
+    def onNegotiationFailure(self, partners, annotation, mechanism, state):
+        return self._callback_shadow.on_negotiation_failure(
+            from_java(partners),
+            from_java(annotation),
+            from_java(mechanism),
+            from_java(state),
+        )
+
+    def onNegotiationSuccess(self, contract, mechanism):
+        return self._callback_shadow.on_negotiation_success(
+            from_java(contract), from_java(mechanism)
+        )
+
+    def onContractSigned(self, contract):
+        return self._callback_shadow.on_contract_signed(from_java(contract))
+
+    def onContractCancelled(self, contract, rejectors):
+        return self._callback_shadow.on_contract_cancelled(
+            from_java(contract), from_java(rejectors)
+        )
+
+    def onNewReport(self, report):
+        return self._callback_shadow.on_new_report(from_java(report))
+
+    def signContract(self, contract):
+        return self._callback_shadow.sign_contract(from_java(contract))
+
+    def setRenegotiationAgenda(self, contract, breaches):
+        return to_java(
+            self._callback_shadow.set_renegotiation_agenda(
+                from_java(contract), from_java(breaches)
+            )
+        )
+
+    def respondToRenegotiationRequest(self, contract, breaches, agenda):
+        result = self._callback_shadow.respond_to_renegotiation_request(
+            from_java(contract), from_java(breaches), from_java(agenda)
+        )
+        if result is None:
+            return result
+        return _ShadowSAONegotiator(result)
 
     class Java:
         implements = ["jnegmas.apps.scml.factory_managers.FactoryManager"]

@@ -115,11 +115,8 @@ class PyEntryPoint:
         lst = class_name.split(".")
         for ending in ("Negotiator", "FactoryManager", "UtilityFunction"):
             if lst[-1].endswith(ending):
-                lst[-1] = (
-                    "JavaFactoryManager"
-                    if ending == "FactoryManager"
-                    else "_Shadow"
-                    + (ending if ending != "Negotiator" else "SAONegotiator")
+                lst[-1] = "_Shadow" + (
+                    ending if ending != "Negotiator" else "SAONegotiator"
                 )
                 break
         else:
