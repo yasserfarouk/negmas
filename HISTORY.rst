@@ -1,6 +1,14 @@
 History
 =======
 
+Release 0.2.8
+-------------
+
+- adding commands to FactoryState.
+- Allowing JNegMAS to use GreedyFactoryManager. To do that, the Java factory manager must inherit from
+  GreedyFactoryManager and its class name must end with either GreedyFactoryManager or GFM
+
+
 Release 0.2.7
 -------------
 

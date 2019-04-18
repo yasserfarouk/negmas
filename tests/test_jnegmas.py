@@ -30,13 +30,17 @@ def python_name(java_class: str) -> str:
 @pytest.mark.skipif(not jnegmas_bridge_is_running(), reason="JNegMAS is not running")
 @pytest.mark.parametrize(
     argnames="java_class",
-    argvalues=[  #'jnegmas.apps.scml.factory_managers.DoNothingFactoryManager',
+    argvalues=[
+        "jnegmas.apps.scml.factory_managers.GreedyFactoryManager",
+        "jnegmas.apps.scml.factory_managers.DoNothingFactoryManager",
         "jnegmas.apps.scml.factory_managers.DummyMiddleMan",
-        # 'jnegmas.apps.scml.factory_managers.GreedyFactoryManager',
+        "jnegmas.apps.scml.factory_managers.RandomizingGFM",
     ],
-    ids=[  #'java do-nothing',
+    ids=[
+        "java greedy (with shadow)",
+        "java do-nothing",
         "java middleman (no shadow)",
-        # 'java greedy (with shadow)'
+        "based on java greedy",
     ],
 )
 def test_java_factory_manager(java_class):
@@ -51,7 +55,10 @@ def test_java_factory_manager(java_class):
         print(log_file)
         world = SCMLWorld.chain_world(
             manager_types=(JFM, GreedyFactoryManager),
-            n_steps=15,
+            n_steps=5,
+            n_factories_per_level=3,
+            n_default_per_level=1,
+            n_intermediate_levels=1,
             agent_names_reveal_type=True,
             log_file_name=log_file,
         )
