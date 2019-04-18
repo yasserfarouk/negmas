@@ -47,7 +47,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 
     .. _ANAC2019: http://web.tuat.ac.jp/~katfuji/ANAC2019
     .. _SCM: http://web.tuat.ac.jp/~katfuji/ANAC2019/#scm
-    .. _here: https://youtu.be/xKNVOGaxJTA
+    .. _here: https://www.youtube.com/playlist?list=PLqvs51K2Mb8LlUQk2DHLGnWdGqhXMNOM-
 
 Introduction
 ============
