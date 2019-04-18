@@ -1,6 +1,15 @@
 History
 =======
 
+Release 0.2.7
+-------------
+
+- improving naming of java factory managers in log files.
+- guaranteeing serial tournaments when java factory managers are involved (to be lifter later).
+- adding links to the YouTube playlist in README
+- adhering to Black style
+
+
 Release 0.2.6
 -------------
 

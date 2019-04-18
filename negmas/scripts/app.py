@@ -197,10 +197,19 @@ def tournament(
     )
 
     parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
+
     all_competitors = competitors.split(";")
+    for i, cp in enumerate(all_competitors):
+        if "." not in cp:
+            all_competitors[i] = "negmas.apps.scml.factory_managers." + cp
     all_competitors_params = [dict() for _ in range(len(all_competitors))]
     if jcompetitors is not None and len(jcompetitors) > 0:
         jcompetitor_params = [{"java_class_name": _} for _ in jcompetitors.split(";")]
+        for jp in jcompetitor_params:
+            if "." not in jp["java_class_name"]:
+                jp["java_class_name"] = (
+                    "jnegmas.apps.scml.factory_managers." + jp["java_class_name"]
+                )
         jcompetitors = ["negmas.apps.scml.JavaFactoryManager"] * len(jcompetitor_params)
         all_competitors += jcompetitors
         all_competitors_params += jcompetitor_params
@@ -258,6 +267,10 @@ def tournament(
                 .startswith("y")
             ):
                 exit(0)
+
+    if len(jcompetitors) > 0:
+        print("You are using java-competitors. The tournament will be run serially")
+        parallelism = "serial"
 
     start = perf_counter()
     if ttype.lower() == "anac2019std":
