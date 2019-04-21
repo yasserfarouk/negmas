@@ -117,6 +117,7 @@ class SAOMechanism(Mechanism):
         )
         self._current_offer = None
         self._current_proposer = None
+        self._current_proposer_index = -1
         self._n_accepting = 0
         self._first_proposer = 0
         self._avoid_ultimatum = n_steps is not None
@@ -138,6 +139,7 @@ class SAOMechanism(Mechanism):
             [a.capabilities.get("propose", False) for a in self.negotiators]
         ):
             self._current_proposer = None
+            self._current_proposer_index = -1
             self._current_offer = None
             self._n_accepting = 0
             return False
@@ -164,6 +166,7 @@ class SAOMechanism(Mechanism):
         if self.ami.state.step == 0:
             assert self._current_offer is None
             assert self._current_proposer is None
+            assert self._current_proposer_index == -1
 
             # choose a random negotiator and set it as the current negotiator
             self._first_proposer = random.randint(0, n_negotiators - 1)
@@ -277,14 +280,16 @@ class SAOMechanism(Mechanism):
             self._n_accepting = 1
             self._current_offer = resp.outcome
             self._current_proposer = neg
+            self._current_proposer_index = self._first_proposer
             return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
         # this is not the first round. A round will get n_negotiators steps
-        ordered_negotiators = [
-            negotiators[(_ + self._first_proposer + 1) % n_negotiators]
+        ordered_indices = [
+            (_ + self._current_proposer_index + 1) % n_negotiators
             for _ in range(n_negotiators)
         ]
-        for neg in ordered_negotiators:
+        for neg_indx in ordered_indices:
+            neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
             resp = neg.counter(state=self.state, offer=self._current_offer)
             if (
@@ -328,6 +333,7 @@ class SAOMechanism(Mechanism):
                 else:
                     self._current_offer = proposal
                     self._current_proposer = neg
+                    self._current_proposer_index = neg_indx
                     self._n_accepting = 1
                     if self._enable_callbacks:
                         for other in self.negotiators:
@@ -925,6 +931,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self._max_aspiration = self.max_aspiration
         self.ufun_max = None
         self.ufun_min = None
+        if assume_normalized:
+            self.ufun_max, self.ufun_min = 1.0, 0.0
         self.__ufun_modified = False
         self.add_capabilities(
             {
@@ -995,7 +1003,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
             + self.ufun_min
         )
-        if u >= asp and u >= self.reserved_value:
+        if u >= asp and u > self.reserved_value:
             return ResponseType.ACCEPT_OFFER
         if asp < self.reserved_value:
             return ResponseType.END_NEGOTIATION
