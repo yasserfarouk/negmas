@@ -61,17 +61,19 @@ the world for every time-step of the simulation.
 Let's check the contracts of this world:
 
 Let's try to run a tournament with this do-nothing agent against the
-built-in greedy agent:
+built-in greedy agent (in the "collusion" track setting):
 
 .. code:: ipython3
 
-    from negmas.apps.scml.utils import anac2019_tournament
+    from negmas.apps.scml.utils import anac2019_collusion
     from negmas.apps.scml import GreedyFactoryManager
     
-    results = anac2019_tournament(competitors=(MyFactoryManager, GreedyFactoryManager)
-                                  , agent_names_reveal_type=True, n_runs_per_config=1
-                                  , max_n_configs=10        # we are allowing only 10 worlds to run
-                                  , n_steps=20              # we are running each world for 20 steps only                              
+    results = anac2019_collusion(competitors=(MyFactoryManager, GreedyFactoryManager)
+                                  , agent_names_reveal_type=True
+                                  , n_configs=2        # create 10 different configs
+                                  , max_worlds_per_config=4 # create no more then 4 worlds per config
+                                  , n_runs_per_world=1 # number of runs of each configured world
+                                  , n_steps=50              # we are running each world for 20 steps only                              
                                  )
 
 You can see the scores that each individual factory manager got (just a
@@ -115,48 +117,48 @@ random sample):
       <tbody>
         <tr>
           <th>0</th>
-          <td>my_1_0</td>
-          <td>my</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
-          <td>00003/20190403-191706sEaI</td>
+          <td>greedy@1_0</td>
+          <td>greedy_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>0.012450</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190422-062515kb7K00001</td>
         </tr>
         <tr>
           <th>1</th>
-          <td>greedy_2_1</td>
-          <td>greedy</td>
-          <td>None</td>
-          <td>-0.024070</td>
-          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
-          <td>00003/20190403-191706sEaI</td>
+          <td>my@1_1</td>
+          <td>my_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>0.000000</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190422-062515kb7K00001</td>
         </tr>
         <tr>
           <th>2</th>
-          <td>my_1_2</td>
-          <td>my</td>
-          <td>None</td>
-          <td>0.000000</td>
-          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
-          <td>00003/20190403-191706sEaI</td>
+          <td>greedy@2_0</td>
+          <td>greedy_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>0.011104</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190422-062515kb7K00001</td>
         </tr>
         <tr>
           <th>3</th>
-          <td>greedy_1_3</td>
-          <td>greedy</td>
-          <td>None</td>
-          <td>-0.013795</td>
-          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
-          <td>00003/20190403-191706sEaI</td>
+          <td>greedy@2_1</td>
+          <td>greedy_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>0.015564</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190422-062515kb7K00001</td>
         </tr>
         <tr>
           <th>4</th>
-          <td>my_2_4</td>
-          <td>my</td>
-          <td>None</td>
+          <td>my@2_2</td>
+          <td>my_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
           <td>0.000000</td>
-          <td>/Users/yasser/code/projects/negmas/logs/tourna...</td>
-          <td>00003/20190403-191706sEaI</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190422-062515kb7K00001</td>
         </tr>
       </tbody>
     </table>
@@ -200,13 +202,13 @@ You can also check the total scores for each factory manager type:
       <tbody>
         <tr>
           <th>0</th>
-          <td>my</td>
-          <td>0.000000</td>
+          <td>greedy_factory_manager</td>
+          <td>0.021991</td>
         </tr>
         <tr>
           <th>1</th>
-          <td>greedy</td>
-          <td>-0.009261</td>
+          <td>my_factory_manager</td>
+          <td>0.000000</td>
         </tr>
       </tbody>
     </table>
@@ -253,10 +255,10 @@ significant using a t-test:
       <tbody>
         <tr>
           <th>0</th>
-          <td>my</td>
-          <td>greedy</td>
-          <td>0.082363</td>
-          <td>1.746367</td>
+          <td>greedy_factory_manager</td>
+          <td>my_factory_manager</td>
+          <td>1.565278e-07</td>
+          <td>5.764186</td>
         </tr>
       </tbody>
     </table>
@@ -264,16 +266,16 @@ significant using a t-test:
 
 
 
-So the greedy factory manager is worse than the do-nothing factory
-manager getting an average loss of *8%* compared with the expected
+So the greedy factory manager is slightly better than the do-nothing
+factory manager getting an average profit of *2%* compared with the
 nothing (*0%*) for the do-nothing factory manager (as expected).
-Moreover, this difference is not statistically significant as the
-p-value is > *0.05*. That is actually to be expected as the
-greedy-factory-manager usually loses at the first 20 or so steps before
-starting to make profits. Try running the tournament for a longer
-time-span (e.g. 100 steps) but be careful thati
+Moreover, this difference is statistically significant as the p-value is
+*1.56e-7 << 0.05*. If you try running this this tournament for less than
+*n\_steps*, the greedy factory manager will most likely lose money. In
+the actual league, we will run each world simulation between *50* and
+*100* steps (more toward the later).
 
-Or, let's just find out who was the winner(s):
+You can just check the winner(s) list
 
 .. code:: ipython3
 
@@ -284,7 +286,7 @@ Or, let's just find out who was the winner(s):
 
 .. parsed-literal::
 
-    ['my']
+    ['greedy_factory_manager']
 
 
 
@@ -297,8 +299,11 @@ and what was its/their score:
 
 .. parsed-literal::
 
-    [0.]
+    [0.0219909]
 
+
+To run a tournament in the "standard"/"sabotage" track settings, use
+"anac2019\_std"/"anac2019\_sabotage" instead of "anac2019\_collusion".
 
 This information and much more is also stored in a log folder that gives
 details of every world and total scores, etc. The default location of
@@ -314,16 +319,17 @@ The information stored in this folder is:
 | der  |      |      |
 | Name |      |      |
 +======+======+======+
-| conf | FOLD | Cont |
-| igs  | ER   | ains |
-|      |      | one  |
-|      |      | json |
+| base | FOLD | Cont |
+| \_co | ER   | ains |
+| nfig |      | one  |
+| s    |      | json |
 |      |      | file |
 |      |      | for  |
 |      |      | each |
-|      |      | worl |
-|      |      | d    |
-|      |      | run  |
+|      |      | conf |
+|      |      | igur |
+|      |      | atio |
+|      |      | n    |
 |      |      | trie |
 |      |      | d    |
 |      |      | duri |
@@ -331,7 +337,49 @@ The information stored in this folder is:
 |      |      | the  |
 |      |      | tour |
 |      |      | name |
-|      |      | nt.  |
+|      |      | nt   |
+|      |      | befo |
+|      |      | re   |
+|      |      | assi |
+|      |      | gnin |
+|      |      | g    |
+|      |      | agen |
+|      |      | ts   |
+|      |      | to   |
+|      |      | fact |
+|      |      | orie |
+|      |      | s.   |
++------+------+------+
+| assi | FOLD | Cont |
+| gned | ER   | ains |
+| \_co |      | one  |
+| nfig |      | json |
+| s    |      | file |
+|      |      | for  |
+|      |      | each |
+|      |      | conf |
+|      |      | igur |
+|      |      | atio |
+|      |      | n    |
+|      |      | trie |
+|      |      | d    |
+|      |      | duri |
+|      |      | ng   |
+|      |      | the  |
+|      |      | tour |
+|      |      | name |
+|      |      | nt   |
+|      |      | afte |
+|      |      | r    |
+|      |      | assi |
+|      |      | gnin |
+|      |      | g    |
+|      |      | agen |
+|      |      | ts   |
+|      |      | to   |
+|      |      | fact |
+|      |      | orie |
+|      |      | s.   |
 |      |      | You  |
 |      |      | can  |
 |      |      | re-r |
