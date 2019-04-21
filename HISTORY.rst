@@ -1,6 +1,14 @@
 History
 =======
 
+Release 0.2.9
+-------------
+
+- resolving a bug in AspirationNegotiator that caused an exception for ufuns with assume_normalized
+- resolving a bug in ASOMechanism that caused agreements only on boundary offers.
+- using jnegmas-0.2.4 instead of jnegmas-0.2.3 in negmas jnegmas-setup command
+
+
 Release 0.2.8
 -------------
 

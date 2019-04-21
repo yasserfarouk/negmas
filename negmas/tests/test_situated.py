@@ -25,6 +25,7 @@ from negmas import (
     RenegotiationRequest,
     AgentMechanismInterface,
     MechanismState,
+    MappingUtilityFunction,
 )
 from negmas.helpers import ConfigReader
 from negmas.situated import World, Agent, Action, Breach, Contract
@@ -48,8 +49,13 @@ class DummyWorld(World):
     def _contract_size(self, contract: Contract) -> float:
         return 0.0
 
-    def __init__(self, n_steps=10000, negotiation_speed=None):
-        super().__init__(n_steps=n_steps, negotiation_speed=negotiation_speed)
+    def __init__(self, n_steps=10000, negotiation_speed=20):
+        super().__init__(
+            n_steps=n_steps,
+            negotiation_speed=negotiation_speed,
+            neg_n_steps=10,
+            neg_time_limit=10,
+        )
         self.the_agents = []
 
     def join(self, x: "Agent", simulation_priority: int = 0):
@@ -115,9 +121,7 @@ class DummyAgent(Agent):
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         negotiator = AspirationNegotiator(
-            ufun=LinearUtilityAggregationFunction(
-                issue_utilities=[lambda x: 1.0 - x / 10.0]
-            )
+            ufun=MappingUtilityFunction(mapping=lambda x: 1.0 - x["i1"] / 10.0)
         )
         return negotiator
 
@@ -171,7 +175,7 @@ class DummyAgent(Agent):
         if (self.current_step == 2 and self.name.endswith("1")) or (
             self.current_step == 4 and self.name.endswith("2")
         ):
-            issues = [Issue(10)]
+            issues = [Issue(10, name="i1")]
             partners = self.awi.state["partners"]
             self._request_negotiation(
                 partners=[_.name for _ in partners] + [self.name], issues=issues
