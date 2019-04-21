@@ -20,11 +20,6 @@ def test_round_n_agents(n_negotaitors):
     assert mechanism.state.step == 0
     mechanism.step()
     assert mechanism.state.step == 1
-    assert 0 <= mechanism._first_proposer < n_negotaitors
-    assert (
-        mechanism._current_proposer.name
-        == mechanism.negotiators[mechanism._first_proposer].name
-    )
     assert mechanism._current_offer is not None
 
 
