@@ -30,6 +30,7 @@ from negmas.outcomes import (
     outcome_is_valid,
     ResponseType,
     outcome_as_dict,
+    outcome_as_tuple,
 )
 from negmas.utilities import (
     MappingUtilityFunction,
@@ -97,6 +98,7 @@ class SAOMechanism(Mechanism):
         publish_proposer=True,
         publish_n_acceptances=False,
         enable_callbacks=False,
+        avoid_ultimatum=True,
         name: Optional[str] = None,
     ):
         super().__init__(
@@ -119,8 +121,7 @@ class SAOMechanism(Mechanism):
         self._current_proposer = None
         self._current_proposer_index = -1
         self._n_accepting = 0
-        self._first_proposer = 0
-        self._avoid_ultimatum = n_steps is not None
+        self._avoid_ultimatum = n_steps is not None and avoid_ultimatum
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.publish_proposer = publish_proposer
         self.publish_n_acceptances = publish_n_acceptances
@@ -169,7 +170,7 @@ class SAOMechanism(Mechanism):
             assert self._current_proposer_index == -1
 
             # choose a random negotiator and set it as the current negotiator
-            self._first_proposer = random.randint(0, n_negotiators - 1)
+            _first_proposer = random.randint(0, n_negotiators - 1)
             if self._avoid_ultimatum:
                 # if we are trying to avoid an ultimatum, we take an offer from everyone and ignore them but one.
                 # this way, the agent cannot know its order. For example, if we have two agents and 3 steps, this will
@@ -239,18 +240,18 @@ class SAOMechanism(Mechanism):
                             broken=False, timedout=False, agreement=None
                         )
                 resp = (
-                    responses[self._first_proposer]
-                    if len(responses) > self._first_proposer
+                    responses[_first_proposer]
+                    if len(responses) > _first_proposer
                     else responses[0]
                 )
                 neg = (
-                    negotiators[self._first_proposer]
-                    if len(negotiators) > self._first_proposer
+                    negotiators[_first_proposer]
+                    if len(negotiators) > _first_proposer
                     else negotiators[0]
                 )
             else:
                 # when there is no risk of ultimatum (n_steps is not known), we just take one first offer.
-                neg = negotiators[self._first_proposer]
+                neg = negotiators[_first_proposer]
                 strt = time.perf_counter()
                 resp = neg.counter(state=self.state, offer=None)
                 if (
@@ -280,7 +281,7 @@ class SAOMechanism(Mechanism):
             self._n_accepting = 1
             self._current_offer = resp.outcome
             self._current_proposer = neg
-            self._current_proposer_index = self._first_proposer
+            self._current_proposer_index = _first_proposer
             return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
         # this is not the first round. A round will get n_negotiators steps
@@ -1276,12 +1277,12 @@ class SimpleTitForTatNegotiator(SAONegotiator):
         name: str = None,
         parent: Controller = None,
         ufun: Optional["UtilityFunction"] = None,
-        kindness=0.0,
+        kindness=0.1,
         randomize_offer=False,
         initial_concession: Union[float, str] = "min",
     ):
         super().__init__(name=name, ufun=ufun, parent=parent)
-        self._offerable_outcomes = None
+        self.__ufun_modified = False
         self.received_utilities = []
         self.proposed_utility = None
         self.kindness = kindness
@@ -1299,73 +1300,82 @@ class SimpleTitForTatNegotiator(SAONegotiator):
     ) -> bool:
         if not super().join(ami, state, ufun=ufun, role=role):
             return False
-        outcomes = (
-            self._ami.outcomes
-            if self._offerable_outcomes is None
-            else self._offerable_outcomes
-        )
-        if outcomes is None:
-            outcomes = sample_outcomes(self._ami.issues, keep_issue_names=True)
-        if self.utility_function is None:
-            return True
+        self._update_ordered_outcomes()
+        return True
+
+    def _update_ordered_outcomes(self):
+        outcomes = self._ami.discrete_outcomes()
         self.ordered_outcomes = sorted(
             [(self.utility_function(outcome), outcome) for outcome in outcomes],
             key=lambda x: x[0],
             reverse=True,
         )
-        return True
+        if not self.assume_normalized:
+            self.ufun_max = self.ordered_outcomes[0][0]
+            self.ufun_min = self.ordered_outcomes[-1][0]
+            if self.reserved_value is not None and self.ufun_min < self.reserved_value:
+                self.ufun_min = self.reserved_value
+
+    def on_notification(self, notification: Notification, notifier: str):
+        super().on_notification(notification, notifier)
+        if notification.type == "ufun_modified":
+            if self.dynamic_ufun:
+                self.__ufun_modified = True
+                self._update_ordered_outcomes()
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        my_offer = self.propose(state=state)
+        indx = self._propose(state=state)
+        my_utility, my_offer = self.ordered_outcomes[indx]
         if self.utility_function is None:
             return ResponseType.REJECT_OFFER
-        u = self.utility_function(offer)
+        offered_utility = self.utility_function(offer)
         if len(self.received_utilities) < 2:
-            self.received_utilities.append(u)
+            self.received_utilities.append(offered_utility)
         else:
-            self.received_utilities[-1] = u
-        if u >= self.utility_function(my_offer):
+            self.received_utilities[0] = self.received_utilities[1]
+            self.received_utilities[-1] = offered_utility
+        if offered_utility >= my_utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def _outcome_at_utility(self, asp: float, n: int) -> List["Outcome"]:
+    def _outcome_at_utility(self, asp: float) -> Optional[int]:
         for i, (u, o) in enumerate(self.ordered_outcomes):
             if u is None:
                 continue
             if u < asp:
                 if i == 0:
-                    return [self.ordered_outcomes[0][1]] * n
+                    return None
                 if self.randomize_offer:
-                    if n < i:
-                        return [random.sample(self.ordered_outcomes, 1)[0][1]] * n
-                    else:
-                        return [_[1] for _ in self.ordered_outcomes[:i]]
-                else:
-                    return [self.ordered_outcomes[i][1]] * n
+                    return random.randint(0, i)
+                return i - 1
+        if self.randomize_offer:
+            return random.randint(0, len(self.ordered_outcomes))
+        return -1
 
-    def propose(self, state: MechanismState) -> Optional["Outcome"]:
-        if len(self.received_utilities) < 2 or self.proposed_utility is None:
-            if len(self.received_utilities) < 1:
-                return self.ordered_outcomes[0][1]
+    def _propose(self, state: MechanismState) -> int:
+        if self.proposed_utility is None:
+            return 0
+        if len(self.received_utilities) < 2:
             if (
                 isinstance(self.initial_concession, str)
                 and self.initial_concession == "min"
             ):
-                asp = None
-                for u, o in self.ordered_outcomes:
-                    if u is None:
-                        continue
-                    if asp is not None and u < asp:
-                        break
-                    asp = u
-                if asp is None:
-                    return self.ordered_outcomes[0][1]
+                return 1
             else:
-                asp = self.ordered_outcomes[0][0] * (1 - self.initial_concession)
-            return self._outcome_at_utility(asp=asp, n=1)[0]
+                asp = self.ordered_outcomes[0][0] * (1.0 - self.initial_concession)
+            return self._outcome_at_utility(asp=asp)
+
         opponent_concession = self.received_utilities[1] - self.received_utilities[0]
         asp = self.proposed_utility - opponent_concession * (1 + self.kindness)
-        return self._outcome_at_utility(asp=asp, n=1)[0]
+        indx = self._outcome_at_utility(asp=asp)
+        return indx
+
+    def propose(self, state: MechanismState) -> Optional[Outcome]:
+        indx = self._propose(state)
+        if indx is None:
+            return None
+        self.proposed_utility = self.ordered_outcomes[indx][0]
+        return self.ordered_outcomes[indx][1]
 
 
 def _to_java_response(response: ResponseType) -> int:

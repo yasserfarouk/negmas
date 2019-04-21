@@ -54,28 +54,50 @@ def test_asp_negotaitor():
     assert neg.state.agreement in ((3,), (4,), (5,))
 
 
-# def test_tit_for_tat_negotiators():
-#     a1 = SimpleTitForTatNegotiator(name="a1")
-#     a2 = SimpleTitForTatNegotiator(name="a2")
-#     outcomes = [(_,) for _ in range(10)]
-#     u1 = np.linspace(0.0, 1.0, len(outcomes))
-#     u2 = 1.0 - u1
-#     neg = SAOMechanism(outcomes=outcomes, n_steps=100)
-#     neg.add(a1, ufun=u1)
-#     neg.add(a2, ufun=u2)
-#     neg.run()
-#     a1offers = [s.current_offer for s in neg.history if s.current_proposer == a1.id]
-#     a2offers = [s.current_offer for s in neg.history if s.current_proposer == a2.id]
-#     print(a1offers)
-#     print(a2offers)
-#     assert a1offers[0] == (9,)
-#     assert a2offers[0] == (0,)
-#     for i, offer in enumerate(_[0] for _ in a1offers):
-#         assert i == 0 or offer <= a1offers[i - 1][0]
-#     for i, offer in enumerate(_[0] for _ in a2offers):
-#         assert i == 0 or offer >= a2offers[i - 1][0]
-#     assert neg.state.agreement is not None
-#     assert neg.state.agreement in ((3,), (4,), (5,))
+def test_tit_for_tat_negotiators():
+    a1 = SimpleTitForTatNegotiator(name="a1")
+    a2 = SimpleTitForTatNegotiator(name="a2")
+    outcomes = [(_,) for _ in range(10)]
+    u1 = np.linspace(0.0, 1.0, len(outcomes))
+    u2 = 1.0 - u1
+    neg = SAOMechanism(outcomes=outcomes, n_steps=100, avoid_ultimatum=False)
+    neg.add(a1, ufun=u1)
+    neg.add(a2, ufun=u2)
+    neg.run()
+    a1offers = [s.current_offer for s in neg.history if s.current_proposer == a1.id]
+    a2offers = [s.current_offer for s in neg.history if s.current_proposer == a2.id]
+    print(a1offers)
+    print(a2offers)
+    assert a1offers[0] == (9,)
+    assert a2offers[0] == (0,)
+    for i, offer in enumerate(_[0] for _ in a1offers):
+        assert i == 0 or offer <= a1offers[i - 1][0]
+    for i, offer in enumerate(_[0] for _ in a2offers):
+        assert i == 0 or offer >= a2offers[i - 1][0]
+    assert neg.state.agreement is not None
+    assert neg.state.agreement in ((3,), (4,), (5,), (6,))
+
+
+def test_tit_for_tat_against_asp_negotiators():
+    a1 = SimpleTitForTatNegotiator(name="a1")
+    a2 = AspirationNegotiator(name="a2")
+    outcomes = [(_,) for _ in range(10)]
+    u1 = np.linspace(0.0, 1.0, len(outcomes))
+    u2 = 1.0 - u1
+    neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
+    neg.add(a1, ufun=u1)
+    neg.add(a2, ufun=u2)
+    neg.run()
+    a1offers = [s.current_offer for s in neg.history if s.current_proposer == a1.id]
+    a2offers = [s.current_offer for s in neg.history if s.current_proposer == a2.id]
+    assert a1offers[0] == (9,)
+    assert a2offers[0] == (0,)
+    for i, offer in enumerate(_[0] for _ in a1offers):
+        assert i == 0 or offer <= a1offers[i - 1][0]
+    for i, offer in enumerate(_[0] for _ in a2offers):
+        assert i == 0 or offer >= a2offers[i - 1][0]
+    assert neg.state.agreement is not None
+    assert neg.state.agreement in ((3,), (4,), (5,))
 
 
 def test_best_only_asp_negotiator():
