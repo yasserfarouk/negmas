@@ -212,7 +212,7 @@ def anac2019_config_generator(
     n_intermediate_levels = randint(*n_intermediate)
 
     products = [
-        Product(id=0, name="p0", catalog_price=1.0, production_level=0, expires_in=0)
+        Product(id=0, name="p0", catalog_price=3.0, production_level=0, expires_in=0)
     ]
     processes = []
     miners = [
@@ -362,7 +362,6 @@ def anac2019_config_generator(
             breach_penalty_victim=0.0,
             breach_move_max_product=True,
             initial_wallet_balances=1000.0,
-            money_resolution=0.5,
             transfer_delay=0,
             start_negotiations_immediately=False,
             catalog_profit=0.15,

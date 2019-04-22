@@ -146,8 +146,8 @@ class ScheduleDrivenConsumer(Consumer):
     def on_remove_cfp(self, cfp: "CFP"):
         pass
 
-    MAX_UNIT_PRICE = 1e5
-    RELATIVE_MAX_PRICE = 2
+    MAX_UNIT_PRICE = 100.0
+    RELATIVE_MAX_PRICE = 1.5
 
     def __init__(
         self,

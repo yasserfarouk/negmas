@@ -168,7 +168,7 @@ class SCMLAWI(AgentWorldInterface):
         return self.bb_remove(section="cfps", key=str(hash(cfp)))
 
     def evaluate_insurance(self, contract: Contract, t: int = None) -> Optional[float]:
-        """Can be called to evaluate the premium for insuring the given contract against breachs committed by others
+        """Can be called to evaluate the premium for insuring the given contract against breaches committed by others
 
         Args:
 
