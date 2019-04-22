@@ -156,3 +156,6 @@ dask-worker-space/
 */py4j
 pip-wheel-metadata
 
+tests/logs/*
+tests/logs
+

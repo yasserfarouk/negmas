@@ -20,6 +20,7 @@ import pandas as pd
 import yaml
 from typing_extensions import Protocol
 
+from negmas.apps.scml import FactoryManager
 from negmas.helpers import (
     get_class,
     unique_name,
@@ -71,6 +72,10 @@ class ConfigGenerator(Protocol):
             n_competitors: Number of competitor types
             n_agents_per_competitor: Number of agents to instantiate for each competitor
             agent_names_reveal_type: whether agent names contain their types (used for debugging purposes).
+            non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
+                             in the world
+            non_competitor_params: paramters of non competitor agents
+            compact: Whether to try to reduce memory footprint (and avoid logging)
             kwargs: key-value pairs of arguments.
 
     See Also:
@@ -84,9 +89,11 @@ class ConfigGenerator(Protocol):
         n_competitors: int,
         n_agents_per_competitor: int,
         agent_names_reveal_type: bool = False,
+        non_competitors: Optional[Tuple[Union[str, FactoryManager]]] = None,
+        non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
         compact: bool = False,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> List[Dict[str, Any]]:
         ...
 
 
@@ -110,12 +117,12 @@ class ConfigAssigner(Protocol):
 
     def __call__(
         self,
-        config: Dict[str, Any],
+        config: List[Dict[str, Any]],
         max_n_worlds: int,
         n_agents_per_competitor: int = 1,
         competitors: Sequence[Type[Agent]] = (),
         params: Sequence[Dict[str, Any]] = (),
-    ) -> List[Dict[str, Any]]:
+    ) -> List[List[Dict[str, Any]]]:
         ...
 
 
@@ -123,9 +130,9 @@ class ConfigAssigner(Protocol):
 class WorldRunResults:
     """Results of a world run"""
 
-    world_name: str
+    world_names: List[str]
     """World name"""
-    log_file_name: str
+    log_file_names: List[str]
     """Log file name"""
     names: List[str] = field(default_factory=list, init=False)
     """Agent names"""
@@ -146,7 +153,9 @@ class TournamentResults:
     ttest: pd.DataFrame
 
 
-def run_world(world_params: dict, dry_run: bool = False, save_world_stats: bool = True):
+def run_world(
+    world_params: dict, dry_run: bool = False, save_world_stats: bool = True
+) -> WorldRunResults:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -186,12 +195,12 @@ def run_world(world_params: dict, dry_run: bool = False, save_world_stats: bool 
         "log_file_name", str(default_dir / "log.txt")
     )
     world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
-    # delete the parameters not used by _run_world
+    # delete the parameters not used by _run_worlds
     for k in ("__world_generator", "__tournament_name", "__score_calculator"):
         if k in world_params.keys():
             world_params.pop(k, None)
-    return _run_world(
-        world_params=world_params,
+    return _run_worlds(
+        worlds_params=[world_params],
         world_generator=world_generator,
         score_calculator=score_calculator,
         dry_run=dry_run,
@@ -199,18 +208,78 @@ def run_world(world_params: dict, dry_run: bool = False, save_world_stats: bool 
     )
 
 
-def _run_world(
-    world_params: dict,
+def run_worlds(
+    worlds_params: List[dict], dry_run: bool = False, save_world_stats: bool = True
+) -> WorldRunResults:
+    """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
+
+    Args:
+        worlds_params: list of World info dicts. See remarks for its parameters
+        dry_run: If true, the world will not be run. Only configs will be saved
+        save_world_stats: If true, saves individual world stats
+
+    Remarks:
+
+        Each dict in `worlds_params` dict should have the following members:
+
+            - name: world name [Defaults to random]
+            - log_file_name: file name to store the world log [Defaults to random]
+            - __dir_name: directory to store the world stats [Defaults to random]
+            - __world_generator: full name of the world generator function (including its module) [Required]
+            - __score_calculator: full name of the score calculator function [Required]
+            - __tournament_name: name of the tournament [Defaults to random]
+            - others: values of all other keys are passed to the world generator as kwargs
+    """
+    params = []
+    if len(worlds_params) < 1:
+        return WorldRunResults(world_names=[""], log_file_names=[""])
+    world_generator, score_calculator = None, None
+    for world_params in worlds_params:
+        world_generator = world_params.get("__world_generator", None)
+        score_calculator = world_params.get("__score_calculator", None)
+        tournament_name = world_params.get("__tournament_name", unique_name(base=""))
+        assert world_generator and score_calculator, (
+            f"Cannot run without specifying both a world generator and a score "
+            f"calculator"
+        )
+        world_generator = import_by_name(world_generator)
+        score_calculator = import_by_name(score_calculator)
+        default_name = unique_name(base="")
+        world_params["name"] = world_params.get("name", default_name)
+        world_name = world_params["name"]
+        default_dir = (
+            Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
+        ).absolute()
+        world_params["log_file_name"] = world_params.get(
+            "log_file_name", str(default_dir / "log.txt")
+        )
+        world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
+        # delete the parameters not used by _run_worlds
+        for k in ("__world_generator", "__tournament_name", "__score_calculator"):
+            if k in world_params.keys():
+                world_params.pop(k, None)
+        params.append(world_params)
+    return _run_worlds(
+        worlds_params=params,
+        world_generator=world_generator,
+        score_calculator=score_calculator,
+        dry_run=dry_run,
+        save_world_stats=save_world_stats,
+    )
+
+
+def _run_worlds(
+    worlds_params: List[Dict[str, Any]],
     world_generator: WorldGenerator,
-    score_calculator: Callable[[World, bool], WorldRunResults],
+    score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
     world_progress_callback: Callable[[Optional[World]], None] = None,
     dry_run: bool = False,
     save_world_stats: bool = True,
-) -> Tuple[WorldRunResults, str]:
-    """Runs a world and returns stats
+) -> WorldRunResults:
+    """Runs a set of worlds (generated from a world generator) and returns stats
 
     Args:
-        world_params: World info dict. See remarks for its parameters
+        worlds_params: A list of World info dicts. See remarks for its parameters
         world_generator: World generator function.
         score_calculator: Score calculator function.
         world_progress_callback: world progress callback
@@ -224,40 +293,43 @@ def _run_world(
 
     Remarks:
 
-        - The `world_params` dict should have the following members:
+        - Each `worlds_params` dict should have the following members:
 
             - name: world name
             - log_file_name: file name to store the world log
             - __dir_name: directory to store the world stats
             - others: values of all other keys are passed to the world generator as kwargs
 
-
     """
-    world_params = world_params.copy()
-    dir_name = world_params["__dir_name"]
-    world_params.pop("__dir_name", None)
-    world = world_generator(**world_params)
-    if dry_run:
-        world.save_config(dir_name)
-        scores = score_calculator(world, True)
-        return scores, dir_name
-    if world_progress_callback is None:
-        world.run()
-    else:
-        _start_time = time.monotonic()
-        for _ in range(world.n_steps):
-            if (
-                world.time_limit is not None
-                and (time.monotonic() - _start_time) >= world.time_limit
-            ):
-                break
-            if not world.step():
-                break
-            world_progress_callback(world)
-    if save_world_stats:
-        save_stats(world=world, log_dir=dir_name)
-    scores = score_calculator(world, False)
-    return scores, dir_name
+    worlds = []
+    scoring_context = {}
+    for world_params in worlds_params:
+        world_params = world_params.copy()
+        dir_name = world_params["__dir_name"]
+        world_params.pop("__dir_name", None)
+        scoring_context.update(world_params.get("scoring_context", {}))
+        world = world_generator(**world_params)
+        if dry_run:
+            world.save_config(dir_name)
+            continue
+        if world_progress_callback is None:
+            world.run()
+        else:
+            _start_time = time.monotonic()
+            for _ in range(world.n_steps):
+                if (
+                    world.time_limit is not None
+                    and (time.monotonic() - _start_time) >= world.time_limit
+                ):
+                    break
+                if not world.step():
+                    break
+                world_progress_callback(world)
+        worlds.append(world)
+        if save_world_stats:
+            save_stats(world=world, log_dir=dir_name)
+    scores = score_calculator(worlds, scoring_context, dry_run)
+    return scores
 
 
 def process_world_run(
@@ -267,7 +339,7 @@ def process_world_run(
     save_world_stats: bool = True,
 ) -> pd.DataFrame:
     """
-    Generates a dataframe with the results of this world run
+    Generates a data-frame with the results of this world run
 
     Args:
         results: Results of the world run
@@ -280,12 +352,17 @@ def process_world_run(
         A pandas DataFrame with agent_name, agent_type, score, log_file, world, and stats_folder columns
 
     """
-    log_file, world_name_ = results.log_file_name, results.world_name
-    if save_world_stats and log_file is not None and pathlib.Path(log_file).exists():
-        with open(log_file, "a") as f:
-            f.write(
-                f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n"
-            )
+    log_files, world_names_ = results.log_file_names, results.world_names
+    for world_name_, log_file in zip(world_names_, log_files):
+        if (
+            save_world_stats
+            and log_file is not None
+            and pathlib.Path(log_file).exists()
+        ):
+            with open(log_file, "a") as f:
+                f.write(
+                    f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n"
+                )
     scores = []
     for name_, type_, score in zip(results.names, results.types, results.scores):
         scores.append(
@@ -293,8 +370,8 @@ def process_world_run(
                 "agent_name": name_,
                 "agent_type": type_,
                 "score": score,
-                "log_file": log_file,
-                "world": world_name_,
+                "log_file": ";".join(log_files),
+                "world": ";".join(world_names_),
                 "stats_folder": dir_name,
             }
         )
@@ -331,11 +408,11 @@ def _run_dask(
         print(f"Will use DASK on {address}")
     client = distributed.Client(address=address, set_as_default=True)
     future_results = []
-    for world_info in world_infos:
+    for world_params in world_infos:
         future_results.append(
             client.submit(
-                _run_world,
-                world_info,
+                _run_worlds,
+                world_params,
                 world_generator,
                 score_calculator,
                 None,
@@ -345,16 +422,21 @@ def _run_dask(
         )
     print(f"Submitted all processes to DASK ({len(world_infos)})")
     _strt = time.perf_counter()
-    for i, (future, result) in enumerate(
+    for i, future in enumerate(
         distributed.as_completed(future_results, with_results=True, raise_errors=False)
     ):
         try:
-            score_, dir_name = result
+            score_ = future.result()
+            stats_dir_name = str(pathlib.Path(score_.log_file_names[0]).parent)
             if tournament_progress_callback is not None:
                 tournament_progress_callback(score_, i, n_worlds)
             scores.append(
-                process_world_run(score_, tournament_name=name, dir_name=str(dir_name)),
-                save_world_stats=save_world_stats,
+                process_world_run(
+                    score_,
+                    tournament_name=name,
+                    dir_name=str(stats_dir_name),
+                    save_world_stats=save_world_stats,
+                )
             )
             if verbose:
                 _duration = time.perf_counter() - _strt
@@ -376,7 +458,7 @@ def tournament(
     config_generator: ConfigGenerator,
     config_assigner: ConfigAssigner,
     world_generator: WorldGenerator,
-    score_calculator: Callable[[World, bool], WorldRunResults],
+    score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
     competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
     agent_names_reveal_type=False,
     n_agents_per_competitor=1,
@@ -394,6 +476,8 @@ def tournament(
         [Optional[WorldRunResults], int, int], None
     ] = None,
     world_progress_callback: Callable[[Optional[World]], None] = None,
+    non_competitors: Optional[Tuple[Union[str, FactoryManager]]] = None,
+    non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
     name: str = None,
     verbose: bool = False,
     configs_only: bool = False,
@@ -411,7 +495,9 @@ def tournament(
         world_generator: A functions to generate worlds for the tournament that follows the assignments made by the
                          `config_assigner`
         score_calculator: A function for calculating the score of all agents in a world *After it finishes running*.
-                          The second parameter is a boolean specifying whether this is a dry_run. For dry runs, scores
+                          The second parameter is a dict describing any scoring context that may have been added by the
+                          world config generator or assigneer.
+                          The third parameter is a boolean specifying whether this is a dry_run. For dry runs, scores
                           are not expected but names and types should exist in the returned `WorldRunResults`.
         competitors: A list of class names for the competitors
         competitor_params: A list of competitor parameters (used to initialize the competitors).
@@ -438,6 +524,9 @@ def tournament(
                                  and parallel evaluation and should be used with cautious).
         tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
                                       processing
+        non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
+                         in the world
+        non_competitor_params: paramters of non competitor agents
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
@@ -490,11 +579,17 @@ def tournament(
         print(f"Results of Tournament {name} will be saved to {str(tournament_path)}")
     if competitor_params is None:
         competitor_params = [dict() for _ in range(len(competitors))]
+    competitors = [get_full_type_name(_) for _ in competitors]
+    non_competitors = (
+        None
+        if non_competitors is None
+        else [get_full_type_name(_) for _ in non_competitors]
+    )
     params = {
-        "competitors": [
-            get_class(_).__name__ if not isinstance(_, str) else _ for _ in competitors
-        ],
-        "params": competitor_params,
+        "competitors": competitors,
+        "competitor_params": competitor_params,
+        "non_competitors": non_competitors,
+        "non_competitor_params": non_competitor_params,
         "n_agents_per_competitor": n_agents_per_competitor,
         "tournament_path": str(tournament_path),
         "total_timeout": total_timeout,
@@ -515,6 +610,8 @@ def tournament(
             n_competitors=len(competitors),
             n_agents_per_competitor=n_agents_per_competitor,
             agent_names_reveal_type=agent_names_reveal_type,
+            non_competitors=non_competitors,
+            non_competitor_params=non_competitor_params,
             compact=compact,
             **kwargs,
         )
@@ -557,22 +654,31 @@ def tournament(
 
     assigned = list(itertools.chain(*([assigned] * n_runs_per_world)))
 
-    for config in assigned:
-        dir_name = tournament_path / config["world_params"]["name"]
-        config.update(
-            {"log_file_name": str(dir_name / "log.txt"), "__dir_name": str(dir_name)}
-        )
-        config["world_params"].update({"log_file_name": str(dir_name / "log.txt")})
+    for config_set in assigned:
+        for config in config_set:
+            dir_name = tournament_path / config["world_params"]["name"]
+            config.update(
+                {
+                    "log_file_name": str(dir_name / "log.txt"),
+                    "__dir_name": str(dir_name),
+                }
+            )
+            config["world_params"].update({"log_file_name": str(dir_name / "log.txt")})
 
-    saved_configs = [
-        {
-            k: copy.copy(v)
-            if k != "competitors"
-            else [get_full_type_name(c) if not isinstance(c, str) else c for c in v]
-            for k, v in _.items()
-        }
-        for _ in assigned
-    ]
+    saved_configs = []
+    for cs in assigned:
+        for _ in cs:
+            saved_configs.append(
+                {
+                    k: copy.copy(v)
+                    if k != "competitors"
+                    else [
+                        get_full_type_name(c) if not isinstance(c, str) else c
+                        for c in v
+                    ]
+                    for k, v in _.items()
+                }
+            )
     score_calculator_name = (
         get_full_type_name(score_calculator)
         if not isinstance(score_calculator, str)
@@ -604,12 +710,12 @@ def tournament(
         )
     if parallelism in serial_options:
         strt = time.perf_counter()
-        for i, world_params in enumerate(assigned):
+        for i, worlds_params in enumerate(assigned):
             if total_timeout is not None and time.perf_counter() - strt > total_timeout:
                 break
             try:
-                score_, _ = _run_world(
-                    world_params=world_params,
+                score_ = _run_worlds(
+                    worlds_params=worlds_params,
                     world_generator=world_generator,
                     world_progress_callback=world_progress_callback,
                     score_calculator=score_calculator,
@@ -618,14 +724,15 @@ def tournament(
                 )
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
-                scores_list.append(
-                    process_world_run(
-                        score_,
-                        tournament_name=name,
-                        dir_name=str(world_params["__dir_name"]),
-                        save_world_stats=not compact,
+                for world_params in worlds_params:
+                    scores_list.append(
+                        process_world_run(
+                            score_,
+                            tournament_name=name,
+                            dir_name=str(world_params["__dir_name"]),
+                            save_world_stats=not compact,
+                        )
                     )
-                )
                 if verbose:
                     _duration = time.perf_counter() - strt
                     print(
@@ -642,11 +749,11 @@ def tournament(
     elif parallelism in multiprocessing_options:
         executor = futures.ProcessPoolExecutor(max_workers=None)
         future_results = []
-        for world_params in assigned:
+        for worlds_params in assigned:
             future_results.append(
                 executor.submit(
-                    _run_world,
-                    world_params,
+                    _run_worlds,
+                    worlds_params,
                     world_generator,
                     score_calculator,
                     world_progress_callback,
@@ -661,14 +768,15 @@ def tournament(
             futures.as_completed(future_results, timeout=total_timeout)
         ):
             try:
-                score_, dir_name = future.result()
+                score_ = future.result()
+                stats_dir_name = str(pathlib.Path(score_.log_file_names[0]).parent)
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
                 scores_list.append(
                     process_world_run(
                         score_,
                         tournament_name=name,
-                        dir_name=str(dir_name),
+                        dir_name=str(stats_dir_name),
                         save_world_stats=not compact,
                     )
                 )
