@@ -971,10 +971,12 @@ def dump(d: Any, file_name: Union[str, os.PathLike]) -> None:
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
     else:
-        raise ValueError(f"Unkown extension {file_name.suffix} for {file_name}")
+        raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
 
 
-def add_records(file_name: str, data: Any, col_names: Optional[List[str]] = None):
+def add_records(
+    file_name: str, data: Any, col_names: Optional[List[str]] = None
+) -> None:
     """
     Adds records to a csv file
 
@@ -986,18 +988,14 @@ def add_records(file_name: str, data: Any, col_names: Optional[List[str]] = None
 
     Returns:
 
+        None
+
     """
     data = pd.DataFrame(data=data, columns=col_names)
     file_name = pathlib.Path(file_name)
     file_name.parent.mkdir(parents=True, exist_ok=True)
     if file_name.exists():
-        # if col_names is None:
-        #    col_names = [str(_) for _ in data.columns]
         old_data = pd.read_csv(str(file_name), index_col=None)
-        # other_names = [str(_) for _ in old_data.columns if _ not in col_names]
-        # for other in other_names:
-        #     data[other] = None
-        # old_data = old_data[[_ for _ in col_names if _ in old_data.columns] + other_names]
-        data = pd.concat((old_data, data), axis=0, ignore_index=True, copy=False)
+        data = pd.concat((old_data, data), axis="rows", ignore_index=True, copy=False)
     data.to_csv(str(file_name), index=False, index_label="")
     return
