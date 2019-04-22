@@ -1,6 +1,10 @@
 History
 =======
 
+Release 0.2.11
+--------------
+- minor bug fix
+
 Release 0.2.10
 --------------
 
