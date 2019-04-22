@@ -20,7 +20,6 @@ import pandas as pd
 import yaml
 from typing_extensions import Protocol
 
-from negmas.apps.scml import FactoryManager
 from negmas.helpers import (
     get_class,
     unique_name,
@@ -89,7 +88,7 @@ class ConfigGenerator(Protocol):
         n_competitors: int,
         n_agents_per_competitor: int,
         agent_names_reveal_type: bool = False,
-        non_competitors: Optional[Tuple[Union[str, FactoryManager]]] = None,
+        non_competitors: Optional[Tuple[Union[str, Any]]] = None,
         non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
         compact: bool = False,
         **kwargs,
@@ -476,7 +475,7 @@ def tournament(
         [Optional[WorldRunResults], int, int], None
     ] = None,
     world_progress_callback: Callable[[Optional[World]], None] = None,
-    non_competitors: Optional[Tuple[Union[str, FactoryManager]]] = None,
+    non_competitors: Optional[Tuple[Union[str, Any]]] = None,
     non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
     name: str = None,
     verbose: bool = False,
