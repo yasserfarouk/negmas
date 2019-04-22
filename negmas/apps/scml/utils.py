@@ -1,9 +1,10 @@
 import copy
+import functools
 import itertools
 import math
 import sys
 from os import PathLike
-from random import randint, random, shuffle
+from random import randint, random, shuffle, sample, choices
 
 import numpy as np
 
@@ -19,10 +20,16 @@ from negmas.apps.scml import (
     Factory,
     ConsumptionProfile,
 )
-from negmas.helpers import get_class, instantiate, unique_name, get_full_type_name
+from negmas.helpers import (
+    get_class,
+    instantiate,
+    unique_name,
+    get_full_type_name,
+    snake_case,
+)
 from negmas.java import to_dict
-from negmas.tournaments import WorldRunResults, TournamentResults, tournament
 from negmas.situated import Entity
+from negmas.tournaments import WorldRunResults, TournamentResults, tournament
 from .factory_managers import GreedyFactoryManager
 from .world import SCMLWorld
 
@@ -47,6 +54,7 @@ __all__ = [
     "anac2019_collusion",
     "anac2019_std",
     "balance_calculator",
+    "anac2019_sabotage",
 ]
 
 
@@ -109,10 +117,13 @@ def _intin(rng: Union[Tuple[int, int], int]) -> int:
     return randint(rng[0], rng[1])
 
 
-def anac2019_config_generator(
+def anac2019_sabotage_config_generator(
     n_competitors: int,
     n_agents_per_competitor: int,
     agent_names_reveal_type: bool = False,
+    non_competitors: Optional[Tuple[Union[str, FactoryManager]]] = None,
+    non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    compact: bool = True,
     *,
     consumption_schedule: Tuple[int, int] = (0, 5),
     consumption_horizon: Tuple[int, int] = (10, 15),
@@ -124,12 +135,60 @@ def anac2019_config_generator(
     profile_cost: Tuple[float, float] = (1, 4),
     profile_time: Union[int, Tuple[int, int]] = 1,
     n_intermediate: Tuple[int, int] = (1, 4),
-    min_n_factories: int = 5,
+    min_factories_per_level: int = 5,
     n_default_managers: Tuple[int, int] = (1, 4),
     n_lines: int = 10,
-    compact: bool = True,
     **kwargs,
-) -> Dict[str, Any]:
+) -> List[Dict[str, Any]]:
+    return anac2019_config_generator(
+        1 + (len(non_competitors) if non_competitors is not None else 1),
+        n_agents_per_competitor=n_agents_per_competitor,
+        agent_names_reveal_type=agent_names_reveal_type,
+        consumption_schedule=consumption_schedule,
+        consumption_horizon=consumption_horizon,
+        n_retrials=n_retrials,
+        negotiator_type=negotiator_type,
+        n_steps=n_steps,
+        n_miners=n_miners,
+        n_consumers=n_consumers,
+        profile_cost=profile_cost,
+        profile_time=profile_time,
+        n_intermediate=n_intermediate,
+        min_factories_per_level=min_factories_per_level,
+        n_default_managers=n_default_managers,
+        non_competitors=non_competitors,
+        non_competitor_params=non_competitor_params,
+        n_lines=n_lines,
+        compact=compact,
+        **kwargs,
+    )
+
+
+def anac2019_config_generator(
+    n_competitors: int,
+    n_agents_per_competitor: int,
+    agent_names_reveal_type: bool = False,
+    non_competitors: Optional[Tuple[Union[str, FactoryManager]]] = None,
+    non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    compact: bool = True,
+    *,
+    consumption_schedule: Tuple[int, int] = (0, 5),
+    consumption_horizon: Tuple[int, int] = (10, 15),
+    n_retrials: Union[int, Tuple[int, int]] = 5,
+    negotiator_type: str = "negmas.sao.AspirationNegotiator",
+    n_steps: Union[int, Tuple[int, int]] = (50, 100),
+    n_miners: Union[int, Tuple[int, int]] = 5,
+    n_consumers: Union[int, Tuple[int, int]] = 5,
+    profile_cost: Tuple[float, float] = (1, 4),
+    profile_time: Union[int, Tuple[int, int]] = 1,
+    n_intermediate: Tuple[int, int] = (1, 4),
+    min_factories_per_level: int = 5,
+    n_default_managers: Tuple[int, int] = (1, 4),
+    n_lines: int = 10,
+    **kwargs,
+) -> List[Dict[str, Any]]:
+    if non_competitors is None:
+        non_competitors = (GreedyFactoryManager,)
     if isinstance(n_intermediate, Iterable):
         n_intermediate = list(n_intermediate)
     else:
@@ -197,26 +256,27 @@ def anac2019_config_generator(
         processes.append(p)
         products.append(new_product)
 
-    _DefaultFactoryManager = GreedyFactoryManager
-
     n_defaults = []
     for level in range(n_intermediate_levels + 1):
         n_defaults.append(_intin(n_default_managers))
     n_agents = n_agents_per_competitor * n_competitors
     n_a_list = integer_cut(n_agents, n_intermediate_levels + 1, 0)
     for i, n_a in enumerate(n_a_list):
-        if n_a + n_defaults[i] < min_n_factories:
-            n_defaults[i] += min_n_factories - (n_a + n_defaults[i])
+        if n_a + n_defaults[i] < min_factories_per_level:
+            n_defaults[i] += min_factories_per_level - (n_a + n_defaults[i])
     n_f_list = [a + b for a, b in zip(n_defaults, n_a_list)]
     n_factories = sum(n_f_list)
 
-    default_manager_params = {
-        "negotiator_type": negotiator_type,
-        "n_retrials": n_retrials,
-        "sign_only_guaranteed_contracts": False,
-        "use_consumer": True,
-        "max_insurance_premium": float("inf"),
-    }
+    if non_competitor_params is None:
+        non_competitor_params = [{}] * len(non_competitors)
+
+    non_competitors = [get_full_type_name(_) for _ in non_competitors]
+
+    for c_, p_ in zip(non_competitors, non_competitor_params):
+        if c_.startswith("negmas.apps.scml.") and c_.endswith("GreedyFactoryManager"):
+            p_.update({"negotiator_type": negotiator_type, "n_retrials": n_retrials})
+
+    max_def_agents = len(non_competitors) - 1
     manager_types = [None] * n_factories
     manager_params = [None] * n_factories
     first_in_level = 0
@@ -252,10 +312,9 @@ def anac2019_config_generator(
             )
             factories.append(factory)
             if j >= n_f - n_d:  # default managers are last managers in the list
-                manager_types[
-                    first_in_level + j
-                ] = "negmas.apps.scml.factory_managers.GreedyFactoryManager"
-                params_ = default_manager_params.copy()
+                def_indx = randint(0, max_def_agents)
+                manager_types[first_in_level + j] = non_competitors[def_indx]
+                params_ = non_competitor_params[def_indx]
                 if agent_names_reveal_type:
                     params_["name"] = f"_df_{level + 1}_{j}"
                 else:
@@ -365,18 +424,184 @@ def anac2019_config_generator(
         "n_factories_per_level": n_f_list,
         "agent_names_reveal_type": agent_names_reveal_type,
         "compact": compact,
+        "scoring_context": {},
+        "non_competitors": non_competitors,
+        "non_competitor_params": non_competitor_params,
     }
     config.update(kwargs)
-    return config
+    return [config]
 
 
-def anac2019_assigner(
-    config: Dict[str, Any],
+def anac2019_sabotage_assigner(
+    config: List[Dict[str, Any]],
     max_n_worlds: int,
     n_agents_per_competitor: int = 1,
     competitors: Sequence[Type[Agent]] = (),
     params: Sequence[Dict[str, Any]] = (),
-) -> List[Dict[str, Any]]:
+) -> List[List[Dict[str, Any]]]:
+    config = config[0]
+    competitors = list(
+        get_full_type_name(_) if not isinstance(_, str) and _ is not None else _
+        for _ in competitors
+    )
+    n_competitors = len(competitors)
+    params = (
+        list(params) if params is not None else [dict() for _ in range(n_competitors)]
+    )
+    n_agents = n_agents_per_competitor * 2
+    agent_names_reveal_type = config.pop("agent_names_reveal_type", False)
+
+    try:
+        n_permutations = math.factorial(n_agents)
+    except ArithmeticError:
+        n_permutations = None
+
+    manager_types = config["manager_types"]
+
+    assignable_factories = [i for i, mtype in enumerate(manager_types) if mtype is None]
+
+    configs = []
+
+    def shorten(long_name: str, d: Dict[str, Any]) -> str:
+        if long_name.endswith("JavaFactoryManager"):
+            long_name = d.get("java_class_name", long_name)
+        name = (
+            long_name.split(".")[-1]
+            .lower()
+            .replace("factory_manager", "")
+            .replace("manager", "")
+        )
+        name = (
+            name.replace("factory", "")
+            .replace("agent", "")
+            .replace("miner", "m")
+            .replace("consumer", "")
+        )
+        if long_name.startswith("jnegmas"):
+            name = f"j:{name}"
+        return name
+
+    non_competitors = config.get(
+        "non_competitors", ("negmas.apps.scml.factory_managers.GreedyFactoryManager",)
+    )
+    max_def = len(non_competitors) - 1
+    non_competitor_params = config.get("non_competitor_params", None)
+    if non_competitor_params is None:
+        non_competitor_params = [{}] * (max_def + 1)
+
+    def _type_name(c_: str, p_) -> str:
+        return instantiate(c_, **p_).type_name
+
+    def _copy_config(perm_, conf, indx, comp, c_p):
+        perm_ = list(perm_)
+        perm1 = copy.deepcopy(perm_)
+        ctype = _type_name(comp, c_p)
+        for i, (c_, p_) in enumerate(perm_):
+            if c_ != "competitor":
+                perm_[i] = (c_, p_)
+            else:
+                perm_[i] = (comp, c_p)
+        new_config = copy.deepcopy(conf)
+        new_config["world_params"]["name"] += f"{indx:05d}_with_{shorten(comp, c_p)}"
+        new_config["scoring_context"].update(
+            {"competitor": ctype, "competitor_params": c_p}
+        )
+        for i, (a, p_) in enumerate(perm_):
+            new_config["manager_types"][assignable_factories[i]] = a
+            new_config["manager_params"][assignable_factories[i]] = p_
+
+        for i, (c_, p_) in enumerate(perm1):
+            if c_ != "competitor":
+                perm1[i] = (c_, p_)
+            else:
+                def_indx = randint(0, max_def)
+                perm1[i] = (non_competitors[def_indx], non_competitor_params[def_indx])
+        no_sabotage_config = copy.deepcopy(conf)
+        no_sabotage_config["world_params"][
+            "name"
+        ] += f"{indx:05d}_no_{shorten(comp, c_p)}"
+        no_sabotage_config["scoring_context"].update(
+            {"competitor": ctype, "competitor_params": c_p}
+        )
+        for i, (a, p_) in enumerate(perm1):
+            no_sabotage_config["manager_types"][assignable_factories[i]] = a
+            no_sabotage_config["manager_params"][assignable_factories[i]] = p_
+
+        return [new_config, no_sabotage_config]
+
+    max_n_worlds = (
+        int(max(1, max_n_worlds // n_competitors)) if max_n_worlds is not None else None
+    )
+
+    if n_permutations is not None and (
+        max_n_worlds is None or n_permutations <= max_n_worlds
+    ):
+        k = 0
+        others = (
+            list(choices(list(zip(non_competitors, non_competitor_params))))
+            * n_agents_per_competitor
+        )
+        agents = ["competitor"] * n_agents_per_competitor + [_[0] for _ in others]
+        agent_params = ["competitor"] * n_agents_per_competitor + [_[1] for _ in others]
+        for permutation in itertools.permutations(zip(agents, agent_params)):
+            assert len(permutation) == len(assignable_factories)
+            for competitor, c_params in zip(competitors, params):
+                perm = copy.deepcopy(permutation)
+                configs.append(_copy_config(perm, config, k, competitor, c_params))
+                k += 1
+    elif max_n_worlds is None:
+        raise ValueError(f"Did not give max_n_worlds and cannot find n_permutations.")
+    else:
+        others = (
+            list(choices(list(zip(non_competitors, non_competitor_params))))
+            * n_agents_per_competitor
+        )
+        agents = ["competitor"] * n_agents_per_competitor + [_[0] for _ in others]
+        agent_params = ["competitor"] * n_agents_per_competitor + [_[1] for _ in others]
+        permutation = list(zip(agents, agent_params))
+        assert len(permutation) == len(assignable_factories)
+        for k in range(max_n_worlds):
+            for competitor, c_params in zip(competitors, params):
+                perm = copy.deepcopy(permutation)
+                shuffle(perm)
+                configs.append(_copy_config(perm, config, k, competitor, c_params))
+
+    if agent_names_reveal_type:
+        for config_set in configs:
+            for config in config_set:
+                nxt = 0
+                for i, (t, p, f) in enumerate(
+                    zip(
+                        config["manager_types"],
+                        config["manager_params"],
+                        config["factories"],
+                    )
+                ):
+                    if p.get("name", "").startswith("_df_"):
+                        continue
+                    p = p.copy()
+                    name_ = (
+                        t.short_type_name
+                        if isinstance(t, Entity)
+                        else get_full_type_name(t)
+                        if not isinstance(t, str)
+                        else shorten(t, config["manager_params"][i])
+                    )
+                    p["name"] = f'{name_}@{f["id"][1:]}'
+                    config["manager_params"][i] = p
+                    nxt = nxt + 1
+
+    return configs
+
+
+def anac2019_assigner(
+    config: List[Dict[str, Any]],
+    max_n_worlds: int,
+    n_agents_per_competitor: int = 1,
+    competitors: Sequence[Type[Agent]] = (),
+    params: Sequence[Dict[str, Any]] = (),
+) -> List[List[Dict[str, Any]]]:
+    config = config[0]
     competitors = list(
         get_full_type_name(_) if not isinstance(_, str) and _ is not None else _
         for _ in competitors
@@ -401,13 +626,13 @@ def anac2019_assigner(
     agent_params = list(itertools.chain(*([params] * n_agents_per_competitor)))
     configs = []
 
-    def _copy_config(c, indx):
+    def _copy_config(perm_, c, indx):
         new_config = copy.deepcopy(c)
         new_config["world_params"]["name"] += f"{indx:05d}"
-        for i, (a, p) in enumerate(permutation):
+        for i, (a, p_) in enumerate(perm_):
             new_config["manager_types"][assignable_factories[i]] = a
-            new_config["manager_params"][assignable_factories[i]] = p
-        return new_config
+            new_config["manager_params"][assignable_factories[i]] = p_
+        return [new_config]
 
     if n_permutations is not None and (
         max_n_worlds is None or n_permutations <= max_n_worlds
@@ -415,7 +640,7 @@ def anac2019_assigner(
         k = 0
         for permutation in itertools.permutations(zip(agents, agent_params)):
             assert len(permutation) == len(assignable_factories)
-            configs.append(_copy_config(config, k))
+            configs.append(_copy_config(permutation, config, k))
             k += 1
     elif max_n_worlds is None:
         raise ValueError(f"Did not give max_n_worlds and cannot find n_permutations.")
@@ -423,8 +648,9 @@ def anac2019_assigner(
         permutation = list(zip(agents, agent_params))
         assert len(permutation) == len(assignable_factories)
         for k in range(max_n_worlds):
-            shuffle(permutation)
-            configs.append(_copy_config(config, k))
+            perm = copy.deepcopy(permutation)
+            shuffle(perm)
+            configs.append(_copy_config(perm, config, k))
 
     def shorten(long_name: str, d: Dict[str, Any]) -> str:
         if long_name.endswith("JavaFactoryManager"):
@@ -446,28 +672,29 @@ def anac2019_assigner(
         return name
 
     if agent_names_reveal_type:
-        for config in configs:
-            nxt = 0
-            for i, (t, p, f) in enumerate(
-                zip(
-                    config["manager_types"],
-                    config["manager_params"],
-                    config["factories"],
-                )
-            ):
-                if p.get("name", "").startswith("_df_"):
-                    continue
-                p = p.copy()
-                name_ = (
-                    t.short_type_name
-                    if isinstance(t, Entity)
-                    else get_full_type_name(t)
-                    if not isinstance(t, str)
-                    else shorten(t, config["manager_params"][i])
-                )
-                p["name"] = f'{name_}@{f["id"][1:]}'
-                config["manager_params"][i] = p
-                nxt = nxt + 1
+        for config_set in configs:
+            for config in config_set:
+                nxt = 0
+                for i, (t, p, f) in enumerate(
+                    zip(
+                        config["manager_types"],
+                        config["manager_params"],
+                        config["factories"],
+                    )
+                ):
+                    if p.get("name", "").startswith("_df_"):
+                        continue
+                    p = p.copy()
+                    name_ = (
+                        t.short_type_name
+                        if isinstance(t, Entity)
+                        else get_full_type_name(t)
+                        if not isinstance(t, str)
+                        else shorten(t, config["manager_params"][i])
+                    )
+                    p["name"] = f'{name_}@{f["id"][1:]}'
+                    config["manager_params"][i] = p
+                    nxt = nxt + 1
     return configs
 
 
@@ -689,13 +916,16 @@ def anac2019_world(
     return world
 
 
-def balance_calculator(world: SCMLWorld, dry_run: bool) -> WorldRunResults:
+def balance_calculator(
+    worlds: List[SCMLWorld], scoring_context: Dict[str, Any], dry_run: bool
+) -> WorldRunResults:
     """A scoring function that scores factory managers' performance by the final balance only ignoring whatever still
     in their inventory.
 
     Args:
 
-        world: The world which is assumed to be run up to the point at which the scores are to be calculated.
+        worlds: The world which is assumed to be run up to the point at which the scores are to be calculated.
+        scoring_context:  A dict of context parameters passed by the world generator or assigner.
         dry_run: A boolean specifying whether this is a dry_run. For dry runs, only names and types are expected in
                  the returned `WorldRunResults`
 
@@ -703,7 +933,11 @@ def balance_calculator(world: SCMLWorld, dry_run: bool) -> WorldRunResults:
         WorldRunResults giving the names, scores, and types of factory managers.
 
     """
-    result = WorldRunResults(world_name=world.name, log_file_name=world.log_file_name)
+    assert len(worlds) == 1
+    world = worlds[0]
+    result = WorldRunResults(
+        world_names=[world.name], log_file_names=[world.log_file_name]
+    )
     initial_balances = []
     for manager in world.factory_managers:
         if "_df_" in manager.id:
@@ -724,6 +958,74 @@ def balance_calculator(world: SCMLWorld, dry_run: bool) -> WorldRunResults:
             )
         else:
             result.scores.append(factory.balance - factory.initial_balance)
+    return result
+
+
+def sabotage_effectiveness(
+    worlds: List[SCMLWorld], scoring_context: Dict[str, Any], dry_run: bool
+) -> WorldRunResults:
+    """A scoring function that scores factory managers' performance by the final balance only ignoring whatever still
+    in their inventory.
+
+    Args:
+
+        worlds: The world which is assumed to be run up to the point at which the scores are to be calculated.
+        scoring_context:  A dict of context parameters passed by the world generator or assigner.
+        dry_run: A boolean specifying whether this is a dry_run. For dry runs, only names and types are expected in
+                 the returned `WorldRunResults`
+
+    Returns:
+        WorldRunResults giving the names, scores, and types of factory managers.
+
+    """
+    assert len(worlds) == 2
+    type_scored = scoring_context.get("competitor", None)
+    if type_scored is None:
+        raise ValueError("Cannot determine which is the sabotaging agent")
+    if dry_run:
+        results = WorldRunResults(world_names=[""], log_file_names=[""])
+        results.names = [""]
+        results.types = [type_scored]
+        results.scores = [None]
+        return results
+    results = [balance_calculator([_], {}, dry_run=False) for _ in worlds]
+    normal_scores, sabotaged_scores = [], []
+    sabotaged_indices, normal_indices = [], []
+    for i in range(len(worlds)):
+        if type_scored in results[i].types:
+            sabotaged_indices.append(int(i))
+        else:
+            normal_indices.append(int(i))
+    if len(sabotaged_indices) < 1:
+        raise ValueError(
+            f"The sabotaging agent type {type_scored} did not participate in any worlds"
+        )
+    if len(normal_indices) < 1:
+        raise ValueError(
+            f"The sabotaging agent type {type_scored} participated in ALL worlds"
+        )
+
+    for indx in sabotaged_indices:
+        sabotaged_scores.extend(
+            score
+            for score, type_ in zip(results[indx].scores, results[indx].types)
+            if type_ != type_scored
+        )
+    for indx in normal_indices:
+        normal_scores.extend(
+            score
+            for score, type_ in zip(results[indx].scores, results[indx].types)
+            if type_ != type_scored
+        )
+    normal_score = sum(normal_scores) / len(normal_scores)
+    sabotaged_score = sum(sabotaged_scores) / len(sabotaged_scores)
+    result = WorldRunResults(
+        world_names=[_.name for _ in worlds],
+        log_file_names=[_.log_file_name for _ in worlds],
+    )
+    result.names = [""]
+    result.scores = [(sabotaged_score - normal_score) / (normal_score + 1.0)]
+    result.types = [type_scored]
     return result
 
 
@@ -813,8 +1115,9 @@ def anac2019_std(
     competitors: Sequence[Union[str, Type[FactoryManager]]],
     agent_names_reveal_type=False,
     n_configs: int = 5,
-    max_worlds_per_config: int = 1000,
+    max_worlds_per_config: Optional[int] = 1000,
     n_runs_per_world: int = 5,
+    min_factories_per_level: int = 5,
     tournament_path: str = "./logs/tournaments",
     total_timeout: Optional[int] = 7200,
     parallelism="parallel",
@@ -822,6 +1125,8 @@ def anac2019_std(
     scheduler_port: Optional[str] = None,
     tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None,
     world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None,
+    non_competitors: Optional[Sequence[Union[str, Type[FactoryManager]]]] = None,
+    non_competitor_params: Optional[Sequence[Union[str, Type[FactoryManager]]]] = None,
     name: str = None,
     verbose: bool = False,
     configs_only=False,
@@ -842,16 +1147,21 @@ def anac2019_std(
                              of competitors within each config will be tried (all permutations).
         n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
                           and identical world configuration.
+        min_factories_per_level: Minimum number of factories for each production level
         total_timeout: Total timeout for the complete process
         tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
                          keep detailed logs
-        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for distributed
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
+                     distributed
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip: IP Address of the dask scheduler if parallelism is dask, dist, or distributed
         world_progress_callback: A function to be called after everystep of every world run (only allowed for serial
                                  evaluation and should be used with cautious).
         tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
                                       processing
+        non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
+                         in the world
+        non_competitor_params: parameters of non competitor agents
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
@@ -869,6 +1179,8 @@ def anac2019_std(
     """
     return tournament(
         competitors=competitors,
+        non_competitors=non_competitors,
+        non_competitor_params=non_competitor_params,
         agent_names_reveal_type=agent_names_reveal_type,
         n_configs=n_configs,
         n_runs_per_world=n_runs_per_world,
@@ -888,6 +1200,7 @@ def anac2019_std(
         config_generator=anac2019_config_generator,
         config_assigner=anac2019_assigner,
         score_calculator=balance_calculator,
+        min_factories_per_level=min_factories_per_level,
         compact=compact,
         **kwargs,
     )
@@ -897,9 +1210,10 @@ def anac2019_collusion(
     competitors: Sequence[Union[str, Type[FactoryManager]]],
     agent_names_reveal_type=False,
     n_configs: int = 5,
-    max_worlds_per_config: int = 1000,
+    max_worlds_per_config: Optional[int] = 1000,
     n_runs_per_world: int = 5,
     n_agents_per_competitor: int = 5,
+    min_factories_per_level: int = 5,
     tournament_path: str = "./logs/tournaments",
     total_timeout: Optional[int] = 7200,
     parallelism="parallel",
@@ -907,6 +1221,8 @@ def anac2019_collusion(
     scheduler_port: Optional[str] = None,
     tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None,
     world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None,
+    non_competitors: Optional[Sequence[Union[str, Type[FactoryManager]]]] = None,
+    non_competitor_params: Optional[Sequence[Union[str, Type[FactoryManager]]]] = None,
     name: str = None,
     verbose: bool = False,
     configs_only=False,
@@ -928,16 +1244,21 @@ def anac2019_collusion(
         n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
                           and identical world configuration.
         n_agents_per_competitor: Number of agents per competitor
+        min_factories_per_level: Minimum number of factories for each production level
         total_timeout: Total timeout for the complete process
         tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
                          keep detailed logs
-        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for distributed
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
+                     distributed
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip: IP Address of the dask scheduler if parallelism is dask, dist, or distributed
         world_progress_callback: A function to be called after everystep of every world run (only allowed for serial
                                  evaluation and should be used with cautious).
         tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
                                       processing
+        non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
+                         in the world
+        non_competitor_params: parameters of non competitor agents
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
@@ -955,6 +1276,8 @@ def anac2019_collusion(
     """
     return tournament(
         competitors=competitors,
+        non_competitors=non_competitors,
+        non_competitor_params=non_competitor_params,
         agent_names_reveal_type=agent_names_reveal_type,
         n_configs=n_configs,
         n_runs_per_world=n_runs_per_world,
@@ -974,6 +1297,104 @@ def anac2019_collusion(
         config_generator=anac2019_config_generator,
         config_assigner=anac2019_assigner,
         score_calculator=balance_calculator,
+        min_factories_per_level=min_factories_per_level,
         compact=compact,
+        **kwargs,
+    )
+
+
+def anac2019_sabotage(
+    competitors: Sequence[Union[str, Type[FactoryManager]]],
+    agent_names_reveal_type=False,
+    n_configs: int = 5,
+    max_worlds_per_config: Optional[int] = 1000,
+    n_runs_per_world: int = 5,
+    n_agents_per_competitor: int = 5,
+    min_factories_per_level: int = 5,
+    tournament_path: str = "./logs/tournaments",
+    total_timeout: Optional[int] = 7200,
+    parallelism="parallel",
+    scheduler_ip: Optional[str] = None,
+    scheduler_port: Optional[str] = None,
+    tournament_progress_callback: Callable[[Optional[WorldRunResults]], None] = None,
+    world_progress_callback: Callable[[Optional[SCMLWorld]], None] = None,
+    non_competitors: Optional[Sequence[Union[str, Type[FactoryManager]]]] = None,
+    non_competitor_params: Optional[Sequence[Union[str, Type[FactoryManager]]]] = None,
+    name: str = None,
+    verbose: bool = False,
+    configs_only=False,
+    compact=False,
+    **kwargs,
+) -> Union[TournamentResults, PathLike]:
+    """
+    The function used to run ANAC 2019 SCML tournament (collusion track).
+
+    Args:
+
+        name: Tournament name
+        competitors: A list of class names for the competitors
+        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
+                                 beginning).
+        n_configs: The number of different world configs (up to competitor assignment) to be generated.
+        max_worlds_per_config: The maximum number of worlds to run per config. If None, then all possible assignments
+                             of competitors within each config will be tried (all permutations).
+        n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
+                          and identical world configuration.
+        n_agents_per_competitor: Number of agents per competitor
+        min_factories_per_level: Minimum number of factories for each production level
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
+                         keep detailed logs
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
+                     distributed
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip: IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        world_progress_callback: A function to be called after every step of every world run (only allowed for serial
+                                 evaluation and should be used with cautious).
+        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
+                                      processing
+        non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
+                         in the world
+        non_competitor_params: parameters of non competitor agents
+        verbose: Verbosity
+        configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        kwargs: Arguments to pass to the `world_generator` function
+
+    Returns:
+
+        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+
+    Remarks:
+
+        Default parameters will be used in the league with the exception of `parallelism` which may use distributed
+        processing
+
+    """
+    return tournament(
+        competitors=competitors,
+        agent_names_reveal_type=agent_names_reveal_type,
+        non_competitors=non_competitors,
+        non_competitor_params=non_competitor_params,
+        n_configs=n_configs,
+        n_runs_per_world=n_runs_per_world,
+        max_worlds_per_config=max_worlds_per_config,
+        tournament_path=tournament_path,
+        total_timeout=total_timeout,
+        n_agents_per_competitor=n_agents_per_competitor,
+        parallelism=parallelism,
+        scheduler_ip=scheduler_ip,
+        scheduler_port=scheduler_port,
+        tournament_progress_callback=tournament_progress_callback,
+        world_progress_callback=world_progress_callback,
+        name=name,
+        verbose=verbose,
+        configs_only=configs_only,
+        world_generator=anac2019_world_generator,
+        config_generator=anac2019_sabotage_config_generator,
+        config_assigner=anac2019_sabotage_assigner,
+        score_calculator=sabotage_effectiveness,
+        compact=compact,
+        min_factories_per_level=min_factories_per_level,
         **kwargs,
     )

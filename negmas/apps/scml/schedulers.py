@@ -479,7 +479,11 @@ class GreedyScheduler(Scheduler):
             insurance = self.awi.evaluate_insurance(
                 contract=contract, t=self.awi.current_step
             )
-            if insurance is not None and insurance / p < self.max_insurance_premium:
+            if insurance is not None and (
+                self.max_insurance_premium is None
+                or self.max_insurance_premium < 0.0
+                or insurance / p < self.max_insurance_premium
+            ):
                 # if it is not possible to buy the insurance, the factory manager will not try to buy it. This is still
                 # a valid schedule
                 simulator.pay(insurance, t=t)

@@ -19,6 +19,7 @@ from tabulate import tabulate
 import negmas
 from negmas import save_stats
 from negmas.apps.scml import *
+from negmas.apps.scml.utils import anac2019_sabotage
 from negmas.helpers import humanize_time, unique_name
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 
@@ -98,6 +99,11 @@ def cli():
     help="Maximum total number of runs. Zero or negative numbers mean no limit",
 )
 @click.option(
+    "--agents",
+    default=5,
+    help="Number of agents per competitor (not used for anac2019std in which this is preset to 1).",
+)
+@click.option(
     "--competitors",
     default="negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager",
     help="A semicolon (;) separated list of agent types to use for the competition.",
@@ -110,6 +116,12 @@ def cli():
     "--java-competitors",
     default="",
     help="A semicolon (;) separated list of agent types to use for the competition.",
+)
+@click.option(
+    "--non-competitors",
+    default="negmas.apps.scml.GreedyFactoryManager",
+    help="A semicolon (;) separated list of agent types to exist in the worlds as non-competitors "
+    "(their scores will not be calculated).",
 )
 @click.option(
     "--parallel/--serial",
@@ -174,8 +186,10 @@ def tournament(
     max_runs,
     competitors,
     jcompetitors,
+    non_competitors,
     compact,
     factories,
+    agents,
 ):
     if timeout <= 0:
         timeout = None
@@ -197,6 +211,8 @@ def tournament(
     )
 
     parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
+
+    non_competitors = non_competitors.split(";")
 
     all_competitors = competitors.split(";")
     for i, cp in enumerate(all_competitors):
@@ -240,11 +256,13 @@ def tournament(
             f"{recommended}. Will continue"
         )
 
+    if ttype == "anac2019std":
+        agents = 1
+
     if worlds_per_config is None:
-        n_agents_per_competitor = 1 if ttype == "anac2019std" else 3
-        n_worlds = (
-            factorial(n_agents_per_competitor * len(all_competitors)) * runs * configs
-        )
+        n_agents_per_competitor = agents
+        n_comp = len(all_competitors) if ttype != "anac2019sabotage" else 2
+        n_worlds = factorial(n_agents_per_competitor * n_comp) * runs * configs
         if n_worlds > 100:
             print(
                 f"You are running the maximum possible number of permutations for each configuration. This is roughly"
@@ -252,12 +270,12 @@ def tournament(
                 f"\n\nYou can reduce the number of simulations by setting --configs (currently {configs}) or --runs"
                 f" (currently {runs}) to a lower value. If you are running a collusion competition, you can reduce"
                 f" the number of simulations "
-                f"{factorial(n_agents_per_competitor * len(all_competitors))/factorial(len(all_competitors))} times "
+                f"{factorial(n_agents_per_competitor * n_comp)/factorial(n_comp)} times "
                 f"by running a standard competition (--ttype=anac2019std)."
                 f"\nFinally, you can limit the maximum number of worlds to run by setting --max-runs=integer."
             )
-            if ttype == "anac2019collusion":
-                n_new = factorial(len(all_competitors)) * runs * configs
+            if ttype != "anac2019std":
+                n_new = factorial(n_comp) * runs * configs
                 print(
                     f"If you use --ttype=anac2019std (standard competition), the number of simulations will be {n_new}"
                 )
@@ -289,7 +307,9 @@ def tournament(
             n_runs_per_world=runs,
             n_configs=configs,
             max_worlds_per_config=worlds_per_config,
+            non_competitors=non_competitors,
             configs_only=configs_only,
+            min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
         )
@@ -298,6 +318,7 @@ def tournament(
             competitors=all_competitors,
             competitor_params=all_competitors_params,
             agent_names_reveal_type=reveal_names,
+            n_agents_per_competitor=agents,
             tournament_path=log,
             total_timeout=timeout,
             parallelism=parallelism,
@@ -309,13 +330,35 @@ def tournament(
             n_runs_per_world=runs,
             n_configs=configs,
             max_worlds_per_config=worlds_per_config,
+            non_competitors=non_competitors,
             configs_only=configs_only,
+            min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
         )
     else:
-        print(f"{ttype.lower()} tournament type is not supported")
-        exit(1)
+        results = anac2019_sabotage(
+            competitors=all_competitors,
+            competitor_params=all_competitors_params,
+            agent_names_reveal_type=reveal_names,
+            n_agents_per_competitor=agents,
+            tournament_path=log,
+            total_timeout=timeout,
+            parallelism=parallelism,
+            scheduler_ip=ip,
+            scheduler_port=port,
+            world_progress_callback=prog_callback,
+            name=name,
+            verbose=verbosity > 0,
+            n_runs_per_world=runs,
+            n_configs=configs,
+            max_worlds_per_config=worlds_per_config,
+            non_competitors=non_competitors,
+            configs_only=configs_only,
+            min_factories_per_level=factories,
+            n_steps=steps,
+            compact=compact,
+        )
     if configs_only:
         print(f"Saved all configs to {str(results)}")
         print(f"Finished in {humanize_time(perf_counter() - start)} [config-only]")
