@@ -331,15 +331,15 @@ class Mechanism(NamedObject, EventSource, ABC):
 
             negotiator: The agent to be added.
             ufun: The utility function to use. If None, then the agent must already have a stored
-            utility function otherwise
-            it will fail to enter the negotiation.
+                  utility function otherwise it will fail to enter the negotiation.
             role: The role the agent plays in the negotiation mechanism. It is expected that mechanisms inheriting from
-            this class will check this parameter to ensure that the role is a valid role and is still possible for
-            negotiators
-            to join on that role. Roles may include things like moderator, representative etc based on the mechanism
+                  this class will check this parameter to ensure that the role is a valid role and is still possible for
+                  negotiators to join on that role. Roles may include things like moderator, representative etc based
+                  on the mechanism
 
 
         Returns:
+
             * True if the agent was added.
             * False if the agent was already in the negotiation.
             * None if the agent cannot be added.

@@ -66,6 +66,7 @@ from negmas.helpers import (
     snake_case,
     dump,
     create_loggers,
+    add_records,
 )
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
@@ -522,6 +523,7 @@ class MechanismFactory:
         neg_n_steps: int = None,
         neg_time_limit: int = None,
         neg_step_time_limit=None,
+        log_ufuns_file=None,
     ):
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller
@@ -535,6 +537,7 @@ class MechanismFactory:
         self.req_id = req_id
         self.issues = issues
         self.mechanism = None
+        self.log_ufuns_file = log_ufuns_file
 
     def _create_negotiation_session(
         self,
@@ -550,8 +553,28 @@ class MechanismFactory:
             mechanism.ami.step_time_limit = self.neg_step_time_limit
         for partner in partners:
             mechanism.register_listener(event_type="negotiation_end", listener=partner)
-        for _negotiator, _role in responses:
+
+        ufun = []
+        if self.log_ufuns_file is not None:
+            for outcome in mechanism.discrete_outcomes(astype=dict):
+                record = {"mechanism_id": mechanism.id, "outcome": outcome}
+                ufun.append(record)
+        for i, (partner_, (_negotiator, _role)) in enumerate(zip(partners, responses)):
+            if self.log_ufuns_file is not None:
+                for record in ufun:
+                    record[f"agent{i}"] = partner_.name
+                    # record[f"agent_type{i}"] = partner_.type_name
+                    # record[f"negotiator{i}"] = _negotiator.name
+                    record[f"reserved{i}"] = _negotiator.reserved_value
+                    record[f"u{i}"] = _negotiator.utility_function(record["outcome"])
             mechanism.add(negotiator=_negotiator, role=_role)
+
+        if self.log_ufuns_file is not None:
+            for record in ufun:
+                outcome = record.pop("outcome", {})
+                record.update(outcome)
+            add_records(self.log_ufuns_file, ufun)
+
         return mechanism
 
     def _start_negotiation(
@@ -927,6 +950,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         log_to_screen: bool = False,
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
+        log_ufuns_file=None,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
         start_negotiations_immediately: bool = False,
@@ -982,6 +1006,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._entities: Dict[int, Set[Entity]] = defaultdict(set)
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self._start_time = -1
+        self._log_ufuns_file = log_ufuns_file
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
@@ -1354,6 +1379,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             neg_n_steps=self.neg_n_steps,
             neg_time_limit=self.neg_time_limit,
             neg_step_time_limit=self.neg_step_time_limit,
+            log_ufuns_file=self._log_ufuns_file,
         )
         neg = factory.init()
         if neg is None:

@@ -148,6 +148,7 @@ class SCMLWorld(World):
         log_to_screen: bool = False,
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
+        log_ufuns_file: str = None,
         save_mechanism_state_in_contract=False,
         compact=False,
         save_signed_contracts: bool = True,
@@ -228,6 +229,7 @@ class SCMLWorld(World):
             save_cancelled_contracts=save_cancelled_contracts,
             save_resolved_breaches=save_resolved_breaches,
             save_unresolved_breaches=save_unresolved_breaches,
+            log_ufuns_file=log_ufuns_file,
         )
 
         self.compensation_fraction = compensation_fraction

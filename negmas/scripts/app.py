@@ -163,6 +163,11 @@ def cli():
     " Effective only if --distributed",
 )
 @click.option(
+    "--log-ufuns/--no-log-ufuns",
+    default=False,
+    help="Log ufuns into their own CSV file",
+)
+@click.option(
     "--compact/--debug",
     default=True,
     help="If True, effort is exerted to reduce the memory footprint which"
@@ -190,6 +195,7 @@ def tournament(
     compact,
     factories,
     agents,
+    log_ufuns,
 ):
     if timeout <= 0:
         timeout = None
@@ -197,6 +203,12 @@ def tournament(
         name = None
     if max_runs <= 0:
         max_runs = None
+    if compact:
+        log_ufuns = False
+
+    log_ufuns_file = None
+    if log_ufuns:
+        log_ufuns_file = str(Path(log) / "ufuns.csv")
 
     if not compact:
         if not reveal_names:
@@ -312,6 +324,7 @@ def tournament(
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
+            log_ufuns_file=log_ufuns_file,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
         results = anac2019_collusion(
@@ -335,6 +348,7 @@ def tournament(
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
+            log_ufuns_file=log_ufuns_file,
         )
     else:
         results = anac2019_sabotage(
@@ -358,6 +372,7 @@ def tournament(
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
+            log_ufuns_file=log_ufuns_file,
         )
     if configs_only:
         print(f"Saved all configs to {str(results)}")
@@ -436,8 +451,13 @@ def tournament(
     help="Default location to save logs (A folder will be created under it)",
 )
 @click.option(
+    "--log-ufuns/--no-log-ufuns",
+    default=False,
+    help="Log ufuns into their own CSV file",
+)
+@click.option(
     "--compact/--debug",
-    default=True,
+    default=False,
     help="If True, effort is exerted to reduce the memory footprint which"
     "includes reducing logs dramatically.",
 )
@@ -463,6 +483,7 @@ def scml(
     riskiness,
     log,
     compact,
+    log_ufuns,
 ):
     params = {
         "steps": steps,
@@ -485,6 +506,8 @@ def scml(
         "max_insurance": max_insurance,
         "riskiness": riskiness,
     }
+    if compact:
+        log_ufuns = False
     neg_speedup = neg_speedup if neg_speedup is not None and neg_speedup > 0 else None
     if min_consumption == max_consumption:
         consumption = min_consumption
@@ -508,6 +531,9 @@ def scml(
     log_dir = log_dir.absolute()
     os.makedirs(log_dir, exist_ok=True)
     log_file_name = str(log_dir / "log.txt")
+    log_ufuns_file = None
+    if log_ufuns:
+        log_ufuns_file = str(log_dir / "ufuns.csv")
     exception = None
     world = SCMLWorld.chain_world(
         log_file_name=log_file_name,
@@ -529,6 +555,7 @@ def scml(
         n_lines_per_factory=lines,
         compact=compact,
         agent_names_reveal_type=True,
+        log_ufuns_file=log_ufuns_file,
     )
     failed = False
     strt = perf_counter()
