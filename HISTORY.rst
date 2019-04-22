@@ -10,7 +10,8 @@ Release 0.2.10
 
 - adding more control to negmas tournaments:
    1. adding --factories argument to control how many factories (at least) should exist on each production level
-   2. adding --agents argument to control how many agents per competitor to instanciate. For the anac2019std ttype, this will be forced to 1
+   2. adding --agents argument to control how many agents per competitor to instantiate. For the anac2019std ttype,
+      this will be forced to 1
 - adding sabotage track and anac2019_sabotage to run it
 - updating test assertions for negotiators.
 - tutorial update
@@ -67,7 +68,9 @@ Release 0.2.5
 - added compact parameter to SCMLWorld, tournament, and world generators to reduce the memory footprint
 - added --compact/--debug to the command line tools to avoid memory and log explosion setting the default to --compact
 - improving implementation of consumer ufun for cases with negative schedule
-- changing the return type of SCMLAWI.state from Factory to FactoryState to avoid modifying the original factory. For efficiency reasons, the profiles list is passed as it is and it is possible to modify it but that is forbidden by the laws of the game.
+- changing the return type of SCMLAWI.state from Factory to FactoryState to avoid modifying the original factory. For
+  efficiency reasons, the profiles list is passed as it is and it is possible to modify it but that is forbidden by the
+  rules of the game.
 - Speeding up and correcting financial report reception.
 - Making bankruptcy reporting system-wide
 - avoiding execution of contracts with negative or no quantity and logging ones with zero unit price.
@@ -77,10 +80,14 @@ Release 0.2.5
 - preventing agents from publishing CFPs with the ID of other agents
 - documentation update
 - improved Java support
-- added option default_dump_extension to ~/negmas/config.json to enable changing the format of dumps from json to yaml. Currently json is the default. This included adding a helper function helpers.dump() to dump in the selected format (or overriding it by providing a file extension).
+- added option default_dump_extension to ~/negmas/config.json to enable changing the format of dumps from json to yaml.
+  Currently json is the default. This included adding a helper function helpers.dump() to dump in the selected format
+  (or overriding it by providing a file extension).
 - completing compatibility with SCML description (minor change to the consumer profile)
-- added two new options to negmas tournament command: anac2019std and anac2019collusion to simulate these two tracks of the ANAC 2019 SCML. Sabotage version will be added later.
-- added two new functions in apps.scml.utils anac2019_std, anac2019_collusion to simulate these two tracks of the ANAC 2019 SCML. Sabotage version will be added later.
+- added two new options to negmas tournament command: anac2019std and anac2019collusion to simulate these two tracks of
+  the ANAC 2019 SCML. Sabotage version will be added later.
+- added two new functions in apps.scml.utils anac2019_std, anac2019_collusion to simulate these two tracks of the ANAC
+  2019 SCML. Sabotage version will be added later.
 - added assign_managers() method to SCMLWorld to allow post-init assignment of managers to factories.
 - updating simulator documentation
 
