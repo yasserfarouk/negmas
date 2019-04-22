@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.2.10
+--------------
+
+- adding more control to negmas tournaments:
+   1. adding --factories argument to control how many factories (at least) should exist on each production level
+   2. adding --agents argument to control how many agents per competitor to instanciate. For the anac2019std ttype, this will be forced to 1
+- adding sabotage track and anac2019_sabotage to run it
+- updating test assertions for negotiators.
+- tutorial update
+- completed SimpleTitForTatNegotiator implementation
+
+
 Release 0.2.9
 -------------
 
