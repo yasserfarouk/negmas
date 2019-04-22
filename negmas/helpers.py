@@ -994,8 +994,15 @@ def add_records(
     data = pd.DataFrame(data=data, columns=col_names)
     file_name = pathlib.Path(file_name)
     file_name.parent.mkdir(parents=True, exist_ok=True)
+    new_file = True
     if file_name.exists():
-        old_data = pd.read_csv(str(file_name), index_col=None)
-        data = pd.concat((old_data, data), axis="rows", ignore_index=True, copy=False)
-    data.to_csv(str(file_name), index=False, index_label="")
+        new_file = False
+        with open(file_name, "r") as f:
+            header = f.readline().strip().strip("\n")
+        cols = header.split(",")
+        for col in cols:
+            if col not in data.columns:
+                data[col] = None
+        data = data.loc[:, cols]
+    data.to_csv(str(file_name), index=False, index_label="", mode="a", header=new_file)
     return
