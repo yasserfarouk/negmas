@@ -9,19 +9,13 @@ from dataclasses import dataclass
 from numpy.random import dirichlet
 
 from negmas import AgentMechanismInterface, MechanismState
-from negmas.apps.scml import FinancialReport
+from negmas.apps.scml import FinancialReport, DEFAULT_NEGOTIATOR
 from negmas.events import Notification
-from negmas.helpers import ConfigReader, get_class
+from negmas.helpers import get_class
 from negmas.negotiators import Negotiator
-from negmas.outcomes import Issue
-from negmas.sao import AspirationNegotiator
 from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
-from negmas.utilities import (
-    normalize,
-    ComplexWeightedUtilityFunction,
-    MappingUtilityFunction,
-)
+from negmas.utilities import ComplexWeightedUtilityFunction, MappingUtilityFunction
 from .common import CFP
 from .agent import SCMLAgent
 from .helpers import pos_gauss
@@ -152,7 +146,7 @@ class ScheduleDrivenConsumer(Consumer):
     def __init__(
         self,
         profiles: Dict[int, ConsumptionProfile] = None,
-        negotiator_type="negmas.sao.AspirationNegotiator",
+        negotiator_type=DEFAULT_NEGOTIATOR,
         consumption_horizon: Optional[int] = 20,
         immediate_cfp_update: bool = True,
         name=None,

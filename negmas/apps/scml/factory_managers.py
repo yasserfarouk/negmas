@@ -14,6 +14,7 @@ from negmas import (
     JavaUtilityFunction,
     _ShadowAgentMechanismInterface,
 )
+from negmas.apps.scml import DEFAULT_NEGOTIATOR
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.apps.scml.simulators import storage_as_array, temporary_transaction
 from negmas.common import NamedObject
@@ -390,9 +391,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         scheduler_type: Union[str, Type[Scheduler]] = GreedyScheduler,
         scheduler_params: Optional[Dict[str, Any]] = None,
         optimism: float = 0.0,
-        negotiator_type: Union[
-            str, Type[Negotiator]
-        ] = "negmas.sao.AspirationNegotiator",
+        negotiator_type: Union[str, Type[Negotiator]] = DEFAULT_NEGOTIATOR,
         negotiator_params: Optional[Dict[str, Any]] = None,
         n_retrials=5,
         use_consumer=True,

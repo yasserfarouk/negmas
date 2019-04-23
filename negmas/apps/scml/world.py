@@ -25,6 +25,7 @@ import numpy as np
 import yaml
 
 from negmas import AgentMechanismInterface
+from negmas.apps.scml import DEFAULT_NEGOTIATOR
 from negmas.events import Event, EventSource
 from negmas.helpers import instantiate, unique_name
 from negmas.outcomes import Issue
@@ -518,7 +519,7 @@ class SCMLWorld(World):
         n_max_assignable_factories=None,
         log_file_name: str = None,
         agent_names_reveal_type: bool = False,
-        negotiator_type: str = "negmas.sao.AspirationNegotiator",
+        negotiator_type: str = DEFAULT_NEGOTIATOR,
         miner_type: Union[str, Type[Miner]] = ReactiveMiner,
         consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer,
         max_storage: int = sys.maxsize,
@@ -772,7 +773,7 @@ class SCMLWorld(World):
             Type[Consumer], List[Type[Consumer]]
         ] = ScheduleDrivenConsumer,
         miner_types: Union[Type[Miner], List[Type[Miner]]] = ReactiveMiner,
-        negotiator_type="negmas.sao.AspirationNegotiator",
+        negotiator_type=DEFAULT_NEGOTIATOR,
         initial_wallet_balance: Union[float, Tuple[float, float]] = 1000,
         factory_kwargs: Dict[str, Any] = None,
         miner_kwargs: Dict[str, Any] = None,

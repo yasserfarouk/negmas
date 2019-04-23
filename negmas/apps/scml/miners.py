@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
-from negmas.apps.scml import FinancialReport
+from negmas.apps.scml import FinancialReport, DEFAULT_NEGOTIATOR
 from negmas.common import MechanismState, AgentMechanismInterface
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
@@ -108,7 +108,7 @@ class ReactiveMiner(Miner):
     def __init__(
         self,
         profiles: Dict[int, MiningProfile] = None,
-        negotiator_type="negmas.sao.AspirationNegotiator",
+        negotiator_type=DEFAULT_NEGOTIATOR,
         n_retrials=0,
         reactive=True,
         name=None,
@@ -192,9 +192,7 @@ class ReactiveMiner(Miner):
         # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
         if self.negotiator_type == AspirationNegotiator:
             negotiator = self.negotiator_type(
-                name=self.name + "*" + cfp.publisher,
-                dynamic_ufun=False,
-                aspiration_type="boulware",
+                name=self.name + "*" + cfp.publisher, dynamic_ufun=False
             )
         else:
             negotiator = self.negotiator_type(name=self.name + "*" + cfp.publisher)

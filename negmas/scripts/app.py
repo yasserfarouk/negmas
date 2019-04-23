@@ -393,7 +393,7 @@ def tournament(
 @click.option("--neg-speedup", default=21, help="Negotiation Speedup.")
 @click.option(
     "--negotiator",
-    default="negmas.sao.AspirationNegotiator",
+    default=DEFAULT_NEGOTIATOR,
     help="Negotiator type to use for builtin agents.",
 )
 @click.option(
