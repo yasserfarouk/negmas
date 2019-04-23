@@ -102,8 +102,11 @@ from .utils import *
 from .helpers import *
 from .simulators import *
 
+DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
+
 __all__ = (
-    common.__all__
+    ["DEFAULT_NEGOTIATOR"]
+    + common.__all__
     + awi.__all__
     + factory_managers.__all__
     + bank.__all__
