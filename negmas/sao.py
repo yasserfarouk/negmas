@@ -3,6 +3,7 @@ Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.
 """
 import random
 import time
+import warnings
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Any, Callable, Type
@@ -51,7 +52,8 @@ __all__ = [
     "AspirationNegotiator",
     "ToughNegotiator",
     "OnlyBestNegotiator",
-    "SimpleTitForTatNegotiator",
+    "TitForTatNegotiator",
+    "SimpleTitForTatNegotiator",  # @todo remove this in future versions
     "NiceNegotiator",
     "SAOController",
     "JavaSAONegotiator",
@@ -503,7 +505,7 @@ class LimitedOutcomesAcceptorMixin(object):
         u = [0.0] * len(self.outcomes)
         for p, o in zip(self.acceptance_probabilities, self.acceptable_outcomes):
             u[self.outcomes.index(o)] = p
-        self.utility_function = MappingUtilityFunction(dict(zip(self.outcomes, u)))
+        self._utility_function = MappingUtilityFunction(dict(zip(self.outcomes, u)))
         self.p_no_response = p_no_response
         self.p_ending = p_ending + p_no_response
 
@@ -657,13 +659,15 @@ class SAONegotiator(Negotiator):
     def propose_(self, state: MechanismState) -> Optional["Outcome"]:
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
+        if self._ufun_modified:
+            self.on_ufun_changed()
         proposal = self.propose(state=state)
 
         # never return a proposal that is less than the reserved value
         if self.rational_proposal and self.reserved_value is not None:
             utility = None
-            if proposal is not None and self.utility_function is not None:
-                utility = self.utility_function(proposal)
+            if proposal is not None and self._utility_function is not None:
+                utility = self._utility_function(proposal)
                 if utility is not None and utility < self.reserved_value:
                     return None
 
@@ -692,6 +696,8 @@ class SAONegotiator(Negotiator):
         """
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
+        if self._ufun_modified:
+            self.on_ufun_changed()
         return self.respond(state=state, offer=offer)
 
     def counter(
@@ -733,9 +739,9 @@ class SAONegotiator(Negotiator):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
-        if self.utility_function is None:
+        if self._utility_function is None:
             return ResponseType.REJECT_OFFER
-        if self.utility_function(offer) < self.reserved_value:
+        if self._utility_function(offer) < self.reserved_value:
             return ResponseType.REJECT_OFFER
         utility = None
         if self.my_last_proposal_utility is not None:
@@ -744,10 +750,26 @@ class SAONegotiator(Negotiator):
             myoffer = self.propose_(state=state)
             if myoffer is None:
                 return ResponseType.NO_RESPONSE
-            utility = self.utility_function(myoffer)
-        if utility is not None and self.utility_function(offer) >= utility:
+            utility = self._utility_function(myoffer)
+        if utility is not None and self._utility_function(offer) >= utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
+
+    @property
+    def eu(self) -> Callable[["Outcome"], Optional["UtilityValue"]]:
+        """
+        The utility function in the given negotiation taking opponent model into account.
+
+        Remarks:
+            - If no utility_function is internally stored, `eu` still returns a valid callable that returns None for
+              everything.
+        """
+        if hasattr(self, "opponent_model"):
+            return lambda x: self._utility_function(
+                x
+            ) * self.opponent_model.probability_of_acceptance(x)
+        else:
+            return self._utility_function
 
     # CALLBACK
     def on_partner_proposal(
@@ -834,6 +856,7 @@ class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
         p_rejection=0.25,
         p_ending=0.1,
         can_propose=True,
+        ufun=None,
     ) -> None:
         super().__init__(name=name, parent=parent)
         # noinspection PyCallByClass
@@ -844,7 +867,7 @@ class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
         self.capabilities["propose"] = can_propose
-        self.utility_function = MappingUtilityFunction(
+        self._utility_function = MappingUtilityFunction(
             dict(zip(outcomes, np.random.rand(len(outcomes)))),
             reserved_value=reserved_value,
         )
@@ -864,6 +887,7 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
         acceptance_probabilities: Optional[Union[float, List[float]]] = None,
         p_ending=0.0,
         p_no_response=0.0,
+        ufun=None,
     ) -> None:
         super().__init__(name=name, parent=parent)
         self.init_limited_outcomes(
@@ -892,6 +916,7 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
         acceptance_probabilities: Optional[List[float]] = None,
         p_ending=0.0,
         p_no_response=0.0,
+        ufun=None,
     ) -> None:
         SAONegotiator.__init__(self, name=name, parent=parent)
         self.init_limited_outcomes_acceptor(
@@ -920,21 +945,23 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         can_propose=True,
         assume_normalized=False,
     ):
+        self.ordered_outcomes = []
+        self.ufun_max = None
+        self.ufun_min = None
+        if assume_normalized:
+            self.ufun_max, self.ufun_min = 1.0, 0.0
         super().__init__(
             name=name, assume_normalized=assume_normalized, parent=parent, ufun=ufun
         )
         self.aspiration_init(
             max_aspiration=max_aspiration, aspiration_type=aspiration_type
         )
-        self.ordered_outcomes = []
-        self.dynamic_ufun = dynamic_ufun
+        if not dynamic_ufun:
+            warnings.warn(
+                "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
+            )
         self.randomize_offer = randomize_offer
         self._max_aspiration = self.max_aspiration
-        self.ufun_max = None
-        self.ufun_min = None
-        if assume_normalized:
-            self.ufun_max, self.ufun_min = 1.0, 0.0
-        self.__ufun_modified = False
         self.add_capabilities(
             {
                 "respond": True,
@@ -944,26 +971,11 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             }
         )
 
-    @property
-    def eu(self) -> Callable[["Outcome"], Optional["UtilityValue"]]:
-        """
-        The utility function in the given negotiation taking opponent model into account.
-
-        Remarks:
-            - If no utility_function is internally stored, `eu` still returns a valid callable that returns None for
-              everything.
-        """
-        if hasattr(self, "opponent_model"):
-            return lambda x: self.utility_function(
-                x
-            ) * self.opponent_model.probability_of_acceptance(x)
-        else:
-            return self.utility_function
-
-    def _update_ordered_outcomes(self):
+    def on_ufun_changed(self):
+        super().on_ufun_changed()
         outcomes = self._ami.discrete_outcomes()
         self.ordered_outcomes = sorted(
-            [(self.utility_function(outcome), outcome) for outcome in outcomes],
+            [(self._utility_function(outcome), outcome) for outcome in outcomes],
             key=lambda x: x[0],
             reverse=True,
         )
@@ -973,31 +985,10 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             if self.reserved_value is not None and self.ufun_min < self.reserved_value:
                 self.ufun_min = self.reserved_value
 
-    def on_notification(self, notification: Notification, notifier: str):
-        super().on_notification(notification, notifier)
-        if notification.type == "ufun_modified":
-            if self.dynamic_ufun:
-                self.__ufun_modified = True
-                self._update_ordered_outcomes()
-
-    def join(
-        self,
-        ami: AgentMechanismInterface,
-        state: MechanismState,
-        *,
-        ufun: Optional["UtilityFunction"] = None,
-        role: str = "agent",
-    ) -> bool:
-        if not super().join(ami, state, ufun=ufun, role=role):
-            return False
-        self.__ufun_modified = False
-        self._update_ordered_outcomes()
-        return True
-
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        if self.utility_function is None:
+        if self._utility_function is None:
             return ResponseType.REJECT_OFFER
-        u = self.utility_function(offer)
+        u = self._utility_function(offer)
         if u is None:
             return ResponseType.REJECT_OFFER
         asp = (
@@ -1047,12 +1038,20 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
 
 class ToughNegotiator(SAONegotiator):
     def __init__(
-        self, name=None, parent: Controller = None, dynamic_ufun=True, can_propose=True
+        self,
+        name=None,
+        parent: Controller = None,
+        dynamic_ufun=True,
+        can_propose=True,
+        ufun=None,
     ):
         super().__init__(name=name, parent=parent)
         self.best_outcome = None
-        self.dynamic_ufun = dynamic_ufun
         self._offerable_outcomes = None
+        if not dynamic_ufun:
+            warnings.warn(
+                "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
+            )
         self.add_capabilities(
             {
                 "respond": True,
@@ -1062,56 +1061,20 @@ class ToughNegotiator(SAONegotiator):
             }
         )
 
-    @property
-    def eu(self) -> Callable[["Outcome"], Optional["UtilityValue"]]:
-        """
-        The utility function in the given negotiation taking opponent model into account.
-
-        Remarks:
-            - If no utility_function is internally stored, `eu` still returns a valid callable that returns None for
-              everything.
-        """
-        if hasattr(self, "opponent_model"):
-            return lambda x: self.utility_function(
-                x
-            ) * self.opponent_model.probability_of_acceptance(x)
-        else:
-            return self.utility_function
-
-    def join(
-        self,
-        ami: AgentMechanismInterface,
-        state: MechanismState,
-        *,
-        ufun: Optional["UtilityFunction"] = None,
-        role: str = "agent",
-    ) -> bool:
-        if not super().join(ami, state, ufun=ufun, role=role):
-            return False
+    def on_ufun_changed(self):
+        super().on_ufun_changed()
+        if self._utility_function is None:
+            return
         outcomes = (
             self._ami.outcomes
             if self._offerable_outcomes is None
             else self._offerable_outcomes
         )
-        if self.utility_function is None:
-            return True
         self.best_outcome = max(
-            [(self.utility_function(outcome), outcome) for outcome in outcomes]
+            [(self._utility_function(outcome), outcome) for outcome in outcomes]
         )[1]
-        return True
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        if self.dynamic_ufun:
-            outcomes = (
-                self._ami.outcomes
-                if self._offerable_outcomes is None
-                else self._offerable_outcomes
-            )
-            if self.utility_function is None:
-                return ResponseType.REJECT_OFFER
-            self.best_outcome = max(
-                [(self.utility_function(outcome), outcome) for outcome in outcomes]
-            )[1]
         if offer == self.best_outcome:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
@@ -1119,15 +1082,6 @@ class ToughNegotiator(SAONegotiator):
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         if not self._capabilities["propose"]:
             return None
-        if self.dynamic_ufun:
-            outcomes = (
-                self._ami.outcomes
-                if self._offerable_outcomes is None
-                else self._offerable_outcomes
-            )
-            self.best_outcome = max(
-                [(self.eu(outcome), outcome) for outcome in outcomes]
-            )[1]
         return self.best_outcome
 
 
@@ -1142,19 +1096,23 @@ class OnlyBestNegotiator(SAONegotiator):
         best_first=False,
         probabilisic_offering=True,
         can_propose=True,
+        ufun=None,
     ):
-        super().__init__(name=name, parent=parent)
         self._offerable_outcomes = None
         self.best_outcome = []
-        self.dynamic_ufun = dynamic_ufun
-        self.top_fraction = top_fraction
-        self.min_utility = min_utility
-        self.best_first = best_first
-        self.probabilisit_offering = probabilisic_offering
         self.ordered_outcomes = []
         self.acceptable_outcomes = []
         self.wheel = np.array([])
         self.offered = set([])
+        super().__init__(name=name, parent=parent)
+        if not dynamic_ufun:
+            warnings.warn(
+                "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
+            )
+        self.top_fraction = top_fraction
+        self.min_utility = min_utility
+        self.best_first = best_first
+        self.probabilisic_offering = probabilisic_offering
         self.add_capabilities(
             {
                 "respond": True,
@@ -1164,25 +1122,10 @@ class OnlyBestNegotiator(SAONegotiator):
             }
         )
 
-    @property
-    def eu(self) -> Callable[["Outcome"], Optional["UtilityValue"]]:
-        """
-        The utility function in the given negotiation taking opponent model into account.
-
-        Remarks:
-            - If no utility_function is internally stored, `eu` still returns a valid callable that returns None for
-              everything.
-        """
-        if hasattr(self, "opponent_model"):
-            return lambda x: self.utility_function(
-                x
-            ) * self.opponent_model.probability_of_acceptance(x)
-        else:
-            return self.utility_function
-
-    def acceptable(self):
+    def on_ufun_changed(self):
+        super().on_ufun_changed()
         outcomes = (
-            self._ami.outcomes
+            self._ami.discrete_outcomes()
             if self._offerable_outcomes is None
             else self._offerable_outcomes
         )
@@ -1213,7 +1156,8 @@ class OnlyBestNegotiator(SAONegotiator):
                 selected_utils = np.cumsum(selected_utils)
             else:
                 selected_utils = np.linspace(0.0, 1.0, len(selected_utils))
-            return selected, selected_utils
+            self.acceptable_outcomes, self.wheel = selected, selected_utils
+            return
         if frac_limit > 0:
             n_sel = len(selected)
             fsel = [_[1] for _ in self.ordered_outcomes[n_sel:frac_limit]]
@@ -1225,25 +1169,12 @@ class OnlyBestNegotiator(SAONegotiator):
                 selected_utils = np.cumsum(selected_utils)
             else:
                 selected_utils = np.linspace(0.0, 1.0, len(selected_utils))
-            return selected + fsel, selected_utils
-        return [], []
-
-    def join(
-        self,
-        ami: AgentMechanismInterface,
-        state: MechanismState,
-        *,
-        ufun: Optional["UtilityFunction"] = None,
-        role: str = "agent",
-    ) -> bool:
-        if not super().join(ami, state, ufun=ufun, role=role):
-            return False
-        self.acceptable_outcomes, self.wheel = self.acceptable()
-        return True
+            self.acceptable_outcomes, self.wheel = selected + fsel, selected_utils
+            return
+        self.acceptable_outcomes, self.wheel = [], []
+        return
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        if self.dynamic_ufun:
-            self.acceptable_outcomes, self.wheel = self.acceptable()
         if offer in self.acceptable_outcomes:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
@@ -1251,15 +1182,13 @@ class OnlyBestNegotiator(SAONegotiator):
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         if not self._capabilities["propose"]:
             return None
-        if self.dynamic_ufun:
-            self.acceptable_outcomes, self.wheel = self.acceptable()
         if self.best_first:
             for o in self.acceptable_outcomes:
                 if o not in self.offered:
                     self.offered.add(o)
                     return o
         if len(self.acceptable_outcomes) > 0:
-            if self.probabilisit_offering:
+            if self.probabilisic_offering:
                 r = random.random()
                 for o, w in zip(self.acceptable_outcomes, self.wheel):
                     if w > r:
@@ -1269,7 +1198,7 @@ class OnlyBestNegotiator(SAONegotiator):
         return None
 
 
-class SimpleTitForTatNegotiator(SAONegotiator):
+class TitForTatNegotiator(SAONegotiator):
     """Implements a generalized tit-for-tat strategy"""
 
     def __init__(
@@ -1281,73 +1210,51 @@ class SimpleTitForTatNegotiator(SAONegotiator):
         randomize_offer=False,
         initial_concession: Union[float, str] = "min",
     ):
-        super().__init__(name=name, ufun=ufun, parent=parent)
-        self.__ufun_modified = False
         self.received_utilities = []
         self.proposed_utility = None
-        self.kindness = kindness
         self.ordered_outcomes = None
+        self.sent_offer_index = None
+        self.n_sent = 0
+        super().__init__(name=name, ufun=ufun, parent=parent)
+        self.kindness = kindness
         self.initial_concession = initial_concession
         self.randomize_offer = randomize_offer
 
-    def join(
-        self,
-        ami: AgentMechanismInterface,
-        state: MechanismState,
-        *,
-        ufun: Optional["UtilityFunction"] = None,
-        role: str = "agent",
-    ) -> bool:
-        if not super().join(ami, state, ufun=ufun, role=role):
-            return False
-        self._update_ordered_outcomes()
-        return True
-
-    def _update_ordered_outcomes(self):
+    def on_ufun_changed(self):
+        super().on_ufun_changed()
         outcomes = self._ami.discrete_outcomes()
         self.ordered_outcomes = sorted(
-            [(self.utility_function(outcome), outcome) for outcome in outcomes],
+            [(self._utility_function(outcome), outcome) for outcome in outcomes],
             key=lambda x: x[0],
             reverse=True,
         )
-        if not self.assume_normalized:
-            self.ufun_max = self.ordered_outcomes[0][0]
-            self.ufun_min = self.ordered_outcomes[-1][0]
-            if self.reserved_value is not None and self.ufun_min < self.reserved_value:
-                self.ufun_min = self.reserved_value
-
-    def on_notification(self, notification: Notification, notifier: str):
-        super().on_notification(notification, notifier)
-        if notification.type == "ufun_modified":
-            if self.dynamic_ufun:
-                self.__ufun_modified = True
-                self._update_ordered_outcomes()
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        indx = self._propose(state=state)
-        my_utility, my_offer = self.ordered_outcomes[indx]
-        if self.utility_function is None:
+        if self._utility_function is None:
             return ResponseType.REJECT_OFFER
-        offered_utility = self.utility_function(offer)
+        offered_utility = self._utility_function(offer)
         if len(self.received_utilities) < 2:
             self.received_utilities.append(offered_utility)
         else:
             self.received_utilities[0] = self.received_utilities[1]
             self.received_utilities[-1] = offered_utility
+        indx = self._propose(state=state)
+        if indx is None:
+            return ResponseType.REJECT_OFFER
+        my_utility, my_offer = self.ordered_outcomes[indx]
+
         if offered_utility >= my_utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def _outcome_at_utility(self, asp: float) -> Optional[int]:
+    def _outcome_just_below(self, ulevel: float) -> int:
         for i, (u, o) in enumerate(self.ordered_outcomes):
             if u is None:
                 continue
-            if u < asp:
-                if i == 0:
-                    return None
+            if u < ulevel:
                 if self.randomize_offer:
                     return random.randint(0, i)
-                return i - 1
+                return i
         if self.randomize_offer:
             return random.randint(0, len(self.ordered_outcomes))
         return -1
@@ -1360,14 +1267,14 @@ class SimpleTitForTatNegotiator(SAONegotiator):
                 isinstance(self.initial_concession, str)
                 and self.initial_concession == "min"
             ):
-                return 1
+                return self._outcome_just_below(ulevel=self.ordered_outcomes[0][0])
             else:
                 asp = self.ordered_outcomes[0][0] * (1.0 - self.initial_concession)
-            return self._outcome_at_utility(asp=asp)
+            return self._outcome_just_below(ulevel=asp)
 
         opponent_concession = self.received_utilities[1] - self.received_utilities[0]
         asp = self.proposed_utility - opponent_concession * (1 + self.kindness)
-        indx = self._outcome_at_utility(asp=asp)
+        indx = self._outcome_just_below(ulevel=asp)
         return indx
 
     def propose(self, state: MechanismState) -> Optional[Outcome]:
@@ -1500,6 +1407,9 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
     def on_negotiation_end(self, state: MechanismState) -> None:
         super().on_negotiation_end(state)
 
+    def on_ufun_changed(self):
+        super().on_ufun_changed()
+
     @classmethod
     def from_dict(
         cls, java_object, *args, parent: Controller = None
@@ -1599,6 +1509,9 @@ class _ShadowSAONegotiator:
             )
         )
 
+    def onUfunChanged(self):
+        return to_java(self.shadow.on_ufun_changed())
+
     def onPartnerRefusedToPropose(self, state, agent_id):
         return to_java(
             self.shadow.on_partner_refused_to_propose(
@@ -1622,12 +1535,12 @@ class _ShadowSAONegotiator:
         return to_java(self.shadow.on_notification(from_java(notification), notifier))
 
     def setUtilityFunction(self, ufun):
-        self.shadow.utility_function = (
+        self.shadow._utility_function = (
             ufun if ufun is None else JavaUtilityFunction(ufun, None)
         )
 
     def getUtilityFunction(self):
-        return to_java(self.shadow.utility_function)
+        return to_java(self.shadow._utility_function)
 
     def getID(self):
         return self.shadow.id
@@ -1656,3 +1569,6 @@ class SAOController(Controller):
 
 SAOProtocol = SAOMechanism
 """An alias for `SAOMechanism object"""
+
+SimpleTitForTatNegotiator = TitForTatNegotiator
+"""A simple tit-for-tat negotiator"""

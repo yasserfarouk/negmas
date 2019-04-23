@@ -19,6 +19,9 @@ INVALID_UTILITY = -2000
 g_last_product_id = 0
 g_last_process_id = 0
 
+DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
+
+
 __all__ = [
     "Product",
     "Process",
@@ -44,6 +47,7 @@ __all__ = [
     "InsurancePolicy",
     "Factory",
     "FactoryState",
+    "DEFAULT_NEGOTIATOR",
 ]
 
 
