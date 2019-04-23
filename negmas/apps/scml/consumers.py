@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from numpy.random import dirichlet
 
 from negmas import AgentMechanismInterface, MechanismState
-from negmas.apps.scml import FinancialReport, DEFAULT_NEGOTIATOR
+from .common import FinancialReport, DEFAULT_NEGOTIATOR
 from negmas.events import Notification
 from negmas.helpers import get_class
 from negmas.negotiators import Negotiator
@@ -289,9 +289,8 @@ class ScheduleDrivenConsumer(Consumer):
         )
         ufun.reserved_value = -1500
         # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1500)
-        negotiator = self.negotiator_type(name=self.name + "*" + partner)
-        negotiator.name = self.name + "_" + partner
-        negotiator.utility_function = ufun
+        negotiator = self.negotiator_type(name=self.name + "*" + partner, ufun=ufun)
+        # negotiator.utility_function = ufun
         return negotiator
 
     def set_renegotiation_agenda(

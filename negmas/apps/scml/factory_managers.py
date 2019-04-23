@@ -14,7 +14,7 @@ from negmas import (
     JavaUtilityFunction,
     _ShadowAgentMechanismInterface,
 )
-from negmas.apps.scml import DEFAULT_NEGOTIATOR
+from .common import DEFAULT_NEGOTIATOR
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.apps.scml.simulators import storage_as_array, temporary_transaction
 from negmas.common import NamedObject
@@ -501,17 +501,13 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 cfp=cfp, partner=partner
             )
         else:
-            neg = self.negotiator_type(
-                name=self.name + "*" + partner, **self.negotiator_params
-            )
-            neg.utility_function = self.ufun_factory(
-                self, self._create_annotation(cfp=cfp)
-            )
-            neg.utility_function.reserved_value = (
+            ufun_ = self.ufun_factory(self, self._create_annotation(cfp=cfp))
+            ufun_.reserved_value = (
                 cfp.money_resolution if cfp.money_resolution is not None else 0.1
             )
-            # neg.utility_function = normalize(self.ufun_factory(self, self._create_annotation(cfp=cfp)),
-            #                                 outcomes=cfp.outcomes, infeasible_cutoff=0)
+            neg = self.negotiator_type(
+                name=self.name + "*" + partner, **self.negotiator_params, ufun=ufun_
+            )
             return neg
 
     def on_negotiation_success(

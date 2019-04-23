@@ -9,14 +9,14 @@ from negmas import (
     AspirationNegotiator,
     OnlyBestNegotiator,
     SAOController,
-    SimpleTitForTatNegotiator,
+    TitForTatNegotiator,
 )
 from negmas.utilities import RandomUtilityFunction
 
 
 def test_tough_asp_negotiator():
-    a1 = ToughNegotiator(dynamic_ufun=False)
-    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type="conceder")
+    a1 = ToughNegotiator()
+    a2 = AspirationNegotiator(aspiration_type="conceder")
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
@@ -33,8 +33,8 @@ def test_tough_asp_negotiator():
 
 
 def test_asp_negotaitor():
-    a1 = AspirationNegotiator(dynamic_ufun=True, assume_normalized=True, name="a1")
-    a2 = AspirationNegotiator(dynamic_ufun=True, assume_normalized=False, name="a2")
+    a1 = AspirationNegotiator(assume_normalized=True, name="a1")
+    a2 = AspirationNegotiator(assume_normalized=False, name="a2")
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
@@ -55,8 +55,8 @@ def test_asp_negotaitor():
 
 
 def test_tit_for_tat_negotiators():
-    a1 = SimpleTitForTatNegotiator(name="a1")
-    a2 = SimpleTitForTatNegotiator(name="a2")
+    a1 = TitForTatNegotiator(name="a1")
+    a2 = TitForTatNegotiator(name="a2")
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
@@ -79,7 +79,7 @@ def test_tit_for_tat_negotiators():
 
 
 def test_tit_for_tat_against_asp_negotiators():
-    a1 = SimpleTitForTatNegotiator(name="a1")
+    a1 = TitForTatNegotiator(name="a1")
     a2 = AspirationNegotiator(name="a2")
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
@@ -101,8 +101,8 @@ def test_tit_for_tat_against_asp_negotiators():
 
 
 def test_best_only_asp_negotiator():
-    a1 = OnlyBestNegotiator(dynamic_ufun=False, min_utility=0.9, top_fraction=0.1)
-    a2 = AspirationNegotiator(dynamic_ufun=False, aspiration_type="conceder")
+    a1 = OnlyBestNegotiator(min_utility=0.9, top_fraction=0.1)
+    a2 = AspirationNegotiator(aspiration_type="conceder")
     outcomes = [(_,) for _ in range(20)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1

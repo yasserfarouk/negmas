@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
-from negmas.apps.scml import FinancialReport, DEFAULT_NEGOTIATOR
+from .common import FinancialReport, DEFAULT_NEGOTIATOR
 from negmas.common import MechanismState, AgentMechanismInterface
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
@@ -190,14 +190,11 @@ class ReactiveMiner(Miner):
             cfp.money_resolution if cfp.money_resolution is not None else 0.1
         )
         # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
-        if self.negotiator_type == AspirationNegotiator:
-            negotiator = self.negotiator_type(
-                name=self.name + "*" + cfp.publisher, dynamic_ufun=False
-            )
-        else:
-            negotiator = self.negotiator_type(name=self.name + "*" + cfp.publisher)
+        negotiator = self.negotiator_type(
+            name=self.name + "*" + cfp.publisher, ufun=ufun
+        )
         self.n_neg_trials[cfp.id] += 1
-        self.request_negotiation(cfp=cfp, negotiator=negotiator, ufun=ufun)
+        self.request_negotiation(cfp=cfp, negotiator=negotiator)
         # normalize(ufun, outcomes=cfp.outcomes, infeasible_cutoff=None)
 
     def on_new_cfp(self, cfp: "CFP"):

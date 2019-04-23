@@ -361,7 +361,7 @@ class GeniusNegotiator(SAONegotiator):
         self.utility_file_name = str(utility_file_name)
         self._my_last_offer = None
         self.keep_issue_names = keep_issue_names
-        self.utility_function, self.discount = None, None
+        self._utility_function, self.discount = None, None
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
@@ -372,12 +372,12 @@ class GeniusNegotiator(SAONegotiator):
             self.issue_names = [_.name for _ in self.issues]
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         if utility_file_name is not None:
-            self.utility_function, self.discount = UtilityFunction.from_genius(
+            self._utility_function, self.discount = UtilityFunction.from_genius(
                 utility_file_name,
                 keep_issue_names=keep_issue_names,
                 keep_value_names=keep_value_names,
             )
-        self.base_utility = self.utility_function
+        self.base_utility = self._utility_function
         pass
 
     @classmethod
@@ -519,8 +519,8 @@ class GeniusNegotiator(SAONegotiator):
         super().on_negotiation_start(state=state)
         info = self._ami
         if self.discount is not None and self.discount != 1.0:
-            self.utility_function = make_discounted_ufun(
-                self.utility_function,
+            self._utility_function = make_discounted_ufun(
+                self._utility_function,
                 info=info,
                 discount_per_round=self.discount,
                 power_per_round=1.0,

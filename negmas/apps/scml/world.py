@@ -25,7 +25,7 @@ import numpy as np
 import yaml
 
 from negmas import AgentMechanismInterface
-from negmas.apps.scml import DEFAULT_NEGOTIATOR
+from .common import DEFAULT_NEGOTIATOR
 from negmas.events import Event, EventSource
 from negmas.helpers import instantiate, unique_name
 from negmas.outcomes import Issue

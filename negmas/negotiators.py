@@ -3,6 +3,7 @@
 """
 import functools
 import math
+import warnings
 from abc import ABC
 from copy import copy
 from typing import Optional, Tuple, Union, Type
@@ -47,9 +48,24 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._mechanism_id = None
         self._ami = None
         self._initial_state = None
-        self.utility_function = ufun
+        self._utility_function = ufun
         self._init_utility = ufun
         self._role = None
+        self._ufun_modified = ufun is not None
+
+    @property
+    def utility_function(self):
+        return self._utility_function
+
+    @utility_function.setter
+    def utility_function(self, utility_function):
+        self._utility_function = utility_function
+        self._ufun_modified = True
+        if self._ami is not None:
+            warnings.warn(
+                "Changing the utility function by direct assignment after the negotiation is "
+                "started is deprecated."
+            )
 
     def __getattribute__(self, item):
         if item in ("id", "name") or item.startswith("_"):
@@ -76,7 +92,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
     def _dissociate(self):
         self._mechanism_id = None
         self._ami = None
-        self.utility_function = self._init_utility
+        self._utility_function = self._init_utility
         self._role = None
 
     def isin(self, negotiation_id: Optional[str]) -> bool:
@@ -98,11 +114,11 @@ class Negotiator(NamedObject, Notifiable, ABC):
     @property
     def reserved_value(self):
         """Reserved value is what the agent gets if no agreement is reached in the negotiation."""
-        if self.utility_function is None:
+        if self._utility_function is None:
             return None
-        if self.utility_function.reserved_value is not None:
-            return self.utility_function.reserved_value
-        return self.utility_function(None)
+        if self._utility_function.reserved_value is not None:
+            return self._utility_function.reserved_value
+        return self._utility_function(None)
 
     @property
     def capabilities(self) -> Dict[str, Any]:
@@ -158,9 +174,10 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._ami = ami
         self._initial_state = state
         if ufun is not None:
-            self.utility_function = ufun
-        if self.utility_function:
-            self.utility_function.ami = ami
+            self._utility_function = ufun
+            self.on_ufun_changed()
+        if self._utility_function:
+            self._utility_function.ami = ami
         return True
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -168,13 +185,17 @@ class Negotiator(NamedObject, Notifiable, ABC):
         A call back called at each negotiation start
 
         Args:
+
             state: `MechanismState` giving current state of the negotiation.
 
         Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action.
+
+            - You MUST call the super() version of this function either before or after your code when you are
+              overriding it.
 
         """
+        if self._ufun_modified:
+            self.on_ufun_changed()
 
     def on_round_start(self, state: MechanismState) -> None:
         """A call back called at each negotiation round start
@@ -222,7 +243,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
             state: `MechanismState` giving current state of the negotiation.
 
         Remarks:
-            - **MUST** call the baseclass `on_leave` using `super`() if you are going to override this.
+            - **MUST** call the baseclass `on_leave` using `super` () if you are going to override this.
             - The default behavior is to do nothing.
             - Override this to hook some action
 
@@ -243,6 +264,22 @@ class Negotiator(NamedObject, Notifiable, ABC):
         """
 
     def on_notification(self, notification: Notification, notifier: str):
+        """
+        Called whenever the agent receives a notification
+
+        Args:
+            notification: The notification!!
+            notifier: The notifier!!
+
+        Returns:
+            None
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are
+              overriding it.
+
+        """
         if notifier != self._mechanism_id:
             raise ValueError(f"Notification is coming from unknown {notifier}")
         if notification.type == "negotiation_start":
@@ -253,6 +290,19 @@ class Negotiator(NamedObject, Notifiable, ABC):
             self.on_round_end(state=notification.data)
         elif notification.type == "negotiation_end":
             self.on_negotiation_end(state=notification.data)
+        elif notification.type == "ufun_modified":
+            self.on_ufun_changed()
+
+    def on_ufun_changed(self):
+        """
+        Called to inform the agent that its ufun has changed.
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are overriding
+              it.
+        """
+        self._ufun_modified = False
 
     def __str__(self):
         return f"{self.name}"
@@ -269,9 +319,9 @@ class Negotiator(NamedObject, Notifiable, ABC):
             UtilityValue: An estimate of the differences between the two outcomes. It can be a real number between -1, 1
             or a probability distribution over the same range.
         """
-        if self.utility_function is None:
+        if self._utility_function is None:
             return None
-        return self.utility_function.compare(first, second)
+        return self._utility_function.compare(first, second)
 
     class Java:
         implements = ["jnegmas.negotiators.Negotiator"]
