@@ -292,7 +292,10 @@ class RunningCommandInfo:
     def __str__(self):
         # if self.is_none:
         #     return 'No command'
-        return f"{self.action} {self.profile.process.id} [{self.beg}:{self.end - 1}]"
+        return (
+            f"{self.action if self.action != 'none' else 'running'} process "
+            f"{self.profile.process.id} @ {self.profile.line} steps: {self.beg}~{self.end - 1}"
+        )
 
     @property
     def is_none(self):
@@ -417,7 +420,7 @@ class ProductionFailure:
     """The amount space needed in storage but not found"""
 
     def __str__(self):
-        s = f"{str(self.command)} on {self.line} failed:"
+        s = f"{str(self.command)} @ {self.line} failed:"
         if self.missing_money > 0:
             s += f" money {self.missing_money}"
         if len(self.missing_inputs) > 0:
@@ -457,7 +460,7 @@ class ProductionReport:
     def __str__(self):
         if self.is_empty:
             return ""
-        s = f"{self.line}: "
+        s = f"{self.line}: " if self.line >= 0 else f"Updates: "
         if self.failed:
             s += f"{str(self.failure)} "
         else:
