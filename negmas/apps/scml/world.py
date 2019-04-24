@@ -1989,7 +1989,7 @@ class SCMLWorld(World):
         money -= missing_money + missing_quantity * unit_price
 
         # confirm that the money and quantity match given the unit price.
-        assert money == unit_price * quantity, (
+        assert abs(money - unit_price * quantity) < 1e-5, (
             f"invalid contract!! money {money}, quantity {quantity}"
             f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
             f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
