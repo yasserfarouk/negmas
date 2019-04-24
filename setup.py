@@ -75,6 +75,7 @@ setup(
         'tabulate',
         'typing',
         'tqdm (>=4.31.1)',
+        'click-config-file (>=0.4.5)',
     ],  # Optional
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional
