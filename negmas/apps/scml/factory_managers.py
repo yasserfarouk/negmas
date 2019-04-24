@@ -399,7 +399,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         reactive=True,
         sign_only_guaranteed_contracts=False,
         riskiness=0.0,
-        max_insurance_premium: float = float("inf"),
+        max_insurance_premium: float = 0.1,
     ):
         super().__init__(name=name, simulator_type=simulator_type)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
