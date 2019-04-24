@@ -18,7 +18,7 @@ to use one of the class methods of the ``SCMLWorld`` class.
 
 The resulting world will have > 100 production steps so simulating it
 will take several minutes. **To speed up the simulation, use a small
-number of n\_steps (e.g. 20)**
+number of n\_steps (e.g. 10)**
 
 If you want to just test your installation (and do not care whether you
 get an accurate indicator of agent performance), you can set the number
@@ -26,7 +26,7 @@ of steps to a small value (e.g. n\_steps=10).
 
 .. code:: ipython3
 
-    world = SCMLWorld.chain_world(agent_names_reveal_type=True, n_steps=100)
+    world = SCMLWorld.chain_world(agent_names_reveal_type=True, n_steps=100, n_intermediate_levels=1, compact=True)
 
 For debugging purposes, we set ``agent_names_reveal_type`` to true to be
 able to know the type of an agent from its name. During the actual ANAC
@@ -48,11 +48,6 @@ conducted over time
     plt.ylabel('N. Negotiations')
     plt.show()
 
-
-
-.. image:: 06.run_scml_files/06.run_scml_7_0.png
-
-
 It is clear that many negotiations happened at the beginning of the
 simulation with smaller number later. That is expected as the consumers
 publish their calls for proposals early on.
@@ -63,12 +58,6 @@ Several other statistics are available:
 
     print(list(world.stats.keys()))
 
-
-.. parsed-literal::
-
-    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', 'n_contracts_nullified', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy@1_0', 'storage_greedy@1_0', 'balance_greedy@1_1', 'storage_greedy@1_1', 'balance_greedy@1_2', 'storage_greedy@1_2', 'balance_greedy@1_3', 'storage_greedy@1_3', 'balance_greedy@1_4', 'storage_greedy@1_4', 'market_size', 'production_failures', '_market_size_total']
-
-
 We can for example check the activity level of this world (defined as
 the total amount of money transferred due to trade)
 
@@ -78,11 +67,6 @@ the total amount of money transferred due to trade)
     plt.xlabel('Simulation Step')
     plt.ylabel('Activitiy Level ($)\nTotal Money Transferred')
     plt.show()
-
-
-
-.. image:: 06.run_scml_files/06.run_scml_11_0.png
-
 
 We can see a picture of contracting in this world as follows:
 
@@ -97,11 +81,6 @@ We can see a picture of contracting in this world as follows:
     plt.ylabel('N. Contracts')
     plt.show()
 
-
-
-.. image:: 06.run_scml_files/06.run_scml_13_0.png
-
-
 We can also check the breaches that happened
 
 .. code:: ipython3
@@ -111,27 +90,14 @@ We can also check the breaches that happened
     plt.ylabel('Total Breach Level')
     plt.show()
 
-
-
-.. image:: 06.run_scml_files/06.run_scml_15_0.png
-
-
 It is also possible to focus on the behavior of some specific agent.
 Let's first find who was the winner (the factory manager that got
 maximum wealth). Notice that there can be multiple winners
 
 .. code:: ipython3
 
-    world.winners
-
-
-
-
-.. parsed-literal::
-
-    [greedy@1_1]
-
-
+    winner_profits = [round(100.0 * world.stats[f'balance_{_}'][-1] / world.stats[f'balance_{_}'][0] - 100.0, 2) for _ in world.winners]
+    print(f"{world.winners} won at {winner_profits}%")
 
 What was the balance of this winner over time:
 
@@ -144,11 +110,6 @@ What was the balance of this winner over time:
     plt.ylabel('Winner\'s Balance ($)')
     plt.show()
 
-
-
-.. image:: 06.run_scml_files/06.run_scml_19_0.png
-
-
 Let's check how did its total storage change over time:
 
 .. code:: ipython3
@@ -160,11 +121,6 @@ Let's check how did its total storage change over time:
     plt.legend()
     plt.show()
 
-
-
-.. image:: 06.run_scml_files/06.run_scml_21_0.png
-
-
 We can actually check what happens to ALL competitors:
 
 .. code:: ipython3
@@ -175,11 +131,6 @@ We can actually check what happens to ALL competitors:
     plt.ylabel('Player Balance ($)')
     plt.legend()
     plt.show()
-
-
-
-.. image:: 06.run_scml_files/06.run_scml_23_0.png
-
 
 
 
