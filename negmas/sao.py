@@ -52,7 +52,7 @@ __all__ = [
     "AspirationNegotiator",
     "ToughNegotiator",
     "OnlyBestNegotiator",
-    "TitForTatNegotiator",
+    "NaiveTitForTatNegotiator",
     "SimpleTitForTatNegotiator",  # @todo remove this in future versions
     "NiceNegotiator",
     "SAOController",
@@ -1198,7 +1198,7 @@ class OnlyBestNegotiator(SAONegotiator):
         return None
 
 
-class TitForTatNegotiator(SAONegotiator):
+class NaiveTitForTatNegotiator(SAONegotiator):
     """Implements a generalized tit-for-tat strategy"""
 
     def __init__(
@@ -1206,8 +1206,9 @@ class TitForTatNegotiator(SAONegotiator):
         name: str = None,
         parent: Controller = None,
         ufun: Optional["UtilityFunction"] = None,
-        kindness=0.1,
+        kindness=0.0,
         randomize_offer=False,
+        always_concede=True,
         initial_concession: Union[float, str] = "min",
     ):
         self.received_utilities = []
@@ -1219,6 +1220,7 @@ class TitForTatNegotiator(SAONegotiator):
         self.kindness = kindness
         self.initial_concession = initial_concession
         self.randomize_offer = randomize_offer
+        self.always_concede = always_concede
 
     def on_ufun_changed(self):
         super().on_ufun_changed()
@@ -1239,10 +1241,7 @@ class TitForTatNegotiator(SAONegotiator):
             self.received_utilities[0] = self.received_utilities[1]
             self.received_utilities[-1] = offered_utility
         indx = self._propose(state=state)
-        if indx is None:
-            return ResponseType.REJECT_OFFER
         my_utility, my_offer = self.ordered_outcomes[indx]
-
         if offered_utility >= my_utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
@@ -1256,7 +1255,7 @@ class TitForTatNegotiator(SAONegotiator):
                     return random.randint(0, i)
                 return i
         if self.randomize_offer:
-            return random.randint(0, len(self.ordered_outcomes))
+            return random.randint(0, len(self.ordered_outcomes) - 1)
         return -1
 
     def _propose(self, state: MechanismState) -> int:
@@ -1272,15 +1271,23 @@ class TitForTatNegotiator(SAONegotiator):
                 asp = self.ordered_outcomes[0][0] * (1.0 - self.initial_concession)
             return self._outcome_just_below(ulevel=asp)
 
-        opponent_concession = self.received_utilities[1] - self.received_utilities[0]
-        asp = self.proposed_utility - opponent_concession * (1 + self.kindness)
-        indx = self._outcome_just_below(ulevel=asp)
+        if self.always_concede:
+            opponent_concession = max(
+                0.0, self.received_utilities[1] - self.received_utilities[0]
+            )
+        else:
+            opponent_concession = (
+                self.received_utilities[1] - self.received_utilities[0]
+            )
+        indx = self._outcome_just_below(
+            ulevel=self.proposed_utility
+            - opponent_concession
+            - self.kindness * max(0.0, opponent_concession)
+        )
         return indx
 
     def propose(self, state: MechanismState) -> Optional[Outcome]:
         indx = self._propose(state)
-        if indx is None:
-            return None
         self.proposed_utility = self.ordered_outcomes[indx][0]
         return self.ordered_outcomes[indx][1]
 
@@ -1570,5 +1577,5 @@ class SAOController(Controller):
 SAOProtocol = SAOMechanism
 """An alias for `SAOMechanism object"""
 
-SimpleTitForTatNegotiator = TitForTatNegotiator
+SimpleTitForTatNegotiator = NaiveTitForTatNegotiator
 """A simple tit-for-tat negotiator"""

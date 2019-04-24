@@ -22,7 +22,7 @@ import negmas
 from negmas import save_stats
 from negmas.apps.scml import *
 from negmas.apps.scml.utils import anac2019_sabotage
-from negmas.helpers import humanize_time, unique_name
+from negmas.helpers import humanize_time, unique_name, camel_case
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 
 try:
@@ -537,6 +537,10 @@ def scml(
             f"buying and --max-insurance=0.0 for never buying. Will continue assuming --max-insurance=inf"
         )
         max_insurance = float("inf")
+
+    if "." not in negotiator:
+        negotiator = "negmas.sao." + negotiator
+
     params = {
         "steps": steps,
         "levels": levels,
