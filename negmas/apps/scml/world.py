@@ -1812,7 +1812,6 @@ class SCMLWorld(World):
             contract.agreement,
         )
         cfp = contract.annotation["cfp"]  # type: ignore
-        breaches = set()
         quantity, unit_price = agreement["quantity"], agreement["unit_price"]
         penalty_victim = agreement.get("penalty", None)
         if penalty_victim is not None and self.breach_penalty_victim is not None:
@@ -1902,10 +1901,10 @@ class SCMLWorld(World):
         perpetrators = set([b.perpetrator for b in breaches])
         victims = set()
         if 0 < len(perpetrators) < len(partners):
-            victims = set(partners) - set(perpetrators)
+            victims = set(_.id for _ in partners) - set(perpetrators)
         execute = (
             all(
-                victim.confirm_partial_execution(
+                self.agents[victim].confirm_partial_execution(
                     contract=contract, breaches=list(breaches)
                 )
                 for victim in victims
@@ -1983,12 +1982,24 @@ class SCMLWorld(World):
             quantity -= insured_money_quantity
 
         # missing quantity/money is now fully handled. Just remove them from the contract and execute the rest
-        quantity -= missing_quantity + (
-            int(missing_money / unit_price) if unit_price != 0.0 else 0.0
-        )
-        money -= missing_money + missing_quantity * unit_price
+        if missing_money > 0.0 and missing_quantity == 0:
+            quantity -= (
+                int(math.ceil(missing_money / unit_price)) if unit_price != 0.0 else 0
+            )
+            money = quantity * unit_price
+        elif missing_money <= 0.0 and missing_quantity > 0:
+            money -= missing_quantity * unit_price
+            quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
+        elif missing_money > 0.0 and missing_quantity > 0:
+            money_for_available_quantity = (quantity - missing_quantity) * unit_price
+            available_money = money - missing_money
+            money = min(available_money, money_for_available_quantity)
+            quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
 
         # confirm that the money and quantity match given the unit price.
+        assert (
+            money >= 0.0 and quantity >= 0
+        ), f"invalid contract!! negative money ({money}) or quantity ({quantity})"
         assert abs(money - unit_price * quantity) < 1e-5, (
             f"invalid contract!! money {money}, quantity {quantity}"
             f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"

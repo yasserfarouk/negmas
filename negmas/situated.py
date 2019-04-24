@@ -1222,35 +1222,27 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             # remove expired contracts
             executed = set()
             current_contracts = self._contract_execution_order(current_contracts)
-            breached_contracts = []
-            something_executed = True
-            while something_executed:
-                something_executed = False
-                for contract in current_contracts:
-                    contract_breaches = self._execute_contract(contract)
-                    if len(contract_breaches) < 1:
-                        self._saved_contracts[contract.id]["executed"] = True
-                        self._saved_contracts[contract.id]["breaches"] = ""
-                        executed.add(contract)
-                        n_new_contract_executions += 1
-                        activity_level += self._contract_size(contract)
-                        # something_executed = True # @todo I am disabling this for now as this approach may result in multiple loans
-                    else:
-                        self._saved_contracts[contract.id]["executed"] = False
-                        self._saved_contracts[contract.id]["breaches"] = "; ".join(
-                            str(_) for _ in current_contracts
-                        )
-                        breached_contracts.append((contract, contract_breaches))
-                        for b in contract_breaches:
-                            self._saved_breaches[b.id] = b.as_dict()
-                current_contracts = [_[0] for _ in breached_contracts]
-            for contract, contract_breaches in breached_contracts:
-                resolution = self._process_breach(contract, list(contract_breaches))
-                n_new_breaches += 1 - int(resolution is not None)
-                self._complete_contract_execution(
-                    contract, list(contract_breaches), resolution
-                )
 
+            for contract in current_contracts:
+                contract_breaches = self._execute_contract(contract)
+                if len(contract_breaches) < 1:
+                    self._saved_contracts[contract.id]["executed"] = True
+                    self._saved_contracts[contract.id]["breaches"] = ""
+                    executed.add(contract)
+                    n_new_contract_executions += 1
+                    activity_level += self._contract_size(contract)
+                else:
+                    self._saved_contracts[contract.id]["executed"] = False
+                    self._saved_contracts[contract.id]["breaches"] = "; ".join(
+                        str(_) for _ in current_contracts
+                    )
+                    for b in contract_breaches:
+                        self._saved_breaches[b.id] = b.as_dict()
+                    resolution = self._process_breach(contract, list(contract_breaches))
+                    n_new_breaches += 1 - int(resolution is not None)
+                    self._complete_contract_execution(
+                        contract, list(contract_breaches), resolution
+                    )
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
         # World Simulation Step:
