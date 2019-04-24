@@ -34,7 +34,7 @@ class SCMLAgent(Agent):
     def __init__(self, name: str = None):
         super().__init__(name=name)
         self.line_profiles: Dict[int, ManufacturingProfileCompiled] = {}
-        """A mapping specifying for each `Process` index, all the profiles used to run it in the factory"""
+        """A mapping specifying for each `Line` index, all the profiles used to run it in the factory"""
         self.process_profiles: Dict[int, ManufacturingProfileCompiled] = {}
         """A mapping specifying for each `Process` index, all the profiles used to run it in the factory"""
         self.producing: Dict[int, List[ProductManufacturingInfo]] = defaultdict(list)

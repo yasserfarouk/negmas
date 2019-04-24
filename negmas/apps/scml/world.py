@@ -1351,6 +1351,7 @@ class SCMLWorld(World):
             profiles=f.profiles,
             next_step=f.next_step,
             commands=f.commands,
+            jobs=f.jobs,
         )
 
     def receive_financial_reports(
