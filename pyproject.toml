@@ -51,42 +51,42 @@ pytest-timeout = "^1.3"
 coverage = "*"
 bumpversion = "*"
 typing-extensions = "*"
-docopt =  { version = "*", optional = false }
-docutils =  { version = "*", optional = false }
-Sphinx =  { version = "*", optional = false }
-sphinx =  { version = "*", optional = false }
-sphinx-autodoc-annotation =  { version = "*", optional = false }
-sphinx-autodoc-typehints =  { version = "*", optional = false }
-sphinx-automodapi =  { version = "*", optional = false }
-sphinx-rtd-theme =  { version = "*", optional = false }
-sphinxcontrib-napoleon =  { version = "*", optional = false }
-sphinxcontrib-websupport =  { version = "*", optional = false }
-sphinxtesters =  { version = "*", optional = false }
-ipykernel =  { version = "*", optional = false }
-ipython =  { version = "*", optional = false }
-ipython-genutils =  { version = "*", optional = false }
-ipywidgets =  { version = "*", optional = false }
-jupyter =  { version = "*", optional = false }
-jupyter-client =  { version = "*", optional = false }
-jupyter-console =  { version = "*", optional = false }
-jupyter-contrib-core =  { version = "*", optional = false }
-jupyter-contrib-nbextensions =  { version = "*", optional = false }
-jupyter-core =  { version = "*", optional = false }
-jupyter-highlight-selected-word =  { version = "*", optional = false }
-jupyter-latex-envs =  { version = "*", optional = false }
-jupyter-nbextensions-configurator =  { version = "*", optional = false }
-MarkupSafe =  { version = "*", optional = false }
-matplotlib =  { version = "*", optional = false }
-nb2plots =  { version = "*", optional = false }
-nbconvert =  { version = "*", optional = false }
-nbformat =  { version = "*", optional = false }
-nbsphinx =  { version = "*", optional = false }
-pandoc =  { version = "*", optional = false }
-pandocfilters =  { version = "*", optional = false }
-pycodestyle =  { version = "*", optional = false }
-pydocstyle =  { version = "*", optional = false }
-readme-renderer =  { version = "*", optional = false }
-recommonmark =  { version = "*", optional = false }
+docopt =  "*"
+docutils =  "*"
+Sphinx =  "*"
+sphinx =  "*"
+sphinx-autodoc-annotation =  "*"
+sphinx-autodoc-typehints =  "*"
+sphinx-automodapi =  "*"
+sphinx-rtd-theme =  "*"
+sphinxcontrib-napoleon =  "*"
+sphinxcontrib-websupport =  "*"
+sphinxtesters =  "*"
+ipykernel =  "*"
+ipython =  "*"
+ipython-genutils =  "*"
+ipywidgets =  "*"
+jupyter =  "*"
+jupyter-client =  "*"
+jupyter-console =  "*"
+jupyter-contrib-core =  "*"
+jupyter-contrib-nbextensions =  "*"
+jupyter-core =  "*"
+jupyter-highlight-selected-word =  "*"
+jupyter-latex-envs =  "*"
+jupyter-nbextensions-configurator =  "*"
+MarkupSafe =  "*"
+matplotlib =  "*"
+nb2plots =  "*"
+nbconvert =  "*"
+nbformat =  "*"
+nbsphinx =  "*"
+pandoc =  "*"
+pandocfilters =  "*"
+pycodestyle =  "*"
+pydocstyle =  "*"
+readme-renderer =  "*"
+recommonmark =  "*"
 
 
 [tool.poetry.scripts]
