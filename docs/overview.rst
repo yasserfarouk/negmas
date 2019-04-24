@@ -1007,7 +1007,7 @@ methods that MUST be implemented by any agent you inherit from it:
      'AspirationNegotiator',
      'ToughNegotiator',
      'OnlyBestNegotiator',
-     'SimpleTitForTatNegotiator',
+     'NaiveTitForTatNegotiator',
      'NiceNegotiator']
 
 

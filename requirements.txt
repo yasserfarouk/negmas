@@ -64,4 +64,5 @@ tabulate
 tox
 tqdm (>=4.31.1)
 typing
+typing-extensions
 typing_extensions (>=3.7)
