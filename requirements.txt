@@ -4,6 +4,7 @@ MarkupSafe
 PyYAML (==5.1b1)
 Sphinx
 bumpversion
+click-config-file (>=0.4.5,<0.5.0)
 codacy-coverage
 colorlog
 coverage
@@ -63,5 +64,4 @@ tabulate
 tox
 tqdm (>=4.31.1)
 typing
-typing-extensions
 typing_extensions (>=3.7)
