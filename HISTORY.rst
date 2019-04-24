@@ -1,6 +1,72 @@
 History
 =======
 
+Release 0.2.12
+--------------
+
+- updating run scml tutorial
+- tox setting update to avoid a break in latest pip (19.1.0)
+- handling an edge case with both partners committing breaches at the same
+  time.
+- testing reduced max-insurance setting
+- resolving a bug in contract resolution when the same agent commits
+  multiple money breaches on multiple contracts simultaneously.
+- better assertion of correct contract execution
+- resolving a bug in production that caused double counting of some
+  production outputs when multiple lines are executed generating the
+  same product type at the same step.
+- ensuring that the storage reported through awi.state or
+  simulator.storage_* are correct for the current step. That involves
+  a slight change in an undocumented feature of production. In the past
+  produced products were moved to the factory storage BEFORE the
+  beginning of production on the next step. Now it is moved AFTER the
+  END of production of the current step (the step production was
+  completed). This ensures that when the factory manager reads its
+  storage it reflects what it actually have at all times.
+- improving printing of RunningCommandInfo and ProductionReport
+- regenerating setup.py
+- revealing jobs in FactoryState
+- handling a bug that caused factories to have a single line sometimes.
+- revealing the dict jobs in FactoryState which gives the scheduled jobs
+  for each time/line
+- adding always_concede option to NaiveTitForTatNegotiator
+- updating insurance premium percents.
+- adding more tests of NaiveTitForTatNegotiator
+- removing relative_premium/premium confusion. Now evaluate_premium will
+  always return a premium as a fraction of the contract total cost not
+  as the full price of the insurance policy. For a contract of value 30,
+  a premium of 0.1 means 3 money units not 0.1 money units.
+- adding --config option to tournament and scml commands of negmas CLI
+  to allow users to set default parameters in a file or using
+  environment variables
+- unifying the meaning of negative numbers for max_insurance_premium to
+  mean never buying insuance in the scheduler, manager, and app. Now you
+  have to set max_insurance_premium to inf to make the system
+- enforcing argument types in negmas CLI
+- Adding DEFAULT_NEGOTIATOR constant to apps.scml.common to control the
+  default negotiator type used by built-agents
+- making utility_function a property instead of a data member of
+  negotiator
+- adding on_ufun_changed() callback to Negotiator instead of relying on
+  on_nofitication() [relying on on_notification still works].
+- deprecating passing dynamic_ufun to constructors of all negotiators
+- removing special treatment of AspirationNegotiator in miners
+- modifications to the implementation of TitForTatNegotiator to make it
+  more sane.
+- deprecating changing the utility function directly (using
+  negotiator.utility_function = x) AFTER the negotiation starts. It is
+  still possible to change it up to the call to join()
+- adding negmas.apps.scml.DEFAULT_NEGOTIATOR to control the default negotiator used
+- improved parameter settings (for internal parameters not published in the SCML document)
+- speeding up ufun dumping
+- formatting update
+- adding ufun logging as follows:
+  * World and SCMLWorld has now log_ufuns_file which if not None gives a file to log the funs into.
+  * negmas tournament and scml commands receive a --log-ufuns or --no-log-ufuns to control whether
+    or not to log the ufuns into the tournament/world stats directory under the name ufuns.csv
+- adding a helper add_records to add records into existing csv files.
+
+
 Release 0.2.11
 --------------
 - minor bug fix
