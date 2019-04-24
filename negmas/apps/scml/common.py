@@ -1077,6 +1077,8 @@ class FactoryState:
     """Next simulation step for this factory"""
     commands: np.array
     """The production command currently running"""
+    jobs: Dict[Tuple[int, int], Job]
+    """The jobs waiting to be run on the factory indexed by (time, line) tuples"""
 
 
 @dataclass
@@ -1121,7 +1123,8 @@ class Factory:
     _n_lines: int = field(init=False)
     """The number of lines in the factory, will be set using the `profiles` input"""
     _jobs: Dict[Tuple[int, int], Job] = field(default_factory=dict)
-    """The jobs waiting to be run on the factory"""
+    """The jobs waiting to be run on the factory indexed by (time, line) tuples"""
+
     _next_step: int = field(init=False, default=0)
     """Current simulation step"""
     _carried_updates: FactoryStatusUpdate = field(
@@ -1163,6 +1166,10 @@ class Factory:
     @property
     def n_lines(self) -> int:
         return self._n_lines
+
+    @property
+    def jobs(self) -> Dict[Tuple[int, int], Job]:
+        return self._jobs
 
     @property
     def commands(self) -> np.array:
