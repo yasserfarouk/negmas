@@ -784,7 +784,7 @@ def anac2019_world(
     n_lines_per_factory=10,
     guaranteed_contracts=False,
     use_consumer=True,
-    max_insurance_premium=100,
+    max_insurance_premium=float("inf"),
     n_retrials=5,
     negotiator_type: str = DEFAULT_NEGOTIATOR,
     transportation_delay=0,
@@ -861,7 +861,6 @@ def anac2019_world(
         n_intermediate = list(n_intermediate)
     else:
         n_intermediate = [n_intermediate, n_intermediate]
-    max_insurance_premium = None if max_insurance_premium < 0 else max_insurance_premium
     n_competitors = len(competitors)
     n_intermediate_levels_min = (
         int(math.ceil(n_competitors / (n_factories_per_level - n_default_per_level)))

@@ -86,6 +86,7 @@ pycodestyle =  { version = "*", optional = false }
 pydocstyle =  { version = "*", optional = false }
 readme-renderer =  { version = "*", optional = false }
 recommonmark =  { version = "*", optional = false }
+click-config-file = "^0.4.5"
 
 
 [tool.poetry.scripts]

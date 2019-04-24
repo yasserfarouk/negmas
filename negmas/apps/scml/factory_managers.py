@@ -1,4 +1,5 @@
 import itertools
+import warnings
 from abc import abstractmethod, ABC
 from collections import defaultdict
 
@@ -398,7 +399,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         reactive=True,
         sign_only_guaranteed_contracts=False,
         riskiness=0.0,
-        max_insurance_premium: float = -1.0,
+        max_insurance_premium: float = float("inf"),
     ):
         super().__init__(name=name, simulator_type=simulator_type)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
@@ -417,6 +418,12 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             self.ufun_factory: NegotiatorUtility = lambda agent, annotation: AveragingNegotiatorUtility(
                 agent=agent, annotation=annotation, optimism=self.optimism
             )
+        if max_insurance_premium < 0.0:
+            warnings.warn(
+                f"Negative max insurance ({max_insurance_premium}) is deprecated. Set max_insurance_premium = inf "
+                f"for always buying and max_insurance_premium = 0.0 for never buying. Will continue assuming inf"
+            )
+            max_insurance_premium = float("inf")
         self.max_insurance_premium = max_insurance_premium
         self.n_retrials = n_retrials
         self.n_neg_trials: Dict[str, int] = defaultdict(int)
@@ -549,13 +556,16 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 price=total,
                 t=contract.agreement["time"],
             )
-            if total <= 0 or self.max_insurance_premium < 0.0 or contract is None:
+            if total <= 0 or self.max_insurance_premium <= 0.0 or contract is None:
                 return
             premium = awi.evaluate_insurance(contract=contract)
             if premium is None:
                 return
             relative_premium = premium / total
             if relative_premium <= self.max_insurance_premium:
+                self.awi.logdebug(
+                    f"{self.name} buys insurance for {premium} for {str(contract)}"
+                )
                 awi.buy_insurance(contract=contract)
                 self.simulator.pay(premium, self.awi.current_step)
             return

@@ -699,7 +699,7 @@ class SCMLWorld(World):
             manager_name = (
                 f"{unique_name(base='', add_time=False, rand_digits=12)}@{factory.id}"
             )
-            manager = manager_type(name=manager_name, **params)
+            manager = instantiate(manager_type, name=manager_name, **params)
             if agent_names_reveal_type:
                 manager.name = f"{manager.short_type_name}@{factory.id[1:]}"
             managers[index] = manager

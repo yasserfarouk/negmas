@@ -2,7 +2,7 @@
 category = "dev"
 description = "A configurable sidebar-enabled Sphinx theme"
 name = "alabaster"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.7.12"
 
@@ -11,7 +11,7 @@ category = "dev"
 description = "Disable App Nap on OS X 10.9"
 marker = "python_version >= \"3.3\" and sys_platform == \"darwin\" or sys_platform == \"darwin\""
 name = "appnope"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.1.0"
 
@@ -46,7 +46,7 @@ pycodestyle = ">=2.4.0"
 category = "dev"
 description = "Internationalization utilities"
 name = "babel"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.6.0"
 
@@ -57,7 +57,7 @@ pytz = ">=0a"
 category = "dev"
 description = "Specifications for callback functions passed in to an API"
 name = "backcall"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.1.0"
 
@@ -65,7 +65,7 @@ version = "0.1.0"
 category = "dev"
 description = "An easy safelist-based HTML-sanitizing tool."
 name = "bleach"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "3.1.0"
 
@@ -90,7 +90,6 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.12.5"
 
 [package.dependencies]
-lockfile = ">=0.9"
 msgpack = "*"
 requests = "*"
 
@@ -139,6 +138,18 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "7.0"
 
 [[package]]
+category = "dev"
+description = "Configuration file support for click applications."
+name = "click-config-file"
+optional = false
+python-versions = "*"
+version = "0.4.5"
+
+[package.dependencies]
+click = ">=6.7"
+configobj = ">=5.0.6"
+
+[[package]]
 category = "main"
 description = "Extended pickling support for Python objects"
 name = "cloudpickle"
@@ -181,12 +192,23 @@ colorama = "*"
 category = "dev"
 description = "Python parser for the CommonMark Markdown spec"
 name = "commonmark"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.8.1"
 
 [package.dependencies]
 future = "*"
+
+[[package]]
+category = "dev"
+description = "Config file reading, writing and validation."
+name = "configobj"
+optional = false
+python-versions = "*"
+version = "5.0.6"
+
+[package.dependencies]
+six = "*"
 
 [[package]]
 category = "dev"
@@ -228,7 +250,7 @@ version = "0.6"
 category = "dev"
 description = "Better living through Python with decorators"
 name = "decorator"
-optional = true
+optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
 version = "4.3.2"
 
@@ -236,7 +258,7 @@ version = "4.3.2"
 category = "dev"
 description = "XML bomb protection for Python stdlib modules"
 name = "defusedxml"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.5.0"
 
@@ -266,7 +288,7 @@ zict = ">=0.1.3"
 category = "dev"
 description = "Pythonic argument parser, that will make you smile"
 name = "docopt"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.6.2"
 
@@ -274,7 +296,7 @@ version = "0.6.2"
 category = "dev"
 description = "Docutils -- Python Documentation Utilities"
 name = "docutils"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.14"
 
@@ -282,7 +304,7 @@ version = "0.14"
 category = "dev"
 description = "Discover and load entry points from installed packages."
 name = "entrypoints"
-optional = true
+optional = false
 python-versions = ">=2.7"
 version = "0.3"
 
@@ -298,7 +320,7 @@ version = "3.0.10"
 category = "dev"
 description = "Clean single-source support for Python 3 and 2"
 name = "future"
-optional = true
+optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "0.17.1"
 
@@ -345,7 +367,7 @@ version = "2.8"
 category = "dev"
 description = "Getting image size from png/jpeg/jpeg2000/gif file"
 name = "imagesize"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.1.0"
 
@@ -361,7 +383,7 @@ version = "2.1.0"
 category = "dev"
 description = "IPython Kernel for Jupyter"
 name = "ipykernel"
-optional = true
+optional = false
 python-versions = ">=3.4"
 version = "5.1.0"
 
@@ -375,7 +397,7 @@ traitlets = ">=4.1.0"
 category = "dev"
 description = "IPython: Productive Interactive Computing"
 name = "ipython"
-optional = true
+optional = false
 python-versions = ">=3.5"
 version = "7.3.0"
 
@@ -396,7 +418,7 @@ traitlets = ">=4.2"
 category = "dev"
 description = "Vestigial utilities from IPython"
 name = "ipython-genutils"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.2.0"
 
@@ -404,7 +426,7 @@ version = "0.2.0"
 category = "dev"
 description = "IPython HTML widgets for Jupyter"
 name = "ipywidgets"
-optional = true
+optional = false
 python-versions = "*"
 version = "7.4.2"
 
@@ -422,7 +444,7 @@ version = ">=4.0.0"
 category = "dev"
 description = "An autocompletion tool for Python that can be used for text editors."
 name = "jedi"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.13.3"
 
@@ -458,7 +480,7 @@ six = ">=1.11.0"
 category = "dev"
 description = "Jupyter metapackage. Install all the Jupyter components in one go."
 name = "jupyter"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.0.0"
 
@@ -474,7 +496,7 @@ qtconsole = "*"
 category = "dev"
 description = "Jupyter protocol implementation and client libraries"
 name = "jupyter-client"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "5.2.4"
 
@@ -489,7 +511,7 @@ traitlets = "*"
 category = "dev"
 description = "Jupyter terminal console"
 name = "jupyter-console"
-optional = true
+optional = false
 python-versions = ">=3.5"
 version = "6.0.0"
 
@@ -504,7 +526,7 @@ pygments = "*"
 category = "dev"
 description = "Common utilities for jupyter-contrib projects."
 name = "jupyter-contrib-core"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.3.3"
 
@@ -519,7 +541,7 @@ traitlets = "*"
 category = "dev"
 description = "A collection of Jupyter nbextensions."
 name = "jupyter-contrib-nbextensions"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.5.1"
 
@@ -541,7 +563,7 @@ traitlets = ">=4.1"
 category = "dev"
 description = "Jupyter core package. A base package on which Jupyter projects rely."
 name = "jupyter-core"
-optional = true
+optional = false
 python-versions = "*"
 version = "4.4.0"
 
@@ -552,7 +574,7 @@ traitlets = "*"
 category = "dev"
 description = "Jupyter notebook extension that enables highlighting every instance of the current word in the notebook."
 name = "jupyter-highlight-selected-word"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.2.0"
 
@@ -560,7 +582,7 @@ version = "0.2.0"
 category = "dev"
 description = "Jupyter notebook extension which supports (some) LaTeX environments within markdown cells. Also provides support for labels and crossreferences, document wide numbering, bibliography, and more..."
 name = "jupyter-latex-envs"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.4.6"
 
@@ -575,7 +597,7 @@ traitlets = ">=4.1"
 category = "dev"
 description = "jupyter serverextension providing configuration interfaces for nbextensions."
 name = "jupyter-nbextensions-configurator"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.1"
 
@@ -610,7 +632,7 @@ version = "0.12.2"
 category = "dev"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
 name = "lxml"
-optional = true
+optional = false
 python-versions = "*"
 version = "4.3.2"
 
@@ -641,7 +663,7 @@ python-dateutil = ">=2.1"
 category = "dev"
 description = "The fastest markdown parser in pure Python"
 name = "mistune"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.8.4"
 
@@ -666,7 +688,7 @@ version = "0.6.1"
 category = "dev"
 description = "Converting between ipython notebooks and sphinx docs"
 name = "nb2plots"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.6"
 
@@ -683,7 +705,7 @@ texext = "*"
 category = "dev"
 description = "Converting Jupyter Notebooks"
 name = "nbconvert"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "5.4.1"
 
@@ -704,7 +726,7 @@ traitlets = ">=4.2"
 category = "dev"
 description = "The Jupyter Notebook format"
 name = "nbformat"
-optional = true
+optional = false
 python-versions = "*"
 version = "4.4.0"
 
@@ -718,7 +740,7 @@ traitlets = ">=4.1"
 category = "dev"
 description = "Jupyter Notebook Tools for Sphinx"
 name = "nbsphinx"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.2"
 
@@ -734,7 +756,7 @@ traitlets = "*"
 category = "dev"
 description = "A web-based notebook environment for interactive computing"
 name = "notebook"
-optional = true
+optional = false
 python-versions = "*"
 version = "5.7.6"
 
@@ -765,7 +787,7 @@ version = "1.16.2"
 category = "dev"
 description = "Core utilities for Python packages"
 name = "packaging"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "19.0"
 
@@ -790,7 +812,7 @@ pytz = ">=2011k"
 category = "dev"
 description = "Pandoc Documents for Python"
 name = "pandoc"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.0.2"
 
@@ -801,7 +823,7 @@ ply = "*"
 category = "dev"
 description = "Utilities for writing pandoc filters in python"
 name = "pandocfilters"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.4.2"
 
@@ -809,7 +831,7 @@ version = "1.4.2"
 category = "dev"
 description = "A Python Parser"
 name = "parso"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.3.4"
 
@@ -826,7 +848,7 @@ category = "dev"
 description = "Pexpect allows easy control of interactive console applications."
 marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\""
 name = "pexpect"
-optional = true
+optional = false
 python-versions = "*"
 version = "4.6.0"
 
@@ -837,7 +859,7 @@ ptyprocess = ">=0.5"
 category = "dev"
 description = "Tiny 'shelve'-like database with concurrency support"
 name = "pickleshare"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.7.5"
 
@@ -861,7 +883,7 @@ version = "0.9.0"
 category = "dev"
 description = "Python Lex & Yacc"
 name = "ply"
-optional = true
+optional = false
 python-versions = "*"
 version = "3.11"
 
@@ -869,7 +891,7 @@ version = "3.11"
 category = "dev"
 description = "A collection of helpful Python tools!"
 name = "pockets"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.7.2"
 
@@ -928,7 +950,7 @@ six = "*"
 category = "dev"
 description = "Python client for the Prometheus monitoring system."
 name = "prometheus-client"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.6.0"
 
@@ -936,7 +958,7 @@ version = "0.6.0"
 category = "dev"
 description = "Library for building powerful interactive command lines in Python"
 name = "prompt-toolkit"
-optional = true
+optional = false
 python-versions = "*"
 version = "2.0.9"
 
@@ -957,7 +979,7 @@ category = "dev"
 description = "Run a subprocess in a pseudo terminal"
 marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
 name = "ptyprocess"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.6.0"
 
@@ -989,7 +1011,7 @@ version = "2.5.0"
 category = "dev"
 description = "Python docstring style checker"
 name = "pydocstyle"
-optional = true
+optional = false
 python-versions = "*"
 version = "3.0.0"
 
@@ -1001,7 +1023,7 @@ snowballstemmer = "*"
 category = "dev"
 description = "Pygments is a syntax highlighting package written in Python."
 name = "pygments"
-optional = true
+optional = false
 python-versions = "*"
 version = "2.3.1"
 
@@ -1119,7 +1141,7 @@ category = "dev"
 description = "Python bindings for the winpty library"
 marker = "os_name == \"nt\""
 name = "pywinpty"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.5.5"
 
@@ -1135,7 +1157,7 @@ version = "5.1b1"
 category = "dev"
 description = "Python bindings for 0MQ"
 name = "pyzmq"
-optional = true
+optional = false
 python-versions = ">=2.7,!=3.0*,!=3.1*,!=3.2*"
 version = "18.0.1"
 
@@ -1143,7 +1165,7 @@ version = "18.0.1"
 category = "dev"
 description = "Jupyter Qt console"
 name = "qtconsole"
-optional = true
+optional = false
 python-versions = "*"
 version = "4.4.3"
 
@@ -1159,7 +1181,7 @@ traitlets = "*"
 category = "dev"
 description = "readme_renderer is a library for rendering \"readme\" descriptions for Warehouse"
 name = "readme-renderer"
-optional = true
+optional = false
 python-versions = "*"
 version = "24.0"
 
@@ -1173,7 +1195,7 @@ six = "*"
 category = "dev"
 description = "A docutils-compatibility bridge to CommonMark, enabling you to write CommonMark inside of Docutils & Sphinx projects."
 name = "recommonmark"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.5.0"
 
@@ -1222,7 +1244,7 @@ numpy = ">=1.8.2"
 category = "dev"
 description = "Send file to trash natively under Mac OS X, Windows and Linux."
 name = "send2trash"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.5.0"
 
@@ -1246,7 +1268,7 @@ version = "1.12.0"
 category = "dev"
 description = "This package provides 16 stemmer algorithms (15 + Poerter English stemmer) generated from Snowball algorithms."
 name = "snowballstemmer"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.2.1"
 
@@ -1262,7 +1284,7 @@ version = "2.1.0"
 category = "dev"
 description = "Python documentation generator"
 name = "sphinx"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.8.5"
 
@@ -1285,7 +1307,7 @@ sphinxcontrib-websupport = "*"
 category = "dev"
 description = "Use Python 3 annotations in sphinx-enabled docstrings"
 name = "sphinx-autodoc-annotation"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.0-1"
 
@@ -1296,7 +1318,7 @@ sphinx = ">=1.1"
 category = "dev"
 description = "Type hints (PEP 484) support for the Sphinx autodoc extension"
 name = "sphinx-autodoc-typehints"
-optional = true
+optional = false
 python-versions = "!=3.5.0, !=3.5.1"
 version = "1.6.0"
 
@@ -1307,7 +1329,7 @@ Sphinx = ">=1.7"
 category = "dev"
 description = "Sphinx extension for auto-generating API documentation for entire modules"
 name = "sphinx-automodapi"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.10"
 
@@ -1318,7 +1340,7 @@ sphinx = ">=1.3"
 category = "dev"
 description = "Read the Docs theme for Sphinx"
 name = "sphinx-rtd-theme"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.3"
 
@@ -1329,7 +1351,7 @@ sphinx = "*"
 category = "dev"
 description = "Sphinx \"napoleon\" extension."
 name = "sphinxcontrib-napoleon"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.7"
 
@@ -1341,7 +1363,7 @@ six = ">=1.5.2"
 category = "dev"
 description = "Sphinx API for Web Apps"
 name = "sphinxcontrib-websupport"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.1.0"
 
@@ -1349,7 +1371,7 @@ version = "1.1.0"
 category = "dev"
 description = "Utilities for testing Sphinx extensions"
 name = "sphinxtesters"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.2.1"
 
@@ -1381,7 +1403,7 @@ version = "1.3.2"
 category = "dev"
 description = "Terminals served to xterm.js using Tornado websockets"
 name = "terminado"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.8.1"
 
@@ -1394,7 +1416,7 @@ tornado = ">=4"
 category = "dev"
 description = "Test utilities for code working with files and commands"
 name = "testpath"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.2"
 
@@ -1402,7 +1424,7 @@ version = "0.4.2"
 category = "dev"
 description = "Sphinx extensions for working with LaTeX math"
 name = "texext"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.6.1"
 
@@ -1434,7 +1456,7 @@ version = "0.9.0"
 category = "main"
 description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
 name = "tornado"
-optional = true
+optional = false
 python-versions = ">= 3.5"
 version = "6.0.1"
 
@@ -1467,7 +1489,7 @@ version = "4.31.1"
 category = "dev"
 description = "Traitlets Python config system"
 name = "traitlets"
-optional = true
+optional = false
 python-versions = "*"
 version = "4.3.2"
 
@@ -1515,7 +1537,7 @@ version = "16.4.3"
 category = "dev"
 description = "Measures number of Terminal column cells of wide-character codes"
 name = "wcwidth"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.1.7"
 
@@ -1531,7 +1553,7 @@ version = "0.5.1"
 category = "dev"
 description = "IPython HTML widgets for Jupyter"
 name = "widgetsnbextension"
-optional = true
+optional = false
 python-versions = "*"
 version = "3.4.2"
 
@@ -1557,12 +1579,8 @@ version = "0.1.4"
 [package.dependencies]
 heapdict = "*"
 
-[extras]
-dask = ["distributed"]
-doc = ["matplotlib"]
-
 [metadata]
-content-hash = "fa4e38b409b042bcf93199556c7101681d8ac421cc712a0b51375891cc58c418"
+content-hash = "de79f77aab3ff9159c4e4ce6feccc3dff36363dca324414564e9fc9d40ed7b40"
 python-versions = ">=3.6"
 
 [metadata.hashes]
@@ -1581,11 +1599,13 @@ certifi = ["59b7658e26ca9c7339e00f8f4636cdfe59d34fa37b9b04f6f9e9926b3cece1a5", "
 chardet = ["84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae", "fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"]
 cleo = ["85a63076b72ca376fb06668be1fc7758dc16740b394783d5cc65200c4b32f71b", "9b7f79f1aa470a025c0d28c76aa225ee9e65028d32f80032e871aa3500df61b8"]
 click = ["2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13", "5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"]
+click-config-file = ["12bc380aa39734749a070b498a21d8d0b2314e38f9320b592fe213a316be5354", "a535d358639fcafdab1fc1686e36c013bd932e80e92bcc2fd4545bb905c61286"]
 cloudpickle = ["18d3a5dfc82f752b9f4c844cceb663213e26e130f4a2894a18ad1f11d57a30bc", "b4a1889434c99c2425adad8ab294e6327740b9c38a9a19ec1bd1ae6d5e298fd6"]
 codacy-coverage = ["b94651934745c638a980ad8d67494077e60f71e19e29aad1c275b66e0a070cbc", "d8a1ce56b0dd156d6b1de14fa6217d32ec86097902f08a17ff2f95ba27264474"]
 colorama = ["05eed71e2e327246ad6b38c540c4a3117230b19679b875190486ddd2d721422d", "f8ac84de7840f5b9c4e3347b3c1eaa50f7e49c2b07596221daec5edaabbd7c48"]
 colorlog = ["3cf31b25cbc8f86ec01fef582ef3b840950dea414084ed19ab922c8b493f9b42", "450f52ea2a2b6ebb308f034ea9a9b15cea51e65650593dca1da3eb792e4e4981"]
 commonmark = ["9f6dda7876b2bb88dd784440166f4bc8e56cb2b2551264051123bacb0b6c1d8a", "abcbc854e0eae5deaf52ae5e328501b78b4a0758bf98ac8bb792fce993006084"]
+configobj = ["a2f5650770e1c87fb335af19a9b7eb73fc05ccf22144eb68db7d00cd2bcb0902"]
 coverage = ["007eeef7e23f9473622f7d94a3e029a45d55a92a1f083f0f3512f5ab9a669b05", "0388c12539372bb92d6dde68b4627f0300d948965bbb7fc104924d715fdc0965", "079248312838c4c8f3494934ab7382a42d42d5f365f0cf7516f938dbb3f53f3f", "17307429935f96c986a1b1674f78079528833410750321d22b5fb35d1883828e", "1afccd7e27cac1b9617be8c769f6d8a6d363699c9b86820f40c74cfb3328921c", "2ad357d12971e77360034c1596011a03f50c0f9e1ecd12e081342b8d1aee2236", "2b4d7f03a8a6632598cbc5df15bbca9f778c43db7cf1a838f4fa2c8599a8691a", "2e1a5c6adebb93c3b175103c2f855eda957283c10cf937d791d81bef8872d6ca", "309d91bd7a35063ec7a0e4d75645488bfab3f0b66373e7722f23da7f5b0f34cc", "358d635b1fc22a425444d52f26287ae5aea9e96e254ff3c59c407426f44574f4", "3f4d0b3403d3e110d2588c275540649b1841725f5a11a7162620224155d00ba2", "43a155eb76025c61fc20c3d03b89ca28efa6f5be572ab6110b2fb68eda96bfea", "493082f104b5ca920e97a485913de254cbe351900deed72d4264571c73464cd0", "4c4f368ffe1c2e7602359c2c50233269f3abe1c48ca6b288dcd0fb1d1c679733", "5ff16548492e8a12e65ff3d55857ccd818584ed587a6c2898a9ebbe09a880674", "66f393e10dd866be267deb3feca39babba08ae13763e0fc7a1063cbe1f8e49f6", "700d7579995044dc724847560b78ac786f0ca292867447afda7727a6fbaa082e", "81912cfe276e0069dca99e1e4e6be7b06b5fc8342641c6b472cb2fed7de7ae18", "82cbd3317320aa63c65555aa4894bf33a13fb3a77f079059eb5935eea415938d", "845fddf89dca1e94abe168760a38271abfc2e31863fbb4ada7f9a99337d7c3dc", "87d942863fe74b1c3be83a045996addf1639218c2cb89c5da18c06c0fe3917ea", "9721f1b7275d3112dc7ccf63f0553c769f09b5c25a26ee45872c7f5c09edf6c1", "a4497faa4f1c0fc365ba05eaecfb6b5d24e3c8c72e95938f9524e29dadb15e76", "a7cfaebd8f24c2b537fa6a271229b051cdac9c1734bb6f939ccfc7c055689baa", "ab3508df9a92c1d3362343d235420d08e2662969b83134f8a97dc1451cbe5e84", "b0059630ca5c6b297690a6bf57bf2fdac1395c24b7935fd73ee64190276b743b", "b6cebae1502ce5b87d7c6f532fa90ab345cfbda62b95aeea4e431e164d498a3d", "bd4800e32b4c8d99c3a2c943f1ac430cbf80658d884123d19639bcde90dad44a", "cdd92dd9471e624cd1d8c1a2703d25f114b59b736b0f1f659a98414e535ffb3d", "d00e29b78ff610d300b2c37049a41234d48ea4f2d2581759ebcf67caaf731c31", "d1ee76f560c3c3e8faada866a07a32485445e16ed2206ac8378bd90dadffb9f0", "dd707a21332615108b736ef0b8513d3edaf12d2a7d5fc26cd04a169a8ae9b526", "e3ba9b14607c23623cf38f90b23f5bed4a3be87cbfa96e2e9f4eabb975d1e98b", "e9a0e1caed2a52f15c96507ab78a48f346c05681a49c5b003172f8073da6aa6b", "eea9135432428d3ca7ee9be86af27cb8e56243f73764a9b6c3e0bda1394916be", "f29841e865590af72c4b90d7b5b8e93fd560f5dea436c1d5ee8053788f9285de", "f3a5c6d054c531536a83521c00e5d4004f1e126e2e2556ce399bef4180fbe540", "f87f522bde5540d8a4b11df80058281ac38c44b13ce29ced1e294963dd51a8f8", "f8c55dd0f56d3d618dfacf129e010cbe5d5f94b6951c1b2f13ab1a2f79c284da", "f98b461cb59f117887aa634a66022c0bd394278245ed51189f63a036516e32de"]
 cycler = ["1d8a5ae1ff6c5cf9b93e8811e581232ad8920aeec647c37316ceac982b08cb2d", "cd7b2d1018258d7247a71425e9f26463dfb444d411c39569972f4ce586b0c9d8"]
 dask = ["7e9a3c053d8f503483d7357d5b8486c70250c4975b08b3d29f91ab7fc97736c3", "959a96547939986bc906c84cb0d8d310da5f87dc5d121cff922555d26b91adf2"]

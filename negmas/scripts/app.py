@@ -4,6 +4,7 @@ import json
 import os
 import traceback
 import urllib.request
+import warnings
 from functools import partial
 from math import factorial
 from pathlib import Path
@@ -11,6 +12,7 @@ from pprint import pformat
 from time import perf_counter
 
 import click
+import click_config_file
 import pandas as pd
 import progressbar
 import yaml
@@ -80,6 +82,7 @@ def cli():
     "--tournament-type",
     "--tournament",
     default="anac2019collusion",
+    type=click.Choice(["anac2019collusion", "anac2019std", "anac2019sabotage"]),
     help="The config to use. Default is ANAC 2019. Options supported are anac2019std, anac2019collusion, "
     "anac2019sabotage",
 )
@@ -87,29 +90,38 @@ def cli():
     "--timeout",
     "-t",
     default=0,
+    type=int,
     help="Timeout after the given number of seconds (0 for infinite)",
 )
 @click.option(
-    "--configs", default=5, help="Number of unique configurations to generate."
+    "--configs",
+    default=5,
+    type=int,
+    help="Number of unique configurations to generate.",
 )
 @click.option("--runs", default=2, help="Number of runs for each configuration")
 @click.option(
     "--max-runs",
     default=-1,
+    type=int,
     help="Maximum total number of runs. Zero or negative numbers mean no limit",
 )
 @click.option(
     "--agents",
     default=5,
+    type=int,
     help="Number of agents per competitor (not used for anac2019std in which this is preset to 1).",
 )
 @click.option(
-    "--competitors",
-    default="negmas.apps.scml.DoNothingFactoryManager;negmas.apps.scml.GreedyFactoryManager",
-    help="A semicolon (;) separated list of agent types to use for the competition.",
+    "--factories",
+    default=5,
+    type=int,
+    help="Minimum numbers of factories to have per level.",
 )
 @click.option(
-    "--factories", default=5, help="Minimum numbers of factories to have per level."
+    "--competitors",
+    default="DoNothingFactoryManager;GreedyFactoryManager",
+    help="A semicolon (;) separated list of agent types to use for the competition.",
 )
 @click.option(
     "--jcompetitors",
@@ -119,7 +131,7 @@ def cli():
 )
 @click.option(
     "--non-competitors",
-    default="negmas.apps.scml.GreedyFactoryManager",
+    default="GreedyFactoryManager",
     help="A semicolon (;) separated list of agent types to exist in the worlds as non-competitors "
     "(their scores will not be calculated).",
 )
@@ -136,12 +148,14 @@ def cli():
 @click.option(
     "--log",
     "-l",
+    type=click.Path(dir_okay=True, file_okay=False),
     default="~/negmas/logs/tournaments",
     help="Default location to save logs (A folder will be created under it)",
 )
 @click.option(
     "--verbosity",
     default=1,
+    type=int,
     help="verbosity level (from 0 == silent to 1 == world progress)",
 )
 @click.option("--configs-only/--run", default=False, help="configs_only")
@@ -159,6 +173,7 @@ def cli():
 @click.option(
     "--port",
     default=8786,
+    type=int,
     help="The IP port number a dask scheduler to run the distributed tournament."
     " Effective only if --distributed",
 )
@@ -173,6 +188,7 @@ def cli():
     help="If True, effort is exerted to reduce the memory footprint which"
     "includes reducing logs dramatically.",
 )
+@click_config_file.configuration_option()
 def tournament(
     name,
     steps,
@@ -225,6 +241,9 @@ def tournament(
     parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
 
     non_competitors = non_competitors.split(";")
+    for i, cp in enumerate(non_competitors):
+        if "." not in cp:
+            non_competitors[i] = "negmas.apps.scml.factory_managers." + cp
 
     all_competitors = competitors.split(";")
     for i, cp in enumerate(all_competitors):
@@ -383,10 +402,11 @@ def tournament(
 
 
 @cli.command(help="Run an SCML world simulation")
-@click.option("--steps", default=100, help="Number of steps.")
+@click.option("--steps", default=100, type=int, help="Number of steps.")
 @click.option(
     "--levels",
     default=3,
+    type=int,
     help="Number of intermediate production levels (processes). "
     "-1 means a single product and no factories.",
 )
@@ -399,26 +419,34 @@ def tournament(
 @click.option(
     "--min-consumption",
     default=3,
+    type=int,
     help="The minimum number of units consumed by each consumer at every " "time-step.",
 )
 @click.option(
     "--max-consumption",
     default=5,
+    type=int,
     help="The maximum number of units consumed by each consumer at every " "time-step.",
 )
 @click.option(
     "--agents",
     default=5,
+    type=int,
     help="Number of agents (miners/negmas.consumers) per production level",
 )
-@click.option("--horizon", default=20, help="Consumption horizon.")
-@click.option("--transport", default=0, help="Transportation Delay.")
-@click.option("--time", default=60 * 90, help="Total time limit.")
-@click.option("--neg-time", default=60 * 4, help="Time limit per single negotiation")
-@click.option("--neg-steps", default=20, help="Number of rounds per single negotiation")
+@click.option("--horizon", default=20, type=int, help="Consumption horizon.")
+@click.option("--transport", default=0, type=int, help="Transportation Delay.")
+@click.option("--time", default=60 * 90, type=int, help="Total time limit.")
+@click.option(
+    "--neg-time", default=60 * 4, type=int, help="Time limit per single negotiation"
+)
+@click.option(
+    "--neg-steps", default=20, type=int, help="Number of rounds per single negotiation"
+)
 @click.option(
     "--sign",
     default=1,
+    type=int,
     help="The default delay between contract conclusion and signing",
 )
 @click.option(
@@ -430,6 +458,7 @@ def tournament(
 @click.option(
     "--retrials",
     default=5,
+    type=int,
     help="The number of times an agent re-tries on failed negotiations",
 )
 @click.option(
@@ -439,14 +468,28 @@ def tournament(
 )
 @click.option(
     "--max-insurance",
-    default=100,
-    help="Use insurance against partner in factory managers up to this " "premium",
+    default="inf",
+    type=float,
+    help="Use insurance against partner in factory managers up to this premium. Pass zero for never buying insurance"
+    " and a 'inf' (without quotes) for infinity.",
 )
 @click.option(
     "--riskiness", default=0.0, help="How risky is the default factory manager"
 )
 @click.option(
+    "--competitors",
+    default="GreedyFactoryManager",
+    help="A semicolon (;) separated list of agent types to use for the competition.",
+)
+@click.option(
+    "--jcompetitors",
+    "--java-competitors",
+    default="",
+    help="A semicolon (;) separated list of agent types to use for the competition.",
+)
+@click.option(
     "--log",
+    type=click.Path(file_okay=False, dir_okay=True),
     default="~/negmas/logs",
     help="Default location to save logs (A folder will be created under it)",
 )
@@ -461,6 +504,7 @@ def tournament(
     help="If True, effort is exerted to reduce the memory footprint which"
     "includes reducing logs dramatically.",
 )
+@click_config_file.configuration_option()
 def scml(
     steps,
     levels,
@@ -481,10 +525,18 @@ def scml(
     use_consumer,
     max_insurance,
     riskiness,
+    competitors,
+    jcompetitors,
     log,
     compact,
     log_ufuns,
 ):
+    if max_insurance < 0:
+        warnings.warn(
+            f"Negative max insurance ({max_insurance}) is deprecated. Set --max-insurance=inf for always "
+            f"buying and --max-insurance=0.0 for never buying. Will continue assuming --max-insurance=inf"
+        )
+        max_insurance = float("inf")
     params = {
         "steps": steps,
         "levels": levels,
@@ -535,6 +587,37 @@ def scml(
     if log_ufuns:
         log_ufuns_file = str(log_dir / "ufuns.csv")
     exception = None
+
+    def _no_default(s):
+        return s.startswith("negmas.apps.scml") and s.endswith("GreedyFactoryManager")
+
+    all_competitors = competitors.split(";")
+    for i, cp in enumerate(all_competitors):
+        if "." not in cp:
+            all_competitors[i] = "negmas.apps.scml.factory_managers." + cp
+    all_competitors_params = [
+        dict() if _no_default(_) else factory_kwargs for _ in all_competitors
+    ]
+    if jcompetitors is not None and len(jcompetitors) > 0:
+        jcompetitor_params = [{"java_class_name": _} for _ in jcompetitors.split(";")]
+        for jp in jcompetitor_params:
+            if "." not in jp["java_class_name"]:
+                jp["java_class_name"] = (
+                    "jnegmas.apps.scml.factory_managers." + jp["java_class_name"]
+                )
+        jcompetitors = ["negmas.apps.scml.JavaFactoryManager"] * len(jcompetitor_params)
+        all_competitors += jcompetitors
+        all_competitors_params += jcompetitor_params
+        print("You are using some Java agents. The tournament MUST run serially")
+        parallelism = "serial"
+        if not jnegmas_bridge_is_running():
+            print(
+                "Error: You are using java competitors but jnegmas bridge is not running\n\nTo correct this issue"
+                " run the following command IN A DIFFERENT TERMINAL because it will block:\n\n"
+                "$ negmas jnegmas"
+            )
+            exit(1)
+
     world = SCMLWorld.chain_world(
         log_file_name=log_file_name,
         n_steps=steps,
@@ -556,6 +639,8 @@ def scml(
         compact=compact,
         agent_names_reveal_type=True,
         log_ufuns_file=log_ufuns_file,
+        manager_types=all_competitors,
+        manager_params=all_competitors_params,
     )
     failed = False
     strt = perf_counter()
@@ -693,6 +778,7 @@ def genius(path, port, force):
     default=0,
     help="Port to run the jnegmas on. Pass 0 for the default value",
 )
+@click_config_file.configuration_option()
 def jnegmas(path, port):
     init_jnegmas_bridge(path=path if path != "auto" else None, port=port)
     input(
