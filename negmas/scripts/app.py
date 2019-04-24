@@ -468,7 +468,7 @@ def tournament(
 )
 @click.option(
     "--max-insurance",
-    default="inf",
+    default=0.1,
     type=float,
     help="Use insurance against partner in factory managers up to this premium. Pass zero for never buying insurance"
     " and a 'inf' (without quotes) for infinity.",
