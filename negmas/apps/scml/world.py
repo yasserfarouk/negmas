@@ -1992,9 +1992,20 @@ class SCMLWorld(World):
             quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
         elif missing_money > 0.0 and missing_quantity > 0:
             money_for_available_quantity = (quantity - missing_quantity) * unit_price
+            quantity_for_available_money = int(
+                math.floor((money - missing_money) / unit_price)
+            )
+            money_for_available_money = quantity_for_available_money * unit_price
             available_money = money - missing_money
-            money = min(available_money, money_for_available_quantity)
+            money = min(
+                (
+                    available_money,
+                    money_for_available_quantity,
+                    money_for_available_money,
+                )
+            )
             quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
+            money = quantity * unit_price
 
         # confirm that the money and quantity match given the unit price.
         assert (
