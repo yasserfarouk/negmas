@@ -717,7 +717,7 @@ def anac2019_world_generator(**kwargs):
                     ManufacturingProfile(
                         n_steps=p["n_steps"],
                         cost=p["cost"],
-                        line=p["line"],
+                        line=_,
                         process=processes[p["process.id"]],
                         cancellation_cost=0.0,
                         initial_pause_cost=0.0,
