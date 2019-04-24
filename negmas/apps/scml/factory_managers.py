@@ -558,13 +558,13 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             )
             if total <= 0 or self.max_insurance_premium <= 0.0 or contract is None:
                 return
-            premium = awi.evaluate_insurance(contract=contract)
-            if premium is None:
+            relative_premium = awi.evaluate_insurance(contract=contract)
+            if relative_premium is None:
                 return
-            relative_premium = premium / total
+            premium = relative_premium * total
             if relative_premium <= self.max_insurance_premium:
                 self.awi.logdebug(
-                    f"{self.name} buys insurance for {premium} for {str(contract)}"
+                    f"{self.name} buys insurance @ {premium:0.02} ({relative_premium:0.02%}) for {str(contract)}"
                 )
                 awi.buy_insurance(contract=contract)
                 self.simulator.pay(premium, self.awi.current_step)
