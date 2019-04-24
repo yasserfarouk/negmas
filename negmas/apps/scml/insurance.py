@@ -122,6 +122,12 @@ class DefaultInsuranceCompany(InsuranceCompany):
             contract: hypothetical contract
             insured: The `SCMLAgent` to buy the insurance
             t: time at which the policy is to be bought. If None, it means current step
+
+        Remarks:
+
+            - The premium returned is relative to the contract price. To actually calculate the cost of buying this
+              insurance, you need to multiply this by the contract value (quantity * unit_price).
+
         """
         if self.disabled:
             return None
@@ -156,18 +162,28 @@ class DefaultInsuranceCompany(InsuranceCompany):
     def buy_insurance(
         self, contract: Contract, insured: SCMLAgent, against: SCMLAgent
     ) -> Optional[InsurancePolicy]:
-        """Buys insurance for the contract by the premium calculated by the insurance company.
+        """Buys insurance for the contract at the premium calculated by the insurance company.
 
         Remarks:
             The agent can call `evaluate_insurance` to find the premium that will be used.
+
+        See Also:
+
+            `evaluate_premium`
+
         """
         if self.disabled:
             return None
         premium = self.evaluate_insurance(
             contract=contract, t=self.awi.current_step, insured=insured, against=against
         )
+        if premium is None:
+            return None
+
+        premium *= contract.agreement["quantity"] * contract.agreement["unit_price"]
+
         factory = self.a2f[insured.id]
-        if premium is None or factory.wallet < premium:
+        if factory.wallet < premium:
             return None
         factory.pay(premium)
         self.wallet += premium
