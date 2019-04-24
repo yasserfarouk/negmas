@@ -211,8 +211,8 @@ class FactoryStatusUpdate:
             return
         self.balance += other.balance
         to_remove = []
-        for k in itertools.chain(self.storage.keys(), other.storage.keys()):
-            self.storage[k] += other.storage[k]
+        for k in set(list(self.storage.keys()) + list(other.storage.keys())):
+            self.storage[k] += other.storage.get(k, 0)
             if self.storage[k] == 0:
                 to_remove.append(k)
         for k in to_remove:
@@ -1323,6 +1323,13 @@ class Factory:
 
     def step(self) -> List[ProductionReport]:
         reports = []
+        for line in range(self._n_lines):
+            # step the current production process
+            if self._commands[line].ended_before(self._next_step):
+                self._commands[line].action = "none"
+            report = self._step_line(line=line)
+            reports.append(report)
+            self._apply_updates(report.updates)
         if not self._carried_updates.is_empty:
             reports.append(
                 ProductionReport(
@@ -1336,13 +1343,6 @@ class Factory:
             )
             self._apply_updates(self._carried_updates)
             self._carried_updates = FactoryStatusUpdate.empty()
-        for line in range(self._n_lines):
-            # step the current production process
-            if self._commands[line].ended_before(self._next_step):
-                self._commands[line].action = "none"
-            report = self._step_line(line=line)
-            reports.append(report)
-            self._apply_updates(report.updates)
         self._next_step += 1
         return reports
 
