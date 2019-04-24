@@ -36,6 +36,7 @@ setuptools = ">=40.8.0"
 tabulate = "*"
 typing = "*"
 tqdm = ">=4.31.1"
+click-config-file = "^0.4.5"
 
 [tool.poetry.dev-dependencies]
 lockfile = "*"
@@ -86,7 +87,6 @@ pycodestyle =  { version = "*", optional = false }
 pydocstyle =  { version = "*", optional = false }
 readme-renderer =  { version = "*", optional = false }
 recommonmark =  { version = "*", optional = false }
-click-config-file = "^0.4.5"
 
 
 [tool.poetry.scripts]
