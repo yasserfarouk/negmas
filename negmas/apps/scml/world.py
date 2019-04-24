@@ -115,11 +115,10 @@ class SCMLWorld(World):
         # insurance company parameters
         ,
         no_insurance=False,
-        premium=0.1,
-        premium_time_increment=0.1,
-        premium_breach_increment=0.1
+        premium=0.03,
+        premium_time_increment=0.03,
+        premium_breach_increment=0.001,
         # breach processing
-        ,
         max_allowed_breach_level=None,
         breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR,
         breach_penalty_society=0.1,
@@ -427,7 +426,8 @@ class SCMLWorld(World):
         params: Optional[Iterable[Dict[str, Any]]] = None,
     ) -> None:
         """
-        Assigns existing factories to new factory managers created from the given types and parameters or actual managers
+        Assigns existing factories to new factory managers created from the given types and parameters or manager
+        objects.
 
         Args:
 
@@ -549,8 +549,9 @@ class SCMLWorld(World):
             randomize: If true, the factory assignment is randomized
             n_default_per_level: The number of `GreedyFactoryManager` objects guaranteed at every level
             default_factory_manager_type: The `FactoryManager` type to use as the base for default_factory_managers. You
-            can specify how many of this type exist at everly level by specifying `n_default_per_level`. If
-            `n_default_per_level` is zero, this parameter has no effect.
+                                          can specify how many of this type exist at every level by specifying
+                                          `n_default_per_level`. If `n_default_per_level` is zero, this parameter has
+                                          no effect.
             manager_types: A sequence of factory manager types to control the factories.
             manager_params: An optional sequence of dictionaries giving the parameters to pass to `manager_types`.
             consumer_type: Consumer type to use for all consumers
@@ -563,7 +564,7 @@ class SCMLWorld(World):
             n_steps: number of simulation steps
             n_lines_per_factory: number of lines in each factory
             process_cost: The range of process costs. A uniform distribution will be used
-            process_time: The range of process times. A unifrom distribution will be used
+            process_time: The range of process times. A uniform distribution will be used
             log_file_name: File name to store the logs
             agent_names_reveal_type: If true, agent names will start with a snake_case version of their type name
             negotiator_type: The negotiation factory used to create all negotiators

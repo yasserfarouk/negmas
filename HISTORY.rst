@@ -15,7 +15,7 @@ Release 0.2.10
 - adding sabotage track and anac2019_sabotage to run it
 - updating test assertions for negotiators.
 - tutorial update
-- completed TitForTatNegotiator implementation
+- completed NaiveTitForTatNegotiator implementation
 
 
 Release 0.2.9
