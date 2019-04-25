@@ -18,7 +18,7 @@ jnegmas-setup         Downloads jnegmas and updates your settings
 scml                  Runs an SCML world
 tournament            Runs a tournament
 version               Prints NegMAS version
-===============       ==============================================================
+===============       ===================================================================
 
 Genius Bridge (negmas genius)
 -----------------------------
@@ -38,15 +38,15 @@ You can get help on this tool by running:
 
 This tool supports the following *optional* arguments:
 
-===============       ==============================================================
+===================   ==============================================================
  Argument                                  Meaning
-===============       ==============================================================
--p, --path TEXT       Path to genius-8.0.4.jar with embedded NegLoader [OPTIONAL]
-1. -r, --port INTEGER Port to run the NegLoader on. Pass 0 for the default
-                      value [OPTIONAL]
-1. --force/--no-force Force trial even if an earlier instance exists [OPTIONAL]
-1. --help             Show help message and exit.
-===============       ==============================================================
+===================   ==============================================================
+-p/--path TEXT         Path to genius-8.0.4.jar with embedded NegLoader [OPTIONAL]
+-r/--port INTEGER      Port to run the NegLoader on. Pass 0 for the default
+                       value [OPTIONAL]
+--force/--no-force     Force trial even if an earlier instance exists [OPTIONAL]
+--help                 Show help message and exit.
+===================   ==============================================================
 
 
 SCML World Runner (negmas scml)
@@ -105,6 +105,9 @@ These are the *optional* arguments of this tool:
 --compact / --debug        If --compact, effort is exerted to reduce the memory
                            footprint whichincludes reducing logs
                            dramatically.  [default: --compact]
+--config FILENAME          configuration file name. If given all of the
+                           parameters given above can be entered in this file
+                           instead of being inputed on the command line.
 --help                     Show help message and exit.
 =========================  =================================================
 
@@ -150,9 +153,9 @@ You can get help on this tool by running:
 
 These are the *optional* arguments of this tool:
 
-=================================   ==============================================================
-    Argument                         Meaning
-=================================   ==============================================================
+=================================== ==============================================================
+Argument                            Meaning
+=================================== ==============================================================
 -n, --name TEXT                     The name of the tournament. The special
                                     value "random" will result in a random name [default: random]
 -s, --steps INTEGER                 Number of steps.  [default: 60]
@@ -175,8 +178,8 @@ These are the *optional* arguments of this tool:
                                     competition.
                                     [default:negmas.apps.scml.DoNothingFactoryManager;
                                     negmas.apps.scml.GreedyFactoryManager]
---jcompetitors, --java-competitors  A semicolon (;) separated list of agent
-                                    types to use for the competition.
+--jcompetitors /--java-competitors   A semicolon (;) separated list of agent
+                                     types to use for the competition.
 --parallel / --serial               Run a parallel/serial tournament on a single machine
                                     [default: True]
 --distributed / --single-machine    Run a distributed tournament using dask [default: False]
@@ -196,8 +199,11 @@ These are the *optional* arguments of this tool:
 --compact / --debug                 If --compact, effort is exerted to reduce the memory
                                     footprint whichincludes reducing logs
                                     dramatically.  [default: --compact]
+--config FILENAME                   configuration file name. If given all of the
+                                    parameters given above can be entered in this file
+                                    instead of being inputed on the command line.
 --help                              Show help message and exit.
-=================================   ==============================================================
+=================================== ==============================================================
 
 
 Upon completion, a complete log and several statistics are saved in a new folder under the `log folder` location
@@ -206,9 +212,9 @@ results, a new folder will be created for each run named by the current date and
 folder will contain the following files:
 
 
-=================           ========     =================================================================
+=========================   ========     =================================================================
  File/Folder Name             Format         Content
-=================           ========     =================================================================
+=========================   ========     =================================================================
 configs                     FOLDER       Contains one json file for each world
                                          run tried during the tournament. You can
                                          re-run this world using `run_world` function in the `tournament`
@@ -222,7 +228,7 @@ total_scores.csv            CSV          Scores of every agent **type** averaged
 winners.csv                 CSV          Winner *types* and their average scores
 ttest.csv                   CSV          Results of a factorial TTEST comparing the performance of all
                                          agent *types*
-=================           ========     =================================================================
+=========================   ========     =================================================================
 
 Other than these files, a folder with the same number as the corresponding config file in the configs folder, keeps full
 statistics/log of every world *but only if --debug is specified* (see the `SCML World Runner` section for the contents of

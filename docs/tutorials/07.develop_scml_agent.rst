@@ -27,7 +27,7 @@ factory manager:
 
 .. parsed-literal::
 
-    Can't instantiate abstract class MyFactoryManager with abstract methods confirm_contract_execution, confirm_loan, confirm_partial_execution, init, on_agent_bankrupt, on_contract_cancelled, on_contract_nullified, on_contract_signed, on_neg_request_accepted, on_neg_request_rejected, on_negotiation_failure, on_negotiation_success, on_new_cfp, on_new_report, on_production_failure, on_remove_cfp, respond_to_negotiation_request, respond_to_renegotiation_request, set_renegotiation_agenda, sign_contract, step
+    Can't instantiate abstract class MyFactoryManager with abstract methods confirm_contract_execution, confirm_loan, confirm_partial_execution, init, on_agent_bankrupt, on_cash_transfer, on_contract_breached, on_contract_cancelled, on_contract_executed, on_contract_nullified, on_contract_signed, on_inventory_change, on_neg_request_accepted, on_neg_request_rejected, on_negotiation_failure, on_negotiation_success, on_new_cfp, on_new_report, on_production_failure, on_production_success, on_remove_cfp, respond_to_negotiation_request, respond_to_renegotiation_request, set_renegotiation_agenda, sign_contract, step
 
 
 You are told that you cannot instantiate your newly created class as did
@@ -81,7 +81,7 @@ random sample):
 
 .. code:: ipython3
 
-    results.scores.head()
+    results.scores.tail()
 
 
 
@@ -116,49 +116,49 @@ random sample):
       </thead>
       <tbody>
         <tr>
-          <th>0</th>
-          <td>greedy@1_0</td>
-          <td>greedy_factory_manager</td>
-          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.012450</td>
-          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190422-062515kb7K00001</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>my@1_1</td>
+          <th>75</th>
+          <td>my@2_1</td>
           <td>my_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
           <td>0.000000</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190422-062515kb7K00001</td>
+          <td>20190425-184615pkmC00003</td>
         </tr>
         <tr>
-          <th>2</th>
-          <td>greedy@2_0</td>
+          <th>76</th>
+          <td>greedy@3_0</td>
           <td>greedy_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.011104</td>
+          <td>-0.038538</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190422-062515kb7K00001</td>
+          <td>20190425-184615pkmC00003</td>
         </tr>
         <tr>
-          <th>3</th>
-          <td>greedy@2_1</td>
-          <td>greedy_factory_manager</td>
-          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.015564</td>
-          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190422-062515kb7K00001</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>my@2_2</td>
+          <th>77</th>
+          <td>my@3_1</td>
           <td>my_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
           <td>0.000000</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190422-062515kb7K00001</td>
+          <td>20190425-184615pkmC00003</td>
+        </tr>
+        <tr>
+          <th>78</th>
+          <td>greedy@3_2</td>
+          <td>greedy_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>0.001532</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190425-184615pkmC00003</td>
+        </tr>
+        <tr>
+          <th>79</th>
+          <td>my@3_3</td>
+          <td>my_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>0.000000</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190425-184615pkmC00003</td>
         </tr>
       </tbody>
     </table>
@@ -202,13 +202,13 @@ You can also check the total scores for each factory manager type:
       <tbody>
         <tr>
           <th>0</th>
-          <td>greedy_factory_manager</td>
-          <td>0.021991</td>
+          <td>my_factory_manager</td>
+          <td>0.000000</td>
         </tr>
         <tr>
           <th>1</th>
-          <td>my_factory_manager</td>
-          <td>0.000000</td>
+          <td>greedy_factory_manager</td>
+          <td>-0.013949</td>
         </tr>
       </tbody>
     </table>
@@ -255,10 +255,10 @@ significant using a t-test:
       <tbody>
         <tr>
           <th>0</th>
-          <td>greedy_factory_manager</td>
           <td>my_factory_manager</td>
-          <td>1.565278e-07</td>
-          <td>5.764186</td>
+          <td>greedy_factory_manager</td>
+          <td>0.001983</td>
+          <td>3.200801</td>
         </tr>
       </tbody>
     </table>
@@ -266,14 +266,14 @@ significant using a t-test:
 
 
 
-So the greedy factory manager is slightly better than the do-nothing
-factory manager getting an average profit of *2%* compared with the
-nothing (*0%*) for the do-nothing factory manager (as expected).
-Moreover, this difference is statistically significant as the p-value is
-*1.56e-7 << 0.05*. If you try running this this tournament for less than
-*n\_steps*, the greedy factory manager will most likely lose money. In
-the actual league, we will run each world simulation between *50* and
-*100* steps (more toward the later).
+So the greedy factory manager is slightly worse than the do-nothing
+factory manager for this short simulation getting an average loss of
+*1.3%* compared with nothing (*0%*) for the do-nothing factory manager
+(as expected). Moreover, this difference is statistically significant as
+the p-value is *0.002 < 0.05*. If you try running this this tournament
+for less than *50*, the greedy factory manager will most likely lose
+more money. In the actual league, we will run each world simulation
+between *50* and *100* steps (more toward the later).
 
 You can just check the winner(s) list
 
@@ -286,7 +286,7 @@ You can just check the winner(s) list
 
 .. parsed-literal::
 
-    ['greedy_factory_manager']
+    ['my_factory_manager']
 
 
 
@@ -299,7 +299,7 @@ and what was its/their score:
 
 .. parsed-literal::
 
-    [0.0219909]
+    [0.]
 
 
 To run a tournament in the "standard"/"sabotage" track settings, use
