@@ -11,12 +11,12 @@ cache:
     - "$HOME/.cache/pre-commit"
 
 install:
-  - pip install pip -U
-  - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
-  - source $HOME/.poetry/env
-  - poetry install -v
+  - pip install -U pip
+  - python setup.py install
+  - pip install -r requirements.txt
+  - pip install -e .
 
-script: poetry run pytest negmas/ tests/
+script: travis wait python -m pytest --pyargs tests negmas negmas/tests
 
 matrix:
   include:
