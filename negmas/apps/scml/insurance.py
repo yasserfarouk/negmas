@@ -75,6 +75,14 @@ class InsuranceCompany(Agent, ABC):
     ) -> Optional[Negotiator]:
         pass
 
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        pass
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
 
 class DefaultInsuranceCompany(InsuranceCompany):
     """Represents an insurance company in the world"""

@@ -1,6 +1,15 @@
 History
 =======
 
+Release 0.2.13
+--------------
+
+- Adding new callbacks to simplify factory manager development in the SCM world
+  - on_contract_executed, on_contract_breached
+  - on_inventory_change, on_production_success, on_cash_transfer
+- Supporting callbacks including onUfunChanged on jnegmas for SAONegotiator
+- Installing jenegmas 0.2.6 by default in negmas jengmas-setup command
+
 Release 0.2.12
 --------------
 

@@ -66,3 +66,27 @@ def test_java_factory_manager(java_class):
         # pprint('World completed')
         # pprint(world.stats)
         # print(world.winners)
+
+
+# def test_java_factory_manager_special():
+#     java_class = "jnegmas.apps.scml.factory_managers.DummyMiddleMan"
+#
+#     class JFM(JavaFactoryManager):
+#         def __init__(self, *args, **kwargs):
+#             super().__init__(*args, java_class_name=java_class, **kwargs)
+#
+#     with jnegmas_connection(shutdown=SHUTDOWN_AFTER_EVERY_TEST):
+#         log_file = os.path.expanduser(
+#             f'~/negmas/logs/debug/test{java_class.split(".")[-1]}.txt'
+#         )
+#         print(log_file)
+#         world = SCMLWorld.chain_world(
+#             manager_types=(JFM, GreedyFactoryManager),
+#             n_steps=5,
+#             n_factories_per_level=3,
+#             n_default_per_level=1,
+#             n_intermediate_levels=1,
+#             agent_names_reveal_type=True,
+#             log_file_name=log_file,
+#         )
+#         world.run()
