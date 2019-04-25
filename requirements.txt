@@ -51,7 +51,7 @@ readme-renderer
 recommonmark
 scipy (>=1.2)
 setuptools (>=40.8.0)
-sphinx
+sphinx ( == 1.8.4)
 sphinx-autodoc-annotation
 sphinx-autodoc-typehints
 sphinx-automodapi
@@ -64,5 +64,4 @@ tabulate
 tox
 tqdm (>=4.31.1)
 typing
-typing-extensions
 typing_extensions (>=3.7)
