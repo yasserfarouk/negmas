@@ -1413,26 +1413,31 @@ class SCMLWorld(World):
         for factory in self.factories:
             manager = self.f2a[factory.id]
             reports = factory.step()
-            if isinstance(manager, Consumer) or isinstance(manager, Miner):
-                self.logdebug(
-                    f"{manager.name}: money={factory.wallet}"
-                    f", storage={str(dict(factory.storage))}"
-                )
-            else:
+            if isinstance(manager, FactoryManager):
                 self.logdebug(
                     f"{manager.name} (Factory {factory.id}): money={factory.wallet}"
                     f", storage={str(dict(factory.storage))}"
                     f", loans={factory.loans}"
                 )
-            for report in reports:
-                if not report.is_empty:
-                    self.logdebug(f"PRODUCTION>> {manager.name}: {str(report)}")
-            failures = []
-            for report in reports:
-                if report.failed:
-                    failures.append(report.failure)
-            if len(failures) > 0:
-                manager.on_production_failure(failures=failures)
+                nonempty = []
+                for report in reports:
+                    if not report.is_empty:
+                        self.logdebug(f"PRODUCTION>> {manager.name}: {str(report)}")
+                        if report.finished:
+                            nonempty.append(report)
+                failures = []
+                for report in reports:
+                    if report.failed:
+                        failures.append(report.failure)
+                if len(failures) > 0:
+                    manager.on_production_failure(failures=failures)
+                else:
+                    manager.on_production_success(nonempty)
+            else:
+                self.logdebug(
+                    f"{manager.name}: money={factory.wallet}"
+                    f", storage={str(dict(factory.storage))}"
+                )
 
         # finish transportation and money transfer
         # -----------------------------------------
@@ -1440,11 +1445,13 @@ class SCMLWorld(World):
         for transport in transports:
             manager, product_id, q = transport
             self.a2f[manager.id].transport_to(product_id, q)
+            manager.on_inventory_change(product_id, q, "transport")
 
         transfers = self._transfer.get(self.current_step, [])
         for transfer in transfers:
             manager, money = transfer
             self.a2f[manager.id].receive(money)
+            manager.on_cash_transfer(money, "transfer")
 
         # remove expired CFPs
         # -------------------
@@ -1773,8 +1780,10 @@ class SCMLWorld(World):
         seller_factory, buyer_factory = self.a2f[seller.id], self.a2f[buyer.id]
         if quantity > 0:
             seller_factory.transport_from(product_id, quantity)
+            seller.on_inventory_change(product_id, -quantity, "contract")
             if self.transportation_delay < 1:
                 buyer_factory.transport_to(product_id, quantity)
+                buyer.on_inventory_change(product_id, quantity, "contract")
             else:
                 self._transport[self.current_step + self.transportation_delay].append(
                     (buyer, product_id, quantity)
@@ -1783,6 +1792,7 @@ class SCMLWorld(World):
             buyer_factory.pay(money)
             if self.transfer_delay < 1:
                 seller_factory.receive(money)
+                seller.on_cash_transfer(money, "contract")
             else:
                 self._transfer[self.current_step + self.transfer_delay].append(
                     (seller, money)
@@ -1936,11 +1946,13 @@ class SCMLWorld(World):
                     insured_quantity = missing_quantity
                 self.logdebug(
                     f"Insurance: {buyer.name} got {insured_quantity} of {self.products[pind].name} "
-                    f"from insurance ({missing_quantity} was missing"
+                    f"from insurance ({missing_quantity}) was missing"
                 )
                 insured_quantity_cost = insured_quantity * unit_price
                 buyer_factory.transport_to(product=pind, quantity=insured_quantity)
                 buyer_factory.pay(insured_quantity_cost)
+                buyer.on_inventory_change(pind, insured_quantity, "insurance")
+                buyer.on_cash_transfer(-insured_quantity_cost, "insurance")
                 self.insurance_company.storage[pind] -= insured_quantity
                 self.insurance_company.wallet += insured_quantity_cost
 
@@ -1973,6 +1985,8 @@ class SCMLWorld(World):
                 seller_factory.transport_from(
                     product=pind, quantity=insured_money_quantity
                 )
+                seller.on_inventory_change(pind, -insured_money_quantity, "insurance")
+                seller.on_cash_transfer(insured_money, "insurance")
                 self.insurance_company.wallet -= insured_money
                 self.insurance_company.storage[pind] += insured_money_quantity
 
@@ -2067,8 +2081,10 @@ class SCMLWorld(World):
         )
         if available_quantity > 0:
             seller_factory.transport_from(product_id, available_quantity)
+            seller.on_inventory_change(product_id, -available_quantity, "contract")
             if self.transportation_delay < 1:
                 buyer_factory.transport_to(product_id, available_quantity)
+                buyer.on_inventory_change(product_id, -available_quantity, "contract")
             else:
                 self._transport[self.current_step + self.transportation_delay].append(
                     (buyer, product_id, available_quantity)
@@ -2077,6 +2093,7 @@ class SCMLWorld(World):
             buyer_factory.pay(available_money)
             if self.transfer_delay < 1:
                 seller_factory.receive(available_money)
+                seller.on_cash_transfer(available_money, "contract")
             else:
                 self._transfer[self.current_step + self.transfer_delay].append(
                     (seller, available_money)
@@ -2122,6 +2139,8 @@ class SCMLWorld(World):
                 price = self.default_price_for_products_without_one
             saved_min_storage, factory.min_storage = factory.min_storage, 0
             factory.sell(product=product_index, quantity=quantity, price=price)
+            agent.on_inventory_change(product_index, -quantity, "bankruptcy")
+            agent.on_cash_transfer(price, "bankruptcy")
 
         payable = min(factory.wallet, amount)
 

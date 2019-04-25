@@ -152,6 +152,14 @@ class DummyAgent(Agent):
         pass
 
     def sign_contract(self, contract: Contract) -> Optional[str]:
+        return self.id
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
         pass
 
     def set_renegotiation_agenda(

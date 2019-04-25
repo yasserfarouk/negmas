@@ -73,6 +73,14 @@ class Bank(Agent, ABC):
     ) -> Optional[Negotiator]:
         pass
 
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        pass
+
 
 class DefaultBank(Bank):
     """Represents a bank in the world"""

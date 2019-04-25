@@ -1231,6 +1231,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     executed.add(contract)
                     n_new_contract_executions += 1
                     activity_level += self._contract_size(contract)
+                    for partner in contract.partners:
+                        self.agents[partner].on_contract_executed(contract)
                 else:
                     self._saved_contracts[contract.id]["executed"] = False
                     self._saved_contracts[contract.id]["breaches"] = "; ".join(
@@ -1243,6 +1245,10 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     self._complete_contract_execution(
                         contract, list(contract_breaches), resolution
                     )
+                    for partner in contract.partners:
+                        self.agents[partner].on_contract_breached(
+                            contract, list(contract_breaches), resolution
+                        )
             self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
         # World Simulation Step:
@@ -2303,6 +2309,25 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """Called after the signing delay from contract conclusion to sign the contract. Contracts become binding
         only after they are signed."""
         return self.id
+
+    @abstractmethod
+    def on_contract_executed(self, contract: Contract) -> None:
+        """
+        Called after successful contract execution for which the agent is one of the partners.
+        """
+
+    @abstractmethod
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        """
+        Called after complete processing of a contract that involved a breach.
+
+        Args:
+            contract: The contract
+            breaches: All breaches committed (even if they were resolved)
+            resolution: The resolution contract if re-negotiation was successful. None if not.
+        """
 
 
 def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):

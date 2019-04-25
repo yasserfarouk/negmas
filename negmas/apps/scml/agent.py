@@ -228,6 +228,16 @@ class SCMLAgent(Agent):
     # ------------------------------------------------------------------
 
     @abstractmethod
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
+    @abstractmethod
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        pass
+
+    @abstractmethod
     def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
         """called by the world manager to confirm a loan if needed by the buyer of a contract that is about to be
         breached"""
@@ -308,4 +318,35 @@ class SCMLAgent(Agent):
         Remarks:
 
             - Agents must opt-in to receive these calls by calling `receive_financial_reports` on their AWI
+        """
+
+    @abstractmethod
+    def on_inventory_change(self, product: int, quantity: int, cause: str) -> None:
+        """
+        Received whenever something moves in or out of the factory's storage
+
+        Args:
+            product: Product index.
+            quantity: Negative value for products moving out and positive value for products moving in
+            cause: The cause of the change. Possibilities include:
+
+                   - contract: Contract execution
+                   - insurance: Received from insurance company
+                   - bankruptcy: Liquidated due to bankruptcy
+                   - transport: Arrival of goods (when transportation delay in the system is > 0).
+        """
+
+    @abstractmethod
+    def on_cash_transfer(self, amount: float, cause: str) -> None:
+        """
+        Received whenever money is transferred to the factory or from it.
+
+        Args:
+            amount: Amount of money (negative for transfers out of the factory, positive for transfers to it).
+            cause: The cause of the change. Possibilities include:
+
+                   - contract: Contract execution
+                   - insurance: Received from insurance company
+                   - bankruptcy: Liquidated due to bankruptcy
+                   - transfer: Arrival of transferred money (when transfer delay in the system is > 0).
         """
