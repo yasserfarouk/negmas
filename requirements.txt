@@ -2,7 +2,7 @@
 Click (>=6.0)
 MarkupSafe
 PyYAML (==5.1b1)
-Sphinx
+Sphinx (==1.8.4)
 bumpversion
 click-config-file (>=0.4.5,<0.5.0)
 codacy-coverage
@@ -51,7 +51,6 @@ readme-renderer
 recommonmark
 scipy (>=1.2)
 setuptools (>=40.8.0)
-sphinx ( == 1.8.4)
 sphinx-autodoc-annotation
 sphinx-autodoc-typehints
 sphinx-automodapi
@@ -65,3 +64,4 @@ tox
 tqdm (>=4.31.1)
 typing
 typing_extensions (>=3.7)
+twine
