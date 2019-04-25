@@ -15,7 +15,7 @@ from negmas import (
     JavaUtilityFunction,
     _ShadowAgentMechanismInterface,
 )
-from .common import DEFAULT_NEGOTIATOR
+from .common import DEFAULT_NEGOTIATOR, ProductionReport
 from negmas.apps.scml.simulators import FactorySimulator, FastFactorySimulator
 from negmas.apps.scml.simulators import storage_as_array, temporary_transaction
 from negmas.common import NamedObject
@@ -202,10 +202,16 @@ class FactoryManager(SCMLAgent, ABC):
             - `on_contract_signed` : Called whenever a `Contract` of which the agent is a party is signed by both patners.
             - `on_contract_nullified` : Called whenever a `Contract` of which the agent is a party is nullified by the
               simulator as a part of bankruptcy processing.
+            - `on_contract_executed` : Called when a contract executes completely and successfully.
+            - `on_contract_breached` : Called when a contract is breached after complete contract processing.
 
-        - Production related
+        - Production and factory related
 
-            - `on_production_failure` : Called whenever a scheduled production (see `SCMLAWI` for production commands) fails
+            - `on_production_failure` : Called whenever a scheduled production (see `SCMLAWI` for production commands)
+              fails
+            - `on_inventory_change` : Called whenever there is a change in the inventory (something is moved in or out
+              or out of storage due to an event other than production (e.g. contract execution).
+            - `on_cash_transfer` : Called whenever cash is transferred to or from the factory's wallet.
 
         - About other agents
 
@@ -262,15 +268,11 @@ class FactoryManager(SCMLAgent, ABC):
 
     @abstractmethod
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
-        """
-        Called with a list of `ProductionFailure` records on production failure
+        """Called with a list of `ProductionFailure` records on production failure."""
 
-        Args:
-            failures:
-
-        Returns:
-
-        """
+    @abstractmethod
+    def on_production_success(self, reports: List[ProductionReport]) -> None:
+        """Called with a list of `ProductionReport` records on production success"""
 
     class Java:
         implements = ["jnegmas.apps.scml.factory_managers.FactoryManager"]
@@ -278,9 +280,6 @@ class FactoryManager(SCMLAgent, ABC):
 
 class DoNothingFactoryManager(FactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
-
-    def on_new_report(self, report: FinancialReport):
-        pass
 
     def init(self):
         pass
@@ -312,6 +311,14 @@ class DoNothingFactoryManager(FactoryManager):
         pass
 
     def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
         pass
 
     def sign_contract(self, contract: Contract) -> Optional[str]:
@@ -362,11 +369,26 @@ class DoNothingFactoryManager(FactoryManager):
     def on_new_cfp(self, cfp: "CFP") -> None:
         pass
 
+    def on_inventory_change(self, product: int, quantity: int, cause: str) -> None:
+        pass
+
+    def on_production_success(self, reports: List[ProductionReport]) -> None:
+        pass
+
+    def on_cash_transfer(self, amount: float, cause: str) -> None:
+        pass
+
+    def on_new_report(self, report: FinancialReport):
+        pass
+
 
 class GreedyFactoryManager(DoNothingFactoryManager):
     """The default factory manager that will be implemented by the committee of ANAC-SCML 2019"""
 
     def on_production_failure(self, failures: List[ProductionFailure]) -> None:
+        pass
+
+    def on_production_success(self, reports: List[ProductionReport]) -> None:
         pass
 
     def confirm_loan(self, loan: Loan, bankrupt_if_rejected: bool) -> bool:
@@ -932,6 +954,25 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
 
     """
 
+    def on_production_success(self, reports: List[ProductionReport]) -> None:
+        self._java_object.onProductionSuccess(to_java(reports))
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        self._java_object.onContractExecuted(to_java(contract))
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        self._java_object.onContractBreached(
+            to_java(contract), to_java(breaches), to_java(resolution)
+        )
+
+    def on_inventory_change(self, product: int, quantity: int, cause: str) -> None:
+        self._java_object.onInventoryChange(product, quantity, cause)
+
+    def on_cash_transfer(self, amount: float, cause: str) -> None:
+        self._java_object.onCashTransfer(amount, cause)
+
     @property
     def type_name(self):
         """Overrides type name to give the internal java type name"""
@@ -1212,6 +1253,25 @@ class JavaFactoryManager(FactoryManager, JavaCallerMixin):
 
     def onProductionFailure(self, failures):
         return self._callback_shadow.on_production_failure(from_java(failures))
+
+    def onProductionSuccess(self, reports) -> None:
+        self._callback_shadow.on_production_success(from_java(reports))
+
+    def onContractExecuted(self, contract: Contract) -> None:
+        self._callback_shadow.on_contract_executed(from_java(contract))
+
+    def onContractBreached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        self._callback_shadow.on_contract_breached(
+            from_java(contract), from_java(breaches), from_java(resolution)
+        )
+
+    def onInventoryChange(self, product: int, quantity: int, cause: str) -> None:
+        self._callback_shadow.on_inventory_change(product, quantity, cause)
+
+    def onCashTransfer(self, amount: float, cause: str) -> None:
+        self._callback_shadow.on_cash_transfer(amount, cause)
 
     def confirmLoan(self, loan, bankruptIfRejected):
         return self._callback_shadow.confirm_loan(from_java(loan), bankruptIfRejected)
