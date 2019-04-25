@@ -65,3 +65,4 @@ tqdm (>=4.31.1)
 typing
 typing_extensions (>=3.7)
 twine
+wheel
