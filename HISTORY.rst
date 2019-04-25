@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.2.14
+--------------
+
+- Documentation update
+- simplifying continuous integration workflow (for development)
+
 Release 0.2.13
 --------------
 

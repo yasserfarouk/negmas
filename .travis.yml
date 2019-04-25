@@ -15,6 +15,7 @@ install:
   - python setup.py install
   - pip install -r requirements.txt
   - pip install -e .
+  - pip install travis
 
 script: travis wait python -m pytest --pyargs tests negmas negmas/tests
 
