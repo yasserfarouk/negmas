@@ -98,6 +98,20 @@ class Consumer(SCMLAgent, ABC):
 class ScheduleDrivenConsumer(Consumer):
     """Consumer class"""
 
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        pass
+
+    def on_inventory_change(self, product: int, quantity: int, cause: str) -> None:
+        pass
+
+    def on_cash_transfer(self, amount: float, cause: str) -> None:
+        pass
+
     def on_new_report(self, report: FinancialReport):
         pass
 

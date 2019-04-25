@@ -1400,22 +1400,22 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         self._java_object.onNegotiationStart(to_java(state))
 
     def on_round_start(self, state: MechanismState) -> None:
-        super().on_round_start(state)
+        self._java_object.onRoundStart(to_java(state))
 
     def on_mechanism_error(self, state: MechanismState) -> None:
-        super().on_mechanism_error(state)
+        self._java_object.onMechanismError(to_java(state))
 
     def on_round_end(self, state: MechanismState) -> None:
-        super().on_round_end(state)
+        self._java_object.onRoundEnd(to_java(state))
 
     def on_leave(self, state: MechanismState) -> None:
-        super().on_leave(state)
+        self._java_object.onLeave(to_java(state))
 
     def on_negotiation_end(self, state: MechanismState) -> None:
-        super().on_negotiation_end(state)
+        self._java_object.onNegotiationEnd(to_java(state))
 
     def on_ufun_changed(self):
-        super().on_ufun_changed()
+        self._java_object.onUfunChanged()
 
     @classmethod
     def from_dict(
@@ -1542,7 +1542,7 @@ class _ShadowSAONegotiator:
         return to_java(self.shadow.on_notification(from_java(notification), notifier))
 
     def setUtilityFunction(self, ufun):
-        self.shadow._utility_function = (
+        self.shadow.utility_function = (
             ufun if ufun is None else JavaUtilityFunction(ufun, None)
         )
 
