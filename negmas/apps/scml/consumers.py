@@ -277,7 +277,9 @@ class ScheduleDrivenConsumer(Consumer):
     ) -> Optional[Negotiator]:
         if self.awi.is_bankrupt(partner):
             return None
-        profile = self.profiles[cfp.product]
+        profile = self.profiles.get(cfp.product)
+        if profile is None:
+            return None
         if profile.cv == 0:
             alpha_u, alpha_q = profile.alpha_u, profile.alpha_q
         else:
