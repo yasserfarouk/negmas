@@ -563,6 +563,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             and self.n_neg_trials[cfp.id] < self.n_retrials
         ):
             self.awi.logdebug(f"Renegotiating {self.n_neg_trials[cfp.id]} on {cfp}")
+            self.n_neg_trials[cfp.id] += 1
             self.on_new_cfp(cfp=annotation["cfp"])
 
     def _execute_schedule(self, schedule: ScheduleInfo, contract: Contract) -> None:

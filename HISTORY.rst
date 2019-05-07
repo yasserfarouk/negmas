@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.2.16
+--------------
+
+- bug fix in GreedyFactoryManager to avoid unnecessary negotiation retrials.
+
+
 Release 0.2.15
 --------------
 
