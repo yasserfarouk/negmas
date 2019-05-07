@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.2.15
+--------------
+
+- Minor bug fix to avoid exceptions on consumers with None profile.
+- Small update to the README file.
+
+
 Release 0.2.14
 --------------
 
