@@ -620,6 +620,8 @@ class MechanismFactory:
                 mechanism_name = list(mechanisms.keys())[0]
             else:
                 mechanism_name = "negmas.sao.SAOMechanism"
+            if mechanisms and mechanisms.get(mechanism_name, None) is not None:
+                mechanism_params.update(mechanisms[mechanism_name])
         try:
             mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
         except:
