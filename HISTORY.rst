@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.2.17
+--------------
+
+- allowing anac2019_world to receive keyword arguments to pass to chain_world
+- bug fix: enabling parameter passing to the mechanism if given implicitly in MechanismFactory()
+- receiving mechanisms explicitly in SCMLWorld and any other parameters of World implicitly
+
 Release 0.2.16
 --------------
 
