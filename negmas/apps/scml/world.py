@@ -96,6 +96,8 @@ class SCMLWorld(World):
         ,
         n_steps=100,
         time_limit=60 * 90,
+        # mechanism params
+        mechanisms: Optional[Dict[str, Dict[str, Any]]] = None,
         neg_n_steps=20,
         neg_time_limit=2 * 60,
         neg_step_time_limit=60,
@@ -157,6 +159,7 @@ class SCMLWorld(World):
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
         name: str = None,
+        **kwargs,
     ):
         """
 
@@ -219,7 +222,9 @@ class SCMLWorld(World):
             default_signing_delay=default_signing_delay,
             start_negotiations_immediately=start_negotiations_immediately,
             neg_step_time_limit=neg_step_time_limit,
-            mechanisms={"negmas.sao.SAOMechanism": {}},
+            mechanisms={"negmas.sao.SAOMechanism": {}}
+            if mechanisms is None
+            else mechanisms,
             log_to_screen=log_to_screen,
             log_file_level=log_file_level,
             log_screen_level=log_screen_level,
@@ -230,6 +235,7 @@ class SCMLWorld(World):
             save_resolved_breaches=save_resolved_breaches,
             save_unresolved_breaches=save_unresolved_breaches,
             log_ufuns_file=log_ufuns_file,
+            **kwargs,
         )
 
         self.compensation_fraction = compensation_fraction
