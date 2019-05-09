@@ -799,6 +799,7 @@ def anac2019_world(
     time_limit=60 * 90,
     n_default_per_level: int = 5,
     compact: bool = False,
+    **kwargs,
 ) -> SCMLWorld:
     """
     Creates a world compatible with the ANAC 2019 competition. Note that
@@ -835,6 +836,7 @@ def anac2019_world(
         negotiator_type: The negotiation factory used to create all negotiators
         max_storage: maximum storage capacity for all factory managers If None then it is unlimited
         compact: If True, then compact logs will be created to reduce memory footprint
+        kwargs: key-value pairs to be passed as argument to chain_world() and then to SCMLWorld()
 
     Returns:
         SCMLWorld ready to run
@@ -910,6 +912,7 @@ def anac2019_world(
         randomize=randomize,
         name=name,
         compact=compact,
+        **kwargs,
     )
 
     return world
