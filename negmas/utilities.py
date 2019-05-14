@@ -1016,14 +1016,6 @@ class UtilityFunction(ABC, NamedObject):
         """
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
-        outcomes = [
-            outcome
-            if isinstance(outcome, tuple)
-            else tuple(v for v in outcome.values())
-            if isinstance(outcome, dict)
-            else outcome.astuple()
-            for outcome in outcomes
-        ]
         n_outcomes = len(outcomes)
         ufuns = []
         for _ in range(n):
@@ -1469,9 +1461,10 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             self.issue_indices = dict(
                 zip(self.issue_utilities.keys(), range(len(self.issue_utilities)))
             )
-        self.issue_indices = dict(
-            zip(range(len(self.issue_utilities)), range(len(self.issue_utilities)))
-        )
+        else:
+            self.issue_indices = dict(
+                zip(range(len(self.issue_utilities)), range(len(self.issue_utilities)))
+            )
 
     def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
