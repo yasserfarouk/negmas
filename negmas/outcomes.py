@@ -430,7 +430,9 @@ class Issue(NamedObject):
                             item_name = item.attrib.get("value", None)
                             item_key = (
                                 item_name
-                                if keep_value_names and item_name is not None and not force_numeric
+                                if keep_value_names
+                                and item_name is not None
+                                and not force_numeric
                                 else item_indx
                             )
                             if (
@@ -556,7 +558,7 @@ class Issue(NamedObject):
                 safe_parsing=safe_parsing,
                 n_discretization=n_discretization,
                 max_n_outcomes=max_n_outcomes,
-                force_numeric=force_numeric
+                force_numeric=force_numeric,
             )
 
     @staticmethod
