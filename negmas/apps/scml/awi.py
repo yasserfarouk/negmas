@@ -151,6 +151,7 @@ class SCMLAWI(AgentWorldInterface):
         cfp.publisher = (
             self.agent.id
         )  # force the publisher to be the agent using this AWI.
+        self.logdebug(f"{self.agent.id} registered CFP {str(cfp)}")
         self.bb_record(section="cfps", key=cfp.id, value=cfp)
 
     def register_interest(self, products: List[int]) -> None:
@@ -229,8 +230,8 @@ class SCMLAWI(AgentWorldInterface):
         """
 
         # check that I am not the publisher of the CFP. I should never negotiate with myself
-        if cfp.publisher == self.agent.id:
-            return False
+        # if cfp.publisher == self.agent.id:
+        #    return False
         default_annotation = self._create_annotation(cfp)
         return super().request_negotiation_about(
             issues=cfp.issues,
