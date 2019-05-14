@@ -212,6 +212,8 @@ class SCMLAgent(Agent):
 
             Whether the negotiation request was successful indicating that the partner accepted the negotiation
         """
+        if cfp.publisher == self.id:
+            return False
         if negotiator is not None and ufun is not None:
             negotiator.utility_function = ufun
         req_id = self._add_negotiation_request_info(
