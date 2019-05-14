@@ -94,6 +94,7 @@ def load_genius_domain(
         Union[Callable[[], Negotiator], List[Callable[[], Negotiator]]]
     ] = None,
     force_single_issue=False,
+    force_numeric=False,
     cache_and_discretize_outcomes=False,
     max_n_outcomes: int = 1e6,
     n_discretization: Optional[int] = None,
@@ -155,6 +156,7 @@ def load_genius_domain(
                 keep_value_names=keep_value_names,
                 max_n_outcomes=max_n_outcomes,
                 n_discretization=n_discretization,
+                force_numeric=force_numeric,
             )
             if issues is None:
                 return None, [], []
@@ -166,6 +168,7 @@ def load_genius_domain(
                 keep_value_names=keep_value_names,
                 safe_parsing=safe_parsing,
                 n_discretization=n_discretization,
+                force_numeric=force_numeric,
             )
 
     agent_info = []
@@ -184,10 +187,12 @@ def load_genius_domain(
             max_n_outcomes=max_n_outcomes,
             ignore_discount=ignore_discount,
             ignore_reserved=ignore_reserved,
+            force_numeric=force_numeric,
         )
         agent_info.append(
             {
                 "ufun": utility,
+                "ufun_name": ufname,
                 "reserved_value_func": utility.reserved_value
                 if utility is not None
                 else 0.0,
@@ -259,6 +264,7 @@ def load_genius_domain_from_folder(
         Union[Callable[[], Negotiator], List[Callable[[], Negotiator]]]
     ] = None,
     force_single_issue=False,
+    force_numeric=False,
     cache_and_discretize_outcomes=False,
     max_n_outcomes: int = 1e6,
     n_discretization: Optional[int] = None,
@@ -369,6 +375,7 @@ def load_genius_domain_from_folder(
         domain_file_name=domain_file_name,
         utility_file_names=utility_file_names,
         agent_factories=agent_factories,
+        force_numeric=force_numeric,
         force_single_issue=force_single_issue,
         cache_and_discretize_outcomes=cache_and_discretize_outcomes,
         max_n_outcomes=max_n_outcomes,

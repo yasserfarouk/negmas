@@ -278,6 +278,7 @@ class Issue(NamedObject):
         cls,
         xml_str: str,
         force_single_issue=False,
+        force_numeric=False,
         keep_value_names=True,
         keep_issue_names=True,
         safe_parsing=True,
@@ -429,7 +430,7 @@ class Issue(NamedObject):
                             item_name = item.attrib.get("value", None)
                             item_key = (
                                 item_name
-                                if keep_value_names and item_name is not None
+                                if keep_value_names and item_name is not None and not force_numeric
                                 else item_indx
                             )
                             if (
@@ -516,6 +517,7 @@ class Issue(NamedObject):
         cls,
         file_name: str,
         force_single_issue=False,
+        force_numeric=False,
         keep_value_names=True,
         keep_issue_names=True,
         safe_parsing=True,
@@ -554,6 +556,7 @@ class Issue(NamedObject):
                 safe_parsing=safe_parsing,
                 n_discretization=n_discretization,
                 max_n_outcomes=max_n_outcomes,
+                force_numeric=force_numeric
             )
 
     @staticmethod
@@ -772,7 +775,7 @@ class Issue(NamedObject):
         if n is None:
             return cls.sample(issues=issues, n_outcomes=max_n_outcomes, astype=astype)
         values = enumerate_outcomes(issues, keep_issue_names=False)
-        if n > max_n_outcomes:
+        if max_n_outcomes is not None and n > max_n_outcomes:
             values = random.sample(values, max_n_outcomes)
         outcomes = []
         for value in values:
@@ -1206,6 +1209,11 @@ def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
             return None
         n *= c
     return n
+
+
+def is_outcome(x: Any) -> bool:
+    """Checks if x is acceptable as an outcome type"""
+    return isinstance(x, dict) or isinstance(x, tuple) or isinstance(x, OutcomeType)
 
 
 def enumerate_outcomes(
