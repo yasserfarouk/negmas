@@ -512,7 +512,9 @@ class UtilityFunction(ABC, NamedObject):
                                 continue
                             item_key = (
                                 item_name
-                                if keep_value_names and item_name is not None and not force_numeric
+                                if keep_value_names
+                                and item_name is not None
+                                and not force_numeric
                                 else item_indx
                             )
                             if domain_issues is not None:
@@ -770,7 +772,6 @@ class UtilityFunction(ABC, NamedObject):
             discount_factor = None
         return u, discount_factor
 
-
     def __getitem__(self, offer: Outcome) -> Optional[UtilityValue]:
         """Overrides [] operator to call the ufun allowing it to act as a mapping"""
         return self(offer)
@@ -1015,14 +1016,6 @@ class UtilityFunction(ABC, NamedObject):
         """
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
-        outcomes = [
-            outcome
-            if isinstance(outcome, tuple)
-            else tuple(v for v in outcome.values())
-            if isinstance(outcome, dict)
-            else outcome.astuple()
-            for outcome in outcomes
-        ]
         n_outcomes = len(outcomes)
         ufuns = []
         for _ in range(n):
@@ -1464,7 +1457,14 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             self.issue_utilities[k] = (
                 v if isinstance(v, UtilityFunction) else MappingUtilityFunction(v)
             )
-        self.issue_indices = dict(zip(self.issue_utilities.keys(), range(len(self.issue_utilities))))
+        if isinstance(self.issue_utilities, dict):
+            self.issue_indices = dict(
+                zip(self.issue_utilities.keys(), range(len(self.issue_utilities)))
+            )
+        else:
+            self.issue_indices = dict(
+                zip(range(len(self.issue_utilities)), range(len(self.issue_utilities)))
+            )
 
     def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
