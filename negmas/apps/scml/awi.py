@@ -227,6 +227,10 @@ class SCMLAWI(AgentWorldInterface):
               intend to use the `requested_negotiations` and `running_negotiations` properties of the `SCMLAgent` class
 
         """
+
+        # check that I am not the publisher of the CFP. I should never negotiate with myself
+        if cfp.publisher == self.agent.id:
+            return False
         default_annotation = self._create_annotation(cfp)
         return super().request_negotiation_about(
             issues=cfp.issues,
