@@ -523,7 +523,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
     def respond_to_negotiation_request(
         self, cfp: "CFP", partner: str
     ) -> Optional[Negotiator]:
-        if self.awi.is_bankrupt(partner):
+        if partner == self.id or self.awi.is_bankrupt(partner):
             return None
         if self.use_consumer:
             return self.consumer.respond_to_negotiation_request(
@@ -703,7 +703,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 )
 
     def _process_buy_cfp(self, cfp: "CFP") -> None:
-        if self.awi.is_bankrupt(cfp.publisher):
+        if cfp.publisher == self.id or self.awi.is_bankrupt(cfp.publisher):
             return None
         if self.simulator is None or not self.can_expect_agreement(
             cfp=cfp, margin=self.negotiation_margin
@@ -759,7 +759,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
 
     def can_produce(self, cfp: CFP, assume_no_further_negotiations=False) -> bool:
         """Whether or not we can produce the required item in time"""
-        if cfp.product not in self.producing.keys():
+        if cfp.publisher == self.id or cfp.product not in self.producing.keys():
             return False
         agreement = SCMLAgreement(
             time=cfp.max_time, unit_price=cfp.max_unit_price, quantity=cfp.min_quantity
