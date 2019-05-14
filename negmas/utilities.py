@@ -254,6 +254,7 @@ class UtilityFunction(ABC, NamedObject):
         xml_str: str,
         domain_issues: Optional[List[Issue]] = None,
         force_single_issue=False,
+        force_numeric=False,
         keep_issue_names=True,
         keep_value_names=True,
         safe_parsing=True,
@@ -511,7 +512,7 @@ class UtilityFunction(ABC, NamedObject):
                                 continue
                             item_key = (
                                 item_name
-                                if keep_value_names and item_name is not None
+                                if keep_value_names and item_name is not None and not force_numeric
                                 else item_indx
                             )
                             if domain_issues is not None:
@@ -769,6 +770,11 @@ class UtilityFunction(ABC, NamedObject):
             discount_factor = None
         return u, discount_factor
 
+
+    def __getitem__(self, offer: Outcome) -> Optional[UtilityValue]:
+        """Overrides [] operator to call the ufun allowing it to act as a mapping"""
+        return self(offer)
+
     @abstractmethod
     def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
         """Calculate the utility_function value for a given outcome.
@@ -1009,6 +1015,14 @@ class UtilityFunction(ABC, NamedObject):
         """
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
+        outcomes = [
+            outcome
+            if isinstance(outcome, tuple)
+            else tuple(v for v in outcome.values())
+            if isinstance(outcome, dict)
+            else outcome.astuple()
+            for outcome in outcomes
+        ]
         n_outcomes = len(outcomes)
         ufuns = []
         for _ in range(n):
@@ -1450,13 +1464,17 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             self.issue_utilities[k] = (
                 v if isinstance(v, UtilityFunction) else MappingUtilityFunction(v)
             )
+        self.issue_indices = dict(zip(self.issue_utilities.keys(), range(len(self.issue_utilities))))
 
     def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
         u = ExactUtilityValue(0.0)
         for k in ikeys(self.issue_utilities):
-            v = iget(offer, k)
+            if isinstance(offer, tuple):
+                v = iget(offer, self.issue_indices[k])
+            else:
+                v = iget(offer, k)
             current_utility = gmap(iget(self.issue_utilities, k), v)
             if current_utility is None:
                 return None
