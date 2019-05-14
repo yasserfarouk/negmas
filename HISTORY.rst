@@ -1,6 +1,21 @@
 History
 =======
 
+Release 0.2.19
+--------------
+
+- logging CFPs
+- defaulting to buying insurance in negmas scml
+- bug resolution related to recently added ability to use LinearUtilityFunction created by a dict with tuple outcomes
+- Adding force_numeric to lead_genius_*
+
+
+Release 0.2.18
+--------------
+
+- minor updates
+
+
 Release 0.2.17
 --------------
 
