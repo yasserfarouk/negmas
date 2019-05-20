@@ -523,7 +523,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
     def respond_to_negotiation_request(
         self, cfp: "CFP", partner: str
     ) -> Optional[Negotiator]:
-        if partner == self.id or self.awi.is_bankrupt(partner):
+        if self.awi.is_bankrupt(partner):
             return None
         if self.use_consumer:
             return self.consumer.respond_to_negotiation_request(
