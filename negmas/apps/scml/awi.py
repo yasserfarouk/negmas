@@ -151,7 +151,7 @@ class SCMLAWI(AgentWorldInterface):
         cfp.publisher = (
             self.agent.id
         )  # force the publisher to be the agent using this AWI.
-        self.logdebug(f"{self.agent.id} registered CFP {str(cfp)}")
+        self.logdebug(f"{self.agent.name} registered CFP {str(cfp)}")
         self.bb_record(section="cfps", key=cfp.id, value=cfp)
 
     def register_interest(self, products: List[int]) -> None:
