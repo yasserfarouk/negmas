@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.2.20
+--------------
+
+- logging name instead of ID in different debug log messages (CFP publication, rejection to negotiate)
+- bug fix that caused GreedyFactoryManagers to reject valid negotiations
+
 Release 0.2.19
 --------------
 

@@ -194,7 +194,9 @@ class SCMLAgent(Agent):
 
         """
         cfp = annotation["cfp"]
-        return self.respond_to_negotiation_request(cfp=cfp, partner=cfp.publisher)
+        return self.respond_to_negotiation_request(
+            cfp=cfp, partner=initiator if self.id != initiator else cfp.publisher
+        )
 
     def request_negotiation(
         self, cfp: CFP, negotiator: Negotiator = None, ufun: UtilityFunction = None
