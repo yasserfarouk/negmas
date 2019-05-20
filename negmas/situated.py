@@ -672,7 +672,7 @@ class MechanismFactory:
             requested_at=self.world.current_step,
         )
         caller.on_neg_request_accepted_(req_id=req_id, mechanism=mechanism.ami)
-        self.world.loginfo(f"{caller.id} request was accepted")
+        self.world.loginfo(f"{caller.name} request was accepted")
         return neg_info
 
     def init(self) -> Optional[NegotiationInfo]:
