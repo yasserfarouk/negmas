@@ -652,7 +652,7 @@ class MechanismFactory:
         if not all(responses):
             rejectors = [p for p, response in zip(partners, responses) if not response]
             caller.on_neg_request_rejected_(req_id=req_id, by=[_.id for _ in rejectors])
-            self.world.loginfo(f"{caller.id} request was rejected by {rejectors}")
+            self.world.loginfo(f"{caller.name} request was rejected by {rejectors}")
             return NegotiationInfo(
                 mechanism=None,
                 partners=partners,
