@@ -1,6 +1,16 @@
 History
 =======
 
+Release 0.2.21
+--------------
+
+- adding avoid_free_sales parameter to NegotiatorUtility to disable checks for zero price contracts
+- adding an optional parameter "partner" to _create_annotation method to create correct contract annotations when response_to_negotiation_request is called
+- Avoiding unnecessary assertion in insurance company evaluate method
+- passing a copy of CFPs to on_new_cfp and on_cfp_removal methods to avoid modifications to them by agents.
+
+
+
 Release 0.2.20
 --------------
 

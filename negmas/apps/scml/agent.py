@@ -138,6 +138,7 @@ class SCMLAgent(Agent):
     def can_expect_agreement(self, cfp: "CFP", margin: int):
         """
         Checks if it is possible in principle to get an agreement on this CFP by the time it becomes executable
+
         Args:
             margin:
             cfp:
@@ -150,15 +151,35 @@ class SCMLAgent(Agent):
             >= self.awi.current_step + 1 - int(self.immediate_negotiations) + margin
         )
 
-    def _create_annotation(self, cfp: "CFP"):
-        """Creates full annotation based on a cfp that the agent is receiving"""
-        partners = [self.id, cfp.publisher]
+    def _create_annotation(self, cfp: "CFP", partner: str = None):
+        """Creates full annotation based on a cfp that the agent is receiving
+
+        Args:
+            cfp: The call for proposal to create annotation about
+            partner: The partner who requested the negotiation
+
+        Remarks:
+
+            - If the annotation is to be created for a CFP that was published by self, partner must be passed
+
+        """
+        if self.id == cfp.publisher and partner is None:
+            raise ValueError(
+                f"{self.id} published {str(cfp)} and create annotation is called without 'partner'"
+            )
+        if self.id == cfp.publisher:
+            partners = [self.id, partner]
+            non_publisher = partner
+        else:
+            partners = [self.id, cfp.publisher]
+            non_publisher = self.id
+
         annotation = {"cfp": cfp, "partners": partners}
         if cfp.is_buy:
-            annotation["seller"] = self.id
+            annotation["seller"] = non_publisher
             annotation["buyer"] = cfp.publisher
         else:
-            annotation["buyer"] = self.id
+            annotation["buyer"] = non_publisher
             annotation["seller"] = cfp.publisher
         return annotation
 

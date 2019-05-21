@@ -518,7 +518,7 @@ class GreedyScheduler(Scheduler):
                 while q_needed > 0 and some_production:
                     some_production = False
                     # I need now to schedule the production needed and calculate all required input products
-                    for info in self.producing[pid]:
+                    for info in self.producing.get(pid, []):
                         # find if it is possible to use the current process for producing the product
                         profile = self.profiles[info.profile]
                         line, process_index, profile_index = (

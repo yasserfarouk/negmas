@@ -2218,8 +2218,8 @@ class SCMLWorld(World):
             t: time at which the policy is to be bought. If None, it means current step
         """
         against = [self.agents[_] for _ in contract.partners if _ != agent.id]
-        if len(against) != 1:
-            raise ValueError("Cannot find partner while evaluating insurance")
+        if len(against) == 0:
+            against = [agent.id]
         return self.insurance_company.evaluate_insurance(
             contract=contract, insured=agent, against=against[0], t=t
         )
@@ -2339,13 +2339,13 @@ class SCMLWorld(World):
             product = cfp.product
             for m in self.__interested_agents[product]:
                 if m.id != cfp.publisher:
-                    m.on_new_cfp(cfp)
+                    m.on_new_cfp(copy.deepcopy(cfp))
         elif event.type == "will_remove_record" and event.data["section"] == "cfps":
             cfp = event.data["value"]
             product = cfp.product
             for m in self.__interested_agents[product]:
                 if m.id != cfp.publisher:
-                    m.on_remove_cfp(cfp)
+                    m.on_remove_cfp(copy.deepcopy(cfp))
 
     def _contract_record(self, contract: Contract) -> Dict[str, Any]:
         c = {

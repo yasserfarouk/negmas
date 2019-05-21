@@ -186,17 +186,9 @@ class SCMLAWI(AgentWorldInterface):
         """
         return self._world.buy_insurance(contract=contract, agent=self.agent)
 
-    def _create_annotation(self, cfp: "CFP"):
+    def _create_annotation(self, cfp: "CFP", partner: str = None):
         """Creates full annotation based on a cfp that the agent is receiving"""
-        partners = [self.agent.id, cfp.publisher]
-        annotation = {"cfp": cfp, "partners": partners}
-        if cfp.is_buy:
-            annotation["seller"] = self.agent.id
-            annotation["buyer"] = cfp.publisher
-        else:
-            annotation["buyer"] = self.agent.id
-            annotation["seller"] = cfp.publisher
-        return annotation
+        return self.agent._create_annotation(cfp, partner=partner)
 
     def request_negotiation(
         self,
