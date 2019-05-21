@@ -530,7 +530,9 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 cfp=cfp, partner=partner
             )
         else:
-            ufun_ = self.ufun_factory(self, self._create_annotation(cfp=cfp))
+            ufun_ = self.ufun_factory(
+                self, self._create_annotation(cfp=cfp, partner=partner)
+            )
             ufun_.reserved_value = (
                 cfp.money_resolution if cfp.money_resolution is not None else 0.1
             )
@@ -703,8 +705,10 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 )
 
     def _process_buy_cfp(self, cfp: "CFP") -> None:
+        if cfp.publisher == self.id:
+            return
         if self.awi.is_bankrupt(cfp.publisher):
-            return None
+            return
         if self.simulator is None or not self.can_expect_agreement(
             cfp=cfp, margin=self.negotiation_margin
         ):
@@ -821,6 +825,7 @@ class NegotiatorUtility(UtilityFunction):
         agent: GreedyFactoryManager,
         annotation: Dict[str, Any],
         name: Optional[str] = None,
+        avoid_free_sales: bool = True,
     ):
         if name is None:
             name = (
@@ -831,6 +836,7 @@ class NegotiatorUtility(UtilityFunction):
         super().__init__(name=name)
         self.agent = agent
         self.annotation = annotation
+        self.avoid_free_sales = avoid_free_sales
 
     def _contracts(self, agreements: Iterable[SCMLAgreement]) -> Collection[Contract]:
         """Converts agreements/outcomes into contracts"""
@@ -859,8 +865,12 @@ class NegotiatorUtility(UtilityFunction):
 
     def _free_sale(self, agreement: SCMLAgreement) -> bool:
         return (
-            self.annotation["seller"] == self.agent.id
-            and agreement["unit_price"] < 1e-6
+            (
+                self.annotation["seller"] == self.agent.id
+                and agreement["unit_price"] < 1e-6
+            )
+            if self.avoid_free_sales
+            else False
         )
 
     def __call__(self, outcome: Outcome) -> Optional[UtilityValue]:
@@ -927,14 +937,16 @@ class AveragingNegotiatorUtility(NegotiatorUtility):
         annotation: Dict[str, Any],
         name: Optional[str] = None,
         optimism: float = 0.5,
+        avoid_free_sale: bool = True,
     ):
         NamedObject.__init__(self=self, name=name)
+        self.avoid_free_sales = avoid_free_sale
         self.optimism = optimism
         self.optimistic = OptimisticNegotiatorUtility(
-            agent=agent, annotation=annotation
+            agent=agent, annotation=annotation, avoid_free_sales=avoid_free_sale
         )
         self.pessimistic = PessimisticNegotiatorUtility(
-            agent=agent, annotation=annotation
+            agent=agent, annotation=annotation, avoid_free_sales=avoid_free_sale
         )
 
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
