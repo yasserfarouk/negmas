@@ -23,19 +23,19 @@ You can use these to run negotiations as follows:
 
 .. parsed-literal::
 
-    {'agreement': (3,),
+    {'agreement': (6,),
      'broken': False,
-     'current_offer': (3,),
-     'current_proposer': 'a2-1a607b9f-c5b1-4981-a4a7-beb9929b80d2',
+     'current_offer': (6,),
+     'current_proposer': 'a4-d2ef2b34-2325-49d5-a023-6afd07196ec8',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'relative_time': 0.7,
+     'relative_time': 0.85,
      'running': False,
      'started': True,
-     'step': 69,
-     'time': 0.05947694399998227,
+     'step': 84,
+     'time': 0.011771351000000152,
      'timedout': False}
 
 
@@ -65,19 +65,19 @@ instead of a ``Mechanism`` object
 
 .. parsed-literal::
 
-    {'agreement': (3,),
+    {'agreement': (6,),
      'broken': False,
-     'current_offer': (3,),
-     'current_proposer': 'a2-f98abe96-b5f1-4d0f-b598-c77bd74dbf25',
+     'current_offer': (6,),
+     'current_proposer': 'a4-9834988b-69cb-429e-94e9-16cd38022e6e',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'relative_time': 0.7,
+     'relative_time': 0.85,
      'running': False,
      'started': True,
-     'step': 69,
-     'time': 0.05262000499999431,
+     'step': 84,
+     'time': 0.019573026999999854,
      'timedout': False}
 
 
@@ -118,19 +118,19 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 9, 'price': 0, 'quantity': 5},
+    {'agreement': {'delivery_time': 8, 'price': 9, 'quantity': 6},
      'broken': False,
-     'current_offer': {'delivery_time': 9, 'price': 0, 'quantity': 5},
-     'current_proposer': 'buyer-5dbe1560-7e5e-4a21-97f0-d82990a7513a',
+     'current_offer': {'delivery_time': 8, 'price': 9, 'quantity': 6},
+     'current_proposer': 'seller-e3c6ef30-b0df-4414-b055-1b79b9a90198',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.2,
+     'relative_time': 0.9,
      'running': False,
      'started': True,
-     'step': 3,
-     'time': 0.05683828200000107,
+     'step': 17,
+     'time': 0.0025751750000000406,
      'timedout': False}
 
 
@@ -149,9 +149,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: seller-abde9ed7-3a92-4250-a3cc-0441be826b67 offered {'price': 9, 'quantity': 5, 'delivery_time': 0}
-    001: buyer-5dbe1560-7e5e-4a21-97f0-d82990a7513a offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
-    002: buyer-5dbe1560-7e5e-4a21-97f0-d82990a7513a offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
+    000: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
+    001: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 5, 'delivery_time': 0}
+    002: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
+    003: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
+    004: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 1, 'quantity': 9, 'delivery_time': 9}
+    005: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
+    006: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 1, 'quantity': 8, 'delivery_time': 9}
+    007: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 7, 'delivery_time': 1}
+    008: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 1, 'quantity': 6, 'delivery_time': 9}
+    009: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 9, 'delivery_time': 2}
+    010: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 2, 'quantity': 6, 'delivery_time': 9}
+    011: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 7, 'delivery_time': 3}
+    012: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 4, 'quantity': 8, 'delivery_time': 9}
+    013: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 7, 'delivery_time': 5}
+    014: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 6, 'quantity': 5, 'delivery_time': 9}
+    015: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
+    016: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
 
 
 We can even plot the complete negotiation history and visually see how
@@ -201,7 +215,7 @@ it can. Let's see what happens:
     {'agreement': {'delivery_time': 0, 'price': 9, 'quantity': 5},
      'broken': False,
      'current_offer': {'delivery_time': 0, 'price': 9, 'quantity': 5},
-     'current_proposer': 'seller-84812b00-6e2f-4c7b-9bab-c5a931503049',
+     'current_proposer': 'seller-230733a4-1570-4fe3-aa6f-efab9babeaac',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
@@ -210,7 +224,7 @@ it can. Let's see what happens:
      'running': False,
      'started': True,
      'step': 2,
-     'time': 0.08597508000002563,
+     'time': 0.0003322360000002078,
      'timedout': False}
 
 
@@ -259,19 +273,19 @@ negotiation time:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 0, 'price': 9, 'quantity': 5},
+    {'agreement': {'delivery_time': 9, 'price': 9, 'quantity': 9},
      'broken': False,
-     'current_offer': {'delivery_time': 0, 'price': 9, 'quantity': 5},
-     'current_proposer': 'seller-b46cc379-da45-4dc0-a33a-4b3d1e49ed60',
+     'current_offer': {'delivery_time': 9, 'price': 9, 'quantity': 9},
+     'current_proposer': 'buyer-260a39fd-fc7f-46dd-bea8-0be9f8d7b03d',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.002,
+     'relative_time': 0.809,
      'running': False,
      'started': True,
-     'step': 3,
-     'time': 0.07386390099998152,
+     'step': 1617,
+     'time': 0.22655128899999966,
      'timedout': False}
 
 
