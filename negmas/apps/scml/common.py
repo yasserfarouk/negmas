@@ -10,11 +10,11 @@ from typing import Dict, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 
 from negmas.outcomes import OutcomeType, Issue
+from negmas.utilities import INVALID_UTILITY
 from negmas.situated import Contract
 
 INVALID_STEP = -1000
 NO_PRODUCTION = -1
-INVALID_UTILITY = -2000
 
 g_last_product_id = 0
 g_last_process_id = 0

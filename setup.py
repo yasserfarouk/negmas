@@ -20,6 +20,8 @@ here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+with open(path.join(here, 'HISTORY.rst'), encoding='utf-8') as f:
+    long_description += f.read()
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 setup(
@@ -90,4 +92,5 @@ setup(
     project_urls={  # Optional
         'homepage': 'https://github.com/yasserfarouk/negmas',
     },
+    python_requires='>=3.6',
 )

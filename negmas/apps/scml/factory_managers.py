@@ -422,6 +422,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         sign_only_guaranteed_contracts=False,
         riskiness=0.0,
         max_insurance_premium: float = 0.1,
+        reserved_value: float = 0.0,
     ):
         super().__init__(name=name, simulator_type=simulator_type)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
@@ -446,6 +447,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 f"for always buying and max_insurance_premium = 0.0 for never buying. Will continue assuming inf"
             )
             max_insurance_premium = float("inf")
+        self.__reserved_value = reserved_value
         self.max_insurance_premium = max_insurance_premium
         self.n_retrials = n_retrials
         self.n_neg_trials: Dict[str, int] = defaultdict(int)
@@ -533,9 +535,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             ufun_ = self.ufun_factory(
                 self, self._create_annotation(cfp=cfp, partner=partner)
             )
-            ufun_.reserved_value = (
-                cfp.money_resolution if cfp.money_resolution is not None else 0.1
-            )
+            ufun_.reserved_value = self.__reserved_value
             neg = self.negotiator_type(
                 name=self.name + "*" + partner, **self.negotiator_params, ufun=ufun_
             )
@@ -719,9 +719,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             name=self.name + ">" + cfp.publisher, **self.negotiator_params
         )
         ufun = self.ufun_factory(self, self._create_annotation(cfp=cfp))
-        ufun.reserved_value = (
-            cfp.money_resolution if cfp.money_resolution is not None else 0.1
-        )
+        ufun.reserved_value = self.__reserved_value
         self.request_negotiation(negotiator=neg, cfp=cfp, ufun=ufun)
         # normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
 

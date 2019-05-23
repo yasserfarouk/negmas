@@ -39,6 +39,7 @@ from negmas.utilities import (
     UtilityFunction,
     UtilityValue,
     JavaUtilityFunction,
+    INVALID_UTILITY,
 )
 
 __all__ = [
@@ -851,7 +852,7 @@ class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
         outcomes: Union[int, List["Outcome"]],
         name: str = None,
         parent: Controller = None,
-        reserved_value: float = 0.0,
+        reserved_value: float = None,
         p_acceptance=0.15,
         p_rejection=0.25,
         p_ending=0.1,
@@ -938,7 +939,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         name=None,
         ufun=None,
         parent: Controller = None,
-        max_aspiration=0.95,
+        max_aspiration=1.0,
         aspiration_type="boulware",
         dynamic_ufun=True,
         randomize_offer=False,
@@ -981,7 +982,12 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         )
         if not self.assume_normalized:
             self.ufun_max = self.ordered_outcomes[0][0]
-            self.ufun_min = self.ordered_outcomes[-1][0]
+
+            # we set the minimum utility to the minimum above both reserved_value and INVALID_UTILITY
+            for j in range(len(outcomes) - 1, -1, -1):
+                self.ufun_min = self.ordered_outcomes[j][0]
+                if self.ufun_min > INVALID_UTILITY:
+                    break
             if self.reserved_value is not None and self.ufun_min < self.reserved_value:
                 self.ufun_min = self.reserved_value
 
@@ -995,9 +1001,9 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
             + self.ufun_min
         )
-        if u >= asp and u > self.reserved_value:
+        if u >= asp and (self.reserved_value is None or u > self.reserved_value):
             return ResponseType.ACCEPT_OFFER
-        if asp < self.reserved_value:
+        if self.reserved_value is not None and asp < self.reserved_value:
             return ResponseType.END_NEGOTIATION
         return ResponseType.REJECT_OFFER
 
@@ -1006,13 +1012,13 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
             + self.ufun_min
         )
-        if asp < self.reserved_value:
+        if self.reserved_value is not None and asp < self.reserved_value:
             return None
         for i, (u, o) in enumerate(self.ordered_outcomes):
             if u is None:
                 continue
             if u < asp:
-                if u < self.reserved_value:
+                if self.reserved_value is not None and u < self.reserved_value:
                     return None
                 if i == 0:
                     return self.ordered_outcomes[i][1]
