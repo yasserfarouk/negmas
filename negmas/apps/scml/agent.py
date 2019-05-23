@@ -30,7 +30,6 @@ __all__ = ["SCMLAgent"]
 class SCMLAgent(Agent):
     """The base for all SCM Agents"""
 
-    # @todo remove negotiator_type from here and add it independently to consumer, miner, and greedy_factory_manager
     def __init__(self, name: str = None):
         super().__init__(name=name)
         self.line_profiles: Dict[int, ManufacturingProfileCompiled] = {}
