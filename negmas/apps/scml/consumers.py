@@ -304,7 +304,7 @@ class ScheduleDrivenConsumer(Consumer):
             name=self.name + "_" + partner[:4],
         )
         ufun.reserved_value = INVALID_UTILITY
-        negotiator = self.negotiator_type(name=self.name + "*" + partner, ufun=ufun)
+        negotiator = self.negotiator_type(name=self.name + "*" + partner[:4], ufun=ufun)
         # negotiator.utility_function = ufun
         return negotiator
 
