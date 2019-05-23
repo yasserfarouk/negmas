@@ -2445,6 +2445,24 @@ class SCMLWorld(World):
         return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
 
     @property
+    def n_negotiation_rounds_successful(self) -> float:
+        """Average number of rounds in a successful negotiation"""
+        n_negs = sum(self.stats["n_contracts_concluded"])
+        if n_negs == 0:
+            return np.nan
+        return sum(self.stats["n_negotiation_rounds_successful"]) / n_negs
+
+    @property
+    def n_negotiation_rounds_failed(self) -> float:
+        """Average number of rounds in a successful negotiation"""
+        n_negs = sum(self.stats["n_negotiations"]) - sum(
+            self.stats["n_contracts_concluded"]
+        )
+        if n_negs == 0:
+            return np.nan
+        return sum(self.stats["n_negotiation_rounds_failed"]) / n_negs
+
+    @property
     def contract_execution_fraction(self) -> float:
         """Fraction of signed contracts successfully executed"""
         n_executed = sum(self.stats["n_contracts_executed"])

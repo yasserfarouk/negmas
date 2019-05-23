@@ -462,7 +462,7 @@ def tournament(
     help="The number of times an agent re-tries on failed negotiations",
 )
 @click.option(
-    "--use-consumer",
+    "--use-consumer/--no-consumer",
     default=True,
     help="Use internal consumer object in factory managers",
 )
@@ -719,6 +719,8 @@ def scml(
         print_and_log(
             f"{n_contracts} contracts :-) [N. Negotiations: {n_negs}, Agreement Rate: "
             f"{world.agreement_rate:0.0%}]"
+            f" (rounds/successful negotiation: {world.n_negotiation_rounds_successful}, "
+            f"rounds/failed negotiation: {world.n_negotiation_rounds_failed})"
         )
         print_and_log(
             f"Cancelled: {world.cancellation_rate:0.0%}, Executed: {world.contract_execution_fraction:0.0%}"
