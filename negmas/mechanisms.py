@@ -896,6 +896,41 @@ class Mechanism(NamedObject, EventSource, ABC):
                 if plot_outcomes:
                     axo = fig_outcome.add_subplot(gs_outcome[:, 0])
                 clrs = ("blue", "green")
+                if plot_utils:
+                    f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
+                    axu.scatter(f1, f2, label="frontier", color="red", marker="x")
+                    axu.legend()
+                    axu.set_xlabel(agent_names[0] + " utility")
+                    axu.set_ylabel(agent_names[1] + " utility")
+                    if self.agreement is not None:
+                        pareto_distance = 1e9
+                        cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
+                        for pu in frontier:
+                            dist = math.sqrt(
+                                (pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2
+                            )
+                            if dist < pareto_distance:
+                                pareto_distance = dist
+                        axu.text(
+                            0,
+                            0.95,
+                            f"Pareto-distance={pareto_distance:5.2}",
+                            verticalalignment="top",
+                            transform=axu.transAxes,
+                        )
+
+                if plot_outcomes:
+                    axo.scatter(
+                        frontier_outcome_indices,
+                        frontier_outcome_indices,
+                        color="red",
+                        marker="x",
+                        label="frontier",
+                    )
+                    axo.legend()
+                    axo.set_xlabel(agent_names[0])
+                    axo.set_ylabel(agent_names[1])
+
                 if plot_utils and has_history:
                     for a in range(n_agents):
                         h = history.loc[
@@ -944,41 +979,6 @@ class Mechanism(NamedObject, EventSource, ABC):
                             s=120,
                             label="SCMLAgreement",
                         )
-
-                if plot_utils:
-                    f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-                    axu.scatter(f1, f2, label="frontier", color="red", marker="x")
-                    axu.legend()
-                    axu.set_xlabel(agent_names[0] + " utility")
-                    axu.set_ylabel(agent_names[1] + " utility")
-                    if self.agreement is not None:
-                        pareto_distance = 1e9
-                        cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
-                        for pu in frontier:
-                            dist = math.sqrt(
-                                (pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2
-                            )
-                            if dist < pareto_distance:
-                                pareto_distance = dist
-                        axu.text(
-                            0,
-                            0.95,
-                            f"Pareto-distance={pareto_distance:5.2}",
-                            verticalalignment="top",
-                            transform=axu.transAxes,
-                        )
-
-                if plot_outcomes:
-                    axo.scatter(
-                        frontier_outcome_indices,
-                        frontier_outcome_indices,
-                        color="red",
-                        marker="x",
-                        label="frontier",
-                    )
-                    axo.legend()
-                    axo.set_xlabel(agent_names[0])
-                    axo.set_ylabel(agent_names[1])
 
             if plot_utils:
                 fig_util.show()
