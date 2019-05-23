@@ -9,6 +9,7 @@ Release 0.2.22
 - unifying the INVALID_UTILITY value used by all agents/negotiators to the value defined in utilities.INVALID_UTILITY
 - Aspiration negotiator uses a minimum that is always at least as good as max(reserved_value, INVALID_UTILITY)
 - Added reserved_value parameter to GreedyFactoryManager that allows for control of the reserved value used in all its ufuns.
+- enable mechanism plotting without history
 
 Release 0.2.21
 --------------
