@@ -211,7 +211,7 @@ class ReactiveMiner(Miner):
         )
         # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
         negotiator = self.negotiator_type(
-            name=self.name + "*" + cfp.publisher, ufun=ufun
+            name=self.name + "*" + cfp.publisher[:4], ufun=ufun
         )
         self.n_neg_trials[cfp.id] += 1
         self.request_negotiation(cfp=cfp, negotiator=negotiator)

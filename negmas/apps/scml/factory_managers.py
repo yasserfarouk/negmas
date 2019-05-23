@@ -537,7 +537,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
             )
             ufun_.reserved_value = self.__reserved_value
             neg = self.negotiator_type(
-                name=self.name + "*" + partner, **self.negotiator_params, ufun=ufun_
+                name=self.name + "*" + partner[:4], **self.negotiator_params, ufun=ufun_
             )
             return neg
 
@@ -716,7 +716,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         if not self.can_produce(cfp=cfp):
             return
         neg = self.negotiator_type(
-            name=self.name + ">" + cfp.publisher, **self.negotiator_params
+            name=self.name + ">" + cfp.publisher[:4], **self.negotiator_params
         )
         ufun = self.ufun_factory(self, self._create_annotation(cfp=cfp))
         ufun.reserved_value = self.__reserved_value

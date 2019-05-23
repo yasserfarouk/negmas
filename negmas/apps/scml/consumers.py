@@ -269,7 +269,7 @@ class ScheduleDrivenConsumer(Consumer):
         if isinstance(result, complex):
             result = result.real
         if result is None:
-            result = INVALID_OFFER
+            result = INVALID_UTILITY
         return result
 
     def respond_to_negotiation_request(
@@ -301,7 +301,7 @@ class ScheduleDrivenConsumer(Consumer):
                 ),
             ],
             weights=[alpha_u, alpha_q],
-            name=self.name + "_" + partner,
+            name=self.name + "_" + partner[:4],
         )
         ufun.reserved_value = INVALID_UTILITY
         negotiator = self.negotiator_type(name=self.name + "*" + partner, ufun=ufun)
