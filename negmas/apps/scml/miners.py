@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
-from .common import FinancialReport, DEFAULT_NEGOTIATOR
+from .common import FinancialReport, DEFAULT_NEGOTIATOR, INVALID_UTILITY
 from negmas.common import MechanismState, AgentMechanismInterface
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator
@@ -196,12 +196,18 @@ class ReactiveMiner(Miner):
             issue_utilities={
                 "time": lambda x: x ** tau_t / beta_t,
                 "quantity": lambda x: x ** tau_q / beta_q,
-                "unit_price": lambda x: x ** tau_u / beta_u if x > 1e-7 else -2000.0,
+                "unit_price": lambda x: x ** tau_u / beta_u,
             },
             weights={"time": alpha_t, "quantity": alpha_q, "unit_price": alpha_u},
         )
-        ufun.reserved_value = (
-            cfp.money_resolution if cfp.money_resolution is not None else 0.1
+        ufun.reserved_value = ufun(
+            {
+                "time": cfp.max_time,
+                "quantity": cfp.max_quantity,
+                "unit_price": cfp.money_resolution
+                if cfp.money_resolution is not None
+                else 0.0,
+            }
         )
         # ufun = normalize(, outcomes=cfp.outcomes, infeasible_cutoff=-1)
         negotiator = self.negotiator_type(

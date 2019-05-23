@@ -43,7 +43,7 @@ The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiati
 Nevertheless, it can; and was used; in modeling simpler bilateral and multi-lateral negotiations, preference elicitation
 , etc.
 
-.. note:: **A YouTube playlist to help you use NegMAS for ANAC2019_ SCM_ league can be found here_ **
+.. note:: A YouTube playlist to help you use NegMAS for ANAC2019_ SCM_ league can be found here_
 
     .. _ANAC2019: http://web.tuat.ac.jp/~katfuji/ANAC2019
     .. _SCM: http://web.tuat.ac.jp/~katfuji/ANAC2019/#scm
