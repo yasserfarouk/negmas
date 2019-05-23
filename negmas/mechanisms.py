@@ -812,13 +812,19 @@ class Mechanism(NamedObject, EventSource, ABC):
             # history['time'] = [_.time for _ in self.history]
             # history['relative_time'] = [_.relative_time for _ in self.history]
             # history['step'] = [_.step for _ in self.history]
-            history = history.loc[~history.current_offer.isnull(), :]
+            has_history = len(history) > 0
+            if has_history:
+                history = history.loc[~history.current_offer.isnull(), :]
+                has_history = len(history) > 0
             ufuns = self._get_ufuns()
             outcomes = self.outcomes
 
             utils = [tuple(f(o) for f in ufuns) for o in outcomes]
             agent_names = [a.name for a in self.negotiators]
-            history["offer_index"] = [outcomes.index(_) for _ in history.current_offer]
+            if has_history:
+                history["offer_index"] = [
+                    outcomes.index(_) for _ in history.current_offer
+                ]
             frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
             frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
             if plot_utils:
@@ -864,16 +870,17 @@ class Mechanism(NamedObject, EventSource, ABC):
             ):
                 if au is None and ao is None:
                     break
-                h = history.loc[
-                    history.current_proposer == self.negotiators[a].id,
-                    ["relative_time", "offer_index", "current_offer"],
-                ]
-                h["utility"] = h["current_offer"].apply(ufuns[a])
-                if plot_outcomes:
-                    ao.plot(h.relative_time, h["offer_index"])
-                if plot_utils:
-                    au.plot(h.relative_time, h.utility)
-                    au.set_ylim(0.0, 1.0)
+                if has_history:
+                    h = history.loc[
+                        history.current_proposer == self.negotiators[a].id,
+                        ["relative_time", "offer_index", "current_offer"],
+                    ]
+                    h["utility"] = h["current_offer"].apply(ufuns[a])
+                    if plot_outcomes:
+                        ao.plot(h.relative_time, h["offer_index"])
+                    if plot_utils:
+                        au.plot(h.relative_time, h.utility)
+                        au.set_ylim(0.0, 1.0)
 
             if has_front:
                 if plot_utils:
@@ -889,7 +896,7 @@ class Mechanism(NamedObject, EventSource, ABC):
                 if plot_outcomes:
                     axo = fig_outcome.add_subplot(gs_outcome[:, 0])
                 clrs = ("blue", "green")
-                if plot_utils:
+                if plot_utils and has_history:
                     for a in range(n_agents):
                         h = history.loc[
                             history.current_proposer == self.negotiators[a].id,
@@ -900,7 +907,7 @@ class Mechanism(NamedObject, EventSource, ABC):
                         axu.scatter(
                             h.u0, h.u1, color=clrs[a], label=f"{agent_names[a]}"
                         )
-                if plot_outcomes:
+                if plot_outcomes and has_history:
                     steps = sorted(history.step.unique().tolist())
                     aoffers = [[], []]
                     for step in steps[::2]:
