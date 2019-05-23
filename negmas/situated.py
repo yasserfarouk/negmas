@@ -1144,6 +1144,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         def _run_negotiations(n_steps: Optional[int] = None):
             """ Runs all bending negotiations """
+            n_steps_broken_, n_steps_success_ = 0, 0
             mechanisms = list(
                 (k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None
             )
@@ -1156,10 +1157,12 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     if agreement is not None or is_broken:  # or not mechanism.running:
                         negotiation = self._negotiations.get(puuid, None)
                         if agreement is None:
+                            n_steps_broken_ += mechanism.state.step + 1
                             self._register_failed_negotiation(
                                 mechanism.ami, negotiation
                             )
                         else:
+                            n_steps_success_ += mechanism.state.step + 1
                             self._register_contract(mechanism.ami, negotiation)
                         if negotiation:
                             self._negotiations.pop(mechanism.uuid, None)
@@ -1171,6 +1174,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 current_step += 1
                 if n_steps is not None and current_step >= n_steps:
                     break
+            return n_steps_broken_, n_steps_success_
 
         # initialize stats
         # ----------------
@@ -1178,6 +1182,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         n_new_breaches = 0
         n_cancelled = 0
         activity_level = 0
+        n_steps_broken, n_steps_success = 0, 0
 
         self._pre_step_stats()
         self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
@@ -1203,7 +1208,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         # run all negotiations before the simulation step if that is the meeting strategy
         # --------------------------------------------------------------------------------
         if self.negotiation_speed is None:
-            _run_negotiations()
+            n_steps_broken, n_steps_success = _run_negotiations()
 
         # Step all entities in the world once:
         # ------------------------------------
@@ -1260,7 +1265,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         # do one step of all negotiations if that is specified as the meeting strategy
         if self.negotiation_speed is not None:
-            _run_negotiations(n_steps=self.negotiation_speed)
+            n_steps_broken, n_steps_success = _run_negotiations(
+                n_steps=self.negotiation_speed
+            )
 
         # remove all negotiations that are completed
         # ------------------------------------------
@@ -1284,6 +1291,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
         self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
         self._stats["n_negotiations"].append(self.__n_negotiations)
+        self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
+        self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
         self._stats["n_registered_negotiations_after"].append(len(self._negotiations))
         self._stats["activity_level"].append(activity_level)
         self._post_step_stats()
