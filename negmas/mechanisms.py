@@ -802,6 +802,9 @@ class Mechanism(NamedObject, EventSource, ABC):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
 
+        if self.issues is not None and len(self.issues) > 1:
+            plot_outcomes = False
+
         if len(self.negotiators) > 2:
             print("Cannot visualize negotiations with more than 2 negotiators")
         else:
@@ -826,6 +829,16 @@ class Mechanism(NamedObject, EventSource, ABC):
                     outcomes.index(_) for _ in history.current_offer
                 ]
             frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
+            frontier_indices = [
+                i
+                for i, _ in enumerate(frontier)
+                if _[0] is not None
+                and _[0] > float("-inf")
+                and _[1] is not None
+                and _[1] > float("-inf")
+            ]
+            frontier = [frontier[i] for i in frontier_indices]
+            frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
             frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
             if plot_utils:
                 fig_util = plt.figure()

@@ -719,8 +719,8 @@ def scml(
         print_and_log(
             f"{n_contracts} contracts :-) [N. Negotiations: {n_negs}, Agreement Rate: "
             f"{world.agreement_rate:0.0%}]"
-            f" (rounds/successful negotiation: {world.n_negotiation_rounds_successful}, "
-            f"rounds/failed negotiation: {world.n_negotiation_rounds_failed})"
+            f" (rounds/successful negotiation: {world.n_negotiation_rounds_successful:5.2f}, "
+            f"rounds/broken negotiation: {world.n_negotiation_rounds_failed:5.2f})"
         )
         print_and_log(
             f"Cancelled: {world.cancellation_rate:0.0%}, Executed: {world.contract_execution_fraction:0.0%}"

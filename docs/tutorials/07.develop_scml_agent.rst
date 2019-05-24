@@ -73,7 +73,7 @@ built-in greedy agent (in the "collusion" track setting):
                                   , n_configs=2        # create 10 different configs
                                   , max_worlds_per_config=4 # create no more then 4 worlds per config
                                   , n_runs_per_world=1 # number of runs of each configured world
-                                  , n_steps=50              # we are running each world for 20 steps only                              
+                                  , n_steps=50              # we are running each world for 50 steps only                              
                                  )
 
 You can see the scores that each individual factory manager got (just a
@@ -117,48 +117,48 @@ random sample):
       <tbody>
         <tr>
           <th>75</th>
-          <td>my@2_1</td>
-          <td>my_factory_manager</td>
-          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.000000</td>
-          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190425-184615pkmC00003</td>
-        </tr>
-        <tr>
-          <th>76</th>
           <td>greedy@3_0</td>
           <td>greedy_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>-0.038538</td>
+          <td>-0.00735</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190425-184615pkmC00003</td>
+          <td>20190524-225118nW5E00003</td>
+        </tr>
+        <tr>
+          <th>76</th>
+          <td>greedy@3_1</td>
+          <td>greedy_factory_manager</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>-0.00627</td>
+          <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
+          <td>20190524-225118nW5E00003</td>
         </tr>
         <tr>
           <th>77</th>
-          <td>my@3_1</td>
+          <td>my@3_2</td>
           <td>my_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.000000</td>
+          <td>0.00000</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190425-184615pkmC00003</td>
+          <td>20190524-225118nW5E00003</td>
         </tr>
         <tr>
           <th>78</th>
-          <td>greedy@3_2</td>
+          <td>greedy@3_3</td>
           <td>greedy_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.001532</td>
+          <td>-0.00643</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190425-184615pkmC00003</td>
+          <td>20190524-225118nW5E00003</td>
         </tr>
         <tr>
           <th>79</th>
-          <td>my@3_3</td>
+          <td>my@4_0</td>
           <td>my_factory_manager</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>0.000000</td>
+          <td>0.00000</td>
           <td>/Users/yasser/code/projects/negmas/notebooks/t...</td>
-          <td>20190425-184615pkmC00003</td>
+          <td>20190524-225118nW5E00003</td>
         </tr>
       </tbody>
     </table>
@@ -202,13 +202,13 @@ You can also check the total scores for each factory manager type:
       <tbody>
         <tr>
           <th>0</th>
-          <td>my_factory_manager</td>
-          <td>0.000000</td>
+          <td>greedy_factory_manager</td>
+          <td>0.010756</td>
         </tr>
         <tr>
           <th>1</th>
-          <td>greedy_factory_manager</td>
-          <td>-0.013949</td>
+          <td>my_factory_manager</td>
+          <td>0.000000</td>
         </tr>
       </tbody>
     </table>
@@ -255,10 +255,10 @@ significant using a t-test:
       <tbody>
         <tr>
           <th>0</th>
-          <td>my_factory_manager</td>
           <td>greedy_factory_manager</td>
-          <td>0.001983</td>
-          <td>3.200801</td>
+          <td>my_factory_manager</td>
+          <td>0.33257</td>
+          <td>0.975009</td>
         </tr>
       </tbody>
     </table>
@@ -266,14 +266,14 @@ significant using a t-test:
 
 
 
-So the greedy factory manager is slightly worse than the do-nothing
-factory manager for this short simulation getting an average loss of
-*1.3%* compared with nothing (*0%*) for the do-nothing factory manager
-(as expected). Moreover, this difference is statistically significant as
-the p-value is *0.002 < 0.05*. If you try running this this tournament
-for less than *50*, the greedy factory manager will most likely lose
-more money. In the actual league, we will run each world simulation
-between *50* and *100* steps (more toward the later).
+So the greedy factory manager is slightly better than the do-nothing
+factory manager for this short simulation getting an average gain of
+*1.1%* compared with nothing (*0%*) for the do-nothing factory manager
+(as expected). Moreover, this difference is *not* statistically
+significant as the p-value is *0.333 > 0.05*. If you try running this
+this tournament for less than *20*, the greedy factory manager will most
+likely lose money. In the actual league, we will run each world
+simulation between *50* and *100* steps (more toward the later).
 
 You can just check the winner(s) list
 
@@ -286,7 +286,7 @@ You can just check the winner(s) list
 
 .. parsed-literal::
 
-    ['my_factory_manager']
+    ['greedy_factory_manager']
 
 
 
@@ -299,7 +299,7 @@ and what was its/their score:
 
 .. parsed-literal::
 
-    [0.]
+    [0.0107562]
 
 
 To run a tournament in the "standard"/"sabotage" track settings, use

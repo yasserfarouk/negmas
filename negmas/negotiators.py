@@ -118,7 +118,10 @@ class Negotiator(NamedObject, Notifiable, ABC):
             return None
         if self._utility_function.reserved_value is not None:
             return self._utility_function.reserved_value
-        return self._utility_function(None)
+        try:
+            return self._utility_function(None)
+        except:
+            return None
 
     @property
     def capabilities(self) -> Dict[str, Any]:
@@ -346,17 +349,17 @@ class AspirationMixin:
         self.add_capabilities({"aspiration": True})
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
-        self.e = 1.0
+        self.exponent = 1.0
         if isinstance(aspiration_type, int):
-            self.e = float(aspiration_type)
+            self.exponent = float(aspiration_type)
         elif isinstance(aspiration_type, float):
-            self.e = aspiration_type
+            self.exponent = aspiration_type
         elif aspiration_type == "boulware":
-            self.e = 4.0
+            self.exponent = 4.0
         elif aspiration_type == "linear":
-            self.e = 1.0
+            self.exponent = 1.0
         elif aspiration_type == "conceder":
-            self.e = 0.25
+            self.exponent = 0.25
         else:
             raise ValueError(f"Unknown aspiration type {aspiration_type}")
         self.above_reserved = above_reserved_value
@@ -375,14 +378,9 @@ class AspirationMixin:
             raise ValueError(
                 f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
             )
-        if self.e < 1e-7:
+        if self.exponent < 1e-7:
             return 0.0
-        pmin = (
-            self.reserved_value
-            if self.above_reserved and self.reserved_value is not None
-            else 0.0
-        )
-        return pmin + (self.max_aspiration - pmin) * (1.0 - math.pow(t, self.e))
+        return self.max_aspiration * (1.0 - math.pow(t, self.exponent))
 
 
 class Controller(NamedObject):

@@ -86,11 +86,7 @@ __all__ = [
     "normalize",
     "JavaUtilityFunction",
     "RandomUtilityFunction",
-    "INVALID_UTILITY",
 ]
-
-# constants
-INVALID_UTILITY = -1000.0
 
 # Helper Types just used to make type hinting more readable
 OutcomeUtilityMapping = Union[
@@ -137,7 +133,7 @@ class UtilityFunction(ABC, NamedObject):
         self,
         name: Optional[str] = None,
         ami: AgentMechanismInterface = None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
     ) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
@@ -1173,7 +1169,7 @@ class ExpDiscountedUFun(UtilityFunction):
         beta: Optional[float] = None,
         factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
         name=None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         dynamic_reservation=True,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1243,7 +1239,7 @@ class LinDiscountedUFun(UtilityFunction):
         factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
         power: float = 1.0,
         name=None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         dynamic_reservation=True,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1301,7 +1297,7 @@ class ConstUFun(UtilityFunction):
         self,
         value: float,
         name=None,
-        reserved_value: Optional[float] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1447,7 +1443,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         ],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1653,7 +1649,7 @@ class MappingUtilityFunction(UtilityFunction):
         mapping: OutcomeUtilityMapping,
         default=None,
         name: str = None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1793,7 +1789,7 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         issue_utilities: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1970,7 +1966,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2038,7 +2034,7 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         mappings: OutcomeUtilityMappings,
         f: Callable[[List[UtilityValue]], UtilityValue],
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2076,7 +2072,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
         ufuns: Iterable[UtilityFunction],
         weights: Optional[Iterable[float]] = None,
         name=None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2136,7 +2132,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         ufuns: Iterable[UtilityFunction],
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
         name=None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2199,7 +2195,7 @@ class IPUtilityFunction(UtilityFunction):
         distributions: Iterable["UtilityDistribution"] = None,
         issue_names: Iterable[str] = None,
         name=None,
-        reserved_value: Optional[UtilityValue] = INVALID_UTILITY,
+        reserved_value: Optional[UtilityValue] = None,
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2551,7 +2547,7 @@ def normalize(
     outcomes: Collection[Outcome],
     rng: Tuple[float, float] = (0.0, 1.0),
     epsilon: float = 1e-6,
-    infeasible_cutoff: Optional[float] = INVALID_UTILITY,
+    infeasible_cutoff: Optional[float] = None,
 ) -> UtilityFunction:
     """Normalizes a utility function to the range [0, 1]
 
@@ -2566,12 +2562,10 @@ def normalize(
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
 
     """
-    u: List[float]
     u = [ufun(o) for o in outcomes]
+    u = [float(_) for _ in u if _ is not None]
     if infeasible_cutoff is not None:
-        u = [float(_) for _ in u if _ is not None and float(_) >= infeasible_cutoff]
-    else:
-        u = [float(_) for _ in u if _ is not None]
+        u = [_ for _ in u if _ > infeasible_cutoff]
     if len(u) == 0:
         return ufun
     mx, mn = max(u), min(u)

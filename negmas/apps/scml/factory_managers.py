@@ -38,7 +38,6 @@ from .awi import _ShadowSCMLAWI, SCMLAWI
 from .common import (
     SCMLAgreement,
     Factory,
-    INVALID_UTILITY,
     CFP,
     Loan,
     ProductionFailure,
@@ -422,7 +421,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
         sign_only_guaranteed_contracts=False,
         riskiness=0.0,
         max_insurance_premium: float = 0.1,
-        reserved_value: float = 0.0,
+        reserved_value: float = None,
     ):
         super().__init__(name=name, simulator_type=simulator_type)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
@@ -480,7 +479,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                 start_at=min_sign_at,
             )
         if not schedule.valid:
-            return INVALID_UTILITY
+            return float("-inf")
         return schedule.final_balance
 
     def init(self):
@@ -872,6 +871,8 @@ class NegotiatorUtility(UtilityFunction):
         )
 
     def __call__(self, outcome: Outcome) -> Optional[UtilityValue]:
+        if outcome is None:
+            return float("-inf")
         if isinstance(outcome, dict):
             return self.call(agreement=SCMLAgreement(**outcome))
         if isinstance(outcome, SCMLAgreement):
@@ -892,7 +893,7 @@ class PessimisticNegotiatorUtility(NegotiatorUtility):
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
         """An offer will be a tuple of one value which in turn will be a list of contracts"""
         if self._free_sale(agreement):
-            return INVALID_UTILITY
+            return float("-inf")
         # contracts = self.agent.contracts
         # hypothetical = list(contracts)
         # hypothetical.append(self._contract(agreement))
@@ -900,7 +901,7 @@ class PessimisticNegotiatorUtility(NegotiatorUtility):
         base_util = self.agent.simulator.final_balance
         hypothetical = self.agent.total_utility(hypothetical)
         if hypothetical < 0:
-            return INVALID_UTILITY
+            return float("-inf")
         return hypothetical - base_util
 
 
@@ -909,7 +910,7 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
 
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
         if self._free_sale(agreement):
-            return INVALID_UTILITY
+            return float("-inf")
         # contracts = self.agent.contracts
         # hypothetical = list(contracts)
         # hypothetical.append(self._contract(agreement))
@@ -922,7 +923,7 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
         base_util = self.agent.simulator.final_balance
         hypothetical = self.agent.total_utility(list(hypothetical))
         if hypothetical < 0:
-            return INVALID_UTILITY
+            return float("-inf")
         return hypothetical - base_util
 
 
@@ -949,7 +950,7 @@ class AveragingNegotiatorUtility(NegotiatorUtility):
 
     def call(self, agreement: SCMLAgreement) -> Optional[UtilityValue]:
         if self._free_sale(agreement):
-            return INVALID_UTILITY
+            return float("-inf")
         opt, pess = self.optimistic(agreement), self.pessimistic(agreement)
         if opt is None or pess is None:
             return None
