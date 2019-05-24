@@ -128,7 +128,7 @@ maximum wealth). Notice that there can be multiple winners
 
 .. parsed-literal::
 
-    [greedy@2_4] won at [22.92]%
+    [greedy@2_3] won at [20.02]%
 
 
 What was the balance of this winner over time:
