@@ -158,4 +158,7 @@ pip-wheel-metadata
 
 tests/logs/*
 tests/logs
-
+*/.wily
+.wily
+/**/.wily
+wily-report.html
