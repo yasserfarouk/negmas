@@ -23,19 +23,19 @@ You can use these to run negotiations as follows:
 
 .. parsed-literal::
 
-    {'agreement': (6,),
+    {'agreement': (9,),
      'broken': False,
-     'current_offer': (6,),
-     'current_proposer': 'a4-d2ef2b34-2325-49d5-a023-6afd07196ec8',
+     'current_offer': (9,),
+     'current_proposer': 'a3-1c7348b4-1ec9-48a4-810a-fb61320ff9d2',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'relative_time': 0.85,
+     'relative_time': 0.19,
      'running': False,
      'started': True,
-     'step': 84,
-     'time': 0.011771351000000152,
+     'step': 18,
+     'time': 0.0045368329999959656,
      'timedout': False}
 
 
@@ -65,19 +65,19 @@ instead of a ``Mechanism`` object
 
 .. parsed-literal::
 
-    {'agreement': (6,),
+    {'agreement': (9,),
      'broken': False,
-     'current_offer': (6,),
-     'current_proposer': 'a4-9834988b-69cb-429e-94e9-16cd38022e6e',
+     'current_offer': (9,),
+     'current_proposer': 'a3-19da41ee-2a49-435b-92d1-ab904f902326',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'relative_time': 0.85,
+     'relative_time': 0.19,
      'running': False,
      'started': True,
-     'step': 84,
-     'time': 0.019573026999999854,
+     'step': 18,
+     'time': 0.0034657719999984238,
      'timedout': False}
 
 
@@ -118,19 +118,19 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 8, 'price': 9, 'quantity': 6},
+    {'agreement': {'delivery_time': 9, 'price': 9, 'quantity': 4},
      'broken': False,
-     'current_offer': {'delivery_time': 8, 'price': 9, 'quantity': 6},
-     'current_proposer': 'seller-e3c6ef30-b0df-4414-b055-1b79b9a90198',
+     'current_offer': {'delivery_time': 9, 'price': 9, 'quantity': 4},
+     'current_proposer': 'seller-4ee8eae9-6352-4087-87ab-86db3ce5e408',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.9,
+     'relative_time': 0.25,
      'running': False,
      'started': True,
-     'step': 17,
-     'time': 0.0025751750000000406,
+     'step': 4,
+     'time': 0.0007996639999987565,
      'timedout': False}
 
 
@@ -149,23 +149,10 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
-    001: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 5, 'delivery_time': 0}
-    002: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 0, 'quantity': 5, 'delivery_time': 9}
-    003: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
-    004: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 1, 'quantity': 9, 'delivery_time': 9}
-    005: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 9, 'delivery_time': 1}
-    006: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 1, 'quantity': 8, 'delivery_time': 9}
-    007: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 7, 'delivery_time': 1}
-    008: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 1, 'quantity': 6, 'delivery_time': 9}
-    009: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 9, 'delivery_time': 2}
-    010: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 2, 'quantity': 6, 'delivery_time': 9}
-    011: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 7, 'delivery_time': 3}
-    012: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 4, 'quantity': 8, 'delivery_time': 9}
-    013: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 7, 'delivery_time': 5}
-    014: buyer-97a4d414-9751-4c1c-b454-2283952f83f7 offered {'price': 6, 'quantity': 5, 'delivery_time': 9}
-    015: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
-    016: seller-e3c6ef30-b0df-4414-b055-1b79b9a90198 offered {'price': 9, 'quantity': 6, 'delivery_time': 8}
+    000: seller-4ee8eae9-6352-4087-87ab-86db3ce5e408 offered {'price': 9, 'quantity': 9, 'delivery_time': 0}
+    001: buyer-e5372eeb-8974-464f-aa68-fafff062fe80 offered {'price': 1, 'quantity': 5, 'delivery_time': 9}
+    002: seller-4ee8eae9-6352-4087-87ab-86db3ce5e408 offered {'price': 9, 'quantity': 4, 'delivery_time': 9}
+    003: seller-4ee8eae9-6352-4087-87ab-86db3ce5e408 offered {'price': 9, 'quantity': 4, 'delivery_time': 9}
 
 
 We can even plot the complete negotiation history and visually see how
@@ -212,10 +199,10 @@ it can. Let's see what happens:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 0, 'price': 9, 'quantity': 5},
+    {'agreement': {'delivery_time': 0, 'price': 9, 'quantity': 9},
      'broken': False,
-     'current_offer': {'delivery_time': 0, 'price': 9, 'quantity': 5},
-     'current_proposer': 'seller-230733a4-1570-4fe3-aa6f-efab9babeaac',
+     'current_offer': {'delivery_time': 0, 'price': 9, 'quantity': 9},
+     'current_proposer': 'seller-f39edc38-956f-4543-a46f-9336f0fedec6',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
@@ -224,7 +211,7 @@ it can. Let's see what happens:
      'running': False,
      'started': True,
      'step': 2,
-     'time': 0.0003322360000002078,
+     'time': 0.0003947500000052173,
      'timedout': False}
 
 
@@ -240,11 +227,8 @@ We can check it visually as well:
 
 
 It is clear that the new ufuns transformed the problem. Now we have a
-single outcome at the pareto front. The agreement again is near to it
-(*0.041* utility points) and as expected the agreement was to make the
-delivery time *0* which is much earlier than before. Moreover, the
-negotation eas much faster finighing in 3 steps (8% of the available
-time).
+single outcome at the pareto front. The agreement is on it (*0.0*
+utility points).
 
 What happens if we repeat the earlier neotiation but with a much longer
 negotiation time:
@@ -276,16 +260,16 @@ negotiation time:
     {'agreement': {'delivery_time': 9, 'price': 9, 'quantity': 9},
      'broken': False,
      'current_offer': {'delivery_time': 9, 'price': 9, 'quantity': 9},
-     'current_proposer': 'buyer-260a39fd-fc7f-46dd-bea8-0be9f8d7b03d',
+     'current_proposer': 'buyer-804c5361-e7da-4594-b8c9-03b13b9bacbc',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.809,
+     'relative_time': 0.147,
      'running': False,
      'started': True,
-     'step': 1617,
-     'time': 0.22655128899999966,
+     'step': 293,
+     'time': 0.04037696700000026,
      'timedout': False}
 
 
@@ -295,11 +279,9 @@ negotiation time:
 
 Given the longer negotiation time, the buyer and the seller can both
 take a tougher stance conceding as slowly as possible and as a result
-the actually acheive a point exatly on the pareto-front. Moreover, this
-point happens to maximze the *welfare* defined as the sum of the utility
-received by both partners.
-
-
+the actually achieve a point exactly on the pareto-front. Moreover, this
+point happens to maximize the *welfare* defined as the sum of the
+utility received by both partners.
 
 
 
