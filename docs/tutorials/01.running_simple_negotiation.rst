@@ -23,19 +23,19 @@ You can use these to run negotiations as follows:
 
 .. parsed-literal::
 
-    {'agreement': (9,),
+    {'agreement': (4,),
      'broken': False,
-     'current_offer': (9,),
-     'current_proposer': 'a3-1c7348b4-1ec9-48a4-810a-fb61320ff9d2',
+     'current_offer': (4,),
+     'current_proposer': 'a4-3c56bcb2-0278-45ee-b95b-c696d6a11a54',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'relative_time': 0.19,
+     'relative_time': 0.96,
      'running': False,
      'started': True,
-     'step': 18,
-     'time': 0.0045368329999959656,
+     'step': 95,
+     'time': 0.012729342999989512,
      'timedout': False}
 
 
@@ -65,19 +65,19 @@ instead of a ``Mechanism`` object
 
 .. parsed-literal::
 
-    {'agreement': (9,),
+    {'agreement': (4,),
      'broken': False,
-     'current_offer': (9,),
-     'current_proposer': 'a3-19da41ee-2a49-435b-92d1-ab904f902326',
+     'current_offer': (4,),
+     'current_proposer': 'a4-a80ace99-7c18-4f0d-b9b7-9ab32f4b91f9',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'relative_time': 0.19,
+     'relative_time': 0.96,
      'running': False,
      'started': True,
-     'step': 18,
-     'time': 0.0034657719999984238,
+     'step': 95,
+     'time': 0.012701435999986188,
      'timedout': False}
 
 
@@ -98,7 +98,7 @@ This can be modeled in the following negotiation:
     from negmas.utilities import LinearUtilityAggregationFunction as LUFun
     issues = [Issue(name='price', values=10), Issue(name='quantity', values=10)
               , Issue(name='delivery_time', values=10)]
-    session = SAOMechanism(issues=issues, n_steps=20)
+    session = SAOMechanism(issues=issues, n_steps=5)
     
     buyer_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: 9.0 - x
                                            , 'quantity': lambda x: 0.2 * x
@@ -118,26 +118,25 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 9, 'price': 9, 'quantity': 4},
+    {'agreement': {'delivery_time': 8, 'price': 9, 'quantity': 9},
      'broken': False,
-     'current_offer': {'delivery_time': 9, 'price': 9, 'quantity': 4},
-     'current_proposer': 'seller-4ee8eae9-6352-4087-87ab-86db3ce5e408',
+     'current_offer': {'delivery_time': 8, 'price': 9, 'quantity': 9},
+     'current_proposer': 'seller-bb1ebd4e-b6ea-44ed-a819-2e9d174d0f85',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.25,
+     'relative_time': 1.2,
      'running': False,
      'started': True,
-     'step': 4,
-     'time': 0.0007996639999987565,
+     'step': 5,
+     'time': 0.0006966750000287902,
      'timedout': False}
 
 
-In this run, we can see that the agreement was on a high price (*9*)
-which is preferred by the seller but with a delivery time of *8* which
-is preferred by the buyer. Negotiation took *17* steps out of the
-allowed *20* (*90%* of the available time)
+In this run, we can see that the agreement was on a high price (9) which
+is preferred by the seller but with a delivery time of (8) which is
+preferred by the buyer. Negotiation took all of the allowed *5* steps.
 
 We can check the negotiation history as well
 
@@ -149,19 +148,16 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: seller-4ee8eae9-6352-4087-87ab-86db3ce5e408 offered {'price': 9, 'quantity': 9, 'delivery_time': 0}
-    001: buyer-e5372eeb-8974-464f-aa68-fafff062fe80 offered {'price': 1, 'quantity': 5, 'delivery_time': 9}
-    002: seller-4ee8eae9-6352-4087-87ab-86db3ce5e408 offered {'price': 9, 'quantity': 4, 'delivery_time': 9}
-    003: seller-4ee8eae9-6352-4087-87ab-86db3ce5e408 offered {'price': 9, 'quantity': 4, 'delivery_time': 9}
+    000: buyer-a7cd6341-d966-42d2-a206-2104750f56c5 offered {'price': 0, 'quantity': 9, 'delivery_time': 9}
+    001: seller-bb1ebd4e-b6ea-44ed-a819-2e9d174d0f85 offered {'price': 9, 'quantity': 7, 'delivery_time': 0}
+    002: buyer-a7cd6341-d966-42d2-a206-2104750f56c5 offered {'price': 2, 'quantity': 7, 'delivery_time': 9}
+    003: seller-bb1ebd4e-b6ea-44ed-a819-2e9d174d0f85 offered {'price': 9, 'quantity': 9, 'delivery_time': 8}
+    004: seller-bb1ebd4e-b6ea-44ed-a819-2e9d174d0f85 offered {'price': 9, 'quantity': 9, 'delivery_time': 8}
 
 
 We can even plot the complete negotiation history and visually see how
-far were the result from the pareto frontier (it was 0.043 utility units
-far from it). We can see that it was possible to increase the utility of
-the seller without decreasing the utility of the buyer at the agreement
-point (i.e. going vertically up from the agreement). That means that
-there is some *money left on the table* yet the results are not very far
-from the pareto front.
+far were the result from the pareto frontier (it was 0.0 utility units
+far from it).
 
 .. code:: ipython3
 
@@ -184,7 +180,7 @@ it can. Let's see what happens:
 
 .. code:: ipython3
 
-    session = SAOMechanism(issues=issues, n_steps=50)
+    session = SAOMechanism(issues=issues, n_steps=5)
     
     buyer_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
@@ -202,16 +198,16 @@ it can. Let's see what happens:
     {'agreement': {'delivery_time': 0, 'price': 9, 'quantity': 9},
      'broken': False,
      'current_offer': {'delivery_time': 0, 'price': 9, 'quantity': 9},
-     'current_proposer': 'seller-f39edc38-956f-4543-a46f-9336f0fedec6',
+     'current_proposer': 'buyer-89277840-c43d-4bc3-b7aa-9910efca2130',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.06,
+     'relative_time': 0.6,
      'running': False,
      'started': True,
      'step': 2,
-     'time': 0.0003947500000052173,
+     'time': 0.0003362379999884979,
      'timedout': False}
 
 
@@ -260,16 +256,16 @@ negotiation time:
     {'agreement': {'delivery_time': 9, 'price': 9, 'quantity': 9},
      'broken': False,
      'current_offer': {'delivery_time': 9, 'price': 9, 'quantity': 9},
-     'current_proposer': 'buyer-804c5361-e7da-4594-b8c9-03b13b9bacbc',
+     'current_proposer': 'seller-6f8c4e96-6e66-43aa-9045-431bd587534b',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'relative_time': 0.147,
+     'relative_time': 0.8225,
      'running': False,
      'started': True,
-     'step': 293,
-     'time': 0.04037696700000026,
+     'step': 1644,
+     'time': 0.2121083879999901,
      'timedout': False}
 
 
@@ -278,9 +274,10 @@ negotiation time:
 
 
 Given the longer negotiation time, the buyer and the seller can both
-take a tougher stance conceding as slowly as possible and as a result
-the actually achieve a point exactly on the pareto-front. Moreover, this
-point happens to maximize the *welfare* defined as the sum of the
+take a tougher stance conceding as slowly as possible (taking *1644*
+steps out of the available *2000* instead of just 5 as before). As a
+result they again achieve a point exactly on the pareto-front. Moreover,
+this point happens to maximize the *welfare* defined as the sum of the
 utility received by both partners.
 
 

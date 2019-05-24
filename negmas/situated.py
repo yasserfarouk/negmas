@@ -1153,8 +1153,10 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 random.shuffle(mechanisms)
                 for puuid, mechanism in mechanisms:
                     result = mechanism.step()
-                    agreement, is_broken = result.agreement, result.broken
-                    if agreement is not None or is_broken:  # or not mechanism.running:
+                    agreement, is_running = result.agreement, result.running
+                    if (
+                        agreement is not None or not is_running
+                    ):  # or not mechanism.running:
                         negotiation = self._negotiations.get(puuid, None)
                         if agreement is None:
                             n_steps_broken_ += mechanism.state.step + 1

@@ -178,6 +178,8 @@ def test_can_run_a_random_tiny_scml_world_with_no_factory():
         log_file_name="",
         n_steps=n_steps,
         negotiation_speed=None,
+        n_miners=2,
+        n_consumers=2,
     )
     world.run()
     # print('')

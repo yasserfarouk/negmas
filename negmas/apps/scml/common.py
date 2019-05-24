@@ -10,7 +10,6 @@ from typing import Dict, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 
 from negmas.outcomes import OutcomeType, Issue
-from negmas.utilities import INVALID_UTILITY
 from negmas.situated import Contract
 
 INVALID_STEP = -1000
@@ -29,7 +28,6 @@ __all__ = [
     "RunningCommandInfo",
     "INVALID_STEP",
     "NO_PRODUCTION",
-    "INVALID_UTILITY",
     "ManufacturingProfile",
     "ManufacturingProfileCompiled",
     "ProductManufacturingInfo",

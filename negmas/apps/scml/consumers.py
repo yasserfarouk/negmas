@@ -16,7 +16,7 @@ from negmas.negotiators import Negotiator
 from negmas.situated import Contract, Breach
 from negmas.situated import RenegotiationRequest
 from negmas.utilities import ComplexWeightedUtilityFunction, MappingUtilityFunction
-from .common import CFP, INVALID_UTILITY
+from .common import CFP
 from .agent import SCMLAgent
 from .helpers import pos_gauss
 
@@ -269,7 +269,7 @@ class ScheduleDrivenConsumer(Consumer):
         if isinstance(result, complex):
             result = result.real
         if result is None:
-            result = INVALID_UTILITY
+            result = float("-inf")
         return result
 
     def respond_to_negotiation_request(
@@ -303,7 +303,6 @@ class ScheduleDrivenConsumer(Consumer):
             weights=[alpha_u, alpha_q],
             name=self.name + "_" + partner[:4],
         )
-        ufun.reserved_value = INVALID_UTILITY
         negotiator = self.negotiator_type(name=self.name + "*" + partner[:4], ufun=ufun)
         # negotiator.utility_function = ufun
         return negotiator

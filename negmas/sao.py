@@ -39,7 +39,6 @@ from negmas.utilities import (
     UtilityFunction,
     UtilityValue,
     JavaUtilityFunction,
-    INVALID_UTILITY,
 )
 
 __all__ = [
@@ -945,10 +944,12 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         randomize_offer=False,
         can_propose=True,
         assume_normalized=False,
+        ranking=False,
     ):
         self.ordered_outcomes = []
         self.ufun_max = None
         self.ufun_min = None
+        self.ranking = ranking
         if assume_normalized:
             self.ufun_max, self.ufun_min = 1.0, 0.0
         super().__init__(
@@ -977,16 +978,16 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         outcomes = self._ami.discrete_outcomes()
         self.ordered_outcomes = sorted(
             [(self._utility_function(outcome), outcome) for outcome in outcomes],
-            key=lambda x: x[0],
+            key=lambda x: float(x[0]) if x[0] is not None else float("-inf"),
             reverse=True,
         )
         if not self.assume_normalized:
             self.ufun_max = self.ordered_outcomes[0][0]
 
-            # we set the minimum utility to the minimum above both reserved_value and INVALID_UTILITY
+            # we set the minimum utility to the minimum finite value above both reserved_value
             for j in range(len(outcomes) - 1, -1, -1):
                 self.ufun_min = self.ordered_outcomes[j][0]
-                if self.ufun_min > INVALID_UTILITY:
+                if self.ufun_min > float("-inf"):
                     break
             if self.reserved_value is not None and self.ufun_min < self.reserved_value:
                 self.ufun_min = self.reserved_value

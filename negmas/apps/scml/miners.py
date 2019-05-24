@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from numpy.random import dirichlet
 
-from .common import FinancialReport, DEFAULT_NEGOTIATOR, INVALID_UTILITY
+from .common import FinancialReport, DEFAULT_NEGOTIATOR
 from negmas.common import MechanismState, AgentMechanismInterface
 from negmas.helpers import ConfigReader, get_class
 from negmas.negotiators import Negotiator

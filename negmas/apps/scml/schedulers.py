@@ -15,7 +15,6 @@ from .common import (
     ProductManufacturingInfo,
     SCMLAgreement,
     ManufacturingProfileCompiled,
-    INVALID_UTILITY,
 )
 from .simulators import FactorySimulator, transaction
 from .common import NO_PRODUCTION
@@ -445,7 +444,7 @@ class GreedyScheduler(Scheduler):
         if t < start:
             return ScheduleInfo(
                 end=end,
-                final_balance=INVALID_UTILITY,
+                final_balance=float("-inf"),
                 valid=False,
                 ignored_contracts=[contract],
             )
@@ -468,7 +467,7 @@ class GreedyScheduler(Scheduler):
                     end=end,
                     valid=False,
                     failed_contracts=[contract],
-                    final_balance=INVALID_UTILITY,
+                    final_balance=float("-inf"),
                 )
             if p <= 0:
                 return ScheduleInfo(
@@ -508,7 +507,7 @@ class GreedyScheduler(Scheduler):
                         end=end,
                         valid=False,
                         failed_contracts=[contract],
-                        final_balance=INVALID_UTILITY,
+                        final_balance=float("-inf"),
                     )
             jobs: List[Job] = []
             needs: List[ProductionNeed] = []
@@ -631,7 +630,7 @@ class GreedyScheduler(Scheduler):
                             end=end,
                             valid=False,
                             failed_contracts=[contract],
-                            final_balance=INVALID_UTILITY,
+                            final_balance=float("-inf"),
                         )
 
                     # add the effect of buying raw materials
@@ -709,7 +708,7 @@ class GreedyScheduler(Scheduler):
             if new_schedule.valid:
                 result.final_balance = self.simulator.final_balance
             else:
-                result.final_balance = INVALID_UTILITY
+                result.final_balance = float("-inf")
         return result
 
     def find_schedule(
