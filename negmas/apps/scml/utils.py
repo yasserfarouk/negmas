@@ -1,5 +1,4 @@
 import copy
-import functools
 import itertools
 import math
 import sys
@@ -341,10 +340,10 @@ def anac2019_config_generator(
         )
         for i in range(n_consumers)
     ]
-
+    world_name = unique_name("", add_time=True, rand_digits=4)
     config = {
         "world_params": dict(
-            name=unique_name("", add_time=True, rand_digits=4),
+            name=world_name,
             time_limit=7200,
             neg_time_limit=120,
             neg_n_steps=20,
