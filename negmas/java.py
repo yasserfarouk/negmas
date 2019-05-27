@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any, Iterable, Union
 import numpy as np
 
 import pkg_resources
+from pandas.io.json import json_normalize
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
 from py4j.java_collections import (
     ListConverter,
@@ -44,6 +45,7 @@ __all__ = [
     "from_java",
     "java_link",
     "to_dict",
+    "to_flat_dict",
     "PYTHON_CLASS_IDENTIFIER",
 ]
 
@@ -286,6 +288,24 @@ def java_identifier(s: str):
     if s != PYTHON_CLASS_IDENTIFIER:
         return camel_case(s)
     return s
+
+
+def to_flat_dict(value, deep=True) -> Dict[str, Any]:
+    """
+    Encodes the given value as a flat dictionary
+
+    Args:
+        value:
+        deep:
+
+    Returns:
+
+    """
+    d = to_dict(value, add_type_field=False, deep=deep)
+    for k, v in d.items():
+        if isinstance(v, list) or isinstance(v, tuple):
+            d[k] = str(v)
+    return json_normalize(d, errors="ignore", sep="_").to_dict(orient="records")[0]
 
 
 def to_dict(value, deep=True, add_type_field=True, camel=True):

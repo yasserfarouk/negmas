@@ -151,6 +151,7 @@ class SCMLWorld(World):
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
         log_ufuns_file: str = None,
+        log_negotiations_folder: Optional[str] = None,
         save_mechanism_state_in_contract=False,
         compact=False,
         save_signed_contracts: bool = True,
@@ -204,6 +205,7 @@ class SCMLWorld(World):
         if compact:
             save_mechanism_state_in_contract = False
             log_file_level = logging.ERROR
+            log_negotiations_folder = None
             log_screen_level = logging.CRITICAL
             save_cancelled_contracts = (
                 save_resolved_breaches
@@ -228,6 +230,7 @@ class SCMLWorld(World):
             log_to_screen=log_to_screen,
             log_file_level=log_file_level,
             log_screen_level=log_screen_level,
+            log_negotiations_folder=log_negotiations_folder,
             name=name,
             save_signed_contracts=save_signed_contracts,
             save_negotiations=save_negotiations,
