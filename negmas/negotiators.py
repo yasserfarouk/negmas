@@ -18,7 +18,12 @@ if TYPE_CHECKING:
     from negmas.outcomes import Outcome
     from negmas.utilities import UtilityValue, UtilityFunction
 
-__all__ = ["Negotiator", "AspirationMixin", "Controller"]  # Most abstract kind of agent
+__all__ = [
+    "Negotiator",
+    "AspirationMixin",
+    "Controller",
+    "PassThroughNegotiator",
+]  # Most abstract kind of agent
 
 
 class Negotiator(NamedObject, Notifiable, ABC):
@@ -67,27 +72,9 @@ class Negotiator(NamedObject, Notifiable, ABC):
                 "started is deprecated."
             )
 
-    def __getattribute__(self, item):
-        if item in ("id", "name") or item.startswith("_"):
-            return super().__getattribute__(item)
-        parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
-        if parent is None:
-            return super().__getattribute__(item)
-        attr = getattr(parent, item, None)
-        if attr is None:
-            return super().__getattribute__(item)
-        if isinstance(attr, Callable):
-            return functools.partial(
-                attr,
-                negotiator_id=super().__getattribute__("__dict__")[
-                    "_NamedObject__uuid"
-                ],
-            )
-        return super().__getattribute__(item)
-
     def before_death(self, cntxt: Dict[str, Any]) -> bool:
         """Called whenever the parent is about to kill this negotiator. It should return False if the negotiator
-        does not with to be killed but the controller can still force-kill it"""
+        does not want to be killed but the controller can still force-kill it"""
 
     def _dissociate(self):
         self._mechanism_id = None
@@ -330,76 +317,68 @@ class Negotiator(NamedObject, Notifiable, ABC):
         implements = ["jnegmas.negotiators.Negotiator"]
 
 
-class AspirationMixin:
-    """Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class."""
+class PassThroughNegotiator(Negotiator):
+    """
+    A negotiator that can be used to pass all method calls to a parent (Controller).
+    
+    It uses magic dunder methods to implement a general way of passing calls to the parent. This method is slow.
 
-    def aspiration_init(
-        self,
-        max_aspiration: float,
-        aspiration_type: Union[str, int, float],
-        above_reserved_value=True,
-    ):
-        """
+    It is recommended to implement a PassThrough*Negotiator for each mechanism that does this passing explicitly which
+    will be much faster.
 
-        Args:
-            max_aspiration:
-            aspiration_type:
-            above_reserved_value:
-        """
-        self.add_capabilities({"aspiration": True})
-        self.max_aspiration = max_aspiration
-        self.aspiration_type = aspiration_type
-        self.exponent = 1.0
-        if isinstance(aspiration_type, int):
-            self.exponent = float(aspiration_type)
-        elif isinstance(aspiration_type, float):
-            self.exponent = aspiration_type
-        elif aspiration_type == "boulware":
-            self.exponent = 4.0
-        elif aspiration_type == "linear":
-            self.exponent = 1.0
-        elif aspiration_type == "conceder":
-            self.exponent = 0.25
-        else:
-            raise ValueError(f"Unknown aspiration type {aspiration_type}")
-        self.above_reserved = above_reserved_value
+    For an example, see the implementation of `PassThroughSAONegotiator` .
 
-    def aspiration(self, t: float) -> float:
-        """
-        The aspiration level
+    """
 
-        Args:
-            t: relative time (a number between zero and one)
-
-        Returns:
-            aspiration level
-        """
-        if t is None:
-            raise ValueError(
-                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
+    def __getattribute__(self, item):
+        if item in ("id", "name") or item.startswith("_"):
+            return super().__getattribute__(item)
+        parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
+        if parent is None:
+            return super().__getattribute__(item)
+        attr = getattr(parent, item, None)
+        if attr is None:
+            return super().__getattribute__(item)
+        if isinstance(attr, Callable):
+            return functools.partial(
+                attr,
+                negotiator_id=super().__getattribute__("__dict__")[
+                    "_NamedObject__uuid"
+                ],
             )
-        if self.exponent < 1e-7:
-            return 0.0
-        return self.max_aspiration * (1.0 - math.pow(t, self.exponent))
+        return super().__getattribute__(item)
 
 
 class Controller(NamedObject):
+
     """Controls the behavior of multiple negotiators in multiple negotiations
 
-    The controller class MUST implement all methods of the negotiator class it is controlling with one added
-    argument negotiator_id (str) which represents ID of the negotiator on which the method is being invoked.
+    The controller class MUST implement any methods of the negotiator class it is controlling with one added
+    argument negotiator_id (str) which represents ID of the negotiator on which the method is being invoked
+    (passed first).
+
+    Controllers for specific classes should inherit from this class and implement whatever methods they want to override
+    on their `PassThroughNegotiator` objects. For example, the SAO module defines `SAOController` that needs only to
+    implement `propose` and `respond` .
+
+    Remarks:
+
+     - Controllers should always call negotiator methods using the `call` method defined in this class. Direct calls may
+       lead to infinite loops
 
 
     """
 
     def __init__(
         self,
-        default_negotiator_type: Union[str, Type[Negotiator]] = None,
+        default_negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
         default_negotiator_params: Dict[str, Any] = None,
         name: str = None,
     ):
         super().__init__(name=name)
-        self._negotiators: Dict[str, Tuple["Negotiator", Dict[str, Any]]] = {}
+        self._negotiators: Dict[
+            str, Tuple["PassThroughNegotiator", Dict[str, Any]]
+        ] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
@@ -409,11 +388,11 @@ class Controller(NamedObject):
 
     def create_negotiator(
         self,
-        negotiator_type: Union[str, Type[Negotiator]] = None,
+        negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
         name: str = None,
         cntxt: Dict[str, None] = None,
         **kwargs,
-    ) -> Negotiator:
+    ) -> PassThroughNegotiator:
         """
         Creates a negotiator passing it the context
 
@@ -426,7 +405,7 @@ class Controller(NamedObject):
 
         Returns:
 
-            Negotiator: The negotiator to be controlled
+            PassThroughNegotiator: The negotiator to be controlled
 
         """
         if negotiator_type is None:
@@ -445,7 +424,7 @@ class Controller(NamedObject):
             self._negotiators[new_negotiator.id] = (new_negotiator, cntxt)
         return new_negotiator
 
-    def call(self, negotiator: Negotiator, method: str, *args, **kwargs):
+    def call(self, negotiator: PassThroughNegotiator, method: str, *args, **kwargs):
         """
         Calls the given method on the given negotiator safely without causing recursion. The controller MUST use this
         function to access any callable on the negotiator
@@ -522,10 +501,6 @@ class Controller(NamedObject):
             negotiator_id: The negotiator ID
             state: `MechanismState` giving current state of the negotiation.
 
-        Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action.
-
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -538,10 +513,6 @@ class Controller(NamedObject):
         Args:
             negotiator_id: The negotiator ID
             state: `MechanismState` giving current state of the negotiation.
-
-        Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action.
 
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
@@ -558,10 +529,6 @@ class Controller(NamedObject):
             negotiator_id: The negotiator ID
             state: `MechanismState` giving current state of the negotiation.
 
-        Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action
-
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -576,11 +543,7 @@ class Controller(NamedObject):
             negotiator_id: The negotiator ID
             state: `MechanismState` giving current state of the negotiation.
 
-        Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action
-
-        """
+       """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -592,17 +555,29 @@ class Controller(NamedObject):
         Args:
             negotiator_id: The negotiator ID
             state: `MechanismState` giving current state of the negotiation.
-
-        Remarks:
-            - **MUST** call the baseclass `on_leave` using `super`() if you are going to override this.
-            - The default behavior is to do nothing.
-            - Override this to hook some action
-
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         return self.call(negotiator, "on_leave", state=state)
+
+    def on_ufun_changed(self, negotiator_id: str):
+        """
+        Called to inform the agent that its ufun has changed.
+
+        Args:
+
+            negotiator_id: The negotiator ID
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are overriding
+              it.
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if negotiator is None:
+            raise ValueError(f"Unknown negotiator {negotiator_id}")
+        return self.call(negotiator, "on_ufun_changed")
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -611,11 +586,6 @@ class Controller(NamedObject):
         Args:
             negotiator_id: The negotiator ID
             state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
-
-        Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action
-
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -634,3 +604,56 @@ class Controller(NamedObject):
 
     def __str__(self):
         return f"{self.name}"
+
+
+class AspirationMixin:
+    """Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class."""
+
+    def aspiration_init(
+        self,
+        max_aspiration: float,
+        aspiration_type: Union[str, int, float],
+        above_reserved_value=True,
+    ):
+        """
+
+        Args:
+            max_aspiration:
+            aspiration_type:
+            above_reserved_value:
+        """
+        self.add_capabilities({"aspiration": True})
+        self.max_aspiration = max_aspiration
+        self.aspiration_type = aspiration_type
+        self.exponent = 1.0
+        if isinstance(aspiration_type, int):
+            self.exponent = float(aspiration_type)
+        elif isinstance(aspiration_type, float):
+            self.exponent = aspiration_type
+        elif aspiration_type == "boulware":
+            self.exponent = 4.0
+        elif aspiration_type == "linear":
+            self.exponent = 1.0
+        elif aspiration_type == "conceder":
+            self.exponent = 0.25
+        else:
+            raise ValueError(f"Unknown aspiration type {aspiration_type}")
+        self.above_reserved = above_reserved_value
+
+    def aspiration(self, t: float) -> float:
+        """
+        The aspiration level
+
+        Args:
+            t: relative time (a number between zero and one)
+
+        Returns:
+            aspiration level
+        """
+        if t is None:
+            raise ValueError(
+                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
+            )
+        if self.exponent < 1e-7:
+            return 0.0
+        return self.max_aspiration * (1.0 - math.pow(t, self.exponent))

@@ -32,6 +32,7 @@ import random
 import re
 import time
 import uuid
+import itertools
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from enum import Enum
@@ -68,6 +69,7 @@ from negmas.helpers import (
     create_loggers,
     add_records,
 )
+from negmas.java import to_flat_dict
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
@@ -523,6 +525,7 @@ class MechanismFactory:
         neg_n_steps: int = None,
         neg_time_limit: int = None,
         neg_step_time_limit=None,
+        allow_self_negotiation=False,
         log_ufuns_file=None,
     ):
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
@@ -537,6 +540,7 @@ class MechanismFactory:
         self.req_id = req_id
         self.issues = issues
         self.mechanism = None
+        self.allow_self_negotiation = allow_self_negotiation
         self.log_ufuns_file = log_ufuns_file
 
     def _create_negotiation_session(
@@ -590,6 +594,10 @@ class MechanismFactory:
     ) -> Optional[NegotiationInfo]:
         """Tries to prepare the negotiation to start by asking everyone to join"""
         mechanisms = self.world.mechanisms
+        if (not self.allow_self_negotiation) and (
+            len(set(_.id if _ is not None else "" for _ in partners)) < 2
+        ):
+            return None
         if issues is None:
             caller.on_neg_request_rejected_(req_id=req_id, by=None)
             return None
@@ -953,6 +961,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
         log_ufuns_file=None,
+        log_negotiations_folder: Optional[str] = None,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
         start_negotiations_immediately: bool = False,
@@ -980,6 +989,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.log_file_level = log_file_level
         self.log_screen_level = log_screen_level
         self.log_to_screen = log_to_screen
+        self.log_negotiations_folder = log_negotiations_folder
         self.logger = create_loggers(
             file_name=log_file_name,
             module_name=None,
@@ -1131,6 +1141,28 @@ class World(EventSink, EventSource, ConfigReader, ABC):
     def stats(self) -> Dict[str, Any]:
         return self._stats
 
+    def _log_negotiation(self, negotiation: NegotiationInfo) -> None:
+        mechanism = negotiation.mechanism
+        agreement = mechanism.state.agreement
+        negs_folder = os.path.join(self.log_negotiations_folder, "negotiations")
+        os.makedirs(negs_folder, exist_ok=True)
+        record = {
+            "partner_ids": [_.id for _ in negotiation.partners],
+            "partners": [_.name for _ in negotiation.partners],
+            "requested_at": negotiation.requested_at,
+            "concluded_at": self.current_step,
+            "issues": [str(issue) for issue in negotiation.issues],
+            "Failed": agreement is None,
+            "agreement": str(agreement),
+            "id": negotiation.mechanism.id,
+        }
+        record.update(to_flat_dict(negotiation.annotation))
+        add_records(
+            os.path.join(self.log_negotiations_folder, "negotiation_info.csv"), [record]
+        )
+        data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
+        data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
+
     def step(self) -> bool:
         """A single simulation step"""
         if self.current_step >= self.n_steps:
@@ -1157,7 +1189,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     if (
                         agreement is not None or not is_running
                     ):  # or not mechanism.running:
+
                         negotiation = self._negotiations.get(puuid, None)
+                        if self.log_negotiations_folder is not None:
+                            self._log_negotiation(negotiation)
+
                         if agreement is None:
                             n_steps_broken_ += mechanism.state.step + 1
                             self._register_failed_negotiation(
@@ -1406,8 +1442,10 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 mechanism = neg.mechanism
                 puuid = mechanism.uuid
                 result = mechanism.step()
-                agreement, is_broken = result.agreement, result.broken
-                if agreement is not None or is_broken:  # or not mechanism.running:
+                agreement, is_running = result.agreement, result.running
+                if agreement is not None or not is_running:  # or not mechanism.running:
+                    if self.log_negotiations_folder is not None:
+                        self._log_negotiation(neg)
                     negotiation = self._negotiations.get(puuid, None)
                     if agreement is None:
                         self._register_failed_negotiation(mechanism.ami, negotiation)

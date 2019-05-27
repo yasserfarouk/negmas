@@ -105,6 +105,10 @@ These are the *optional* arguments of this tool:
 --compact / --debug        If --compact, effort is exerted to reduce the memory
                            footprint whichincludes reducing logs
                            dramatically.  [default: --compact]
+--log-ufuns                If given, ufuns are logged [default: False]
+                           Only used if --debug is given
+--log-negs                 If given, all negotiations and their offers are logged
+                           [default: False]
 --config FILENAME          configuration file name. If given all of the
                            parameters given above can be entered in this file
                            instead of being inputed on the command line.
@@ -132,6 +136,10 @@ stats.json                    JSON       Helpful statistics about the state of t
                                          (e.g. N. negotiations, N. Contracts Executed, etc) in JSON format
 params.json                   JSON       The arguments used to run the world
 logs.txt                      TXT        A log file giving details of most important events during the simulation  [filled only if --debug is specified]
+negotiation_info.csv          CSV        Negotiation information for all negotiation session logged (only if --log-negs
+                                         is given).
+negotiations                  Folder     A folder containing a file for each negotiation giving all offers exchanged (only if --log-negs
+                                         is given).
 =======================    ========     ====================================
 
 
@@ -199,6 +207,11 @@ Argument                            Meaning
 --compact / --debug                 If --compact, effort is exerted to reduce the memory
                                     footprint whichincludes reducing logs
                                     dramatically.  [default: --compact]
+--log-ufuns                         If given, ufuns are logged [default: False]
+                                    Only used if --debug is given
+--log-negs                          If given, all negotiations and their offers are logged.
+                                    Only used if --debug is given
+                                    [default: False]
 --config FILENAME                   configuration file name. If given all of the
                                     parameters given above can be entered in this file
                                     instead of being inputed on the command line.

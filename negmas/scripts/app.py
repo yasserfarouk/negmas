@@ -178,9 +178,14 @@ def cli():
     " Effective only if --distributed",
 )
 @click.option(
-    "--log-ufuns/--no-log-ufuns",
+    "--log-ufuns/--no-ufun-logs",
     default=False,
-    help="Log ufuns into their own CSV file",
+    help="Log ufuns into their own CSV file. Only effective if --debug is given",
+)
+@click.option(
+    "--log-negs/--no-neg-logs",
+    default=False,
+    help="Log all negotiations. Only effective if --debug is given",
 )
 @click.option(
     "--compact/--debug",
@@ -212,6 +217,7 @@ def tournament(
     factories,
     agents,
     log_ufuns,
+    log_negs,
 ):
     if timeout <= 0:
         timeout = None
@@ -225,6 +231,10 @@ def tournament(
     log_ufuns_file = None
     if log_ufuns:
         log_ufuns_file = str(Path(log) / "ufuns.csv")
+
+    log_negs_folder = None
+    if log_negs:
+        log_negs_folder = str(Path(log))
 
     if not compact:
         if not reveal_names:
@@ -344,6 +354,7 @@ def tournament(
             n_steps=steps,
             compact=compact,
             log_ufuns_file=log_ufuns_file,
+            log_negotiations_folder=log_negs_folder,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
         results = anac2019_collusion(
@@ -368,6 +379,7 @@ def tournament(
             n_steps=steps,
             compact=compact,
             log_ufuns_file=log_ufuns_file,
+            log_negotiations_folder=log_negs_folder,
         )
     else:
         results = anac2019_sabotage(
@@ -392,6 +404,7 @@ def tournament(
             n_steps=steps,
             compact=compact,
             log_ufuns_file=log_ufuns_file,
+            log_negotiations_folder=log_negs_folder,
         )
     if configs_only:
         print(f"Saved all configs to {str(results)}")
@@ -494,9 +507,14 @@ def tournament(
     help="Default location to save logs (A folder will be created under it)",
 )
 @click.option(
-    "--log-ufuns/--no-log-ufuns",
+    "--log-ufuns/--no-ufun-logs",
     default=False,
-    help="Log ufuns into their own CSV file",
+    help="Log ufuns into their own CSV file. Only effective if --debug is given",
+)
+@click.option(
+    "--log-negs/--no-neg-logs",
+    default=False,
+    help="Log all negotiations. Only effective if --debug is given",
 )
 @click.option(
     "--compact/--debug",
@@ -530,6 +548,7 @@ def scml(
     log,
     compact,
     log_ufuns,
+    log_negs,
 ):
     if max_insurance < 0:
         warnings.warn(
@@ -564,6 +583,7 @@ def scml(
     }
     if compact:
         log_ufuns = False
+        log_negs = False
     neg_speedup = neg_speedup if neg_speedup is not None and neg_speedup > 0 else None
     if min_consumption == max_consumption:
         consumption = min_consumption
@@ -590,6 +610,10 @@ def scml(
     log_ufuns_file = None
     if log_ufuns:
         log_ufuns_file = str(log_dir / "ufuns.csv")
+
+    log_negotiations_folder = None
+    if log_negs:
+        log_negotiations_folder = str(log_dir)
     exception = None
 
     def _no_default(s):
@@ -645,6 +669,7 @@ def scml(
         log_ufuns_file=log_ufuns_file,
         manager_types=all_competitors,
         manager_params=all_competitors_params,
+        log_negotiations_folder=log_negotiations_folder,
     )
     failed = False
     strt = perf_counter()
