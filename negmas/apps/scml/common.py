@@ -11,6 +11,7 @@ import numpy as np
 
 from negmas.outcomes import OutcomeType, Issue
 from negmas.situated import Contract
+from negmas.utilities import INVALID_UTILITY
 
 INVALID_STEP = -1000
 NO_PRODUCTION = -1
@@ -46,6 +47,7 @@ __all__ = [
     "Factory",
     "FactoryState",
     "DEFAULT_NEGOTIATOR",
+    "INVALID_UTILITY",
 ]
 
 

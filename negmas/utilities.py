@@ -86,7 +86,11 @@ __all__ = [
     "normalize",
     "JavaUtilityFunction",
     "RandomUtilityFunction",
+    "INVALID_UTILITY",
 ]
+
+INVALID_UTILITY = float("-inf")
+
 
 # Helper Types just used to make type hinting more readable
 OutcomeUtilityMapping = Union[

@@ -1,6 +1,11 @@
 History
 =======
 
+Release 0.2.23
+--------------
+
+- Avoiding backward incompatibility issue in version 0.2.23 by adding INVALID_UTILITY back to both utilities and apps.scml.common
+
 Release 0.2.22
 --------------
 
