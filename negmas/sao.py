@@ -57,6 +57,7 @@ __all__ = [
     "NiceNegotiator",
     "SAOController",
     "JavaSAONegotiator",
+    "PassThroughSAONegotiator",
 ]
 
 
@@ -1564,15 +1565,15 @@ class _ShadowSAONegotiator:
 
 
 class SAOController(Controller):
-    def propose_(
-        self, negotiator_id: str, state: MechanismState
-    ) -> Optional["Outcome"]:
+    """A controller that can manage multiple negotiators taking full or partial control from them."""
+
+    def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         return self.call(negotiator, "propose", state=state)
 
-    def respond_(
+    def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
     ) -> "ResponseType":
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
@@ -1581,8 +1582,18 @@ class SAOController(Controller):
         return self.call(negotiator, "respond", state=state, offer=offer)
 
 
+class PassThroughSAONegotiator(SAONegotiator):
+    """A negotiator that acts as an end point to a parent Controller"""
+
+    def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        return self.__parent.propose(self.id, state)
+
+    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
+        return self.__parent.respond(self.id, state, offer)
+
+
 SAOProtocol = SAOMechanism
-"""An alias for `SAOMechanism object"""
+"""An alias for `SAOMechanism` object"""
 
 SimpleTitForTatNegotiator = NaiveTitForTatNegotiator
 """A simple tit-for-tat negotiator"""
