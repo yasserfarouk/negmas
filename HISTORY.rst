@@ -1,17 +1,27 @@
 History
 =======
 
+Release 0.2.24
+--------------
+
+- separating PassThroughNegotiator, PassThroughSAONegotiator. This speeds up all simulations at the expense
+  of backward incompatibility for the undocumented Controller pattern. If you are using this pattern, you
+  need to create PassThroughSAONegotiator instead of SAONegotiator.
+- adding logging of negotiations and offers
+
 Release 0.2.23
 --------------
 
-- Avoiding backward incompatibility issue in version 0.2.23 by adding INVALID_UTILITY back to both utilities and apps.scml.common
+- Avoiding backward incompatibility issue in version 0.2.23 by adding INVALID_UTILITY back to both utilities
+  and apps.scml.common
 
 Release 0.2.22
 --------------
 
 - documentation update
 - unifying the INVALID_UTILITY value used by all agents/negotiators to be float("-inf")
-- Added reserved_value parameter to GreedyFactoryManager that allows for control of the reserved value used in all its ufuns.
+- Added reserved_value parameter to GreedyFactoryManager that allows for control of the reserved value used
+  in all its ufuns.
 - enable mechanism plotting without history and improving plotting visibility
 - shortening negotiator names
 - printing the average number of negotiation rounds in negmas scml command
@@ -21,7 +31,8 @@ Release 0.2.21
 --------------
 
 - adding avoid_free_sales parameter to NegotiatorUtility to disable checks for zero price contracts
-- adding an optional parameter "partner" to _create_annotation method to create correct contract annotations when response_to_negotiation_request is called
+- adding an optional parameter "partner" to _create_annotation method to create correct contract annotations
+  when response_to_negotiation_request is called
 - Avoiding unnecessary assertion in insurance company evaluate method
 - passing a copy of CFPs to on_new_cfp and on_cfp_removal methods to avoid modifications to them by agents.
 
@@ -38,7 +49,8 @@ Release 0.2.19
 
 - logging CFPs
 - defaulting to buying insurance in negmas scml
-- bug resolution related to recently added ability to use LinearUtilityFunction created by a dict with tuple outcomes
+- bug resolution related to recently added ability to use LinearUtilityFunction created by a dict with tuple
+  outcomes
 - Adding force_numeric to lead_genius_*
 
 
@@ -157,9 +169,10 @@ Release 0.2.10
 --------------
 
 - adding more control to negmas tournaments:
-   1. adding --factories argument to control how many factories (at least) should exist on each production level
-   2. adding --agents argument to control how many agents per competitor to instantiate. For the anac2019std ttype,
-      this will be forced to 1
+   1. adding --factories argument to control how many factories (at least) should exist on each production
+      level
+   2. adding --agents argument to control how many agents per competitor to instantiate. For the anac2019std
+      ttype, this will be forced to 1
 - adding sabotage track and anac2019_sabotage to run it
 - updating test assertions for negotiators.
 - tutorial update
@@ -210,15 +223,17 @@ Release 0.2.5
 -------------
 
 - improvements to ufun representation to speedup computation
-- making default factory managers slightly less risky in their behavior in long simulations and more risky in short ones
+- making default factory managers slightly less risky in their behavior in long simulations and more risky
+  in short ones
 - adding jnegmas-setup and genius-setup commands to download and install jenegmas and genius bridge
 - removing the logger mixin and replaced it with parameters to World and SCMLWorld
 - added compact parameter to SCMLWorld, tournament, and world generators to reduce the memory footprint
-- added --compact/--debug to the command line tools to avoid memory and log explosion setting the default to --compact
+- added --compact/--debug to the command line tools to avoid memory and log explosion setting the default to
+  --compact
 - improving implementation of consumer ufun for cases with negative schedule
-- changing the return type of SCMLAWI.state from Factory to FactoryState to avoid modifying the original factory. For
-  efficiency reasons, the profiles list is passed as it is and it is possible to modify it but that is forbidden by the
-  rules of the game.
+- changing the return type of SCMLAWI.state from Factory to FactoryState to avoid modifying the original
+  factory. For efficiency reasons, the profiles list is passed as it is and it is possible to modify it
+  but that is forbidden by the rules of the game.
 - Speeding up and correcting financial report reception.
 - Making bankruptcy reporting system-wide
 - avoiding execution of contracts with negative or no quantity and logging ones with zero unit price.
