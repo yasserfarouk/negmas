@@ -617,6 +617,10 @@ def tournament(
         for _ in range(n_configs)
     ]
 
+    for config in configs:
+        for c in config:
+            c.update({"log_folder": str(tournament_path)})
+
     dump(configs, tournament_path / "base_configs")
 
     if verbose:

@@ -975,7 +975,7 @@ def dump(d: Any, file_name: Union[str, os.PathLike]) -> None:
 
 
 def add_records(
-    file_name: str, data: Any, col_names: Optional[List[str]] = None
+    file_name: Union[str, os.PathLike], data: Any, col_names: Optional[List[str]] = None
 ) -> None:
     """
     Adds records to a csv file

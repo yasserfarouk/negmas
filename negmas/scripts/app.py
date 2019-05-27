@@ -228,14 +228,6 @@ def tournament(
     if compact:
         log_ufuns = False
 
-    log_ufuns_file = None
-    if log_ufuns:
-        log_ufuns_file = str(Path(log) / "ufuns.csv")
-
-    log_negs_folder = None
-    if log_negs:
-        log_negs_folder = str(Path(log))
-
     if not compact:
         if not reveal_names:
             print(
@@ -353,8 +345,8 @@ def tournament(
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
-            log_ufuns_file=log_ufuns_file,
-            log_negotiations_folder=log_negs_folder,
+            log_ufuns=log_ufuns,
+            log_negotiations=log_negs,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
         results = anac2019_collusion(
@@ -378,8 +370,8 @@ def tournament(
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
-            log_ufuns_file=log_ufuns_file,
-            log_negotiations_folder=log_negs_folder,
+            log_ufuns=log_ufuns,
+            log_negotiations=log_negs,
         )
     else:
         results = anac2019_sabotage(
@@ -403,8 +395,8 @@ def tournament(
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
-            log_ufuns_file=log_ufuns_file,
-            log_negotiations_folder=log_negs_folder,
+            log_ufuns=log_ufuns,
+            log_negotiations=log_negs,
         )
     if configs_only:
         print(f"Saved all configs to {str(results)}")
@@ -603,17 +595,12 @@ def scml(
         log_dir = Path.home() / log[2:]
     else:
         log_dir = Path(log)
-    log_dir = log_dir / unique_name(base="scml", add_time=True, rand_digits=0)
+    world_name = unique_name(base="scml", add_time=True, rand_digits=0)
+    log_dir = log_dir / world_name
     log_dir = log_dir.absolute()
     os.makedirs(log_dir, exist_ok=True)
     log_file_name = str(log_dir / "log.txt")
-    log_ufuns_file = None
-    if log_ufuns:
-        log_ufuns_file = str(log_dir / "ufuns.csv")
 
-    log_negotiations_folder = None
-    if log_negs:
-        log_negotiations_folder = str(log_dir)
     exception = None
 
     def _no_default(s):
@@ -666,10 +653,12 @@ def scml(
         n_lines_per_factory=lines,
         compact=compact,
         agent_names_reveal_type=True,
-        log_ufuns_file=log_ufuns_file,
+        log_ufuns=log_ufuns,
         manager_types=all_competitors,
         manager_params=all_competitors_params,
-        log_negotiations_folder=log_negotiations_folder,
+        log_negotiations=log_negs,
+        log_folder=log_dir,
+        name=world_name,
     )
     failed = False
     strt = perf_counter()

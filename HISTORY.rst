@@ -7,7 +7,7 @@ Release 0.2.24
 - separating PassThroughNegotiator, PassThroughSAONegotiator. This speeds up all simulations at the expense
   of backward incompatibility for the undocumented Controller pattern. If you are using this pattern, you
   need to create PassThroughSAONegotiator instead of SAONegotiator.
-- adding logging of negotiations and offers
+- adding logging of negotiations and offers (very slow)
 
 Release 0.2.23
 --------------

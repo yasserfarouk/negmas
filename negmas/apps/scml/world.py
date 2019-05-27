@@ -5,6 +5,7 @@ import math
 import sys
 import uuid
 from collections import defaultdict
+from pathlib import Path
 from random import shuffle, random, randint, sample, choices
 from typing import (
     Optional,
@@ -150,8 +151,9 @@ class SCMLWorld(World):
         log_to_screen: bool = False,
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
-        log_ufuns_file: str = None,
-        log_negotiations_folder: Optional[str] = None,
+        log_ufuns: bool = False,
+        log_negotiations: bool = False,
+        log_folder=None,
         save_mechanism_state_in_contract=False,
         compact=False,
         save_signed_contracts: bool = True,
@@ -205,7 +207,8 @@ class SCMLWorld(World):
         if compact:
             save_mechanism_state_in_contract = False
             log_file_level = logging.ERROR
-            log_negotiations_folder = None
+            log_negotiations = False
+            log_ufuns = False
             log_screen_level = logging.CRITICAL
             save_cancelled_contracts = (
                 save_resolved_breaches
@@ -230,14 +233,15 @@ class SCMLWorld(World):
             log_to_screen=log_to_screen,
             log_file_level=log_file_level,
             log_screen_level=log_screen_level,
-            log_negotiations_folder=log_negotiations_folder,
+            log_negotiations=log_negotiations,
             name=name,
             save_signed_contracts=save_signed_contracts,
             save_negotiations=save_negotiations,
             save_cancelled_contracts=save_cancelled_contracts,
             save_resolved_breaches=save_resolved_breaches,
             save_unresolved_breaches=save_unresolved_breaches,
-            log_ufuns_file=log_ufuns_file,
+            log_ufuns=log_ufuns,
+            log_folder=log_folder,
             **kwargs,
         )
 

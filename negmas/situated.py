@@ -960,8 +960,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         log_to_screen: bool = False,
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
-        log_ufuns_file=None,
-        log_negotiations_folder: Optional[str] = None,
+        log_folder=None,
+        log_ufuns=False,
+        log_negotiations: bool = False,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
         start_negotiations_immediately: bool = False,
@@ -989,7 +990,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.log_file_level = log_file_level
         self.log_screen_level = log_screen_level
         self.log_to_screen = log_to_screen
-        self.log_negotiations_folder = log_negotiations_folder
+        self.log_negotiations = log_negotiations
         self.logger = create_loggers(
             file_name=log_file_name,
             module_name=None,
@@ -1018,7 +1019,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._entities: Dict[int, Set[Entity]] = defaultdict(set)
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self._start_time = -1
-        self._log_ufuns_file = log_ufuns_file
+        self._log_ufuns = log_ufuns
+        self._log_negs = log_negotiations
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
@@ -1027,6 +1029,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             name
             if name is not None
             else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
+        )
+        self._log_folder = (
+            str(Path(log_folder).absolute())
+            if log_folder is not None
+            else str(Path.home() / "negmas" / "logs" / "scml" / self.name)
         )
         self._stats: Dict[str, List[Any]] = defaultdict(list)
         self.__n_negotiations = 0
@@ -1142,9 +1149,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         return self._stats
 
     def _log_negotiation(self, negotiation: NegotiationInfo) -> None:
+        if not self._log_negs:
+            return
         mechanism = negotiation.mechanism
         agreement = mechanism.state.agreement
-        negs_folder = os.path.join(self.log_negotiations_folder, "negotiations")
+        negs_folder = str(Path(self._log_folder) / "negotiations")
         os.makedirs(negs_folder, exist_ok=True)
         record = {
             "partner_ids": [_.id for _ in negotiation.partners],
@@ -1157,9 +1166,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             "id": negotiation.mechanism.id,
         }
         record.update(to_flat_dict(negotiation.annotation))
-        add_records(
-            os.path.join(self.log_negotiations_folder, "negotiation_info.csv"), [record]
-        )
+        add_records(str(Path(self._log_folder) / "negotiation_info.csv"), [record])
         data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
         data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
 
@@ -1191,8 +1198,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     ):  # or not mechanism.running:
 
                         negotiation = self._negotiations.get(puuid, None)
-                        if self.log_negotiations_folder is not None:
-                            self._log_negotiation(negotiation)
+                        self._log_negotiation(negotiation)
 
                         if agreement is None:
                             n_steps_broken_ += mechanism.state.step + 1
@@ -1426,7 +1432,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             neg_n_steps=self.neg_n_steps,
             neg_time_limit=self.neg_time_limit,
             neg_step_time_limit=self.neg_step_time_limit,
-            log_ufuns_file=self._log_ufuns_file,
+            log_ufuns_file=str(Path(self._log_folder) / "ufuns.csv")
+            if self._log_ufuns
+            else None,
         )
         neg = factory.init()
         if neg is None:
@@ -1444,8 +1452,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 result = mechanism.step()
                 agreement, is_running = result.agreement, result.running
                 if agreement is not None or not is_running:  # or not mechanism.running:
-                    if self.log_negotiations_folder is not None:
-                        self._log_negotiation(neg)
+                    self._log_negotiation(neg)
                     negotiation = self._negotiations.get(puuid, None)
                     if agreement is None:
                         self._register_failed_negotiation(mechanism.ami, negotiation)
