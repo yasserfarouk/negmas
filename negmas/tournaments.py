@@ -617,10 +617,6 @@ def tournament(
         for _ in range(n_configs)
     ]
 
-    for config in configs:
-        for c in config:
-            c.update({"log_folder": str(tournament_path)})
-
     dump(configs, tournament_path / "base_configs")
 
     if verbose:
@@ -643,6 +639,18 @@ def tournament(
             ]
         )
     )
+
+    for config in assigned:
+        for c in config:
+            c["world_params"].update(
+                {
+                    "log_folder": str(
+                        (
+                            tournament_path / c["world_params"].get("name", ".")
+                        ).absolute()
+                    )
+                }
+            )
 
     params["n_worlds"] = len(assigned) * n_runs_per_world
 
