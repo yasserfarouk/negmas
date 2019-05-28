@@ -1,27 +1,27 @@
 negmas/situated.py
-    LOC: 2468
-    LLOC: 1155
-    SLOC: 1547
+    LOC: 2513
+    LLOC: 1178
+    SLOC: 1589
     Comments: 53
     Single comments: 125
     Multi: 422
-    Blank: 374
+    Blank: 377
     - Comment Stats
         (C % L): 2%
         (C % S): 3%
         (C + M % L): 19%
 negmas/sao.py
-    LOC: 1588
-    LLOC: 762
-    SLOC: 1206
+    LOC: 1599
+    LLOC: 769
+    SLOC: 1210
     Comments: 42
-    Single comments: 42
+    Single comments: 44
     Multi: 141
-    Blank: 199
+    Blank: 204
     - Comment Stats
         (C % L): 3%
         (C % S): 3%
-        (C + M % L): 12%
+        (C + M % L): 11%
 negmas/genius.py
     LOC: 689
     LLOC: 240
@@ -35,17 +35,17 @@ negmas/genius.py
         (C % S): 6%
         (C + M % L): 16%
 negmas/java.py
-    LOC: 702
-    LLOC: 302
-    SLOC: 427
+    LOC: 722
+    LLOC: 310
+    SLOC: 435
     Comments: 7
     Single comments: 8
-    Multi: 149
-    Blank: 118
+    Multi: 156
+    Blank: 123
     - Comment Stats
         (C % L): 1%
         (C % S): 2%
-        (C + M % L): 22%
+        (C + M % L): 23%
 negmas/events.py
     LOC: 67
     LLOC: 45
@@ -59,17 +59,17 @@ negmas/events.py
         (C % S): 0%
         (C + M % L): 3%
 negmas/negotiators.py
-    LOC: 636
-    LLOC: 255
-    SLOC: 275
+    LOC: 659
+    LLOC: 263
+    SLOC: 288
     Comments: 2
     Single comments: 4
-    Multi: 226
-    Blank: 131
+    Multi: 229
+    Blank: 138
     - Comment Stats
         (C % L): 0%
         (C % S): 1%
-        (C + M % L): 36%
+        (C + M % L): 35%
 negmas/__init__.py
     LOC: 47
     LLOC: 26
@@ -83,13 +83,13 @@ negmas/__init__.py
         (C % S): 6%
         (C + M % L): 4%
 negmas/tournaments.py
-    LOC: 872
-    LLOC: 346
-    SLOC: 631
+    LOC: 884
+    LLOC: 350
+    SLOC: 642
     Comments: 3
     Single comments: 12
     Multi: 139
-    Blank: 90
+    Blank: 91
     - Comment Stats
         (C % L): 0%
         (C % S): 0%
@@ -119,13 +119,13 @@ negmas/outcomes.py
         (C % S): 160%
         (C + M % L): 63%
 negmas/utilities.py
-    LOC: 2638
-    LLOC: 1041
-    SLOC: 1504
+    LOC: 2642
+    LLOC: 1042
+    SLOC: 1506
     Comments: 33
     Single comments: 35
     Multi: 740
-    Blank: 359
+    Blank: 361
     - Comment Stats
         (C % L): 1%
         (C % S): 2%
@@ -395,9 +395,9 @@ negmas/scripts/__init__.py
         (C % S): 0%
         (C + M % L): 0%
 negmas/scripts/app.py
-    LOC: 844
-    LLOC: 316
-    SLOC: 775
+    LOC: 858
+    LLOC: 314
+    SLOC: 789
     Comments: 2
     Single comments: 5
     Multi: 8
@@ -431,9 +431,9 @@ negmas/apps/__init__.py
         (C % S): 0%
         (C + M % L): 0%
 negmas/apps/scml/world.py
-    LOC: 2483
-    LLOC: 1059
-    SLOC: 1966
+    LOC: 2490
+    LLOC: 1062
+    SLOC: 1973
     Comments: 120
     Single comments: 118
     Multi: 203
@@ -491,9 +491,9 @@ negmas/apps/scml/bank.py
         (C % S): 5%
         (C + M % L): 4%
 negmas/apps/scml/miners.py
-    LOC: 262
-    LLOC: 153
-    SLOC: 212
+    LOC: 264
+    LLOC: 155
+    SLOC: 214
     Comments: 3
     Single comments: 5
     Multi: 2
@@ -503,9 +503,9 @@ negmas/apps/scml/miners.py
         (C % S): 1%
         (C + M % L): 2%
 negmas/apps/scml/common.py
-    LOC: 1589
-    LLOC: 1084
-    SLOC: 1096
+    LOC: 1591
+    LLOC: 1085
+    SLOC: 1098
     Comments: 17
     Single comments: 156
     Multi: 126
@@ -515,13 +515,13 @@ negmas/apps/scml/common.py
         (C % S): 2%
         (C + M % L): 9%
 negmas/apps/scml/utils.py
-    LOC: 1402
+    LOC: 1401
     LLOC: 412
     SLOC: 1048
     Comments: 2
     Single comments: 0
     Multi: 228
-    Blank: 126
+    Blank: 125
     - Comment Stats
         (C % L): 0%
         (C % S): 0%
@@ -551,9 +551,9 @@ negmas/apps/scml/factory_managers.py
         (C % S): 2%
         (C + M % L): 10%
 negmas/apps/scml/simulators.py
-    LOC: 1668
-    LLOC: 721
-    SLOC: 932
+    LOC: 1676
+    LLOC: 729
+    SLOC: 940
     Comments: 34
     Single comments: 43
     Multi: 344
@@ -599,14 +599,64 @@ negmas/apps/scml/schedulers.py
         (C % S): 5%
         (C + M % L): 15%
 ** Total **
-    LOC: 31389
-    LLOC: 13245
-    SLOC: 19874
+    LOC: 31536
+    LLOC: 13308
+    SLOC: 19987
     Comments: 2304
-    Single comments: 2595
-    Multi: 4656
-    Blank: 4264
+    Single comments: 2597
+    Multi: 4666
+    Blank: 4286
     - Comment Stats
         (C % L): 7%
         (C % S): 12%
         (C + M % L): 22%
+negmas/situated.py - C (0.00)
+negmas/sao.py - C (0.00)
+negmas/genius.py - A (39.94)
+negmas/java.py - A (35.66)
+negmas/events.py - A (100.00)
+negmas/negotiators.py - A (43.66)
+negmas/__init__.py - A (69.35)
+negmas/tournaments.py - A (31.31)
+negmas/common.py - A (50.17)
+negmas/outcomes.py - C (0.00)
+negmas/utilities.py - C (0.00)
+negmas/mechanisms.py - C (5.21)
+negmas/helpers.py - A (26.70)
+negmas/inout.py - A (49.57)
+negmas/generics.py - A (100.00)
+negmas/tests/test_basic_agent.py - A (81.86)
+negmas/tests/test_negotiators.py - A (21.79)
+negmas/tests/test_SAOMechanism.py - A (56.64)
+negmas/tests/test_situated.py - A (32.12)
+negmas/tests/test_issue.py - A (33.76)
+negmas/tests/test_utilities.py - A (49.99)
+negmas/tests/__init__.py - A (100.00)
+negmas/tests/test_inout.py - A (58.22)
+negmas/tests/test_genius.py - A (37.40)
+negmas/tests/test_scml.py - A (65.86)
+negmas/tests/test_helpers.py - A (46.84)
+negmas/tests/test_integration.py - A (79.54)
+negmas/tests/test_outcomes.py - A (43.88)
+negmas/tests/test_protocols.py - A (31.44)
+negmas/tests/fixtures.py - A (100.00)
+negmas/tests/scml/test_factory.py - A (35.93)
+negmas/tests/scml/test_scheduler.py - A (38.52)
+negmas/scripts/__init__.py - A (100.00)
+negmas/scripts/app.py - A (19.50)
+negmas/external/__init__.py - A (100.00)
+negmas/apps/__init__.py - A (100.00)
+negmas/apps/scml/world.py - C (0.00)
+negmas/apps/scml/insurance.py - A (56.35)
+negmas/apps/scml/consumers.py - A (33.69)
+negmas/apps/scml/__init__.py - A (57.91)
+negmas/apps/scml/bank.py - A (36.36)
+negmas/apps/scml/miners.py - A (35.19)
+negmas/apps/scml/common.py - C (0.00)
+negmas/apps/scml/utils.py - A (23.31)
+negmas/apps/scml/awi.py - A (53.16)
+negmas/apps/scml/factory_managers.py - C (3.24)
+negmas/apps/scml/simulators.py - B (9.10)
+negmas/apps/scml/agent.py - A (59.93)
+negmas/apps/scml/helpers.py - A (82.29)
+negmas/apps/scml/schedulers.py - A (32.00)
