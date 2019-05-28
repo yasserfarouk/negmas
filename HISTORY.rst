@@ -9,7 +9,7 @@ Release 0.2.24
   need to create PassThroughSAONegotiator instead of SAONegotiator.
 - adding logging of negotiations and offers (very slow)
 - preventing miners from buying in case sell CFPs are posted.
-
+- avoiding exceptions if the simulator is used to buy/sell AFTER simulation time
 
 Release 0.2.23
 --------------

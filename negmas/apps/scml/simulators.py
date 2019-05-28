@@ -1258,6 +1258,8 @@ class FastFactorySimulator(FactorySimulator):
                 f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
             )
         b = self._wallet[t:]
+        if len(b) < 1:
+            return False
         b -= payment
         if b.min() < 0:
             b += payment
@@ -1278,6 +1280,8 @@ class FastFactorySimulator(FactorySimulator):
                 f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
             )
         s, total = self._storage[product, t:].view(), self._total_storage[t:]
+        if len(total) < 1:
+            return False
         s += quantity
         total += quantity
         if s.min() < 0 or total.max() > self.max_storage:
@@ -1300,6 +1304,8 @@ class FastFactorySimulator(FactorySimulator):
                 f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
             )
         s, total = self._storage[product, t:].view(), self._total_storage[t:]
+        if len(total) < 1:
+            return False
         s += quantity
         total += quantity
         b = self._wallet[t:]
@@ -1325,6 +1331,8 @@ class FastFactorySimulator(FactorySimulator):
                 f"Cannot run operations in the past (t={t}, fixed before {self._fixed_before})"
             )
         s, total = self._storage[product, t:].view(), self._total_storage[t:]
+        if len(total) < 1:
+            return False
         s -= quantity
         total -= quantity
         b = self._wallet[t:]
