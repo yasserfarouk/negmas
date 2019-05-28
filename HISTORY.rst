@@ -11,6 +11,8 @@ Release 0.2.24
 - preventing miners from buying in case sell CFPs are posted.
 - avoiding exceptions if the simulator is used to buy/sell AFTER simulation time
 - adding more stats to the output of negmas scml command
+- revealing competitor_params parameters for anac2019_std/collusion/sabotage. This parameter always existed
+  but was not shown in the method signature (passed as part of kwargs).
 
 Release 0.2.23
 --------------
