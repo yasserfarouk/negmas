@@ -3,10 +3,10 @@ History
 
 Release 0.2.24
 --------------
-r
 - separating PassThroughNegotiator, PassThroughSAONegotiator. This speeds up all simulations at the expense
   of backward incompatibility for the undocumented Controller pattern. If you are using this pattern, you
-  need to create PassThroughSAONegotiator instead of SAONegotiator.
+  need to create PassThroughSAONegotiator instead of SAONegotiator. If you are not using Controller or you do not know
+  what that is, you probably safe and your code will just work.
 - adding logging of negotiations and offers (very slow)
 - preventing miners from buying in case sell CFPs are posted.
 - avoiding exceptions if the simulator is used to buy/sell AFTER simulation time
