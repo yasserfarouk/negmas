@@ -8,6 +8,8 @@ Release 0.2.24
   of backward incompatibility for the undocumented Controller pattern. If you are using this pattern, you
   need to create PassThroughSAONegotiator instead of SAONegotiator.
 - adding logging of negotiations and offers (very slow)
+- preventing miners from buying in case sell CFPs are posted.
+
 
 Release 0.2.23
 --------------
