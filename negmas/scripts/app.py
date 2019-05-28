@@ -10,6 +10,7 @@ from math import factorial
 from pathlib import Path
 from pprint import pformat
 from time import perf_counter
+import numpy as np
 
 import click
 import click_config_file
@@ -723,9 +724,44 @@ def scml(
             "signed",
         ]
         print_and_log(tabulate(data, headers="keys", tablefmt="psql"))
+
+        try:
+            data["product_id"] = np.array([_.id for _ in data["product"].values])
+            d2 = (
+                data.groupby(["product_id"])
+                .apply(
+                    lambda x: np.sum(x["price"].values * x["q"].values)
+                    / np.sum(x["q"].values)
+                )
+                .reset_index()
+            )
+            products = dict(zip([_.id for _ in world.products], world.products))
+            d2["Product"] = np.array([products[_] for _ in d2["product_id"]])
+            d2 = d2.loc[:, ["Product", 0]]
+            d2.columns = ["Product", "Trading Price"]
+            print_and_log(tabulate(d2, headers="keys", tablefmt="psql"))
+        except:
+            pass
+
         n_executed = sum(world.stats["n_contracts_executed"])
         n_negs = sum(world.stats["n_negotiations"])
         n_contracts = len(world.saved_contracts)
+        try:
+            agent_scores = sorted(
+                [
+                    [_.name, world.a2f[_.id].balance]
+                    for _ in world.agents.values()
+                    if isinstance(_, FactoryManager)
+                ],
+                key=lambda x: x[1],
+                reverse=True,
+            )
+            agent_scores = pd.DataFrame(
+                data=np.array(agent_scores), columns=["Agent", "Final Balance"]
+            )
+            print_and_log(tabulate(agent_scores, headers="keys", tablefmt="psql"))
+        except:
+            pass
         winners = [
             f"{_.name} gaining {world.a2f[_.id].balance / world.a2f[_.id].initial_balance - 1.0:0.0%}"
             for _ in world.winners
