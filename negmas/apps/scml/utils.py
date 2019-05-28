@@ -1114,6 +1114,7 @@ def anac2019_tournament(
 
 def anac2019_std(
     competitors: Sequence[Union[str, Type[FactoryManager]]],
+    competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
     agent_names_reveal_type=False,
     n_configs: int = 5,
     max_worlds_per_config: Optional[int] = 1000,
@@ -1141,6 +1142,7 @@ def anac2019_std(
 
         name: Tournament name
         competitors: A list of class names for the competitors
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
@@ -1180,6 +1182,7 @@ def anac2019_std(
     """
     return tournament(
         competitors=competitors,
+        competitor_params=competitor_params,
         non_competitors=non_competitors,
         non_competitor_params=non_competitor_params,
         agent_names_reveal_type=agent_names_reveal_type,
@@ -1209,6 +1212,7 @@ def anac2019_std(
 
 def anac2019_collusion(
     competitors: Sequence[Union[str, Type[FactoryManager]]],
+    competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
     agent_names_reveal_type=False,
     n_configs: int = 5,
     max_worlds_per_config: Optional[int] = 1000,
@@ -1237,6 +1241,7 @@ def anac2019_collusion(
 
         name: Tournament name
         competitors: A list of class names for the competitors
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
@@ -1277,6 +1282,7 @@ def anac2019_collusion(
     """
     return tournament(
         competitors=competitors,
+        competitor_params=competitor_params,
         non_competitors=non_competitors,
         non_competitor_params=non_competitor_params,
         agent_names_reveal_type=agent_names_reveal_type,
@@ -1306,6 +1312,7 @@ def anac2019_collusion(
 
 def anac2019_sabotage(
     competitors: Sequence[Union[str, Type[FactoryManager]]],
+    competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
     agent_names_reveal_type=False,
     n_configs: int = 5,
     max_worlds_per_config: Optional[int] = 1000,
@@ -1334,6 +1341,7 @@ def anac2019_sabotage(
 
         name: Tournament name
         competitors: A list of class names for the competitors
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
@@ -1374,6 +1382,7 @@ def anac2019_sabotage(
     """
     return tournament(
         competitors=competitors,
+        competitor_params=competitor_params,
         agent_names_reveal_type=agent_names_reveal_type,
         non_competitors=non_competitors,
         non_competitor_params=non_competitor_params,
