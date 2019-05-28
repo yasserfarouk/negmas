@@ -165,6 +165,8 @@ class ReactiveMiner(Miner):
         self.profiles = profiles if profiles is not None else dict()
 
     def _process_cfp(self, cfp: "CFP"):
+        if not cfp.is_buy:
+            return
         if self.awi.is_bankrupt(cfp.publisher) or not self.can_expect_agreement(
             cfp=cfp, margin=0
         ):
