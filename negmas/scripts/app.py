@@ -440,11 +440,11 @@ def tournament(
     type=int,
     help="Number of agents (miners/negmas.consumers) per production level",
 )
-@click.option("--horizon", default=20, type=int, help="Consumption horizon.")
+@click.option("--horizon", default=15, type=int, help="Consumption horizon.")
 @click.option("--transport", default=0, type=int, help="Transportation Delay.")
-@click.option("--time", default=60 * 90, type=int, help="Total time limit.")
+@click.option("--time", default=7200, type=int, help="Total time limit.")
 @click.option(
-    "--neg-time", default=60 * 4, type=int, help="Time limit per single negotiation"
+    "--neg-time", default=120, type=int, help="Time limit per single negotiation"
 )
 @click.option(
     "--neg-steps", default=20, type=int, help="Number of rounds per single negotiation"
@@ -516,6 +516,11 @@ def tournament(
     "includes reducing logs dramatically.",
 )
 @click.option(
+    "--shared-profile/--multi-profile",
+    default=True,
+    help="If True, all lines in the same factory will have the same cost.",
+)
+@click.option(
     "--reserved-value",
     default="-inf",
     type=float,
@@ -553,6 +558,7 @@ def scml(
     log_negs,
     reserved_value,
     balance,
+    shared_profile,
 ):
     if max_insurance < 0:
         warnings.warn(
@@ -672,7 +678,25 @@ def scml(
         log_negotiations=log_negs,
         log_folder=log_dir,
         name=world_name,
+        shared_profile_per_factory=shared_profile,
         initial_wallet_balances=balance,
+        neg_step_time_limit=10,
+        no_bank=True,
+        breach_penalty_society=0.02,
+        no_insurance=False,
+        premium=0.03,
+        premium_time_increment=0.1,
+        premium_breach_increment=0.001,
+        max_allowed_breach_level=None,
+        breach_penalty_society_min=0.0,
+        breach_penalty_victim=0.0,
+        breach_move_max_product=True,
+        transfer_delay=0,
+        start_negotiations_immediately=False,
+        catalog_profit=0.15,
+        financial_reports_period=10,
+        default_price_for_products_without_one=1,
+        compensation_fraction=0.5,
     )
     failed = False
     strt = perf_counter()
