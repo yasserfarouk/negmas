@@ -551,6 +551,7 @@ class SCMLWorld(World):
         process_time: Union[int, Tuple[int, int]] = 1,
         interest_rate=float("inf"),
         interest_max=float("inf"),
+        shared_profile_per_factory=False,
         **kwargs,
     ):
         """
@@ -589,6 +590,7 @@ class SCMLWorld(World):
             interest_max: Maximum interest rate
             interest_rate: Minimum interest rate
             initial_wallet_balances:  initial wallet balances for all factories
+            shared_profile_per_factory: If true, all lines in the same factory will have the same profile costs
             kwargs: Any other parameters are just passed to the world constructor
 
         Returns:
@@ -665,11 +667,14 @@ class SCMLWorld(World):
             default_factories = []
             for j in range(n_factories_per_level):
                 profiles = []
+                shared_cost = _realin(process_cost)
                 for k in range(n_lines_per_factory):
                     profiles.append(
                         ManufacturingProfile(
                             n_steps=_intin(process_time),
-                            cost=_realin(process_cost),
+                            cost=_realin(process_cost)
+                            if not shared_profile_per_factory
+                            else shared_cost,
                             initial_pause_cost=0,
                             running_pause_cost=0,
                             resumption_cost=0,
