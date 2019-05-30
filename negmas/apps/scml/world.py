@@ -1939,9 +1939,7 @@ class SCMLWorld(World):
         if product_breach is not None and resolution is None:
             # apply insurances if they exist
             # register the breach independent of insurance
-            if self.insurance_company.pay_insurance(
-                contract=contract, perpetrator=seller
-            ):
+            if self.insurance_company.is_insured(contract=contract, perpetrator=seller):
                 # if the buyer has an insurance against the seller for this contract, then just give him the missing
                 #  quantity and proceed as if the contract was for the remaining quantity. Notice that the breach on the
                 #  seller is already registered by this time.
@@ -1953,7 +1951,7 @@ class SCMLWorld(World):
                 #     self.bank.buy_loan(agent=buyer, amount=buyer_deficit, n_installments=self.loan_installments)
                 if unit_price > 0:
                     insured_quantity = min(
-                        missing_quantity, int(buyer_factory.wallet / unit_price)
+                        missing_quantity, int(buyer_factory.wallet // unit_price)
                     )
                 else:
                     insured_quantity = missing_quantity
@@ -1976,9 +1974,7 @@ class SCMLWorld(World):
 
         if money_breach is not None and resolution is None:
             # apply insurances if they exist.
-            if self.insurance_company.pay_insurance(
-                contract=contract, perpetrator=buyer
-            ):
+            if self.insurance_company.is_insured(contract=contract, perpetrator=buyer):
                 # if the seller has an insurance against the buyer for this contract, then just give him the missing
                 #  money and proceed as if the contract was for the remaining amount. Notice that the breach on the
                 #  seller is already registered by this time.
@@ -1991,6 +1987,7 @@ class SCMLWorld(World):
                 insured_money_quantity = int(
                     insured_money // unit_price
                 )  # I never come here if unit_price is zero.
+                insured_money = insured_money_quantity * unit_price
                 self.logdebug(
                     f"Insurance: {seller.name} got {insured_money} dollars from insurance"
                 )
