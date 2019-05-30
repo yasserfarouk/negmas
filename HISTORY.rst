@@ -1,6 +1,14 @@
 History
 =======
 
+Release 0.2.25
+--------------
+- [Debugging support] making negmas scml behave similar to negmas tournament worlds
+- [Improved robustness] making insurance calculations robust against rounding errors.
+- [Internal change with no behavioral effect] renaming pay_insurance member of InsuranceCompany to is_insured to better document its nature
+- [Debugging support] adding --balance to negmas scml to control the balance
+
+
 Release 0.2.24
 --------------
 - separating PassThroughNegotiator, PassThroughSAONegotiator. This speeds up all simulations at the expense
