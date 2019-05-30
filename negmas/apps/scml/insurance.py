@@ -204,7 +204,7 @@ class DefaultInsuranceCompany(InsuranceCompany):
         self.insured_contracts[(contract, against.id)] = policy
         return policy
 
-    def pay_insurance(self, contract: Contract, perpetrator: SCMLAgent) -> bool:
+    def is_insured(self, contract: Contract, perpetrator: SCMLAgent) -> bool:
         """
 
         Args:

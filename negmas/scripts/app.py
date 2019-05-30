@@ -515,6 +515,15 @@ def tournament(
     help="If True, effort is exerted to reduce the memory footprint which"
     "includes reducing logs dramatically.",
 )
+@click.option(
+    "--reserved-value",
+    default="-inf",
+    type=float,
+    help="The reserved value used by GreedyFactoryManager",
+)
+@click.option(
+    "--balance", default="1000.0", type=float, help="Initial balance of all factories"
+)
 @click_config_file.configuration_option()
 def scml(
     steps,
@@ -542,6 +551,8 @@ def scml(
     compact,
     log_ufuns,
     log_negs,
+    reserved_value,
+    balance,
 ):
     if max_insurance < 0:
         warnings.warn(
@@ -591,6 +602,7 @@ def scml(
         "use_consumer": use_consumer,
         "riskiness": riskiness,
         "max_insurance_premium": max_insurance,
+        "reserved_value": reserved_value,
     }
     if log.startswith("~/"):
         log_dir = Path.home() / log[2:]
@@ -660,6 +672,7 @@ def scml(
         log_negotiations=log_negs,
         log_folder=log_dir,
         name=world_name,
+        initial_wallet_balances=balance,
     )
     failed = False
     strt = perf_counter()
@@ -725,23 +738,27 @@ def scml(
         ]
         print_and_log(tabulate(data, headers="keys", tablefmt="psql"))
 
-        try:
-            data["product_id"] = np.array([_.id for _ in data["product"].values])
-            d2 = (
-                data.groupby(["product_id"])
-                .apply(
-                    lambda x: np.sum(x["price"].values * x["q"].values)
-                    / np.sum(x["q"].values)
+        data["product_id"] = np.array([_.id for _ in data["product"].values])
+        d2 = (
+            data.loc[(~(data["signed"].isnull())) & (data["signed"] > -1), :]
+            .groupby(["product_id"])
+            .apply(
+                lambda x: pd.DataFrame(
+                    [
+                        {
+                            "uprice": np.sum(x["price"] * x["q"]) / np.sum(x["q"]),
+                            "quantity": np.sum(x["q"]),
+                        }
+                    ]
                 )
-                .reset_index()
             )
-            products = dict(zip([_.id for _ in world.products], world.products))
-            d2["Product"] = np.array([products[_] for _ in d2["product_id"]])
-            d2 = d2.loc[:, ["Product", 0]]
-            d2.columns = ["Product", "Trading Price"]
-            print_and_log(tabulate(d2, headers="keys", tablefmt="psql"))
-        except:
-            pass
+        )
+        d2 = d2.reset_index().sort_values(["product_id"])
+        products = dict(zip([_.id for _ in world.products], world.products))
+        d2["Product"] = np.array([products[_] for _ in d2["product_id"].values])
+        d2 = d2.loc[:, ["Product", "uprice", "quantity"]]
+        d2.columns = ["Product", "Avg. Unit Price", "Total Quantity"]
+        print_and_log(tabulate(d2, headers="keys", tablefmt="psql"))
 
         n_executed = sum(world.stats["n_contracts_executed"])
         n_negs = sum(world.stats["n_negotiations"])
