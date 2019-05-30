@@ -1912,6 +1912,7 @@ class SCMLWorld(World):
         available_money = (
             buyer_factory.wallet if not isinstance(buyer, Consumer) else money
         )
+        available_money = (available_money // unit_price) * unit_price
         missing_money = max(0.0, money - available_money)
 
         if missing_money > 0.0:
