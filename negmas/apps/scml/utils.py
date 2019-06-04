@@ -609,42 +609,46 @@ def anac2019_assigner(
     params = (
         list(params) if params is not None else [dict() for _ in range(n_competitors)]
     )
-    n_agents = n_agents_per_competitor * n_competitors
     agent_names_reveal_type = config.pop("agent_names_reveal_type", False)
 
     try:
-        n_permutations = math.factorial(n_agents)
+        n_permutations = math.factorial(n_competitors)
     except ArithmeticError:
         n_permutations = None
 
     manager_types = config["manager_types"]
 
     assignable_factories = [i for i, mtype in enumerate(manager_types) if mtype is None]
+    shuffle(assignable_factories)
+    assignable_factories = (
+        np.asarray(assignable_factories)
+        .reshape((n_competitors, n_agents_per_competitor))
+        .tolist()
+    )
 
-    agents = list(itertools.chain(*([competitors] * n_agents_per_competitor)))
-    agent_params = list(itertools.chain(*([params] * n_agents_per_competitor)))
     configs = []
 
     def _copy_config(perm_, c, indx):
         new_config = copy.deepcopy(c)
         new_config["world_params"]["name"] += f"{indx:05d}"
-        for i, (a, p_) in enumerate(perm_):
-            new_config["manager_types"][assignable_factories[i]] = a
-            new_config["manager_params"][assignable_factories[i]] = p_
+        for (a, p_), assignable in zip(perm_, assignable_factories):
+            for factory in assignable:
+                new_config["manager_types"][factory] = a
+                new_config["manager_params"][factory] = p_
         return [new_config]
 
     if n_permutations is not None and (
         max_n_worlds is None or n_permutations <= max_n_worlds
     ):
         k = 0
-        for permutation in itertools.permutations(zip(agents, agent_params)):
+        for permutation in itertools.permutations(zip(competitors, params)):
             assert len(permutation) == len(assignable_factories)
             configs.append(_copy_config(permutation, config, k))
             k += 1
     elif max_n_worlds is None:
         raise ValueError(f"Did not give max_n_worlds and cannot find n_permutations.")
     else:
-        permutation = list(zip(agents, agent_params))
+        permutation = list(zip(competitors, params))
         assert len(permutation) == len(assignable_factories)
         for k in range(max_n_worlds):
             perm = copy.deepcopy(permutation)
