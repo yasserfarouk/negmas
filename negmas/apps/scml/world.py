@@ -1983,10 +1983,10 @@ class SCMLWorld(World):
                 self.insurance_company.storage[pind] -= insured_quantity
                 self.insurance_company.wallet += insured_quantity_cost
 
-            # we will only transfer the remaining quantity.
-            missing_quantity -= insured_quantity
-            quantity -= insured_quantity
-            money -= insured_quantity * unit_price
+                # we will only transfer the remaining quantity.
+                missing_quantity -= insured_quantity
+                quantity -= insured_quantity
+                money -= insured_quantity_cost
 
         if money_breach is not None and resolution is None:
             # apply insurances if they exist.
@@ -2014,24 +2014,38 @@ class SCMLWorld(World):
                 self.insurance_company.wallet -= insured_money
                 self.insurance_company.storage[pind] += insured_money_quantity
 
-            # we will only transfer the remaining money.
-            money -= insured_money
-            missing_money -= insured_money
-            quantity -= insured_money_quantity
+                # we will only transfer the remaining money.
+                missing_money -= insured_money
+                quantity -= insured_money_quantity
+                money -= insured_money
+
+        # recalculate total and quantity to avoid rounding errors
+        money = unit_price * quantity
+        # check the seller
+        available_quantity = (
+            max(0, seller_factory.storage.get(pind, 0))
+            if not isinstance(seller, Miner)
+            else quantity
+        )
+        missing_quantity = max(0, quantity - available_quantity)
+
+        # check the buyer
+        available_money = (
+            max(0.0, buyer_factory.wallet) if not isinstance(buyer, Consumer) else money
+        )
+        if unit_price > 0.0:
+            available_money = (available_money // unit_price) * unit_price
+        missing_money = max(0.0, money - available_money)
 
         # missing quantity/money is now fully handled. Just remove them from the contract and execute the rest
         if missing_money > 0.0 and missing_quantity == 0:
             quantity -= (
                 int(math.ceil(missing_money / unit_price)) if unit_price != 0.0 else 0
             )
-            if quantity < 0:
-                quantity = 0
-            money = quantity * unit_price
         elif missing_money <= 0.0 and missing_quantity > 0:
-            money -= missing_quantity * unit_price
-            if money < 0.0:
-                money = 0.0
-            quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
+            quantity -= (
+                missing_quantity
+            )  # int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
         elif missing_money > 0.0 and missing_quantity > 0:
             money_for_available_quantity = (quantity - missing_quantity) * unit_price
             quantity_for_available_money = int(
@@ -2052,11 +2066,11 @@ class SCMLWorld(World):
             quantity = max(
                 0, int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
             )
-            money = quantity * unit_price
+        money = quantity * unit_price
 
         # confirm that the money and quantity match given the unit price.
         if not (money >= 0.0 and quantity >= 0):
-            print(
+            self.logerror(
                 f"invalid contract ({str(contract)})!! negative money ({money}) or quantity ({quantity})"
                 f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
                 f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
@@ -2064,11 +2078,9 @@ class SCMLWorld(World):
                 f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
                 f', original money {agreement["unit_price"] * agreement["quantity"]}'
             )
-            import pdb
 
-            pdb.set_trace()
         if not abs(money - unit_price * quantity) < 1e-5:
-            print(
+            self.logerror(
                 f"invalid contract ({str(contract)})!! money {money}, quantity {quantity}"
                 f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
                 f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
@@ -2076,9 +2088,7 @@ class SCMLWorld(World):
                 f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
                 f', original money {agreement["unit_price"] * agreement["quantity"]}'
             )
-            import pdb
 
-            pdb.set_trace()
         # if money > unit_price * quantity:
         #     money = unit_price * quantity
         # if unit_price != 0.0 and quantity > math.floor(money / unit_price):
