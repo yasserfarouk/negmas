@@ -2047,6 +2047,11 @@ class SCMLWorld(World):
         assert (
             money >= 0.0 and quantity >= 0
         ), f"invalid contract ({str(contract)})!! negative money ({money}) or quantity ({quantity})"
+        f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
+        f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
+        f", insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}"
+        f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
+        f', original money {agreement["unit_price"] * agreement["quantity"]}'
         assert abs(money - unit_price * quantity) < 1e-5, (
             f"invalid contract ({str(contract)})!! money {money}, quantity {quantity}"
             f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
