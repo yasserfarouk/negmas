@@ -1846,6 +1846,8 @@ class SCMLWorld(World):
         )
         cfp = contract.annotation["cfp"]  # type: ignore
         quantity, unit_price = agreement["quantity"], agreement["unit_price"]
+        if quantity < 1 and unit_price <= 0.0:
+            return
         penalty_victim = agreement.get("penalty", None)
         if penalty_victim is not None and self.breach_penalty_victim is not None:
             # there is a defined penalty, find its value
@@ -2053,22 +2055,30 @@ class SCMLWorld(World):
             money = quantity * unit_price
 
         # confirm that the money and quantity match given the unit price.
-        assert money >= 0.0 and quantity >= 0, (
-            f"invalid contract ({str(contract)})!! negative money ({money}) or quantity ({quantity})"
-            f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
-            f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
-            f", insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}"
-            f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
-            f', original money {agreement["unit_price"] * agreement["quantity"]}'
-        )
-        assert abs(money - unit_price * quantity) < 1e-5, (
-            f"invalid contract ({str(contract)})!! money {money}, quantity {quantity}"
-            f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
-            f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
-            f", insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}"
-            f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
-            f', original money {agreement["unit_price"] * agreement["quantity"]}'
-        )
+        if not (money >= 0.0 and quantity >= 0):
+            print(
+                f"invalid contract ({str(contract)})!! negative money ({money}) or quantity ({quantity})"
+                f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
+                f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
+                f", insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}"
+                f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
+                f', original money {agreement["unit_price"] * agreement["quantity"]}'
+            )
+            import pdb
+
+            pdb.set_trace()
+        if not abs(money - unit_price * quantity) < 1e-5:
+            print(
+                f"invalid contract ({str(contract)})!! money {money}, quantity {quantity}"
+                f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
+                f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
+                f", insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}"
+                f', insured_money_quantity {insured_money_quantity}, original quantity {agreement["quantity"]}'
+                f', original money {agreement["unit_price"] * agreement["quantity"]}'
+            )
+            import pdb
+
+            pdb.set_trace()
         # if money > unit_price * quantity:
         #     money = unit_price * quantity
         # if unit_price != 0.0 and quantity > math.floor(money / unit_price):
