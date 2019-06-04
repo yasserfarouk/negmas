@@ -30,8 +30,10 @@ import logging
 import os
 import random
 import re
+import sys
 import time
 import uuid
+import traceback
 import itertools
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
@@ -971,6 +973,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         save_negotiations: bool = True,
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
+        ignore_agent_exceptions: bool = False,
         name=None,
     ):
         """
@@ -998,6 +1001,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             file_level=log_file_level,
             app_wide_log_file=True,
         )
+        self.ignore_agent_exception = ignore_agent_exceptions
         self.bulletin_board: BulletinBoard = bulletin_board
         self.set_bulletin_board(bulletin_board=bulletin_board)
         self._negotiations: Dict[str, NegotiationInfo] = {}
@@ -1262,7 +1266,15 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             tasks += [_ for _ in self._entities[priority]]
 
         for task in tasks:
-            task.step_()
+            try:
+                task.step_()
+            except Exception as e:
+                if not self.ignore_agent_exception:
+                    raise e
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                self.logerror(
+                    f"Entity exception @{task.id}: {traceback.format_tb(exc_traceback)}"
+                )
 
         # execute contracts that are executable at this step
         # --------------------------------------------------

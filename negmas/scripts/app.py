@@ -196,6 +196,11 @@ def cli():
     "includes reducing logs dramatically.",
 )
 @click.option(
+    "--raise-exceptions/--ignore-exceptions",
+    default=True,
+    help="Whether to ignore agent exceptions",
+)
+@click.option(
     "--path",
     default="",
     help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
@@ -227,6 +232,7 @@ def tournament(
     log_ufuns,
     log_negs,
     path,
+    raise_exceptions,
 ):
     if len(path) > 0:
         sys.path.append(path)
@@ -358,6 +364,7 @@ def tournament(
             compact=compact,
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
+            ignore_agent_exceptions=not raise_exceptions,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
         results = anac2019_collusion(
@@ -383,6 +390,7 @@ def tournament(
             compact=compact,
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
+            ignore_agent_exceptions=not raise_exceptions,
         )
     else:
         results = anac2019_sabotage(
@@ -408,6 +416,7 @@ def tournament(
             compact=compact,
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
+            ignore_agent_exceptions=not raise_exceptions,
         )
     if configs_only:
         print(f"Saved all configs to {str(results)}")
@@ -537,7 +546,18 @@ def tournament(
     help="The reserved value used by GreedyFactoryManager",
 )
 @click.option(
+    "--raise-exceptions/--ignore-exceptions",
+    default=True,
+    help="Whether to ignore agent exceptions",
+)
+@click.option(
     "--balance", default="1000.0", type=float, help="Initial balance of all factories"
+)
+@click.option(
+    "--path",
+    default="",
+    help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
+    "paths on linux/mac and a ; separated list in windows",
 )
 @click_config_file.configuration_option()
 def scml(
@@ -569,7 +589,11 @@ def scml(
     reserved_value,
     balance,
     shared_profile,
+    raise_exceptions,
+    path,
 ):
+    if len(path) > 0:
+        sys.path.append(path)
     if max_insurance < 0:
         warnings.warn(
             f"Negative max insurance ({max_insurance}) is deprecated. Set --max-insurance=inf for always "
@@ -707,6 +731,7 @@ def scml(
         financial_reports_period=10,
         default_price_for_products_without_one=1,
         compensation_fraction=0.5,
+        ignore_agent_exceptions=not raise_exceptions,
     )
     failed = False
     strt = perf_counter()

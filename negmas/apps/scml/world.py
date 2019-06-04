@@ -161,6 +161,7 @@ class SCMLWorld(World):
         save_negotiations: bool = True,
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
+        ignore_agent_exceptions: bool = False,
         name: str = None,
         **kwargs,
     ):
@@ -242,6 +243,7 @@ class SCMLWorld(World):
             save_unresolved_breaches=save_unresolved_breaches,
             log_ufuns=log_ufuns,
             log_folder=log_folder,
+            ignore_agent_exceptions=ignore_agent_exceptions,
             **kwargs,
         )
 
