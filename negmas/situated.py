@@ -1706,11 +1706,19 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         #     self._contract_execution_time(contract) < self.current_step:
         #     return None
         partners = [self.agents[_] for _ in contract.partners]
+
+        def _do_sign(c, p):
+            try:
+                return p.sign_contract(contract=c)
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                self.logerror(
+                    f"Signature exception @ {p.name}: {traceback.format_tb(exc_traceback)}"
+                )
+                return None
+
         signatures = list(
-            zip(
-                partners,
-                (partner.sign_contract(contract=contract) for partner in partners),
-            )
+            zip(partners, (_do_sign(contract, partner) for partner in partners))
         )
         rejectors = [partner for partner, signature in signatures if signature is None]
         if len(rejectors) == 0:
