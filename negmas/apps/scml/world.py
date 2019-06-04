@@ -162,6 +162,7 @@ class SCMLWorld(World):
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
         ignore_agent_exceptions: bool = False,
+        ignore_contract_execution_exceptions: bool = False,
         name: str = None,
         **kwargs,
     ):
@@ -244,6 +245,7 @@ class SCMLWorld(World):
             log_ufuns=log_ufuns,
             log_folder=log_folder,
             ignore_agent_exceptions=ignore_agent_exceptions,
+            ignore_contract_execution_exceptions=ignore_contract_execution_exceptions,
             **kwargs,
         )
 
@@ -1615,6 +1617,7 @@ class SCMLWorld(World):
             else quantity
         )
         missing_quantity = max(0, quantity - available_quantity)
+        original_quantity = quantity
         if missing_quantity > 0:
             product_breach = missing_quantity / quantity
             penalty_values = []
@@ -1690,7 +1693,7 @@ class SCMLWorld(World):
                     if missing_quantity <= 0:
                         product_breach = None
                     else:
-                        product_breach = missing_quantity / quantity
+                        product_breach = missing_quantity / original_quantity
                 else:
                     # if this is the society penalty, it does not affect the product_breach
                     self.penalties += paid_penalties
@@ -2043,9 +2046,9 @@ class SCMLWorld(World):
         # confirm that the money and quantity match given the unit price.
         assert (
             money >= 0.0 and quantity >= 0
-        ), f"invalid contract!! negative money ({money}) or quantity ({quantity})"
+        ), f"invalid contract ({str(contract)})!! negative money ({money}) or quantity ({quantity})"
         assert abs(money - unit_price * quantity) < 1e-5, (
-            f"invalid contract!! money {money}, quantity {quantity}"
+            f"invalid contract ({str(contract)})!! money {money}, quantity {quantity}"
             f", unit price {unit_price}, missing quantity {missing_quantity}, missing money {missing_money}"
             f", breaches: {[str(_) for _ in breaches]}, insured_quantity {insured_quantity}"
             f", insured_quantity_cost {insured_quantity_cost}, insured_money {insured_money}"

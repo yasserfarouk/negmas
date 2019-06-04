@@ -974,6 +974,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
         ignore_agent_exceptions: bool = False,
+        ignore_contract_execution_exceptions: bool = False,
         name=None,
     ):
         """
@@ -1001,6 +1002,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             file_level=log_file_level,
             app_wide_log_file=True,
         )
+        self.ignore_contract_execution_exceptions = ignore_contract_execution_exceptions
         self.ignore_agent_exception = ignore_agent_exceptions
         self.bulletin_board: BulletinBoard = bulletin_board
         self.set_bulletin_board(bulletin_board=bulletin_board)
@@ -1287,7 +1289,16 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             current_contracts = self._contract_execution_order(current_contracts)
 
             for contract in current_contracts:
-                contract_breaches = self._execute_contract(contract)
+                try:
+                    contract_breaches = self._execute_contract(contract)
+                except Exception as e:
+                    if not self.ignore_contract_execution_exceptions:
+                        raise e
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    self.logerror(
+                        f"Contract exception @{str(contract)}: {traceback.format_tb(exc_traceback)}"
+                    )
+                    continue
                 if len(contract_breaches) < 1:
                     self._saved_contracts[contract.id]["executed"] = True
                     self._saved_contracts[contract.id]["breaches"] = ""

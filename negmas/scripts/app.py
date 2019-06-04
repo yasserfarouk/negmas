@@ -365,6 +365,7 @@ def tournament(
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
+            ignore_contract_execution_exceptions=not raise_exceptions,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
         results = anac2019_collusion(
@@ -391,6 +392,7 @@ def tournament(
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
+            ignore_contract_execution_exceptions=not raise_exceptions,
         )
     else:
         results = anac2019_sabotage(
@@ -417,6 +419,7 @@ def tournament(
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
+            ignore_contract_execution_exceptions=not raise_exceptions,
         )
     if configs_only:
         print(f"Saved all configs to {str(results)}")
@@ -732,6 +735,7 @@ def scml(
         default_price_for_products_without_one=1,
         compensation_fraction=0.5,
         ignore_agent_exceptions=not raise_exceptions,
+        ignore_contract_execution_exceptions=not raise_exceptions,
     )
     failed = False
     strt = perf_counter()
