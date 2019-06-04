@@ -290,9 +290,7 @@ def tournament(
             exit(1)
     prog_callback = print_world_progress if verbosity > 1 and not distributed else None
 
-    recommended = (
-        runs * configs * factorial(len(all_competitors) * (1 if "std" in ttype else 3))
-    )
+    recommended = runs * configs * factorial(len(all_competitors))
     if worlds_per_config is not None and worlds_per_config < 1:
         print(
             f"You need at least {(configs * runs)} runs even with a single permutation of managers."
@@ -310,25 +308,16 @@ def tournament(
         agents = 1
 
     if worlds_per_config is None:
-        n_agents_per_competitor = agents
         n_comp = len(all_competitors) if ttype != "anac2019sabotage" else 2
-        n_worlds = factorial(n_agents_per_competitor * n_comp) * runs * configs
+        n_worlds = factorial(n_comp) * runs * configs
         if n_worlds > 100:
             print(
                 f"You are running the maximum possible number of permutations for each configuration. This is roughly"
                 f" {n_worlds} simulations (each for {steps} steps). That will take a VERY long time."
                 f"\n\nYou can reduce the number of simulations by setting --configs (currently {configs}) or --runs"
-                f" (currently {runs}) to a lower value. If you are running a collusion competition, you can reduce"
-                f" the number of simulations "
-                f"{factorial(n_agents_per_competitor * n_comp)/factorial(n_comp)} times "
-                f"by running a standard competition (--ttype=anac2019std)."
+                f" (currently {runs}) to a lower value. "
                 f"\nFinally, you can limit the maximum number of worlds to run by setting --max-runs=integer."
             )
-            if ttype != "anac2019std":
-                n_new = factorial(n_comp) * runs * configs
-                print(
-                    f"If you use --ttype=anac2019std (standard competition), the number of simulations will be {n_new}"
-                )
             if (
                 not input(f"Are you sure you want to run {n_worlds} simulations?")
                 .lower()
