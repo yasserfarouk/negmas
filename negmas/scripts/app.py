@@ -2,6 +2,7 @@
 """The NegMAS universal command line tool"""
 import json
 import os
+import sys
 import traceback
 import urllib.request
 import warnings
@@ -92,7 +93,7 @@ def cli():
     "-t",
     default=0,
     type=int,
-    help="Timeout after the given number of seconds (0 for infinite)",
+    help="Timeout the whole tournament after the given number of seconds (0 for infinite)",
 )
 @click.option(
     "--configs",
@@ -194,6 +195,12 @@ def cli():
     help="If True, effort is exerted to reduce the memory footprint which"
     "includes reducing logs dramatically.",
 )
+@click.option(
+    "--path",
+    default="",
+    help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
+    "paths on linux/mac and a ; separated list in windows",
+)
 @click_config_file.configuration_option()
 def tournament(
     name,
@@ -219,7 +226,10 @@ def tournament(
     agents,
     log_ufuns,
     log_negs,
+    path,
 ):
+    if len(path) > 0:
+        sys.path.append(path)
     if timeout <= 0:
         timeout = None
     if name == "random":
