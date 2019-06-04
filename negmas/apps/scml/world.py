@@ -1912,15 +1912,17 @@ class SCMLWorld(World):
 
         # check the seller
         available_quantity = (
-            seller_factory.storage.get(pind, 0)
+            max(0, seller_factory.storage.get(pind, 0))
             if not isinstance(seller, Miner)
             else quantity
         )
         missing_quantity = max(0, quantity - available_quantity)
+        if missing_quantity > 0 and quantity > 0:
+            product_breach = missing_quantity / quantity
 
         # check the buyer
         available_money = (
-            buyer_factory.wallet if not isinstance(buyer, Consumer) else money
+            max(0.0, buyer_factory.wallet) if not isinstance(buyer, Consumer) else money
         )
         if unit_price > 0.0:
             available_money = (available_money // unit_price) * unit_price
@@ -1963,7 +1965,7 @@ class SCMLWorld(World):
                 #     self.bank.buy_loan(agent=buyer, amount=buyer_deficit, n_installments=self.loan_installments)
                 if unit_price > 0:
                     insured_quantity = min(
-                        missing_quantity, int(buyer_factory.wallet // unit_price)
+                        missing_quantity, int(available_money // unit_price)
                     )
                 else:
                     insured_quantity = missing_quantity
@@ -1993,9 +1995,7 @@ class SCMLWorld(World):
 
                 # the insurance company will provide enough money to buy whatever actually exist of the contract in the
                 # seller's storage
-                insured_money = min(
-                    missing_money, seller_factory.storage.get(pind, 0) * unit_price
-                )
+                insured_money = min(missing_money, available_quantity * unit_price)
                 insured_money_quantity = int(
                     insured_money // unit_price
                 )  # I never come here if unit_price is zero.
@@ -2022,9 +2022,13 @@ class SCMLWorld(World):
             quantity -= (
                 int(math.ceil(missing_money / unit_price)) if unit_price != 0.0 else 0
             )
+            if quantity < 0:
+                quantity = 0
             money = quantity * unit_price
         elif missing_money <= 0.0 and missing_quantity > 0:
             money -= missing_quantity * unit_price
+            if money < 0.0:
+                money = 0.0
             quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
         elif missing_money > 0.0 and missing_quantity > 0:
             money_for_available_quantity = (quantity - missing_quantity) * unit_price
@@ -2033,14 +2037,19 @@ class SCMLWorld(World):
             )
             money_for_available_money = quantity_for_available_money * unit_price
             available_money = money - missing_money
-            money = min(
-                (
-                    available_money,
-                    money_for_available_quantity,
-                    money_for_available_money,
-                )
+            money = max(
+                0.0,
+                min(
+                    (
+                        available_money,
+                        money_for_available_quantity,
+                        money_for_available_money,
+                    )
+                ),
             )
-            quantity = int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
+            quantity = max(
+                0, int(math.floor(money / unit_price)) if unit_price != 0.0 else 0
+            )
             money = quantity * unit_price
 
         # confirm that the money and quantity match given the unit price.
