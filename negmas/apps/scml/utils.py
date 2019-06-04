@@ -55,7 +55,15 @@ __all__ = [
     "anac2019_std",
     "balance_calculator",
     "anac2019_sabotage",
+    "DefaultGreedyManager",
 ]
+
+
+class DefaultGreedyManager(GreedyFactoryManager):
+    def __init__(self, name):
+        super().__init__(
+            name=name, reserved_value=0.0, max_insurance_premium=float("-inf")
+        )
 
 
 def integer_cut(n: int, l: int, l_m: Union[int, List[int]]) -> List[int]:
@@ -188,7 +196,7 @@ def anac2019_config_generator(
     **kwargs,
 ) -> List[Dict[str, Any]]:
     if non_competitors is None:
-        non_competitors = (GreedyFactoryManager,)
+        non_competitors = (DefaultGreedyManager,)
     if isinstance(n_intermediate, Iterable):
         n_intermediate = list(n_intermediate)
     else:
@@ -273,7 +281,9 @@ def anac2019_config_generator(
     non_competitors = [get_full_type_name(_) for _ in non_competitors]
 
     for c_, p_ in zip(non_competitors, non_competitor_params):
-        if c_.startswith("negmas.apps.scml.") and c_.endswith("GreedyFactoryManager"):
+        if (
+            c_.startswith("negmas.apps.scml.") and c_.endswith("GreedyFactoryManager")
+        ) or "DefaultGreedyManager" in c_:
             p_.update({"negotiator_type": negotiator_type, "n_retrials": n_retrials})
 
     max_def_agents = len(non_competitors) - 1
@@ -481,7 +491,7 @@ def anac2019_sabotage_assigner(
         return name
 
     non_competitors = config.get(
-        "non_competitors", ("negmas.apps.scml.factory_managers.GreedyFactoryManager",)
+        "non_competitors", ("negmas.apps.scml.utils.DefaultGreedyManager",)
     )
     max_def = len(non_competitors) - 1
     non_competitor_params = config.get("non_competitor_params", None)
@@ -878,7 +888,7 @@ def anac2019_world(
     n_intermediate[0] = max(n_intermediate_levels_min, n_intermediate[0])
     competitors = [get_class(c) if isinstance(c, str) else c for c in competitors]
     if len(competitors) < 1:
-        competitors.append(GreedyFactoryManager)
+        competitors.append(DefaultGreedyManager)
         params.append(dict())
     world = SCMLWorld.chain_world(
         log_file_name=log_file_name,

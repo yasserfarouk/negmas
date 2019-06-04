@@ -823,6 +823,7 @@ class NegotiatorUtility(UtilityFunction):
         annotation: Dict[str, Any],
         name: Optional[str] = None,
         avoid_free_sales: bool = True,
+        expected_breach_level: float = 0.5,
     ):
         if name is None:
             name = (
@@ -834,6 +835,7 @@ class NegotiatorUtility(UtilityFunction):
         self.agent = agent
         self.annotation = annotation
         self.avoid_free_sales = avoid_free_sales
+        self.expected_breach_level = expected_breach_level
 
     def _contracts(self, agreements: Iterable[SCMLAgreement]) -> Collection[Contract]:
         """Converts agreements/outcomes into contracts"""
@@ -902,7 +904,9 @@ class PessimisticNegotiatorUtility(NegotiatorUtility):
         hypothetical = self.agent.total_utility(hypothetical)
         if hypothetical < 0:
             return float("-inf")
-        return hypothetical - base_util
+        penalty = agreement.get("penalty", 0.0)
+        penalty = 0.0 if penalty is None else penalty
+        return hypothetical - base_util - self.expected_breach_level * penalty
 
 
 class OptimisticNegotiatorUtility(NegotiatorUtility):
@@ -924,7 +928,9 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
         hypothetical = self.agent.total_utility(list(hypothetical))
         if hypothetical < 0:
             return float("-inf")
-        return hypothetical - base_util
+        penalty = agreement.get("penalty", 0.0)
+        penalty = 0.0 if penalty is None else penalty
+        return hypothetical - base_util - self.expected_breach_level * penalty
 
 
 class AveragingNegotiatorUtility(NegotiatorUtility):
