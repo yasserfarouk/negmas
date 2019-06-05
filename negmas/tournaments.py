@@ -7,6 +7,7 @@ import copy
 import itertools
 import math
 import pathlib
+import shutil
 import time
 import traceback
 import warnings
@@ -572,9 +573,22 @@ def tournament(
     if name is None:
         name = unique_name("", add_time=True, rand_digits=0)
     competitors = list(competitors)
+    original_tournament_path = tournament_path
     if tournament_path.startswith("~"):
         tournament_path = Path.home() / ("/".join(tournament_path.split("/")[1:]))
     tournament_path = (pathlib.Path(tournament_path) / name).absolute()
+    if tournament_path.exists() and not tournament_path.is_dir():
+        raise ValueError(
+            f"tournament path {str(tournament_path)} is a file. Cannot continue"
+        )
+    if tournament_path.exists():
+        name = unique_name(name, add_time=True, rand_digits=0)
+        tournament_path = original_tournament_path
+        if tournament_path.startswith("~"):
+            tournament_path = Path.home() / ("/".join(tournament_path.split("/")[1:]))
+        tournament_path = (pathlib.Path(tournament_path) / name).absolute()
+    if tournament_path.exists():
+        shutil.rmtree(tournament_path, ignore_errors=False)
     tournament_path.mkdir(parents=True, exist_ok=True)
     if verbose:
         print(f"Results of Tournament {name} will be saved to {str(tournament_path)}")
