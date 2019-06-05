@@ -944,7 +944,12 @@ class AveragingNegotiatorUtility(NegotiatorUtility):
         optimism: float = 0.5,
         avoid_free_sale: bool = True,
     ):
-        NamedObject.__init__(self=self, name=name)
+        super().__init__(
+            agent=agent,
+            annotation=annotation,
+            name=name,
+            avoid_free_sales=avoid_free_sale,
+        )
         self.avoid_free_sales = avoid_free_sale
         self.optimism = optimism
         self.optimistic = OptimisticNegotiatorUtility(
