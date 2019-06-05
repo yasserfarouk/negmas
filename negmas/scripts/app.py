@@ -314,16 +314,27 @@ def tournament(
             print(
                 f"You are running the maximum possible number of permutations for each configuration. This is roughly"
                 f" {n_worlds} simulations (each for {steps} steps). That will take a VERY long time."
-                f"\n\nYou can reduce the number of simulations by setting --configs (currently {configs}) or --runs"
-                f" (currently {runs}) to a lower value. "
+                f"\n\nYou can reduce the number of simulations by setting --configs>=1 (currently {configs}) or "
+                f"--runs>= 1 (currently {runs}) to a lower value. "
                 f"\nFinally, you can limit the maximum number of worlds to run by setting --max-runs=integer."
             )
-            if (
-                not input(f"Are you sure you want to run {n_worlds} simulations?")
-                .lower()
-                .startswith("y")
-            ):
-                exit(0)
+            # if (
+            #     not input(f"Are you sure you want to run {n_worlds} simulations?")
+            #     .lower()
+            #     .startswith("y")
+            # ):
+            #     exit(0)
+            max_runs = int(
+                input(
+                    f"Input the maximum number of simulations to run. Zero to run all of the {n_worlds} "
+                    f"simulations. ^C to exit"
+                )
+            )
+            if max_runs <= 0:
+                max_runs = None
+            worlds_per_config = (
+                None if max_runs is None else int(round(max_runs / (configs * runs)))
+            )
 
     if len(jcompetitors) > 0:
         print("You are using java-competitors. The tournament will be run serially")

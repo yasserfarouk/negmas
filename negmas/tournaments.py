@@ -11,6 +11,7 @@ import time
 import traceback
 import warnings
 from dataclasses import dataclass, field
+from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
 from typing import Optional, List, Callable, Union, Type, Sequence, Dict, Any, Tuple
@@ -516,7 +517,8 @@ def tournament(
         tournament_path: Path at which to store all results. A scores.csv file will keep the scores and logs folder will
                          keep detailed logs
         parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
-                     distributed!
+                     distributed! For parallel, you can add the fraction of CPUs to use after a colon (e.g. parallel:0.5
+                     to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
         world_progress_callback: A function to be called after every step of every world run (only allowed for serial
@@ -757,8 +759,16 @@ def tournament(
                     tournament_progress_callback(None, i, n_world_configs)
                 print(traceback.format_exc())
                 print(e)
-    elif parallelism in multiprocessing_options:
-        executor = futures.ProcessPoolExecutor(max_workers=None)
+    elif any(parallelism.startswith(_) for _ in multiprocessing_options):
+        fraction = None
+        parallelism = parallelism.split(":")
+        if len(parallelism) != 1:
+            fraction = float(parallelism[-1])
+        parallelism = parallelism[0]
+        max_workers = (
+            fraction if fraction is None else max(1, int(fraction * cpu_count()))
+        )
+        executor = futures.ProcessPoolExecutor(max_workers=max_workers)
         future_results = []
         for worlds_params in assigned:
             future_results.append(
