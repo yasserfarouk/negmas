@@ -60,10 +60,8 @@ __all__ = [
 
 
 class DefaultGreedyManager(GreedyFactoryManager):
-    def __init__(self, name):
-        super().__init__(
-            name=name, reserved_value=0.0, max_insurance_premium=float("-inf")
-        )
+    def __init__(self, *args, reserved_value=None, **kwargs):
+        super().__init__(*args, reserved_value=0.0, **kwargs)
 
 
 def integer_cut(n: int, l: int, l_m: Union[int, List[int]]) -> List[int]:
