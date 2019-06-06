@@ -60,8 +60,20 @@ __all__ = [
 
 
 class DefaultGreedyManager(GreedyFactoryManager):
-    def __init__(self, *args, reserved_value=None, **kwargs):
-        super().__init__(*args, reserved_value=0.0, **kwargs)
+    def __init__(self, *args, reserved_value=None, negotiator_params=None, **kwargs):
+        r = random()
+        if r < 0.25:
+            aspiration_type = "conceder"
+        elif r < 0.5:
+            aspiration_type = "linear"
+        else:
+            aspiration_type = "boulware"
+        super().__init__(
+            *args,
+            reserved_value=0.0,
+            negotiator_params={"aspiration_type": aspiration_type},
+            **kwargs,
+        )
 
 
 def integer_cut(n: int, l: int, l_m: Union[int, List[int]]) -> List[int]:
@@ -1120,6 +1132,8 @@ def anac2019_tournament(
         verbose=verbose,
         compact=compact,
         configs_only=configs_only,
+        non_competitors=None,
+        non_competitor_params=None,
         **kwargs,
     )
 
@@ -1192,6 +1206,9 @@ def anac2019_std(
         processing
 
     """
+    if non_competitors is None:
+        non_competitors = (DefaultGreedyManager,)
+        non_competitor_params = ({},)
     return tournament(
         competitors=competitors,
         competitor_params=competitor_params,
@@ -1292,6 +1309,9 @@ def anac2019_collusion(
         processing
 
     """
+    if non_competitors is None:
+        non_competitors = (DefaultGreedyManager,)
+        non_competitor_params = ({},)
     return tournament(
         competitors=competitors,
         competitor_params=competitor_params,
@@ -1392,6 +1412,10 @@ def anac2019_sabotage(
         processing
 
     """
+    if non_competitors is None:
+        non_competitors = (DefaultGreedyManager,)
+        non_competitor_params = ({},)
+
     return tournament(
         competitors=competitors,
         competitor_params=competitor_params,

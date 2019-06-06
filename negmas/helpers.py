@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import pathlib
+import pickle
 import string
 import sys
 from typing import (
@@ -877,7 +878,7 @@ def import_by_name(full_name: str) -> Any:
     parts = full_name.split(".")
     modules = parts[:-1]
     module_name = ".".join(modules)
-    item_name = parts[:-1]
+    item_name = parts[-1]
     if len(modules) < 1:
         raise ValueError(
             f"Cannot get the object {item_name} in module {module_name}  (modules {modules})"
@@ -941,9 +942,9 @@ def humanize_time(secs, align=False, always_show_all_units=False):
     return ":".join(parts)
 
 
-def dump(d: Any, file_name: Union[str, os.PathLike]) -> None:
+def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
     """
-    Saved an object depending on the extension of the file given. If the filename given has no extension,
+    Saves an object depending on the extension of the file given. If the filename given has no extension,
     `DEFAULT_DUMP_EXTENSION` will be used
 
     Args:
@@ -970,8 +971,43 @@ def dump(d: Any, file_name: Union[str, os.PathLike]) -> None:
     elif file_name.suffix == ".yaml":
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
+    elif file_name.suffix == ".pickle":
+        with open(file_name, "wb") as f:
+            pickle.dump(d, f)
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
+
+
+def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
+    """
+    Loads an object depending on the extension of the file given. If the filename given has no extension,
+    `DEFAULT_DUMP_EXTENSION` will be used
+
+    Args:
+        file_name: file name
+
+    Remarks:
+
+        - Supported formats are json, yaml
+        - If None is given, the file will be created but will be empty
+
+    """
+    file_name = pathlib.Path(file_name).expanduser().absolute()
+    if file_name.suffix == "":
+        file_name = pathlib.Path(str(file_name) + "." + DEFAULT_DUMP_EXTENSION)
+    d = {}
+    if file_name.suffix == ".json":
+        with open(file_name, "r") as f:
+            d = json.load(f)
+    elif file_name.suffix == ".yaml":
+        with open(file_name, "r") as f:
+            yaml.safe_load(f)
+    elif file_name.suffix == ".pickle":
+        with open(file_name, "rb") as f:
+            d = pickle.load(f)
+    else:
+        raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
+    return d
 
 
 def add_records(
