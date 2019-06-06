@@ -28,4 +28,4 @@ def test_sabotage():
     results = anac2019_sabotage(competitors=[DoNothingFactoryManager, Greedy1], n_steps=5, n_configs=1
                                 , n_runs_per_world=1, min_factories_per_level=1, n_default_managers=1
                                 , n_agents_per_competitor=2)
-    assert len(results.total_scores) == 2
+    assert len(results.total_scores) >= 2

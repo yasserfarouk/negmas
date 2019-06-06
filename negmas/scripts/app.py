@@ -2,6 +2,7 @@
 """The NegMAS universal command line tool"""
 import json
 import os
+import pathlib
 import sys
 import traceback
 import urllib.request
@@ -23,9 +24,18 @@ from tabulate import tabulate
 import negmas
 from negmas import save_stats
 from negmas.apps.scml import *
-from negmas.apps.scml.utils import anac2019_sabotage
+from negmas.apps.scml.utils import (
+    anac2019_sabotage,
+    anac2019_world_generator,
+    anac2019_config_generator,
+    anac2019_assigner,
+    anac2019_sabotage_config_generator,
+    anac2019_sabotage_assigner,
+    sabotage_effectiveness,
+)
 from negmas.helpers import humanize_time, unique_name, camel_case
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
+from negmas.tournaments import create_tournament, run_tournament, evaluate_tournament
 
 try:
     # disable a warning in yaml 1b1 version
@@ -71,7 +81,207 @@ def cli():
     pass
 
 
-@cli.command(help="Run a tournament between candidate agent types")
+@cli.group(chain=True, invoke_without_command=True)
+@click.pass_context
+def tournament(ctx):
+    ctx.obj = {}
+
+
+# @cli.group(invoke_without_command=True)
+# @click.option(
+#     "--name",
+#     "-n",
+#     default="random",
+#     help='The name of the tournament. The special value "random" will result in a random name',
+# )
+# @click.option("--steps", "-s", default=100, help="Number of steps.")
+# @click.option(
+#     "--ttype",
+#     "--tournament-type",
+#     "--tournament",
+#     default="anac2019collusion",
+#     type=click.Choice(["anac2019collusion", "anac2019std", "anac2019sabotage"]),
+#     help="The config to use. Default is ANAC 2019. Options supported are anac2019std, anac2019collusion, "
+#     "anac2019sabotage",
+# )
+# @click.option(
+#     "--timeout",
+#     "-t",
+#     default=0,
+#     type=int,
+#     help="Timeout the whole tournament after the given number of seconds (0 for infinite)",
+# )
+# @click.option(
+#     "--configs",
+#     default=5,
+#     type=int,
+#     help="Number of unique configurations to generate.",
+# )
+# @click.option("--runs", default=2, help="Number of runs for each configuration")
+# @click.option(
+#     "--max-runs",
+#     default=-1,
+#     type=int,
+#     help="Maximum total number of runs. Zero or negative numbers mean no limit",
+# )
+# @click.option(
+#     "--agents",
+#     default=5,
+#     type=int,
+#     help="Number of agents per competitor (not used for anac2019std in which this is preset to 1).",
+# )
+# @click.option(
+#     "--factories",
+#     default=5,
+#     type=int,
+#     help="Minimum numbers of factories to have per level.",
+# )
+# @click.option(
+#     "--competitors",
+#     default="DoNothingFactoryManager;GreedyFactoryManager",
+#     help="A semicolon (;) separated list of agent types to use for the competition.",
+# )
+# @click.option(
+#     "--jcompetitors",
+#     "--java-competitors",
+#     default="",
+#     help="A semicolon (;) separated list of agent types to use for the competition.",
+# )
+# @click.option(
+#     "--non-competitors",
+#     default="",
+#     help="A semicolon (;) separated list of agent types to exist in the worlds as non-competitors "
+#     "(their scores will not be calculated).",
+# )
+# @click.option(
+#     "--parallel/--serial",
+#     default=True,
+#     help="Run a parallel/serial tournament on a single machine",
+# )
+# @click.option(
+#     "--distributed/--single-machine",
+#     default=False,
+#     help="Run a distributed tournament using dask",
+# )
+# @click.option(
+#     "--log",
+#     "-l",
+#     type=click.Path(dir_okay=True, file_okay=False),
+#     default="~/negmas/logs/tournaments",
+#     help="Default location to save logs (A folder will be created under it)",
+# )
+# @click.option(
+#     "--verbosity",
+#     default=1,
+#     type=int,
+#     help="verbosity level (from 0 == silent to 1 == world progress)",
+# )
+# @click.option("--configs-only/--run", default=False, help="configs_only")
+# @click.option(
+#     "--reveal-names/--hidden-names",
+#     default=True,
+#     help="Reveal agent names (should be used only for " "debugging)",
+# )
+# @click.option(
+#     "--ip",
+#     default="127.0.0.1",
+#     help="The IP address for a dask scheduler to run the distributed tournament."
+#     " Effective only if --distributed",
+# )
+# @click.option(
+#     "--port",
+#     default=8786,
+#     type=int,
+#     help="The IP port number a dask scheduler to run the distributed tournament."
+#     " Effective only if --distributed",
+# )
+# @click.option(
+#     "--log-ufuns/--no-ufun-logs",
+#     default=False,
+#     help="Log ufuns into their own CSV file. Only effective if --debug is given",
+# )
+# @click.option(
+#     "--log-negs/--no-neg-logs",
+#     default=False,
+#     help="Log all negotiations. Only effective if --debug is given",
+# )
+# @click.option(
+#     "--compact/--debug",
+#     default=True,
+#     help="If True, effort is exerted to reduce the memory footprint which"
+#     "includes reducing logs dramatically.",
+# )
+# @click.option(
+#     "--raise-exceptions/--ignore-exceptions",
+#     default=True,
+#     help="Whether to ignore agent exceptions",
+# )
+# @click.option(
+#     "--path",
+#     default="",
+#     help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
+#     "paths on linux/mac and a ; separated list in windows",
+# )
+# @click_config_file.configuration_option()
+# def tournament(
+#     name,
+#     steps,
+#     parallel,
+#     distributed,
+#     ttype,
+#     timeout,
+#     log,
+#     verbosity,
+#     configs_only,
+#     reveal_names,
+#     ip,
+#     port,
+#     runs,
+#     configs,
+#     max_runs,
+#     competitors,
+#     jcompetitors,
+#     non_competitors,
+#     compact,
+#     factories,
+#     agents,
+#     log_ufuns,
+#     log_negs,
+#     path,
+#     raise_exceptions,
+# ):
+#     if name == "random":
+#         name = unique_name("", rand_digits=0)
+#     create(
+#         name,
+#         steps,
+#         parallel,
+#         distributed,
+#         ttype,
+#         timeout,
+#         log,
+#         verbosity,
+#         reveal_names,
+#         ip,
+#         port,
+#         runs,
+#         configs,
+#         max_runs,
+#         competitors,
+#         jcompetitors,
+#         non_competitors,
+#         compact,
+#         factories,
+#         agents,
+#         log_ufuns,
+#         log_negs,
+#         raise_exceptions,
+#     )
+#     if not configs_only:
+#         run(name, verbosity, distributed, compact, path, log)
+
+
+@tournament.command(help="Creates a tournament")
 @click.option(
     "--name",
     "-n",
@@ -133,19 +343,9 @@ def cli():
 )
 @click.option(
     "--non-competitors",
-    default="GreedyFactoryManager",
+    default="",
     help="A semicolon (;) separated list of agent types to exist in the worlds as non-competitors "
     "(their scores will not be calculated).",
-)
-@click.option(
-    "--parallel/--serial",
-    default=True,
-    help="Run a parallel/serial tournament on a single machine",
-)
-@click.option(
-    "--distributed/--single-machine",
-    default=False,
-    help="Run a distributed tournament using dask",
 )
 @click.option(
     "--log",
@@ -160,24 +360,10 @@ def cli():
     type=int,
     help="verbosity level (from 0 == silent to 1 == world progress)",
 )
-@click.option("--configs-only/--run", default=False, help="configs_only")
 @click.option(
     "--reveal-names/--hidden-names",
     default=True,
     help="Reveal agent names (should be used only for " "debugging)",
-)
-@click.option(
-    "--ip",
-    default="127.0.0.1",
-    help="The IP address for a dask scheduler to run the distributed tournament."
-    " Effective only if --distributed",
-)
-@click.option(
-    "--port",
-    default=8786,
-    type=int,
-    help="The IP port number a dask scheduler to run the distributed tournament."
-    " Effective only if --distributed",
 )
 @click.option(
     "--log-ufuns/--no-ufun-logs",
@@ -200,26 +386,17 @@ def cli():
     default=True,
     help="Whether to ignore agent exceptions",
 )
-@click.option(
-    "--path",
-    default="",
-    help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
-    "paths on linux/mac and a ; separated list in windows",
-)
 @click_config_file.configuration_option()
-def tournament(
+@click.pass_context
+def create(
+    ctx,
     name,
     steps,
-    parallel,
-    distributed,
     ttype,
     timeout,
     log,
     verbosity,
-    configs_only,
     reveal_names,
-    ip,
-    port,
     runs,
     configs,
     max_runs,
@@ -231,15 +408,13 @@ def tournament(
     agents,
     log_ufuns,
     log_negs,
-    path,
     raise_exceptions,
 ):
-    if len(path) > 0:
-        sys.path.append(path)
     if timeout <= 0:
         timeout = None
     if name == "random":
-        name = None
+        name = unique_name(base="", rand_digits=0)
+    ctx.obj["tournament_name"] = name
     if max_runs <= 0:
         max_runs = None
     if compact:
@@ -257,13 +432,6 @@ def tournament(
         None if max_runs is None else int(round(max_runs / (configs * runs)))
     )
 
-    parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
-
-    non_competitors = non_competitors.split(";")
-    for i, cp in enumerate(non_competitors):
-        if "." not in cp:
-            non_competitors[i] = "negmas.apps.scml.factory_managers." + cp
-
     all_competitors = competitors.split(";")
     for i, cp in enumerate(all_competitors):
         if "." not in cp:
@@ -280,7 +448,6 @@ def tournament(
         all_competitors += jcompetitors
         all_competitors_params += jcompetitor_params
         print("You are using some Java agents. The tournament MUST run serially")
-        parallelism = "serial"
         if not jnegmas_bridge_is_running():
             print(
                 "Error: You are using java competitors but jnegmas bridge is not running\n\nTo correct this issue"
@@ -288,7 +455,6 @@ def tournament(
                 "$ negmas jnegmas"
             )
             exit(1)
-    prog_callback = print_world_progress if verbosity > 1 and not distributed else None
 
     recommended = runs * configs * factorial(len(all_competitors))
     if worlds_per_config is not None and worlds_per_config < 1:
@@ -327,11 +493,13 @@ def tournament(
             max_runs = int(
                 input(
                     f"Input the maximum number of simulations to run. Zero to run all of the {n_worlds} "
-                    f"simulations. ^C to exit"
+                    f"simulations. ^C or a negative number to exit [0 : {n_worlds}]:"
                 )
             )
-            if max_runs <= 0:
+            if max_runs == 0:
                 max_runs = None
+            if max_runs is not None and max_runs < 0:
+                exit(0)
             worlds_per_config = (
                 None if max_runs is None else int(round(max_runs / (configs * runs)))
             )
@@ -340,52 +508,86 @@ def tournament(
         print("You are using java-competitors. The tournament will be run serially")
         parallelism = "serial"
 
-    start = perf_counter()
+    non_competitor_params = None
+    if len(non_competitors) < 1:
+        non_competitors = None
+    else:
+        non_competitors = non_competitors.split(";")
+        for i, cp in enumerate(non_competitors):
+            if "." not in cp:
+                non_competitors[i] = "negmas.apps.scml.factory_managers." + cp
+
     if ttype.lower() == "anac2019std":
-        results = anac2019_std(
+        if non_competitors is None:
+            non_competitors = (DefaultGreedyManager,)
+            non_competitor_params = ({},)
+        results = create_tournament(
             competitors=all_competitors,
             competitor_params=all_competitors_params,
+            non_competitors=non_competitors,
+            non_competitor_params=non_competitor_params,
             agent_names_reveal_type=reveal_names,
-            tournament_path=log,
+            n_configs=configs,
+            n_runs_per_world=runs,
+            max_worlds_per_config=worlds_per_config,
+            base_tournament_path=log,
             total_timeout=timeout,
-            parallelism=parallelism,
-            scheduler_ip=ip,
-            scheduler_port=port,
-            world_progress_callback=prog_callback,
             name=name,
             verbose=verbosity > 0,
-            n_runs_per_world=runs,
-            n_configs=configs,
-            max_worlds_per_config=worlds_per_config,
-            non_competitors=non_competitors,
-            configs_only=configs_only,
+            n_agents_per_competitor=1,
+            world_generator=anac2019_world_generator,
+            config_generator=anac2019_config_generator,
+            config_assigner=anac2019_assigner,
+            score_calculator=balance_calculator,
             min_factories_per_level=factories,
-            n_steps=steps,
             compact=compact,
+            n_steps=steps,
             log_ufuns=log_ufuns,
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
             ignore_contract_execution_exceptions=not raise_exceptions,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
-        results = anac2019_collusion(
+        results = create_tournament(
+            competitors=all_competitors,
+            competitor_params=all_competitors_params,
+            non_competitors=non_competitors,
+            non_competitor_params=non_competitor_params,
+            agent_names_reveal_type=reveal_names,
+            n_configs=configs,
+            n_runs_per_world=runs,
+            max_worlds_per_config=worlds_per_config,
+            base_tournament_path=log,
+            total_timeout=timeout,
+            name=name,
+            verbose=verbosity > 0,
+            n_agents_per_competitor=5,
+            world_generator=anac2019_world_generator,
+            config_generator=anac2019_config_generator,
+            config_assigner=anac2019_assigner,
+            score_calculator=balance_calculator,
+            min_factories_per_level=factories,
+            compact=compact,
+            n_steps=steps,
+            log_ufuns=log_ufuns,
+            log_negotiations=log_negs,
+            ignore_agent_exceptions=not raise_exceptions,
+            ignore_contract_execution_exceptions=not raise_exceptions,
+        )
+    elif ttype.lower() == "anac2019sabotage":
+        results = create_tournament(
             competitors=all_competitors,
             competitor_params=all_competitors_params,
             agent_names_reveal_type=reveal_names,
             n_agents_per_competitor=agents,
-            tournament_path=log,
+            base_tournament_path=log,
             total_timeout=timeout,
-            parallelism=parallelism,
-            scheduler_ip=ip,
-            scheduler_port=port,
-            world_progress_callback=prog_callback,
             name=name,
             verbose=verbosity > 0,
             n_runs_per_world=runs,
             n_configs=configs,
             max_worlds_per_config=worlds_per_config,
             non_competitors=non_competitors,
-            configs_only=configs_only,
             min_factories_per_level=factories,
             n_steps=steps,
             compact=compact,
@@ -393,40 +595,101 @@ def tournament(
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
             ignore_contract_execution_exceptions=not raise_exceptions,
+            non_competitor_params=non_competitor_params,
+            world_generator=anac2019_world_generator,
+            config_generator=anac2019_sabotage_config_generator,
+            config_assigner=anac2019_sabotage_assigner,
+            score_calculator=sabotage_effectiveness,
         )
     else:
-        results = anac2019_sabotage(
-            competitors=all_competitors,
-            competitor_params=all_competitors_params,
-            agent_names_reveal_type=reveal_names,
-            n_agents_per_competitor=agents,
-            tournament_path=log,
-            total_timeout=timeout,
-            parallelism=parallelism,
-            scheduler_ip=ip,
-            scheduler_port=port,
-            world_progress_callback=prog_callback,
-            name=name,
-            verbose=verbosity > 0,
-            n_runs_per_world=runs,
-            n_configs=configs,
-            max_worlds_per_config=worlds_per_config,
-            non_competitors=non_competitors,
-            configs_only=configs_only,
-            min_factories_per_level=factories,
-            n_steps=steps,
-            compact=compact,
-            log_ufuns=log_ufuns,
-            log_negotiations=log_negs,
-            ignore_agent_exceptions=not raise_exceptions,
-            ignore_contract_execution_exceptions=not raise_exceptions,
+        raise ValueError(f"Unknown tournament type {ttype}")
+    ctx.obj["tournament_name"] = results.name
+    print(f"Saved all configs to {str(results)}\nTournament name is {results.name}")
+
+
+@tournament.command(help="Runs/continues a tournament")
+@click.option(
+    "--name",
+    "-n",
+    default="",
+    help="The name of the tournament. When invoked after create, there is no need to pass it",
+)
+@click.option(
+    "--log",
+    "-l",
+    type=click.Path(dir_okay=True, file_okay=False),
+    default="~/negmas/logs/tournaments",
+    help="Default location to save logs",
+)
+@click.option(
+    "--verbosity",
+    default=1,
+    type=int,
+    help="verbosity level (from 0 == silent to 1 == world progress)",
+)
+@click.option(
+    "--parallel/--serial",
+    default=True,
+    help="Run a parallel/serial tournament on a single machine",
+)
+@click.option(
+    "--distributed/--single-machine",
+    default=False,
+    help="Run a distributed tournament using dask",
+)
+@click.option(
+    "--ip",
+    default="127.0.0.1",
+    help="The IP address for a dask scheduler to run the distributed tournament."
+    " Effective only if --distributed",
+)
+@click.option(
+    "--port",
+    default=8786,
+    type=int,
+    help="The IP port number a dask scheduler to run the distributed tournament."
+    " Effective only if --distributed",
+)
+@click.option(
+    "--compact/--debug",
+    default=True,
+    help="If True, effort is exerted to reduce the memory footprint which"
+    "includes reducing logs dramatically.",
+)
+@click.option(
+    "--path",
+    default="",
+    help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
+    "paths on linux/mac and a ; separated list in windows",
+)
+@click_config_file.configuration_option()
+@click.pass_context
+def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, log):
+    if len(name) == 0:
+        name = ctx.obj.get("tournament_name", "")
+    if len(name) == 0:
+        print(
+            "Name is not given to run command and was not stored during a create command call"
         )
-    if configs_only:
-        print(f"Saved all configs to {str(results)}")
-        print(f"Finished in {humanize_time(perf_counter() - start)} [config-only]")
-        return
+        exit(1)
+    if len(path) > 0:
+        sys.path.append(path)
+    parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
+    prog_callback = print_world_progress if verbosity > 1 and not distributed else None
+    tpath = str(pathlib.Path(log) / name)
+    start = perf_counter()
+    run_tournament(
+        tournament_path=tpath,
+        verbose=verbosity > 0,
+        compact=compact,
+        world_progress_callback=prog_callback,
+        parallelism=parallelism,
+        scheduler_ip=ip,
+        scheduler_port=port,
+    )
+    results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0)
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
-    print(f"Finished in {humanize_time(perf_counter() - start)} [{parallelism}]")
+    print(f"Finished in {humanize_time(perf_counter() - start)}")
 
 
 @cli.command(help="Run an SCML world simulation")
