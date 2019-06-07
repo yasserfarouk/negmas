@@ -976,13 +976,9 @@ def create_tournament(
             f"tournament path {str(tournament_path)} is a file. Cannot continue"
         )
     if tournament_path.exists():
-        name = unique_name(name, add_time=True, rand_digits=0)
-        tournament_path = original_tournament_path
-        if tournament_path.startswith("~"):
-            tournament_path = Path.home() / ("/".join(tournament_path.split("/")[1:]))
-        tournament_path = (pathlib.Path(tournament_path) / name).absolute()
-    if tournament_path.exists():
-        shutil.rmtree(tournament_path, ignore_errors=False)
+        raise ValueError(
+            f"tournament path {str(tournament_path)} exists. You cannot create two tournaments in the same place"
+        )
     tournament_path.mkdir(parents=True, exist_ok=True)
     if verbose:
         print(f"Results of Tournament {name} will be saved to {str(tournament_path)}")
