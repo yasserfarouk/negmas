@@ -713,7 +713,7 @@ def run_tournament(
     if scores_file.exists():
         tmp_ = pd.read_csv(scores_file)
         if "run_id" in tmp_.columns:
-            run_ids = set(tmp_["run_ids"].values)
+            run_ids = set(tmp_["run_id"].values)
 
     scores_file = str(scores_file)
     dask_options = ("dist", "distributed", "dask", "d")
