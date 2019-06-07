@@ -133,6 +133,9 @@ class ConfigAssigner(Protocol):
          max_n_worlds: Maximum allowed number of worlds to generate from this config
          n_agents_per_competitor: Number of agents to instantiate for each competitor
          competitors: A list of `Agent` types that can be used to create the competitors
+         fair: If true, each competitor must be assigned to each unique config the same number of times. If max_n_worlds
+               is None, this parameter has no effect, otherwise the nearest number of worlds to max_n_worlds that
+               guarantee fairness will be used which may be > max_n_worlds
          params: A list of parameters to pass to the agent types
 
      See Also:
@@ -146,6 +149,7 @@ class ConfigAssigner(Protocol):
         config: List[Dict[str, Any]],
         max_n_worlds: int,
         n_agents_per_competitor: int = 1,
+        fair: bool = True,
         competitors: Sequence[Type[Agent]] = (),
         params: Sequence[Dict[str, Any]] = (),
     ) -> List[List[Dict[str, Any]]]:
