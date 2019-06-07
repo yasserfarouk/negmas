@@ -650,7 +650,7 @@ def run_tournament(
     world_progress_callback: Callable[[Optional[World]], None] = None,
     verbose: bool = False,
     compact: bool = None,
-) -> TournamentResults:
+) -> None:
     """
     Runs a tournament
 
@@ -675,9 +675,6 @@ def run_tournament(
                                       processing
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
-        
-    Returns:
-        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
 
     """
     tournament_path = _path(tournament_path)
@@ -726,6 +723,7 @@ def run_tournament(
     assert world_progress_callback is None or parallelism not in dask_options, (
         f"Cannot use {parallelism} with a " f"world callback"
     )
+
     if parallelism in serial_options:
         strt = time.perf_counter()
         for i, worlds_params in enumerate(assigned):
@@ -862,18 +860,8 @@ def run_tournament(
             scores_file,
             run_ids,
         )
-
-    n_world_configs = len(assigned)
-
     if verbose:
-        print(
-            f"Will run {n_world_configs}  total world simulations ({parallelism})",
-            flush=True,
-        )
-    if verbose:
-        print(f"Finding winners")
         print(f"Tournament completed successfully")
-    return evaluate_tournament(tournament_path, verbose=verbose)
 
 
 def create_tournament(
@@ -1198,7 +1186,6 @@ def evaluate_tournament(
                 scores[scores["agent_type"] == t2].score,
             )
             ttest_results.append({"a": t1, "b": t2, "t": t, "p": p})
-
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
 
@@ -1207,6 +1194,9 @@ def evaluate_tournament(
     winner_table.to_csv(str(tournament_path / "winners.csv"), index_label="index")
     ttest_results = pd.DataFrame(data=ttest_results)
     ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
+
+    if verbose:
+        print(f"N. scores = {len(scores)}\tN. Worlds = {len(scores.world.unique())}")
 
     return TournamentResults(
         scores=scores,
