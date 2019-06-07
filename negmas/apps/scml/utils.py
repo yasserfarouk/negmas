@@ -60,7 +60,21 @@ __all__ = [
 
 
 class DefaultGreedyManager(GreedyFactoryManager):
-    def __init__(self, *args, reserved_value=None, negotiator_params=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        reserved_value=0.0,
+        negotiator_params=None,
+        optimism=0.5,
+        negotiator_type=DEFAULT_NEGOTIATOR,
+        n_retrials=2,
+        use_consumer=True,
+        reactive=True,
+        sign_only_guaranteed_contracts=False,
+        riskiness=0.0,
+        max_insurance_premium: float = 0.1,
+        **kwargs,
+    ):
         r = random()
         if r < 0.25:
             aspiration_type = "conceder"
@@ -68,10 +82,21 @@ class DefaultGreedyManager(GreedyFactoryManager):
             aspiration_type = "linear"
         else:
             aspiration_type = "boulware"
+        if negotiator_params is None:
+            negotiator_params = {}
+        negotiator_params.update({"aspiration_type": aspiration_type})
         super().__init__(
             *args,
-            reserved_value=0.0,
-            negotiator_params={"aspiration_type": aspiration_type},
+            reserved_value=reserved_value,
+            negotiator_params=negotiator_params,
+            optimism=optimism,
+            n_retrials=n_retrials,
+            use_consumer=use_consumer,
+            reactive=reactive,
+            sign_only_guaranteed_contracts=sign_only_guaranteed_contracts,
+            riskiness=riskiness,
+            max_insurance_premium=max_insurance_premium,
+            negotiator_type=negotiator_type,
             **kwargs,
         )
 
@@ -145,7 +170,7 @@ def anac2019_sabotage_config_generator(
     *,
     consumption_schedule: Tuple[int, int] = (0, 5),
     consumption_horizon: Tuple[int, int] = (10, 15),
-    n_retrials: Union[int, Tuple[int, int]] = 5,
+    n_retrials: Union[int, Tuple[int, int]] = 2,
     negotiator_type: str = DEFAULT_NEGOTIATOR,
     n_steps: Union[int, Tuple[int, int]] = (50, 100),
     n_miners: Union[int, Tuple[int, int]] = 5,
@@ -192,7 +217,7 @@ def anac2019_config_generator(
     *,
     consumption_schedule: Tuple[int, int] = (0, 5),
     consumption_horizon: Tuple[int, int] = (10, 15),
-    n_retrials: Union[int, Tuple[int, int]] = 5,
+    n_retrials: Union[int, Tuple[int, int]] = 2,
     negotiator_type: str = DEFAULT_NEGOTIATOR,
     n_steps: Union[int, Tuple[int, int]] = (50, 100),
     n_miners: Union[int, Tuple[int, int]] = 5,
@@ -200,7 +225,8 @@ def anac2019_config_generator(
     profile_cost: Tuple[float, float] = (1, 4),
     profile_time: Union[int, Tuple[int, int]] = 1,
     n_intermediate: Tuple[int, int] = (1, 4),
-    min_factories_per_level: int = 5,
+    min_factories_per_level: int = 5,  # strictly guaranteed
+    max_factories_per_level: int = 8,  # not strictly guaranteed
     n_default_managers: Tuple[int, int] = (1, 4),
     n_lines: int = 10,
     **kwargs,
@@ -282,6 +308,8 @@ def anac2019_config_generator(
     for i, n_a in enumerate(n_a_list):
         if n_a + n_defaults[i] < min_factories_per_level:
             n_defaults[i] += min_factories_per_level - (n_a + n_defaults[i])
+        if n_a + n_defaults[i] > max_factories_per_level and n_defaults[i] > 1:
+            n_defaults[i] = 1
     n_f_list = [a + b for a, b in zip(n_defaults, n_a_list)]
     n_factories = sum(n_f_list)
 
