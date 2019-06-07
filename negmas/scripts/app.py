@@ -410,6 +410,7 @@ def create(
     log_negs,
     raise_exceptions,
 ):
+    n_colluding_agents = 3
     if timeout <= 0:
         timeout = None
     if name == "random":
@@ -518,6 +519,14 @@ def create(
                 non_competitors[i] = "negmas.apps.scml.factory_managers." + cp
 
     if ttype.lower() == "anac2019std":
+        if (
+            "negmas.apps.scml.factory_managers.GreedyFactoryManager"
+            not in all_competitors
+        ):
+            all_competitors.append(
+                "negmas.apps.scml.factory_managers.GreedyFactoryManager"
+            )
+            all_competitors_params.append({})
         if non_competitors is None:
             non_competitors = (DefaultGreedyManager,)
             non_competitor_params = ({},)
@@ -561,7 +570,7 @@ def create(
             total_timeout=timeout,
             name=name,
             verbose=verbosity > 0,
-            n_agents_per_competitor=5,
+            n_agents_per_competitor=n_colluding_agents,
             world_generator=anac2019_world_generator,
             config_generator=anac2019_config_generator,
             config_assigner=anac2019_assigner,
@@ -748,7 +757,7 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
 @click.option("--lines", default=10, help="The number of lines per factory")
 @click.option(
     "--retrials",
-    default=5,
+    default=2,
     type=int,
     help="The number of times an agent re-tries on failed negotiations",
 )
