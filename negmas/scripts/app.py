@@ -411,6 +411,7 @@ def create(
     raise_exceptions,
 ):
     n_colluding_agents = 3
+    warning_n_runs = 200
     if timeout <= 0:
         timeout = None
     if name == "random":
@@ -457,6 +458,16 @@ def create(
             )
             exit(1)
 
+    if ttype.lower() == "anac2019std":
+        if (
+            "negmas.apps.scml.factory_managers.GreedyFactoryManager"
+            not in all_competitors
+        ):
+            all_competitors.append(
+                "negmas.apps.scml.factory_managers.GreedyFactoryManager"
+            )
+            all_competitors_params.append({})
+
     recommended = runs * configs * factorial(len(all_competitors))
     if worlds_per_config is not None and worlds_per_config < 1:
         print(
@@ -477,7 +488,7 @@ def create(
     if worlds_per_config is None:
         n_comp = len(all_competitors) if ttype != "anac2019sabotage" else 2
         n_worlds = factorial(n_comp) * runs * configs
-        if n_worlds > 100:
+        if n_worlds > warning_n_runs:
             print(
                 f"You are running the maximum possible number of permutations for each configuration. This is roughly"
                 f" {n_worlds} simulations (each for {steps} steps). That will take a VERY long time."
@@ -519,14 +530,6 @@ def create(
                 non_competitors[i] = "negmas.apps.scml.factory_managers." + cp
 
     if ttype.lower() == "anac2019std":
-        if (
-            "negmas.apps.scml.factory_managers.GreedyFactoryManager"
-            not in all_competitors
-        ):
-            all_competitors.append(
-                "negmas.apps.scml.factory_managers.GreedyFactoryManager"
-            )
-            all_competitors_params.append({})
         if non_competitors is None:
             non_competitors = (DefaultGreedyManager,)
             non_competitor_params = ({},)
