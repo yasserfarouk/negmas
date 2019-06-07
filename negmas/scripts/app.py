@@ -10,7 +10,7 @@ import warnings
 from functools import partial
 from math import factorial
 from pathlib import Path
-from pprint import pformat
+from pprint import pformat, pprint
 from time import perf_counter
 import numpy as np
 
@@ -530,6 +530,10 @@ def create(
         if non_competitors is None:
             non_competitors = (DefaultGreedyManager,)
             non_competitor_params = ({},)
+        print("Tournament will be run between: ")
+        pprint(all_competitors)
+        print("Non-competitors are: ")
+        pprint(non_competitors)
         results = create_tournament(
             competitors=all_competitors,
             competitor_params=all_competitors_params,
@@ -557,6 +561,10 @@ def create(
             ignore_contract_execution_exceptions=not raise_exceptions,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
+        print("Tournament will be run between: ")
+        pprint(all_competitors)
+        print("Non-competitors are: ")
+        pprint(non_competitors)
         results = create_tournament(
             competitors=all_competitors,
             competitor_params=all_competitors_params,
@@ -584,6 +592,10 @@ def create(
             ignore_contract_execution_exceptions=not raise_exceptions,
         )
     elif ttype.lower() == "anac2019sabotage":
+        print("Tournament will be run between: ")
+        pprint(all_competitors)
+        print("Non-competitors are: ")
+        pprint(non_competitors)
         results = create_tournament(
             competitors=all_competitors,
             competitor_params=all_competitors_params,
