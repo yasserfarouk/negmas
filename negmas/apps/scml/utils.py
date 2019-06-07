@@ -483,6 +483,7 @@ def anac2019_sabotage_assigner(
     config: List[Dict[str, Any]],
     max_n_worlds: int,
     n_agents_per_competitor: int = 1,
+    fair: bool = True,
     competitors: Sequence[Type[Agent]] = (),
     params: Sequence[Dict[str, Any]] = (),
 ) -> List[List[Dict[str, Any]]]:
@@ -607,11 +608,32 @@ def anac2019_sabotage_assigner(
         agent_params = ["competitor"] * n_agents_per_competitor + [_[1] for _ in others]
         permutation = list(zip(agents, agent_params))
         assert len(permutation) == len(assignable_factories)
-        for k in range(max_n_worlds):
-            for competitor, c_params in zip(competitors, params):
-                perm = copy.deepcopy(permutation)
-                shuffle(perm)
-                configs.append(_copy_config(perm, config, k, competitor, c_params))
+        if fair:
+            n_min = len(assignable_factories)
+            n_rounds = int(max_n_worlds // n_min)
+            if n_rounds < 1:
+                raise ValueError(
+                    f"Cannot guarantee fair assignment: n. competitors {len(assignable_factories)}, at least"
+                    f" {n_min} runs are needed for fair assignment"
+                )
+            max_n_worlds = n_rounds * n_min
+            k = 0
+            for _ in range(n_rounds):
+                shuffle(permutation)
+                for __ in range(n_min):
+                    k += 1
+                    for competitor, c_params in zip(competitors, params):
+                        perm = copy.deepcopy(permutation)
+                        perm = perm[-1:] + perm[:-1]
+                        configs.append(
+                            _copy_config(perm, config, k, competitor, c_params)
+                        )
+        else:
+            for k in range(max_n_worlds):
+                for competitor, c_params in zip(competitors, params):
+                    perm = copy.deepcopy(permutation)
+                    shuffle(perm)
+                    configs.append(_copy_config(perm, config, k, competitor, c_params))
 
     if agent_names_reveal_type:
         for config_set in configs:
@@ -645,6 +667,7 @@ def anac2019_assigner(
     config: List[Dict[str, Any]],
     max_n_worlds: int,
     n_agents_per_competitor: int = 1,
+    fair: bool = True,
     competitors: Sequence[Type[Agent]] = (),
     params: Sequence[Dict[str, Any]] = (),
 ) -> List[List[Dict[str, Any]]]:
@@ -698,10 +721,28 @@ def anac2019_assigner(
     else:
         permutation = list(zip(competitors, params))
         assert len(permutation) == len(assignable_factories)
-        for k in range(max_n_worlds):
-            perm = copy.deepcopy(permutation)
-            shuffle(perm)
-            configs.append(_copy_config(perm, config, k))
+        if fair:
+            n_min = len(assignable_factories)
+            n_rounds = int(max_n_worlds // n_min)
+            if n_rounds < 1:
+                raise ValueError(
+                    f"Cannot guarantee fair assignment: n. competitors {len(assignable_factories)}, at least"
+                    f" {n_min} runs are needed for fair assignment"
+                )
+            max_n_worlds = n_rounds * n_min
+            k = 0
+            for _ in range(n_rounds):
+                shuffle(permutation)
+                for __ in range(n_min):
+                    k += 1
+                    perm = copy.deepcopy(permutation)
+                    perm = perm[-1:] + perm[:-1]
+                    configs.append(_copy_config(perm, config, k))
+        else:
+            for k in range(max_n_worlds):
+                perm = copy.deepcopy(permutation)
+                shuffle(perm)
+                configs.append(_copy_config(perm, config, k))
 
     def shorten(long_name: str, d: Dict[str, Any]) -> str:
         if long_name.endswith("JavaFactoryManager"):
