@@ -166,6 +166,12 @@ class SAOMechanism(Mechanism):
         negotiators: List[SAONegotiator] = self.negotiators
         n_negotiators = len(negotiators)
 
+        def _safe_counter(neg, *args, **kwargs):
+            try:
+                return neg.counter(*args, **kwargs)
+            except:
+                return SAOResponse(ResponseType.END_NEGOTIATION, None)
+
         # if this is the first step which means that there is no _current_offer
         if self.ami.state.step == 0:
             assert self._current_offer is None
@@ -200,7 +206,7 @@ class SAOMechanism(Mechanism):
                     if not neg.capabilities.get("propose", False):
                         continue
                     strt = time.perf_counter()
-                    resp = neg.counter(state=self.state, offer=None)
+                    resp = _safe_counter(neg, state=self.state, offer=None)
                     if (
                         self.ami.step_time_limit is not None
                         and time.perf_counter() - strt > self.ami.step_time_limit
@@ -256,7 +262,7 @@ class SAOMechanism(Mechanism):
                 # when there is no risk of ultimatum (n_steps is not known), we just take one first offer.
                 neg = negotiators[_first_proposer]
                 strt = time.perf_counter()
-                resp = neg.counter(state=self.state, offer=None)
+                resp = _safe_counter(neg, state=self.state, offer=None)
                 if (
                     self.ami.step_time_limit is not None
                     and time.perf_counter() - strt > self.ami.step_time_limit
@@ -295,7 +301,7 @@ class SAOMechanism(Mechanism):
         for neg_indx in ordered_indices:
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
-            resp = neg.counter(state=self.state, offer=self._current_offer)
+            resp = _safe_counter(neg, state=self.state, offer=self._current_offer)
             if (
                 self.ami.step_time_limit is not None
                 and time.perf_counter() - strt > self.ami.step_time_limit
