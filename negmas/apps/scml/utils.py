@@ -184,7 +184,7 @@ def anac2019_sabotage_config_generator(
     **kwargs,
 ) -> List[Dict[str, Any]]:
     return anac2019_config_generator(
-        1 + (len(non_competitors) if non_competitors is not None else 1),
+        1,
         n_agents_per_competitor=n_agents_per_competitor,
         agent_names_reveal_type=agent_names_reveal_type,
         consumption_schedule=consumption_schedule,
@@ -496,17 +496,17 @@ def anac2019_sabotage_assigner(
     params = (
         list(params) if params is not None else [dict() for _ in range(n_competitors)]
     )
-    n_agents = n_agents_per_competitor * 2
     agent_names_reveal_type = config.pop("agent_names_reveal_type", False)
 
-    try:
-        n_permutations = math.factorial(n_agents)
-    except ArithmeticError:
-        n_permutations = None
+    n_permutations = 1
 
     manager_types = config["manager_types"]
 
     assignable_factories = [i for i, mtype in enumerate(manager_types) if mtype is None]
+    shuffle(assignable_factories)
+    assignable_factories = (
+        np.asarray(assignable_factories).reshape((1, n_agents_per_competitor)).tolist()
+    )
 
     configs = []
 
@@ -554,9 +554,10 @@ def anac2019_sabotage_assigner(
         new_config["scoring_context"].update(
             {"competitor": ctype, "competitor_params": c_p}
         )
-        for i, (a, p_) in enumerate(perm_):
-            new_config["manager_types"][assignable_factories[i]] = a
-            new_config["manager_params"][assignable_factories[i]] = p_
+        for (a, p_), assignable in zip(perm_, assignable_factories):
+            for factory in assignable:
+                new_config["manager_types"][factory] = a
+                new_config["manager_params"][factory] = p_
 
         for i, (c_, p_) in enumerate(perm1):
             if c_ != "competitor":
@@ -571,9 +572,10 @@ def anac2019_sabotage_assigner(
         no_sabotage_config["scoring_context"].update(
             {"competitor": ctype, "competitor_params": c_p}
         )
-        for i, (a, p_) in enumerate(perm1):
-            no_sabotage_config["manager_types"][assignable_factories[i]] = a
-            no_sabotage_config["manager_params"][assignable_factories[i]] = p_
+        for (a, p_), assignable in zip(perm1, assignable_factories):
+            for factory in assignable:
+                no_sabotage_config["manager_types"][factory] = a
+                no_sabotage_config["manager_params"][factory] = p_
 
         return [new_config, no_sabotage_config]
 
@@ -585,49 +587,30 @@ def anac2019_sabotage_assigner(
         max_n_worlds is None or n_permutations <= max_n_worlds
     ):
         k = 0
-        others = (
-            list(choices(list(zip(non_competitors, non_competitor_params))))
-            * n_agents_per_competitor
-        )
-        agents = ["competitor"] * n_agents_per_competitor + [_[0] for _ in others]
-        agent_params = ["competitor"] * n_agents_per_competitor + [_[1] for _ in others]
-        for permutation in itertools.permutations(zip(agents, agent_params)):
-            assert len(permutation) == len(assignable_factories)
-            for competitor, c_params in zip(competitors, params):
-                perm = copy.deepcopy(permutation)
-                configs.append(_copy_config(perm, config, k, competitor, c_params))
-                k += 1
+        others = list(choices(list(zip(non_competitors, non_competitor_params))))
+        agents = ["competitor"] + [_[0] for _ in others]
+        agent_params = ["competitor"] + [_[1] for _ in others]
+        permutation = list(zip(agents, agent_params))
+        for competitor, c_params in zip(competitors, params):
+            perm = copy.deepcopy(permutation)
+            configs.append(_copy_config(perm, config, k, competitor, c_params))
+            k += 1
     elif max_n_worlds is None:
         raise ValueError(f"Did not give max_n_worlds and cannot find n_permutations.")
     else:
-        others = (
-            list(choices(list(zip(non_competitors, non_competitor_params))))
-            * n_agents_per_competitor
-        )
-        agents = ["competitor"] * n_agents_per_competitor + [_[0] for _ in others]
-        agent_params = ["competitor"] * n_agents_per_competitor + [_[1] for _ in others]
+        others = list(choices(list(zip(non_competitors, non_competitor_params))))
+        agents = ["competitor"] + [_[0] for _ in others]
+        agent_params = ["competitor"] + [_[1] for _ in others]
         permutation = list(zip(agents, agent_params))
-        assert len(permutation) == len(assignable_factories)
+        assert len(permutation) == len(
+            assignable_factories
+        ), f"assignable {len(assignable_factories)}, permutation {len(permutation)}"
         if fair:
-            n_min = len(assignable_factories)
-            n_rounds = int(max_n_worlds // n_min)
-            if n_rounds < 1:
-                raise ValueError(
-                    f"Cannot guarantee fair assignment: n. competitors {len(assignable_factories)}, at least"
-                    f" {n_min} runs are needed for fair assignment"
-                )
-            max_n_worlds = n_rounds * n_min
             k = 0
-            for _ in range(n_rounds):
-                shuffle(permutation)
-                for __ in range(n_min):
-                    k += 1
-                    for competitor, c_params in zip(competitors, params):
-                        perm = copy.deepcopy(permutation)
-                        perm = perm[-1:] + perm[:-1]
-                        configs.append(
-                            _copy_config(perm, config, k, competitor, c_params)
-                        )
+            shuffle(permutation)
+            for competitor, c_params in zip(competitors, params):
+                perm = copy.deepcopy(permutation)
+                configs.append(_copy_config(perm, config, k, competitor, c_params))
         else:
             for k in range(max_n_worlds):
                 for competitor, c_params in zip(competitors, params):
@@ -1011,7 +994,10 @@ def anac2019_world(
 
 
 def balance_calculator(
-    worlds: List[SCMLWorld], scoring_context: Dict[str, Any], dry_run: bool
+    worlds: List[SCMLWorld],
+    scoring_context: Dict[str, Any],
+    dry_run: bool,
+    ignore_default=True,
 ) -> WorldRunResults:
     """A scoring function that scores factory managers' performance by the final balance only ignoring whatever still
     in their inventory.
@@ -1034,12 +1020,12 @@ def balance_calculator(
     )
     initial_balances = []
     for manager in world.factory_managers:
-        if "_df_" in manager.id:
+        if "_df_" in manager.id and ignore_default:
             continue
         initial_balances.append(world.a2f[manager.id].initial_balance)
     normalize = all(_ != 0 for _ in initial_balances)
     for manager in world.factory_managers:
-        if "_df_" in manager.id:
+        if "_df_" in manager.id and ignore_default:
             continue
         factory = world.a2f[manager.id]
         result.names.append(manager.name)
@@ -1082,7 +1068,9 @@ def sabotage_effectiveness(
         results.types = [type_scored]
         results.scores = [None]
         return results
-    results = [balance_calculator([_], {}, dry_run=False) for _ in worlds]
+    results = [
+        balance_calculator([_], {}, dry_run=False, ignore_default=False) for _ in worlds
+    ]
     normal_scores, sabotaged_scores = [], []
     sabotaged_indices, normal_indices = [], []
     for i in range(len(worlds)):
@@ -1100,17 +1088,19 @@ def sabotage_effectiveness(
         )
 
     for indx in sabotaged_indices:
-        sabotaged_scores.extend(
+        sabotaged_scores += [
             score
             for score, type_ in zip(results[indx].scores, results[indx].types)
             if type_ != type_scored
-        )
+        ]
+
     for indx in normal_indices:
-        normal_scores.extend(
+        normal_scores += [
             score
             for score, type_ in zip(results[indx].scores, results[indx].types)
             if type_ != type_scored
-        )
+        ]
+
     normal_score = sum(normal_scores) / len(normal_scores)
     sabotaged_score = sum(sabotaged_scores) / len(sabotaged_scores)
     result = WorldRunResults(
