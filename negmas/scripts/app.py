@@ -743,6 +743,51 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
     print(f"Finished in {humanize_time(perf_counter() - start)}")
 
 
+@tournament.command(help="Finds winners of a tournament")
+@click.option(
+    "--name",
+    "-n",
+    default="",
+    help="The name of the tournament. When invoked after create, there is no need to pass it",
+)
+@click.option(
+    "--log",
+    "-l",
+    type=click.Path(dir_okay=True, file_okay=False),
+    default="~/negmas/logs/tournaments",
+    help="Default location to save logs",
+)
+@click.option(
+    "--recursive/--no-recursive",
+    default=True,
+    help="Whether to recursively look for tournament results. --name should not be given if --recursive",
+)
+@click_config_file.configuration_option()
+@click.pass_context
+def winners(ctx, name, log, recursive):
+    if len(name) == 0:
+        if not recursive:
+            name = ctx.obj.get("tournament_name", "")
+        else:
+            name = None
+    if (name is None or len(name) == 0) and not recursive:
+        print(
+            "Name is not given to run command and was not stored during a create command call"
+        )
+        exit(1)
+    saved_log_folder = ctx.obj.get("tournament_log_folder", None)
+    if saved_log_folder is not None:
+        log = saved_log_folder
+    if name is not None and len(name) > 0:
+        tpath = str(pathlib.Path(log) / name)
+    else:
+        tpath = str(pathlib.Path(log))
+    results = evaluate_tournament(
+        tournament_path=tpath, verbose=True, recursive=recursive
+    )
+    print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+
+
 @cli.command(help="Run an SCML world simulation")
 @click.option("--steps", default=100, type=int, help="Number of steps.")
 @click.option(

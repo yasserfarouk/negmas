@@ -1127,15 +1127,18 @@ def evaluate_tournament(
     tournament_path: Union[str, PathLike, Path],
     scores: Optional[pd.DataFrame] = None,
     verbose: bool = False,
+    recursive: bool = False,
 ):
     """
     Evaluates the results of a tournament
 
     Args:
-        tournament_path: Path of the tournament
+        tournament_path: Path to save the results to. If scores is not given, it is also used as the source of scores.
         scores: Optionally the scores of all agents in all world runs. If not given they will be read from the file
                 scores.csv in `tournament_path`
         verbose: If true, the winners will be printed
+        recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
+                   will be combined
 
     Returns:
 
@@ -1147,7 +1150,12 @@ def evaluate_tournament(
     tournament_path = tournament_path.absolute()
     scores_file = str(tournament_path / "scores.csv")
     if scores is None:
-        scores = pd.read_csv(scores_file, index_col=None)
+        if recursive:
+            scores = combine_tournaments(
+                sources=[tournament_path], dest=None, verbose=verbose
+            )
+        else:
+            scores = pd.read_csv(scores_file, index_col=None)
     if not isinstance(scores, pd.DataFrame):
         scores = pd.DataFrame(data=scores)
     if len(scores) < 1:
@@ -1205,12 +1213,24 @@ def evaluate_tournament(
 
 
 def combine_tournaments(
-    sources: Iterable[Union[str, PathLike]], dest: Union[str, PathLike]
-) -> None:
+    sources: Iterable[Union[str, PathLike]],
+    dest: Union[str, PathLike] = None,
+    verbose=False,
+) -> pd.DataFrame:
     """Combines results of several tournament runs in the destination path."""
 
-    pd.concat(
-        [pd.read_csv(_path(src) / "scores.csv") for src in sources],
-        axis=0,
-        ignore_index=True,
-    ).to_csv(str(_path(dest) / "scores.csv"))
+    scores = []
+    for src in sources:
+        src = _path(src)
+        for filename in src.glob("**/scores.csv"):
+            try:
+                scores.append(pd.read_csv(filename))
+                if verbose:
+                    print(f"Read: {str(filename)}")
+            except:
+                if verbose:
+                    print(f"FAILED {str(filename)}")
+    scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True)
+    if dest is not None:
+        scores.to_csv(str(_path(dest) / "scores.csv"), index=False)
+    return scores
