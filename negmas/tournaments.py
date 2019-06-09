@@ -1230,6 +1230,10 @@ def combine_tournaments(
             except:
                 if verbose:
                     print(f"FAILED {str(filename)}")
+    if len(scores) < 1:
+        if verbose:
+            print("No scores found")
+        return pd.DataFrame()
     scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True)
     if dest is not None:
         scores.to_csv(str(_path(dest) / "scores.csv"), index=False)
