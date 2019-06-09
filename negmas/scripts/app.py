@@ -458,15 +458,15 @@ def create(
             )
             exit(1)
 
-    if ttype.lower() == "anac2019std":
-        if (
-            "negmas.apps.scml.factory_managers.GreedyFactoryManager"
-            not in all_competitors
-        ):
-            all_competitors.append(
-                "negmas.apps.scml.factory_managers.GreedyFactoryManager"
-            )
-            all_competitors_params.append({})
+    # if ttype.lower() == "anac2019std":
+    #     if (
+    #         "negmas.apps.scml.factory_managers.GreedyFactoryManager"
+    #         not in all_competitors
+    #     ):
+    #         all_competitors.append(
+    #             "negmas.apps.scml.factory_managers.GreedyFactoryManager"
+    #         )
+    #         all_competitors_params.append({})
 
     recommended = runs * configs * factorial(len(all_competitors))
     if worlds_per_config is not None and worlds_per_config < 1:
@@ -628,6 +628,8 @@ def create(
     else:
         raise ValueError(f"Unknown tournament type {ttype}")
     ctx.obj["tournament_name"] = results.name
+    ctx.obj["tournament_log_folder"] = log
+    ctx.obj["compact"] = compact
     print(f"Saved all configs to {str(results)}\nTournament name is {results.name}")
 
 
@@ -698,6 +700,9 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
         exit(1)
     if len(path) > 0:
         sys.path.append(path)
+    saved_log_folder = ctx.obj.get("tournament_log_folder", None)
+    if saved_log_folder is not None:
+        log = saved_log_folder
     parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
     prog_callback = print_world_progress if verbosity > 1 and not distributed else None
     tpath = str(pathlib.Path(log) / name)
