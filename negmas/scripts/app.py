@@ -288,7 +288,24 @@ def tournament(ctx):
     default="random",
     help='The name of the tournament. The special value "random" will result in a random name',
 )
-@click.option("--steps", "-s", default=100, help="Number of steps.")
+@click.option(
+    "--steps",
+    "-s",
+    default=None,
+    help="Number of steps. If passed then --steps-min and --steps-max are " "ignored",
+)
+@click.option(
+    "--steps-min",
+    default=50,
+    type=int,
+    help="Minimum number of steps (only used if --steps was not passed",
+)
+@click.option(
+    "--steps-max",
+    default=100,
+    type=int,
+    help="Maximum number of steps (only used if --steps was not passed",
+)
 @click.option(
     "--ttype",
     "--tournament-type",
@@ -409,6 +426,8 @@ def create(
     log_ufuns,
     log_negs,
     raise_exceptions,
+    steps_min,
+    steps_max,
 ):
     n_colluding_agents = 3
     warning_n_runs = 200
@@ -484,6 +503,9 @@ def create(
 
     if ttype == "anac2019std":
         agents = 1
+
+    if steps is None:
+        steps = (steps_min, steps_max)
 
     if worlds_per_config is None:
         n_comp = len(all_competitors) if ttype != "anac2019sabotage" else 2
