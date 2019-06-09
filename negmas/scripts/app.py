@@ -292,6 +292,7 @@ def tournament(ctx):
     "--steps",
     "-s",
     default=None,
+    type=int,
     help="Number of steps. If passed then --steps-min and --steps-max are " "ignored",
 )
 @click.option(
@@ -403,6 +404,12 @@ def tournament(ctx):
     default=True,
     help="Whether to ignore agent exceptions",
 )
+@click.option(
+    "--path",
+    default="",
+    help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
+    "paths on linux/mac and a ; separated list in windows",
+)
 @click_config_file.configuration_option()
 @click.pass_context
 def create(
@@ -428,7 +435,10 @@ def create(
     raise_exceptions,
     steps_min,
     steps_max,
+    path,
 ):
+    if len(path) > 0:
+        sys.path.append(path)
     n_colluding_agents = 3
     warning_n_runs = 200
     if timeout <= 0:
