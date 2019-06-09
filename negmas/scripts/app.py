@@ -487,7 +487,8 @@ def create(
     #         )
     #         all_competitors_params.append({})
 
-    recommended = runs * configs * factorial(len(all_competitors))
+    permutation_size = factorial(len(all_competitors)) if "sabotage" not in ttype else 1
+    recommended = runs * configs * permutation_size
     if worlds_per_config is not None and worlds_per_config < 1:
         print(
             f"You need at least {(configs * runs)} runs even with a single permutation of managers."
@@ -509,7 +510,7 @@ def create(
 
     if worlds_per_config is None:
         n_comp = len(all_competitors) if ttype != "anac2019sabotage" else 2
-        n_worlds = factorial(n_comp) * runs * configs
+        n_worlds = permutation_size * runs * configs
         if n_worlds > warning_n_runs:
             print(
                 f"You are running the maximum possible number of permutations for each configuration. This is roughly"
