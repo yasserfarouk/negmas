@@ -751,17 +751,14 @@ def run_tournament(
                     world_progress_callback=world_progress_callback,
                     score_calculator=score_calculator,
                     dry_run=False,
-                    save_world_stats=not compact,
+                    save_world_stats=True,
                 )
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
                 add_records(
                     scores_file,
                     process_world_run(
-                        run_id,
-                        score_,
-                        tournament_name=name,
-                        save_world_stats=not compact,
+                        run_id, score_, tournament_name=name, save_world_stats=True
                     ),
                 )
                 if verbose:
@@ -800,7 +797,7 @@ def run_tournament(
                     score_calculator,
                     world_progress_callback,
                     False,
-                    not compact,
+                    True,
                 )
             )
         if verbose:
@@ -860,7 +857,7 @@ def run_tournament(
             name,
             score_calculator,
             False,
-            not compact,
+            True,
             scores_file,
             run_ids,
         )
