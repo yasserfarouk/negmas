@@ -684,6 +684,7 @@ def run_tournament(
                                       processing
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        print_exceptions: If true, exceptions encountered during world simulation will be printed to stdout
 
     """
     tournament_path = _path(tournament_path)
