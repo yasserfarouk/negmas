@@ -454,7 +454,7 @@ def create(
     if len(path) > 0:
         sys.path.append(path)
     n_colluding_agents = 3
-    warning_n_runs = 200
+    warning_n_runs = 2000
     if timeout <= 0:
         timeout = None
     if name == "random":
@@ -511,7 +511,7 @@ def create(
     #         )
     #         all_competitors_params.append({})
 
-    permutation_size = factorial(len(all_competitors)) if "sabotage" not in ttype else 1
+    permutation_size = len(all_competitors) if "sabotage" not in ttype else 1
     recommended = runs * configs * permutation_size
     if worlds_per_config is not None and worlds_per_config < 1:
         print(
