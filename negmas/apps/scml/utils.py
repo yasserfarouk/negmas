@@ -392,7 +392,7 @@ def anac2019_config_generator(
     config = {
         "world_params": dict(
             name=world_name,
-            time_limit=7200,
+            time_limit=7200 + 3600,
             neg_time_limit=120,
             neg_n_steps=20,
             neg_step_time_limit=10,
@@ -666,7 +666,7 @@ def anac2019_assigner(
     agent_names_reveal_type = config.pop("agent_names_reveal_type", False)
 
     try:
-        n_permutations = math.factorial(n_competitors)
+        n_permutations = n_competitors
     except ArithmeticError:
         n_permutations = None
 
@@ -691,14 +691,16 @@ def anac2019_assigner(
                 new_config["manager_params"][factory] = p_
         return [new_config]
 
-    if n_permutations is not None and (
-        max_n_worlds is None or n_permutations <= max_n_worlds
-    ):
+    if n_permutations is not None and max_n_worlds is None:
         k = 0
-        for permutation in itertools.permutations(zip(competitors, params)):
-            assert len(permutation) == len(assignable_factories)
-            configs.append(_copy_config(permutation, config, k))
+        permutation = list(zip(competitors, params))
+        assert len(permutation) == len(assignable_factories)
+        shuffle(permutation)
+        for __ in range(n_permutations):
             k += 1
+            perm = copy.deepcopy(permutation)
+            perm = perm[-1:] + perm[:-1]
+            configs.append(_copy_config(perm, config, k))
     elif max_n_worlds is None:
         raise ValueError(f"Did not give max_n_worlds and cannot find n_permutations.")
     else:
@@ -871,7 +873,7 @@ def anac2019_world(
     neg_time_limit=60 * 4,
     neg_n_steps=20,
     n_steps=100,
-    time_limit=60 * 90,
+    time_limit=90 * 90,
     n_default_per_level: int = 5,
     compact: bool = False,
     **kwargs,
