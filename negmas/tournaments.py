@@ -1124,16 +1124,17 @@ def create_tournament(
 
 
 def evaluate_tournament(
-    tournament_path: Union[str, PathLike, Path],
+    tournament_path: Optional[Union[str, PathLike, Path]],
     scores: Optional[pd.DataFrame] = None,
     verbose: bool = False,
     recursive: bool = False,
-):
+) -> TournamentResults:
     """
     Evaluates the results of a tournament
 
     Args:
         tournament_path: Path to save the results to. If scores is not given, it is also used as the source of scores.
+                         Pass None to avoid saving the results to disk.
         scores: Optionally the scores of all agents in all world runs. If not given they will be read from the file
                 scores.csv in `tournament_path`
         verbose: If true, the winners will be printed
@@ -1143,19 +1144,18 @@ def evaluate_tournament(
     Returns:
 
     """
-    if isinstance(tournament_path, str):
-        if tournament_path.startswith("~"):
-            tournament_path = Path.home() / ("/".join(tournament_path.split("/")[1:]))
-        tournament_path = pathlib.Path(tournament_path)
-    tournament_path = tournament_path.absolute()
-    scores_file = str(tournament_path / "scores.csv")
-    if scores is None:
-        if recursive:
-            scores = combine_tournaments(
-                sources=[tournament_path], dest=None, verbose=verbose
-            )
-        else:
-            scores = pd.read_csv(scores_file, index_col=None)
+    if tournament_path is not None:
+        tournament_path = _path(tournament_path)
+        tournament_path = tournament_path.absolute()
+        tournament_path.mkdir(parents=True, exist_ok=True)
+        scores_file = str(tournament_path / "scores.csv")
+        if scores is None:
+            if recursive:
+                scores = combine_tournaments(
+                    sources=[tournament_path], dest=None, verbose=verbose
+                )
+            else:
+                scores = pd.read_csv(scores_file, index_col=None)
     if not isinstance(scores, pd.DataFrame):
         scores = pd.DataFrame(data=scores)
     if len(scores) < 1:
@@ -1194,11 +1194,15 @@ def evaluate_tournament(
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
 
-    scores.to_csv(str(tournament_path / "scores.csv"), index_label="index")
-    total_scores.to_csv(str(tournament_path / "total_scores.csv"), index_label="index")
-    winner_table.to_csv(str(tournament_path / "winners.csv"), index_label="index")
-    ttest_results = pd.DataFrame(data=ttest_results)
-    ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
+    if tournament_path is not None:
+        tournament_path = pathlib.Path(tournament_path)
+        scores.to_csv(str(tournament_path / "scores.csv"), index_label="index")
+        total_scores.to_csv(
+            str(tournament_path / "total_scores.csv"), index_label="index"
+        )
+        winner_table.to_csv(str(tournament_path / "winners.csv"), index_label="index")
+        ttest_results = pd.DataFrame(data=ttest_results)
+        ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
 
     if verbose:
         print(f"N. scores = {len(scores)}\tN. Worlds = {len(scores.world.unique())}")
