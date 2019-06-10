@@ -904,9 +904,7 @@ class PessimisticNegotiatorUtility(NegotiatorUtility):
         hypothetical = self.agent.total_utility(hypothetical)
         if hypothetical < 0:
             return float("-inf")
-        penalty = agreement.get("penalty", 0.0)
-        penalty = 0.0 if penalty is None else penalty
-        return hypothetical - base_util - self.expected_breach_level * penalty
+        return hypothetical - base_util
 
 
 class OptimisticNegotiatorUtility(NegotiatorUtility):
@@ -928,9 +926,7 @@ class OptimisticNegotiatorUtility(NegotiatorUtility):
         hypothetical = self.agent.total_utility(list(hypothetical))
         if hypothetical < 0:
             return float("-inf")
-        penalty = agreement.get("penalty", 0.0)
-        penalty = 0.0 if penalty is None else penalty
-        return hypothetical - base_util - self.expected_breach_level * penalty
+        return hypothetical - base_util
 
 
 class AveragingNegotiatorUtility(NegotiatorUtility):
