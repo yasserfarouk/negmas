@@ -433,6 +433,7 @@ def _run_dask(
     save_world_stats,
     scores_file,
     run_ids,
+    print_exceptions,
 ) -> None:
     """Runs the tournament on dask"""
 
@@ -492,8 +493,9 @@ def _run_dask(
         except Exception as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_worlds)
-            print(traceback.format_exc())
-            print(e)
+            if print_exceptions:
+                print(traceback.format_exc())
+                print(e)
     client.shutdown()
 
 
@@ -526,6 +528,7 @@ def tournament(
     verbose: bool = False,
     configs_only: bool = False,
     compact: bool = False,
+    print_exceptions: bool = True,
     **kwargs,
 ) -> Union[TournamentResults, PathLike]:
     """
@@ -622,6 +625,7 @@ def tournament(
         world_progress_callback=world_progress_callback,
         verbose=verbose,
         compact=compact,
+        print_exceptions=print_exceptions,
     )
 
     if verbose:
@@ -654,6 +658,7 @@ def run_tournament(
     world_progress_callback: Callable[[Optional[World]], None] = None,
     verbose: bool = False,
     compact: bool = None,
+    print_exceptions: bool = True,
 ) -> None:
     """
     Runs a tournament
@@ -772,8 +777,9 @@ def run_tournament(
             except Exception as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_world_configs)
-                print(traceback.format_exc())
-                print(e)
+                if print_exceptions:
+                    print(traceback.format_exc())
+                    print(e)
     elif any(parallelism.startswith(_) for _ in multiprocessing_options):
         fraction = None
         parallelism = parallelism.split(":")
@@ -838,13 +844,15 @@ def run_tournament(
             except futures.TimeoutError:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_world_configs)
-                print("Tournament timed-out")
+                if verbose:
+                    print("Tournament timed-out")
                 break
             except Exception as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_world_configs)
-                print(traceback.format_exc())
-                print(e)
+                if print_exceptions:
+                    print(traceback.format_exc())
+                    print(e)
     elif parallelism in dask_options:
         _run_dask(
             scheduler_ip,
@@ -860,6 +868,7 @@ def run_tournament(
             True,
             scores_file,
             run_ids,
+            print_exceptions,
         )
     if verbose:
         print(f"Tournament completed successfully")

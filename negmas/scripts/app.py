@@ -88,7 +88,16 @@ def cli():
 
 @cli.group(chain=True, invoke_without_command=True)
 @click.pass_context
-def tournament(ctx):
+@click.option(
+    "--ignore-warnings/--show-warnings",
+    default=False,
+    help="Ignore/show runtime warnings",
+)
+def tournament(ctx, ignore_warnings):
+    if ignore_warnings:
+        import warnings
+
+        warnings.filterwarnings("ignore")
     ctx.obj = {}
 
 
@@ -753,6 +762,7 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
         parallelism=parallelism,
         scheduler_ip=ip,
         scheduler_port=port,
+        print_exceptions=verbosity > 1,
     )
     results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0)
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
