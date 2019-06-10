@@ -35,7 +35,12 @@ from negmas.apps.scml.utils import (
 )
 from negmas.helpers import humanize_time, unique_name, camel_case
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
-from negmas.tournaments import create_tournament, run_tournament, evaluate_tournament
+from negmas.tournaments import (
+    create_tournament,
+    run_tournament,
+    evaluate_tournament,
+    combine_tournaments,
+)
 
 try:
     # disable a warning in yaml 1b1 version
@@ -754,7 +759,9 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
     print(f"Finished in {humanize_time(perf_counter() - start)}")
 
 
-@tournament.command(help="Finds winners of a tournament")
+@tournament.command(
+    help="Finds winners of a tournament or a set of tournaments sharing a root"
+)
 @click.option(
     "--name",
     "-n",
@@ -797,6 +804,34 @@ def winners(ctx, name, log, recursive):
         tournament_path=tpath, verbose=True, recursive=recursive
     )
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+
+
+def _path(path) -> Path:
+    """Creates an absolute path from given path which can be a string"""
+    if isinstance(path, str):
+        if path.startswith("~"):
+            path = Path.home() / ("/".join(path.split("/")[1:]))
+    return pathlib.Path(path).absolute()
+
+
+@tournament.command(help="Finds winners of an arbitrary set of tournaments")
+@click.argument("path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1)
+@click.option(
+    "--dest",
+    "-d",
+    type=click.Path(dir_okay=True, file_okay=False),
+    help="The location to save the results",
+    default=None,
+)
+@click_config_file.configuration_option()
+def combine(path, dest):
+    tpath = [_path(_) for _ in path]
+    if len(tpath) < 1:
+        print("No paths are given to combine")
+    scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
+    results = evaluate_tournament(dest, scores, verbose=True)
+    print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+    print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
 
 
 @cli.command(help="Run an SCML world simulation")
