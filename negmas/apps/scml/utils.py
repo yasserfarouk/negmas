@@ -307,9 +307,9 @@ def anac2019_config_generator(
     n_a_list = integer_cut(n_agents, n_intermediate_levels + 1, 0)
     for i, n_a in enumerate(n_a_list):
         if n_a + n_defaults[i] < min_factories_per_level:
-            n_defaults[i] += min_factories_per_level - (n_a + n_defaults[i])
+            n_defaults[i] = min_factories_per_level - n_a
         if n_a + n_defaults[i] > max_factories_per_level and n_defaults[i] > 1:
-            n_defaults[i] = 1
+            n_defaults[i] = max(1, min_factories_per_level - n_a)
     n_f_list = [a + b for a, b in zip(n_defaults, n_a_list)]
     n_factories = sum(n_f_list)
 
