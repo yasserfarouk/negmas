@@ -1154,7 +1154,7 @@ def evaluate_tournament(
     scores: Optional[pd.DataFrame] = None,
     verbose: bool = False,
     recursive: bool = False,
-    independent_test: bool = False,
+    independent_test: bool = True,  # dependent test implementation is not correct as there is no way to know how to correspond measurements
 ) -> TournamentResults:
     """
     Evaluates the results of a tournament
