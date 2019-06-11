@@ -1154,7 +1154,7 @@ def evaluate_tournament(
     scores: Optional[pd.DataFrame] = None,
     verbose: bool = False,
     recursive: bool = False,
-    independent_test: bool = False,
+    # independent_test: bool = True,  # dependent test implementation is not correct as there is no way to know how to correspond measurements
 ) -> TournamentResults:
     """
     Evaluates the results of a tournament
@@ -1167,7 +1167,7 @@ def evaluate_tournament(
         verbose: If true, the winners will be printed
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
                    will be combined
-        independent_test: True if you want an independent t-test
+        # independent_test: True if you want an independent t-test
 
     Returns:
 
@@ -1216,17 +1216,19 @@ def evaluate_tournament(
                 scores.loc[scores["agent_type"] == t1, ["score", "world"]],
                 scores.loc[scores["agent_type"] == t2, ["score", "world"]],
             )
-            for _ in (ascores, bscores):
-                _["world"] = _["world"].str.split(".").str[0]
-            ascores.columns = ["score_1", "world"]
-            bscores.columns = ["score_2", "world"]
-            joined = pd.merge(ascores, bscores, on=["world"])
-            if len(joined) > 0 and not independent_test:
-                alist, blist = joined.score_1, joined.score_2
-                t, p = ttest_rel(alist, blist)
-            else:
-                alist, blist = (ascores.score, bscores.score)
-                t, p = ttest_ind(alist, blist)
+            # for _ in (ascores, bscores):
+            #     _["world"] = _["world"].str.split(".").str[0]
+            # ascores.columns = ["score_1", "world"]
+            # bscores.columns = ["score_2", "world"]
+            # joined = pd.merge(ascores, bscores, on=["world"])
+            # if len(joined) > 0 and not independent_test:
+            #     alist, blist = joined.score_1, joined.score_2
+            #     t, p = ttest_rel(alist, blist)
+            # else:
+            #     alist, blist = (ascores.score, bscores.score)
+            #     t, p = ttest_ind(alist, blist)
+            alist, blist = (ascores.score, bscores.score)
+            t, p = ttest_ind(alist, blist)
             ttest_results.append(
                 {
                     "a": t1,
