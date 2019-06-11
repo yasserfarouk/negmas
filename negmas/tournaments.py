@@ -30,7 +30,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from scipy.stats import ttest_ind, ttest_rel
+from scipy.stats import ttest_ind, ttest_rel, ks_2samp
 import yaml
 from typing_extensions import Protocol
 
@@ -181,7 +181,8 @@ class TournamentResults:
     """Winner type name(s) which may be a list"""
     winners_scores: np.array
     """Winner score (accumulated)"""
-    ttest: pd.DataFrame
+    ttest: pd.DataFrame = None
+    kstest: pd.DataFrame = None
 
 
 def run_world(
@@ -1193,6 +1194,7 @@ def evaluate_tournament(
             winners=[],
             winners_scores=np.array([]),
             ttest=pd.DataFrame(),
+            kstest=pd.DataFrame(),
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
@@ -1210,6 +1212,7 @@ def evaluate_tournament(
     types = list(scores["agent_type"].unique())
 
     ttest_results = []
+    ks_results = []
     for i, t1 in enumerate(types):
         for j, t2 in enumerate(types[i + 1 :]):
             ascores, bscores = (
@@ -1240,6 +1243,18 @@ def evaluate_tournament(
                     "n_effective": min(len(alist), len(blist)),
                 }
             )
+            t, p = ks_2samp(alist, blist)
+            ks_results.append(
+                {
+                    "a": t1,
+                    "b": t2,
+                    "t": t,
+                    "p": p,
+                    "n_a": len(ascores),
+                    "n_b": len(bscores),
+                    "n_effective": min(len(alist), len(blist)),
+                }
+            )
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
 
@@ -1252,6 +1267,8 @@ def evaluate_tournament(
         winner_table.to_csv(str(tournament_path / "winners.csv"), index_label="index")
         ttest_results = pd.DataFrame(data=ttest_results)
         ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
+        ks_results = pd.DataFrame(data=ks_results)
+        ks_results.to_csv(str(tournament_path / "kstest.csv"), index_label="index")
 
     if verbose:
         print(f"N. scores = {len(scores)}\tN. Worlds = {len(scores.world.unique())}")
@@ -1262,6 +1279,7 @@ def evaluate_tournament(
         winners=winners,
         winners_scores=winner_scores,
         ttest=ttest_results,
+        kstest=ks_results,
     )
 
 

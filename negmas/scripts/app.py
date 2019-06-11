@@ -839,7 +839,7 @@ def combine(path, dest):
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, verbose=True)
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
-    print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
+    print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
 
 
 @cli.command(help="Run an SCML world simulation")
