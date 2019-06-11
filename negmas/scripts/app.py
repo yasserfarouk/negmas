@@ -351,7 +351,7 @@ def tournament(ctx, ignore_warnings):
 )
 @click.option(
     "--agents",
-    default=5,
+    default=3,
     type=int,
     help="Number of agents per competitor (not used for anac2019std in which this is preset to 1).",
 )
@@ -452,7 +452,6 @@ def create(
 ):
     if len(path) > 0:
         sys.path.append(path)
-    n_colluding_agents = 3
     warning_n_runs = 2000
     if timeout <= 0:
         timeout = None
@@ -627,7 +626,7 @@ def create(
             total_timeout=timeout,
             name=name,
             verbose=verbosity > 0,
-            n_agents_per_competitor=n_colluding_agents,
+            n_agents_per_competitor=agents,
             world_generator=anac2019_world_generator,
             config_generator=anac2019_config_generator,
             config_assigner=anac2019_assigner,

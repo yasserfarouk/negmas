@@ -1037,10 +1037,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
         )
         self._log_folder = (
-            str(Path(log_folder).absolute())
+            Path(log_folder).absolute()
             if log_folder is not None
-            else str(Path.home() / "negmas" / "logs" / "scml" / self.name)
+            else Path.home() / "negmas" / "logs" / "scml" / self.name
         )
+        self._log_folder = str(self._log_folder)
         self._stats: Dict[str, List[Any]] = defaultdict(list)
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
