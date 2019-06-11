@@ -72,7 +72,7 @@ class DefaultGreedyManager(GreedyFactoryManager):
         reactive=True,
         sign_only_guaranteed_contracts=False,
         riskiness=0.0,
-        max_insurance_premium: float = 0.1,
+        max_insurance_premium: float = float("inf"),
         **kwargs,
     ):
         r = random()

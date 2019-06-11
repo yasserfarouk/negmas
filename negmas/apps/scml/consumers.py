@@ -2,6 +2,7 @@ import functools
 import itertools
 import math
 from abc import ABC
+from collections import defaultdict
 from random import random, randint
 from typing import TYPE_CHECKING
 
@@ -167,8 +168,8 @@ class ScheduleDrivenConsumer(Consumer):
     ):
         super().__init__(name=name)
         self.negotiator_type = get_class(negotiator_type, scope=globals())
-        self.profiles: Dict[int, ConsumptionProfile] = dict()
-        self.secured_quantities: Dict[int, int] = dict()
+        self.profiles: Dict[int, ConsumptionProfile] = defaultdict(ConsumptionProfile)
+        self.secured_quantities: Dict[int, int] = defaultdict(int)
         if profiles is not None:
             self.set_profiles(profiles=profiles)
         self.consumption_horizon = consumption_horizon
