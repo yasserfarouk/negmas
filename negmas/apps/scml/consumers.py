@@ -184,8 +184,14 @@ class ScheduleDrivenConsumer(Consumer):
         self.awi.register_interest(list(self.profiles.keys()))
 
     def set_profiles(self, profiles: Dict[int, ConsumptionProfile]):
-        self.profiles = profiles if profiles is not None else dict()
-        self.secured_quantities = dict(zip(profiles.keys(), itertools.repeat(0)))
+        self.profiles = defaultdict(ConsumptionProfile)
+        if profiles is not None:
+            for k, v in profiles.items():
+                self.profiles[k] = v
+        self.secured_quantities = defaultdict(int)
+        if profiles is not None:
+            for k, v in profiles.items():
+                self.secured_quantities[k] = 0
 
     def register_product_cfps(self, p: int, t: int, profile: ConsumptionProfile):
         current_schedule = profile.schedule_at(t)
@@ -335,7 +341,7 @@ class ScheduleDrivenConsumer(Consumer):
 
         Args:
 
-            agenda: Renegotiatio agenda (issues to renegotiate about).
+            agenda: Renegotiation agenda (issues to renegotiate about).
             contract: The contract that was breached
             breaches: All breaches on that contract
 
