@@ -30,6 +30,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from scipy.stats import ttest_ind, ttest_rel
 import yaml
 from typing_extensions import Protocol
 
@@ -1153,6 +1154,7 @@ def evaluate_tournament(
     scores: Optional[pd.DataFrame] = None,
     verbose: bool = False,
     recursive: bool = False,
+    independent_test: bool = False,
 ) -> TournamentResults:
     """
     Evaluates the results of a tournament
@@ -1165,6 +1167,7 @@ def evaluate_tournament(
         verbose: If true, the winners will be printed
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
                    will be combined
+        independent_test: True if you want an independent t-test
 
     Returns:
 
@@ -1209,13 +1212,32 @@ def evaluate_tournament(
     ttest_results = []
     for i, t1 in enumerate(types):
         for j, t2 in enumerate(types[i + 1 :]):
-            from scipy.stats import ttest_ind
-
-            t, p = ttest_ind(
-                scores[scores["agent_type"] == t1].score,
-                scores[scores["agent_type"] == t2].score,
+            ascores, bscores = (
+                scores.loc[scores["agent_type"] == t1, ["score", "world"]],
+                scores.loc[scores["agent_type"] == t2, ["score", "world"]],
             )
-            ttest_results.append({"a": t1, "b": t2, "t": t, "p": p})
+            for _ in (ascores, bscores):
+                _["world"] = _["world"].str.split(".").str[0]
+            ascores.columns = ["score_1", "world"]
+            bscores.columns = ["score_2", "world"]
+            joined = pd.merge(ascores, bscores, on=["world"])
+            if len(joined) > 0 and not independent_test:
+                alist, blist = joined.score_1, joined.score_2
+                t, p = ttest_rel(alist, blist)
+            else:
+                alist, blist = (ascores.score, bscores.score)
+                t, p = ttest_ind(alist, blist)
+            ttest_results.append(
+                {
+                    "a": t1,
+                    "b": t2,
+                    "t": t,
+                    "p": p,
+                    "n_a": len(ascores),
+                    "n_b": len(bscores),
+                    "n_effective": min(len(alist), len(blist)),
+                }
+            )
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
 
