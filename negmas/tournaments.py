@@ -1198,7 +1198,7 @@ def evaluate_tournament(
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
     total_scores = (
         scores.groupby(["agent_type"])["score"]
-        .mean()
+        .median()
         .sort_values(ascending=False)
         .reset_index()
     )
