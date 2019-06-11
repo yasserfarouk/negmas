@@ -571,8 +571,16 @@ class MechanismFactory:
                     record[f"agent{i}"] = partner_.name
                     # record[f"agent_type{i}"] = partner_.type_name
                     # record[f"negotiator{i}"] = _negotiator.name
-                    record[f"reserved{i}"] = _negotiator.reserved_value
-                    record[f"u{i}"] = _negotiator.utility_function(record["outcome"])
+                    if hasattr(_negotiator, "reserved_value"):
+                        record[f"reserved{i}"] = _negotiator.reserved_value
+                    else:
+                        record[f"reserved{i}"] = None
+                    if hasattr(_negotiator, "utility_function"):
+                        record[f"u{i}"] = _negotiator.utility_function(
+                            record["outcome"]
+                        )
+                    else:
+                        record[f"u{i}"] = None
             mechanism.add(negotiator=_negotiator, role=_role)
 
         if self.log_ufuns_file is not None:
