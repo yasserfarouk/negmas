@@ -550,7 +550,7 @@ def anac2019_sabotage_assigner(
             else:
                 perm_[i] = (comp, c_p)
         new_config = copy.deepcopy(conf)
-        new_config["world_params"]["name"] += f"{indx:05d}_with_{shorten(comp, c_p)}"
+        new_config["world_params"]["name"] += f".{indx:05d}_with_{shorten(comp, c_p)}"
         new_config["scoring_context"].update(
             {"competitor": ctype, "competitor_params": c_p}
         )
@@ -568,7 +568,7 @@ def anac2019_sabotage_assigner(
         no_sabotage_config = copy.deepcopy(conf)
         no_sabotage_config["world_params"][
             "name"
-        ] += f"{indx:05d}_no_{shorten(comp, c_p)}"
+        ] += f".{indx:05d}_no_{shorten(comp, c_p)}"
         no_sabotage_config["scoring_context"].update(
             {"competitor": ctype, "competitor_params": c_p}
         )
@@ -684,7 +684,7 @@ def anac2019_assigner(
 
     def _copy_config(perm_, c, indx):
         new_config = copy.deepcopy(c)
-        new_config["world_params"]["name"] += f"{indx:05d}"
+        new_config["world_params"]["name"] += f".{indx:05d}"
         for (a, p_), assignable in zip(perm_, assignable_factories):
             for factory in assignable:
                 new_config["manager_types"][factory] = a

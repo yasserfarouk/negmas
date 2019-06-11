@@ -1090,7 +1090,22 @@ def create_tournament(
             flush=True,
         )
 
-    assigned = list(itertools.chain(*([assigned] * n_runs_per_world)))
+    if n_runs_per_world > 1:
+        n_before_duplication = len(assigned)
+        all_assigned = []
+        for r in range(n_runs_per_world):
+            for a_ in assigned:
+                all_assigned.append([])
+                for w_ in a_:
+                    cpy = copy.deepcopy(w_)
+                    cpy["world_params"]["name"] += f".{r+1:05}"
+                    all_assigned[-1].append(cpy)
+        del assigned
+        assigned = all_assigned
+        assert n_before_duplication * n_runs_per_world == len(assigned), (
+            f"Got {len(assigned)} assigned worlds for {n_before_duplication} "
+            f"initial set with {n_runs_per_world} runs/world"
+        )
 
     for config_set in assigned:
         for config in config_set:
