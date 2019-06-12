@@ -1353,16 +1353,16 @@ def combine_tournament_stats(
         for filename in src.glob("**/stats.json"):
             # try:
             p = load(filename)
-            p = dict(
-                zip(
-                    [c for c in p.keys() if "balance" not in c and "storage" not in c],
-                    [
-                        p[c]
-                        for c in p.keys()
-                        if "balance" not in c and "storage" not in c
-                    ],
-                )
-            )
+            # p = dict(
+            #     zip(
+            #         [c for c in p.keys() if "balance" not in c and "storage" not in c],
+            #         [
+            #             p[c]
+            #             for c in p.keys()
+            #             if "balance" not in c and "storage" not in c
+            #         ],
+            #     )
+            # )
             p = pd.DataFrame.from_dict(p)
             p = p.loc[
                 :, [c for c in p.columns if "balance" not in c and "storage" not in c]
