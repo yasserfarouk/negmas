@@ -188,6 +188,7 @@ class TournamentResults:
     kstest: pd.DataFrame = None
     stats: pd.DataFrame = None
     agg_stats: pd.DataFrame = None
+    score_stats: pd.DataFrame = None
 
 
 def run_world(
@@ -1212,6 +1213,7 @@ def evaluate_tournament(
             kstest=pd.DataFrame(),
             stats=pd.DataFrame(),
             agg_stats=pd.DataFrame(),
+            score_stats=pd.DataFrame(),
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
@@ -1221,6 +1223,7 @@ def evaluate_tournament(
         .sort_values(ascending=False)
         .reset_index()
     )
+    score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
     winner_table = total_scores.loc[
         total_scores["score"] == total_scores["score"].max(), :
     ]
@@ -1283,6 +1286,7 @@ def evaluate_tournament(
             str(tournament_path / "total_scores.csv"), index_label="index"
         )
         winner_table.to_csv(str(tournament_path / "winners.csv"), index_label="index")
+        score_stats.to_csv(str(tournament_path / "score_stats.csv"), index=False)
         ttest_results = pd.DataFrame(data=ttest_results)
         ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
         ks_results = pd.DataFrame(data=ks_results)
@@ -1304,6 +1308,7 @@ def evaluate_tournament(
         kstest=ks_results,
         stats=stats,
         agg_stats=agg_stats,
+        score_stats=score_stats,
     )
 
 
