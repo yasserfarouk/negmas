@@ -362,11 +362,16 @@ def anac2019_config_generator(
             if j >= n_f - n_d:  # default managers are last managers in the list
                 def_indx = randint(0, max_def_agents)
                 manager_types[first_in_level + j] = non_competitors[def_indx]
-                params_ = non_competitor_params[def_indx]
+                params_ = copy.deepcopy(non_competitor_params[def_indx])
                 if agent_names_reveal_type:
                     params_["name"] = f"_df_{level + 1}_{j}"
                 else:
-                    params_["name"] = None
+                    params_[
+                        "name"
+                    ] = (
+                        f"_df_{level + 1}_{j}"
+                    )  # because I use name to know that this is a default agent in evaluate.
+                    # @todo do not use name to identify default agents in evaluation
                 manager_params[first_in_level + j] = params_
         first_in_level += n_f
 
@@ -1022,15 +1027,16 @@ def balance_calculator(
     )
     initial_balances = []
     for manager in world.factory_managers:
-        if "_df_" in manager.id and ignore_default:
+        if "_df_" in manager.name and ignore_default:
             continue
         initial_balances.append(world.a2f[manager.id].initial_balance)
     normalize = all(_ != 0 for _ in initial_balances)
     for manager in world.factory_managers:
-        if "_df_" in manager.id and ignore_default:
+        if "_df_" in manager.name and ignore_default:
             continue
         factory = world.a2f[manager.id]
         result.names.append(manager.name)
+        result.ids.append(manager.id)
         result.types.append(manager.type_name)
         if dry_run:
             result.scores.append(None)
@@ -1067,6 +1073,7 @@ def sabotage_effectiveness(
     if dry_run:
         results = WorldRunResults(world_names=[""], log_file_names=[""])
         results.names = [""]
+        results.ids = [""]
         results.types = [type_scored]
         results.scores = [None]
         return results
@@ -1110,6 +1117,7 @@ def sabotage_effectiveness(
         log_file_names=[_.log_file_name for _ in worlds],
     )
     result.names = [""]
+    result.ids = [""]
     result.scores = [(normal_score - sabotaged_score) / (normal_score + 1.0)]
     result.types = [type_scored]
     return result
