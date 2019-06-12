@@ -765,7 +765,13 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
     )
     end_time = humanize_time(perf_counter() - start)
     results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0)
-    print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+    print(
+        tabulate(
+            results.score_stats.sort_values(by=["50%", "mean"]),
+            headers="keys",
+            tablefmt="psql",
+        )
+    )
     agg_stats = results.agg_stats.loc[
         :,
         [
@@ -825,7 +831,13 @@ def winners(ctx, name, log, recursive):
     results = evaluate_tournament(
         tournament_path=tpath, verbose=True, recursive=recursive
     )
-    print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+    print(
+        tabulate(
+            results.score_stats.sort_values(by=["50%", "mean"]),
+            headers="keys",
+            tablefmt="psql",
+        )
+    )
     agg_stats = results.agg_stats.loc[
         :,
         [
@@ -865,7 +877,13 @@ def combine(path, dest):
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, stats, verbose=True)
-    print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+    print(
+        tabulate(
+            results.score_stats.sort_values(by=["50%", "mean"]),
+            headers="keys",
+            tablefmt="psql",
+        )
+    )
     agg_stats = results.agg_stats.loc[
         :,
         [
