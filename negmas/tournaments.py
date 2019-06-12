@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
+from pprint import pprint
 from typing import (
     Optional,
     List,
@@ -1353,17 +1354,20 @@ def combine_tournament_stats(
         for filename in src.glob("**/stats.json"):
             # try:
             p = load(filename)
-            # p = dict(
-            #     zip(
-            #         [c for c in p.keys() if "balance" not in c and "storage" not in c],
-            #         [
-            #             p[c]
-            #             for c in p.keys()
-            #             if "balance" not in c and "storage" not in c
-            #         ],
-            #     )
-            # )
-            p = pd.DataFrame.from_dict(p)
+            # removing default factory managers from the dict because the balances/storages are mixed
+            # @todo unmix balances/scores of default fms.
+            p = dict(
+                zip(
+                    [c for c in p.keys() if "_df_" not in c],
+                    [p[c] for c in p.keys() if "_df_" not in c],
+                )
+            )
+            try:
+                p = pd.DataFrame.from_dict(p)
+            except Exception as e:
+                print("Arrays are not of the same length")
+                pprint(dict(zip(p.keys(), [len(_) for _ in p.values()])))
+                raise e
             p = p.loc[
                 :, [c for c in p.columns if "balance" not in c and "storage" not in c]
             ]
