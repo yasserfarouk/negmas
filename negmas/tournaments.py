@@ -1329,7 +1329,7 @@ def combine_tournaments(
         if verbose:
             print("No scores found")
         return pd.DataFrame()
-    scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True)
+    scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
     if dest is not None:
         scores.to_csv(str(_path(dest) / "scores.csv"), index=False)
     return scores
@@ -1373,7 +1373,7 @@ def combine_tournament_stats(
         if verbose:
             print("No stats found")
         return pd.DataFrame()
-    stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True)
+    stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True, sort=True)
     if dest is not None:
         stats.to_csv(str(_path(dest) / "stats.csv"), index=False)
         combined = _combine_stats(stats)
