@@ -562,7 +562,7 @@ def anac2019_sabotage_assigner(
         for (a, p_), assignable in zip(perm_, assignable_factories):
             for factory in assignable:
                 new_config["manager_types"][factory] = a
-                new_config["manager_params"][factory] = p_
+                new_config["manager_params"][factory] = copy.deepcopy(p_)
 
         for i, (c_, p_) in enumerate(perm1):
             if c_ != "competitor":
@@ -580,7 +580,7 @@ def anac2019_sabotage_assigner(
         for (a, p_), assignable in zip(perm1, assignable_factories):
             for factory in assignable:
                 no_sabotage_config["manager_types"][factory] = a
-                no_sabotage_config["manager_params"][factory] = p_
+                no_sabotage_config["manager_params"][factory] = copy.deepcopy(p_)
 
         return [new_config, no_sabotage_config]
 
@@ -645,7 +645,7 @@ def anac2019_sabotage_assigner(
                         else shorten(t, config["manager_params"][i])
                     )
                     p["name"] = f'{name_}@{f["id"][1:]}'
-                    config["manager_params"][i] = p
+                    config["manager_params"][i] = copy.deepcopy(p)
                     nxt = nxt + 1
 
     return configs
@@ -693,7 +693,7 @@ def anac2019_assigner(
         for (a, p_), assignable in zip(perm_, assignable_factories):
             for factory in assignable:
                 new_config["manager_types"][factory] = a
-                new_config["manager_params"][factory] = p_
+                new_config["manager_params"][factory] = copy.deepcopy(p_)
         return [new_config]
 
     if n_permutations is not None and max_n_worlds is None:
@@ -775,7 +775,7 @@ def anac2019_assigner(
                         else shorten(t, config["manager_params"][i])
                     )
                     p["name"] = f'{name_}@{f["id"][1:]}'
-                    config["manager_params"][i] = p
+                    config["manager_params"][i] = copy.deepcopy(p)
                     nxt = nxt + 1
     return configs
 
