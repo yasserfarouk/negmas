@@ -39,6 +39,7 @@ from negmas.tournaments import (
     run_tournament,
     evaluate_tournament,
     combine_tournaments,
+    combine_tournament_stats,
 )
 
 try:
@@ -762,9 +763,22 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
         scheduler_port=port,
         print_exceptions=verbosity > 1,
     )
+    end_time = humanize_time(perf_counter() - start)
     results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0)
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
-    print(f"Finished in {humanize_time(perf_counter() - start)}")
+    agg_stats = results.agg_stats.loc[
+        :,
+        [
+            "n_negotiations_sum",
+            "n_contracts_concluded_sum",
+            "n_contracts_signed_sum",
+            "n_contracts_executed_sum",
+            "activity_level_sum",
+        ],
+    ]
+    agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
+    print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
+    print(f"Finished in {end_time}")
 
 
 @tournament.command(
@@ -837,9 +851,9 @@ def combine(path, dest):
     if len(tpath) < 1:
         print("No paths are given to combine")
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
-    results = evaluate_tournament(dest, scores, verbose=True)
+    stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
+    results = evaluate_tournament(dest, scores, stats, verbose=True)
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
-    print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
 
 
 @cli.command(help="Run an SCML world simulation")

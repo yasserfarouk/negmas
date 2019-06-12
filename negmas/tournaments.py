@@ -56,6 +56,7 @@ __all__ = [
     "process_world_run",
     "evaluate_tournament",
     "combine_tournaments",
+    "combine_tournament_stats",
     "create_tournament",
     "run_tournament",
 ]
@@ -167,6 +168,8 @@ class WorldRunResults:
     """Log file name"""
     names: List[str] = field(default_factory=list, init=False)
     """Agent names"""
+    ids: List[str] = field(default_factory=list, init=False)
+    """Agent IDs"""
     scores: List[float] = field(default_factory=list, init=False)
     """Agent scores"""
     types: List[str] = field(default_factory=list, init=False)
@@ -183,6 +186,8 @@ class TournamentResults:
     """Winner score (accumulated)"""
     ttest: pd.DataFrame = None
     kstest: pd.DataFrame = None
+    stats: pd.DataFrame = None
+    agg_stats: pd.DataFrame = None
 
 
 def run_world(
@@ -1153,6 +1158,7 @@ def create_tournament(
 def evaluate_tournament(
     tournament_path: Optional[Union[str, PathLike, Path]],
     scores: Optional[pd.DataFrame] = None,
+    stats: Optional[pd.DataFrame] = None,
     verbose: bool = False,
     recursive: bool = False,
     # independent_test: bool = True,  # dependent test implementation is not correct as there is no way to know how to correspond measurements
@@ -1165,6 +1171,8 @@ def evaluate_tournament(
                          Pass None to avoid saving the results to disk.
         scores: Optionally the scores of all agents in all world runs. If not given they will be read from the file
                 scores.csv in `tournament_path`
+        stats: Optionally the stats of all world runs. If not given they will be read from the file
+               stats.csv in `tournament_path`
         verbose: If true, the winners will be printed
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
                    will be combined
@@ -1185,9 +1193,16 @@ def evaluate_tournament(
                 )
             else:
                 scores = pd.read_csv(scores_file, index_col=None)
-    if not isinstance(scores, pd.DataFrame):
+
+        if stats is None:
+            stats = combine_tournament_stats(
+                sources=[tournament_path], dest=None, verbose=False
+            )
+    if scores is not None and not isinstance(scores, pd.DataFrame):
         scores = pd.DataFrame(data=scores)
-    if len(scores) < 1:
+    if stats is not None and not isinstance(stats, pd.DataFrame):
+        stats = pd.DataFrame(data=stats)
+    if scores is None or len(scores) < 1:
         return TournamentResults(
             scores=pd.DataFrame(),
             total_scores=pd.DataFrame(),
@@ -1195,6 +1210,8 @@ def evaluate_tournament(
             winners_scores=np.array([]),
             ttest=pd.DataFrame(),
             kstest=pd.DataFrame(),
+            stats=pd.DataFrame(),
+            agg_stats=pd.DataFrame(),
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
@@ -1258,6 +1275,7 @@ def evaluate_tournament(
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
 
+    agg_stats = pd.DataFrame()
     if tournament_path is not None:
         tournament_path = pathlib.Path(tournament_path)
         scores.to_csv(str(tournament_path / "scores.csv"), index_label="index")
@@ -1269,6 +1287,10 @@ def evaluate_tournament(
         ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
         ks_results = pd.DataFrame(data=ks_results)
         ks_results.to_csv(str(tournament_path / "kstest.csv"), index_label="index")
+        if stats is not None:
+            stats.to_csv(str(tournament_path / "stats.csv"), index=False)
+            agg_stats = _combine_stats(stats)
+            agg_stats.to_csv(str(tournament_path / "agg_stats.csv"), index=False)
 
     if verbose:
         print(f"N. scores = {len(scores)}\tN. Worlds = {len(scores.world.unique())}")
@@ -1280,6 +1302,8 @@ def evaluate_tournament(
         winners_scores=winner_scores,
         ttest=ttest_results,
         kstest=ks_results,
+        stats=stats,
+        agg_stats=agg_stats,
     )
 
 
@@ -1309,3 +1333,84 @@ def combine_tournaments(
     if dest is not None:
         scores.to_csv(str(_path(dest) / "scores.csv"), index=False)
     return scores
+
+
+def combine_tournament_stats(
+    sources: Iterable[Union[str, PathLike]],
+    dest: Union[str, PathLike] = None,
+    verbose=False,
+) -> pd.DataFrame:
+    """Combines statistical results of several tournament runs in the destination path."""
+
+    stats = []
+    for src in sources:
+        src = _path(src)
+        for filename in src.glob("**/stats.json"):
+            # try:
+            p = load(filename)
+            p = pd.DataFrame.from_dict(p)
+            p = p.loc[
+                :, [c for c in p.columns if "balance" not in c and "storage" not in c]
+            ]
+            p["step"] = list(range(len(p)))
+            p["world"] = filename.parent.name
+            p["path"] = filename.parent.parent
+            stats.append(p)
+            # if verbose:
+            #    print(f"Read: {str(filename)}")
+            #        print(f"FAILED {str(filename)}")
+    if len(stats) < 1:
+        if verbose:
+            print("No stats found")
+        return pd.DataFrame()
+    stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True)
+    if dest is not None:
+        stats.to_csv(str(_path(dest) / "stats.csv"), index=False)
+        combined = _combine_stats(stats)
+        combined.to_csv(str(_path(dest) / "agg_stats"), index=False)
+    return stats
+
+
+def _combine_stats(stats: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
+    """Generates aggregate stats from stats"""
+    if stats is None:
+        return None
+    combined = (
+        stats.loc[
+            :,
+            [c for c in stats.columns if not c.startswith("_") and c not in ("path",)],
+        ]
+        .groupby(["world"])
+        .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
+        .reset_index()
+    )
+
+    def get_last(x):
+        return x.loc[x["step"] == x["step"].max(), :]
+
+    last = stats.groupby(["world"]).apply(get_last)
+    last.columns = [
+        f"{str(c)}_final" if c not in ("world", "path") else c for c in last.columns
+    ]
+    last.index = range(len(last))
+    combined = pd.merge(combined, last, on=["world"])
+
+    def adjust_name(s):
+        if isinstance(s, tuple):
+            s = "".join(s)
+        return (
+            s.replace("'", "")
+            .replace('"', "")
+            .replace(" ", "")
+            .replace("(", "")
+            .replace(")", "")
+            .replace("amax", "_max")
+            .replace("amin", "_min")
+            .replace("mean", "_mean")
+            .replace("var", "_var")
+            .replace("median", "_median")
+            .replace("sum", "_sum")
+        )
+
+    combined.columns = [adjust_name(c) for c in combined.columns]
+    return combined
