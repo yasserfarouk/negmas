@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
+from pprint import pprint
 from typing import (
     Optional,
     List,
@@ -1363,7 +1364,11 @@ def combine_tournament_stats(
             #         ],
             #     )
             # )
-            p = pd.DataFrame.from_dict(p)
+            try:
+                p = pd.DataFrame.from_dict(p)
+            except:
+                print("Arrays are not of the same length")
+                pprint(dict(zip(p.keys(), [len(_) for _ in p.values()])))
             p = p.loc[
                 :, [c for c in p.columns if "balance" not in c and "storage" not in c]
             ]
