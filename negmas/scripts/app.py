@@ -767,7 +767,7 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
     results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0)
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"]),
+            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
             headers="keys",
             tablefmt="psql",
         )
@@ -833,7 +833,7 @@ def winners(ctx, name, log, recursive):
     )
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"]),
+            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
             headers="keys",
             tablefmt="psql",
         )
@@ -879,7 +879,7 @@ def combine(path, dest):
     results = evaluate_tournament(dest, scores, stats, verbose=True)
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"]),
+            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
             headers="keys",
             tablefmt="psql",
         )
