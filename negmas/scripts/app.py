@@ -826,6 +826,18 @@ def winners(ctx, name, log, recursive):
         tournament_path=tpath, verbose=True, recursive=recursive
     )
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+    agg_stats = results.agg_stats.loc[
+        :,
+        [
+            "n_negotiations_sum",
+            "n_contracts_concluded_sum",
+            "n_contracts_signed_sum",
+            "n_contracts_executed_sum",
+            "activity_level_sum",
+        ],
+    ]
+    agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
+    print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
 
 
 def _path(path) -> Path:
@@ -854,6 +866,18 @@ def combine(path, dest):
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, stats, verbose=True)
     print(tabulate(results.total_scores, headers="keys", tablefmt="psql"))
+    agg_stats = results.agg_stats.loc[
+        :,
+        [
+            "n_negotiations_sum",
+            "n_contracts_concluded_sum",
+            "n_contracts_signed_sum",
+            "n_contracts_executed_sum",
+            "activity_level_sum",
+        ],
+    ]
+    agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
+    print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
 
 
 @cli.command(help="Run an SCML world simulation")
