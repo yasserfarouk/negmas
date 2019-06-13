@@ -32,7 +32,7 @@ from negmas.apps.scml.utils import (
     anac2019_sabotage_assigner,
     sabotage_effectiveness,
 )
-from negmas.helpers import humanize_time, unique_name, camel_case
+from negmas.helpers import humanize_time, unique_name, camel_case, load
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 from negmas.tournaments import (
     create_tournament,
@@ -387,6 +387,13 @@ def tournament(ctx, ignore_warnings):
     help="Default location to save logs (A folder will be created under it)",
 )
 @click.option(
+    "--world-config",
+    type=click.Path(dir_okay=False, file_okay=True),
+    default=tuple(),
+    multiple=True,
+    help="A file to load extra configuration parameters for world simulations from.",
+)
+@click.option(
     "--verbosity",
     default=1,
     type=int,
@@ -439,6 +446,7 @@ def create(
     configs,
     max_runs,
     competitors,
+    world_config,
     jcompetitors,
     non_competitors,
     compact,
@@ -453,6 +461,10 @@ def create(
 ):
     if len(path) > 0:
         sys.path.append(path)
+    kwargs = {}
+    if world_config is not None and len(world_config) > 0:
+        for wc in world_config:
+            kwargs.update(load(wc))
     warning_n_runs = 2000
     if timeout <= 0:
         timeout = None
@@ -608,6 +620,7 @@ def create(
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
             ignore_contract_execution_exceptions=not raise_exceptions,
+            **kwargs,
         )
     elif ttype.lower() in ("anac2019collusion", "anac2019"):
         print(f"Tournament will be run between {len(all_competitors)} agents: ")
@@ -639,6 +652,7 @@ def create(
             log_negotiations=log_negs,
             ignore_agent_exceptions=not raise_exceptions,
             ignore_contract_execution_exceptions=not raise_exceptions,
+            **kwargs,
         )
     elif ttype.lower() == "anac2019sabotage":
         print(f"Tournament will be run between {len(all_competitors)} agents: ")
@@ -670,6 +684,7 @@ def create(
             config_generator=anac2019_sabotage_config_generator,
             config_assigner=anac2019_sabotage_assigner,
             score_calculator=sabotage_effectiveness,
+            **kwargs,
         )
     else:
         raise ValueError(f"Unknown tournament type {ttype}")
