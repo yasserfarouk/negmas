@@ -381,6 +381,7 @@ class SCMLWorld(World):
         self.__interested_agents: List[List[SCMLAgent]] = [[]] * len(self.products)
         self.n_new_cfps = 0
         self.__n_nullified = 0
+        self.__n_bankrupt = 0
         self._transport: Dict[int, List[Tuple[SCMLAgent, int, int]]] = defaultdict(list)
         self._transfer: Dict[int, List[Tuple[SCMLAgent, float]]] = defaultdict(list)
         self.transfer_delay = transfer_delay
@@ -1495,6 +1496,7 @@ class SCMLWorld(World):
         self._stats["n_cfps_on_board_before"].append(len(cfps) if cfps else 0)
         self._n_production_failures = 0
         self.__n_nullified = 0
+        self.__n_bankrupt = 0
         pass
 
     def _post_step_stats(self):
@@ -1505,6 +1507,7 @@ class SCMLWorld(World):
         cfps = self.bulletin_board._data["cfps"]
         self._stats["n_cfps_on_board_after"].append(len(cfps) if cfps else 0)
         self._stats["n_contracts_nullified"].append(self.__n_nullified)
+        self._stats["n_bankrupt"].append(self.__n_bankrupt)
         market_size = 0
         self._stats[f"_balance_bank"].append(self.bank.wallet)
         self._stats[f"_balance_society"].append(self.penalties)
@@ -2203,13 +2206,16 @@ class SCMLWorld(World):
         # second pay the beneficiary
         if contract is None:
             # beneficiary is the bank
-            beneficiary: DefaultBank
             beneficiary.wallet += payable
             factory.pay(payable)
             keep_for_beneficiary = 0
         else:
             # beneficiary is another agent
             keep_for_beneficiary = payable
+            bfactory = self.a2f.get(beneficiary.id, None)
+            if bfactory is not None:
+                bfactory.receive(payable)
+                factory.pay(payable)
 
         # nullify all future contracts
         available = factory.balance - keep_for_beneficiary
@@ -2226,9 +2232,11 @@ class SCMLWorld(World):
                         contract.agreement["quantity"]
                         * contract.agreement["unit_price"]
                     )
-
+        self.__n_bankrupt += 1
+        if owed <= 0.0:
+            return
         # calculate compensation fraction
-        if available > owed:
+        if available >= owed:
             fraction = self.compensation_fraction
         else:
             fraction = self.compensation_fraction * available / owed
@@ -2237,19 +2245,21 @@ class SCMLWorld(World):
             victim = self.all_agents.get(victim, None)
             if victim is None:
                 continue
-            factory = self.a2f.get(victim.id, None)
-            if factory is None:
+            bfactory = self.a2f.get(victim.id, None)
+            if bfactory is None:
                 continue
-            compensation = (
+            compensation = min(
+                factory.wallet,
                 fraction
                 * contract.agreement["quantity"]
-                * contract.agreement["unit_price"]
+                * contract.agreement["unit_price"],
             )
+            if compensation > 0.0:
+                bfactory.receive(compensation)
+                factory.pay(compensation)
             victim.on_contract_nullified(
                 contract=contract, bankrupt_partner=agent.id, compensation=compensation
             )
-            factory.receive(compensation)
-
             self.nullify_contract(contract)
 
     def nullify_contract(self, contract: Contract):
