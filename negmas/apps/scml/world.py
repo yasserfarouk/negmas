@@ -141,7 +141,8 @@ class SCMLWorld(World):
         catalog_prices_are_public=True,
         strip_annotations=True,
         financial_reports_period=10,
-        ignore_negotaited_penalties=False
+        ignore_negotiated_penalties=False,
+        prevent_cfp_tampering=False
         # bankruptcy parameters
         ,
         default_price_for_products_without_one=1,
@@ -249,7 +250,8 @@ class SCMLWorld(World):
             ignore_contract_execution_exceptions=ignore_contract_execution_exceptions,
             **kwargs,
         )
-        self.ignore_negotiated_penalties = ignore_negotaited_penalties
+        self.prevent_cfp_tampering = prevent_cfp_tampering
+        self.ignore_negotiated_penalties = ignore_negotiated_penalties
         self.compensation_fraction = compensation_fraction
         self.save_mechanism_state_in_contract = save_mechanism_state_in_contract
         self.default_price_for_products_without_one = (
@@ -2311,8 +2313,9 @@ class SCMLWorld(World):
 
     def _process_annotation(
         self, annotation: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Processes an annotation stripping any extra information not allowed if necessary"""
+    ) -> Optional[Dict[str, Any]]:
+        """Processes an annotation stripping any extra information not allowed if necessary. Will return None if the
+        annotation is suspecious"""
         if annotation is None:
             return {}
         if not self.strip_annotations:
@@ -2322,6 +2325,17 @@ class SCMLWorld(World):
             for k, v in annotation.items()
             if k in ("partners", "cfp", "buyer", "seller")
         }
+        if self.prevent_cfp_tampering:
+            cfp = annotation.get("cfp", None)
+            if cfp is not None:
+                cfp_ = self.bulletin_board.read("cfps", cfp.id)
+                if cfp_ is None:
+                    self.logerror(
+                        f"CFP {str(cfp)} with id {cfp.id} was tampered with by {self.agent.name} and will be ignored"
+                    )
+                    return None
+                else:
+                    annotation["cfp"] = cfp_
         return annotation
 
     def run_negotiation(
@@ -2335,6 +2349,8 @@ class SCMLWorld(World):
         mechanism_params: Dict[str, Any] = None,
     ) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
         annotation = self._process_annotation(annotation)
+        if annotation is None:
+            return None
         return super().run_negotiation(
             caller=caller,
             issues=issues,
@@ -2357,6 +2373,8 @@ class SCMLWorld(World):
         mechanism_params: Dict[str, Any] = None,
     ):
         annotation = self._process_annotation(annotation)
+        if annotation is None:
+            return False
         return super().request_negotiation_about(
             req_id=req_id,
             caller=caller,

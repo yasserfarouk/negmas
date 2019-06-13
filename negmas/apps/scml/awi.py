@@ -210,7 +210,7 @@ class SCMLAWI(AgentWorldInterface):
             mechanism_params: Parameters of the mechanism
 
         Returns:
-            Success of failure of the negotiation
+            Success of failure of the negotiation request
 
         Remarks:
 
@@ -220,6 +220,14 @@ class SCMLAWI(AgentWorldInterface):
               intend to use the `requested_negotiations` and `running_negotiations` properties of the `SCMLAgent` class
 
         """
+        if self._world.prevent_cfp_tampering:
+            cfp_ = self._world.bulletin_board.read("cfps", cfp.id)
+            if cfp_ is None:
+                self._world.logwarning(
+                    f"CFP {str(cfp)} with id {cfp.id} was tampered with by {self.agent.name} and will be ignored"
+                )
+                return False
+            cfp = cfp_
         default_annotation = self._create_annotation(cfp)
         return super().request_negotiation_about(
             issues=cfp.issues,
