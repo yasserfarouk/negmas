@@ -140,7 +140,8 @@ class SCMLWorld(World):
         avg_process_cost_is_public=True,
         catalog_prices_are_public=True,
         strip_annotations=True,
-        financial_reports_period=10
+        financial_reports_period=10,
+        ignore_negotaited_penalties=False
         # bankruptcy parameters
         ,
         default_price_for_products_without_one=1,
@@ -248,7 +249,7 @@ class SCMLWorld(World):
             ignore_contract_execution_exceptions=ignore_contract_execution_exceptions,
             **kwargs,
         )
-
+        self.ignore_negotiated_penalties = ignore_negotaited_penalties
         self.compensation_fraction = compensation_fraction
         self.save_mechanism_state_in_contract = save_mechanism_state_in_contract
         self.default_price_for_products_without_one = (
@@ -1550,7 +1551,11 @@ class SCMLWorld(World):
                 f"Contract with zero unit_price ({unit_price}: {str(contract)}"
             )
         # find out the values for vicitm and social penalties
-        penalty_victim = agreement.get("penalty", None)
+        penalty_victim = (
+            agreement.get("penalty", None)
+            if not self.ignore_negotiated_penalties
+            else None
+        )
         if penalty_victim is not None and self.breach_penalty_victim is not None:
             # there is a defined penalty, find its value
             penalty_victim = penalty_victim if penalty_victim is not None else 0.0
@@ -1851,7 +1856,11 @@ class SCMLWorld(World):
         quantity, unit_price = agreement["quantity"], agreement["unit_price"]
         if quantity < 1 and unit_price <= 0.0:
             return
-        penalty_victim = agreement.get("penalty", None)
+        penalty_victim = (
+            agreement.get("penalty", None)
+            if not self.ignore_negotiated_penalties
+            else None
+        )
         if penalty_victim is not None and self.breach_penalty_victim is not None:
             # there is a defined penalty, find its value
             penalty_victim = penalty_victim if penalty_victim is not None else 0.0
