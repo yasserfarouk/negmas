@@ -1161,6 +1161,7 @@ def evaluate_tournament(
     tournament_path: Optional[Union[str, PathLike, Path]],
     scores: Optional[pd.DataFrame] = None,
     stats: Optional[pd.DataFrame] = None,
+    metric: Union[str, Callable[[pd.DataFrame], float]] = "mean",
     verbose: bool = False,
     recursive: bool = False,
     # independent_test: bool = True,  # dependent test implementation is not correct as there is no way to know how to correspond measurements
@@ -1175,6 +1176,8 @@ def evaluate_tournament(
                 scores.csv in `tournament_path`
         stats: Optionally the stats of all world runs. If not given they will be read from the file
                stats.csv in `tournament_path`
+        metric: The metric used for evaluation. Possibilities are: mean, median, std, var, sum or a callable that
+                receives a pandas data-frame and returns a float.
         verbose: If true, the winners will be printed
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
                    will be combined
@@ -1218,12 +1221,52 @@ def evaluate_tournament(
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
-    total_scores = (
-        scores.groupby(["agent_type"])["score"]
-        .median()
-        .sort_values(ascending=False)
-        .reset_index()
-    )
+    if not isinstance(metric, str):
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .apply(metric)
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+    elif metric == "median":
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .median()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+    elif metric == "mean":
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .mean()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+    elif metric == "std":
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .std()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+    elif metric == "var":
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .var()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+    elif metric == "sum":
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .sum()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+    else:
+        raise ValueError(
+            f"Unknown metric: {metric}. Supported metrics include mean, median, std, var, sum or a callable"
+        )
     score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
     winner_table = total_scores.loc[
         total_scores["score"] == total_scores["score"].max(), :

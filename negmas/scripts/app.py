@@ -749,9 +749,17 @@ def create(
     help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
     "paths on linux/mac and a ; separated list in windows",
 )
+@click.option(
+    "--metric",
+    default="mean",
+    type=str,
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, log):
+def run(
+    ctx, name, verbosity, parallel, distributed, ip, port, compact, path, log, metric
+):
     if len(name) == 0:
         name = ctx.obj.get("tournament_name", "")
     if len(name) == 0:
@@ -779,7 +787,9 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
         print_exceptions=verbosity > 1,
     )
     end_time = humanize_time(perf_counter() - start)
-    results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0)
+    results = evaluate_tournament(
+        tournament_path=tpath, verbose=verbosity > 0, metric=metric
+    )
     print(
         tabulate(
             results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
@@ -823,9 +833,15 @@ def run(ctx, name, verbosity, parallel, distributed, ip, port, compact, path, lo
     default=True,
     help="Whether to recursively look for tournament results. --name should not be given if --recursive",
 )
+@click.option(
+    "--metric",
+    default="mean",
+    type=str,
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def winners(ctx, name, log, recursive):
+def winners(ctx, name, log, recursive, metric):
     if len(name) == 0:
         if not recursive:
             name = ctx.obj.get("tournament_name", "")
@@ -844,7 +860,7 @@ def winners(ctx, name, log, recursive):
     else:
         tpath = str(pathlib.Path(log))
     results = evaluate_tournament(
-        tournament_path=tpath, verbose=True, recursive=recursive
+        tournament_path=tpath, verbose=True, recursive=recursive, metric=metric
     )
     print(
         tabulate(
@@ -884,14 +900,20 @@ def _path(path) -> Path:
     help="The location to save the results",
     default=None,
 )
+@click.option(
+    "--metric",
+    default="mean",
+    type=str,
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+)
 @click_config_file.configuration_option()
-def combine(path, dest):
+def combine(path, dest, metric):
     tpath = [_path(_) for _ in path]
     if len(tpath) < 1:
         print("No paths are given to combine")
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
-    results = evaluate_tournament(dest, scores, stats, verbose=True)
+    results = evaluate_tournament(dest, scores, stats, verbose=True, metric=metric)
     print(
         tabulate(
             results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
