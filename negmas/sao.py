@@ -32,6 +32,7 @@ from negmas.outcomes import (
     ResponseType,
     outcome_as_dict,
     outcome_as_tuple,
+    outcome_is_complete,
 )
 from negmas.utilities import (
     MappingUtilityFunction,
@@ -102,6 +103,7 @@ class SAOMechanism(Mechanism):
         publish_n_acceptances=False,
         enable_callbacks=False,
         avoid_ultimatum=True,
+        check_offers=True,
         name: Optional[str] = None,
     ):
         super().__init__(
@@ -128,6 +130,7 @@ class SAOMechanism(Mechanism):
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.publish_proposer = publish_proposer
         self.publish_n_acceptances = publish_n_acceptances
+        self.check_offers = check_offers
 
     def join(
         self,
@@ -168,9 +171,16 @@ class SAOMechanism(Mechanism):
 
         def _safe_counter(neg, *args, **kwargs):
             try:
-                return neg.counter(*args, **kwargs)
+                response = neg.counter(*args, **kwargs)
             except:
                 return SAOResponse(ResponseType.END_NEGOTIATION, None)
+            if (
+                self.check_offers
+                and response.outcome is not None
+                and (not outcome_is_complete(response.outcome, self.issues))
+            ):
+                return SAOResponse(response.response, None)
+            return response
 
         # if this is the first step which means that there is no _current_offer
         if self.ami.state.step == 0:
