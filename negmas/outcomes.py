@@ -1373,9 +1373,11 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
         Union[bool, Tuple[bool, str]]: If return_problem is True then a second return value contains a string with
                                       reason of failure
     """
+    if isinstance(outcome, tuple):
+        outcome = outcome_as_dict(outcome, [str(i.name) for i in issues])
     for issue in issues:
         for key in ikeys(outcome):
-            if issue.name == str(key):
+            if str(issue.name) == str(key):
                 break
 
         else:
@@ -1433,6 +1435,9 @@ def outcome_is_complete(outcome: Outcome, issues: Collection[Issue]) -> bool:
                                       reason of failure
 
     """
+    if isinstance(outcome, OutcomeType):
+        outcome = outcome.asdict()
+
     if len(outcome) != len(issues):
         return False
 
@@ -1440,8 +1445,9 @@ def outcome_is_complete(outcome: Outcome, issues: Collection[Issue]) -> bool:
     if not valid:
         return False
 
+    outcome_keys = [str(k) for k in ikeys(outcome)]
     for issue in issues:
-        if issue.name not in outcome.keys():
+        if str(issue.name) not in outcome_keys:
             return False
 
     return True
