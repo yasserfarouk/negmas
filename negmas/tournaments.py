@@ -7,6 +7,7 @@ import copy
 import itertools
 import math
 import pathlib
+import random
 import shutil
 import time
 import traceback
@@ -153,7 +154,7 @@ class ConfigAssigner(Protocol):
         max_n_worlds: int,
         n_agents_per_competitor: int = 1,
         fair: bool = True,
-        competitors: Sequence[Type[Agent]] = (),
+        competitors: Sequence[Union[str, Type[Agent]]] = (),
         params: Sequence[Dict[str, Any]] = (),
     ) -> List[List[Dict[str, Any]]]:
         ...
@@ -515,6 +516,9 @@ def tournament(
     world_generator: WorldGenerator,
     score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
     competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
+    n_competitors_per_world: Optional[int] = None,
+    round_robin: bool = False,
+    stage_winners_fraction: float = 0.5,
     agent_names_reveal_type=False,
     n_agents_per_competitor=1,
     n_configs: int = 10,
@@ -557,6 +561,17 @@ def tournament(
                           are not expected but names and types should exist in the returned `WorldRunResults`.
         competitors: A list of class names for the competitors
         competitor_params: A list of competitor parameters (used to initialize the competitors).
+        n_competitors_per_world: The number of competitors allowed in every world. It must be >= 1 and
+                                 <= len(competitors) or None.
+
+                                 - If None or len(competitors), then all competitors will exist in every world.
+                                 - If 1, then each world will have one competitor
+
+        round_robin: Only effective if 1 < n_competitors_per_world < len(competitors). if True, all
+                                     combinations will be tried otherwise n_competitors_per_world must divide
+                                     len(competitors) and every competitor appears only in one set.
+        stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
+                                            round_robin, it becomes a single stage competition.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
@@ -594,53 +609,128 @@ def tournament(
         `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
 
     """
-    tournament_path = create_tournament(
-        competitors=competitors,
-        config_generator=config_generator,
-        config_assigner=config_assigner,
-        world_generator=world_generator,
-        score_calculator=score_calculator,
-        competitor_params=competitor_params,
-        agent_names_reveal_type=agent_names_reveal_type,
-        n_agents_per_competitor=n_agents_per_competitor,
-        n_configs=n_configs,
-        max_worlds_per_config=max_worlds_per_config,
-        n_runs_per_world=n_runs_per_world,
-        max_n_configs=max_n_configs,
-        n_runs_per_config=n_runs_per_config,
-        base_tournament_path=tournament_path,
-        total_timeout=total_timeout,
-        parallelism=parallelism,
-        scheduler_ip=scheduler_ip,
-        scheduler_port=scheduler_port,
-        non_competitors=non_competitors,
-        non_competitor_params=non_competitor_params,
-        name=name,
-        verbose=verbose,
-        compact=compact,
-        **kwargs,
-    )
-    if configs_only:
-        return pathlib.Path(tournament_path) / "configs"
-    run_tournament(
-        tournament_path=tournament_path,
-        world_generator=world_generator,
-        score_calculator=score_calculator,
-        total_timeout=total_timeout,
-        parallelism=parallelism,
-        scheduler_ip=scheduler_ip,
-        scheduler_port=scheduler_port,
-        tournament_progress_callback=tournament_progress_callback,
-        world_progress_callback=world_progress_callback,
-        verbose=verbose,
-        compact=compact,
-        print_exceptions=print_exceptions,
+    competitors = list(competitors)
+    if name is None:
+        name = unique_name("", add_time=True, rand_digits=3)
+
+    if n_competitors_per_world is None:
+        n_competitors_per_world = len(competitors)
+
+    if not round_robin and not (1 < n_competitors_per_world < len(competitors)):
+        raise ValueError(
+            f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
+            f"later does not divide the former. You have to set all_competitor_combinations to True"
+        )
+
+    if stage_winners_fraction < 0:
+        stage_winners_fraction = 0
+    if not round_robin and stage_winners_fraction == 0:
+        raise ValueError(
+            f"elimination tournaments (i.e. ones that are not round_robin), cannot have zero stage winner"
+            f"fraction"
+        )
+
+    competitor_indx = dict(
+        zip([get_class(c).type_name for c in competitors], range(len(competitors)))
     )
 
-    if verbose:
-        print(f"Tournament completed successfully")
-        print(f"Finding winners")
-    return evaluate_tournament(tournament_path=tournament_path, verbose=verbose)
+    def _run_eval(competitors_, stage_name):
+        final_tournament_path = create_tournament(
+            competitors=competitors_,
+            config_generator=config_generator,
+            config_assigner=config_assigner,
+            world_generator=world_generator,
+            score_calculator=score_calculator,
+            competitor_params=competitor_params,
+            n_competitors_per_world=n_competitors_per_world,
+            round_robin=round_robin,
+            agent_names_reveal_type=agent_names_reveal_type,
+            n_agents_per_competitor=n_agents_per_competitor,
+            n_configs=n_configs,
+            max_worlds_per_config=max_worlds_per_config,
+            n_runs_per_world=n_runs_per_world,
+            max_n_configs=max_n_configs,
+            n_runs_per_config=n_runs_per_config,
+            base_tournament_path=tournament_path,
+            total_timeout=total_timeout,
+            parallelism=parallelism,
+            scheduler_ip=scheduler_ip,
+            scheduler_port=scheduler_port,
+            non_competitors=non_competitors,
+            non_competitor_params=non_competitor_params,
+            name=stage_name,
+            verbose=verbose,
+            compact=compact,
+            **kwargs,
+        )
+        if configs_only:
+            return pathlib.Path(final_tournament_path) / "configs"
+        run_tournament(
+            tournament_path=final_tournament_path,
+            world_generator=world_generator,
+            score_calculator=score_calculator,
+            total_timeout=total_timeout,
+            parallelism=parallelism,
+            scheduler_ip=scheduler_ip,
+            scheduler_port=scheduler_port,
+            tournament_progress_callback=tournament_progress_callback,
+            world_progress_callback=world_progress_callback,
+            verbose=verbose,
+            compact=compact,
+            print_exceptions=print_exceptions,
+        )
+        return evaluate_tournament(
+            tournament_path=final_tournament_path, verbose=verbose
+        )
+
+    def _keep_n(competitors_, results_, n):
+        tscores = results_.total_scores.sort_values(by=["score"], ascending=False)
+        sorted_indices = np.array([competitor_indx[_] for _ in tscores.values])[:n]
+        return np.array(competitors_)[sorted_indices].tolist()
+
+    stage = 1
+    while len(competitors) > 1:
+        if verbose:
+            print(
+                f"Stage {stage} started between ({len(competitors)} competitors): {competitors} "
+            )
+        stage_name = name + f"-stage-{stage:4.0}"
+        if round_robin:
+            n_winners_per_stage = min(
+                max(1, int(stage_winners_fraction * len(competitors))),
+                len(competitors) - 1,
+            )
+            results = _run_eval(competitors, stage_name)
+            if n_winners_per_stage == 1:
+                return results
+            competitors = _keep_n(competitors, results, n_winners_per_stage)
+        else:
+            random.shuffle(competitors)
+            competitor_sets = (
+                np.array(competitors)
+                .reshape(
+                    (
+                        len(competitors) // n_competitors_per_world,
+                        n_competitors_per_world,
+                    )
+                )
+                .tolist()
+            )
+            next_stage_competitors = []
+            results = None
+            for c in competitor_sets:
+                match_name_ = stage_name + _hash(c)
+                n_winners_per_match = min(
+                    max(1, int(stage_winners_fraction * n_competitors_per_world)),
+                    len(c) - 1,
+                )
+                results = _run_eval(c, match_name_)
+                winners_ = _keep_n(competitors, results, n_winners_per_match)
+                next_stage_competitors += winners_
+            competitors = next_stage_competitors
+            if len(competitors) == 1:
+                return results
+        stage += 1
 
 
 def _path(path: Union[str, PathLike]) -> Path:
@@ -891,6 +981,8 @@ def create_tournament(
     world_generator: WorldGenerator,
     score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
     competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
+    n_competitors_per_world: Optional[int] = None,
+    round_robin: bool = True,
     agent_names_reveal_type=False,
     n_agents_per_competitor=1,
     n_configs: int = 10,
@@ -927,6 +1019,15 @@ def create_tournament(
                           are not expected but names and types should exist in the returned `WorldRunResults`.
         competitors: A list of class names for the competitors
         competitor_params: A list of competitor parameters (used to initialize the competitors).
+        n_competitors_per_world: The number of competitors allowed in every world. It must be >= 1 and
+                                 <= len(competitors) or None.
+
+                                 - If None or len(competitors), then all competitors will exist in every world.
+                                 - If 1, then each world will have one competitor
+
+        round_robin: Only effective if 1 < n_competitors_per_world < len(competitors). if True, all
+                                     combinations will be tried otherwise n_competitors_per_world must divide
+                                     len(competitors) and every competitor appears only in one set.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
@@ -982,8 +1083,17 @@ def create_tournament(
         )
 
     if name is None:
-        name = unique_name("", add_time=True, rand_digits=0)
+        name = unique_name("", add_time=True, rand_digits=3)
     competitors = list(competitors)
+    if n_competitors_per_world is None:
+        n_competitors_per_world = len(competitors)
+
+    if not round_robin and not (1 < n_competitors_per_world < len(competitors)):
+        raise ValueError(
+            f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
+            f"later does not divide the former. You have to set all_competitor_combinations to True"
+        )
+
     original_tournament_path = base_tournament_path
     base_tournament_path = _path(base_tournament_path)
     tournament_path = (pathlib.Path(base_tournament_path) / name).absolute()
@@ -1023,13 +1133,15 @@ def create_tournament(
         "n_runs_per_world": n_runs_per_world,
         "n_worlds": None,
         "compact": compact,
+        "n_competitors_per_world": n_competitors_per_world,
     }
     params.update(kwargs)
     dump(params, tournament_path / "params")
 
+    assigned = []
     configs = [
         config_generator(
-            n_competitors=len(competitors),
+            n_competitors=n_competitors_per_world,
             n_agents_per_competitor=n_agents_per_competitor,
             agent_names_reveal_type=agent_names_reveal_type,
             non_competitors=non_competitors,
@@ -1039,29 +1151,46 @@ def create_tournament(
         )
         for _ in range(n_configs)
     ]
-
     dump(configs, tournament_path / "base_configs")
-
     if verbose:
         print(
             f"Will run {len(configs)}  different base world configurations ({parallelism})",
             flush=True,
         )
 
-    assigned = list(
-        itertools.chain(
-            *[
-                config_assigner(
-                    config=c,
-                    max_n_worlds=max_worlds_per_config,
-                    n_agents_per_competitor=n_agents_per_competitor,
-                    competitors=competitors,
-                    params=competitor_params,
-                )
-                for c in configs
-            ]
+    if round_robin:
+        competitor_sets = itertools.combinations(competitors, n_competitors_per_world)
+    else:
+        random.shuffle(competitors)
+        competitor_sets = (
+            np.array(competitors)
+            .reshape(
+                (len(competitors) // n_competitors_per_world, n_competitors_per_world)
+            )
+            .tolist()
         )
-    )
+
+    for effective_competitors in competitor_sets:
+        configs = copy.deepcopy(configs)
+        for conf in configs:
+            for c in conf:
+                c["world_params"]["name"] += "_" + _hash(effective_competitors)
+        effective_competitors = list(effective_competitors)
+        this_assigned = list(
+            itertools.chain(
+                *[
+                    config_assigner(
+                        config=c,
+                        max_n_worlds=max_worlds_per_config,
+                        n_agents_per_competitor=n_agents_per_competitor,
+                        competitors=effective_competitors,
+                        params=competitor_params,
+                    )
+                    for c in configs
+                ]
+            )
+        )
+        assigned += this_assigned
 
     for config in assigned:
         for c in config:
