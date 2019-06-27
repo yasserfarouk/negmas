@@ -1171,13 +1171,14 @@ def create_tournament(
         )
 
     for effective_competitors in competitor_sets:
+        effective_competitors = list(effective_competitors)
+        print(effective_competitors)
         myconfigs = copy.deepcopy(configs)
         for conf in myconfigs:
             for c in conf:
                 c["world_params"]["name"] += "_" + "-".join(
                     _hash(_)[:4] for _ in effective_competitors
                 )
-        effective_competitors = list(effective_competitors)
         this_assigned = list(
             itertools.chain(
                 *[
