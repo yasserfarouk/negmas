@@ -431,6 +431,14 @@ def tournament(ctx, ignore_warnings):
     help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
     "paths on linux/mac and a ; separated list in windows",
 )
+@click.option(
+    "--cw",
+    default=None,
+    type=int,
+    help="Number of competitors to run at every world simulation. It must "
+    "either be left at default or be a number > 1 and < the number "
+    "of competitors passed using --competitors",
+)
 @click_config_file.configuration_option()
 @click.pass_context
 def create(
@@ -458,6 +466,7 @@ def create(
     steps_min,
     steps_max,
     path,
+    cw,
 ):
     if len(path) > 0:
         sys.path.append(path)
@@ -601,6 +610,7 @@ def create(
             non_competitors=non_competitors,
             non_competitor_params=non_competitor_params,
             agent_names_reveal_type=reveal_names,
+            n_competitors_per_world=cw,
             n_configs=configs,
             n_runs_per_world=runs,
             max_worlds_per_config=worlds_per_config,
