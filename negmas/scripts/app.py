@@ -800,9 +800,10 @@ def run(
     results = evaluate_tournament(
         tournament_path=tpath, verbose=verbosity > 0, metric=metric
     )
+    viewmetric = ["50%" if metric == "median" else metric, "mean"]
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
+            results.score_stats.sort_values(by=[viewmetric], ascending=False),
             headers="keys",
             tablefmt="psql",
         )
