@@ -800,9 +800,10 @@ def run(
     results = evaluate_tournament(
         tournament_path=tpath, verbose=verbosity > 0, metric=metric
     )
+    viewmetric = ["50%" if metric == "median" else metric]
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
+            results.score_stats.sort_values(by=viewmetric, ascending=False),
             headers="keys",
             tablefmt="psql",
         )
@@ -872,9 +873,10 @@ def winners(ctx, name, log, recursive, metric):
     results = evaluate_tournament(
         tournament_path=tpath, verbose=True, recursive=recursive, metric=metric
     )
+    viewmetric = ["50%" if metric == "median" else metric]
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
+            results.score_stats.sort_values(by=viewmetric, ascending=False),
             headers="keys",
             tablefmt="psql",
         )
@@ -924,9 +926,10 @@ def combine(path, dest, metric):
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, stats, verbose=True, metric=metric)
+    viewmetric = ["50%" if metric == "median" else metric]
     print(
         tabulate(
-            results.score_stats.sort_values(by=["50%", "mean"], ascending=False),
+            results.score_stats.sort_values(by=viewmetric, ascending=False),
             headers="keys",
             tablefmt="psql",
         )
