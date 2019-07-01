@@ -1081,6 +1081,13 @@ def combine(path, dest, metric):
     help="A path to be added to PYTHONPATH in which all competitors are stored. You can path a : separated list of "
     "paths on linux/mac and a ; separated list in windows",
 )
+@click.option(
+    "--world-config",
+    type=click.Path(dir_okay=False, file_okay=True),
+    default=tuple(),
+    multiple=True,
+    help="A file to load extra configuration parameters for world simulations from.",
+)
 @click_config_file.configuration_option()
 def scml(
     steps,
@@ -1113,7 +1120,12 @@ def scml(
     shared_profile,
     raise_exceptions,
     path,
+    world_config,
 ):
+    kwargs = dict(no_bank=True, no_insurance=False)
+    if world_config is not None and len(world_config) > 0:
+        for wc in world_config:
+            kwargs.update(load(wc))
     if len(path) > 0:
         sys.path.append(path)
     if max_insurance < 0:
@@ -1237,9 +1249,7 @@ def scml(
         shared_profile_per_factory=shared_profile,
         initial_wallet_balances=balance,
         neg_step_time_limit=10,
-        no_bank=True,
         breach_penalty_society=0.02,
-        no_insurance=False,
         premium=0.03,
         premium_time_increment=0.1,
         premium_breach_increment=0.001,
@@ -1255,6 +1265,7 @@ def scml(
         compensation_fraction=0.5,
         ignore_agent_exceptions=not raise_exceptions,
         ignore_contract_execution_exceptions=not raise_exceptions,
+        **kwargs,
     )
     failed = False
     strt = perf_counter()
