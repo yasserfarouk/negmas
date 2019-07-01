@@ -1211,7 +1211,9 @@ def scml(
     exception = None
 
     def _no_default(s):
-        return s.startswith("negmas.apps.scml") and s.endswith("GreedyFactoryManager")
+        return not (
+            s.startswith("negmas.apps.scml") and s.endswith("GreedyFactoryManager")
+        )
 
     all_competitors = competitors.split(";")
     for i, cp in enumerate(all_competitors):
