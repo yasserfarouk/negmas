@@ -1169,8 +1169,9 @@ def create_tournament(
             )
             .tolist()
         )
-
     for effective_competitors in competitor_sets:
+        if verbose:
+            print(f"Running {'|'.join(effective_competitors)} together")
         effective_competitors = list(effective_competitors)
         myconfigs = copy.deepcopy(configs)
         for conf in myconfigs:
