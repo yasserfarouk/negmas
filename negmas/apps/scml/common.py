@@ -1211,6 +1211,11 @@ class Factory:
         return self._wallet - self._loans
 
     @property
+    def total_balance(self) -> float:
+        """total balance including hidden money"""
+        return self.balance + self.hidden_money
+
+    @property
     def next_step(self) -> int:
         return self._next_step
 
