@@ -146,7 +146,9 @@ class Contract(OutcomeType):
     """Object name"""
 
     def __str__(self):
-        return f'{", ".join(self.partners)} agreed on {str(self.agreement)}'
+        return (
+            f'{", ".join(self.partners)} agreed on {str(self.agreement)} [id {self.id}]'
+        )
 
     def __hash__(self):
         """The hash depends only on the name"""

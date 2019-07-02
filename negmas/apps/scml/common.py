@@ -10,7 +10,7 @@ from typing import Dict, Union, Tuple, Iterable, List, Optional, Any
 import numpy as np
 
 from negmas.outcomes import OutcomeType, Issue
-from negmas.situated import Contract
+from negmas.situated import Contract, World
 from negmas.utilities import INVALID_UTILITY
 
 INVALID_STEP = -1000
@@ -1134,6 +1134,10 @@ class Factory:
         init=False, default_factory=lambda: FactoryStatusUpdate.empty()
     )
     """Carried updates from last executed command"""
+    _world: World = field(init=False, default=None)
+
+    def attach_to_world(self, world):
+        self._world = world
 
     def __post_init__(self, initial_storage: Dict[int, int], initial_wallet=0.0):
         # no matter what are the line indices in the given profiles, the lines used by the factory
@@ -1219,6 +1223,11 @@ class Factory:
     def pay(self, payment: float) -> None:
         if self._wallet - payment < self.min_balance:
             raise ValueError(f"Cannot pay {payment} as  we have only {self._wallet}")
+        if self._world is not None:
+            if payment > 0:
+                self._world.logdebug(f"{self.id} paid {payment} dollars")
+            else:
+                self._world.logdebug(f"{self.id} received {payment} dollars")
         self._wallet -= payment
 
     def transport_to(self, product: int, quantity: int) -> None:
@@ -1232,6 +1241,11 @@ class Factory:
                 f"Cannot transfer {quantity} of {product} as  we have only {self._storage[product]} "
                 f"(min {self.min_storage}, max {self.max_storage})"
             )
+        if self._world is not None:
+            if quantity > 0:
+                self._world.logdebug(f"{self.id} received {quantity} of {product}")
+            else:
+                self._world.logdebug(f"{self.id} sent {quantity} of {product}")
         self._storage[product] += quantity
         self._total_storage += quantity
 
@@ -1244,6 +1258,10 @@ class Factory:
                 f"Cannot buy {quantity} (total {self._total_storage}/{sum(self._storage.values())}) of "
                 f"{product} for {price} (wallet {self._wallet} / balance {self.balance})"
             )
+        if self._world is not None:
+            self._world.logdebug(
+                f"{self.id} bought {quantity} of {product} for {price} dollars total"
+            )
         self._wallet -= price
         self._storage[product] += quantity
         self._total_storage += quantity
@@ -1254,6 +1272,10 @@ class Factory:
                 f"Cannot sell {quantity} (have {self._storage[product]}) of "
                 f"{product} for {price} (wallet {self._wallet} / balance {self.balance})"
             )
+        if self._world is not None:
+            self._world.logdebug(
+                f"{self.id} sold {quantity} of {product} for {price} dollars total"
+            )
         self._storage[product] -= quantity
         self._total_storage -= quantity
         self._wallet += price
@@ -1263,21 +1285,29 @@ class Factory:
 
     def hide_funds(self, amount: float) -> None:
         to_hide = min(amount, self._wallet)
+        if self._world is not None:
+            self._world.logdebug(f"{self.id} hidden {amount} dollars")
         self._hidden_money += to_hide
         self._wallet -= to_hide
 
     def hide_product(self, product: int, quantity: int) -> None:
         to_hide = min(quantity, self._storage.get(product, 0))
+        if self._world is not None:
+            self._world.logdebug(f"{self.id} hidden {quantity} of {product}")
         self._hidden_storage[product] += to_hide
         self._storage[product] -= to_hide
 
     def unhide_funds(self, amount: float) -> None:
         to_hide = min(amount, self._hidden_money)
+        if self._world is not None:
+            self._world.logdebug(f"{self.id} revealed {amount} dollars")
         self._hidden_money -= to_hide
         self._wallet += to_hide
 
     def unhide_product(self, product: int, quantity: int) -> None:
         to_hide = min(quantity, self._hidden_storage.get(product, 0))
+        if self._world is not None:
+            self._world.logdebug(f"{self.id} revealed {quantity} of {product}")
         self._hidden_storage[product] -= to_hide
         self._storage[product] += to_hide
 
@@ -1292,6 +1322,10 @@ class Factory:
             Success/failure
         """
         # you can only schedule jobs at the following simulation step
+        if self._world is not None:
+            self._world.logdebug(
+                f"{self.id} scheduled {str(job)} {'(override)' if override else ''}"
+            )
         t, line, profile = job.time, job.line, self.profiles[job.profile]
         if job.action in ("run", "start"):
             line = profile.line

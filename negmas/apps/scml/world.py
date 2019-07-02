@@ -347,6 +347,8 @@ class SCMLWorld(World):
         self.set_products(products)
         self.set_processes(processes)
         self.factories = factories
+        for factory in self.factories:
+            factory.attach_to_world(self)
         self.set_miners(miners)
         self.set_consumers(consumers)
         self.set_factory_managers(factory_managers)
@@ -1420,6 +1422,8 @@ class SCMLWorld(World):
                     inventory=inventory,
                     credit_rating=self.bank.credit_rating(agent.id),
                 )
+                repstr = str(report).replace("\n", " ")
+                self.logdebug(f"{agent.name}: {repstr}")
                 if reports_agent.get(agent.id, None) is None:
                     reports_agent[agent.id] = []
                 reports_agent[agent.id].append(report)
@@ -1549,9 +1553,7 @@ class SCMLWorld(World):
             )
             return breaches
         if unit_price < 1e-7:
-            self.logdebug(
-                f"Contract with zero unit_price ({unit_price}: {str(contract)}"
-            )
+            self.logdebug(f"Contract with {unit_price} unit_price: {str(contract)}")
         # find out the values for vicitm and social penalties
         penalty_victim = (
             agreement.get("penalty", None)
@@ -1615,7 +1617,7 @@ class SCMLWorld(World):
                     product_id=pind,
                 )
             else:
-                self.logdebug(f"Contract {contract.id} has no transfers")
+                self.logdebug(f"Contract {str(contract)} has no transfers")
             return breaches
         except ValueError:
             pass
