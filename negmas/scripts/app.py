@@ -643,6 +643,7 @@ def create(
             non_competitors=non_competitors,
             non_competitor_params=non_competitor_params,
             agent_names_reveal_type=reveal_names,
+            n_competitors_per_world=cw,
             n_configs=configs,
             n_runs_per_world=runs,
             max_worlds_per_config=worlds_per_config,
