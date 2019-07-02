@@ -1043,10 +1043,13 @@ def balance_calculator(
             result.scores.append(None)
         if normalize:
             result.scores.append(
-                (factory.balance - factory.initial_balance) / factory.initial_balance
+                (factory.balance + factory.hidden_money - factory.initial_balance)
+                / factory.initial_balance
             )
         else:
-            result.scores.append(factory.balance - factory.initial_balance)
+            result.scores.append(
+                factory.balance + factory.hidden_money - factory.initial_balance
+            )
     return result
 
 
