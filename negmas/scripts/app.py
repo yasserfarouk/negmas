@@ -801,26 +801,7 @@ def run(
     results = evaluate_tournament(
         tournament_path=tpath, verbose=verbosity > 0, metric=metric
     )
-    viewmetric = ["50%" if metric == "median" else metric]
-    print(
-        tabulate(
-            results.score_stats.sort_values(by=viewmetric, ascending=False),
-            headers="keys",
-            tablefmt="psql",
-        )
-    )
-    agg_stats = results.agg_stats.loc[
-        :,
-        [
-            "n_negotiations_sum",
-            "n_contracts_concluded_sum",
-            "n_contracts_signed_sum",
-            "n_contracts_executed_sum",
-            "activity_level_sum",
-        ],
-    ]
-    agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
-    print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
+    display_results(results, metric)
     print(f"Finished in {end_time}")
 
 
@@ -874,6 +855,18 @@ def winners(ctx, name, log, recursive, metric):
     results = evaluate_tournament(
         tournament_path=tpath, verbose=True, recursive=recursive, metric=metric
     )
+    display_results(results, metric)
+
+
+def _path(path) -> Path:
+    """Creates an absolute path from given path which can be a string"""
+    if isinstance(path, str):
+        if path.startswith("~"):
+            path = Path.home() / ("/".join(path.split("/")[1:]))
+    return pathlib.Path(path).absolute()
+
+
+def display_results(results, metric):
     viewmetric = ["50%" if metric == "median" else metric]
     print(
         tabulate(
@@ -882,6 +875,11 @@ def winners(ctx, name, log, recursive, metric):
             tablefmt="psql",
         )
     )
+    if metric in ("mean", "sum"):
+        print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
+    else:
+        print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
+
     agg_stats = results.agg_stats.loc[
         :,
         [
@@ -894,14 +892,6 @@ def winners(ctx, name, log, recursive, metric):
     ]
     agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
     print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
-
-
-def _path(path) -> Path:
-    """Creates an absolute path from given path which can be a string"""
-    if isinstance(path, str):
-        if path.startswith("~"):
-            path = Path.home() / ("/".join(path.split("/")[1:]))
-    return pathlib.Path(path).absolute()
 
 
 @tournament.command(help="Finds winners of an arbitrary set of tournaments")
@@ -927,26 +917,7 @@ def combine(path, dest, metric):
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, stats, verbose=True, metric=metric)
-    viewmetric = ["50%" if metric == "median" else metric]
-    print(
-        tabulate(
-            results.score_stats.sort_values(by=viewmetric, ascending=False),
-            headers="keys",
-            tablefmt="psql",
-        )
-    )
-    agg_stats = results.agg_stats.loc[
-        :,
-        [
-            "n_negotiations_sum",
-            "n_contracts_concluded_sum",
-            "n_contracts_signed_sum",
-            "n_contracts_executed_sum",
-            "activity_level_sum",
-        ],
-    ]
-    agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
-    print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
+    display_results(results, metric)
 
 
 @cli.command(help="Run an SCML world simulation")
