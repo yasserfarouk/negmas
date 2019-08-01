@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from pprint import pprint
 
 import pytest
@@ -49,9 +50,7 @@ def test_java_factory_manager(java_class):
             super().__init__(*args, java_class_name=java_class, **kwargs)
 
     with jnegmas_connection(shutdown=SHUTDOWN_AFTER_EVERY_TEST):
-        log_file = os.path.expanduser(
-            f'~/negmas/logs/debug/test{java_class.split(".")[-1]}.txt'
-        )
+        log_file = os.path.expanduser(f'test{java_class.split(".")[-1]}.txt')
         print(log_file)
         world = SCMLWorld.chain_world(
             manager_types=(JFM, GreedyFactoryManager),
@@ -60,6 +59,7 @@ def test_java_factory_manager(java_class):
             n_default_per_level=1,
             n_intermediate_levels=1,
             agent_names_reveal_type=True,
+            log_folder=str(Path.home() / "negmas" / "logs" / "debug"),
             log_file_name=log_file,
         )
         world.run()

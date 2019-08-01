@@ -26,6 +26,7 @@ Simulation steps:
 
 """
 import copy
+import json
 import logging
 import os
 import random
@@ -71,7 +72,7 @@ from negmas.helpers import (
     create_loggers,
     add_records,
 )
-from negmas.java import to_flat_dict
+from negmas.java import to_flat_dict, to_dict
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue
@@ -933,6 +934,14 @@ class AgentWorldInterface:
         implements = ["jnegmas.situated.AgentWorldInterface"]
 
 
+def _path(path) -> Path:
+    """Creates an absolute path from given path which can be a string"""
+    if isinstance(path, str):
+        if path.startswith("~"):
+            path = Path.home() / ("/".join(path.split("/")[1:]))
+    return Path(path).absolute()
+
+
 class World(EventSink, EventSource, ConfigReader, ABC):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
@@ -968,13 +977,15 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         neg_step_time_limit=60,
         default_signing_delay=0,
         breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR,
-        log_file_name="",
-        log_to_screen: bool = False,
-        log_file_level=logging.DEBUG,
-        log_screen_level=logging.ERROR,
         log_folder=None,
+        log_to_file=True,
         log_ufuns=False,
         log_negotiations: bool = False,
+        log_to_screen: bool = False,
+        log_stats_every: int = 0,
+        log_file_level=logging.DEBUG,
+        log_screen_level=logging.ERROR,
+        log_file_name="log.txt",
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
         start_negotiations_immediately: bool = False,
@@ -1000,13 +1011,22 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             name: Name of the simulator
         """
         super().__init__()
-        self.log_file_name = log_file_name
+        self._log_folder = (
+            Path(log_folder).absolute()
+            if log_folder is not None
+            else Path.home() / "negmas" / "logs" / "scml" / self.name
+        )
+        if log_file_name is None:
+            log_file_name = "log.txt"
+        self.log_file_name = (
+            str(self._log_folder / log_file_name) if log_to_file else ""
+        )
         self.log_file_level = log_file_level
         self.log_screen_level = log_screen_level
         self.log_to_screen = log_to_screen
         self.log_negotiations = log_negotiations
         self.logger = create_loggers(
-            file_name=log_file_name,
+            file_name=self.log_file_name,
             module_name=None,
             screen_level=log_screen_level if log_to_screen else None,
             file_level=log_file_level,
@@ -1046,11 +1066,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             if name is not None
             else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
         )
-        self._log_folder = (
-            Path(log_folder).absolute()
-            if log_folder is not None
-            else Path.home() / "negmas" / "logs" / "scml" / self.name
-        )
+
         self._log_folder = str(self._log_folder)
         self._stats: Dict[str, List[Any]] = defaultdict(list)
         self.__n_negotiations = 0
@@ -1062,6 +1078,13 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
         self.agents: Dict[str, Agent] = {}
         self.immediate_negotiations = start_negotiations_immediately
+        if log_stats_every is None or log_stats_every < 1:
+            self._stats_file_name = None
+            self._stats_dir_name = None
+        else:
+            stats_file_name = _path(str(Path(self._log_folder) / "stats.csv"))
+            self._stats_file_name = stats_file_name.name
+            self._stats_dir_name = stats_file_name.parent
         self.loginfo(f"{self.name}: World Created")
 
     def loginfo(self, s: str) -> None:
@@ -1381,7 +1404,16 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.current_step += 1
 
         # always indicate that the simulation is to continue
+        self.append_stats()
         return True
+
+    def append_stats(self):
+        if self._stats_file_name is not None:
+            save_stats(
+                self,
+                log_dir=self._stats_dir_name,
+                stats_file_name=self._stats_file_name,
+            )
 
     @property
     def saved_breaches(self) -> List[Dict[str, Any]]:
@@ -2430,7 +2462,12 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """
 
 
-def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
+def save_stats(
+    world: World,
+    log_dir: str,
+    params: Dict[str, Any] = None,
+    stats_file_name: Optional[str] = None,
+):
     """
     Saves the statistics of a world run.
 
@@ -2439,19 +2476,40 @@ def save_stats(world: World, log_dir: str, params: Dict[str, Any] = None):
         world:
         log_dir:
         params:
+        stats_file_name: File name to use for stats file(s) without extension
 
     Returns:
 
     """
+
+    def is_json_serializable(x):
+        try:
+            json.dumps(x)
+        except:
+            return False
+        return True
+
     log_dir = Path(log_dir)
     os.makedirs(log_dir, exist_ok=True)
-
+    if params is None:
+        d = to_dict(world, add_type_field=False, deep=False)
+        to_del = []
+        for k, v in d.items():
+            if isinstance(v, list) or isinstance(v, tuple):
+                d[k] = str(v)
+            if not is_json_serializable(v):
+                to_del.append(k)
+        for k in to_del:
+            del d[k]
+        params = d
+    if stats_file_name is None:
+        stats_file_name = "stats"
     dump(params, log_dir / "params")
-    dump(world.stats, log_dir / "stats")
+    dump(world.stats, log_dir / stats_file_name)
 
     try:
         data = pd.DataFrame.from_dict(world.stats)
-        data.to_csv(str(log_dir / "stats.csv"), index_label="index")
+        data.to_csv(str(log_dir / f"{stats_file_name}.csv"), index_label="index")
     except:
         pass
 
