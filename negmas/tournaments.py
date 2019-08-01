@@ -231,9 +231,8 @@ def run_world(
     default_dir = (
         Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
     ).absolute()
-    world_params["log_file_name"] = world_params.get(
-        "log_file_name", str(default_dir / "log.txt")
-    )
+    world_params["log_file_name"] = world_params.get("log_file_name", str("log.txt"))
+    world_params["log_folder"] = str(default_dir)
     world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
     # delete the parameters not used by _run_worlds
     for k in ("__world_generator", "__tournament_name", "__score_calculator"):
@@ -294,7 +293,7 @@ def run_worlds(
             Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
         ).absolute()
         world_params["log_file_name"] = world_params.get(
-            "log_file_name", str(default_dir / "log.txt")
+            "log_file_name", str("log.txt")
         )
         world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
         # delete the parameters not used by _run_worlds
@@ -1203,7 +1202,8 @@ def create_tournament(
                         (
                             tournament_path / c["world_params"].get("name", ".")
                         ).absolute()
-                    )
+                    ),
+                    "log_to_file": not compact,
                 }
             )
 
@@ -1257,7 +1257,8 @@ def create_tournament(
                     "__dir_name": str(dir_name),
                 }
             )
-            config["world_params"].update({"log_file_name": str(dir_name / "log.txt")})
+            config["world_params"].update({"log_file_name": str("log.txt")})
+            config["world_params"].update({"log_folder": str(dir_name)})
 
     saved_configs = []
     for cs in assigned:

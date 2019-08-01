@@ -1178,7 +1178,6 @@ def scml(
     log_dir = log_dir / world_name
     log_dir = log_dir.absolute()
     os.makedirs(log_dir, exist_ok=True)
-    log_file_name = str(log_dir / "log.txt")
 
     exception = None
 
@@ -1215,7 +1214,6 @@ def scml(
             exit(1)
 
     world = SCMLWorld.chain_world(
-        log_file_name=log_file_name,
         n_steps=steps,
         negotiation_speed=neg_speedup,
         n_intermediate_levels=levels,
