@@ -89,6 +89,8 @@ __all__ = [
     "AgentWorldInterface",  # the interface though which an agent can interact with the world
     "NegotiationInfo",
     "RenegotiationRequest",
+    "StatsMonitor",
+    "WorldMonitor",
     "save_stats",
 ]
 
@@ -942,6 +944,26 @@ def _path(path) -> Path:
     return Path(path).absolute()
 
 
+class StatsMonitor(Entity):
+    """A monitor object capable of receiving stats of a world"""
+
+    def init(self, stats: Dict[str, Any], world_name: str):
+        """Called to initialize the monitor before running first step"""
+
+    def step(self, stats: Dict[str, Any], world_name: str):
+        """Called at the END of every simulation step"""
+
+
+class WorldMonitor(Entity):
+    """A monitor object capable of monitoring a world. It has read/write access to the world"""
+
+    def init(self, world: "World"):
+        """Called to initialize the monitor before running first step"""
+
+    def step(self, world: "World"):
+        """Called at the END of every simulation step"""
+
+
 class World(EventSink, EventSource, ConfigReader, ABC):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
@@ -996,6 +1018,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         save_unresolved_breaches: bool = True,
         ignore_agent_exceptions: bool = False,
         ignore_contract_execution_exceptions: bool = False,
+        safe_stats_monitoring: bool = False,
         name=None,
     ):
         """
@@ -1057,6 +1080,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._start_time = -1
         self._log_ufuns = log_ufuns
         self._log_negs = log_negotiations
+        self.safe_stats_monitoring = safe_stats_monitoring
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
@@ -1078,6 +1102,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
         self.agents: Dict[str, Agent] = {}
         self.immediate_negotiations = start_negotiations_immediately
+        self.stats_monitors: Set[StatsMonitor] = set()
+        self.world_monitors: Set[WorldMonitor] = set()
         if log_stats_every is None or log_stats_every < 1:
             self._stats_file_name = None
             self._stats_dir_name = None
@@ -1212,10 +1238,27 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
     def step(self) -> bool:
         """A single simulation step"""
+        if self.current_step == 0:
+            for monitor in self.stats_monitors:
+                if self.safe_stats_monitoring:
+                    __stats = copy.deepcopy(self.stats)
+                else:
+                    __stats = self.stats
+                monitor.init(__stats, world_name=self.name)
+            for monitor in self.world_monitors:
+                monitor.step(self)
         if self.current_step >= self.n_steps:
             self.logerror(
                 f"Asked  to step after the simulation ({self.n_steps}). Will just ignore this"
             )
+            for monitor in self.stats_monitors:
+                if self.safe_stats_monitoring:
+                    __stats = copy.deepcopy(self.stats)
+                else:
+                    __stats = self.stats
+                monitor.step(__stats, world_name=self.name)
+            for monitor in self.world_monitors:
+                monitor.step(self)
             return False
         self.loginfo(
             f"{len(self._negotiations)} Negotiations/{len(self._entities)} _entities"
@@ -1405,6 +1448,14 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         # always indicate that the simulation is to continue
         self.append_stats()
+        for monitor in self.stats_monitors:
+            if self.safe_stats_monitoring:
+                __stats = copy.deepcopy(self.stats)
+            else:
+                __stats = self.stats
+            monitor.step(__stats, world_name=self.name)
+        for monitor in self.world_monitors:
+            monitor.step(self)
         return True
 
     def append_stats(self):
@@ -1456,6 +1507,18 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             x._world = self
         if hasattr(x, "step_"):
             self._entities[simulation_priority].add(x)
+
+    def register_stats_monitor(self, m: StatsMonitor):
+        self.stats_monitors.add(m)
+
+    def unregister_stats_monitor(self, m: StatsMonitor):
+        self.stats_monitors.remove(m)
+
+    def register_world_monitor(self, m: WorldMonitor):
+        self.world_monitors.add(m)
+
+    def unregister_world_monitor(self, m: WorldMonitor):
+        self.world_monitors.remove(m)
 
     def join(self, x: "Agent", simulation_priority: int = 0):
         """Add an agent to the world.
