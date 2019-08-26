@@ -244,10 +244,14 @@ class Entity(NamedObject):
     def __init__(self, name: str = None):
         super().__init__(name=name)
 
+    @classmethod
+    def _type_name(cls):
+        return snake_case(cls.__name__)
+
     @property
     def type_name(self):
         """Returns the name of the type of this entity"""
-        return snake_case(self.__class__.__name__)
+        return self.__class__._type_name()
 
     @property
     def short_type_name(self):
@@ -1034,6 +1038,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             name: Name of the simulator
         """
         super().__init__()
+        self.name = (
+            name
+            if name is not None
+            else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
+        )
         self._log_folder = (
             Path(log_folder).absolute()
             if log_folder is not None
@@ -1085,11 +1094,6 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
         self.awi_type = get_class(awi_type, scope=globals())
-        self.name = (
-            name
-            if name is not None
-            else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
-        )
 
         self._log_folder = str(self._log_folder)
         self._stats: Dict[str, List[Any]] = defaultdict(list)
