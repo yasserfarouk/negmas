@@ -1,6 +1,86 @@
 History
 =======
 
+Release 0.3.0
+-------------
+  - [Situated] adding StatsMonitor and WorldMonitor classes to situated
+  - [Situated] adding a parameter to monitor stats of a world in real-time
+  - [Situated] showing ttest/kstest results in evaluation (negmas tournament commands)
+  - [SCML] adding total_balance to take hidden money into account for Factory objects and using it in negmas tournament and negmas scml
+  - [SCML] enabling --cw for collusion
+  - [SCML] adding hidden money to agent balance when evaluating it.
+  - [SCML] adding more debugging information to log.txt
+  - [Situated] adding multistage tournaments to tournament() function
+  - [Situated] adding control of the number of competitor in each world to create_tournament() and to negmas tournament create command
+  - [Core] avoid invalid or incomplete outcome proposals in SAOMechanism
+  - [Situated] adding metric parameter to evaluate_tournaments and corrsponding tournament command to control which metric is used for calculating the winner. Default is mean.
+  - [SCML] adding the ability to prevent CFP tampering and to ignore negotiated penalties to SCMLWorld
+  - [SCML] adding the possibility of ignore negotiated penalty in world simulation
+  - [SCML] saving bankruptcy events in stats (SCML)
+  - [SCML] improving bankruptcy processing
+  - [SCML] deep copying of parameters in collusion
+  - [Situated] saving extra score stats in evaluate_tournament
+  - [Core] avoiding a future warning in pandas
+  - [Situated] more printing in winners and combine commands
+  - [Situated] removing unnecessary balance/storage data from combine_tournament_stats
+  - [Situated] adding aggregate states to evaluate_tournament and negmas tournament commands
+  - [Situated] adding kstest
+  - [Situated] adding and disabling dependent t-tests to evaluate_tournament
+  - [Situated] adding negmas tournament combine to combine and evaluate multiple tournaments without a common root
+  - [Situated] avoiding an exception if combine_tournament is called with no scores
+  - [Situated] always save world stats in tournaments even in compact mode
+  - [SCML] reversing sabotage score
+  - [SCML] correcting factory number capping
+  - [SCML] more robust consumer
+  - [Core] avoid an exception if a ufun is not defined for a negotiator when logging
+  - [SCML] controlling number of colluding agents using --agents option of negmas tournament create
+  - [SCML] changing names of assigned worlds and multiple runs to have a unique log per world in tournament
+  - [SCML] controlling warnings and exception printing
+  - [SCML] increasing default world timeout by 50%
+  - [SCML] removing penalty processing from greedy
+  - [Core] avoid negotiation failure for negotiator exceptions
+  - [SCML] correcting sabotage implementation
+  - [CLI] adding winners subcommand to negmas tournament
+  - [CLI] saving all details of contracts
+  - [CLI] adding --steps-min and --steps-max to negmas tournament create to allow for tournaments with variable number of steps
+  - [CLI] removing the need to add greedy to std competition in anac 2019
+  - [CLI] saving log path in negmas tournament create
+  - [CLI] removing errroneous logs
+  - [CLI] enabling tournament resumption (bug fix)
+  - [CLI] avoiding a problem when trying to create two tournaments on the same place
+  - [CLI] fairer random assignment
+  - [CLI] more printing in negmas tournament
+  - [CLI] using median instead of mean for evaluating scores
+  - [CLI] Allowing for passing --world-config to tournament create command to change the default world settings
+  - [CLI] adding a print out of running competitors for verbose create_tournament
+  - [CLI] adding --world-config to negmas scml
+  - [CLI] displaying results of negmas tournament evaluate ordered by the choosen metric in the table.
+  - [CLI] preventing very long names
+  - [CLI] allowing for more configs/runs in the tournament by not trying all permutations of factory assignments.
+  - [CLI] adding --path to negmas tournament create
+  - [CLI] more printing in negmas tournament
+  - [CLI] reducing default n_retrials to 2
+  - [CLI] changing optimism from 0.0 to 0.5
+  - [CLI] setting reserved_value to 0.0
+  - [CLI] run_tournament does not call evaluate_tournament now
+  - [SCML] always adding greedy to std. competitions in negmas tournament
+  - [SCML] reducing # colluding agents to 3 by default
+  - [CLI] restructuring the tournament command in negmas to allow for pipelining and incremental running of tournaments.
+  - [SCML] adding DefaultGreedyManager to manage the behavior of default agents in the final tournament
+  - [CLI] avoiding overriding tournament folders if the name is repeated
+  - [SCML] avoiding missing reserved_value in some cases in AveragingNegotiatorUfun
+  - [CLI] adding the ability to control max-runs interactively to negmas tournament
+  - [CLI] adding the ability to use a fraction of all CPUs in tournament with parallel execution
+  - [SCML] exceptions in signing contracts are treated as refusal to sign them.
+  - [SCML] making contract execution more robust for edge cases (quantity or unit price is zero)
+  - [SCML] making collusion tournaments in SCML use the same number of worlds as std tournaments
+  - [Situated] adding ignore_contract_execution_excptions to situated and apps.scml
+  - [CLI] adding --raise-exceptions/ignore-exceptions to control behavior on agent exception in negmas tournament and negmas scml commands
+  - [SCML] adding --path to negmas scml command to add to python path
+  - [SCML] supporting ignore_agent_exceptions in situated and apps.scml
+  - [Situated] removing total timeout by default
+
+
 Release 0.2.25
 --------------
 - [Debugging support] making negmas scml behave similar to negmas tournament worlds
