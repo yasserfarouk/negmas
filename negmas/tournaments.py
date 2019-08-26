@@ -615,7 +615,7 @@ def tournament(
     if n_competitors_per_world is None:
         n_competitors_per_world = len(competitors)
 
-    if not round_robin and not (1 < n_competitors_per_world < len(competitors)):
+    if not round_robin and not (1 < n_competitors_per_world <= len(competitors)):
         raise ValueError(
             f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
             f"later does not divide the former. You have to set all_competitor_combinations to True"
@@ -630,7 +630,7 @@ def tournament(
         )
 
     competitor_indx = dict(
-        zip([get_class(c).type_name for c in competitors], range(len(competitors)))
+        zip([get_class(c)._type_name() for c in competitors], range(len(competitors)))
     )
 
     def _run_eval(competitors_, stage_name):
@@ -684,7 +684,9 @@ def tournament(
 
     def _keep_n(competitors_, results_, n):
         tscores = results_.total_scores.sort_values(by=["score"], ascending=False)
-        sorted_indices = np.array([competitor_indx[_] for _ in tscores.values])[:n]
+        sorted_indices = np.array(
+            [competitor_indx[_] for _ in tscores["agent_type"].values]
+        )[:n]
         return np.array(competitors_)[sorted_indices].tolist()
 
     stage = 1
@@ -693,7 +695,7 @@ def tournament(
             print(
                 f"Stage {stage} started between ({len(competitors)} competitors): {competitors} "
             )
-        stage_name = name + f"-stage-{stage:4.0}"
+        stage_name = name + f"-stage-{stage:04}"
         if round_robin:
             n_winners_per_stage = min(
                 max(1, int(stage_winners_fraction * len(competitors))),
@@ -1087,7 +1089,7 @@ def create_tournament(
     if n_competitors_per_world is None:
         n_competitors_per_world = len(competitors)
 
-    if not round_robin and not (1 < n_competitors_per_world < len(competitors)):
+    if not round_robin and not (1 < n_competitors_per_world <= len(competitors)):
         raise ValueError(
             f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
             f"later does not divide the former. You have to set all_competitor_combinations to True"

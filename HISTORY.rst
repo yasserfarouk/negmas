@@ -1,6 +1,11 @@
 History
 =======
 
+Release 0.3.1
+-------------
+
+ - [Situated] Correcting multistage tournament implementation.
+
 Release 0.3.0
 -------------
   - [Situated] adding StatsMonitor and WorldMonitor classes to situated
