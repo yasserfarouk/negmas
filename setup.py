@@ -61,7 +61,7 @@ setup(
     install_requires=[
         'Click (>=6.0)',
         'dataclasses; python_version < "3.7"',
-        'PyYAML (==5.1b1)',
+        'PyYAML',
         'progressbar2 (>=3.39)',
         'typing_extensions (>=3.7)',
         'pytest-runner (>=4.4)',
@@ -77,7 +77,7 @@ setup(
         'tabulate',
         'typing',
         'tqdm (>=4.31.1)',
-        'click-config-file (>=0.4.5,<0.5.0)',
+        'click-config-file',
     ],  # Optional
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional

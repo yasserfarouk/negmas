@@ -1,4 +1,3 @@
-
 Develop a new mechanism (protocol)
 ----------------------------------
 

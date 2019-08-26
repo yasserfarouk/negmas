@@ -121,9 +121,9 @@ specified by the `--log` argument (default is negmas/logs under the HOME directo
 results, a new folder will be created for each run named by the current date and time (within an `scml` folder). The
 folder will contain the following files:
 
-=======================    ========     ====================================
+=======================    =========    ====================================
 File Name                  Format       Content
-=======================    ========     ====================================
+=======================    =========    ====================================
 all_contracts.csv             CSV        A record of all contracts [filled only if --debug is specified]
 contracts_full_info.csv       CSV        A record of all contracts with added information about the CFPs  [filled only if --debug is specified]
 cancelled_contracts.csv       CSV        Contracts that were cancelled because one partner refused to sign it  [filled only if --debug is specified]
@@ -135,12 +135,13 @@ stats.csv                     CSV        Helpful statistics about the state of t
 stats.json                    JSON       Helpful statistics about the state of the world at every timestep
                                          (e.g. N. negotiations, N. Contracts Executed, etc) in JSON format
 params.json                   JSON       The arguments used to run the world
-logs.txt                      TXT        A log file giving details of most important events during the simulation  [filled only if --debug is specified]
+logs.txt                      TXT        A log file giving details of most important events during the simulation
+                                         [filled only if --debug is specified]
 negotiation_info.csv          CSV        Negotiation information for all negotiation session logged (only if --log-negs
                                          is given).
-negotiations                  Folder     A folder containing a file for each negotiation giving all offers exchanged (only if --log-negs
+negotiations                Folder       A folder containing a file for each negotiation giving all offers exchanged (only if --log-negs
                                          is given).
-=======================    ========     ====================================
+=======================    =========    ====================================
 
 
 
@@ -162,60 +163,60 @@ You can get help on this tool by running:
 These are the *optional* arguments of this tool:
 
 =================================== ==============================================================
-Argument                            Meaning
+Argument                             Meaning
 =================================== ==============================================================
--n, --name TEXT                     The name of the tournament. The special
-                                    value "random" will result in a random name [default: random]
--s, --steps INTEGER                 Number of steps.  [default: 60]
--f, --config TEXT                   The config to use. Default is ANAC 2019 [default: anac2019]
--t, --timeout INTEGER               Timeout after the given number of seconds (0 for infinite)
-                                    [default: 0]
---runs INTEGER                      Number of runs for each configuration [default: 5]
---max-runs INTEGER                  Maximum total number of runs. Zero or negative numbers mean no
-                                    limit  [default:-1]
---configs INTEGER                   Number of unique configurations to generate.
-                                    [default: 5]
---runs INTEGER                      Number of runs for each configuration
-                                    [default: 2]
---max-runs INTEGER                  Maximum total number of runs. Zero or
-                                    negative numbers mean no limit  [default:
-                                    -1]
---factories INTEGER                 Minimum numbers of factories to have per
-                                    level.  [default: 5]
---competitors TEXT                  A semicolon (;) separated list of agent types to use for the
-                                    competition.
-                                    [default:negmas.apps.scml.DoNothingFactoryManager;
-                                    negmas.apps.scml.GreedyFactoryManager]
---jcompetitors /--java-competitors   A semicolon (;) separated list of agent
-                                     types to use for the competition.
---parallel / --serial               Run a parallel/serial tournament on a single machine
-                                    [default: True]
---distributed / --single-machine    Run a distributed tournament using dask [default: False]
--l, --log TEXT                      Default location to save logs (A folder will be created under
-                                    it)  [default:~/negmas/logs/tournaments]
---verbosity INTEGER                 verbosity level (from 0 == silent to 1 ==
-                                    world progress)  [default: 1]
---configs-only / --run              configs_only  [default: False]
---reveal-names / --hidden-names     Reveal agent names (should be used only for debugging)
-                                    [default: False]
---ip TEXT                           The IP address for a dask scheduler to run the distributed
-                                    tournament.
-                                    Effective only if --distributed  [default: 127.0.0.1]
---port INTEGER                      The IP port number a dask scheduler to run
-                                    the distributed tournament. Effective only
-                                    if --distributed  [default: 8786]
---compact / --debug                 If --compact, effort is exerted to reduce the memory
-                                    footprint whichincludes reducing logs
-                                    dramatically.  [default: --compact]
---log-ufuns                         If given, ufuns are logged [default: False]
-                                    Only used if --debug is given
---log-negs                          If given, all negotiations and their offers are logged.
-                                    Only used if --debug is given
-                                    [default: False]
---config FILENAME                   configuration file name. If given all of the
-                                    parameters given above can be entered in this file
-                                    instead of being inputed on the command line.
---help                              Show help message and exit.
+-n, --name TEXT                      The name of the tournament. The special
+                                     value "random" will result in a random name [default: random]
+-s, --steps INTEGER                  Number of steps.  [default: 60]
+-f, --config TEXT                    The config to use. Default is ANAC 2019 [default: anac2019]
+-t, --timeout INTEGER                Timeout after the given number of seconds (0 for infinite)
+                                     [default: 0]
+--runs INTEGER                       Number of runs for each configuration [default: 5]
+--max-runs INTEGER                   Maximum total number of runs. Zero or negative numbers mean no
+                                     limit  [default:-1]
+--configs INTEGER                    Number of unique configurations to generate.
+                                     [default: 5]
+--runs INTEGER                       Number of runs for each configuration
+                                     [default: 2]
+--max-runs INTEGER                   Maximum total number of runs. Zero or
+                                     negative numbers mean no limit  [default:
+                                     -1]
+--factories INTEGER                  Minimum numbers of factories to have per
+                                     level.  [default: 5]
+--competitors TEXT                   A semicolon (;) separated list of agent types to use for the
+                                     competition.
+                                     [default:negmas.apps.scml.DoNothingFactoryManager;
+                                     negmas.apps.scml.GreedyFactoryManager]
+--jcompetitors /--java-competitors    A semicolon (;) separated list of agent
+                                      types to use for the competition.
+--parallel / --serial                Run a parallel/serial tournament on a single machine
+                                     [default: True]
+--distributed / --single-machine     Run a distributed tournament using dask [default: False]
+-l, --log TEXT                       Default location to save logs (A folder will be created under
+                                     it)  [default:~/negmas/logs/tournaments]
+--verbosity INTEGER                  verbosity level (from 0 == silent to 1 ==
+                                     world progress)  [default: 1]
+--configs-only / --run               configs_only  [default: False]
+--reveal-names / --hidden-names      Reveal agent names (should be used only for debugging)
+                                     [default: False]
+--ip TEXT                            The IP address for a dask scheduler to run the distributed
+                                     tournament.
+                                     Effective only if --distributed  [default: 127.0.0.1]
+--port INTEGER                       The IP port number a dask scheduler to run
+                                     the distributed tournament. Effective only
+                                     if --distributed  [default: 8786]
+--compact / --debug                  If --compact, effort is exerted to reduce the memory
+                                     footprint whichincludes reducing logs
+                                     dramatically.  [default: --compact]
+--log-ufuns                          If given, ufuns are logged [default: False]
+                                     Only used if --debug is given
+--log-negs                           If given, all negotiations and their offers are logged.
+                                     Only used if --debug is given
+                                     [default: False]
+--config FILENAME                    configuration file name. If given all of the
+                                     parameters given above can be entered in this file
+                                     instead of being inputed on the command line.
+--help                               Show help message and exit.
 =================================== ==============================================================
 
 
