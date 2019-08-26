@@ -1,4 +1,3 @@
-
 .. image:: https://img.shields.io/pypi/pyversions/negmas.svg
         :target: https://pypi.python.org/pypi/negmas
         :alt: Python
@@ -186,3 +185,4 @@ Acknowledgement
 
 NegMAS tests use scenarios used in ANAC 2010 to ANAC 2018 competitions obtained from the Genius_ Platform. These domains
 can be found in the tests/data and notebooks/data folders.
+

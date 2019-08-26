@@ -1,4 +1,3 @@
-
 Develop a factory manager (agent) for the SCM world
 ---------------------------------------------------
 

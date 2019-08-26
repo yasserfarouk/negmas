@@ -1,6 +1,11 @@
 History
 =======
 
+Release 0.3.2
+-------------
+
+ - updating dependencies to latest versions
+
 Release 0.3.1
 -------------
 

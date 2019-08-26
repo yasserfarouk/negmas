@@ -1,4 +1,3 @@
-
 Run a session of the SCML world
 -------------------------------
 
