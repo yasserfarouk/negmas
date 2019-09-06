@@ -1373,8 +1373,7 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
         Union[bool, Tuple[bool, str]]: If return_problem is True then a second return value contains a string with
                                       reason of failure
     """
-    if isinstance(outcome, tuple):
-        outcome = outcome_as_dict(outcome, [str(i.name) for i in issues])
+    outcome = outcome_as_dict(outcome, [_.name for _ in issues])
     for issue in issues:
         for key in ikeys(outcome):
             if str(issue.name) == str(key):
@@ -1435,8 +1434,7 @@ def outcome_is_complete(outcome: Outcome, issues: Collection[Issue]) -> bool:
                                       reason of failure
 
     """
-    if isinstance(outcome, OutcomeType):
-        outcome = outcome.asdict()
+    outcome = outcome_as_dict(outcome, [_.name for _ in issues])
 
     if len(outcome) != len(issues):
         return False
@@ -2911,6 +2909,8 @@ def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
     """Converts the outcome to a dict no matter what was its type"""
     if outcome is None:
         return None
+    if isinstance(outcome, np.ndarray):
+        outcome = tuple(outcome.tolist())
     if isinstance(outcome, dict):
         return outcome
     if isinstance(outcome, OutcomeType):
@@ -2924,10 +2924,12 @@ def outcome_as_tuple(outcome: Outcome):
     """Converts the outcome to a tuple no matter what was its type"""
     if outcome is None:
         return None
+    if isinstance(outcome, np.ndarray):
+        return tuple(outcome.tolist())
     if isinstance(outcome, tuple):
         return outcome
     if isinstance(outcome, OutcomeType):
         return outcome.astuple()
     if isinstance(outcome, dict):
-        return list(outcome.values())
+        return tuple(list(outcome.values()))
     raise ValueError(f"Unknown type for outcome {type(outcome)}")

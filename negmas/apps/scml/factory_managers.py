@@ -43,7 +43,7 @@ from .common import (
     ProductionFailure,
     FinancialReport,
 )
-from .consumers import ScheduleDrivenConsumer, ConsumptionProfile
+from .consumers import JustInTimeConsumer, ConsumptionProfile
 from .schedulers import Scheduler, ScheduleInfo, GreedyScheduler
 
 if True:
@@ -498,7 +498,7 @@ class GreedyFactoryManager(DoNothingFactoryManager):
                     ),
                 )
             )
-            self.consumer: ScheduleDrivenConsumer = ScheduleDrivenConsumer(
+            self.consumer: JustInTimeConsumer = JustInTimeConsumer(
                 profiles=profiles,
                 consumption_horizon=self.awi.n_steps,
                 immediate_cfp_update=True,

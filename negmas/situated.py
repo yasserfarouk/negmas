@@ -75,7 +75,7 @@ from negmas.helpers import (
 from negmas.java import to_flat_dict, to_dict
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
-from negmas.outcomes import OutcomeType, Issue
+from negmas.outcomes import OutcomeType, Issue, outcome_as_dict
 
 __all__ = [
     "Action",  # An action that an `Agent` can execute in the `World`.
@@ -92,6 +92,9 @@ __all__ = [
     "StatsMonitor",
     "WorldMonitor",
     "save_stats",
+    "SimpleWorld",
+    "NoContractExecutionMixin",
+    "TimeInAgreementMixin",
 ]
 
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
@@ -243,6 +246,7 @@ class Entity(NamedObject):
 
     def __init__(self, name: str = None):
         super().__init__(name=name)
+        self._initialized = False
 
     @classmethod
     def _type_name(cls):
@@ -273,6 +277,23 @@ class Entity(NamedObject):
             name = f"j-{name}"
         name = name.strip("_")
         return name
+
+    def init_(self):
+        """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
+        self._initialized = True
+        self.init()
+
+    def step_(self):
+        """Called at every time-step. This function is called directly by the world."""
+        if not self._initialized:
+            self.init_()
+        self.step()
+
+    def init(self):
+        """Override this method to modify initialization logic"""
+
+    def step(self):
+        """Override this method to modify stepping logic"""
 
 
 class BulletinBoard(Entity, EventSource, ConfigReader):
@@ -732,7 +753,9 @@ class AgentWorldInterface:
         self, action: Action, callback: Callable[[Action, bool], Any] = None
     ) -> bool:
         """Executes an action in the world simulation"""
-        return self._world.execute(action=action, agent=self.agent, callback=callback)
+        return self._world.execute_action(
+            action=action, agent=self.agent, callback=callback
+        )
 
     @property
     def state(self) -> Any:
@@ -1046,7 +1069,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._log_folder = (
             Path(log_folder).absolute()
             if log_folder is not None
-            else Path.home() / "negmas" / "logs" / "scml" / self.name
+            else Path.home() / "negmas" / "logs" / self.name
         )
         if log_file_name is None:
             log_file_name = "log.txt"
@@ -1104,6 +1127,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._saved_contracts: Dict[str, Dict[str, Any]] = {}
         self._saved_negotiations: Dict[str, Dict[str, Any]] = {}
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
+        self._started = False
         self.agents: Dict[str, Agent] = {}
         self.immediate_negotiations = start_negotiations_immediately
         self.stats_monitors: Set[StatsMonitor] = set()
@@ -1116,6 +1140,10 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             self._stats_file_name = stats_file_name.name
             self._stats_dir_name = stats_file_name.parent
         self.loginfo(f"{self.name}: World Created")
+
+    @property
+    def log_folder(self):
+        return self._log_folder
 
     def loginfo(self, s: str) -> None:
         """logs info-level information
@@ -1207,7 +1235,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         if breach.victims is None or len(breach.victims) < 1:
             return
         self.bulletin_board.record(
-            section="breaches", key=breach.id, value=self._breach_record(breach)
+            section="breaches", key=breach.id, value=self.breach_record(breach)
         )
 
     @property
@@ -1242,7 +1270,12 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
     def step(self) -> bool:
         """A single simulation step"""
+        did_not_start, self._started = self._started, True
         if self.current_step == 0:
+            for priority in sorted(self._entities.keys()):
+                for agent in self._entities[priority]:
+                    agent.init_()
+
             for monitor in self.stats_monitors:
                 if self.safe_stats_monitoring:
                     __stats = copy.deepcopy(self.stats)
@@ -1265,7 +1298,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 monitor.step(self)
             return False
         self.loginfo(
-            f"{len(self._negotiations)} Negotiations/{len(self._entities)} _entities"
+            f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
         )
 
         def _run_negotiations(n_steps: Optional[int] = None):
@@ -1315,7 +1348,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         activity_level = 0
         n_steps_broken, n_steps_success = 0, 0
 
-        self._pre_step_stats()
+        self.pre_step_stats()
         self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
 
         # sign contacts that are to be signed in this step
@@ -1362,16 +1395,16 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         # execute contracts that are executable at this step
         # --------------------------------------------------
         current_contracts = [
-            _ for _ in self._get_executable_contracts() if _.nullified_at is None
+            _ for _ in self.executable_contracts() if _.nullified_at is None
         ]
         if len(current_contracts) > 0:
             # remove expired contracts
             executed = set()
-            current_contracts = self._contract_execution_order(current_contracts)
+            current_contracts = self.order_contracts_for_execution(current_contracts)
 
             for contract in current_contracts:
                 try:
-                    contract_breaches = self._execute_contract(contract)
+                    contract_breaches = self.start_contract_execution(contract)
                 except Exception as e:
                     if not self.ignore_contract_execution_exceptions:
                         raise e
@@ -1385,7 +1418,9 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                     self._saved_contracts[contract.id]["breaches"] = ""
                     executed.add(contract)
                     n_new_contract_executions += 1
-                    activity_level += self._contract_size(contract)
+                    _size = self.contract_size(contract)
+                    if _size is not None:
+                        activity_level += _size
                     for partner in contract.partners:
                         self.agents[partner].on_contract_executed(contract)
                 else:
@@ -1397,19 +1432,19 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                         self._saved_breaches[b.id] = b.as_dict()
                     resolution = self._process_breach(contract, list(contract_breaches))
                     n_new_breaches += 1 - int(resolution is not None)
-                    self._complete_contract_execution(
+                    self.complete_contract_execution(
                         contract, list(contract_breaches), resolution
                     )
                     for partner in contract.partners:
                         self.agents[partner].on_contract_breached(
                             contract, list(contract_breaches), resolution
                         )
-            self._delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
+            self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
         # World Simulation Step:
         # ----------------------
         # The world manager should execute a single step of simulation in this function. It may lead to new negotiations
-        self._simulation_step()
+        self.simulation_step()
 
         # do one step of all negotiations if that is specified as the meeting strategy
         if self.negotiation_speed is not None:
@@ -1443,7 +1478,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
         self._stats["n_registered_negotiations_after"].append(len(self._negotiations))
         self._stats["activity_level"].append(activity_level)
-        self._post_step_stats()
+        self.post_step_stats()
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
@@ -1538,6 +1573,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.register(x, simulation_priority=simulation_priority)
         self.agents[x.id] = x
         x.awi = self.awi_type(self, x)
+        if self._started and not x.initialized:
+            x.init_()
 
     def _register_negotiation(
         self,
@@ -1631,8 +1668,13 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         """
         self.loginfo(
-            f"{caller.name} requested "
-            f"{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]} (ID {req_id})"
+            f"{caller.name} requested negotiation "
+            + (
+                f"using {mechanism_name}[{mechanism_params}] "
+                if mechanism_name is not None or mechanism_params is not None
+                else ""
+            )
+            + f"with {[_.name for _ in partners]} (ID {req_id})"
         )
         neg = self._register_negotiation(
             mechanism_name=mechanism_name,
@@ -1731,18 +1773,21 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             self._saved_negotiations[mechanism.id] = _stats
         if mechanism.state.agreement is None or negotiation is None:
             return None
+        agreement = mechanism.state.agreement
+        agreement = outcome_as_dict(
+            agreement, issue_names=[_.name for _ in mechanism.issues]
+        )
         signed_at = None
         if force_signature_now:
             signing_delay = 0
         else:
-            signing_delay = mechanism.state.agreement.get(
-                "signing_delay", self.default_signing_delay
-            )
+            signing_delay = agreement.get("signing_delay", self.default_signing_delay)
+
         contract = Contract(
             partners=list(_.id for _ in partners),
             annotation=negotiation.annotation,
             issues=negotiation.issues,
-            agreement=mechanism.state.agreement,
+            agreement=agreement,
             concluded_at=self.current_step,
             to_be_signed_at=self.current_step + signing_delay,
             signed_at=signed_at,
@@ -1840,7 +1885,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 partner.on_contract_signed_(contract=contract)
         else:
             # if self.save_cancelled_contracts:
-            record = self._contract_record(contract)
+            record = self.contract_record(contract)
             record["signed"] = False
             record["executed"] = None
             record["breaches"] = ""
@@ -1868,7 +1913,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         """
         self.__n_contracts_signed += 1
         self.unsigned_contracts[self.current_step].remove(contract)
-        record = self._contract_record(contract)
+        record = self.contract_record(contract)
         if self.save_signed_contracts:
             record["signed"] = True
             record["executed"] = None
@@ -1942,73 +1987,6 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         with open(file_name, "w") as file:
             yaml.safe_dump(self.__dict__, file)
 
-    @abstractmethod
-    def _delete_executed_contracts(self) -> None:
-        """Called after processing executable contracts at every simulation step to delete processed contracts"""
-
-    @abstractmethod
-    def _get_executable_contracts(self) -> Collection[Contract]:
-        """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
-
-    @abstractmethod
-    def _post_step_stats(self):
-        """Called at the end of the simulation step to update all stats"""
-        pass
-
-    @abstractmethod
-    def _pre_step_stats(self):
-        """Called at the beginning of the simulation step to prepare stats or update them"""
-        pass
-
-    @abstractmethod
-    def _contract_execution_order(
-        self, contracts: Collection[Contract]
-    ) -> Collection[Contract]:
-        """Orders the contracts in a specific time-step that are about to be executed"""
-
-    @abstractmethod
-    def _contract_record(self, contract: Contract) -> Dict[str, Any]:
-        """Converts a contract to a record suitable for permanent storage"""
-
-    @abstractmethod
-    def _breach_record(self, breach: Breach) -> Dict[str, Any]:
-        """Converts a breach to a record suitable for storage during the simulation"""
-
-    @abstractmethod
-    def _execute_contract(self, contract: Contract) -> Set[Breach]:
-        """
-        Tries to execute the contract
-
-        Args:
-            contract:
-
-        Returns:
-            Set[Breach]: The set of breaches committed if any. If there are no breaches return an empty set
-
-        Remarks:
-
-            - You must call super() implementation of this method before doing anything
-
-        """
-        self.loginfo(f"Executing {str(contract)}")
-        return set()
-
-    @abstractmethod
-    def _complete_contract_execution(
-        self, contract: Contract, breaches: List[Breach], resolution: Contract
-    ) -> None:
-        """
-        Called after breach resolution is completed for contracts for which some potential breaches occurred.
-
-        Args:
-            contract: The contract considered.
-            breaches: The list of potential breaches that was generated by `_execute_contract`.
-            resolution: The agreed upon resolution
-
-        Returns:
-
-        """
-
     def _process_breach(
         self, contract: Contract, breaches: List[Breach], force_immediate_signing=True
     ) -> Optional[Contract]:
@@ -2070,7 +2048,74 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         return None
 
     @abstractmethod
-    def execute(
+    def delete_executed_contracts(self) -> None:
+        """Called after processing executable contracts at every simulation step to delete processed contracts"""
+
+    @abstractmethod
+    def executable_contracts(self) -> Collection[Contract]:
+        """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
+
+    @abstractmethod
+    def post_step_stats(self):
+        """Called at the end of the simulation step to update all stats"""
+        pass
+
+    @abstractmethod
+    def pre_step_stats(self):
+        """Called at the beginning of the simulation step to prepare stats or update them"""
+        pass
+
+    @abstractmethod
+    def order_contracts_for_execution(
+        self, contracts: Collection[Contract]
+    ) -> Collection[Contract]:
+        """Orders the contracts in a specific time-step that are about to be executed"""
+
+    @abstractmethod
+    def contract_record(self, contract: Contract) -> Dict[str, Any]:
+        """Converts a contract to a record suitable for permanent storage"""
+
+    @abstractmethod
+    def breach_record(self, breach: Breach) -> Dict[str, Any]:
+        """Converts a breach to a record suitable for storage during the simulation"""
+
+    @abstractmethod
+    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
+        """
+        Tries to execute the contract
+
+        Args:
+            contract:
+
+        Returns:
+            Set[Breach]: The set of breaches committed if any. If there are no breaches return an empty set
+
+        Remarks:
+
+            - You must call super() implementation of this method before doing anything
+
+        """
+        self.loginfo(f"Executing {str(contract)}")
+        return set()
+
+    @abstractmethod
+    def complete_contract_execution(
+        self, contract: Contract, breaches: List[Breach], resolution: Contract
+    ) -> None:
+        """
+        Called after breach resolution is completed for contracts for which some potential breaches occurred.
+
+        Args:
+            contract: The contract considered.
+            breaches: The list of potential breaches that was generated by `_execute_contract`.
+            resolution: The agreed upon resolution
+
+        Returns:
+
+        """
+
+    @abstractmethod
+    def execute_action(
         self, action: Action, agent: "Agent", callback: Callable = None
     ) -> bool:
         """Executes the given action by the given agent"""
@@ -2080,33 +2125,11 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         """Reads the private state of the given agent"""
 
     @abstractmethod
-    def _simulation_step(self):
+    def simulation_step(self):
         """A single step of the simulation if any"""
 
     @abstractmethod
-    def _contract_finalization_time(self, contract: Contract) -> int:
-        """
-        Returns the time at which the given contract will complete execution
-        Args:
-            contract:
-
-        Returns:
-
-        """
-
-    @abstractmethod
-    def _contract_execution_time(self, contract: Contract) -> int:
-        """
-        Returns the time at which the given contract will start execution
-        Args:
-            contract:
-
-        Returns:
-
-        """
-
-    @abstractmethod
-    def _contract_size(self, contract: Contract) -> float:
+    def contract_size(self, contract: Contract) -> float:
         """
         Returns an estimation of the **activity level** associated with this contract. Higher is better
         Args:
@@ -2115,6 +2138,72 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         Returns:
 
         """
+
+
+class SimpleWorld(World, ABC):
+    """
+    Represents a simple world simulation with sane values for most callbacks and methods.
+    """
+
+    def delete_executed_contracts(self) -> None:
+        pass
+
+    def post_step_stats(self):
+        pass
+
+    def pre_step_stats(self):
+        pass
+
+    def order_contracts_for_execution(
+        self, contracts: Collection[Contract]
+    ) -> Collection[Contract]:
+        return contracts
+
+    def contract_record(self, contract: Contract) -> Dict[str, Any]:
+        return to_flat_dict(contract, deep=True)
+
+    def breach_record(self, breach: Breach) -> Dict[str, Any]:
+        return to_flat_dict(breach, deep=True)
+
+    def contract_size(self, contract: Contract) -> float:
+        return 0.0
+
+
+class TimeInAgreementMixin:
+    def init(self, time_field="time"):
+        self._time_field_name = time_field
+        self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
+
+    def on_contract_signed(self: World, contract: Contract):
+        super().on_contract_signed(contract=contract)
+        self.contracts[contract.agreement[self._time_field_name]].add(contract)
+
+    def executable_contracts(self: World) -> Collection[Contract]:
+        """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
+        return self.contracts.get(self.current_step, [])
+
+    def delete_executed_contracts(self: World) -> None:
+        self.contracts.pop(self.current_step, None)
+
+
+class NoContractExecutionMixin:
+    """
+    A mixin to add when there is no contract execution
+    """
+
+    def delete_executed_contracts(self: World) -> None:
+        pass
+
+    def executable_contracts(self) -> Collection[Contract]:
+        return []
+
+    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
+        return set()
+
+    def complete_contract_execution(
+        self, contract: Contract, breaches: List[Breach], resolution: Contract
+    ) -> None:
+        pass
 
 
 RunningNegotiationInfo = namedtuple(
@@ -2147,6 +2236,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         self.contracts: List[Contract] = []
         self._unsigned_contracts: Set[Contract] = set()
         self._awi: AgentWorldInterface = None
+
+    @property
+    def initialized(self) -> bool:
+        """Was the agent initialized (i.e. was init_() called)"""
+        return self._initialized
 
     @property
     def unsigned_contracts(self) -> List[Contract]:
@@ -2185,7 +2279,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         """Sets the Agent-world interface. Should only be called by the world."""
         self._awi = awi
 
-    def _add_negotiation_request_info(
+    def create_negotiation_request(
         self,
         issues: List[Issue],
         partners: List[str],
@@ -2260,7 +2354,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
 
         """
-        req_id = self._add_negotiation_request_info(
+        req_id = self.create_negotiation_request(
             issues=issues,
             partners=partners,
             annotation=annotation,
@@ -2276,14 +2370,6 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
             mechanism_name=mechanism_name,
             mechanism_params=mechanism_params,
         )
-
-    def init_(self):
-        """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
-        self.init()
-
-    def step_(self):
-        """Called at every time-step. This function is called directly by the world."""
-        self.step()
 
     def on_event(self, event: Event, sender: EventSource):
         if not isinstance(sender, Mechanism) and not isinstance(sender, Mechanism):
@@ -2651,7 +2737,10 @@ def save_stats(
     if world.save_signed_contracts or world.save_cancelled_contracts:
         if len(world.saved_contracts) > 0:
             data = pd.DataFrame(world.saved_contracts)
-            data = data.sort_values(["delivery_time"])
+            for col in ("delivery_time", "time"):
+                if col in data.columns:
+                    data = data.sort_values(["delivery_time"])
+                    break
             data.to_csv(str(log_dir / "contracts_full_info.csv"), index_label="index")
             # data = data.loc[
             #     :,

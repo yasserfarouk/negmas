@@ -679,7 +679,9 @@ def tournament(
             print_exceptions=print_exceptions,
         )
         return evaluate_tournament(
-            tournament_path=final_tournament_path, verbose=verbose
+            tournament_path=final_tournament_path,
+            verbose=verbose,
+            recursive=round_robin,
         )
 
     def _keep_n(competitors_, results_, n):
@@ -1298,7 +1300,7 @@ def evaluate_tournament(
     stats: Optional[pd.DataFrame] = None,
     metric: Union[str, Callable[[pd.DataFrame], float]] = "mean",
     verbose: bool = False,
-    recursive: bool = False,
+    recursive: bool = True,
     # independent_test: bool = True,  # dependent test implementation is not correct as there is no way to know how to correspond measurements
 ) -> TournamentResults:
     """
