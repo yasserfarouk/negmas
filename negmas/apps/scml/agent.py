@@ -132,6 +132,7 @@ class SCMLAgent(Agent):
         self.awi.register_interest(
             list(set(itertools.chain(self.producing.keys(), self.consuming.keys())))
         )
+        self._initialized = True
         self.init()
 
     def can_expect_agreement(self, cfp: "CFP", margin: int):
@@ -238,7 +239,7 @@ class SCMLAgent(Agent):
         #    return False
         if negotiator is not None and ufun is not None:
             negotiator.utility_function = ufun
-        req_id = self._add_negotiation_request_info(
+        req_id = self.create_negotiation_request(
             issues=cfp.issues,
             partners=[self.id, cfp.publisher],
             annotation=None,

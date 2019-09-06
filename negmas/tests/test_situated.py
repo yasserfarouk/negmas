@@ -35,18 +35,18 @@ results = []  # will keep results not to use printing
 
 
 class DummyWorld(World):
-    def _complete_contract_execution(
+    def complete_contract_execution(
         self, contract: Contract, breaches: List[Breach], resolved: bool
     ) -> None:
         pass
 
-    def _contract_finalization_time(self, contract: Contract) -> int:
+    def get_contract_finalization_time(self, contract: Contract) -> int:
         return self.current_step + 1
 
-    def _contract_execution_time(self, contract: Contract) -> int:
+    def get_contract_execution_time(self, contract: Contract) -> int:
         return self.current_step
 
-    def _contract_size(self, contract: Contract) -> float:
+    def contract_size(self, contract: Contract) -> float:
         return 0.0
 
     def __init__(self, n_steps=10000, negotiation_speed=20):
@@ -62,27 +62,27 @@ class DummyWorld(World):
         super().join(x=x, simulation_priority=simulation_priority)
         self.the_agents.append(x)
 
-    def _delete_executed_contracts(self) -> None:
+    def delete_executed_contracts(self) -> None:
         pass
 
-    def _get_executable_contracts(self) -> Collection[Contract]:
+    def executable_contracts(self) -> Collection[Contract]:
         return []
 
-    def _post_step_stats(self):
+    def post_step_stats(self):
         pass
 
-    def _pre_step_stats(self):
+    def pre_step_stats(self):
         pass
 
-    def _contract_execution_order(
+    def order_contracts_for_execution(
         self, contracts: Collection[Contract]
     ) -> Collection[Contract]:
         return contracts
 
-    def _contract_record(self, contract: Contract) -> Dict[str, Any]:
+    def contract_record(self, contract: Contract) -> Dict[str, Any]:
         return contract.__dict__
 
-    def _execute_contract(self, contract: Contract) -> Set[Breach]:
+    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
         return set()
 
     def _process_breach(
@@ -90,10 +90,10 @@ class DummyWorld(World):
     ) -> Optional[Contract]:
         return None
 
-    def _breach_record(self, breach: Breach):
+    def breach_record(self, breach: Breach):
         return breach.__dict__
 
-    def execute(
+    def execute_action(
         self, action: Action, agent: "Agent", callback: Callable = None
     ) -> bool:
         return True
@@ -102,7 +102,7 @@ class DummyWorld(World):
         s = {"partners": [_ for _ in self.the_agents if _ is not agent]}
         return s
 
-    def _simulation_step(self):
+    def simulation_step(self):
         pass
 
 

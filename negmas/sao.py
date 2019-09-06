@@ -104,6 +104,7 @@ class SAOMechanism(Mechanism):
         enable_callbacks=False,
         avoid_ultimatum=True,
         check_offers=True,
+        ignore_negotiator_exceptions=False,
         name: Optional[str] = None,
     ):
         super().__init__(
@@ -122,6 +123,7 @@ class SAOMechanism(Mechanism):
             enable_callbacks=enable_callbacks,
             name=name,
         )
+        self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self._current_offer = None
         self._current_proposer = None
         self._current_proposer_index = -1
@@ -172,8 +174,11 @@ class SAOMechanism(Mechanism):
         def _safe_counter(neg, *args, **kwargs):
             try:
                 response = neg.counter(*args, **kwargs)
-            except:
-                return SAOResponse(ResponseType.END_NEGOTIATION, None)
+            except Exception as ex:
+                if self.ignore_negotiator_exceptions:
+                    return SAOResponse(ResponseType.END_NEGOTIATION, None)
+                else:
+                    raise ex
             if (
                 self.check_offers
                 and response.outcome is not None
@@ -349,7 +354,7 @@ class SAOMechanism(Mechanism):
                                 other.on_partner_refused_to_propose(
                                     agent_id=neg, state=self.state
                                 )
-                        continue
+                    continue
                 else:
                     self._current_offer = proposal
                     self._current_proposer = neg
@@ -475,6 +480,7 @@ class LimitedOutcomesAcceptorMixin(object):
         outcomes: Optional[Union[int, Iterable["Outcome"]]] = None,
         acceptable_outcomes: Optional[Iterable["Outcome"]] = None,
         acceptance_probabilities: Optional[List[float]] = None,
+        time_factor: Union[float, List[float]] = None,
         p_ending=0.05,
         p_no_response=0.0,
     ) -> None:
@@ -505,11 +511,9 @@ class LimitedOutcomesAcceptorMixin(object):
             acceptable_outcomes = list(acceptable_outcomes)
         self.acceptable_outcomes = acceptable_outcomes
         if acceptable_outcomes is None:
+            self.acceptable_outcomes = outcomes
             if acceptance_probabilities is None:
                 acceptance_probabilities = [0.5] * len(outcomes)
-                self.acceptable_outcomes = outcomes
-            else:
-                self.acceptable_outcomes = outcomes
         elif acceptance_probabilities is None:
             acceptance_probabilities = [1.0] * len(acceptable_outcomes)
             if outcomes is None:
@@ -525,6 +529,7 @@ class LimitedOutcomesAcceptorMixin(object):
         self._utility_function = MappingUtilityFunction(dict(zip(self.outcomes, u)))
         self.p_no_response = p_no_response
         self.p_ending = p_ending + p_no_response
+        self.time_factor = time_factor
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         """Respond to an offer.
@@ -544,15 +549,15 @@ class LimitedOutcomesAcceptorMixin(object):
         if r < self.p_ending:
             return ResponseType.END_NEGOTIATION
 
-        if self.acceptable_outcomes is None:
-            if (
-                outcome_is_valid(offer, ami.issues)
-                and random.random() < self.acceptance_probabilities
-            ):
-                return ResponseType.ACCEPT_OFFER
-
-            else:
-                return ResponseType.REJECT_OFFER
+        # if self.acceptable_outcomes is None:
+        #     if (
+        #         outcome_is_valid(offer, ami.issues)
+        #         and random.random() < self.acceptance_probabilities * pow(self.time_factor, state.step)
+        #     ):
+        #         return ResponseType.ACCEPT_OFFER
+        #
+        #     else:
+        #         return ResponseType.REJECT_OFFER
 
         try:
             indx = self.acceptable_outcomes.index(offer)
@@ -1599,13 +1604,14 @@ class SAOController(Controller):
 
 
 class PassThroughSAONegotiator(SAONegotiator):
-    """A negotiator that acts as an end point to a parent Controller"""
+    """A negotiator that acts as an end point to a parent Controller
+    """
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
-        return self.__parent.propose(self.id, state)
+        return self._Negotiator__parent.propose(self.id, state)
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        return self.__parent.respond(self.id, state, offer)
+        return self._Negotiator__parent.respond(self.id, state, offer)
 
 
 SAOProtocol = SAOMechanism

@@ -30,11 +30,19 @@ from .common import DEFAULT_NEGOTIATOR
 from negmas.events import Event, EventSource
 from negmas.helpers import instantiate, unique_name
 from negmas.outcomes import Issue
-from negmas.situated import World, Breach, Action, BreachProcessing, Contract, Agent
+from negmas.situated import (
+    World,
+    Breach,
+    Action,
+    BreachProcessing,
+    Contract,
+    Agent,
+    TimeInAgreementMixin,
+)
 from .agent import SCMLAgent
 from .bank import DefaultBank
 from .common import *
-from .consumers import ScheduleDrivenConsumer, ConsumptionProfile, Consumer
+from .consumers import JustInTimeConsumer, ConsumptionProfile, Consumer
 from .factory_managers import GreedyFactoryManager, FactoryManager
 from .insurance import DefaultInsuranceCompany
 from .miners import ReactiveMiner, MiningProfile, Miner
@@ -82,7 +90,7 @@ def _intin(rng: Union[Tuple[int, int], int]) -> int:
     return randint(rng[0], rng[1])
 
 
-class SCMLWorld(World):
+class SCMLWorld(TimeInAgreementMixin, World):
     """The `World` class running a simulation of supply chain management."""
 
     def __init__(
@@ -252,6 +260,7 @@ class SCMLWorld(World):
             ignore_contract_execution_exceptions=ignore_contract_execution_exceptions,
             **kwargs,
         )
+        TimeInAgreementMixin.init(self, time_field="time")
         self.prevent_cfp_tampering = prevent_cfp_tampering
         self.ignore_negotiated_penalties = ignore_negotiated_penalties
         self.compensation_fraction = compensation_fraction
@@ -263,7 +272,6 @@ class SCMLWorld(World):
         if balance_at_max_interest is None:
             balance_at_max_interest = initial_wallet_balances
         self.strip_annotations = strip_annotations
-        self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
         self.bulletin_board.register_listener(event_type="new_record", listener=self)
         self.bulletin_board.register_listener(
             event_type="will_remove_record", listener=self
@@ -417,12 +425,12 @@ class SCMLWorld(World):
         )
         self.join(self.insurance_company)
 
-        self.all_agents = {}
+        self.traders = {}
         for agent in itertools.chain(
             self.miners, self.consumers, self.factory_managers
         ):  # type: ignore
             agent.init_()
-            self.all_agents[agent.id] = agent
+            self.traders[agent.id] = agent
         # self.standing_jobs: Dict[int, List[Tuple[Factory, Job]]] = defaultdict(list)
 
     def join(self, x: "Agent", simulation_priority: int = 0):
@@ -546,7 +554,7 @@ class SCMLWorld(World):
         agent_names_reveal_type: bool = False,
         negotiator_type: str = DEFAULT_NEGOTIATOR,
         miner_type: Union[str, Type[Miner]] = ReactiveMiner,
-        consumer_type: Union[str, Type[Consumer]] = ScheduleDrivenConsumer,
+        consumer_type: Union[str, Type[Consumer]] = JustInTimeConsumer,
         max_storage: int = sys.maxsize,
         default_manager_params: Dict[str, Any] = None,
         miner_kwargs: Dict[str, Any] = None,
@@ -802,7 +810,7 @@ class SCMLWorld(World):
         ] = GreedyFactoryManager,
         consumer_types: Union[
             Type[Consumer], List[Type[Consumer]]
-        ] = ScheduleDrivenConsumer,
+        ] = JustInTimeConsumer,
         miner_types: Union[Type[Miner], List[Type[Miner]]] = ReactiveMiner,
         negotiator_type=DEFAULT_NEGOTIATOR,
         initial_wallet_balance: Union[float, Tuple[float, float]] = 1000,
@@ -1276,7 +1284,7 @@ class SCMLWorld(World):
         for v in self.products:
             self.bulletin_board.record("products", key=str(v), value=v)
 
-    def _contract_execution_order(self, contracts: Collection[Contract]):
+    def order_contracts_for_execution(self, contracts: Collection[Contract]):
         def order(x: Contract):
             o = self.products[x.annotation["cfp"].product].production_level
             if o:
@@ -1285,7 +1293,7 @@ class SCMLWorld(World):
 
         return sorted(contracts, key=order)
 
-    def execute(
+    def execute_action(
         self,
         action: Action,
         agent: "Agent",
@@ -1397,7 +1405,7 @@ class SCMLWorld(World):
             for aid in agents:
                 self._report_receivers[aid].discard(agent)
 
-    def _simulation_step(self):
+    def simulation_step(self):
         """A step of SCML simulation"""
 
         # publish financial reports
@@ -1499,7 +1507,7 @@ class SCMLWorld(World):
             for key in toremove:
                 self.bulletin_board.remove(section="cfps", query=key, query_keys=True)
 
-    def _pre_step_stats(self):
+    def pre_step_stats(self):
         # noinspection PyProtectedMember
         cfps = self.bulletin_board._data["cfps"]
         self._stats["n_cfps_on_board_before"].append(len(cfps) if cfps else 0)
@@ -1508,7 +1516,7 @@ class SCMLWorld(World):
         self.__n_bankrupt = 0
         pass
 
-    def _post_step_stats(self):
+    def post_step_stats(self):
         """Saves relevant stats"""
         self._stats["n_cfps"].append(self.n_new_cfps)
         self.n_new_cfps = 0
@@ -1539,7 +1547,7 @@ class SCMLWorld(World):
         )
         self._stats["_market_size_total"].append(market_size + internal_market_size)
 
-    def _execute_contract(self, contract: Contract) -> Set[Breach]:
+    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
 
         partners, agreement = (
             set(self.agents[_] for _ in contract.partners),
@@ -1839,7 +1847,7 @@ class SCMLWorld(World):
             f"for {money} dollars"
         )
 
-    def _complete_contract_execution(
+    def complete_contract_execution(
         self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
     ):
         """The resolution can either be None or a contract with the following items:
@@ -2257,7 +2265,7 @@ class SCMLWorld(World):
             fraction = self.compensation_fraction * available / owed
 
         for victim, contract in nulled_contracts:
-            victim = self.all_agents.get(victim, None)
+            victim = self.traders.get(victim, None)
             if victim is None:
                 continue
             bfactory = self.a2f.get(victim.id, None)
@@ -2438,7 +2446,7 @@ class SCMLWorld(World):
                 if m.id != cfp.publisher:
                     m.on_remove_cfp(copy.deepcopy(cfp))
 
-    def _contract_record(self, contract: Contract) -> Dict[str, Any]:
+    def contract_record(self, contract: Contract) -> Dict[str, Any]:
         c = {
             "id": contract.id,
             "seller_name": self.agents[contract.annotation["seller"]].name,
@@ -2468,7 +2476,7 @@ class SCMLWorld(World):
         c["n_neg_steps"] = contract.mechanism_state.step
         return c
 
-    def _breach_record(self, breach: Breach) -> Dict[str, Any]:
+    def breach_record(self, breach: Breach) -> Dict[str, Any]:
         return {
             "perpetrator": breach.perpetrator,
             "perpetrator_name": breach.perpetrator,
@@ -2477,40 +2485,7 @@ class SCMLWorld(World):
             "time": breach.step,
         }
 
-    def on_contract_signed(self, contract: Contract):
-        super().on_contract_signed(contract=contract)
-        self.contracts[contract.agreement["time"]].add(contract)
-
-    def _get_executable_contracts(self) -> Collection[Contract]:
-        """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
-        return self.contracts.get(self.current_step, [])
-
-    def _delete_executed_contracts(self) -> None:
-        self.contracts.pop(self.current_step, None)
-
-    def _contract_finalization_time(self, contract: Contract) -> int:
-        """
-        Returns the time at which the given contract will complete execution
-        Args:
-            contract:
-
-        Returns:
-
-        """
-        return contract.agreement["time"] + self.transportation_delay
-
-    def _contract_execution_time(self, contract: Contract) -> int:
-        """
-        Returns the time at which the given contract will start execution
-        Args:
-            contract:
-
-        Returns:
-
-        """
-        return contract.agreement["time"]
-
-    def _contract_size(self, contract: Contract) -> float:
+    def contract_size(self, contract: Contract) -> float:
         return contract.agreement["unit_price"] * contract.agreement["quantity"]
 
     @property

@@ -12,7 +12,7 @@ from negmas.apps.scml import (
     Product,
     MiningProfile,
     ReactiveMiner,
-    ScheduleDrivenConsumer,
+    JustInTimeConsumer,
     InputOutput,
     Process,
     ManufacturingProfile,
@@ -241,7 +241,7 @@ def anac2019_config_generator(
     n_steps = _intin(n_steps)
 
     miner_type = ReactiveMiner
-    consumer_type = ScheduleDrivenConsumer
+    consumer_type = JustInTimeConsumer
 
     consumer_kwargs = {
         "negotiator_type": negotiator_type,

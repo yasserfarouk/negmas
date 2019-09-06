@@ -376,9 +376,7 @@ class Controller(NamedObject):
         name: str = None,
     ):
         super().__init__(name=name)
-        self._negotiators: Dict[
-            str, Tuple["PassThroughNegotiator", Dict[str, Any]]
-        ] = {}
+        self._negotiators: Dict[str, Tuple["PassThroughNegotiator", Any]] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
@@ -386,11 +384,15 @@ class Controller(NamedObject):
         self.__default_negotiator_type = default_negotiator_type
         self.__default_negotiator_params = default_negotiator_params
 
+    @property
+    def negotiators(self):
+        return self._negotiators
+
     def create_negotiator(
         self,
         negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
         name: str = None,
-        cntxt: Dict[str, None] = None,
+        cntxt: Any = None,
         **kwargs,
     ) -> PassThroughNegotiator:
         """
@@ -417,9 +419,10 @@ class Controller(NamedObject):
                 "No negotiator type is passed and no default negotiator type is defined for this "
                 "controller"
             )
-        new_negotiator = negotiator_type(
-            name=name, parent=self, **self.__default_negotiator_params, **kwargs
-        )
+        args = self.__default_negotiator_params
+        if kwargs:
+            args.update(kwargs)
+        new_negotiator = negotiator_type(name=name, parent=self, **args)
         if new_negotiator is not None:
             self._negotiators[new_negotiator.id] = (new_negotiator, cntxt)
         return new_negotiator
@@ -656,4 +659,4 @@ class AspirationMixin:
             )
         if self.exponent < 1e-7:
             return 0.0
-        return self.max_aspiration * (1.0 - math.pow(t, self.exponent))
+        return self.max_aspiration * math.pow(1.0 - t, self.exponent)
