@@ -95,6 +95,7 @@ __all__ = [
     "SimpleWorld",
     "NoContractExecutionMixin",
     "TimeInAgreementMixin",
+    "NoResponsesMixin",
 ]
 
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
@@ -2767,3 +2768,51 @@ def save_stats(
             if world.save_signed_contracts and world.save_cancelled_contracts:
                 with open(log_dir / "all_contracts.csv", "w") as f:
                     f.write("")
+
+
+class NoResponsesMixin:
+    """A mixin that can be added to Agent to minimize the number of abstract methods"""
+
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(
+        self,
+        partners: List[str],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        state: MechanismState,
+    ) -> None:
+        pass
+
+    def on_negotiation_success(
+        self, contract: Contract, mechanism: AgentMechanismInterface
+    ) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def set_renegotiation_agenda(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> Optional[RenegotiationRequest]:
+        pass
+
+    def respond_to_renegotiation_request(
+        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+    ) -> Optional[Negotiator]:
+        pass
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        self.awi.logerror(f"Contract {contract} was executed!!")
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        pass
