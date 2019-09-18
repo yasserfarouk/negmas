@@ -66,7 +66,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
     def utility_function(self, utility_function):
         self._utility_function = utility_function
         self._ufun_modified = True
-        if self._ami is not None:
+        if self._ami is not None and self._ami.state.started:
             warnings.warn(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
