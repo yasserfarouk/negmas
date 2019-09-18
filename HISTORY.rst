@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.3.4
+-------------
+
+- Adding NoResponsesMixin to situated to simplify development of the simplest possible agent for new worlds
+
+
 Release 0.3.3
 -------------
 
