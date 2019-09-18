@@ -5,7 +5,7 @@ import random
 import time
 import warnings
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, Callable, Type
 from typing import Sequence, Optional, List, Tuple, Iterable, Union
 
@@ -75,6 +75,7 @@ class SAOState(MechanismState):
     current_offer: Optional["Outcome"] = None
     current_proposer: Optional[str] = None
     n_acceptances: int = 0
+    new_offers: List[Tuple[str, "Outcome"]] = field(default_factory=list)
 
 
 @dataclass
@@ -102,7 +103,7 @@ class SAOMechanism(Mechanism):
         publish_proposer=True,
         publish_n_acceptances=False,
         enable_callbacks=False,
-        avoid_ultimatum=True,
+        avoid_ultimatum=False,
         check_offers=True,
         ignore_negotiator_exceptions=False,
         name: Optional[str] = None,
@@ -111,8 +112,10 @@ class SAOMechanism(Mechanism):
             issues=issues,
             outcomes=outcomes,
             n_steps=n_steps,
-            time_limit=time_limit,
-            step_time_limit=step_time_limit,
+            time_limit=time_limit if time_limit is not None else float("inf"),
+            step_time_limit=step_time_limit
+            if step_time_limit is not None
+            else float("inf"),
             max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
             keep_issue_names=keep_issue_names,
@@ -126,13 +129,15 @@ class SAOMechanism(Mechanism):
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self._current_offer = None
         self._current_proposer = None
-        self._current_proposer_index = -1
+        self._last_checked_negotiator = -1
         self._n_accepting = 0
         self._avoid_ultimatum = n_steps is not None and avoid_ultimatum
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.publish_proposer = publish_proposer
         self.publish_n_acceptances = publish_n_acceptances
         self.check_offers = check_offers
+        self._no_responses = 0
+        self._new_offers = []
 
     def join(
         self,
@@ -148,7 +153,7 @@ class SAOMechanism(Mechanism):
             [a.capabilities.get("propose", False) for a in self.negotiators]
         ):
             self._current_proposer = None
-            self._current_proposer_index = -1
+            self._last_checked_negotiator = -1
             self._current_offer = None
             self._n_accepting = 0
             return False
@@ -157,6 +162,7 @@ class SAOMechanism(Mechanism):
     def extra_state(self):
         return SAOState(
             current_offer=self._current_offer,
+            new_offers=self._new_offers,
             current_proposer=self._current_proposer.id
             if self._current_proposer and self.publish_proposer
             else None,
@@ -168,12 +174,18 @@ class SAOMechanism(Mechanism):
 
 
         """
+        self._new_offers = []
         negotiators: List[SAONegotiator] = self.negotiators
         n_negotiators = len(negotiators)
 
-        def _safe_counter(neg, *args, **kwargs):
+        def _safe_counter(negotiator, *args, **kwargs):
             try:
-                response = neg.counter(*args, **kwargs)
+                if negotiator == self._current_proposer:
+                    self._n_accepting = 0
+                    kwargs["offer"] = None
+                    response = negotiator.counter(*args, **kwargs)
+                else:
+                    response = negotiator.counter(*args, **kwargs)
             except Exception as ex:
                 if self.ignore_negotiator_exceptions:
                     return SAOResponse(ResponseType.END_NEGOTIATION, None)
@@ -187,101 +199,60 @@ class SAOMechanism(Mechanism):
                 return SAOResponse(response.response, None)
             return response
 
-        # if this is the first step which means that there is no _current_offer
-        if self.ami.state.step == 0:
-            assert self._current_offer is None
-            assert self._current_proposer is None
-            assert self._current_proposer_index == -1
-
-            # choose a random negotiator and set it as the current negotiator
-            _first_proposer = random.randint(0, n_negotiators - 1)
-            if self._avoid_ultimatum:
-                # if we are trying to avoid an ultimatum, we take an offer from everyone and ignore them but one.
-                # this way, the agent cannot know its order. For example, if we have two agents and 3 steps, this will
-                # be the situation after each step:
-                #
-                # Case 1: Assume that it ignored the offer from agent 1
-                # Step, Agent 0 calls received  , Agent 1 calls received    , relative time during last call
-                # 0   , counter(None)->offer1*  , counter(None) -> offer0   , 0/3
-                # 1   , counter(offer2)->offer3 , counter(offer1) -> offer2 , 1/3
-                # 2   , counter(offer4)->offer5 , counter(offer3) -> offer4 , 2/3
-                # 3   ,                         , counter(offer5)->offer6   , 3/3
-                #
-                # Case 2: Assume that it ignored the offer from agent 0
-                # Step, Agent 0 calls received  , Agent 1 calls received    , relative time during last call
-                # 0   , counter(None)->offer1   , counter(None) -> offer0*  , 0/3
-                # 1   , counter(offer0)->offer2 , counter(offer2) -> offer3 , 1/3
-                # 2   , counter(offer3)->offer4 , counter(offer4) -> offer5 , 2/3
-                # 3   , counter(offer5)->offer6 ,                           , 3/3
-                #
-                # in both cases, the agent cannot know whether its last offer going to be passed to the other agent
-                # (the ultimatum scenario) or not.
-                responses = []
-                for neg in negotiators:
-                    if not neg.capabilities.get("propose", False):
-                        continue
-                    strt = time.perf_counter()
-                    resp = _safe_counter(neg, state=self.state, offer=None)
-                    if (
-                        self.ami.step_time_limit is not None
-                        and time.perf_counter() - strt > self.ami.step_time_limit
-                    ):
-                        return MechanismRoundResult(
-                            broken=False, timedout=True, agreement=None
-                        )
-                    if self._enable_callbacks:
-                        for other in self.negotiators:
-                            if other is not neg:
-                                other.on_partner_response(
-                                    state=self.state,
-                                    agent_id=neg.id,
-                                    outcome=None,
-                                    response=resp,
-                                )
-                    if (
-                        resp.response == ResponseType.END_NEGOTIATION
-                        or resp.response == ResponseType.NO_RESPONSE
-                        or (
-                            resp.outcome is None
-                            and neg.capabilities.get("propose", False)
-                        )
-                    ):
-                        return MechanismRoundResult(
-                            broken=True, timedout=False, agreement=None
-                        )
-                    responses.append(resp)
-                if len(responses) < 1:
-                    if not self.dynamic_entry:
-                        return MechanismRoundResult(
-                            broken=True,
-                            timedout=False,
-                            agreement=None,
-                            error=True,
-                            error_details="No proposers and no dynamic entry",
-                        )
-                    else:
-                        return MechanismRoundResult(
-                            broken=False, timedout=False, agreement=None
-                        )
-                resp = (
-                    responses[_first_proposer]
-                    if len(responses) > _first_proposer
-                    else responses[0]
-                )
-                neg = (
-                    negotiators[_first_proposer]
-                    if len(negotiators) > _first_proposer
-                    else negotiators[0]
+        proposers, proposer_indices = [], []
+        for i, neg in enumerate(negotiators):
+            if not neg.capabilities.get("propose", False):
+                continue
+            proposers.append(neg)
+            proposer_indices.append(i)
+        n_proposers = len(proposers)
+        if n_proposers < 1:
+            if not self.dynamic_entry:
+                return MechanismRoundResult(
+                    broken=True,
+                    timedout=False,
+                    agreement=None,
+                    error=True,
+                    error_details="No proposers and no dynamic entry",
                 )
             else:
-                # when there is no risk of ultimatum (n_steps is not known), we just take one first offer.
-                neg = negotiators[_first_proposer]
+                return MechanismRoundResult(
+                    broken=False, timedout=False, agreement=None
+                )
+        # if this is the first step (or no one has offered yet) which means that there is no _current_offer
+        if self._current_offer is None and n_proposers > 1 and self._avoid_ultimatum:
+
+            assert self.dynamic_entry or self.state.step == 0
+            assert self._current_proposer is None
+            assert self._last_checked_negotiator == -1
+
+            # if we are trying to avoid an ultimatum, we take an offer from everyone and ignore them but one.
+            # this way, the agent cannot know its order. For example, if we have two agents and 3 steps, this will
+            # be the situation after each step:
+            #
+            # Case 1: Assume that it ignored the offer from agent 1
+            # Step, Agent 0 calls received  , Agent 1 calls received    , relative time during last call
+            # 0   , counter(None)->offer1*  , counter(None) -> offer0   , 0/3
+            # 1   , counter(offer2)->offer3 , counter(offer1) -> offer2 , 1/3
+            # 2   , counter(offer4)->offer5 , counter(offer3) -> offer4 , 2/3
+            # 3   ,                         , counter(offer5)->offer6   , 3/3
+            #
+            # Case 2: Assume that it ignored the offer from agent 0
+            # Step, Agent 0 calls received  , Agent 1 calls received    , relative time during last call
+            # 0   , counter(None)->offer1   , counter(None) -> offer0*  , 0/3
+            # 1   , counter(offer0)->offer2 , counter(offer2) -> offer3 , 1/3
+            # 2   , counter(offer3)->offer4 , counter(offer4) -> offer5 , 2/3
+            # 3   , counter(offer5)->offer6 ,                           , 3/3
+            #
+            # in both cases, the agent cannot know whether its last offer going to be passed to the other agent
+            # (the ultimatum scenario) or not.
+            responses = []
+            for neg in proposers:
+                if not neg.capabilities.get("propose", False):
+                    continue
                 strt = time.perf_counter()
                 resp = _safe_counter(neg, state=self.state, offer=None)
-                if (
-                    self.ami.step_time_limit is not None
-                    and time.perf_counter() - strt > self.ami.step_time_limit
-                ):
+                if time.perf_counter() - strt > self.ami.step_time_limit:
                     return MechanismRoundResult(
                         broken=False, timedout=True, agreement=None
                     )
@@ -294,33 +265,56 @@ class SAOMechanism(Mechanism):
                                 outcome=None,
                                 response=resp,
                             )
-                if (
-                    resp.response == ResponseType.END_NEGOTIATION
-                    or resp.response == ResponseType.NO_RESPONSE
-                    or resp.outcome is None
-                ):
+                if resp.response == ResponseType.END_NEGOTIATION:
                     return MechanismRoundResult(
                         broken=True, timedout=False, agreement=None
                     )
+                if resp.response == ResponseType.NO_RESPONSE:
+                    return MechanismRoundResult(
+                        broken=True,
+                        timedout=False,
+                        agreement=None,
+                        error=True,
+                        error_details=f"When avoid_ultimatum is True, negotiators MUST return an offer when asked "
+                        f"to propose the first time.\nNegotiator {neg.id} returned NO_RESPONSE",
+                    )
+                responses.append(resp)
+            if len(responses) < 1:
+                if not self.dynamic_entry:
+                    return MechanismRoundResult(
+                        broken=True,
+                        timedout=False,
+                        agreement=None,
+                        error=True,
+                        error_details="No proposers and no dynamic entry",
+                    )
+                else:
+                    return MechanismRoundResult(
+                        broken=False, timedout=False, agreement=None
+                    )
+            # choose a random negotiator and set it as the current negotiator
+            selected = random.randint(0, len(responses) - 1)
+            resp = responses[selected]
+            neg = proposers[selected]
+            _first_proposer = proposer_indices[selected]
             self._n_accepting = 1
             self._current_offer = resp.outcome
             self._current_proposer = neg
-            self._current_proposer_index = _first_proposer
+            self._last_checked_negotiator = _first_proposer
+            self._new_offers.append((neg.id, resp.outcome))
             return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
         # this is not the first round. A round will get n_negotiators steps
         ordered_indices = [
-            (_ + self._current_proposer_index + 1) % n_negotiators
+            (_ + self._last_checked_negotiator + 1) % n_negotiators
             for _ in range(n_negotiators)
         ]
         for neg_indx in ordered_indices:
+            self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
             resp = _safe_counter(neg, state=self.state, offer=self._current_offer)
-            if (
-                self.ami.step_time_limit is not None
-                and time.perf_counter() - strt > self.ami.step_time_limit
-            ):
+            if time.perf_counter() - strt > self.ami.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
             if self._enable_callbacks:
                 for other in self.negotiators:
@@ -344,21 +338,18 @@ class SAOMechanism(Mechanism):
             if resp.response == ResponseType.REJECT_OFFER:
                 proposal = resp.outcome
                 if proposal is None:
-                    if self.end_negotiation_on_refusal_to_propose:
+                    if (
+                        neg.capabilities.get("propose", False)
+                        and self.end_negotiation_on_refusal_to_propose
+                    ):
                         return MechanismRoundResult(
                             broken=True, timedout=False, agreement=None
                         )
-                    elif self._enable_callbacks:
-                        for other in self.negotiators:
-                            if other is not neg:
-                                other.on_partner_refused_to_propose(
-                                    agent_id=neg, state=self.state
-                                )
                     continue
                 else:
                     self._current_offer = proposal
                     self._current_proposer = neg
-                    self._current_proposer_index = neg_indx
+                    self._new_offers.append((neg.id, proposal))
                     self._n_accepting = 1
                     if self._enable_callbacks:
                         for other in self.negotiators:
@@ -367,22 +358,13 @@ class SAOMechanism(Mechanism):
                             other.on_partner_proposal(
                                 agent_id=neg.id, offer=proposal, state=self.state
                             )
-                    return MechanismRoundResult(
-                        broken=False, timedout=False, agreement=None
-                    )
-        # we can arrive here only if all agents either refused to response or to offer.
-        if not self.ami.dynamic_entry:
-            raise RuntimeError(
-                "No negotiators can propose. I cannot run a meaningful negotiation"
-            )
-        return MechanismRoundResult(
-            broken=False,
-            timedout=False,
-            agreement=None,
-            error=True,
-            error_details="No negotiators can propose in a static_entry"
-            " negotiation!!",
-        )
+        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+
+    def negotiator_offers(self, negotiator_id: str) -> List[Outcome]:
+        offers = []
+        for state in self._history:
+            offers += [o for n, o in state.new_offers if n == negotiator_id]
+        return offers
 
 
 class RandomResponseMixin(object):

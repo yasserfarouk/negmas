@@ -89,6 +89,7 @@ class Mechanism(NamedObject, EventSource, ABC):
             name: Name of the mechanism session. Should be unique. If not given, it will be generated.
         """
         super().__init__(name=name)
+        time_limit = time_limit if time_limit is not None else float("inf")
         # parameters fixed for all runs
         if issues is None:
             if outcomes is None:
@@ -284,7 +285,7 @@ class Mechanism(NamedObject, EventSource, ABC):
     @property
     def remaining_time(self) -> Optional[float]:
         """Returns remaining time in seconds. None if no time limit is given."""
-        if self.ami.time_limit is None:
+        if self.ami.time_limit == float("+inf"):
             return None
 
         limit = self.ami.time_limit - (time.monotonic() - self._start_time)
@@ -296,7 +297,7 @@ class Mechanism(NamedObject, EventSource, ABC):
     @property
     def relative_time(self) -> Optional[float]:
         """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
-        if self.ami.time_limit is None and self.ami.n_steps is None:
+        if self.ami.time_limit == float("+inf") and self.ami.n_steps is None:
             return None
 
         relative_step = (
