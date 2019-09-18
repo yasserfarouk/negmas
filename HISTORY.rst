@@ -1,6 +1,20 @@
 History
 =======
 
+Release 0.3.3
+-------------
+
+- time_limit is now set to inf instead of None to disable it
+- improving handling of ultimatum avoidance
+- a round of SAO now is a real round in the sense of Reyhan et al. instead of a single counteroffer
+- improved handling of NO_RESPONSE option for SAO
+- updates to help with generalizing tournaments
+- updating dependencies to latest versions
+- Bump notebook from 5.7.4 to 5.7.8 in /docs
+- Bump urllib3 from 1.24.1 to 1.24.2 in /docs
+
+
+
 Release 0.3.2
 -------------
 
