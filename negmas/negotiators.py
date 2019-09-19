@@ -660,3 +660,7 @@ class AspirationMixin:
         if self.exponent < 1e-7:
             return 0.0
         return self.max_aspiration * math.pow(1.0 - t, self.exponent)
+
+
+class EvaluatorMixin:
+    """A mixin that can be used to have the negotiator respond to evaluate messages from the server"""
