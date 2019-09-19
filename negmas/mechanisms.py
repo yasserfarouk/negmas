@@ -90,6 +90,9 @@ class Mechanism(NamedObject, EventSource, ABC):
         """
         super().__init__(name=name)
         time_limit = time_limit if time_limit is not None else float("inf")
+        step_time_limit = (
+            step_time_limit if step_time_limit is not None else float("inf")
+        )
         # parameters fixed for all runs
         if issues is None:
             if outcomes is None:
