@@ -2,10 +2,12 @@
 
 """
 import functools
+import itertools
 import math
 import warnings
 from abc import ABC, abstractmethod
 from copy import copy
+from random import sample
 from typing import Optional, Tuple, Union, Type, List
 from typing import TYPE_CHECKING, Dict, Any, Callable
 
@@ -13,6 +15,8 @@ from negmas.common import *
 from negmas.events import Notifiable, Notification
 from negmas.helpers import get_class
 from negmas.utilities import make_discounted_ufun
+from negmas.outcomes import Issue
+import numpy as np
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
@@ -762,6 +766,67 @@ class NLevelsComparatorMixin:
         self.capabilities["compare-binary"] = True
         self.__ufun_thresholds = None
 
+    @classmethod
+    def generate_thresholds(
+        cls,
+        n: int,
+        ufun_min: float = 0.0,
+        ufun_max: float = 1.0,
+        scale: Union[str, Callable[[float], float]] = None,
+    ) -> List[float]:
+        """
+        Generates thresholds for the n given levels assuming the ufun ranges and scale function
+
+        Args:
+            n: Number of scale levels (one side)
+            ufun_min: minimum value of all utilities
+            ufun_max: maximum value of all utilities
+            scale: Scales the ufun values. Can be a callable or 'log', 'exp', 'linear'. If None, it is 'linear'
+
+        """
+        if scale is not None:
+            if isinstance(scale, str):
+                scale = dict(
+                    linear=lambda x: x,
+                    log=lambda x: math.log(x),
+                    exp=lambda x: math.exp(x),
+                ).get(scale, None)
+                if scale is None:
+                    raise ValueError(f"Unknown scale function {scale}")
+        thresholds = np.linspace(ufun_min, ufun_max, num=n + 2)[1:-1].tolist()
+        if scale is not None:
+            thresholds = [scale(_) for _ in thresholds]
+        return thresholds
+
+    @classmethod
+    def equiprobable_thresholds(
+        cls, n: int, ufun: "UtilityFunction", issues: List[Issue], n_samples: int = 1000
+    ) -> List[float]:
+        """
+        Generates thresholds for the n given levels where levels are equally likely approximately
+
+        Args:
+            n: Number of scale levels (one side)
+            ufun: The utility function to use
+            issues: The issues to generate the thresholds for
+            n_samples: The number of samples to use during the process
+
+        """
+        samples = list(
+            Issue.sample(
+                issues, n_samples, with_replacement=False, fail_if_not_enough=False
+            )
+        )
+        n_samples = len(samples)
+        diffs = []
+        for i, first in enumerate(samples):
+            n_diffs = min(10, n_samples - i - 1)
+            for second in sample(samples[i + 1 :], k=n_diffs):
+                diffs.append(abs(ufun.compare_real(first, second)))
+        diffs = np.array(diffs)
+        hist, edges = np.histogram(diffs, bins=n + 1)
+        return edges[1:-1].tolist()
+
     @property
     def thresholds(self) -> Optional[List[float]]:
         """Returns the internal thresholds and None if they do  not exist"""
@@ -772,7 +837,7 @@ class NLevelsComparatorMixin:
         self.__ufun_thresholds = thresholds
 
     def compare_nlevels(
-        self, first: "Outcome", second: "Outcome", n: int = 2, epsilon: float = 1e-10
+        self, first: "Outcome", second: "Outcome", n: int = 2
     ) -> Optional[int]:
         """
         Compares two offers using the `ufun` returning an integer in [-n, n] (i.e. 2n+1 possible values) which defines
@@ -782,20 +847,17 @@ class NLevelsComparatorMixin:
             first: First outcome to be compared
             second: Second outcome to be compared
             n: number of levels to use
-            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
-                     outcomes are assumed to be compatible
 
         Returns:
 
             - None if either there is no ufun defined or the number of thresholds required cannot be satisfied
-            - 0 iff |u(first) - u(second)| <= epsilon
-            - -i if  - thresholds[i-2] < u(first) - u(second) <= -thresholds[i-1]
+            - 0 iff |u(first) - u(second)| <= thresholds[0]
+            - -i if  - thresholds[i-1] < u(first) - u(second) <= -thresholds[i]
             - +i if  thresholds[i-1] > u(first) - u(second) >= thresholds[i]
 
         Remarks:
 
             - thresholds is an internal array that can be set using `thresholds` property
-            - thresholds[-1] is assumed to equal epsilon
             - thresholds[n] is assumed to equal infinity
             - n must be <= the length of the internal thresholds array. If n > that length, a ValueError will be raised.
               If n < the length of the internal thresholds array, the first n values of the array will be used
@@ -813,18 +875,11 @@ class NLevelsComparatorMixin:
                 f" to compare outcomes with {n} levels. len(self.thresholds) MUST be >= {n}"
             )
         diff = self._utility_function(first) - self._utility_function(second)
-        if abs(diff) < epsilon:
-            return 0
-        if diff < 0:
-            for i, th in enumerate(self.thresholds):
-                if diff < th:
-                    return i + 1
-            return n
-        if diff > 0:
-            for i, th in enumerate(self.thresholds):
-                if diff > th:
-                    return i + 1
-            return n
+        sign = 1 if diff > 0.0 else -1
+        for i, th in enumerate(self.thresholds):
+            if diff < th:
+                return sign * i
+        return sign * n
 
     def is_better(
         self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
