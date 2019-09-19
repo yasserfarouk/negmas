@@ -852,7 +852,7 @@ class UtilityFunction(ABC, NamedObject):
 
         return utils, output_outcomes, output_issues
 
-    def compare(self, o1, o2) -> "UtilityValue":
+    def compare_real(self, o1: Outcome, o2: Outcome) -> float:
         """Compares the two outcomes and returns a measure of the difference between their utilities"""
         u1, u2 = self(o1), self(o2)
         if isinstance(u1, float) and isinstance(u2, float):
@@ -860,6 +860,66 @@ class UtilityFunction(ABC, NamedObject):
         raise NotImplementedError(
             "Should calculate the integration [(u1-u2) du1 du2] but not implemented yet."
         )
+
+    def rank_with_weights(
+        self, outcomes: List[Optional[Outcome]], descending=True
+    ) -> List[Tuple[int, float]]:
+        """Ranks the given list of outcomes with weights. None stands for the null outcome.
+
+        Returns:
+
+            - A list of tuples each with two values:
+                - an integer giving the index in the input array (outcomes) of an outcome
+                - the weight of that outcome
+            - The list is sorted by weights descendingly
+
+        """
+        return sorted(
+            zip(list(range(len(outcomes))), [float(self(o)) for o in outcomes]),
+            key=lambda x: x[1],
+            reverse=descending,
+        )
+
+    def argsort(self, outcomes: List[Optional[Outcome]], descending=True) -> List[int]:
+        """Ranks the given list of outcomes. None stands for the null outcome"""
+        return [_[0] for _ in self.rank_with_weight(outcomes, descending=descending)]
+
+    def sort(
+        self, outcomes: List[Optional[Outcome]], descending=True
+    ) -> List[Optional[Outcome]]:
+        """Sorts the given outcomes in place in ascending or descending order of utility value.
+
+        Returns:
+            Returns the input list after being sorted. Notice that the array is sorted in-place
+
+        """
+        outcomes.sort(key=lambda x: self(x), reverse=descending)
+        return outcomes
+
+    rank = argsort
+    """Ranks the given list of outcomes. None stands for the null outcome"""
+
+    def is_better(
+        self, first: Outcome, second: Outcome, epsilon=1e-10
+    ) -> Optional[bool]:
+        """
+        Compares two offers using the `ufun` returning whether the first is better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+            True if utility(first) > utility(second) + epsilon
+            None if |utility(first) - utility(second)| <= epsilon
+            False if utility(first) < utility(second) - epsilon
+        """
+        u1, u2 = self(first), self(second)
+        if abs(u1 - u2) <= epsilon:
+            return None
+        return float(u1) > float(u2)
 
     @abstractmethod
     def xml(self, issues: List[Issue]) -> str:
