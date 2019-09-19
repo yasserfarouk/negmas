@@ -4,9 +4,9 @@
 import functools
 import math
 import warnings
-from abc import ABC
+from abc import ABC, abstractmethod
 from copy import copy
-from typing import Optional, Tuple, Union, Type
+from typing import Optional, Tuple, Union, Type, List
 from typing import TYPE_CHECKING, Dict, Any, Callable
 
 from negmas.common import *
@@ -23,7 +23,21 @@ __all__ = [
     "AspirationMixin",
     "Controller",
     "PassThroughNegotiator",
-]  # Most abstract kind of agent
+    "EvaluatorMixin",
+    "RealComparatorMixin",
+    "BinaryComparatorMixin",
+    "NLevelsComparatorMixin",
+    "RankerMixin",
+    "RankerWithWeightsMixin",
+    "SorterMixin",
+    "EvaluatorNegotiator",
+    "RealComparatorNegotiator",
+    "BinaryComparatorNegotiator",
+    "NLevelsComparatorNegotiator",
+    "RankerNegotiator",
+    "RankerWithWeightsNegotiator",
+    "SorterNegotiator",
+]
 
 
 class Negotiator(NamedObject, Notifiable, ABC):
@@ -48,8 +62,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
     ) -> None:
         super().__init__(name=name)
         self.__parent = parent
-        self._capabilities = {"enter": True, "leave": True}
-        self.add_capabilities({"evaluate": True, "compare": True})
+        self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None
         self._ami = None
         self._initial_state = None
@@ -81,6 +94,22 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._ami = None
         self._utility_function = self._init_utility
         self._role = None
+
+    def is_acceptable(self, outcome: "Outcome") -> bool:
+        """Whether the given outcome is acceptable as a final agreement of a negotiation.
+
+        The default behavior is to reject only if a reserved value is defined for the agent and is known to be higher
+        than the utility of the outcome.
+
+        """
+        if self.reserved_value is None:
+            return True
+        return self._utility_function(outcome) >= self.reserved_value
+
+    @property
+    def has_ufun(self):
+        """Does the negotiator has an associated ufun?"""
+        return self._utility_function is not None
 
     def isin(self, negotiation_id: Optional[str]) -> bool:
         """Is that agent participating in the given negotiation?
@@ -296,22 +325,6 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
     def __str__(self):
         return f"{self.name}"
-
-    def compare(self, first: "Outcome", second: "Outcome") -> Optional["UtilityValue"]:
-        """
-        Compares two offers using the `ufun`
-
-        Args:
-            first: First outcome to be compared
-            second: Second outcome to be compared
-
-        Returns:
-            UtilityValue: An estimate of the differences between the two outcomes. It can be a real number between -1, 1
-            or a probability distribution over the same range.
-        """
-        if self._utility_function is None:
-            return None
-        return self._utility_function.compare(first, second)
 
     class Java:
         implements = ["jnegmas.negotiators.Negotiator"]
@@ -664,3 +677,382 @@ class AspirationMixin:
 
 class EvaluatorMixin:
     """A mixin that can be used to have the negotiator respond to evaluate messages from the server"""
+
+    def init(self):
+        self.capabilities["evaluate"] = True
+
+    def evaluate(self, outcome: "Outcome") -> Optional["UtilityValue"]:
+        if self._utility_function is None:
+            return None
+        return self._utility_function(outcome)
+
+
+class RealComparatorMixin:
+    def init(self):
+        self.capabilities["compare-real"] = True
+        self.capabilities["compare-binary"] = True
+
+    def compare_real(self, first: "Outcome", second: "Outcome") -> Optional[float]:
+        """
+        Compares two offers using the `ufun` returning the difference in their utility
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+
+        Returns:
+            "UtilityValue": An estimate of the differences between the two outcomes. It can be a real number between -1, 1
+            or a probability distribution over the same range.
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.compare_real(first, second)
+
+    def is_better(
+        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+    ) -> Optional[bool]:
+        """
+        Compares two offers using the `ufun` returning whether the first is better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+            True if utility(first) > utility(second) + epsilon
+            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
+            False if utility(first) < utility(second) - epsilon
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.is_better(first, second, epsilon)
+
+
+class BinaryComparatorMixin:
+    def init(self):
+        self.capabilities["compare-binary"] = True
+
+    def is_better(
+        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+    ) -> Optional[bool]:
+        """
+        Compares two offers using the `ufun` returning whether the first is better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+            True if utility(first) > utility(second) + epsilon
+            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
+            False if utility(first) < utility(second) - epsilon
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.is_better(first, second, epsilon)
+
+
+class NLevelsComparatorMixin:
+    def init(self):
+        self.capabilities["compare-nlevels"] = True
+        self.capabilities["compare-binary"] = True
+        self.__ufun_thresholds = None
+
+    @property
+    def thresholds(self) -> Optional[List[float]]:
+        """Returns the internal thresholds and None if they do  not exist"""
+        return self.__ufun_thresholds
+
+    @thresholds.setter
+    def thresholds(self, thresholds: List[float]) -> None:
+        self.__ufun_thresholds = thresholds
+
+    def compare_nlevels(
+        self, first: "Outcome", second: "Outcome", n: int = 2, epsilon: float = 1e-10
+    ) -> Optional[int]:
+        """
+        Compares two offers using the `ufun` returning an integer in [-n, n] (i.e. 2n+1 possible values) which defines
+        which outcome is better and the strength of the difference (discretized using internal thresholds)
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            n: number of levels to use
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+
+            - None if either there is no ufun defined or the number of thresholds required cannot be satisfied
+            - 0 iff |u(first) - u(second)| <= epsilon
+            - -i if  - thresholds[i-2] < u(first) - u(second) <= -thresholds[i-1]
+            - +i if  thresholds[i-1] > u(first) - u(second) >= thresholds[i]
+
+        Remarks:
+
+            - thresholds is an internal array that can be set using `thresholds` property
+            - thresholds[-1] is assumed to equal epsilon
+            - thresholds[n] is assumed to equal infinity
+            - n must be <= the length of the internal thresholds array. If n > that length, a ValueError will be raised.
+              If n < the length of the internal thresholds array, the first n values of the array will be used
+        """
+        if not self.has_ufun:
+            return None
+        if self.thresholds is None:
+            raise ValueError(
+                f"Internal thresholds array is not set. Please set the threshold property with an array"
+                f" of length >= {n}"
+            )
+        if len(self.thresholds) < n:
+            raise ValueError(
+                f"Internal thresholds array is only of length {len(self.thresholds)}. It cannot be used"
+                f" to compare outcomes with {n} levels. len(self.thresholds) MUST be >= {n}"
+            )
+        diff = self._utility_function(first) - self._utility_function(second)
+        if abs(diff) < epsilon:
+            return 0
+        if diff < 0:
+            for i, th in enumerate(self.thresholds):
+                if diff < th:
+                    return i + 1
+            return n
+        if diff > 0:
+            for i, th in enumerate(self.thresholds):
+                if diff > th:
+                    return i + 1
+            return n
+
+    def is_better(
+        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+    ) -> Optional[bool]:
+        """
+        Compares two offers using the `ufun` returning whether the first is better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+            True if utility(first) > utility(second) + epsilon
+            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
+            False if utility(first) < utility(second) - epsilon
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.is_better(first, second, epsilon)
+
+
+class RankerWithWeightsMixin:
+    """Adds the ability to rank outcomes returning the ranks and weights"""
+
+    def init(self):
+        self.capabilities["rank-weighted"] = True
+        self.capabilities["compare-binary"] = True
+
+    def rank_with_weights(
+        self, outcomes: List[Optional["Outcome"]], descending=True
+    ) -> List[Tuple[int, float]]:
+        """Ranks the given list of outcomes with weights. None stands for the null outcome. Outcomes of equal utility
+        are ordered arbitrarily.
+
+        Returns:
+
+            - A list of tuples each with two values:
+                - an integer giving the index in the input array (outcomes) of an outcome
+                - the weight of that outcome
+            - The list is sorted by weights descendingly
+
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.rank_with_weights(outcomes, descending)
+
+    def is_better(
+        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+    ) -> Optional[bool]:
+        """
+        Compares two offers using the `ufun` returning whether the first is better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+            True if utility(first) > utility(second) + epsilon
+            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
+            False if utility(first) < utility(second) - epsilon
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.is_better(first, second, epsilon)
+
+
+class RankerMixin:
+    """Adds the ability to rank outcomes returning the ranks without weights. Outcomes of equal utility are ordered
+     arbitrarily. None stands for the null outcome"""
+
+    def init(self):
+        self.capabilities["rank"] = True
+        self.capabilities["compare-binary"] = True
+
+    def rank(self, outcomes: List[Optional["Outcome"]], descending=True) -> List[int]:
+        """Ranks the given list of outcomes. None stands for the null outcome.
+
+        Returns:
+
+            - A list of integers in the specified order of utility values of outcomes
+
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.rank(outcomes, descending)
+
+    def is_better(
+        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+    ) -> Optional[bool]:
+        """
+        Compares two offers using the `ufun` returning whether the first is better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
+                     outcomes are assumed to be compatible
+
+        Returns:
+            True if utility(first) > utility(second) + epsilon
+            None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
+            False if utility(first) < utility(second) - epsilon
+        """
+        if not self.has_ufun:
+            return None
+        return self._utility_function.is_better(first, second, epsilon)
+
+
+class SorterMixin:
+    """Adds the ability to sort outcomes according to utility. Outcomes of equal utility are ordered
+     arbitrarily. None stands for the null outcome"""
+
+    def init(self):
+        self.capabilities["sort"] = True
+
+    def sort(self, outcomes: List[Optional["Outcome"]], descending=True) -> None:
+        """Ranks the given list of outcomes. None stands for the null outcome.
+
+        Returns:
+
+            - The outcomes are sorted IN PLACE.
+            - There is no way to know if the ufun is not defined from the return value. Use `has_ufun` to check for
+              the availability of the ufun
+
+        """
+        if not self.has_ufun:
+            return None
+        self._utility_function.sort(outcomes, descending)
+
+
+class EvaluatorNegotiator(EvaluatorMixin, Negotiator):
+    """A negotiator that can be asked to evaluate outcomes using its internal ufun.
+
+    Th change the way it evaluates outcomes, override `evaluate`.
+
+    It has the `evaluate` capability
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        EvaluatorMixin.init(self)
+
+
+class RealComparatorNegotiator(RealComparatorMixin, Negotiator):
+    """A negotiator that can be asked to evaluate outcomes using its internal ufun.
+
+    Th change the way it evaluates outcomes, override `compare_real`
+
+    It has the `compare-real` capability
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        RealComparatorMixin.init(self)
+
+
+class BinaryComparatorNegotiator(BinaryComparatorMixin, Negotiator):
+    """A negotiator that can be asked to compare two outcomes using is_better. By default is just consults the ufun.
+
+    To change that behavior, override `is_better`.
+
+    It has the `compare-binary` capability.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        BinaryComparatorMixin.init(self)
+
+
+class NLevelsComparatorNegotiator(NLevelsComparatorMixin, Negotiator):
+    """A negotiator that can be asked to compare two outcomes using compare_nlevels which returns the strength of
+    the difference between two outcomes as an integer from [-n, n] in the C compare sense.
+    By default is just consults the ufun.
+
+    To change that behavior, override `compare_nlevels`.
+
+    It has the `compare-nlevels` capability.
+
+    """
+
+    def __init__(self, *args, thresholds: List[float] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        NLevelsComparatorMixin.init(self)
+        self.thresholds = thresholds
+
+
+class RankerWithWeightsNegotiator(RankerWithWeightsMixin, Negotiator):
+    """A negotiator that can be asked to rank outcomes returning rank and weight. By default is just consults the ufun.
+
+        To change that behavior, override `rank_with_weights`.
+
+        It has the `rank-weighted` capability.
+
+        """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        RankerWithWeightsMixin.init(self)
+
+
+class RankerNegotiator(RankerMixin, Negotiator):
+    """A negotiator that can be asked to rank outcomes. By default is just consults the ufun.
+
+    To change that behavior, override `rank`.
+
+    It has the `rank` capability.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        RankerMixin.init(self)
+
+
+class SorterNegotiator(SorterMixin, Negotiator):
+    """A negotiator that can be asked to rank outcomes returning rank without weight.
+    By default is just consults the ufun.
+
+    To change that behavior, override `sort`.
+
+    It has the `sort` capability.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        SorterMixin.init(self)
