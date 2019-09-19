@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.3.5
+-------------
+
+- [Core][SingleText] Adding single-text negotiation using Veto protocol
+- [Core][Utilities] correcting the implementation of is_better
+- [Core][Negotiators] Adding several extra honest negotiators that map functionality from the utility function. These are directly usable in mediated protocols
+- bug fix: Making sure that step_time_limit is never None in the mechanism. If it is not given, it becomes -inf (the same as time_limit)
+- [Core][Utilities] Adding several comparison and ranking methods to ufuns
+- [Core][Event] improving the notification system by adding add_handler, remove_handler, handlers method to provide moduler notification handling.
+- removing unnecessary warning when setting the ufun of a negotiator after creation but before the negotiation session is started
+
+
 Release 0.3.4
 -------------
 
