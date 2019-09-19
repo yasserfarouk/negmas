@@ -917,7 +917,7 @@ class UtilityFunction(ABC, NamedObject):
             False if utility(first) < utility(second) - epsilon
         """
         u1, u2 = self(first), self(second)
-        if abs(u1 - u2) <= epsilon:
+        if u1 is None or u2 is None or abs(u1 - u2) <= epsilon:
             return None
         return float(u1) > float(u2)
 
