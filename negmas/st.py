@@ -1,5 +1,6 @@
 """Implements single text negotiation mechanisms"""
 import time
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
@@ -44,17 +45,17 @@ class VetoSTMechanism(Mechanism):
         self.add_requirements({"compare-binary": True}) # assert that all agents must have compare-binary capability
         self.current_offer = initial_outcome
         """The current offer"""
-        self.initial_outcome = initial_outcome
+        self.initial_outcome = deepcopy(initial_outcome)
         """The initial offer"""
         self.last_responses = list(initial_responses)
         """The responses of all negotiators for the last offer"""
-        self.initial_responses = self.last_responses
+        self.initial_responses = deepcopy(self.last_responses)
         """The initial set of responses. See the remarks of this class to understand its role."""
         self.epsilon = epsilon
 
     def extra_state(self):
         return STState(
-            current_offer=self.current_offer,
+            current_offer=deepcopy(self.current_offer),
         )
 
     def next_outcome(self, outcome: Optional[Outcome]) -> Optional[Outcome]:
