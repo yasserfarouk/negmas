@@ -58,7 +58,11 @@ class MechanismState:
     timedout: bool = False
     """True if the negotiation was timedout"""
     agreement: Optional["Outcome"] = None
-    """Agreement at the end of the negotiation (it is always None until an agreement is reached)"""
+    """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
+    results: Optional[typing.Union["Outcome", List["Outcome"], List["Issue"]]] = None
+    """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
+    outcomes or even a list of negotiation issues for future negotiations. 
+    """
     n_negotiators: int = 0
     """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports 
     dynamic entry"""
