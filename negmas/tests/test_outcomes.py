@@ -79,5 +79,22 @@ def test_outcome_constraint():
     # r = OutcomeSpace(r1)
 
 
+def test_from_outcomes():
+    issues = Issues(price=[2, 3], cost=[1, 2, 3], delivery=["yes", "no"])
+    found = Issue.from_outcomes(Issue.enumerate(issues.issues))
+    for i, f in zip(issues.issues, found):
+        assert i.name == f.name
+        assert all(a == b for a, b in zip(sorted(i.values), f.values))
+
+    issues = Issues(price=(1, 7), cost=(0, 5), delivery=["yes", "no"])
+    found = Issue.from_outcomes(
+        Issue.enumerate(issues.issues, max_n_outcomes=1000), numeric_as_ranges=True
+    )
+    for i, f in zip(issues.issues, found):
+        v = sorted(i.values)
+        assert i.name == f.name
+        assert f.values[0] >= v[0] and f.values[1] <= v[1]
+
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])

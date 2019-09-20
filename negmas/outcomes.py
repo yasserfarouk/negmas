@@ -28,6 +28,7 @@ import itertools
 import math
 import random
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from enum import Enum
 from functools import reduce
 from operator import mul
@@ -124,6 +125,82 @@ class Issue(NamedObject):
         if isinstance(values, tuple):
             values = (float(values[0]), float(values[1]))
         self.values = values
+
+    @classmethod
+    def from_outcomes(
+        cls, outcomes: List["Outcome"], numeric_as_ranges: bool = False
+    ) -> List["Issue"]:
+        """
+        Create a set of issues given some outcomes
+
+        Args:
+
+            outcomes: A list of outcomes
+            numeric_as_ranges: If True, all numeric issues generated will have ranges that are defined by the minimum
+                               and maximum values of that issue in the given outcomes instead of a list of the values
+                               that appeared in them.
+
+        Returns:
+
+            a list of issues that include the given outcomes.
+
+        Remarks:
+
+            - The outcome space spanned by the generated issues can in principle contain many more possible outcomes
+              than the ones given
+
+        """
+
+        def convert_type(v, old, values):
+            if isinstance(v, int) and isinstance(old, float):
+                return float(v)
+            if isinstance(v, float) and isinstance(old, int):
+                for i, _ in enumerate(values):
+                    values[i] = float(_)
+                return v
+            if isinstance(v, str) and (isinstance(old, float) or isinstance(old, int)):
+                raise ValueError("a string after a number")
+            if isinstance(old, str) and (isinstance(v, float) or isinstance(v, int)):
+                raise ValueError("a number after a string")
+            return v
+
+        names = None
+        n_issues = None
+        values = defaultdict(list)
+        for i, o in enumerate(outcomes):
+            o = outcome_as_dict(o)
+            if n_issues is not None and len(o) != n_issues:
+                raise ValueError(
+                    f"Outcome {o} at {i} has {len(o)} issues but an earlier outcome had {n_issues} issues"
+                )
+            n_issues = len(o)
+            if names is not None and not all(a == b for a, b in zip(names, o.keys())):
+                raise ValueError(
+                    f"Outcome {o} at {i} has issues {list(o.keys())} but an earlier outcome had issues {names}"
+                )
+            names = list(o.keys())
+            for k, v in o.items():
+                if len(values[k]) > 0:
+                    try:
+                        v = convert_type(v, values[k][-1], values[k])
+                    except ValueError as e:
+                        raise ValueError(
+                            f"Outcome {o} at {i} has value {v} for issue {k} which is incompatible with an earlier "
+                            f"value {values[k][-1]} ({str(e)})"
+                        )
+                values[k].append(v)
+        for k, vals in values.items():
+            values[k] = sorted(list(set(vals)))
+
+        if numeric_as_ranges:
+            return [
+                Issue(values=(v[0], v[-1]), name=n)
+                if len(v) > 0 and (isinstance(v[0], int) or isinstance(v[0], float))
+                else Issue(values=v, name=n)
+                for n, v in values.items()
+            ]
+        else:
+            return [Issue(values=v, name=n) for n, v in values.items()]
 
     @classmethod
     def to_xml_str(cls, issues: List["Issue"], enumerate_integer: bool = True) -> str:
