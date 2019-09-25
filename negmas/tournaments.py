@@ -1173,17 +1173,16 @@ def create_tournament(
             competitor_info, n_competitors_per_world
         )
     else:
-        random.shuffle(competitor_info)
+        comp_ind = list(range(len(competitor_info)))
+        random.shuffle(comp_ind)
         competitor_sets = (
-            np.array(competitor_info)
+            np.array(comp_ind)
             .reshape(
-                (
-                    len(competitor_info) // n_competitors_per_world,
-                    n_competitors_per_world,
-                )
+                (len(comp_ind) // n_competitors_per_world, n_competitors_per_world)
             )
             .tolist()
         )
+        competitor_sets = [[competitor_info[_] for _ in lst] for lst in competitor_sets]
     for effective_competitor_infos in competitor_sets:
         effective_competitors = [_[0] for _ in effective_competitor_infos]
         effective_params = [_[1] for _ in effective_competitor_infos]
