@@ -59,6 +59,7 @@ import pandas as pd
 import yaml
 from dataclasses import dataclass, field
 
+from negmas import UtilityFunction
 from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
@@ -636,8 +637,10 @@ class MechanismFactory:
     ) -> Optional[NegotiationInfo]:
         """Tries to prepare the negotiation to start by asking everyone to join"""
         mechanisms = self.world.mechanisms
-        if (not self.allow_self_negotiation) and (
-            len(set(_.id if _ is not None else "" for _ in partners)) < 2
+        if (
+            (not self.allow_self_negotiation)
+            and (len(set(_.id if _ is not None else "" for _ in partners)) < 2)
+            and len(partners) > 1
         ):
             return None
         if issues is None:
@@ -782,6 +785,100 @@ class AgentWorldInterface:
     @property
     def default_signing_delay(self) -> int:
         return self._world.default_signing_delay
+
+    def run_negotiation(
+        self,
+        issues: Collection[Issue],
+        partners: Collection["Agent"],
+        negotiator: Negotiator,
+        ufun: UtilityFunction = None,
+        caller_role: str = None,
+        roles: Collection[str] = None,
+        annotation: Optional[Dict[str, Any]] = None,
+        mechanism_name: str = None,
+        mechanism_params: Dict[str, Any] = None,
+    ) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
+        """
+        Runs a negotiation until completion
+
+        Args:
+            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            negotiator: The negotiator to be used in the negotiation
+            ufun: The utility function. Only needed if the negotiator does not already know it
+            caller_role: The role of the caller in the negotiation
+            issues: Negotiation issues
+            annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
+            partners: A list of partners to participate in the negotiation
+            roles: The roles of different partners. If None then each role for each partner will be None
+            mechanism_name: Name of the mechanism to use. It must be one of the mechanism_names that are supported by the
+            `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
+            must also be None
+            mechanism_params: A dict of parameters used to initialize the mechanism object
+
+        Returns:
+
+            A Tuple of a contract and the ami of the mechanism used to get it in case of success. None otherwise
+
+        """
+        return self._world.run_negotiation(
+            caller=self.agent,
+            issues=issues,
+            partners=partners,
+            annotation=annotation,
+            roles=roles,
+            mechanism_name=mechanism_name,
+            mechanism_params=mechanism_params,
+            negotiator=negotiator,
+            ufun=ufun,
+            caller_role=caller_role,
+        )
+
+    def run_negotiations(
+        self,
+        issues: Union[List[Issue], List[List[Issue]]],
+        partners: List[List["Agent"]],
+        negotiators: List[Negotiator],
+        ufuns: List[UtilityFunction] = None,
+        caller_roles: List[str] = None,
+        roles: Optional[List[Optional[List[str]]]] = None,
+        annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
+        mechanism_names: Optional[Union[str, List[str]]] = None,
+        mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    ) -> List[Tuple[Contract, AgentMechanismInterface]]:
+        """
+        Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
+
+        Args:
+            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            issues: Negotiation issues
+            negotiators: The negotiator to be used in the negotiation
+            ufuns: The utility function. Only needed if the negotiator does not already know it
+            caller_roles: The role of the caller in the negotiation
+            annotations: Extra information to be passed to the `partners` when asking them to join the negotiation
+            partners: A list of partners to participate in the negotiation
+            roles: The roles of different partners. If None then each role for each partner will be None
+            mechanism_names: Name of the mechanism to use. It must be one of the mechanism_names that are supported by the
+            `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
+            must also be None
+            mechanism_params: A dict of parameters used to initialize the mechanism object
+
+        Returns:
+
+             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info)
+
+        """
+        return self._world.run_negotiations(
+            caller=self.agent,
+            issues=issues,
+            roles=roles,
+            annotations=annotations,
+            mechanism_names=mechanism_names,
+            mechanism_params=mechanism_params,
+            partners=partners,
+            negotiators=negotiators,
+            caller_roles=caller_roles,
+            ufuns=ufuns,
+        )
 
     def request_negotiation_about(
         self,
@@ -1698,17 +1795,23 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         caller: "Agent",
         issues: Collection[Issue],
         partners: Collection["Agent"],
+        negotiator: Negotiator,
+        ufun: UtilityFunction = None,
+        caller_role: str = None,
         roles: Collection[str] = None,
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
         mechanism_params: Dict[str, Any] = None,
     ) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
         """
-        Requests to start a negotiation with some other agents
+        Runs a negotiation until completion
 
         Args:
             caller: The agent requesting the negotiation
             partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            negotiator: The negotiator to be used in the negotiation
+            ufun: The utility function. Only needed if the negotiator does not already know it
+            caller_role: The role of the caller in the negotiation
             issues: Negotiation issues
             annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
             partners: A list of partners to participate in the negotiation
@@ -1720,9 +1823,10 @@ class World(EventSink, EventSource, ConfigReader, ABC):
 
         Returns:
 
-            Contract: The agreed upon contract if negotiation was successful otherwise, None.
+            A Tuple of a contract and the ami of the mechanism used to get it in case of success. None otherwise
 
         """
+        partners = [self.agents[_] for _ in partners]
         self.loginfo(
             f"{caller.name} requested immediate negotiation "
             f"{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]}"
@@ -1740,6 +1844,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         )
         if neg and neg.mechanism:
             mechanism = neg.mechanism
+            mechanism.add(negotiator, ufun=ufun, role=caller_role)
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
@@ -1752,6 +1857,120 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 )
             return contract, mechanism.ami
         return None
+
+    def run_negotiations(
+        self,
+        caller: "Agent",
+        issues: Union[List[Issue], List[List[Issue]]],
+        partners: List[List["Agent"]],
+        negotiators: List[Negotiator],
+        ufuns: List[UtilityFunction] = None,
+        caller_roles: List[str] = None,
+        roles: Optional[List[Optional[List[str]]]] = None,
+        annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
+        mechanism_names: Optional[Union[str, List[str]]] = None,
+        mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    ) -> List[Tuple[Contract, AgentMechanismInterface]]:
+        """
+        Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
+
+        Args:
+            caller: The agent requesting the negotiation
+            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            issues: Negotiation issues
+            negotiators: The negotiator to be used in the negotiation
+            ufuns: The utility function. Only needed if the negotiator does not already know it
+            caller_roles: The role of the caller in the negotiation
+            annotations: Extra information to be passed to the `partners` when asking them to join the negotiation
+            partners: A list of partners to participate in the negotiation
+            roles: The roles of different partners. If None then each role for each partner will be None
+            mechanism_names: Name of the mechanism to use. It must be one of the mechanism_names that are supported by the
+            `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
+            must also be None
+            mechanism_params: A dict of parameters used to initialize the mechanism object
+
+        Returns:
+
+             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info)
+
+        """
+        partners = [[self.agents[_] for _ in p] for p in partners]
+        n_neg = len(partners)
+        if isinstance(issues[0], Issue):
+            issues = [issues] * n_neg
+        if roles is None or not (
+            isinstance(roles, list) and isinstance(roles[0], list)
+        ):
+            roles = [roles] * n_neg
+        if annotations is None or isinstance(annotations, dict):
+            annotations = [annotations] * n_neg
+        if mechanism_names is None or isinstance(mechanism_names, str):
+            mechanism_names = [mechanism_names] * n_neg
+        if mechanism_params is None or isinstance(mechanism_params, dict):
+            mechanism_params = [mechanism_params] * n_neg
+        if caller_roles is None or isinstance(caller_roles, str):
+            caller_roles = [caller_roles] * n_neg
+        if negotiators is None or isinstance(negotiators, Negotiator):
+            raise ValueError(f"Must pass all negotiators for run_negotiations")
+        if ufuns is None or isinstance(ufuns, UtilityFunction):
+            ufuns = [ufuns] * n_neg
+
+        self.loginfo(
+            f"{caller.name} requested {n_neg} immediate negotiation "
+            f"{mechanism_names}[{mechanism_params}] with {[[_.name for _ in p] for p in partners]}"
+        )
+        negs = []
+        for (issue, partner, role, annotation, mech_name, mech_param) in zip(
+            issues, partners, roles, annotations, mechanism_names, mechanism_params
+        ):
+            negs.append(
+                self._register_negotiation(
+                    mechanism_name=mech_name,
+                    mechanism_params=mech_param,
+                    roles=role,
+                    caller=caller,
+                    partners=partner,
+                    annotation=annotation,
+                    issues=issue,
+                    req_id=None,
+                    run_to_completion=False,
+                )
+            )
+        completed = [False] * n_neg
+        contracts = [None] * n_neg
+        amis = [neg.mechanism.ami for neg in negs]
+        for i, (done, neg, crole, ufun, negotiator) in enumerate(
+            zip(completed, negs, caller_roles, ufuns, negotiators)
+        ):
+            if not neg:
+                completed[i] = True
+                if all(completed):
+                    break
+                continue
+            if done:
+                continue
+            if neg.mechanism:
+                mechanism = neg.mechanism
+                mechanism.add(negotiator, ufun=ufun, role=crole)
+                result = mechanism.step()
+                if result.running:
+                    continue
+                completed[i] = True
+                if mechanism.agreement is None:
+                    contracts[i] = None
+                    self._register_failed_negotiation(
+                        mechanism=mechanism.ami, negotiation=neg
+                    )
+                else:
+                    contracts[i] = self._register_contract(
+                        mechanism=mechanism.ami,
+                        negotiation=neg,
+                        force_signature_now=True,
+                    )
+                amis[i] = mechanism.ami
+                if all(completed):
+                    break
+        return list(zip(contracts, amis))
 
     def _log_header(self):
         if self.time is None:
@@ -2402,8 +2621,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
     def on_neg_request_accepted_(self, req_id: str, mechanism: AgentMechanismInterface):
         """Called when a requested negotiation is accepted"""
+        neg = self._requested_negotiations.get(req_id, None)
+        if neg is None:
+            return
         self.on_neg_request_accepted(req_id, mechanism)
-        neg = self._requested_negotiations[req_id].negotiator
+        neg = neg.negotiator
         annotation = self._requested_negotiations[req_id].annotation
         self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
             extra=self._requested_negotiations[req_id].extra,
