@@ -630,7 +630,13 @@ def tournament(
         )
 
     competitor_indx = dict(
-        zip([get_class(c)._type_name() for c in competitors], range(len(competitors)))
+        zip(
+            [
+                get_class(c)._type_name() if not isinstance(c, str) else c
+                for c in competitors
+            ],
+            range(len(competitors)),
+        )
     )
 
     def _run_eval(competitors_, stage_name):
