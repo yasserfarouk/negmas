@@ -1161,18 +1161,24 @@ def create_tournament(
             flush=True,
         )
 
+    competitor_info = list(zip(competitors, competitor_params))
     if round_robin:
-        competitor_sets = itertools.combinations(competitors, n_competitors_per_world)
+        competitor_sets = itertools.combinations(
+            competitor_info, n_competitors_per_world
+        )
     else:
-        random.shuffle(competitors)
+        random.shuffle(competitor_info)
         competitor_sets = (
-            np.array(competitors)
+            np.array(competitor_info)
             .reshape(
-                (len(competitors) // n_competitors_per_world, n_competitors_per_world)
+                (
+                    len(competitor_info) // n_competitors_per_world,
+                    n_competitors_per_world,
+                )
             )
             .tolist()
         )
-    for effective_competitors in competitor_sets:
+    for effective_competitors, effective_params in competitor_sets:
         if verbose:
             print(f"Running {'|'.join(effective_competitors)} together")
         effective_competitors = list(effective_competitors)
@@ -1190,7 +1196,7 @@ def create_tournament(
                         max_n_worlds=max_worlds_per_config,
                         n_agents_per_competitor=n_agents_per_competitor,
                         competitors=effective_competitors,
-                        params=competitor_params,
+                        params=effective_params,
                     )
                     for c in myconfigs
                 ]
