@@ -2373,6 +2373,30 @@ class SCMLWorld(TimeInAgreementMixin, World):
             mechanism_params=mechanism_params,
         )
 
+    def run_negotiations(
+        self,
+        caller: "Agent",
+        issues: Union[List[Issue], List[List[Issue]]],
+        partners: List[List["Agent"]],
+        roles: Optional[List[Optional[List[str]]]] = None,
+        annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
+        mechanism_names: Optional[Union[str, List[str]]] = None,
+        mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    ) -> List[Tuple[Contract, AgentMechanismInterface]]:
+        if annotations is None:
+            return None
+        for i, annotation in enumerate(annotations):
+            annotations[i] = self._process_annotation(annotation)
+        return super().run_negotiations(
+            caller=caller,
+            issues=issues,
+            roles=roles,
+            annotations=annotations,
+            mechanism_names=mechanism_names,
+            mechanism_params=mechanism_params,
+            partners=partners,
+        )
+
     def request_negotiation_about(
         self,
         req_id: str,
