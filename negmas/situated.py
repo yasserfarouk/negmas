@@ -245,9 +245,10 @@ class RenegotiationRequest:
 class Entity(NamedObject):
     """Defines an entity that is a part of the world but does not participate in the simulation"""
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: str = None, type_postfix: str = ""):
         super().__init__(name=name)
         self._initialized = False
+        self.__type_postfix = type_postfix
 
     @classmethod
     def _type_name(cls):
@@ -256,7 +257,7 @@ class Entity(NamedObject):
     @property
     def type_name(self):
         """Returns the name of the type of this entity"""
-        return self.__class__._type_name()
+        return self.__class__._type_name() + self.__type_postfix
 
     @property
     def short_type_name(self):
@@ -2230,8 +2231,8 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         super().__init__(name=name)
         self._awi = awi
 
-    def __init__(self, name: str = None):
-        super().__init__(name=name)
+    def __init__(self, name: str = None, type_postfix: str = ""):
+        super().__init__(name=name, type_postfix=type_postfix)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
         self.contracts: List[Contract] = []
