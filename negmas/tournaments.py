@@ -1178,7 +1178,9 @@ def create_tournament(
             )
             .tolist()
         )
-    for effective_competitors, effective_params in competitor_sets:
+    for effective_competitor_infos in competitor_sets:
+        effective_competitors = [_[0] for _ in effective_competitor_infos]
+        effective_params = [_[1] for _ in effective_competitor_infos]
         if verbose:
             print(f"Running {'|'.join(effective_competitors)} together")
         effective_competitors = list(effective_competitors)
