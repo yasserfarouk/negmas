@@ -1,6 +1,7 @@
 """
 Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.
 """
+import itertools
 import random
 import time
 import warnings
@@ -59,6 +60,7 @@ __all__ = [
     "SAOController",
     "JavaSAONegotiator",
     "PassThroughSAONegotiator",
+    "SAOSyncController",
 ]
 
 
@@ -99,7 +101,7 @@ class SAOMechanism(Mechanism):
         cache_outcomes=True,
         max_n_outcomes: int = 1000000,
         annotation: Optional[Dict[str, Any]] = None,
-        end_on_no_response=True,
+        end_on_no_response=False,
         publish_proposer=True,
         publish_n_acceptances=False,
         enable_callbacks=False,
@@ -273,14 +275,14 @@ class SAOMechanism(Mechanism):
                     return MechanismRoundResult(
                         broken=True, timedout=False, agreement=None
                     )
-                if resp.response == ResponseType.NO_RESPONSE:
+                if resp.response in (ResponseType.NO_RESPONSE, ResponseType.WAIT):
                     return MechanismRoundResult(
                         broken=True,
                         timedout=False,
                         agreement=None,
                         error=True,
                         error_details=f"When avoid_ultimatum is True, negotiators MUST return an offer when asked "
-                        f"to propose the first time.\nNegotiator {neg.id} returned NO_RESPONSE",
+                        f"to propose the first time.\nNegotiator {neg.id} returned NO_RESPONSE/WAIT",
                     )
                 responses.append(resp)
             if len(responses) < 1:
@@ -331,6 +333,13 @@ class SAOMechanism(Mechanism):
                         )
             if resp.response == ResponseType.NO_RESPONSE:
                 continue
+            if resp.response == ResponseType.WAIT:
+                self._last_checked_negotiator = neg_indx - 1
+                if neg_indx < 0:
+                    self._last_checked_negotiator = n_negotiators - 1
+                return MechanismRoundResult(
+                    broken=False, timedout=False, agreement=None, waiting=True
+                )
             if resp.response == ResponseType.END_NEGOTIATION:
                 return MechanismRoundResult(broken=True, timedout=False, agreement=None)
             if resp.response == ResponseType.ACCEPT_OFFER:
@@ -1571,8 +1580,31 @@ class _ShadowSAONegotiator:
         return self.shadow.id
 
 
+class PassThroughSAONegotiator(SAONegotiator):
+    """A negotiator that acts as an end point to a parent Controller
+    """
+
+    def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        return self._Negotiator__parent.propose(self.id, state)
+
+    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
+        return self._Negotiator__parent.respond(self.id, state, offer)
+
+
 class SAOController(Controller):
     """A controller that can manage multiple negotiators taking full or partial control from them."""
+
+    def __init__(
+        self,
+        default_negotiator_type=PassThroughSAONegotiator,
+        default_negotiator_params=None,
+        name=None,
+    ):
+        super().__init__(
+            default_negotiator_type=default_negotiator_type,
+            default_negotiator_params=default_negotiator_params,
+            name=name,
+        )
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
@@ -1589,15 +1621,65 @@ class SAOController(Controller):
         return self.call(negotiator, "respond", state=state, offer=offer)
 
 
-class PassThroughSAONegotiator(SAONegotiator):
-    """A negotiator that acts as an end point to a parent Controller
-    """
+class SAOSyncController(SAOController):
+    """A controller that can manage multiple negotiators synchronously"""
 
-    def propose(self, state: MechanismState) -> Optional["Outcome"]:
-        return self._Negotiator__parent.propose(self.id, state)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.offers: Dict[str, "Outcome"] = {}
+        self.responses: Dict[str, ResponseType] = {}
+        self.proposals: Dict[str, "Outcome"] = {}
+        self.offer_states: Dict[str, "SAOState"] = {}
 
-    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        return self._Negotiator__parent.respond(self.id, state, offer)
+    def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
+        if len(self.proposals) == 0:
+            self.proposals = self.first_proposals()
+        proposal = self.proposals.get(negotiator_id, None)
+        if proposal is not None:
+            self.proposals[negotiator_id] = None
+        return proposal
+
+    def respond(
+        self, negotiator_id: str, state: MechanismState, offer: "Outcome"
+    ) -> "ResponseType":
+        response = self.responses.get(negotiator_id, None)
+        if response is not None:
+            del self.responses[negotiator_id]
+            return response
+        if negotiator_id not in self.offers.keys():
+            self.offers[negotiator_id] = offer
+            self.offer_states[negotiator_id] = state
+            if len(self.offers) == len(self.negotiators):
+                responses = self.counter_all(
+                    offers=self.offers, states=self.offer_states
+                )
+                for nid in self.negotiators.keys():
+                    if nid != negotiator_id:
+                        self.responses[nid] = responses[nid].response
+                    self.proposals[nid] = responses[nid].outcome
+                self.offers = dict()
+                return responses[negotiator_id].response
+        return ResponseType.WAIT
+
+    @abstractmethod
+    def counter_all(
+        self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
+    ) -> Dict[str, SAOResponse]:
+        """Calculate a response to all offers from all negotiators (negotiator ID is the key).
+
+        Args:
+            offers: Maps negotiator IDs to offers
+            states: Maps negotiator IDs to offers AT the time the offers were made.
+
+        Remarks:
+            - The response type CANNOT be WAIT.
+
+        """
+
+    def first_proposals(self) -> Dict[str, "Outcome"]:
+        """Gets a set of proposals to use for initializing the negotiation. To avoid offering anything, just return None
+        for all of them. That is the default"""
+        return dict(zip(self.negotiators.keys(), itertools.repeat(None)))
 
 
 SAOProtocol = SAOMechanism

@@ -1939,19 +1939,18 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         completed = [False] * n_neg
         contracts = [None] * n_neg
         amis = [neg.mechanism.ami for neg in negs]
-        for i, (done, neg, crole, ufun, negotiator) in enumerate(
-            zip(completed, negs, caller_roles, ufuns, negotiators)
+        for i, (neg, crole, ufun, negotiator) in enumerate(
+            zip(negs, caller_roles, ufuns, negotiators)
         ):
-            if not neg:
+            if not neg or (neg.mechanism is None):
                 completed[i] = True
-                if all(completed):
-                    break
                 continue
-            if done:
-                continue
-            if neg.mechanism:
+            mechanism = neg.mechanism
+            mechanism.add(negotiator, ufun=ufun, role=crole)
+
+        while not all(completed):
+            for i, (done, neg) in enumerate(zip(completed, negs)):
                 mechanism = neg.mechanism
-                mechanism.add(negotiator, ufun=ufun, role=crole)
                 result = mechanism.step()
                 if result.running:
                     continue

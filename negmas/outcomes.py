@@ -81,6 +81,7 @@ class ResponseType(Enum):
     REJECT_OFFER = 1
     END_NEGOTIATION = 2
     NO_RESPONSE = 3
+    WAIT = 4
 
 
 class Issue(NamedObject):
