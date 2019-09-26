@@ -106,6 +106,7 @@ class SAOMechanism(Mechanism):
         avoid_ultimatum=False,
         check_offers=True,
         ignore_negotiator_exceptions=False,
+        offering_is_accepting=True,
         name: Optional[str] = None,
     ):
         super().__init__(
@@ -138,6 +139,7 @@ class SAOMechanism(Mechanism):
         self.check_offers = check_offers
         self._no_responses = 0
         self._new_offers = []
+        self._offering_is_accepting = offering_is_accepting
 
     def join(
         self,
@@ -180,7 +182,9 @@ class SAOMechanism(Mechanism):
 
         def _safe_counter(negotiator, *args, **kwargs):
             try:
-                if negotiator == self._current_proposer:
+                if (
+                    negotiator == self._current_proposer
+                ) and self._offering_is_accepting:
                     self._n_accepting = 0
                     kwargs["offer"] = None
                     response = negotiator.counter(*args, **kwargs)
@@ -297,7 +301,7 @@ class SAOMechanism(Mechanism):
             resp = responses[selected]
             neg = proposers[selected]
             _first_proposer = proposer_indices[selected]
-            self._n_accepting = 1
+            self._n_accepting = 1 if self._offering_is_accepting else 0
             self._current_offer = resp.outcome
             self._current_proposer = neg
             self._last_checked_negotiator = _first_proposer
@@ -350,7 +354,7 @@ class SAOMechanism(Mechanism):
                     self._current_offer = proposal
                     self._current_proposer = neg
                     self._new_offers.append((neg.id, proposal))
-                    self._n_accepting = 1
+                    self._n_accepting = 1 if self._offering_is_accepting else 0
                     if self._enable_callbacks:
                         for other in self.negotiators:
                             if other is neg:
