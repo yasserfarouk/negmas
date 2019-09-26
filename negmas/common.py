@@ -43,6 +43,8 @@ class MechanismState:
 
     running: bool = False
     """Whether the negotiation has started and did not yet finish"""
+    waiting: bool = False
+    """Whether the negotiation is waiting for some negotiator to respond"""
     started: bool = False
     """Whether the negotiation has started"""
     step: int = 0

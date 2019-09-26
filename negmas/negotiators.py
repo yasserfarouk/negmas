@@ -402,8 +402,18 @@ class Controller(NamedObject):
         self.__default_negotiator_params = default_negotiator_params
 
     @property
-    def negotiators(self):
+    def negotiators(self) -> Dict[str, Tuple[Negotiator, Any]]:
         return self._negotiators
+
+    @property
+    def states(self) -> Dict[str, MechanismState]:
+        """Gets the current states of all negotiations as a mapping from negotiator ID to mechanism"""
+        return dict(
+            zip(
+                self._negotiators.keys(),
+                (self._negotiators[k][0]._ami.state for k in self._negotiators.keys()),
+            )
+        )
 
     def create_negotiator(
         self,

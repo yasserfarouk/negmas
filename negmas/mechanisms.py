@@ -41,6 +41,9 @@ class MechanismRoundResult:
     """True if an error occurred in the mechanism"""
     error_details: str = ""
     """Error message"""
+    waiting: bool = False
+    """whether to consider that the round is still running and call the the round method again without increasing
+    the step number"""
 
 
 # noinspection PyAttributeOutsideInit
@@ -200,6 +203,7 @@ class Mechanism(NamedObject, EventSource, ABC):
         self._running = False
         self._error = False
         self._error_details = ""
+        self._waiting = False
         self.__discrete_outcomes: List[Outcome] = None
         self._enable_callbacks = enable_callbacks
 
@@ -667,13 +671,19 @@ class Mechanism(NamedObject, EventSource, ABC):
                 self.on_negotiation_end()
                 return self.state
 
-        if self._enable_callbacks:
-            for agent in self._negotiators:
-                agent.on_round_start(state=self.state)
+        if not self._waiting:
+            if self._enable_callbacks:
+                for agent in self._negotiators:
+                    agent.on_round_start(state=self.state)
+        self._waiting = False
         step_start = time.perf_counter()
         result = self.round()
         step_time = time.perf_counter() - step_start
-        self._error, self._error_details = result.error, result.error_details
+        self._error, self._error_details, self._waiting = (
+            result.error,
+            result.error_details,
+            result.waiting,
+        )
         if self._error:
             self.on_mechanism_error()
         if (
@@ -689,14 +699,52 @@ class Mechanism(NamedObject, EventSource, ABC):
             )
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
-        self._step += 1
-        if self._enable_callbacks:
-            for agent in self._negotiators:
-                agent.on_round_end(state=self.state)
+        if not self._waiting:
+            self._step += 1
+            if self._enable_callbacks:
+                for agent in self._negotiators:
+                    agent.on_round_end(state=self.state)
+            self._history.append(self.state)
         if not self._running:
             self.on_negotiation_end()
-        self._history.append(self.state)
+
         return self.state
+
+    @classmethod
+    def runall(
+        cls, mechanisms: List["Mechanism"], keep_order=True
+    ) -> List[MechanismState]:
+        """
+        Runs all mechanisms
+
+        Args:
+            mechanisms: List of mechanisms
+            keep_order: if True, the mechanisms will be run in order every step otherwise the order will be randomized
+                        at every step
+
+        Returns:
+            - List of states of all mechanisms after completion
+
+        """
+        if not keep_order:
+            raise NotImplementedError(
+                "running mechanisms in random order is not yet supported"
+            )
+
+        completed = [_ is None for _ in mechanisms]
+        states = [None] * len(mechanisms)
+        while not all(completed):
+            for i, (done, mechanism) in enumerate(zip(completed, mechanisms)):
+                if done:
+                    continue
+                result = mechanism.step()
+                if result.running:
+                    continue
+                completed[i] = True
+                states[i] = mechanism.state
+                if all(completed):
+                    break
+        return states
 
     def run(self, timeout=None) -> MechanismState:
         if timeout is None:
@@ -772,6 +820,7 @@ class Mechanism(NamedObject, EventSource, ABC):
                 "n_negotiators": len(self.negotiators),
                 "has_error": self._error,
                 "error_details": self._error_details,
+                "waiting": self._waiting,
             }
         )
         return self._state_factory(**current_state)
@@ -1017,6 +1066,66 @@ class Mechanism(NamedObject, EventSource, ABC):
     def extra_state(self) -> Optional[Dict[str, Any]]:
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return None
+
+
+# @dataclass
+# class MechanismSequenceState(MechanismState):
+#     current_mechanism_ami: AgentMechanismInterfacea = None
+#     current_mechanism_state: MechanismState = None
+#
+#
+# def safemin(a, b):
+#     """Returns the minimum assuming None is larger than anything"""
+#     if a is None:
+#         return b
+#     if b is None:
+#         return a
+#     return min(a, b)
+#
+# class MechanismSequence(Mechanism):
+#     """Represents a sequence of mechanisms with the agreements of one of them as the starting point of the next"""
+#
+#     def __init__(self, mechanisms: List[Mechanism],
+#                  one_round_per_mechanism = True,
+#                  issues: List["Issue"] = None,
+#                  outcomes: Union[int, List["Outcome"]] = None,
+#                  n_steps: int = None,
+#                  time_limit: float = None,
+#                  step_time_limit: float = None,
+#                  max_n_agents: int = None,
+#                  dynamic_entry=False,
+#                  cache_outcomes=True,
+#                  max_n_outcomes: int = 1000000,
+#                  keep_issue_names=True,
+#                  annotation: Optional[Dict[str, Any]] = None,
+#                  state_factory=MechanismState,
+#                  enable_callbacks=False,
+#                  name=None,
+#                  ):
+#         super().__init__(issues=issues, outcomes=outcomes, n_steps=n_steps, time_limit=time_limit
+#                          , step_time_limit=step_time_limit, max_n_agents=max_n_agents, dynamic_entry=dynamic_entry
+#                          , cache_outcomes=cache_outcomes, max_n_outcomes=max_n_outcomes, keep_issue_names=keep_issue_names
+#                          , annotation=annotation, state_factory=state_factory, enable_callbacks=enable_callbacks
+#                          , name=name)
+#         self.mechanisms = list(mechanisms)
+#         for mechanism in mechanisms:
+#             if mechanism.state.started:
+#                 raise ValueError(f'Mechanism {mechanism.id} of type {mechanism.__class__.__name__} is already started. '
+#                                  f'Cannot create a mechanism sequence with a mechanism that is already started.')
+#             mechanism.ami.time_limit = safemin(mechanism.ami.time_limit, self.time_limit)
+#             mechanism.ami.step_time_limit = safemin(mechanism.ami.step_time_limit, self.step_time_limit)
+#             if not one_round_per_mechanism:
+#                 mechanism.ami.n_steps = safemin(mechanism.ami.n_steps, n_steps)
+#             mechanism.ami.dynamic_entry = self.dynamic_entry if not self.dynamic_entry else mechanism.ami.dynamic_entry
+#         self._current_mechanism = self.mechanisms[0]
+#         self._current_mechanism_index = 0
+#         self._current_mechanism.outcomes = self.outcomes
+#         self.one_round_per_mechanism = one_round_per_mechanism
+#
+#     def round(self) -> MechanismRoundResult:
+#         if self.one_round_per_mechanism:
+#
+#
 
 
 Protocol = Mechanism
