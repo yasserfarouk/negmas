@@ -1844,7 +1844,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         )
         if neg and neg.mechanism:
             mechanism = neg.mechanism
-            mechanism.add(negotiator, ufun=ufun, role=caller_role)
+            if negotiator is not None:
+                mechanism.add(negotiator, ufun=ufun, role=caller_role)
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
@@ -1942,7 +1943,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         for i, (neg, crole, ufun, negotiator) in enumerate(
             zip(negs, caller_roles, ufuns, negotiators)
         ):
-            if not neg or (neg.mechanism is None):
+            if not neg or (neg.mechanism is None) or negotiator is None:
                 completed[i] = True
                 continue
             mechanism = neg.mechanism
