@@ -150,13 +150,13 @@ class SCMLWorld(TimeInAgreementMixin, World):
         strip_annotations=True,
         financial_reports_period=10,
         ignore_negotiated_penalties=False,
-        prevent_cfp_tampering=False
+        prevent_cfp_tampering=False,
         # bankruptcy parameters
-        ,
         default_price_for_products_without_one=1,
-        compensation_fraction=0.5
+        compensation_fraction=0.5,
         # general parameters
-        ,
+        compact=False,
+        log_folder=None,
         log_to_file: bool = True,
         log_to_screen: bool = False,
         log_file_level=logging.DEBUG,
@@ -164,9 +164,7 @@ class SCMLWorld(TimeInAgreementMixin, World):
         log_file_name: str = "log.txt",
         log_ufuns: bool = False,
         log_negotiations: bool = False,
-        log_folder=None,
         save_mechanism_state_in_contract=False,
-        compact=False,
         save_signed_contracts: bool = True,
         save_cancelled_contracts: bool = True,
         save_negotiations: bool = True,

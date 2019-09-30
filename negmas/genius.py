@@ -3,6 +3,7 @@ Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
+import math
 import pathlib
 
 import os
@@ -521,13 +522,15 @@ class GeniusNegotiator(SAONegotiator):
         if self.discount is not None and self.discount != 1.0:
             self._utility_function = make_discounted_ufun(
                 self._utility_function,
-                info=info,
+                ami=info,
                 discount_per_round=self.discount,
                 power_per_round=1.0,
             )
         n_steps = -1 if info.n_steps is None else int(info.n_steps)  # number of steps
         n_seconds = (
-            -1 if info.time_limit is None else int(info.time_limit)
+            -1
+            if info.time_limit is None or math.isinf(info.time_limit)
+            else int(info.time_limit)
         )  # time limit
         if n_steps * n_seconds > 0:
             # n_seconds take precedence

@@ -84,7 +84,8 @@ class Product:
         return self.id.__hash__()
 
 
-@dataclass(frozen=True)
+@dataclass
+@dataclass
 class InputOutput:
     """An input/output to a production process"""
 

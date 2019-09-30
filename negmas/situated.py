@@ -60,7 +60,7 @@ import yaml
 from dataclasses import dataclass, field
 
 from negmas import UtilityFunction
-from negmas.common import AgentMechanismInterface, MechanismState
+from negmas.common import AgentMechanismInterface, MechanismState, CheckpointMixin
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
 from negmas.helpers import (
@@ -250,6 +250,7 @@ class Entity(NamedObject):
         super().__init__(name=name)
         self._initialized = False
         self.__type_postfix = type_postfix
+        self.__current_step = 0
 
     @classmethod
     def _type_name(cls):
@@ -284,6 +285,7 @@ class Entity(NamedObject):
     def init_(self):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
         self._initialized = True
+        self.__current_step = 0
         self.init()
 
     def step_(self):
@@ -291,6 +293,7 @@ class Entity(NamedObject):
         if not self._initialized:
             self.init_()
         self.step()
+        self.__current_step += 1
 
     def init(self):
         """Override this method to modify initialization logic"""
@@ -304,12 +307,12 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
 
     """
 
-    def __getstate__(self):
-        return self.name, self._data
-
-    def __setstate__(self, state):
-        name, self._data = state
-        super().__init__(name=name)
+    # def __getstate__(self):
+    #     return self.name, self._data
+    #
+    # def __setstate__(self, state):
+    #     name, self._data = state
+    #     super().__init__(name=name)
 
     def __init__(self, name: str = None):
         """
@@ -744,12 +747,12 @@ class MechanismFactory:
 class AgentWorldInterface:
     """Agent World Interface class"""
 
-    def __getstate__(self):
-        return self._world, self.agent.id
-
-    def __setstate__(self, state):
-        self._world, agent_id = state
-        self.agent = self._world.agents[agent_id]
+    # def __getstate__(self):
+    #     return self._world, self.agent.id
+    #
+    # def __setstate__(self, state):
+    #     self._world, agent_id = state
+    #     self.agent = self._world.agents[agent_id]
 
     def __init__(self, world: "World", agent: "Agent"):
         self._world, self.agent = world, agent
@@ -1090,7 +1093,7 @@ class WorldMonitor(Entity):
         """Called at the END of every simulation step"""
 
 
-class World(EventSink, EventSource, ConfigReader, ABC):
+class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, ABC):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
 
@@ -1124,7 +1127,10 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
         default_signing_delay=0,
-        breach_processing=BreachProcessing.VICTIM_THEN_PERPETRATOR,
+        breach_processing=BreachProcessing.NONE,
+        mechanisms: Dict[str, Dict[str, Any]] = None,
+        awi_type: str = "negmas.situated.AgentWorldInterface",
+        start_negotiations_immediately: bool = False,
         log_folder=None,
         log_to_file=True,
         log_ufuns=False,
@@ -1134,9 +1140,6 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
         log_file_name="log.txt",
-        mechanisms: Dict[str, Dict[str, Any]] = None,
-        awi_type: str = "negmas.situated.AgentWorldInterface",
-        start_negotiations_immediately: bool = False,
         save_signed_contracts: bool = True,
         save_cancelled_contracts: bool = True,
         save_negotiations: bool = True,
@@ -1145,6 +1148,12 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         ignore_agent_exceptions: bool = False,
         ignore_contract_execution_exceptions: bool = False,
         safe_stats_monitoring: bool = False,
+        checkpoint_every: int = 1,
+        checkpoint_folder: Optional[Union[str, Path]] = None,
+        checkpoint_filename: str = None,
+        extra_checkpoint_info: Dict[str, Any] = None,
+        single_checkpoint: bool = True,
+        exist_ok: bool = True,
         name=None,
     ):
         """
@@ -1157,14 +1166,34 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             neg_n_steps: Maximum number of steps allowed for a negotiation.
             neg_step_time_limit: Time limit for single step of the negotiation protocol.
             neg_time_limit: Real-time limit on each single negotiation
+            checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
+            checkpoint_folder: The folder to save checkpoints into. Set to None to disable
+            checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
+                                 step number).
+            single_checkpoint: If true, only the most recent checkpoint will be saved.
+            extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
+                                   a dictionary with string keys
+            exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
             name: Name of the simulator
         """
         super().__init__()
+        NamedObject.__init__(self, name=name)
+        CheckpointMixin.init(
+            self,
+            step_attrib="current_step",
+            every=checkpoint_every,
+            folder=checkpoint_folder,
+            filename=checkpoint_filename,
+            info=extra_checkpoint_info,
+            exist_ok=exist_ok,
+            single=single_checkpoint,
+        )
         self.name = (
             name
             if name is not None
             else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
         )
+        self.id = unique_name(self.name, add_time=True, rand_digits=8)
         self._log_folder = (
             Path(log_folder).absolute()
             if log_folder is not None
@@ -1383,6 +1412,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
                 monitor.init(__stats, world_name=self.name)
             for monitor in self.world_monitors:
                 monitor.step(self)
+        self.checkpoint_on_step_started()
         if self.current_step >= self.n_steps:
             self.logerror(
                 f"Asked  to step after the simulation ({self.n_steps}). Will just ignore this"
@@ -1582,9 +1612,7 @@ class World(EventSink, EventSource, ConfigReader, ABC):
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
         self.__n_contracts_cancelled = 0
-        self.current_step += 1
 
-        # always indicate that the simulation is to continue
         self.append_stats()
         for monitor in self.stats_monitors:
             if self.safe_stats_monitoring:
@@ -1594,6 +1622,8 @@ class World(EventSink, EventSource, ConfigReader, ABC):
             monitor.step(__stats, world_name=self.name)
         for monitor in self.world_monitors:
             monitor.step(self)
+        self.current_step += 1
+        # always indicate that the simulation is to continue
         return True
 
     def append_stats(self):
@@ -2442,13 +2472,13 @@ NegotiationRequestInfo = namedtuple(
 class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
     """Base class for all agents that can run within a `World` and engage in situated negotiations"""
 
-    def __getstate__(self):
-        return self.name, self.awi
-
-    def __setstate__(self, state):
-        name, awi = state
-        super().__init__(name=name)
-        self._awi = awi
+    # def __getstate__(self):
+    #     return self.name, self.awi
+    #
+    # def __setstate__(self, state):
+    #     name, awi = state
+    #     super().__init__(name=name)
+    #     self._awi = awi
 
     def __init__(self, name: str = None, type_postfix: str = ""):
         super().__init__(name=name, type_postfix=type_postfix)

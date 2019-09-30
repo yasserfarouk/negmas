@@ -2,13 +2,16 @@
 
 This module does not import anything from the library except during type checking
 """
-import typing
+import datetime
 import uuid
+import dill
+import pickle
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
-from typing import List, Optional, Any, TYPE_CHECKING
+from pathlib import Path
+from typing import List, Optional, Any, TYPE_CHECKING, Union, Dict, Tuple, Type
 
-from .helpers import unique_name
+from .helpers import unique_name, load, dump, get_full_type_name
 from .java import to_java, to_dict, PYTHON_CLASS_IDENTIFIER
 
 if TYPE_CHECKING:
@@ -24,7 +27,7 @@ __all__ = [
     "_ShadowAgentMechanismInterface",
 ]
 
-_running_negotiations: typing.Dict[str, "Mechanism"] = {}
+_running_negotiations: Dict[str, "Mechanism"] = {}
 
 
 @dataclass
@@ -61,7 +64,7 @@ class MechanismState:
     """True if the negotiation was timedout"""
     agreement: Optional["Outcome"] = None
     """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
-    results: Optional[typing.Union["Outcome", List["Outcome"], List["Issue"]]] = None
+    results: Optional[Union["Outcome", List["Outcome"], List["Issue"]]] = None
     """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
     outcomes or even a list of negotiation issues for future negotiations. 
     """
@@ -138,11 +141,11 @@ class AgentMechanismInterface:
     """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
     max_n_agents: int
     """Maximum allowed number of agents in the session. None indicates no limit"""
-    annotation: typing.Dict[str, Any] = field(default_factory=dict)
+    annotation: Dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `Dict[str, Any]` that is always available for all agents"""
 
     def random_outcomes(
-        self, n: int = 1, astype: typing.Type["Outcome"] = dict
+        self, n: int = 1, astype: Type["Outcome"] = dict
     ) -> List["Outcome"]:
         """
         A set of random outcomes from the issues of this negotiation
@@ -159,7 +162,7 @@ class AgentMechanismInterface:
         return _running_negotiations[self.id].random_outcomes(n=n, astype=astype)
 
     def discrete_outcomes(
-        self, n_max: int = None, astype: typing.Type["Outcome"] = dict
+        self, n_max: int = None, astype: Type["Outcome"] = dict
     ) -> List["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
@@ -283,7 +286,7 @@ class _ShadowAgentMechanismInterface:
     def getState(self) -> MechanismState:
         return to_java(self.shadow.state)
 
-    def getRequirements(self) -> typing.Dict[str, Any]:
+    def getRequirements(self) -> Dict[str, Any]:
         return to_java(self.shadow.requirements)
 
     def getNNegotiators(self) -> int:
@@ -299,7 +302,7 @@ class _ShadowAgentMechanismInterface:
         implements = ["jnegmas.common.AgentMechanismInterface"]
 
 
-def register_all_mechanisms(mechanisms: typing.Dict[str, "Mechanism"]) -> None:
+def register_all_mechanisms(mechanisms: Dict[str, "Mechanism"]) -> None:
     """registers the running mechanisms. Used internally. **DO NOT CALL THIS.**"""
     global _running_negotiations
     _running_negotiations = mechanisms
@@ -356,3 +359,205 @@ class NamedObject(object):
     @id.setter
     def id(self, id):
         self.__uuid = id
+
+    def checkpoint(
+        self,
+        path: Union[Path, str],
+        file_name: str = None,
+        info: Dict[str, Any] = None,
+        exist_ok: bool = False,
+        single_checkpoint: bool = True,
+        step_attribs: Tuple[str] = (
+            "current_step",
+            "_current_step",
+            "_Entity__current_step",
+            "_step",
+        ),
+    ) -> Path:
+        """
+        Saves a checkpoint of the current object at  the given path.
+
+        Args:
+
+            path: Full path to a directory to store the checkpoint
+            file_name: Name of the file to dump into. If not given, a unique name is created
+            info: Information to save with the checkpoint (must be json serializable)
+            exist_ok: If true, override existing dump
+            single_checkpoint: If true, keep a single checkpoint for the last step
+            step_attribs: Attributes to represent the time-step of the object. Any of the given attributes will be
+                          used in the file name generated if single_checkpoint is False. If single_checkpoint is True, the
+                          filename will not contain time-step information
+
+        Returns:
+            full path to the file used to save the checkpoint
+
+        """
+        if file_name is None:
+            base_name = (
+                f"{self.__class__.__name__.split('.')[-1].lower()}.{unique_name('', add_time=False, rand_digits=8, sep='-')}"
+                f".{self.id.replace('/', '_')}"
+            )
+        else:
+            base_name = file_name
+        path = Path(path)
+        if path.exists() and path.is_file():
+            raise ValueError(f"{str(path)} is a file. It must be a directory")
+        path.mkdir(parents=True, exist_ok=True)
+
+        if info is None:
+            info = {}
+        info.update(
+            {
+                "type": get_full_type_name(self.__class__),
+                "id": self.id,
+                "name": self.name,
+                "time": datetime.datetime.now().isoformat(),
+                "step": None,
+            }
+        )
+        for attrib in step_attribs:
+            try:
+                a = getattr(self, attrib)
+                if isinstance(a, int):
+                    info["step"] = a
+                    break
+            except AttributeError:
+                pass
+        if not single_checkpoint and info["step"] is not None:
+            base_name = f"{info['step']:05}.{base_name}"
+        file_name = path / base_name
+        if (not exist_ok) and file_name.exists():
+            raise ValueError(
+                f"{str(file_name)} already exists. Pass exist_ok=True if you want to override it"
+            )
+
+        with open(file_name, "wb") as f:
+            dill.dump(self, f)
+
+        info_file_name = path / (base_name + ".json")
+        dump(info, info_file_name)
+        return file_name
+
+    @classmethod
+    def from_checkpoint(
+        cls, file_name: Union[str, Path], return_info=False
+    ) -> Union["NamedObject", Tuple["NamedObject", Dict[str, Any]]]:
+        """
+        Creates an object from a saved checkpoint
+
+        Args:
+            file_name:
+            return_info: If True, tbe information saved when the file was dumped are returned
+
+        Returns:
+            Either the object or the object and dump-info as a dict (if return_info was true)
+
+        Remarks:
+
+            - If info is returned, it is guaranteed to have the following members:
+                - time: Dump time
+                - type: Type of the dumped object
+                - id: ID
+                - name: name
+        """
+        file_name = Path(file_name).absolute()
+        with open(file_name, "rb") as f:
+            obj = dill.load(f)
+        if return_info:
+            return obj, cls.checkpoint_info(file_name)
+        return obj
+
+    @classmethod
+    def checkpoint_info(cls, file_name: Union[str, Path]) -> Dict[str, Any]:
+        """
+        Returns the information associated with a dump of the object saved in the given file
+
+        Args:
+            file_name: Name of the object
+
+        Returns:
+
+        """
+        file_name = Path(file_name).absolute()
+        return load(file_name.parent / (file_name.name + ".json"))
+
+
+class CheckpointMixin:
+    def init(
+        self,
+        step_attrib: str,
+        every: int = 1,
+        folder: Optional[Union[str, Path]] = None,
+        filename: str = None,
+        info: Dict[str, Any] = None,
+        exist_ok: bool = True,
+        single: bool = True,
+    ):
+        """
+        Initializes the object to automatically save a checkpoint
+
+        Args:
+            step_attrib: The attribute that defines the current step. If None, there is no step concept
+            every: Number of steps per checkpoint. If < 1 no checkpoints will be saved
+            folder: The directory to store checkpoints under
+            filename: Name of the file to save the checkpoint under. If None, a unique name will be choosen.
+                                 If `single_checkpoint` was False, then multiple files will be used prefixed with the
+                                 step number
+            info: Any extra information to save in the json file associated with each checkpoint
+            exist_ok: Override existing files if any
+            single: If True, only the most recent checkpoint will be kept
+        
+        Remarks:
+        
+            - single_checkpoint implies exist_ok
+
+        """
+        self.__checkpoint_every = -1 if folder is None else every
+        self.__checkpoint_folder = folder
+        self.__checkpoint_extra_info = info
+        self.__checkpoint_exist_ok = exist_ok
+        self.__checkpoint_single = single
+        self.__step_atrrib = step_attrib
+        self.__checkpoint_filename = filename
+
+    def checkpoint_on_step_started(self) -> Optional[Path]:
+        """Should be called on every step to save checkpoints as needed.
+
+        Returns:
+            The path on which the checkpoint is stored if one is stored. None otherwise.
+
+        Remarks:
+
+            - Should be called at the BEGINNING of every step before any processing takes place
+        """
+        if self.__checkpoint_every < 1 or self.__checkpoint_folder is None:
+            return None
+        step = getattr(self, self.__step_atrrib)
+        if step % self.__checkpoint_every == 0:
+            me: NamedObject = self  # type: ignore
+            return me.checkpoint(
+                path=self.__checkpoint_folder,
+                file_name=self.__checkpoint_filename,
+                info=self.__checkpoint_extra_info,
+                exist_ok=self.__checkpoint_exist_ok or self.__checkpoint_single,
+                single_checkpoint=self.__checkpoint_single,
+                step_attribs=(self.__step_atrrib,),
+            )
+
+    def checkpoint_final_step(self) -> Optional[Path]:
+        """Should be called at the end of the simulation to save the final state
+
+        Remarks:
+            - Should be called before any processing is done in the first step.
+        """
+        if self.__checkpoint_every < 1 or self.__checkpoint_folder is None:
+            return None
+        me: NamedObject = self  # type: ignore
+        return me.checkpoint(
+            path=self.__checkpoint_folder,
+            file_name=self.__checkpoint_filename,
+            info=self.__checkpoint_extra_info,
+            exist_ok=True,
+            single_checkpoint=self.__checkpoint_single,
+            step_attribs=(self.__step_atrrib,),
+        )

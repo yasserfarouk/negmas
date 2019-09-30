@@ -110,6 +110,7 @@ class SAOMechanism(Mechanism):
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         name: Optional[str] = None,
+        **kwargs,
     ):
         super().__init__(
             issues=issues,
@@ -128,6 +129,7 @@ class SAOMechanism(Mechanism):
             state_factory=SAOState,
             enable_callbacks=enable_callbacks,
             name=name,
+            **kwargs,
         )
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self._current_offer = None

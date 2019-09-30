@@ -7,18 +7,26 @@ import time
 import uuid
 from abc import abstractmethod, ABC
 from collections import defaultdict
+from pathlib import Path
 from typing import Tuple, List, Optional, Any, Iterable, Union, Dict, Set, Type
 
 import pandas as pd
 from dataclasses import dataclass
 
 from negmas.utilities import UtilityFunction, MappingUtilityFunction, pareto_frontier
-from negmas.outcomes import outcome_is_valid, Issue, Outcome, enumerate_outcomes
+from negmas.outcomes import (
+    outcome_is_valid,
+    Issue,
+    Outcome,
+    enumerate_outcomes,
+    outcome_as_tuple,
+)
 from negmas.common import (
     AgentMechanismInterface,
     MechanismState,
     register_all_mechanisms,
     NamedObject,
+    CheckpointMixin,
 )
 from negmas.common import NegotiatorInfo
 from negmas.events import *
@@ -47,7 +55,7 @@ class MechanismRoundResult:
 
 
 # noinspection PyAttributeOutsideInit
-class Mechanism(NamedObject, EventSource, ABC):
+class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     """
     Base class for all negotiation Mechanisms.
 
@@ -72,6 +80,12 @@ class Mechanism(NamedObject, EventSource, ABC):
         annotation: Optional[Dict[str, Any]] = None,
         state_factory=MechanismState,
         enable_callbacks=False,
+        checkpoint_every: int = 1,
+        checkpoint_folder: Optional[Union[str, Path]] = None,
+        checkpoint_filename: str = None,
+        extra_checkpoint_info: Dict[str, Any] = None,
+        single_checkpoint: bool = True,
+        exist_ok: bool = True,
         name=None,
     ):
         """
@@ -88,10 +102,28 @@ class Mechanism(NamedObject, EventSource, ABC):
             keep_issue_names: If True, dicts with issue names will be used for outcomes otherwise tuples
             annotation: Arbitrary annotation
             state_factory: A callable that receives an arbitrary set of key-value pairs and return a MechanismState
-            descendant object
+                          descendant object
+            checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
+            checkpoint_folder: The folder to save checkpoints into. Set to None to disable
+            checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
+                                 step number).
+            single_checkpoint: If true, only the most recent checkpoint will be saved.
+            extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
+                                   a dictionary with string keys
+            exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
             name: Name of the mechanism session. Should be unique. If not given, it will be generated.
         """
         super().__init__(name=name)
+        CheckpointMixin.init(
+            self,
+            step_attrib="_step",
+            every=checkpoint_every,
+            folder=checkpoint_folder,
+            filename=checkpoint_filename,
+            info=extra_checkpoint_info,
+            exist_ok=exist_ok,
+            single=single_checkpoint,
+        )
         time_limit = time_limit if time_limit is not None else float("inf")
         step_time_limit = (
             step_time_limit if step_time_limit is not None else float("inf")
@@ -154,26 +186,27 @@ class Mechanism(NamedObject, EventSource, ABC):
                     for i, outcome in enumerate(outcomes):
                         assert len(outcome) == len(issue_names)
 
-        __outcomes = outcomes
+        self.__outcomes = outcomes
         # we have now __issues is a List[Issue] and __outcomes is Optional[List[Outcome]]
 
         # create a couple of ways to access outcomes by indices effeciently
-        self.outcome_index = lambda x: None
         self.outcome_indices = []
-        if __outcomes is not None and cache_outcomes:
-            self.outcome_indices = range(len(__outcomes))
-            try:
-                _outcome_index = dict(zip(__outcomes, self.outcome_indices))
-                self.outcome_index = lambda x: _outcome_index[x]
-            except:
-                self.outcome_index = lambda x: __outcomes.index(x)
+        self.__outcome_index = None
+        if self.__outcomes is not None and cache_outcomes:
+            self.outcome_indices = range(len(self.__outcomes))
+            self.__outcome_index = dict(
+                zip(
+                    (outcome_as_tuple(o) for o in self.__outcomes),
+                    range(len(self.__outcomes)),
+                )
+            )
 
         self.id = str(uuid.uuid4())
         self.ami = AgentMechanismInterface(
             id=self.id,
             n_outcomes=None if outcomes is None else len(outcomes),
             issues=__issues,
-            outcomes=__outcomes,
+            outcomes=self.__outcomes,
             time_limit=time_limit,
             n_steps=n_steps,
             step_time_limit=step_time_limit,
@@ -209,6 +242,14 @@ class Mechanism(NamedObject, EventSource, ABC):
 
         self.agents_of_role = defaultdict(list)
         self.role_of_agent = {}
+
+    def outcome_index(self, outcome) -> Optional[int]:
+        """Returns the index of the outcome if that was possible"""
+        if self.__outcomes is None:
+            return None
+        if self.__outcome_index is not None:
+            return self.__outcome_index[outcome_as_tuple(outcome)]
+        return self.__outcomes.index(outcome)
 
     @classmethod
     def get_info(cls, id: str) -> AgentMechanismInterface:
@@ -628,9 +669,11 @@ class Mechanism(NamedObject, EventSource, ABC):
             - There is another function (`run()`) that runs the whole mechanism in blocking mode
 
         """
-        if self.time_limit is not None and self.time > self.time_limit:
+        self.checkpoint_on_step_started()
+        if self.time > self.time_limit:
             self._agreement, self._broken, self._timedout = None, False, True
             self._history.append(self.state)
+            self.on_negotiation_end()
             return self.state
         if len(self._negotiators) < 2:
             if self.ami.dynamic_entry:
@@ -700,14 +743,13 @@ class Mechanism(NamedObject, EventSource, ABC):
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
         if not self._waiting:
-            self._step += 1
             if self._enable_callbacks:
                 for agent in self._negotiators:
                     agent.on_round_end(state=self.state)
             self._history.append(self.state)
+            self._step += 1
         if not self._running:
             self.on_negotiation_end()
-
         return self.state
 
     @classmethod
@@ -790,6 +832,7 @@ class Mechanism(NamedObject, EventSource, ABC):
                 },
             )
         )
+        self.checkpoint_final_step()
 
     def on_negotiation_start(self) -> bool:
         """Called before starting the negotiation. If it returns False then negotiation will end immediately"""

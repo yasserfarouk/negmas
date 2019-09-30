@@ -234,6 +234,7 @@ def load_genius_domain(
             dynamic_entry=dynamic_entry,
             name=mechanism_name,
             keep_issue_names=keep_issue_names,
+            enable_callbacks=True,
         )
         if agent_info is not None and len(agent_info) > 0:
             for info in agent_info:

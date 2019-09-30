@@ -57,14 +57,14 @@ def processes():
             id=i + l * n_levels,
             production_level=l,
             name=f"p{l}_{i}",
-            inputs={
+            inputs=[
                 InputOutput(product=i + (l - 1) * n_levels, quantity=3, step=0.0),
                 InputOutput(product=i + (l - 1) * n_levels, quantity=2, step=0.0),
-            },
-            outputs={
+            ],
+            outputs=[
                 InputOutput(product=i + l * n_levels, quantity=1, step=1.0),
                 InputOutput(product=i + l * n_levels, quantity=2, step=1.0),
-            },
+            ],
             historical_cost=1 + i + l * n_levels,
         )
         for i in range(n_processes)
@@ -197,14 +197,14 @@ def test_slow_factory_simulator_with_jobs_hypothesis(
             id=i + l * n_levels,
             production_level=l,
             name=f"p{l}_{i}",
-            inputs={
+            inputs=[
                 InputOutput(product=i + (l - 1) * n_levels, quantity=3, step=0.0),
                 InputOutput(product=i + (l - 1) * n_levels, quantity=2, step=0.0),
-            },
-            outputs={
+            ],
+            outputs=[
                 InputOutput(product=i + l * n_levels, quantity=1, step=1.0),
                 InputOutput(product=i + l * n_levels, quantity=2, step=1.0),
-            },
+            ],
             historical_cost=1 + i + l * n_levels,
         )
         for i in range(n_processes)
@@ -262,14 +262,14 @@ sample_processes = [
         id=i + l * n_levels,
         production_level=l,
         name=f"p{l}_{i}",
-        inputs={
+        inputs=[
             InputOutput(product=i + (l - 1) * n_levels, quantity=3, step=0.0),
             InputOutput(product=i + (l - 1) * n_levels, quantity=2, step=0.0),
-        },
-        outputs={
+        ],
+        outputs=[
             InputOutput(product=i + l * n_levels, quantity=1, step=1.0),
             InputOutput(product=i + l * n_levels, quantity=2, step=1.0),
-        },
+        ],
         historical_cost=1 + i + l * n_levels,
     )
     for i in range(n_processes)

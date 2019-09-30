@@ -206,8 +206,8 @@ def test_genius_agent_same_utility(init_genius):
     u1 = np.array([float(a1._utility_function(s.current_offer)) for s in p.history])
     u2 = np.array([float(a2._utility_function(s.current_offer)) for s in p.history])
     welfare = u1 + u2
-    assert len(u1) == 2
-    assert welfare[0] == welfare[1] == 2.0
+    assert len(u1) == 1
+    assert welfare[0] == 2.0
     assert p.state.agreement is not None
     assert p.state.broken is False
 

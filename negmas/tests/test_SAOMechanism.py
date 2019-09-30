@@ -1,7 +1,10 @@
 import random
+from pathlib import Path
 from typing import List, Optional, Dict
 
+from hypothesis import given
 from pytest import mark
+import hypothesis.strategies as st
 
 from negmas import (
     SAOMechanism,
@@ -16,6 +19,7 @@ from negmas import (
     SAOState,
     ResponseType,
 )
+from negmas.helpers import unique_name
 from negmas.sao import SAOResponse
 
 
@@ -131,3 +135,131 @@ def test_sync_controller(n_negotiations, n_negotiators, oia):
 
     states = SAOMechanism.runall(mechanisms)
     assert all(_.agreement is not None for _ in states)
+
+
+def test_pickling_mechanism(tmp_path):
+    import pickle
+
+    file = tmp_path / "mechanism.pck"
+    n_outcomes, n_negotiators = 5, 3
+    mechanism = SAOMechanism(
+        outcomes=n_outcomes,
+        n_steps=3,
+        offering_is_accepting=True,
+        avoid_ultimatum=False,
+    )
+    ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
+    for i in range(n_negotiators):
+        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+
+    assert mechanism.state.step == 0
+    with open(file, "wb") as f:
+        pickle.dump(mechanism, f)
+    with open(file, "rb") as f:
+        pickle.load(f)
+    assert mechanism.state.step == 0
+    mechanism.step()
+    with open(file, "wb") as f:
+        pickle.dump(mechanism, f)
+    with open(file, "rb") as f:
+        pickle.load(f)
+    assert mechanism.state.step == 1
+
+
+def test_checkpointing_mechanism(tmp_path):
+    file = tmp_path
+    n_outcomes, n_negotiators = 5, 3
+    mechanism = SAOMechanism(
+        outcomes=n_outcomes,
+        n_steps=3,
+        offering_is_accepting=True,
+        avoid_ultimatum=False,
+    )
+    ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
+    for i in range(n_negotiators):
+        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+
+    assert mechanism.state.step == 0
+    file_name = mechanism.checkpoint(file)
+
+    info = SAOMechanism.checkpoint_info(file_name)
+    assert isinstance(info["time"], str)
+    assert info["step"] == 0
+    assert info["type"].endswith("SAOMechanism")
+    assert info["id"] == mechanism.id
+    assert info["name"] == mechanism.name
+
+    mechanism, info = SAOMechanism.from_checkpoint(file_name, return_info=True)
+    assert isinstance(info["time"], str)
+    assert info["step"] == 0
+    assert info["type"].endswith("SAOMechanism")
+    assert info["id"] == mechanism.id
+    assert info["name"] == mechanism.name
+
+    assert mechanism.state.step == 0
+    mechanism.step()
+
+    file_name = mechanism.checkpoint(file)
+
+    info = SAOMechanism.checkpoint_info(file_name)
+    assert isinstance(info["time"], str)
+    assert info["step"] == 1
+    assert info["type"].endswith("SAOMechanism")
+    assert info["id"] == mechanism.id
+    assert info["name"] == mechanism.name
+
+    mechanism, info = SAOMechanism.from_checkpoint(file_name, return_info=True)
+    assert isinstance(info["time"], str)
+    assert info["step"] == 1
+    assert info["type"].endswith("SAOMechanism")
+    assert info["id"] == mechanism.id
+    assert info["name"] == mechanism.name
+
+    mechanism.run()
+
+
+@given(
+    single_checkpoint=st.booleans(),
+    checkpoint_every=st.integers(0, 6),
+    exist_ok=st.booleans(),
+)
+def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok):
+    import shutil
+
+    new_folder: Path = tmp_path / unique_name("empty", sep="")
+    new_folder.mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(new_folder)
+    new_folder.mkdir(parents=True, exist_ok=True)
+    filename = "mechanism"
+
+    n_outcomes, n_negotiators = 5, 3
+    n_steps = 50
+    mechanism = SAOMechanism(
+        outcomes=n_outcomes,
+        n_steps=n_steps,
+        offering_is_accepting=True,
+        avoid_ultimatum=False,
+        checkpoint_every=checkpoint_every,
+        checkpoint_folder=new_folder,
+        checkpoint_filename=filename,
+        extra_checkpoint_info=None,
+        exist_ok=exist_ok,
+        single_checkpoint=single_checkpoint,
+    )
+    ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
+    for i in range(n_negotiators):
+        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+
+    mechanism.run()
+
+    if 0 < checkpoint_every <= n_steps:
+        if single_checkpoint:
+            assert len(list(new_folder.glob("*"))) == 2
+        else:
+            assert len(list(new_folder.glob("*"))) >= 2 * (
+                max(1, mechanism.state.step // checkpoint_every)
+            )
+    elif checkpoint_every > n_steps:
+        assert len(list(new_folder.glob("*"))) == 2
+    else:
+        assert len(list(new_folder.glob("*"))) == 0
