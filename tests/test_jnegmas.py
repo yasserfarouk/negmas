@@ -59,8 +59,8 @@ def test_java_factory_manager(java_class):
             n_default_per_level=1,
             n_intermediate_levels=1,
             agent_names_reveal_type=True,
-            log_folder=str(Path.home() / "negmas" / "logs" / "debug"),
-            log_file_name=log_file,
+            # log_folder=str(Path.home() / "negmas" / "logs" / "debug"),
+            # log_file_name=log_file,
         )
         world.run()
         # pprint('World completed')

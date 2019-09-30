@@ -197,5 +197,9 @@ def test_controller():
     # we are just asserting that the controller runs
 
 
+def test_negotiator_checkpoint():
+    pass
+
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])

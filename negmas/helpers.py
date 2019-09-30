@@ -248,7 +248,9 @@ def camel_case(
     return "".join(parts)
 
 
-def unique_name(base: str, add_time=True, rand_digits=8) -> str:
+def unique_name(
+    base: Union[pathlib.Path, str], add_time=True, rand_digits=8, sep="/"
+) -> str:
     """Return a unique name.
 
     Can be used to return a unique directory name on the givn base.
@@ -271,15 +273,19 @@ def unique_name(base: str, add_time=True, rand_digits=8) -> str:
     """
     if rand_digits > 0:
         characters = string.ascii_letters + string.digits
-        password = "".join(random.choice(characters) for _ in range(rand_digits))
+        rand_part = "".join(random.choice(characters) for _ in range(rand_digits))
     else:
-        password = ""
+        rand_part = ""
     if add_time:
-        _time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S")
     else:
         _time = ""
-    sub = _time + password
-    return os.path.join(base, sub) if len(sub) > 0 else base
+    sub = _time + rand_part
+    if len(sub) == 0:
+        return base
+    if len(base) == 0:
+        return sub
+    return f"{str(base)}{sep}{sub}"
 
 
 def is_nonzero_file(fpath: str) -> bool:
