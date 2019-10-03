@@ -29,6 +29,7 @@ import math
 import random
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+import copy
 from enum import Enum
 from functools import reduce
 from operator import mul
@@ -52,6 +53,7 @@ from .java import PYTHON_CLASS_IDENTIFIER
 from .common import NamedObject
 from .generics import *
 from .helpers import unique_name
+from typing import Callable
 
 LARGE_NUMBER = 100
 __all__ = [
@@ -100,9 +102,9 @@ class Issue(NamedObject):
         >>> print(Issue((0.0, 1.0), name='required accuracy'))
         required accuracy: (0.0, 1.0)
         >>> a = Issue((0.0, 1.0), name='required accuracy')
-        >>> a.is_continuous()
+        >>> a.is_uncountable()
         True
-        >>> a.is_discrete()
+        >>> a.is_countable()
         False
 
     Remarks:
@@ -117,7 +119,7 @@ class Issue(NamedObject):
 
     def __init__(
         self,
-        values: Union[List[str], int, Tuple[float, float]],
+        values: Union[List[str], int, Tuple[float, float], Callable[[], Any]],
         name: Optional[str] = None,
     ) -> None:
         super().__init__(name=name)
@@ -270,6 +272,10 @@ class Issue(NamedObject):
             f'<objective description="" etype="objective" index="0" name="root" type="objective">\n'
         )
         for indx, issue in enumerate(issues):
+            if issue.values is None or isinstance(issue.values, Callable):
+                raise ValueError(
+                    f"Cannot convert issue {issue.name} to xml because it has not defined values."
+                )
             if isinstance(issue.values, int):
                 if enumerate_integer:
                     output += f'    <issue etype="discrete" index="{indx+1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
@@ -688,14 +694,22 @@ class Issue(NamedObject):
         """The type of the issue.
 
         Returns:
-            str: either 'continuous' or 'discrete'
+            str: either 'continuous', 'uncountable' or 'discrete'
+
+        Remarks:
+
+            - IF values is set to None or to a callable, the issue is treated as continuous
 
         """
+
         if isinstance(self.values, tuple) and isinstance(self.values[0], float):
             return "continuous"
 
-        elif isinstance(self.values, int) or isinstance(self.values, list):
+        if isinstance(self.values, int) or isinstance(self.values, list):
             return "discrete"
+
+        if isinstance(self.values, Callable):
+            return "uncountable"
 
         raise ValueError(
             "Unknown type. Note that a Tuple[int, int] is not allowed as a range."
@@ -705,16 +719,25 @@ class Issue(NamedObject):
         """Test whether the issue is a continuous issue
 
         Returns:
-            bool: continuous or not
+            bool: uncountable (including continuous) or not
 
         """
         return self.type.startswith("c")
 
-    def is_discrete(self) -> bool:
+    def is_uncountable(self) -> bool:
+        """Test whether the issue has uncountable possible outcomes
+
+        Returns:
+            bool: uncountable (including continuous) or not
+
+        """
+        return self.type.startswith("c") or self.type.startswith("u")
+
+    def is_countable(self) -> bool:
         """Test whether the issue is a discrete issue
 
         Returns:
-            bool: discrete or not
+            bool: countable or not
 
         """
         return self.type.startswith("d")
@@ -732,12 +755,13 @@ class Issue(NamedObject):
             [0, 1, 2, 3, 4]
 
         """
-        if self.is_continuous():
-            raise ValueError("Cannot return all possibilities of a continuous issue")
+        if self.is_uncountable():
+            raise ValueError(
+                "Cannot return all possibilities of a continuous/uncountable issue"
+            )
 
         if isinstance(self.values, int):
             yield from range(self.values)
-
         else:
             yield from self.values  # type: ignore
 
@@ -759,8 +783,11 @@ class Issue(NamedObject):
             yield from np.linspace(
                 self.values[0], self.values[1], num=n, endpoint=True
             ).tolist()
-
-        if isinstance(self.values, int):
+        elif self.is_uncountable():
+            if n is None:
+                raise ValueError("Real valued issue with no discretization value")
+            yield from (self.values() for _ in range(n))
+        elif isinstance(self.values, int):
             yield from range(self.values)
         else:
             yield from self.values  # type: ignore
@@ -770,7 +797,7 @@ class Issue(NamedObject):
         if isinstance(self.values, int):
             return self.values
 
-        elif self.is_continuous():
+        if self.is_uncountable():
             return -1
 
         return len(self.values)  # type: ignore
@@ -779,11 +806,12 @@ class Issue(NamedObject):
         """Picks a random valid value."""
         if isinstance(self.values, int):
             return random.randint(0, self.values - 1)
-
         elif self.is_continuous():
             return (
                 random.random() * (self.values[1] - self.values[0]) + self.values[0]
             )  # type: ignore
+        elif self.is_uncountable():
+            return self.values()
 
         return random.choice(self.values)  # type: ignore
 
@@ -813,7 +841,13 @@ class Issue(NamedObject):
                 return np.linspace(
                     self.values[0], self.values[1], num=n, endpoint=True
                 ).tolist()
-
+        elif self.is_uncountable():
+            if not with_replacement:
+                raise ValueError(
+                    f"values is specified as a callables for this issue. Cannot sample from it without "
+                    f"replacement"
+                )
+            return [self.values() for _ in range(n)]
         if n > len(self.values) and not with_replacement:
             if fail_if_not_enough:
                 raise ValueError(
@@ -838,7 +872,10 @@ class Issue(NamedObject):
             return (
                 random.random() * (self.values[1]) + self.values[1] + 1e-3
             )  # type: ignore
-
+        elif self.is_uncountable():
+            raise ValueError(
+                f"Cannot generate invalid outcomes because values is given as a callable"
+            )
         pick = (
             unique_name("") + str(random.choice(self.values)) + unique_name("")
         )  # type: ignore
@@ -998,6 +1035,8 @@ class Issue(NamedObject):
         outcome_range = {}
         if self.is_continuous():
             outcome_range[self.name] = self.values
+        elif self.is_uncountable():
+            outcome_range[self.name] = None
         else:
             outcome_range[self.name] = self.all
         return outcome_range
@@ -1178,6 +1217,8 @@ class Issues(object):
         for issue in self.issues:
             if issue.is_continuous():
                 outcome_range[issue.name] = issue.values
+            elif issue.is_uncountable():
+                outcome_range[issue.name] = None
             else:
                 outcome_range[issue.name] = issue.all
         return outcome_range
@@ -1359,15 +1400,20 @@ def sample_outcomes(
 
 
     """
-    issues = [_ for _ in issues]
+    issues = [copy.deepcopy(_) for _ in issues]
     continuous = []
+    uncountable = []
     indx = []
+    uindx = []
     discrete = []
     n_disc = 0
     for i, issue in enumerate(issues):
         if issue.is_continuous():
             continuous.append(issue)
             indx.append(i)
+        elif issue.is_uncountable():
+            uncountable.append(issue)
+            uindx.append(i)
         else:
             discrete.append(issue)
             n_disc += issue.cardinality()
@@ -1384,6 +1430,16 @@ def sample_outcomes(
                         issue.values[0], issue.values[1], num=n_per_issue, endpoint=True
                     ).tolist()
                 ),
+            )
+
+    if len(uncountable) > 0:
+        if n_outcomes is not None:
+            n_per_issue = max(min_per_dim, (n_outcomes - n_disc) / len(uncountable))
+        else:
+            n_per_issue = min_per_dim
+        for i, issue in enumerate(uncountable):
+            issues[uindx[i]] = Issue(
+                name=issue.name, values=[issue.values() for _ in range(n_per_issue)]
             )
 
     cardinality = 1
