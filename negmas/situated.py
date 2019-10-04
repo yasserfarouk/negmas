@@ -60,7 +60,8 @@ import yaml
 from dataclasses import dataclass, field
 
 from negmas import UtilityFunction
-from negmas.common import AgentMechanismInterface, MechanismState, CheckpointMixin
+from negmas.common import AgentMechanismInterface, MechanismState
+from negmas.checkpoints import CheckpointMixin
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
 from negmas.helpers import (
@@ -847,6 +848,7 @@ class AgentWorldInterface:
         annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
         mechanism_names: Optional[Union[str, List[str]]] = None,
         mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+        all_or_none: bool = False,
     ) -> List[Tuple[Contract, AgentMechanismInterface]]:
         """
         Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
@@ -864,10 +866,12 @@ class AgentWorldInterface:
             `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
             must also be None
             mechanism_params: A dict of parameters used to initialize the mechanism object
+            all_or_none: If true, either no negotiations will be started execpt if all partners accepted
 
         Returns:
 
-             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info)
+             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info [None if the
+             corresponding partner refused to negotiation])
 
         """
         return self._world.run_negotiations(
@@ -881,6 +885,7 @@ class AgentWorldInterface:
             negotiators=negotiators,
             caller_roles=caller_roles,
             ufuns=ufuns,
+            all_or_none=all_or_none,
         )
 
     def request_negotiation_about(
@@ -1763,6 +1768,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         #    f'{caller.id} request was accepted')
         return neg
 
+    def _unregister_negotiation(self, neg: MechanismFactory) -> None:
+        if neg is None or neg.mechanism is None:
+            return
+        del self._negotiations[neg.mechanism.uuid]
+
     def request_negotiation_about(
         self,
         req_id: str,
@@ -1887,7 +1897,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     mechanism=mechanism.ami, negotiation=neg, force_signature_now=True
                 )
             return contract, mechanism.ami
-        return None
+        return None, None
 
     def run_negotiations(
         self,
@@ -1901,6 +1911,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
         mechanism_names: Optional[Union[str, List[str]]] = None,
         mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+        all_or_none: bool = False,
     ) -> List[Tuple[Contract, AgentMechanismInterface]]:
         """
         Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
@@ -1919,10 +1930,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
             must also be None
             mechanism_params: A dict of parameters used to initialize the mechanism object
+            all_of_none: If True, ALL partners must agree to negotiate to go through.
 
         Returns:
 
-             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info)
+             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info [None if
+             the partner refused the negotiation])
 
         """
         partners = [[self.agents[_] for _ in p] for p in partners]
@@ -1954,26 +1967,35 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         for (issue, partner, role, annotation, mech_name, mech_param) in zip(
             issues, partners, roles, annotations, mechanism_names, mechanism_params
         ):
-            negs.append(
-                self._register_negotiation(
-                    mechanism_name=mech_name,
-                    mechanism_params=mech_param,
-                    roles=role,
-                    caller=caller,
-                    partners=partner,
-                    annotation=annotation,
-                    issues=issue,
-                    req_id=None,
-                    run_to_completion=False,
-                )
+            neg = self._register_negotiation(
+                mechanism_name=mech_name,
+                mechanism_params=mech_param,
+                roles=role,
+                caller=caller,
+                partners=partner,
+                annotation=annotation,
+                issues=issue,
+                req_id=None,
+                run_to_completion=False,
             )
+            if neg is None:
+                if all_or_none:
+                    for _n in negs:
+                        self._unregister_negotiation(_n)
+                    return []
+            negs.append(neg)
+        if all(_ is None for _ in negs):
+            return []
         completed = [False] * n_neg
         contracts = [None] * n_neg
-        amis = [neg.mechanism.ami for neg in negs]
+        amis = [
+            neg.mechanism.ami if neg is not None and neg.mechanism is not None else None
+            for neg in negs
+        ]
         for i, (neg, crole, ufun, negotiator) in enumerate(
             zip(negs, caller_roles, ufuns, negotiators)
         ):
-            if not neg or (neg.mechanism is None) or negotiator is None:
+            if neg is None or (neg.mechanism is None) or negotiator is None:
                 completed[i] = True
                 continue
             mechanism = neg.mechanism
@@ -1981,6 +2003,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         while not all(completed):
             for i, (done, neg) in enumerate(zip(completed, negs)):
+                if completed[i]:
+                    continue
                 mechanism = neg.mechanism
                 result = mechanism.step()
                 if result.running:
