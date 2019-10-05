@@ -997,7 +997,7 @@ class Issue(NamedObject):
             values = []
             for i in range(n_outcomes):
                 values.append([s[i] for s in samples])
-            if not with_replacement:
+            if not with_replacement and not any(i.is_uncountable() for i in issues):
                 tmp_values = []
                 for value in values:
                     tmp_values.append(tuple(value))
