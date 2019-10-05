@@ -92,7 +92,7 @@ class VetoSTMechanism(Mechanism):
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
-        if self.current_offer is not None and all(neg.is_acceptable(self.current_offer) for neg in self.negotiators):
+        if self.current_offer is not None and all(neg.is_acceptable_as_agreement(self.current_offer) for neg in self.negotiators):
             self._agreement = self.current_offer
 
         super().on_negotiation_end()
