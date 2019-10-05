@@ -5,18 +5,19 @@ This module does not import anything from the library except during type checkin
 import datetime
 import uuid
 import dill
-import pickle
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import List, Optional, Any, TYPE_CHECKING, Union, Dict, Tuple, Type
+from typing_extensions import Protocol, runtime
 
 from .helpers import unique_name, load, dump, get_full_type_name
-from .java import to_java, to_dict, PYTHON_CLASS_IDENTIFIER
+from .java import to_java, to_dict
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
     from .outcomes import Issue, Outcome
+
 
 __all__ = [
     "NamedObject",
@@ -308,6 +309,21 @@ def register_all_mechanisms(mechanisms: Dict[str, "Mechanism"]) -> None:
     _running_negotiations = mechanisms
 
 
+@runtime
+class Runnable(Protocol):
+    """A protocol defining runnable objects"""
+
+    @property
+    def current_step(self) -> int:
+        pass
+
+    def step(self) -> Any:
+        pass
+
+    def run(self) -> Any:
+        pass
+
+
 class NamedObject(object):
     """The base class of all named entities.
 
@@ -403,6 +419,18 @@ class NamedObject(object):
         if path.exists() and path.is_file():
             raise ValueError(f"{str(path)} is a file. It must be a directory")
         path.mkdir(parents=True, exist_ok=True)
+        current_step = None
+        for attrib in step_attribs:
+            try:
+                a = getattr(self, attrib)
+                if isinstance(a, int):
+                    current_step = a
+                    break
+            except AttributeError:
+                pass
+        if not single_checkpoint and current_step is not None:
+            base_name = f"{current_step:05}.{base_name}"
+        file_name = path / base_name
 
         if info is None:
             info = {}
@@ -412,20 +440,11 @@ class NamedObject(object):
                 "id": self.id,
                 "name": self.name,
                 "time": datetime.datetime.now().isoformat(),
-                "step": None,
+                "step": current_step,
+                "filename": str(file_name),
             }
         )
-        for attrib in step_attribs:
-            try:
-                a = getattr(self, attrib)
-                if isinstance(a, int):
-                    info["step"] = a
-                    break
-            except AttributeError:
-                pass
-        if not single_checkpoint and info["step"] is not None:
-            base_name = f"{info['step']:05}.{base_name}"
-        file_name = path / base_name
+
         if (not exist_ok) and file_name.exists():
             raise ValueError(
                 f"{str(file_name)} already exists. Pass exist_ok=True if you want to override it"
@@ -480,84 +499,3 @@ class NamedObject(object):
         """
         file_name = Path(file_name).absolute()
         return load(file_name.parent / (file_name.name + ".json"))
-
-
-class CheckpointMixin:
-    def init(
-        self,
-        step_attrib: str,
-        every: int = 1,
-        folder: Optional[Union[str, Path]] = None,
-        filename: str = None,
-        info: Dict[str, Any] = None,
-        exist_ok: bool = True,
-        single: bool = True,
-    ):
-        """
-        Initializes the object to automatically save a checkpoint
-
-        Args:
-            step_attrib: The attribute that defines the current step. If None, there is no step concept
-            every: Number of steps per checkpoint. If < 1 no checkpoints will be saved
-            folder: The directory to store checkpoints under
-            filename: Name of the file to save the checkpoint under. If None, a unique name will be choosen.
-                                 If `single_checkpoint` was False, then multiple files will be used prefixed with the
-                                 step number
-            info: Any extra information to save in the json file associated with each checkpoint
-            exist_ok: Override existing files if any
-            single: If True, only the most recent checkpoint will be kept
-        
-        Remarks:
-        
-            - single_checkpoint implies exist_ok
-
-        """
-        self.__checkpoint_every = -1 if folder is None else every
-        self.__checkpoint_folder = folder
-        self.__checkpoint_extra_info = info
-        self.__checkpoint_exist_ok = exist_ok
-        self.__checkpoint_single = single
-        self.__step_atrrib = step_attrib
-        self.__checkpoint_filename = filename
-
-    def checkpoint_on_step_started(self) -> Optional[Path]:
-        """Should be called on every step to save checkpoints as needed.
-
-        Returns:
-            The path on which the checkpoint is stored if one is stored. None otherwise.
-
-        Remarks:
-
-            - Should be called at the BEGINNING of every step before any processing takes place
-        """
-        if self.__checkpoint_every < 1 or self.__checkpoint_folder is None:
-            return None
-        step = getattr(self, self.__step_atrrib)
-        if step % self.__checkpoint_every == 0:
-            me: NamedObject = self  # type: ignore
-            return me.checkpoint(
-                path=self.__checkpoint_folder,
-                file_name=self.__checkpoint_filename,
-                info=self.__checkpoint_extra_info,
-                exist_ok=self.__checkpoint_exist_ok or self.__checkpoint_single,
-                single_checkpoint=self.__checkpoint_single,
-                step_attribs=(self.__step_atrrib,),
-            )
-
-    def checkpoint_final_step(self) -> Optional[Path]:
-        """Should be called at the end of the simulation to save the final state
-
-        Remarks:
-            - Should be called before any processing is done in the first step.
-        """
-        if self.__checkpoint_every < 1 or self.__checkpoint_folder is None:
-            return None
-        me: NamedObject = self  # type: ignore
-        return me.checkpoint(
-            path=self.__checkpoint_folder,
-            file_name=self.__checkpoint_filename,
-            info=self.__checkpoint_extra_info,
-            exist_ok=True,
-            single_checkpoint=self.__checkpoint_single,
-            step_attribs=(self.__step_atrrib,),
-        )
