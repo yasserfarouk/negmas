@@ -8,7 +8,18 @@ import uuid
 from abc import abstractmethod, ABC
 from collections import defaultdict
 from pathlib import Path
-from typing import Tuple, List, Optional, Any, Iterable, Union, Dict, Set, Type
+from typing import (
+    Tuple,
+    List,
+    Optional,
+    Any,
+    Iterable,
+    Union,
+    Dict,
+    Set,
+    Type,
+    Collection,
+)
 
 import pandas as pd
 from dataclasses import dataclass
@@ -26,8 +37,8 @@ from negmas.common import (
     MechanismState,
     register_all_mechanisms,
     NamedObject,
-    CheckpointMixin,
 )
+from negmas.checkpoints import CheckpointMixin
 from negmas.common import NegotiatorInfo
 from negmas.events import *
 from negmas.generics import ikeys
@@ -43,8 +54,8 @@ class MechanismRoundResult:
     """True only if END_NEGOTIATION was selected by one agent"""
     timedout: bool = False
     """True if a timeout occurred. Usually not used"""
-    agreement: Optional["Outcome"] = None
-    """The agreement if any"""
+    agreement: Optional[Union[Collection["Outcome"], "Outcome"]] = None
+    """The agreement if any. Allows for a single outcome or a collection of outcomes"""
     error: bool = False
     """True if an error occurred in the mechanism"""
     error_details: str = ""
@@ -157,7 +168,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                     else:
                         n_outcomes = 1
                         for issue in __issues:
-                            if issue.is_continuous():
+                            if issue.is_uncountable():
                                 break
                             n_outcomes *= issue.cardinality()
                             if n_outcomes > max_n_outcomes:
@@ -290,7 +301,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.outcomes is not None:
             return self.outcomes
         if self.__discrete_outcomes is None:
-            if all(issue.is_discrete() for issue in self.issues):
+            if all(issue.is_countable() for issue in self.issues):
                 self.__discrete_outcomes = Issue.sample(
                     issues=self.issues,
                     n_outcomes=n_max,
@@ -841,6 +852,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @property
     def history(self):
         return self._history
+
+    @property
+    def current_step(self):
+        return self._step
 
     @property
     def state(self):
