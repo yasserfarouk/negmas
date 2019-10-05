@@ -964,10 +964,12 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         can_propose=True,
         assume_normalized=False,
         ranking=False,
+        ufun_max=None,
+        ufun_min=None,
     ):
         self.ordered_outcomes = []
-        self.ufun_max = None
-        self.ufun_min = None
+        self.ufun_max = ufun_max
+        self.ufun_min = ufun_min
         self.ranking = ranking
         if assume_normalized:
             self.ufun_max, self.ufun_min = 1.0, 0.0
