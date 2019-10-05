@@ -78,6 +78,11 @@ setup(
         'typing',
         'tqdm (>=4.31.1)',
         'click-config-file',
+        'dill'
+        'flask',
+        'dash',
+        'dash-daq',
+        'dash-bootstrap-components',
     ],  # Optional
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional
