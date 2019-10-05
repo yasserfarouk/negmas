@@ -37,8 +37,6 @@ numpy (>=1.16)
 pandas (>=0.24.1)
 pandoc
 pandocfilters
-poetry
-poetry-setup
 progressbar2 (>=3.39)
 py4j
 pycodestyle
@@ -67,3 +65,8 @@ typing_extensions (>=3.7)
 twine
 wheel
 dill
+flask
+dash
+dash-daq
+dash-bootstrap-components
+
