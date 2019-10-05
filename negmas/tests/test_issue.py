@@ -20,9 +20,9 @@ def test_is_continuous(cissue, dissue, hamlet):
 
 
 def test_is_discrete(cissue, dissue, hamlet):
-    assert cissue.is_discrete() is False, "Continuous type passes"
-    assert dissue.is_discrete() is True, "string list passes"
-    assert hamlet.is_discrete() is True, "int passes"
+    assert cissue.is_countable() is False, "Continuous type passes"
+    assert dissue.is_countable() is True, "string list passes"
+    assert hamlet.is_countable() is True, "int passes"
 
 
 def test_string_conversion(uissue, hamlet):

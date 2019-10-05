@@ -443,7 +443,7 @@ class UtilityFunction(ABC, NamedObject):
                     issues[issue_key] = {}
                     if (
                         domain_issues is not None
-                        and domain_issues[myname].is_continuous()
+                        and domain_issues[myname].is_uncountable()
                     ):
                         raise ValueError(
                             f"Got a {mytype} issue but expected a continuous valued issue"
@@ -464,7 +464,7 @@ class UtilityFunction(ABC, NamedObject):
                         issues[issue_key] = {}
                         if (
                             domain_issues is not None
-                            and domain_issues[myname].is_continuous()
+                            and domain_issues[myname].is_uncountable()
                         ):
                             raise ValueError(
                                 f"Got a {mytype} issue but expected a continuous valued issue"
@@ -484,7 +484,7 @@ class UtilityFunction(ABC, NamedObject):
                         lower, upper = float(lower), float(upper)
                         if (
                             domain_issues is not None
-                            and not domain_issues[myname].is_continuous()
+                            and not domain_issues[myname].is_uncountable()
                         ):
                             n_steps = domain_issues[myname].cardinality()
                             delta = (n_steps - 1) / (upper - lower)
