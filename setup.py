@@ -86,6 +86,7 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'negmas=negmas.scripts.app:cli',
+             'negui=negmas.gui.app:cli',
         ],
     },
     # https://packaging.python.org/specifications/core-metadata/#project-url-multiple-use
