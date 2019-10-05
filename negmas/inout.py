@@ -206,7 +206,7 @@ def load_genius_domain(
                 operator.mul,
                 (
                     float(_.cardinality())
-                    if not _.is_continuous()
+                    if not _.is_uncountable()
                     else float(n_discretization)
                     if n_discretization is not None
                     else np.inf
