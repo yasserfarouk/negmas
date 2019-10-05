@@ -89,6 +89,8 @@ class Negotiator(NamedObject, Notifiable, ABC):
                 "started is deprecated."
             )
 
+    ufun = utility_function
+
     def before_death(self, cntxt: Dict[str, Any]) -> bool:
         """Called whenever the parent is about to kill this negotiator. It should return False if the negotiator
         does not want to be killed but the controller can still force-kill it"""
@@ -99,7 +101,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._utility_function = self._init_utility
         self._role = None
 
-    def is_acceptable(self, outcome: "Outcome") -> bool:
+    def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
         """Whether the given outcome is acceptable as a final agreement of a negotiation.
 
         The default behavior is to reject only if a reserved value is defined for the agent and is known to be higher
