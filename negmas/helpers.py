@@ -70,6 +70,7 @@ __all__ = [
     "DEFAULT_DUMP_EXTENSION",
     "dump",
     "add_records",
+    "load",
 ]
 # conveniently named classes
 
