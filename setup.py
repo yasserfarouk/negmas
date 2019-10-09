@@ -80,7 +80,7 @@ setup(
         'click-config-file',
         'dill',
         'flask',
-        'dash',
+        # 'dash',
         'dash-daq',
         'dash-bootstrap-components',
     ],  # Optional
