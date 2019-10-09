@@ -686,9 +686,7 @@ class AspirationMixin:
             raise ValueError(
                 f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
             )
-        if self.exponent < 1e-7:
-            return 0.0
-        return self.max_aspiration * math.pow(1.0 - t, self.exponent)
+        return self.max_aspiration * (1.0 - math.pow(t, self.exponent))
 
 
 class EvaluatorMixin:
