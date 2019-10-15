@@ -8,5 +8,7 @@ Helper Modules
     modules/inout
     modules/java
     modules/tournaments
+    modules/visualizers
+    modules/checkpoints
 
 

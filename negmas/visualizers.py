@@ -1,3 +1,5 @@
+"""Implements Visualizer components for all built-in objects in NegMAS as well as base-classes for adding visualization
+to any custom components (or custom visualizers for built-in components)  compatible with the Dash-based visualizer."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -7,7 +9,8 @@ from negmas import Mechanism, NamedObject, Agent
 from negmas.helpers import get_full_type_name, instantiate, get_class
 
 __all__ = [
-    "Visualizer", "MechanismVisualizer", "register_visualizer", "visualizer", "visualizer_type", "visualizer_type_name", "Widget"
+    "Visualizer", "MechanismVisualizer", "register_visualizer", "visualizer", "visualizer_type", "visualizer_type_name"
+    , "Widget"
 ]
 
 
@@ -248,8 +251,6 @@ class WorldVisualizer(Visualizer):
     @classmethod
     def children_categories(cls) -> List[str]:
         pass
-
-
 
 
 # register builtin visualizers

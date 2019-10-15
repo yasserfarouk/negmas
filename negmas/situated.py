@@ -1183,7 +1183,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         super().__init__()
         NamedObject.__init__(self, name=name)
-        CheckpointMixin.init(
+        CheckpointMixin.checkpoint_init(
             self,
             step_attrib="current_step",
             every=checkpoint_every,
