@@ -9,6 +9,7 @@ Base Modules
     modules/common
     modules/negotiators
     modules/sao
+    modules/st
     modules/genius
     modules/situated
     modules/events

@@ -30,19 +30,25 @@
     :target: https://travis-ci.org/yasserfarouk/negmas
     :alt: Build Status
 
-.. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
-    :target: https://negmas/readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
-
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/ambv/black
     :alt: Coding style black
 
-NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.
-The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulations
-(your pick). The main goald of NegMAS is to advance the state of the art in situated simultaneous negotiations.
-Nevertheless, it can; and was used; in modeling simpler bilateral and multi-lateral negotiations, preference elicitation
-, etc.
+.. container:: twocol
+
+   .. container:: leftside
+
+      .. image:: http://yasserm.com/images/negmas-small.png
+            :width: 200
+            :alt: Negmas Log
+
+   .. container:: rightside
+
+      NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.
+      The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulations
+      (your pick). The main goal of NegMAS is to advance the state of the art in situated simultaneous negotiations.
+      Nevertheless, it can; and was used; in modeling simpler bilateral and multi-lateral negotiations, preference elicitation
+      , etc.
 
 .. note:: A YouTube playlist to help you use NegMAS for ANAC2019_ SCM_ league can be found here_
 
@@ -65,7 +71,7 @@ of one session is affected by what happens in other sessions.
 
 The documentation is available at: documentation_
 
-.. _documentation: https://negmas.readthedocs.io/
+.. _documentation: http://http://yasserm.com/negmas/
 
 Main Features
 =============
@@ -138,7 +144,7 @@ Developing a novel negotiator slightly more difficult by is still doable in few 
             return ResponseType.ACCEPT_OFFER
 
         def propose(self, state):
-            # proposed the required number of proposals (or less) 
+            # proposed the required number of proposals (or less)
             pass
 
 By just implementing `respond()` and `propose()`. This negotiator is now capable of engaging in alternating offers

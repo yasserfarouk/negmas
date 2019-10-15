@@ -25,7 +25,7 @@ NegMAS Documentation
 
 .. image:: https://img.shields.io/codacy/coverage/1b204fe0a69e41a298a175ea225d7b81.svg
         :target: https://app.codacy.com/project/yasserfarouk/negmas/dashboard
-        :alt: Coveage
+        :alt: Coverage
 
 .. image:: https://img.shields.io/codacy/grade/1b204fe0a69e41a298a175ea225d7b81.svg
         :target: https://app.codacy.com/project/yasserfarouk/negmas/dashboard
@@ -39,9 +39,6 @@ NegMAS Documentation
         :target: https://travis-ci.org/yasserfarouk/negmas
         :alt: Build Status
 
-.. image:: https://readthedocs.org/projects/negmas/badge/?version=latest
-        :target: https://negmas/readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
 
 
 NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.

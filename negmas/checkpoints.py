@@ -1,3 +1,5 @@
+"""Implements Checkpoint functionality for easy dumping and restoration of any `NamedComponent` in negmas."""
+
 import shutil
 from pathlib import Path
 from typing import Optional, Union, Dict, Any, Callable, Type, List
@@ -9,7 +11,8 @@ from negmas.helpers import load
 
 
 class CheckpointMixin:
-    def init(
+    """Adds the ability to save checkpoints to a `NamedObject` """
+    def checkpoint_init(
         self,
         step_attrib: str = "current_step",
         every: int = 1,
@@ -124,17 +127,26 @@ class CheckpointRunner:
 
     @property
     def current_step(self) -> int:
+        """Gets the current step number"""
         if self._step_index < 0:
             return -1
         return self.__sorted_steps[self._step_index]
 
     def step(self) -> Optional[int]:
+        """Go one step forward in the stored steps.
+
+        Returns:
+            The number of the current step or None if we are already on the last step.
+
+        """
         nxt_step = self._step_index + 1
         if len(self.__sorted_steps) > nxt_step:
             return self.goto(self.__sorted_steps[nxt_step], exact=True)
         return None
 
     def run(self):
+        """Run all steps. Notice that if `register_callback` was used to register some callback functions, they will
+        be called for every stored stepped during the run."""
         while self.step() is not None:
             pass
 
@@ -154,13 +166,14 @@ class CheckpointRunner:
         single: bool = True,
     ) -> Optional[NamedObject]:
         """
-        Creates a copy of the internal object that can be run safely
+        Creates a copy of the internal object that can be run safely.
+
         Args:
-            copy_past_checkpoints: If true, all checkpoints upto and inculding current_step will be copied to the given
+            copy_past_checkpoints: If true, all checkpoints upto and including current_step will be copied to the given
                                    folder
             every: Number of steps per checkpoint. If < 1 no checkpoints will be saved
             folder: The directory to store checkpoints under
-            filename: Name of the file to save the checkpoint under. If None, a unique name will be choosen.
+            filename: Name of the file to save the checkpoint under. If None, a unique name will be chosen.
                                  If `single_checkpoint` was False, then multiple files will be used prefixed with the
                                  step number
             info: Any extra information to save in the json file associated with each checkpoint
@@ -196,7 +209,7 @@ class CheckpointRunner:
                 shutil.copy(str(f) + ".json", str(folder / (Path(f).name + ".json")))
         x = self.__object
         if isinstance(self.__object, CheckpointMixin):
-            CheckpointMixin.init(
+            CheckpointMixin.checkpoint_init(
                 x,
                 every=every,
                 folder=folder,
@@ -212,7 +225,14 @@ class CheckpointRunner:
         """A list of all stored steps"""
         return self.__sorted_steps
 
-    def register_callback(self, callback: Callable[[NamedObject, int], None]):
+    def register_callback(self, callback: Callable[[NamedObject, int], None]) -> None:
+        """Registers a callback to be called whenever a new step is loaded
+
+        Args:
+            callback: A callable that takes the named object (after it is loaded and an integer specifying the step
+                      number and returns None.
+
+        """
         self.__callbacks.append(callback)
 
     def goto(self, step: int, exact=False) -> Optional[step]:
@@ -256,6 +276,7 @@ class CheckpointRunner:
 
     @property
     def next_step(self) -> Optional[int]:
+        """Get the  next stored step number (None if it does not exist)"""
         nxt = self._step_index + 1
         if len(self.__sorted_steps) > nxt:
             return self.__sorted_steps[nxt]
@@ -263,6 +284,7 @@ class CheckpointRunner:
 
     @property
     def previous_step(self) -> Optional[int]:
+        """Get the  previous stored step number (None if it does not exist)"""
         if self._step_index < 0:
             return -1
         nxt = self._step_index - 1
@@ -272,8 +294,10 @@ class CheckpointRunner:
 
     @property
     def last_step(self) -> Optional[int]:
+        """Get the  last stored step number (None if it does not exist)"""
         return self.__sorted_steps[-1]
 
     @property
     def first_step(self) -> Optional[int]:
+        """Get the  first stored step number (None if it does not exist)"""
         return self.__sorted_steps[0]

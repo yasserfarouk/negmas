@@ -125,7 +125,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             name: Name of the mechanism session. Should be unique. If not given, it will be generated.
         """
         super().__init__(name=name)
-        CheckpointMixin.init(
+        CheckpointMixin.checkpoint_init(
             self,
             step_attrib="_step",
             every=checkpoint_every,
@@ -322,7 +322,21 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def random_outcomes(
         self, n: int = 1, astype: Type[Outcome] = dict
     ) -> List["Outcome"]:
-        """Returns random offers"""
+        """Returns random offers.
+
+        Args:
+              n: Number of outcomes to generate
+              astype: The type to use for the generated outcomes
+
+        Returns:
+              A list of outcomes (in the type specified using `astype`) of at most n outcomes.
+
+        Remarks:
+
+                - If the number of outcomes `n` cannot be satisfied, a smaller number will be returned
+                - Sampling is done without replacement (i.e. returned outcomes are unique).
+
+        """
         if self.ami.issues is None or len(self.ami.issues) == 0:
             raise ValueError("I do not have any issues to generate offers from")
         return Issue.sample(
