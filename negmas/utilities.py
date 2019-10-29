@@ -60,6 +60,7 @@ from negmas.outcomes import (
     outcome_is_valid,
     OutcomeType,
     outcome_as_dict,
+    outcome_as_tuple,
 )
 
 if TYPE_CHECKING:
@@ -80,6 +81,7 @@ __all__ = [
     "NonlinearHyperRectangleUtilityFunction",
     "ComplexWeightedUtilityFunction",
     "ComplexNonlinearUtilityFunction",
+    "LinearUtilityFunction",
     "IPUtilityFunction",
     "pareto_frontier",
     "make_discounted_ufun",
@@ -1168,7 +1170,7 @@ class UtilityFunction(ABC, NamedObject):
             - A nonlinear same ufun case
             >>> outcomes = [(_,) for _ in range(10)]
             >>> u1 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
-            
+
             - A linear strictly zero sum case
             >>> outcomes = [(_,) for _ in range(10)]
             >>> u1 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
@@ -1220,7 +1222,7 @@ class ExpDiscountedUFun(UtilityFunction):
 
     Args:
         ufun: The utility function that is being discounted
-        beta: discount factor
+        discount: discount factor
         factor: str -> The name of the AgentMechanismInterface variable based on which discounting operate
         callable -> must receive a mechanism info object and returns a float representing the factor
 
@@ -1230,7 +1232,7 @@ class ExpDiscountedUFun(UtilityFunction):
         self,
         ufun: UtilityFunction,
         ami: "AgentMechanismInterface",
-        beta: Optional[float] = None,
+        discount: Optional[float] = None,
         factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
         name=None,
         reserved_value: Optional[UtilityValue] = None,
@@ -1238,7 +1240,7 @@ class ExpDiscountedUFun(UtilityFunction):
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufun = ufun
-        self.beta = beta
+        self.discount = discount
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
 
@@ -1246,13 +1248,13 @@ class ExpDiscountedUFun(UtilityFunction):
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
-        if not self.beta or self.beta == 1.0:
+        if not self.discount or self.discount == 1.0:
             return u
         if isinstance(self.factor, str):
-            factor = getattr(self.ami, self.factor)
+            factor = getattr(self.ami.state, self.factor)
         else:
-            factor = self.factor(self.ami)
-        return (factor ** self.beta) * u
+            factor = self.factor(self.ami.state)
+        return (self.discount ** factor) * u
 
     def xml(self, issues: List[Issue]) -> str:
         output = self.ufun.xml(issues)
@@ -1260,15 +1262,15 @@ class ExpDiscountedUFun(UtilityFunction):
         factor = None
         if self.factor is not None:
             factor = str(self.factor)
-        if self.beta is not None:
-            output += f'<discount_factor value="{self.beta}" '
+        if self.discount is not None:
+            output += f'<discount_factor value="{self.discount}" '
             if factor is not None and factor != "step":
                 output += f' variable="{factor}" '
             output += "/>\n"
         return output
 
     def __str__(self):
-        return f"{self.ufun.type}-cost:{self.beta} based on {self.factor}"
+        return f"{self.ufun.type}-cost:{self.discount} based on {self.factor}"
 
     def __getattr__(self, item):
         return getattr(self.ufun, item)
@@ -1300,7 +1302,9 @@ class LinDiscountedUFun(UtilityFunction):
         ufun: UtilityFunction,
         ami: "AgentMechanismInterface",
         cost: Optional[float] = None,
-        factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
+        factor: Union[
+            str, Callable[["AgentMechanismInterface"], float]
+        ] = "current_step",
         power: float = 1.0,
         name=None,
         reserved_value: Optional[UtilityValue] = None,
@@ -1320,9 +1324,9 @@ class LinDiscountedUFun(UtilityFunction):
         if not self.cost or self.cost == 0.0:
             return u
         if isinstance(self.factor, str):
-            factor = getattr(self.ami, self.factor)
+            factor = getattr(self.ami.state, self.factor)
         else:
-            factor = self.factor(self.ami)
+            factor = self.factor(self.ami.state)
         return u - ((factor * self.cost) ** self.power)
 
     def xml(self, issues: List[Issue]) -> str:
@@ -1424,7 +1428,7 @@ def make_discounted_ufun(
         ufun = ExpDiscountedUFun(
             ufun=ufun,
             ami=ami,
-            beta=discount_per_round,
+            discount=discount_per_round,
             factor="step",
             dynamic_reservation=dynamic_reservation,
         )
@@ -1432,7 +1436,7 @@ def make_discounted_ufun(
         ufun = ExpDiscountedUFun(
             ufun=ufun,
             ami=ami,
-            beta=discount_per_relative_time,
+            discount=discount_per_relative_time,
             factor="relative_time",
             dynamic_reservation=dynamic_reservation,
         )
@@ -1440,15 +1444,135 @@ def make_discounted_ufun(
         ufun = ExpDiscountedUFun(
             ufun=ufun,
             ami=ami,
-            beta=discount_per_real_time,
+            discount=discount_per_real_time,
             factor="real_time",
             dynamic_reservation=dynamic_reservation,
         )
     return ufun
 
 
-class LinearUtilityAggregationFunction(UtilityFunction):
+class LinearUtilityFunction(UtilityFunction):
     r"""A linear utility function for multi-issue negotiations.
+
+    Models a linear utility function using predefined weights.
+
+    Args:
+         weights: weights for combining `issue_utilities`
+         name: name of the utility function. If None a random name will be generated.
+
+    Notes:
+
+        The utility value is calculated as:
+
+        .. math::
+
+            u = \sum_{i=0}^{n_{outcomes}-1} {w_i * \omega_i}
+
+
+    Examples:
+
+        >>> issues = [Issue((10.0, 20.0), 'price'), Issue(5, 'quality')]
+        >>> print(list(map(str, issues)))
+        ['price: (10.0, 20.0)', 'quality: 5']
+        >>> f = LinearUtilityFunction({'price': 1.0, 'quality': 4.0})
+        >>> float(f({'quality': 2, 'price': 14.0})
+        ...       ) -  (14 + 8)
+        0.0
+        >>> f = LinearUtilityFunction([1.0, 2.0])
+        >>> float(f((2, 14)) - (30))
+        0.0
+
+    Remarks:
+
+        - The mapping need not use all the issues in the output as the first example shows.
+        - If an outcome contains combinations of strings and numeric values that have corresponding weights, an
+          exception will be raised when its utility is calculated
+
+
+    """
+
+    def __init__(
+        self,
+        weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
+        missing_value: Optional[float] = None,
+        name: Optional[str] = None,
+        reserved_value: Optional[UtilityValue] = None,
+        ami: AgentMechanismInterface = None,
+    ) -> None:
+        super().__init__(name=name, reserved_value=reserved_value, ami=ami)
+        self.weights = weights
+        self.missing_value = missing_value
+
+    def __call__(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
+        if offer is None:
+            return self.reserved_value
+        u = ExactUtilityValue(0.0)
+        if isinstance(self.weights, dict):
+            for k, w in self.weights.items():
+                u += w * iget(offer, k, self.missing_value)
+            return u
+        offer = outcome_as_tuple(offer)
+        return sum(w * v for w, v in zip(self.weights, offer))
+
+    def xml(self, issues: List[Issue]) -> str:
+        """ Generates an XML string representing the utility function
+
+        Args:
+            issues:
+
+        Examples:
+
+            >>> issues = [Issue(values=10, name='i1'), Issue(values=4, name='i2')]
+            >>> f = LinearUtilityFunction(weights=[1.0, 4.0])
+            >>> print(f.xml(issues))
+            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
+                <item index="1" value="0" evaluation="0" />
+                <item index="2" value="1" evaluation="1" />
+                <item index="3" value="2" evaluation="2" />
+                <item index="4" value="3" evaluation="3" />
+                <item index="5" value="4" evaluation="4" />
+                <item index="6" value="5" evaluation="5" />
+                <item index="7" value="6" evaluation="6" />
+                <item index="8" value="7" evaluation="7" />
+                <item index="9" value="8" evaluation="8" />
+                <item index="10" value="9" evaluation="9" />
+            </issue>
+            <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
+                <item index="1" value="0" evaluation="0" />
+                <item index="2" value="1" evaluation="1" />
+                <item index="3" value="2" evaluation="2" />
+                <item index="4" value="3" evaluation="3" />
+            </issue>
+            <weight index="1" value="1.0">
+            </weight>
+            <weight index="2" value="4.0">
+            </weight>
+            <BLANKLINE>
+
+        """
+        output = ""
+        keys = list(ikeys(issues))
+        for i, k in enumerate(keys):
+            issue_name = iget(issues, k).name
+            output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
+            vals = iget(issues, k).all
+            for indx, u in enumerate(vals):
+                output += (
+                    f'    <item index="{indx+1}" value="{u}" evaluation="{u}" />\n'
+                )
+            output += "</issue>\n"
+        for i, k in enumerate(keys):
+            output += (
+                f'<weight index="{i+1}" value="{iget(self.weights, k)}">\n</weight>\n'
+            )
+        return output
+
+    def __str__(self):
+        return f"w: {self.weights}"
+
+
+class LinearUtilityAggregationFunction(UtilityFunction):
+    r"""A linear aggregation utility function for multi-issue negotiations.
 
     Models a linear utility function using predefined weights:\.
 
@@ -1463,7 +1587,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
 
         .. math::
 
-        u = \sum_{i=0}^{n_{outcomes}-1} {w_i * u_i}
+            u = \sum_{i=0}^{n_{outcomes}-1} {w_i * u_i(\omega_i)}
 
 
     Examples:

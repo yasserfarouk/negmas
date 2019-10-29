@@ -46,7 +46,7 @@ for a specific application or research domain:
       mechanism need not be a standard negotiation protocol. For example
       auction mechanisms (like second-price auctions) can easily be
       implemented in this package.
-   5. **opponent\_models** This module provides the basic interface for
+   5. **opponent_models** This module provides the basic interface for
       all opponent models.
    6. **situated** This module implements world simulations within which
       agents with intrinsic utilty functions can engage in simulataneous
@@ -98,7 +98,7 @@ Negotiations are conducted between mutliple agents with the goal of
 achieving an *agreement* (usually called a contract) on one of several
 possible outcomes. Each *outcome* is in general an assignment to some
 value to a set of issues. Each *issue* is a variable that can take one
-of a -- probably infinit -- set of values from some predefined *domain*.
+of a – probably infinit – set of values from some predefined *domain*.
 
 The classes and funtions supporting management of issues, outcomes and
 responses are combined in the ``outcomes`` module.
@@ -446,7 +446,7 @@ the constraint:
 
 -  **tuple** The outcome must fall within the range specified by the
    first and second elements. Only valid for values that can be compared
-   using ``__lt__`` (e.g. int, float, str).
+   using ``__lt__`` (e.g. int, float, str).
 -  **single value** The outcome must equal this given value.
 -  **list of values** The outcome must be within the list.
 -  **list of tuples** The outcome must fall within one of the ranges
@@ -461,9 +461,9 @@ or incomplete depending on the protocol but it is always valid). Agents
 can then respond with one of the values defined by the ``Response``
 enumeration in the ``outcomes`` module. Currently these are:
 
--  **ACCEPT\_OFFER** Accepts the offer.
--  **REJECT\_OFFER** Rejects the offer.
--  **END\_NEGOTIATION** This implies rejection of the offer and further
+-  **ACCEPT_OFFER** Accepts the offer.
+-  **REJECT_OFFER** Rejects the offer.
+-  **END_NEGOTIATION** This implies rejection of the offer and further
    more indicates that the agent is not willing to continue with the
    negotiation. The protocol is free to handle this situation. It may
    just end the negotiation with no agreement, may just remove the agent
@@ -471,7 +471,7 @@ enumeration in the ``outcomes`` module. Currently these are:
    (if that makes sense) or just gives the agent a second chance by
    treating it as just a ``REJECT_OFFER`` case. In most case the first
    response (just end the negotiation) is expected.
--  **NO\_RESPONSE** Making no response at all. This is usually not
+-  **NO_RESPONSE** Making no response at all. This is usually not
    allowed by negotiation protocols and will be considered a protocol
    violation in most cases. Nevertheless, negotiation protocols are free
    to handle this response when it arise in any way.
@@ -507,7 +507,7 @@ type definitions:
    implementation detail that should not be relied upon as it is likely
    that the probabilistic framework will be changed in the future to
    enhance the flexibility of the package and its integration with other
-   probabilistic modeling packages (e.g. PyMC3).
+   probabilistic modeling packages (e.g. PyMC3).
 
 -  ``UtilityValue`` This is the input and output type used whenever a
    utility value is to be represented in the whole package. It is
@@ -540,7 +540,7 @@ Utility functions are entities that take an ``Outcome`` and return its
 the literature. In this package, the base of all utiliy functions is the
 ``UtilityFunction`` class which is defined in the ``utilities`` module.
 It behaves like a standard python ``Callable`` which can be called with
-a single ``Outcome`` object (i.e. a dictionary, list, tuple etc
+a single ``Outcome`` object (i.e. a dictionary, list, tuple etc
 representing an outcome) and returns a ``UtilityValue``. This allows
 utility functions to return a distribution instead of a single utility
 value.
@@ -633,11 +633,9 @@ The ``LinearAggregationUtilityFunction`` class represents a function
 that linearly aggregate utilities assigned to issues in the given
 outcome which can be defined mathematically as follows:
 
-.. raw:: latex
-
-   \begin{equation}
-   U(o) = \sum_{i=0}^{\left|o\right|}{w_i\times g_i(o_i)}
-   \end{equation}
+:raw-latex:`\begin{equation}
+U(o) = \sum_{i=0}^{\left|o\right|}{w_i\times g_i(o_i)}
+\end{equation}`
 
 where :math:`o` is an outcome, :math:`w` is a real-valued weight vector
 and :math:`g` is a vector of functions each mapping one issue of the
@@ -695,7 +693,7 @@ And if delivery was accompanied with an increase in price
 
 
 It is clear that this buyer will still accept that increase of price
-from ``'1.0'`` to ``'1.8``' if it is accompanied with the delivery
+from ``'1.0'`` to ``'1.8``\ ’ if it is accompanied with the delivery
 option.
 
 Nonlinear Aggregation Utility Functions
@@ -705,16 +703,14 @@ A direct generalization of the linear agggregation utility functions is
 provided by the ``NonLinearAggregationUtilityFunction`` which represents
 the following function:
 
-.. raw:: latex
-
-   \begin{equation}
-   U(o) = f\left(\left\{{g_i(o_i)}\right\}\right)
-   \end{equation}
+:raw-latex:`\begin{equation}
+U(o) = f\left(\left\{{g_i(o_i)}\right\}\right)
+\end{equation}`
 
 where :math:`g` is a vector of functions defined as before and :math:`f`
 is a mapping from a vector of real-values to a single real value.
 
-For example, a seller's utility can be defined as:
+For example, a seller’s utility can be defined as:
 
 .. code:: ipython3
 
@@ -821,7 +817,7 @@ There are three nonlinear functions in this example:
 -  A local function which gives a utility of ``2.0`` to any outcome for
    which the first issue (issue ``0``) has a value between
    ``1.0 and``\ 2.0\ ``and the second issue (issue``\ 1\ ``) has a value between``\ 1.0\ ``and``\ 2.0\ ``which is represented as:``\ {0:
-   (1.0, 2.0), 1: (1.0, 2.0)}\`\`
+   (1.0, 2.0), 1: (1.0, 2.0)}`\`
 -  A second local function which gives a utility that depends on both
    the third and first issues ``(lambda x: 2 * x[2] + x[0]``) on the
    range ``{0: (1.4, 2.0), 2: (2.0, 3.0)}``.
@@ -977,7 +973,7 @@ To build your negotiator, you need to inherit from one class ending with
 mixins you need implementing their abstract functions (if any) in turn.
 
 Negotiators related to a specific negotiation mechanism are implemented
-in that mechanism's module. For example, negotiators designed for the
+in that mechanism’s module. For example, negotiators designed for the
 Stacked Alternating Offers Mechanism are found in the ``sao`` module.
 
 Agent (the base class of all negotiation agents)
@@ -1038,17 +1034,11 @@ provide the following basic functionalities:
    implemented by just overriding a single ``round()`` function.
 -  provide basic callbacks that can be extended by new protocols.
 
-   .. raw:: html
+   .. container:: alert alert-block alert-warning
 
-      <div class="alert alert-block alert-warning">
-
-    Protocols must extend any callback (i.e. call the ``super()``
-   version) instead of overriding them as they may do some actions to
-   ensure correct processing.
-
-   .. raw:: html
-
-      </div>
+      Protocols must extend any callback (i.e. call the ``super()``
+      version) instead of overriding them as they may do some actions to
+      ensure correct processing.
 
 The simplest way to use a protocol is to just run one of the already
 provided protocols. This is an example of a full negotiation session:

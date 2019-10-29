@@ -1,6 +1,7 @@
+from datetime import timedelta
 from pathlib import Path, PosixPath
 
-from hypothesis import given, example
+from hypothesis import given, example, settings
 import hypothesis.strategies as st
 from negmas import SAOMechanism, MappingUtilityFunction, AspirationNegotiator
 from negmas.checkpoints import CheckpointRunner
@@ -102,7 +103,7 @@ def test_can_run_from_checkpoint(tmp_path, single_checkpoint, checkpoint_every, 
     copy=st.booleans(),
     fork_after_reset=st.booleans(),
 )
-@example(tmp_path=PosixPath('/private/var/folders/5t/9gn9cd716f34b13y2rk40p4w0000gn/T/pytest-of-yasser/pytest-104/test_can_run_from_checkpoint0'), checkpoint_every=1, exist_ok=False, copy=True, fork_after_reset=False)
+@settings(deadline=timedelta(milliseconds=20000), max_examples=100)
 def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset):
     import shutil
     new_folder: Path = tmp_path / unique_name("empty", sep="")
@@ -132,7 +133,7 @@ def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, for
     )
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
-        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i], aspiration_type="conceder")
 
     mechanism.run()
     files = list(new_folder.glob("*"))

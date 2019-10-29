@@ -8,7 +8,7 @@ The first step is to install negmas
 
 .. code:: bash
 
-    pip install negmas
+   pip install negmas
 
 Once you have this library installed, you can start developing your
 factory manager:
@@ -52,15 +52,15 @@ request from another agent to negotiate. You can either return ``None``
 if you do not want to accept this negotiation or create a ``Negotiator``
 that represents your agent in it.
 
-Your do-nothing agent is almost ready. Let's try it:
+Your do-nothing agent is almost ready. Let’s try it:
 
 The property ``stats`` in ``World`` gives you several statistics about
 the world for every time-step of the simulation.
 
-Let's check the contracts of this world:
+Let’s check the contracts of this world:
 
-Let's try to run a tournament with this do-nothing agent against the
-built-in greedy agent (in the "collusion" track setting):
+Let’s try to run a tournament with this do-nothing agent against the
+built-in greedy agent (in the “collusion” track setting):
 
 .. code:: ipython3
 
@@ -301,8 +301,8 @@ and what was its/their score:
     [0.0107562]
 
 
-To run a tournament in the "standard"/"sabotage" track settings, use
-"anac2019\_std"/"anac2019\_sabotage" instead of "anac2019\_collusion".
+To run a tournament in the “standard”/“sabotage” track settings, use
+“anac2019_std”/“anac2019_sabotage” instead of “anac2019_collusion”.
 
 This information and much more is also stored in a log folder that gives
 details of every world and total scores, etc. The default location of
@@ -312,365 +312,103 @@ this log folder is under negmas/logs/tournaments in your HOME directory
 
 The information stored in this folder is:
 
-+------+------+------+
-| File | Form | Cont |
-| /Fol | at   | ent  |
-| der  |      |      |
-| Name |      |      |
-+======+======+======+
-| base | FOLD | Cont |
-| \_co | ER   | ains |
-| nfig |      | one  |
-| s    |      | json |
-|      |      | file |
-|      |      | for  |
-|      |      | each |
-|      |      | conf |
-|      |      | igur |
-|      |      | atio |
-|      |      | n    |
-|      |      | trie |
-|      |      | d    |
-|      |      | duri |
-|      |      | ng   |
-|      |      | the  |
-|      |      | tour |
-|      |      | name |
-|      |      | nt   |
-|      |      | befo |
-|      |      | re   |
-|      |      | assi |
-|      |      | gnin |
-|      |      | g    |
-|      |      | agen |
-|      |      | ts   |
-|      |      | to   |
-|      |      | fact |
-|      |      | orie |
-|      |      | s.   |
-+------+------+------+
-| assi | FOLD | Cont |
-| gned | ER   | ains |
-| \_co |      | one  |
-| nfig |      | json |
-| s    |      | file |
-|      |      | for  |
-|      |      | each |
-|      |      | conf |
-|      |      | igur |
-|      |      | atio |
-|      |      | n    |
-|      |      | trie |
-|      |      | d    |
-|      |      | duri |
-|      |      | ng   |
-|      |      | the  |
-|      |      | tour |
-|      |      | name |
-|      |      | nt   |
-|      |      | afte |
-|      |      | r    |
-|      |      | assi |
-|      |      | gnin |
-|      |      | g    |
-|      |      | agen |
-|      |      | ts   |
-|      |      | to   |
-|      |      | fact |
-|      |      | orie |
-|      |      | s.   |
-|      |      | You  |
-|      |      | can  |
-|      |      | re-r |
-|      |      | un   |
-|      |      | this |
-|      |      | worl |
-|      |      | d    |
-|      |      | usin |
-|      |      | g    |
-|      |      | ``ru |
-|      |      | n_wo |
-|      |      | rld` |
-|      |      | `    |
-|      |      | func |
-|      |      | tion |
-|      |      | in   |
-|      |      | the  |
-|      |      | ``to |
-|      |      | urna |
-|      |      | ment |
-|      |      | ``   |
-|      |      | modu |
-|      |      | le.  |
-+------+------+------+
-| para | JSON | The  |
-| ms.j |      | para |
-| son  |      | mete |
-|      |      | rs   |
-|      |      | used |
-|      |      | to   |
-|      |      | crea |
-|      |      | te   |
-|      |      | this |
-|      |      | tour |
-|      |      | name |
-|      |      | nt   |
-+------+------+------+
-| scor | CSV  | Scor |
-| es.c |      | es   |
-| sv   |      | of   |
-|      |      | ever |
-|      |      | y    |
-|      |      | agen |
-|      |      | t    |
-|      |      | in   |
-|      |      | ever |
-|      |      | y    |
-|      |      | worl |
-|      |      | d    |
-+------+------+------+
-| tota | CSV  | Scor |
-| l\_s |      | es   |
-| core |      | of   |
-| s.cs |      | ever |
-| v    |      | y    |
-|      |      | agen |
-|      |      | t    |
-|      |      | **ty |
-|      |      | pe** |
-|      |      | aver |
-|      |      | aged |
-|      |      | over |
-|      |      | all  |
-|      |      | runs |
-+------+------+------+
-| winn | CSV  | Winn |
-| ers. |      | er   |
-| csv  |      | *typ |
-|      |      | es*  |
-|      |      | and  |
-|      |      | thei |
-|      |      | r    |
-|      |      | aver |
-|      |      | age  |
-|      |      | scor |
-|      |      | es   |
-+------+------+------+
-| ttes | CSV  | Resu |
-| t.cs |      | lts  |
-| v    |      | of a |
-|      |      | fact |
-|      |      | oria |
-|      |      | l    |
-|      |      | TTES |
-|      |      | T    |
-|      |      | comp |
-|      |      | arin |
-|      |      | g    |
-|      |      | the  |
-|      |      | perf |
-|      |      | orma |
-|      |      | nce  |
-|      |      | of   |
-|      |      | all  |
-|      |      | agen |
-|      |      | t    |
-|      |      | *typ |
-|      |      | es*  |
-+------+------+------+
++-----------------------+-----------------------+-----------------------+
+| File/Folder Name      | Format                | Content               |
++=======================+=======================+=======================+
+| base_configs          | FOLDER                | Contains one json     |
+|                       |                       | file for each         |
+|                       |                       | configuration tried   |
+|                       |                       | during the tournament |
+|                       |                       | before assigning      |
+|                       |                       | agents to factories.  |
++-----------------------+-----------------------+-----------------------+
+| assigned_configs      | FOLDER                | Contains one json     |
+|                       |                       | file for each         |
+|                       |                       | configuration tried   |
+|                       |                       | during the tournament |
+|                       |                       | after assigning       |
+|                       |                       | agents to factories.  |
+|                       |                       | You can re-run this   |
+|                       |                       | world using           |
+|                       |                       | ``run_world``         |
+|                       |                       | function in the       |
+|                       |                       | ``tournament``        |
+|                       |                       | module.               |
++-----------------------+-----------------------+-----------------------+
+| params.json           | JSON                  | The parameters used   |
+|                       |                       | to create this        |
+|                       |                       | tournament            |
++-----------------------+-----------------------+-----------------------+
+| scores.csv            | CSV                   | Scores of every agent |
+|                       |                       | in every world        |
++-----------------------+-----------------------+-----------------------+
+| total_scores.csv      | CSV                   | Scores of every agent |
+|                       |                       | **type** averaged     |
+|                       |                       | over all runs         |
++-----------------------+-----------------------+-----------------------+
+| winners.csv           | CSV                   | Winner *types* and    |
+|                       |                       | their average scores  |
++-----------------------+-----------------------+-----------------------+
+| ttest.csv             | CSV                   | Results of a          |
+|                       |                       | factorial TTEST       |
+|                       |                       | comparing the         |
+|                       |                       | performance of all    |
+|                       |                       | agent *types*         |
++-----------------------+-----------------------+-----------------------+
 
 Other than these files, a folder with the same number as the
 corresponding config file in the configs folder, keeps full
 statistics/log of every world with the following contents:
 
-+------+------+------+
-| File | Form | Cont |
-| Name | at   | ent  |
-+======+======+======+
-| all\ | CSV  | A    |
-| _con |      | reco |
-| trac |      | rd   |
-| ts.c |      | of   |
-| sv   |      | all  |
-|      |      | cont |
-|      |      | ract |
-|      |      | s    |
-+------+------+------+
-| cont | CSV  | A    |
-| ract |      | reco |
-| s\_f |      | rd   |
-| ull\ |      | of   |
-| _inf |      | all  |
-| o.cs |      | cont |
-| v    |      | ract |
-|      |      | s    |
-|      |      | with |
-|      |      | adde |
-|      |      | d    |
-|      |      | info |
-|      |      | rmat |
-|      |      | ion  |
-|      |      | abou |
-|      |      | t    |
-|      |      | the  |
-|      |      | CFPs |
-+------+------+------+
-| canc | CSV  | Cont |
-| elle |      | ract |
-| d\_c |      | s    |
-| ontr |      | that |
-| acts |      | were |
-| .csv |      | canc |
-|      |      | elle |
-|      |      | d    |
-|      |      | beca |
-|      |      | use  |
-|      |      | one  |
-|      |      | part |
-|      |      | ner  |
-|      |      | refu |
-|      |      | sed  |
-|      |      | to   |
-|      |      | sign |
-|      |      | it   |
-+------+------+------+
-| sign | CSV  | Cont |
-| ed\_ |      | ract |
-| cont |      | s    |
-| ract |      | that |
-| s.cs |      | were |
-| v    |      | actu |
-|      |      | ally |
-|      |      | sign |
-|      |      | ed   |
-+------+------+------+
-| nego | CSV  | A    |
-| tiat |      | reco |
-| ions |      | rd   |
-| .csv |      | of   |
-|      |      | all  |
-|      |      | nego |
-|      |      | tiat |
-|      |      | ions |
-+------+------+------+
-| brea | CSV  | A    |
-| ches |      | reco |
-| .csv |      | rd   |
-|      |      | of   |
-|      |      | all  |
-|      |      | brea |
-|      |      | ches |
-+------+------+------+
-| stat | CSV  | Help |
-| s.cs |      | ful  |
-| v    |      | stat |
-|      |      | isti |
-|      |      | cs   |
-|      |      | abou |
-|      |      | t    |
-|      |      | the  |
-|      |      | stat |
-|      |      | e    |
-|      |      | of   |
-|      |      | the  |
-|      |      | worl |
-|      |      | d    |
-|      |      | at   |
-|      |      | ever |
-|      |      | y    |
-|      |      | time |
-|      |      | step |
-|      |      | (e.g |
-|      |      | .    |
-|      |      | N.   |
-|      |      | nego |
-|      |      | tiat |
-|      |      | ions |
-|      |      | ,    |
-|      |      | N.   |
-|      |      | Cont |
-|      |      | ract |
-|      |      | s    |
-|      |      | Exec |
-|      |      | uted |
-|      |      | ,    |
-|      |      | etc) |
-|      |      | in   |
-|      |      | CSV  |
-|      |      | form |
-|      |      | at   |
-+------+------+------+
-| stat | JSON | Help |
-| s.js |      | ful  |
-| on   |      | stat |
-|      |      | isti |
-|      |      | cs   |
-|      |      | abou |
-|      |      | t    |
-|      |      | the  |
-|      |      | stat |
-|      |      | e    |
-|      |      | of   |
-|      |      | the  |
-|      |      | worl |
-|      |      | d    |
-|      |      | at   |
-|      |      | ever |
-|      |      | y    |
-|      |      | time |
-|      |      | step |
-|      |      | (e.g |
-|      |      | .    |
-|      |      | N.   |
-|      |      | nego |
-|      |      | tiat |
-|      |      | ions |
-|      |      | ,    |
-|      |      | N.   |
-|      |      | Cont |
-|      |      | ract |
-|      |      | s    |
-|      |      | Exec |
-|      |      | uted |
-|      |      | ,    |
-|      |      | etc) |
-|      |      | in   |
-|      |      | JSON |
-|      |      | form |
-|      |      | at   |
-+------+------+------+
-| para | JSON | The  |
-| ms.j |      | argu |
-| son  |      | ment |
-|      |      | s    |
-|      |      | used |
-|      |      | to   |
-|      |      | run  |
-|      |      | the  |
-|      |      | worl |
-|      |      | d    |
-+------+------+------+
-| logs | TXT  | A    |
-| .txt |      | log  |
-|      |      | file |
-|      |      | givi |
-|      |      | ng   |
-|      |      | deta |
-|      |      | ils  |
-|      |      | of   |
-|      |      | most |
-|      |      | impo |
-|      |      | rtan |
-|      |      | t    |
-|      |      | even |
-|      |      | ts   |
-|      |      | duri |
-|      |      | ng   |
-|      |      | the  |
-|      |      | simu |
-|      |      | lati |
-|      |      | on   |
-+------+------+------+
++-----------------------+-----------------------+-----------------------+
+| File Name             | Format                | Content               |
++=======================+=======================+=======================+
+| all_contracts.csv     | CSV                   | A record of all       |
+|                       |                       | contracts             |
++-----------------------+-----------------------+-----------------------+
+| contracts_full_info.c | CSV                   | A record of all       |
+| sv                    |                       | contracts with added  |
+|                       |                       | information about the |
+|                       |                       | CFPs                  |
++-----------------------+-----------------------+-----------------------+
+| cancelled_contracts.c | CSV                   | Contracts that were   |
+| sv                    |                       | cancelled because one |
+|                       |                       | partner refused to    |
+|                       |                       | sign it               |
++-----------------------+-----------------------+-----------------------+
+| signed_contracts.csv  | CSV                   | Contracts that were   |
+|                       |                       | actually signed       |
++-----------------------+-----------------------+-----------------------+
+| negotiations.csv      | CSV                   | A record of all       |
+|                       |                       | negotiations          |
++-----------------------+-----------------------+-----------------------+
+| breaches.csv          | CSV                   | A record of all       |
+|                       |                       | breaches              |
++-----------------------+-----------------------+-----------------------+
+| stats.csv             | CSV                   | Helpful statistics    |
+|                       |                       | about the state of    |
+|                       |                       | the world at every    |
+|                       |                       | timestep (e.g. N.     |
+|                       |                       | negotiations, N.      |
+|                       |                       | Contracts Executed,   |
+|                       |                       | etc) in CSV format    |
++-----------------------+-----------------------+-----------------------+
+| stats.json            | JSON                  | Helpful statistics    |
+|                       |                       | about the state of    |
+|                       |                       | the world at every    |
+|                       |                       | timestep (e.g. N.     |
+|                       |                       | negotiations, N.      |
+|                       |                       | Contracts Executed,   |
+|                       |                       | etc) in JSON format   |
++-----------------------+-----------------------+-----------------------+
+| params.json           | JSON                  | The arguments used to |
+|                       |                       | run the world         |
++-----------------------+-----------------------+-----------------------+
+| logs.txt              | TXT                   | A log file giving     |
+|                       |                       | details of most       |
+|                       |                       | important events      |
+|                       |                       | during the simulation |
++-----------------------+-----------------------+-----------------------+
 
 To develop a more useful agent, you will need to override one or more of
 the available callbacks in ``FactroyManager`` and use methods available
@@ -710,14 +448,15 @@ be useful as a factory manager are the following:
    contract the agent is party to is signed/cancelled (contracts will be
    canceled if any of the partners party to it refused to sign it).
 -  ``on_production_failure()`` Called whenever a production command
-   scheduled by the agent cannot be executed (e.g. for lack of funds or
+   scheduled by the agent cannot be executed (e.g. for lack of funds or
    need of input products).
 
 More details
 ~~~~~~~~~~~~
 
 **You can download a skeleton for developing your factory manager in
-either python or java `here <http://www.yasserm.com/scml/scml.zip>`__.**
+either python or
+java**\ `here <http://www.yasserm.com/scml/scml.zip>`__\ **.**
 
 For more details, refer to `the detailed description of the SCM
 world <http://www.yasserm.com/scml/scml.pdf>`__ and the ``Agent``,
@@ -737,7 +476,7 @@ The agent can act by calling various methods of its ``awi`` member
    these two methods of the ``awi``.
 -  ``register_cfp()`` / ``remove_cfp()`` Registers/removes a call for
    proposals indicating interest in buying/selling some product and
-   giving the negotiation issues (e.g. deliver time, unit cost,
+   giving the negotiation issues (e.g. deliver time, unit cost,
    quantity, penalty, signing delay).
 -  ``evaluate_insurance()`` / ``buy_insurance()`` Gets the insurance
    premium for some potential contract or buys one
@@ -745,8 +484,8 @@ The agent can act by calling various methods of its ``awi`` member
    actions are scheduling a production process to run at some future
    time-step, stopping (or canceling) a previously issued run command.
 
-The agent can also access some useful information through its ``awi``'s
-properties. Some of the most important such properties are:
+The agent can also access some useful information through its
+``awi``\ ’s properties. Some of the most important such properties are:
 
 -  ``state`` The state of the factory giving its current storage, cash
    in wallet, and standing loans as well as all scheduled production
@@ -783,7 +522,8 @@ That is it folks! You can now start developing your own factory manager.
 Have fun.
 
 **You can download a skeleton for developing your factory manager in
-either python or java `here <http://www.yasserm.com/scml/scml.zip>`__.**
+either python or
+java**\ `here <http://www.yasserm.com/scml/scml.zip>`__\ **.**
 
 More Information
 ~~~~~~~~~~~~~~~~
