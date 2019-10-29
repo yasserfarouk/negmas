@@ -1,8 +1,9 @@
 import random
+from datetime import timedelta
 from pathlib import Path
 from typing import List, Optional, Dict
 
-from hypothesis import given
+from hypothesis import given, settings
 from pytest import mark
 import hypothesis.strategies as st
 
@@ -223,6 +224,7 @@ def test_checkpointing_mechanism(tmp_path):
     checkpoint_every=st.integers(0, 6),
     exist_ok=st.booleans(),
 )
+@settings(deadline=timedelta(milliseconds=20000), max_examples=100)
 def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok):
     import shutil
 
@@ -248,7 +250,7 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
     )
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
-        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i], aspiration_type="conceder")
 
     mechanism.run()
 

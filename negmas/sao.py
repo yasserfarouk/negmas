@@ -2,6 +2,7 @@
 Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.
 """
 import itertools
+import math
 import random
 import time
 import warnings
@@ -42,6 +43,10 @@ from negmas.utilities import (
     UtilityValue,
     JavaUtilityFunction,
 )
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 __all__ = [
     "SAOState",
@@ -174,6 +179,243 @@ class SAOMechanism(Mechanism):
             else None,
             n_acceptances=self._n_accepting if self.publish_n_acceptances else 0,
         )
+
+    def plot(
+        self,
+        visible_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
+        plot_utils=True,
+        plot_outcomes=False,
+        utility_range: Optional[Tuple[float, float]] = None,
+    ):
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+
+        if self.issues is not None and len(self.issues) > 1:
+            plot_outcomes = False
+
+        if len(self.negotiators) < 2:
+            print("Cannot visualize negotiations with more less than 2 negotiators")
+            return
+        if len(visible_negotiators) > 2:
+            print("Cannot visualize more than 2 agents")
+            return
+        if isinstance(visible_negotiators[0], str):
+            tmp = []
+            for _ in visible_negotiators:
+                for n in self.negotiators:
+                    if n.id == _:
+                        tmp.append(n)
+        else:
+            visible_negotiators = [
+                self.negotiators[visible_negotiators[0]],
+                self.negotiators[visible_negotiators[1]],
+            ]
+        indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
+        history = []
+        for state in self.history:
+            for a, o in state.new_offers:
+                history.append(
+                    {
+                        "current_proposer": a,
+                        "current_offer": o,
+                        "offer_index": self.outcomes.index(o),
+                        "relative_time": state.relative_time,
+                        "step": state.step,
+                        "u0": visible_negotiators[0].utility_function(o),
+                        "u1": visible_negotiators[1].utility_function(o),
+                    }
+                )
+        history = pd.DataFrame(data=history)
+        has_history = len(history) > 0
+        has_front = 1
+        n_negotiators = len(self.negotiators)
+        n_agents = len(visible_negotiators)
+        ufuns = self._get_ufuns()
+        outcomes = self.outcomes
+        utils = [tuple(f(o) for f in ufuns) for o in outcomes]
+        agent_names = [a.name for a in visible_negotiators]
+        if has_history:
+            history["offer_index"] = [outcomes.index(_) for _ in history.current_offer]
+        frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
+        frontier_indices = [
+            i
+            for i, _ in enumerate(frontier)
+            if _[0] is not None
+            and _[0] > float("-inf")
+            and _[1] is not None
+            and _[1] > float("-inf")
+        ]
+        frontier = [frontier[i] for i in frontier_indices]
+        frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
+        frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
+        if plot_utils:
+            fig_util = plt.figure()
+        if plot_outcomes:
+            fig_outcome = plt.figure()
+        gs_util = gridspec.GridSpec(n_agents, has_front + 1) if plot_utils else None
+        gs_outcome = (
+            gridspec.GridSpec(n_agents, has_front + 1) if plot_outcomes else None
+        )
+        axs_util, axs_outcome = [], []
+
+        for a in range(n_agents):
+            if a == 0:
+                if plot_utils:
+                    axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
+                if plot_outcomes:
+                    axs_outcome.append(
+                        fig_outcome.add_subplot(gs_outcome[a, has_front])
+                    )
+            else:
+                if plot_utils:
+                    axs_util.append(
+                        fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0])
+                    )
+                if plot_outcomes:
+                    axs_outcome.append(
+                        fig_outcome.add_subplot(
+                            gs_outcome[a, has_front], sharex=axs_outcome[0]
+                        )
+                    )
+            if plot_utils:
+                axs_util[-1].set_ylabel(agent_names[a])
+            if plot_outcomes:
+                axs_outcome[-1].set_ylabel(agent_names[a])
+        for a, (au, ao) in enumerate(
+            zip(
+                itertools.chain(axs_util, itertools.repeat(None)),
+                itertools.chain(axs_outcome, itertools.repeat(None)),
+            )
+        ):
+            if au is None and ao is None:
+                break
+            if has_history:
+                h = history.loc[
+                    history.current_proposer == visible_negotiators[a].id,
+                    ["relative_time", "offer_index", "current_offer"],
+                ]
+                h["utility"] = h["current_offer"].apply(ufuns[a])
+                if plot_outcomes:
+                    ao.plot(h.relative_time, h["offer_index"])
+                if plot_utils:
+                    au.plot(h.relative_time, h.utility)
+                    if utility_range is not None:
+                        au.set_ylim(*utility_range)
+
+        if has_front:
+            if plot_utils:
+                axu = fig_util.add_subplot(gs_util[:, 0])
+                axu.scatter(
+                    [_[0] for _ in utils],
+                    [_[1] for _ in utils],
+                    label="outcomes",
+                    color="gray",
+                    marker="s",
+                    s=20,
+                )
+            if plot_outcomes:
+                axo = fig_outcome.add_subplot(gs_outcome[:, 0])
+            clrs = ("blue", "green")
+            if plot_utils:
+                f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
+                axu.scatter(f1, f2, label="frontier", color="red", marker="x")
+                # axu.legend()
+                axu.set_xlabel(agent_names[0] + " utility")
+                axu.set_ylabel(agent_names[1] + " utility")
+                if self.agreement is not None:
+                    pareto_distance = 1e9
+                    cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
+                    for pu in frontier:
+                        dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
+                        if dist < pareto_distance:
+                            pareto_distance = dist
+                    axu.text(
+                        0.05,
+                        0.05,
+                        f"Pareto-distance={pareto_distance:5.2}",
+                        verticalalignment="top",
+                        transform=axu.transAxes,
+                    )
+
+            if plot_outcomes:
+                axo.scatter(
+                    frontier_outcome_indices,
+                    frontier_outcome_indices,
+                    color="red",
+                    marker="x",
+                    label="frontier",
+                )
+                axo.legend()
+                axo.set_xlabel(agent_names[0])
+                axo.set_ylabel(agent_names[1])
+
+            if plot_utils and has_history:
+                for a in range(n_agents):
+                    h = history.loc[
+                        history.current_proposer == visible_negotiators[a].id,
+                        ["relative_time", "offer_index", "current_offer"],
+                    ]
+                    h["u0"] = h["current_offer"].apply(ufuns[0])
+                    h["u1"] = h["current_offer"].apply(ufuns[1])
+                    axu.scatter(h.u0, h.u1, color=clrs[a], label=f"{agent_names[a]}")
+                axu.scatter(
+                    [frontier[0][0]],
+                    [frontier[0][1]],
+                    color="magenta",
+                    label=f"Max. Welfare",
+                )
+                axu.annotate(
+                    "Max. Welfare",
+                    xy=frontier[0],  # theta, radius
+                    xytext=(
+                        frontier[0][0] + 0.02,
+                        frontier[0][1] + 0.02,
+                    ),  # fraction, fraction
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                )
+            if plot_outcomes and has_history:
+                steps = sorted(history.step.unique().tolist())
+                aoffers = [[], []]
+                for step in steps[::2]:
+                    offrs = []
+                    for a in range(n_agents):
+                        a_offer = history.loc[
+                            (history.current_proposer == agent_names[a])
+                            & ((history.step == step) | (history.step == step + 1)),
+                            "offer_index",
+                        ]
+                        if len(a_offer) > 0:
+                            offrs.append(a_offer.values[-1])
+                    if len(offrs) == 2:
+                        aoffers[0].append(offrs[0])
+                        aoffers[1].append(offrs[1])
+                axo.scatter(aoffers[0], aoffers[1], color=clrs[0], label=f"offers")
+
+            if self.state.agreement is not None:
+                if plot_utils:
+                    axu.scatter(
+                        [ufuns[0](self.state.agreement)],
+                        [ufuns[1](self.state.agreement)],
+                        color="black",
+                        marker="*",
+                        s=120,
+                        label="SCMLAgreement",
+                    )
+                if plot_outcomes:
+                    axo.scatter(
+                        [outcomes.index(self.state.agreement)],
+                        [outcomes.index(self.state.agreement)],
+                        color="black",
+                        marker="*",
+                        s=120,
+                        label="Agreement",
+                    )
+
+        if plot_utils:
+            fig_util.show()
+        if plot_outcomes:
+            fig_outcome.show()
 
     def round(self) -> MechanismRoundResult:
         """implements a round of the Stacked Alternating Offers Protocol.
@@ -1008,7 +1250,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             # we set the minimum utility to the minimum finite value above both reserved_value
             for j in range(len(outcomes) - 1, -1, -1):
                 self.ufun_min = self.ordered_outcomes[j][0]
-                if self.ufun_min > float("-inf"):
+                if self.ufun_min is not None and self.ufun_min > float("-inf"):
                     break
             if self.reserved_value is not None and self.ufun_min < self.reserved_value:
                 self.ufun_min = self.reserved_value

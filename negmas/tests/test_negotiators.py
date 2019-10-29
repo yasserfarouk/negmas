@@ -147,7 +147,7 @@ def test_tit_for_tat_against_asp_negotiators():
     for i, offer in enumerate(_[0] for _ in a2offers):
         assert i == 0 or offer >= a2offers[i - 1][0]
     assert neg.state.agreement is not None
-    assert neg.state.agreement in ((3,), (4,), (5,), (6,))
+    assert neg.state.agreement in ((2,), (3,), (4,), (5,), (6,))
 
 
 def test_best_only_asp_negotiator():

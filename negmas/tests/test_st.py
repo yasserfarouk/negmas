@@ -3,10 +3,9 @@ from negmas.st import VetoSTMechanism
 from pytest import mark
 
 
-@mark.parametrize("n_negotiators,n_outcomes", [(2,10), (3,50),(2,50), (3,5)])
-def test_can_work(n_negotiators, n_outcomes):
-    n_outcomes = 5
-    mechanism = VetoSTMechanism(outcomes=n_outcomes, n_steps=3)
+@mark.parametrize("n_negotiators,n_outcomes,n_steps", [(2,10000,300), (3,50, 3),(2,50, 3), (3,5, 3)])
+def test_can_work(n_negotiators, n_outcomes, n_steps):
+    mechanism = VetoSTMechanism(outcomes=n_outcomes, n_steps=n_steps)
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(BinaryComparatorNegotiator(name=f"agent{i}"), ufun=ufuns[i])

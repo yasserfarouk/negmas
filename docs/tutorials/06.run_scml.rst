@@ -6,7 +6,7 @@ world with ``NegMAS``. It is used as one of the leagues of ANAC 2019.
 
 In this tutorial, you will test a run of this world.
 
-Firstly, let's import everything from the SCML app
+Firstly, let’s import everything from the SCML app
 
 .. code:: ipython3
 
@@ -17,11 +17,11 @@ to use one of the class methods of the ``SCMLWorld`` class.
 
 The resulting world will have 100 production steps so simulating it will
 take several minutes. **To speed up the simulation, use a small number
-of n\_steps (e.g. 10)**
+of n_steps (e.g. 10)**
 
 If you want to just test your installation (and do not care whether you
 get an accurate indicator of agent performance), you can set the number
-of steps to a small value (e.g. n\_steps=10).
+of steps to a small value (e.g. n_steps=10).
 
 .. code:: ipython3
 
@@ -37,7 +37,7 @@ can run this world simulation by just calling ``run``.
 
     world.run()
 
-Let's see what happened in this run. Firstly, how many negotiations were
+Let’s see what happened in this run. Firstly, how many negotiations were
 conducted over time
 
 .. code:: ipython3
@@ -65,7 +65,7 @@ Several other statistics are available:
 
 .. parsed-literal::
 
-    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_negotiation_rounds_successful', 'n_negotiation_rounds_failed', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', 'n_contracts_nullified', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy@1_0', 'storage_greedy@1_0', 'balance_greedy@1_1', 'storage_greedy@1_1', 'balance_greedy@1_2', 'storage_greedy@1_2', 'balance_greedy@1_3', 'storage_greedy@1_3', 'balance_greedy@1_4', 'storage_greedy@1_4', 'balance_greedy@2_0', 'storage_greedy@2_0', 'balance_greedy@2_1', 'storage_greedy@2_1', 'balance_greedy@2_2', 'storage_greedy@2_2', 'balance_greedy@2_3', 'storage_greedy@2_3', 'balance_greedy@2_4', 'storage_greedy@2_4', 'market_size', 'production_failures', '_market_size_total']
+    ['n_cfps_on_board_before', 'n_registered_negotiations_before', 'n_contracts_executed', 'n_contracts_cancelled', 'n_breaches', 'breach_level', 'n_contracts_signed', 'n_contracts_concluded', 'n_negotiations', 'n_negotiation_rounds_successful', 'n_negotiation_rounds_failed', 'n_registered_negotiations_after', 'activity_level', 'n_cfps', 'n_cfps_on_board_after', 'n_contracts_nullified', 'n_bankrupt', '_balance_bank', '_balance_society', '_balance_insurance', '_storage_insurance', 'balance_m_0', 'storage_m_0', 'balance_m_1', 'storage_m_1', 'balance_m_2', 'storage_m_2', 'balance_m_3', 'storage_m_3', 'balance_m_4', 'storage_m_4', 'balance_c_0', 'storage_c_0', 'balance_c_1', 'storage_c_1', 'balance_c_2', 'storage_c_2', 'balance_c_3', 'storage_c_3', 'balance_c_4', 'storage_c_4', 'balance_greedy@1_0', 'storage_greedy@1_0', 'balance_greedy@1_1', 'storage_greedy@1_1', 'balance_greedy@1_2', 'storage_greedy@1_2', 'balance_greedy@1_3', 'storage_greedy@1_3', 'balance_greedy@1_4', 'storage_greedy@1_4', 'balance_greedy@2_0', 'storage_greedy@2_0', 'balance_greedy@2_1', 'storage_greedy@2_1', 'balance_greedy@2_2', 'storage_greedy@2_2', 'balance_greedy@2_3', 'storage_greedy@2_3', 'balance_greedy@2_4', 'storage_greedy@2_4', 'market_size', 'production_failures', '_market_size_total']
 
 
 We can for example check the activity level of this world (defined as
@@ -116,7 +116,7 @@ We can also check the breaches that happened
 
 
 It is also possible to focus on the behavior of some specific agent.
-Let's first find who was the winner (the factory manager that got
+Let’s first find who was the winner (the factory manager that got
 maximum wealth). Notice that there can be multiple winners
 
 .. code:: ipython3
@@ -127,7 +127,7 @@ maximum wealth). Notice that there can be multiple winners
 
 .. parsed-literal::
 
-    [greedy@2_3] won at [47.3]%
+    [greedy@2_3] won at [44.77]%
 
 
 What was the balance of this winner over time:
@@ -146,7 +146,7 @@ What was the balance of this winner over time:
 .. image:: 06.run_scml_files/06.run_scml_19_0.png
 
 
-Let's check how did its total storage change over time:
+Let’s check how did its total storage change over time:
 
 .. code:: ipython3
 
@@ -176,7 +176,6 @@ We can actually check what happens to ALL competitors:
 
 
 .. image:: 06.run_scml_files/06.run_scml_23_0.png
-
 
 
 

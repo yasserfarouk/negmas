@@ -35,7 +35,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinx.ext.coverage',
               'sphinxcontrib.napoleon',
-              'sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.graphviz',
               'sphinx_autodoc_annotation',
@@ -217,3 +216,4 @@ html_domain_indices = True
 
 automodsumm_inherited_members = True
 
+# mathjax_path =

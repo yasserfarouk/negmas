@@ -29,6 +29,7 @@ from .utilities import *
 from .negotiators import *
 from .mechanisms import *
 from .sao import *
+from .st import *
 from .inout import *
 from .genius import *
 from .situated import *
@@ -40,6 +41,7 @@ __all__ = (
     + negotiators.__all__
     + mechanisms.__all__
     + sao.__all__
+    + st.__all__
     + inout.__all__
     + genius.__all__
     + situated.__all__
