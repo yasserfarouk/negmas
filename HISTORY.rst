@@ -3,6 +3,51 @@ History
 
 Release 0.3.5
 -------------
+- Documentation Update.
+- Adding LinearUtilityFunction as a simple way to implement linear utility functions without the need to use
+  LinearUtilityAggregationFunction.
+- [Setup] Removing dash dependency to get TravisCI to work
+- [Core] Correcting the implementation of the aspiration equation to match Baarslag's equation.
+- updating the requirements in setup.py
+- [Visualizer] Adding visualizer basic interface. Very experimental
+- Adding placeholders for basic builtin entities
+- [Core] basic tests of checkpoints
+- [Core] adding time to info when saving a checkpoint and smaller improvments
+- [Core] updating the use of is_continuous to is_countable as appropriate (bug fix)
+- [Core] exposing load from helpers
+- [Core] testing is_countable
+- [SingleText] renaming is_acceptable to is_acceptable_as_agreement
+- [Core] Sampling with or without replacement from issues with values defined by a callable now return the same result
+- [Core] Allowing creator of AspirationNegotiator to pass max/min ufun values
+- [Core] Adding Negotiator.ufun as an alias to Negotiator.utility_function
+- [Core] Allowing agreements from mechanisms to be a list of outcomes instead of one outcome
+- [Core] adding current_state to MechanismState
+- [Situated] [bug fix] run_negotiations was raising an exception if any partner refused to negotiation (i.e. passed a None negotiator).
+- [Core][Outcomes] Adding support for issues without specified values. In this case, a callable must be given that can generate random values from the unknown issue space. Moreover, it is assumed that the issue space is uncountable (It may optionally be continuous but it will still be reported as uncountable).
+- [Core] Implementing checkpoint behavior in mechanisms and worlds.
+- Added checkpoint and from_checkpoint to NamedObject.
+- Added CheckpointMixin in common to allow any class to automatically save checkpoints.
+- [Core][Genius] Resolving a bug that prevented genius negotiators from starting.
+- [SCML] converted InputOutput to a normal dataclass instead of it being frozen to simplify checkpoint implementation.
+- [Core] Allow agents to run_negotiation or run_negotiations when they do not intend to participate in the negotiations.
+- [Mechanisms] Adding Mechanism.runall to run several mechanisms concurrently
+- [SAO] Added Waiting as a legal response in SAO mechanism
+- [SAO] Added SAOSyncController which makes it easy to synchronize response in multiple negotiations
+- [Situated] Correcting the implementation of run_negotiations (not yet tested)
+- [SAO] adding the ability not to consider offering as acceptance. When enabled, the agent offering an outcome is not considered accepting it. It will be asked again about it if all other agents accepted it. This is a one-step free decommitment
+- [Situated] exposing run_negotiation and run_negotiations in AgentWorldInterface
+- [Situated] bug fix when competitor parameters are passed to a multistaged tournament
+- [Situated] Avoiding an issue with competitor types that do not map directly to classes in tournament creation
+- [Core][Situated] adding type-postfix to modify the name returned by type_name property in all Entities as needed. To be used to distinguish between competitors of the same type with different parameters in situated.
+- [Core][Situated] using correct parameters with competitors in multistage tournaments
+- [Core][Single Text] deep copying initial values to avoid overriding them.
+- [Core][Common] Added results to all mechanism states which indicates after a negotiation is done, the final results. That is more general than agreement which can be a complete outcome only. A result can be a partial outcome, a list of outcomes, or even a list of issues. It is intended o be used in MechanismSequences to move from one mechanims to the next.
+- added from_outcomes to create negotiation issues from outcomes
+- updating nlevelscomparator mixin
+
+
+Release 0.3.5
+-------------
 
 - [Core][SingleText] Adding single-text negotiation using Veto protocol
 - [Core][Utilities] correcting the implementation of is_better
