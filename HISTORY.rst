@@ -1,7 +1,7 @@
 History
 =======
 
-Release 0.3.5
+Release 0.3.6
 -------------
 - Documentation Update.
 - Adding LinearUtilityFunction as a simple way to implement linear utility functions without the need to use

@@ -15,4 +15,3 @@ applicability to a variety of problems.
     tutorials/05.develop_new_agent
     tutorials/06.run_scml
     tutorials/07.develop_scml_agent
-    tutorials/prima2019
