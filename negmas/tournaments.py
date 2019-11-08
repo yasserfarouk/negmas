@@ -1445,30 +1445,32 @@ def evaluate_tournament(
             #     alist, blist = (ascores.score, bscores.score)
             #     t, p = ttest_ind(alist, blist)
             alist, blist = (ascores.score, bscores.score)
-            t, p = ttest_ind(alist, blist)
-            ttest_results.append(
-                {
-                    "a": t1,
-                    "b": t2,
-                    "t": t,
-                    "p": p,
-                    "n_a": len(ascores),
-                    "n_b": len(bscores),
-                    "n_effective": min(len(alist), len(blist)),
-                }
-            )
-            t, p = ks_2samp(alist, blist)
-            ks_results.append(
-                {
-                    "a": t1,
-                    "b": t2,
-                    "t": t,
-                    "p": p,
-                    "n_a": len(ascores),
-                    "n_b": len(bscores),
-                    "n_effective": min(len(alist), len(blist)),
-                }
-            )
+            if min(len(alist), len(blist)) >= 2:
+                t, p = ttest_ind(alist, blist)
+
+                ttest_results.append(
+                    {
+                        "a": t1,
+                        "b": t2,
+                        "t": t,
+                        "p": p,
+                        "n_a": len(ascores),
+                        "n_b": len(bscores),
+                        "n_effective": min(len(alist), len(blist)),
+                    }
+                )
+                t, p = ks_2samp(alist, blist)
+                ks_results.append(
+                    {
+                        "a": t1,
+                        "b": t2,
+                        "t": t,
+                        "p": p,
+                        "n_a": len(ascores),
+                        "n_b": len(bscores),
+                        "n_effective": min(len(alist), len(blist)),
+                    }
+                )
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
 
