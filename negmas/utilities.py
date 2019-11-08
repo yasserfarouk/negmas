@@ -2471,13 +2471,18 @@ class IPUtilityFunction(UtilityFunction):
         """
         if isinstance(u.mapping, dict):
             return cls.from_mapping(
-                u.mapping, range=range, uncertainty=uncertainty, variability=variability
+                u.mapping,
+                range=range,
+                uncertainty=uncertainty,
+                variability=variability,
+                reserved_value=u.reserved_value,
             )
         return cls.from_mapping(
             dict(zip(ikeys(u.mapping), ivalues(u.mapping))),
             range=range,
             uncertainty=uncertainty,
             variability=variability,
+            reserved_value=u.reserved_value,
         )
 
     @classmethod
@@ -2487,6 +2492,7 @@ class IPUtilityFunction(UtilityFunction):
         range: Tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
+        reserved_value: Optional[float] = None,
     ) -> "IPUtilityFunction":
         """
         Generates a distribution from which `u` may have been sampled
@@ -2536,6 +2542,7 @@ class IPUtilityFunction(UtilityFunction):
                 Distribution.around(value=mapping[o], uncertainty=u, range=range)
                 for o, u in zip(outcomes, uncertainties)
             ],
+            reserved_value=reserved_value,
         )
 
     def __str__(self):

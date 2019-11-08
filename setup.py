@@ -83,6 +83,7 @@ setup(
         # 'dash',
         'dash-daq',
         'dash-bootstrap-components',
+        'blist',
     ],  # Optional
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional

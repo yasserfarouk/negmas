@@ -28,10 +28,12 @@ from .outcomes import *
 from .utilities import *
 from .negotiators import *
 from .mechanisms import *
+from .acceptance_models import *
 from .sao import *
 from .st import *
 from .inout import *
 from .genius import *
+from .elicitors import *
 from .situated import *
 
 __all__ = (
@@ -45,5 +47,7 @@ __all__ = (
     + inout.__all__
     + genius.__all__
     + situated.__all__
+    + elicitors.__all__
+    + acceptance_models.__all__
     + ["generics", "helpers", "events", "apps", "tournaments"]
 )
