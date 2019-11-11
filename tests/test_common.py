@@ -3,7 +3,7 @@ import time
 import hypothesis.strategies as st
 from hypothesis import given
 import random
-random.seed(time.perf_counter_ns())
+random.seed(time.perf_counter())
 from negmas import NamedObject, Entity
 from negmas.helpers import unique_name
 
