@@ -103,7 +103,7 @@ def test_can_run_from_checkpoint(tmp_path, single_checkpoint, checkpoint_every, 
     copy=st.booleans(),
     fork_after_reset=st.booleans(),
 )
-@settings(deadline=timedelta(milliseconds=20000), max_examples=100)
+@settings(deadline=20000, max_examples=100)
 def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset):
     import shutil
     new_folder: Path = tmp_path / unique_name("empty", sep="")
