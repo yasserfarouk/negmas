@@ -14,7 +14,7 @@ from typing import Dict
 from negmas.inout import load_genius_domain_from_folder
 from negmas import UncertainOpponentModel, GeniusNegotiator
 from negmas.sao import *
-from negmas.helpers import camel_case, create_loggers
+from negmas.helpers import create_loggers
 import math
 import random
 import time
@@ -29,7 +29,7 @@ from dataclasses import dataclass
 # if TYPE_CHECKING:
 from negmas.common import *
 from negmas.negotiators import AspirationMixin
-from negmas.acceptance_models import DiscreteAcceptanceModel, AdaptiveDiscreteAcceptanceModel
+from negmas.modeling import DiscreteAcceptanceModel, AdaptiveDiscreteAcceptanceModel
 from negmas.sao import AspirationNegotiator, SAONegotiator
 from negmas.utilities import IPUtilityFunction, UtilityFunction, UtilityDistribution, UtilityValue
 from negmas.utilities import MappingUtilityFunction

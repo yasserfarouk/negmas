@@ -71,5 +71,7 @@ dash-daq
 dash-bootstrap-components
 blist
 seaborn
+sklearn
+nose
 
 

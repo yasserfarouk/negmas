@@ -39,6 +39,7 @@ from typing import (
     Iterable,
     Tuple,
     Collection,
+    Type,
 )
 from typing import TYPE_CHECKING
 
@@ -89,6 +90,8 @@ __all__ = [
     "JavaUtilityFunction",
     "RandomUtilityFunction",
     "INVALID_UTILITY",
+    "outcome_with_utility",
+    "utility_range",
 ]
 
 INVALID_UTILITY = float("-inf")
@@ -2813,6 +2816,40 @@ def normalize(
         )
 
 
+def utility_range(
+    ufun: UtilityFunction,
+    issues: List[Issue] = None,
+    outcomes: Collection[Outcome] = None,
+    infeasible_cutoff: Optional[float] = None,
+) -> Tuple[UtilityValue, UtilityValue]:
+    """Finds the range of the given utility function for the given outcomes
+
+    Args:
+        ufun: The utility function
+        issues: List of issues (optional)
+        outcomes: A collection of outcomes (optional)
+        infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
+
+    Returns:
+        UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
+
+    """
+    if outcomes is None:
+        outcomes = Issue.sample(
+            issues,
+            n_outcomes=len(issues) * 100,
+            with_replacement=True,
+            fail_if_not_enough=False,
+        )
+    u = [ufun(o) for o in outcomes]
+    u = [float(_) for _ in u if _ is not None]
+    if infeasible_cutoff is not None:
+        u = [_ for _ in u if _ > infeasible_cutoff]
+    if len(u) == 0:
+        return ufun
+    return max(u), min(u)
+
+
 class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
     """A utility function implemented in Java"""
 
@@ -2831,3 +2868,43 @@ class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
 
     def xml(self, issues: List[Issue]) -> str:
         return "Java UFun"
+
+
+def outcome_with_utility(
+    ufun: UtilityFunction,
+    rng: Tuple[float, float],
+    issues: List[Issue] = None,
+    outcomes: List[Outcome] = None,
+    n_trials: int = 100,
+    astype: Type = dict,
+) -> Optional[Outcome]:
+    """
+    Gets one outcome within the given utility range or None on failure
+
+    Args:
+        ufun: The utility function
+        rng: The utility range
+        issues: The issues the utility function is defined on
+        outcomes: The outcomes to sample from
+        n_trials: The maximum number of trials
+
+    Returns:
+
+        - Either issues, or outcomes should be given but not both
+
+    """
+    if outcomes is None:
+        outcomes = Issue.sample(
+            issues=issues,
+            n_outcomes=n_trials,
+            astype=astype,
+            with_replacement=False,
+            fail_if_not_enough=False,
+        )
+    n = min(len(outcomes), n_trials)
+    mn, mx = rng
+    for i in range(n):
+        o = outcomes[i]
+        if mn <= ufun(o) <= mx:
+            return o
+    return None

@@ -63,11 +63,111 @@ def test_genius_agent(init_genius):
         "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.', 'Monuments'"
         ", 'Special streets', 'Palace', 'Landscape and nature']",
     ]
-    atlas3, agentx = p.negotiators[0], p.negotiators[1]
+    first, second = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(atlas3.utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(agentx.utility_function(s.current_offer)) for s in p.history])
+    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
+    welfare = u1 + u2
+    # print(
+    #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
+    #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
+    # print(p.state)
+    assert len(u1) > 0
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_genius_agent_top2016_caduceus_first(init_genius):
+    p, _, issues = load_genius_domain_from_folder(
+        dom_folder,
+        agent_factories=[
+            lambda: GeniusNegotiator(
+                java_class_name="agents.anac.y2016.caduceus.Caduceus",
+                domain_file_name=dom,
+                utility_file_name=util1,
+            ),
+            lambda: GeniusNegotiator(
+                java_class_name="agents.anac.y2015.AgentX.AgentX",
+                domain_file_name=dom,
+                utility_file_name=util2,
+            ),
+        ],
+        keep_issue_names=True,
+        keep_value_names=True,
+        time_limit=20,
+    )
+    assert len(p.negotiators) > 1
+    issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
+    assert issue_list == [
+        "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)'"
+        ", 'Liveliness', 'Turistic activities', 'Hospitality']",
+        "1:Amusement: ['Nightlife and entertainment', 'Nightclubs', 'Excursion', 'Casinos', 'Zoo', 'Festivals'"
+        ", 'Amusement park']",
+        "2:Culinary: ['Local cuisine', 'Lunch facilities', 'International cuisine', 'Cooking workshops']",
+        "3:Shopping: ['Shopping malls', 'Markets', 'Streets', 'Small boutiques']",
+        "4:Culture: ['Museum', 'Music hall', 'Theater', 'Art gallery', 'Cinema', 'Congress center']",
+        "5:Sport: ['Bike tours', 'Hiking', 'Indoor activities', 'Outdoor activities', 'Adventure']",
+        "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.', 'Monuments'"
+        ", 'Special streets', 'Palace', 'Landscape and nature']",
+    ]
+    first, second = p.negotiators[0], p.negotiators[1]
+    p.run()
+    # print(f'{len(p.history)} bids exchanged')
+    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
+    welfare = u1 + u2
+    # print(
+    #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
+    #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
+    # print(p.state)
+    assert len(u1) > 0
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_genius_agent_top2016_yx_second(init_genius):
+    p, _, issues = load_genius_domain_from_folder(
+        dom_folder,
+        agent_factories=[
+            lambda: GeniusNegotiator(
+                java_class_name="agents.anac.y2016.yxagent.YXAgent",
+                domain_file_name=dom,
+                utility_file_name=util1,
+            ),
+            lambda: GeniusNegotiator(
+                java_class_name="agents.anac.y2015.AgentX.AgentX",
+                domain_file_name=dom,
+                utility_file_name=util2,
+            ),
+        ],
+        keep_issue_names=True,
+        keep_value_names=True,
+        time_limit=20,
+    )
+    assert len(p.negotiators) > 1
+    issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
+    assert issue_list == [
+        "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)'"
+        ", 'Liveliness', 'Turistic activities', 'Hospitality']",
+        "1:Amusement: ['Nightlife and entertainment', 'Nightclubs', 'Excursion', 'Casinos', 'Zoo', 'Festivals'"
+        ", 'Amusement park']",
+        "2:Culinary: ['Local cuisine', 'Lunch facilities', 'International cuisine', 'Cooking workshops']",
+        "3:Shopping: ['Shopping malls', 'Markets', 'Streets', 'Small boutiques']",
+        "4:Culture: ['Museum', 'Music hall', 'Theater', 'Art gallery', 'Cinema', 'Congress center']",
+        "5:Sport: ['Bike tours', 'Hiking', 'Indoor activities', 'Outdoor activities', 'Adventure']",
+        "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.', 'Monuments'"
+        ", 'Special streets', 'Palace', 'Landscape and nature']",
+    ]
+    first, second = p.negotiators[0], p.negotiators[1]
+    p.run()
+    # print(f'{len(p.history)} bids exchanged')
+    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'

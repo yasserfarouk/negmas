@@ -28,7 +28,7 @@ from .outcomes import *
 from .utilities import *
 from .negotiators import *
 from .mechanisms import *
-from .acceptance_models import *
+from negmas.modeling import *
 from .sao import *
 from .st import *
 from .inout import *
@@ -48,6 +48,6 @@ __all__ = (
     + genius.__all__
     + situated.__all__
     + elicitors.__all__
-    + acceptance_models.__all__
+    + modeling.__all__
     + ["generics", "helpers", "events", "apps", "tournaments"]
 )
