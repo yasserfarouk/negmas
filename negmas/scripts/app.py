@@ -1468,7 +1468,7 @@ def jnegmas_setup():
 def genius_setup():
     url = f"http://www.yasserm.com/scml/{GENIUS_JAR_NAME}"
     print(f"Downloading: {url}", end="", flush=True)
-    download_and_set(key="genius_bridge_jar", url=url, file_name="jnegmas.jar")
+    download_and_set(key="genius_bridge_jar", url=url, file_name="genius.jar")
     print(" done successfully")
 
 

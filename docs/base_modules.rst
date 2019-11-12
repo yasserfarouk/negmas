@@ -13,4 +13,8 @@ Base Modules
     modules/genius
     modules/situated
     modules/events
+    modules/modeling/utility
+    modules/modeling/strategy
+    modules/modeling/future
+    modules/modeling/acceptance
 

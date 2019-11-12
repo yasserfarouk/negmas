@@ -1,5 +1,4 @@
-"""Opponent modeling base classes
-
+"""Acceptance modeling.
 """
 import random
 from abc import ABC, abstractmethod
