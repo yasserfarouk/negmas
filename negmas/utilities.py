@@ -195,7 +195,7 @@ class UtilityFunction(ABC, NamedObject):
     def to_genius(
         cls, u: "UtilityFunction", issues: List[Issue], file_name: str, **kwargs
     ):
-        """Exports a utility function from a GENIUS XML file.
+        """Exports a utility function to a GENIUS XML file.
 
         Args:
 
@@ -1762,7 +1762,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
             vals = iget(issues, k).all
             for indx, v in enumerate(vals):
-                u = gmap(iget(self.issue_utilities, k), v)
+                u = gmap(iget(self.issue_utilities, issue_name), v)
                 v_ = (
                     v
                     if not (isinstance(v, tuple) or isinstance(v, list))

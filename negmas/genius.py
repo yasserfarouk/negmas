@@ -10,6 +10,7 @@ import os
 import random
 import socket
 import subprocess
+import tempfile
 import time
 import typing
 from typing import Optional, List, Tuple, Sequence
@@ -24,6 +25,8 @@ from negmas import (
     get_domain_issues,
     NEGMAS_CONFIG,
     CONFIG_KEY_GENIUS_BRIDGE_JAR,
+    Controller,
+    Issue,
 )
 from negmas import ResponseType, load_genius_domain
 from negmas.common import *
@@ -40,6 +43,10 @@ __all__ = [
     "GeniusNegotiator",  # Most abstract kind of agent
     "init_genius_bridge",
     "genius_bridge_is_running",
+    "Atlas3",
+    "AgentX",
+    "YXAgent",
+    "Caduceus",
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
@@ -255,7 +262,6 @@ party_based_negotiators = [
     "agents.anac.y2016.terra.Terra",
     "agents.anac.y2016.grandma.GrandmaAgent",
     "agents.anac.y2016.clockworkagent.ClockworkAgent",
-    "agents.anac.y2016.parscat.ParsCat",
     "agents.anac.y2016.caduceus.Caduceus",
     "agents.anac.y2016.caduceus.agents.RandomDance.RandomDance",
     "agents.anac.y2016.caduceus.agents.kawaii.kawaii",
@@ -268,6 +274,7 @@ party_based_negotiators = [
     "agents.anac.y2016.farma.Farma",
     "agents.anac.y2016.syagent.SYAgent",
     "agents.anac.y2016.ngent.Ngent",
+    "agents.anac.y2016.parscat.ParsCat",
     "agents.anac.y2016.atlas3.Atlas32016",
     "agents.anac.y2016.agentsmith.AgentSmith2016",
     "agents.anac.y2016.myagent.MyAgent",
@@ -336,6 +343,10 @@ class GeniusNegotiator(SAONegotiator):
     def __init__(
         self,
         java_class_name: str,
+        assume_normalized=True,
+        ufun: Optional[UtilityFunction] = None,
+        rational_proposal=False,
+        parent: Controller = None,
         port: int = None,
         domain_file_name: str = None,
         utility_file_name: str = None,
@@ -379,6 +390,7 @@ class GeniusNegotiator(SAONegotiator):
                 keep_value_names=keep_value_names,
             )
         self.base_utility = self._utility_function
+        self.__ufun_received = ufun
         pass
 
     @classmethod
@@ -510,6 +522,36 @@ class GeniusNegotiator(SAONegotiator):
     @property
     def java_name(self):
         return self.java.getName(self.java_uuid)
+
+    def join(
+        self,
+        ami: AgentMechanismInterface,
+        state: MechanismState,
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: str = "agent",
+    ) -> bool:
+        if ufun is None:
+            ufun = self.__ufun_received
+        result = super().join(ami=ami, state=state, ufun=ufun, role=role)
+        if (
+            result
+            and ufun is not None
+            and (self.utility_file_name is None or self.domain_file_name is None)
+        ):
+            domain_file = tempfile.NamedTemporaryFile("w")
+            self.domain_file_name = domain_file.name
+            domain_file.write(Issue.to_xml_str(ami.issues))
+            domain_file.close()
+            utility_file = tempfile.NamedTemporaryFile("w")
+            self.utility_file_name = utility_file.name
+            utility_file.write(
+                UtilityFunction.to_xml_str(
+                    ufun, issues=ami.issues, discount_factor=self.discount
+                )
+            )
+            utility_file.close()
+        return result
 
     def test(self) -> str:
         return self.java.test(self.java_class_name)
@@ -690,3 +732,27 @@ def genius_bridge_is_running(port: int = None) -> bool:
         return False
     finally:
         s.close()
+
+
+class Caduceus(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.caduceus.Caduceus"
+        super().__init__(**kwargs)
+
+
+class YXAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.yxagent.YXAgent"
+        super().__init__(**kwargs)
+
+
+class AgentX(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.AgentX.AgentX"
+        super().__init__(**kwargs)
+
+
+class Atlas3(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.Atlas3.Atlas3"
+        super().__init__(**kwargs)

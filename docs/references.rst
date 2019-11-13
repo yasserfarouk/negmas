@@ -30,6 +30,21 @@ Reference
 .. automodapi:: negmas.mechanisms
     :include-all-objects:
 
+.. automodapi:: negmas.modeling.acceptance
+    :include-all-objects:
+
+.. automodapi:: negmas.modeling.utility
+    :include-all-objects:
+
+.. automodapi:: negmas.modeling.strategy
+    :include-all-objects:
+
+.. automodapi:: negmas.modeling.future
+    :include-all-objects:
+
+.. automodapi:: negmas.elicitors
+    :include-all-objects:
+
 .. automodapi:: negmas.helpers
     :include-all-objects:
 
