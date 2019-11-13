@@ -1762,7 +1762,10 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
             vals = iget(issues, k).all
             for indx, v in enumerate(vals):
-                u = gmap(iget(self.issue_utilities, issue_name), v)
+                try:
+                    u = gmap(iget(self.issue_utilities, issue_name), v)
+                except:
+                    u = gmap(iget(self.issue_utilities, k), v)
                 v_ = (
                     v
                     if not (isinstance(v, tuple) or isinstance(v, list))
