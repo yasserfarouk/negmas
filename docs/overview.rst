@@ -1034,11 +1034,17 @@ provide the following basic functionalities:
    implemented by just overriding a single ``round()`` function.
 -  provide basic callbacks that can be extended by new protocols.
 
-   .. container:: alert alert-block alert-warning
+   .. raw:: html
 
-      Protocols must extend any callback (i.e. call the ``super()``
-      version) instead of overriding them as they may do some actions to
-      ensure correct processing.
+      <div class="alert alert-block alert-warning">
+
+    Protocols must extend any callback (i.e. call the ``super()``
+   version) instead of overriding them as they may do some actions to
+   ensure correct processing.
+
+   .. raw:: html
+
+      </div>
 
 The simplest way to use a protocol is to just run one of the already
 provided protocols. This is an example of a full negotiation session:
