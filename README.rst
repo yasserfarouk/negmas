@@ -71,7 +71,7 @@ of one session is affected by what happens in other sessions.
 
 The documentation is available at: documentation_
 
-.. _documentation: http://http://yasserm.com/negmas/
+.. _documentation: http://yasserm.com/negmas/
 
 Main Features
 =============
