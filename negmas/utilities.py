@@ -2850,7 +2850,7 @@ def utility_range(
         u = [_ for _ in u if _ > infeasible_cutoff]
     if len(u) == 0:
         return ufun
-    return max(u), min(u)
+    return min(u), max(u)
 
 
 class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
