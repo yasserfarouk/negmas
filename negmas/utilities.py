@@ -2824,7 +2824,11 @@ def utility_range(
     issues: List[Issue] = None,
     outcomes: Collection[Outcome] = None,
     infeasible_cutoff: Optional[float] = None,
-) -> Tuple[UtilityValue, UtilityValue]:
+    return_outcomes=False,
+) -> Union[
+    Tuple[UtilityValue, UtilityValue],
+    Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
+]:
     """Finds the range of the given utility function for the given outcomes
 
     Args:
@@ -2837,6 +2841,12 @@ def utility_range(
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
 
     """
+    if outcomes is None and isinstance(ufun, LinearUtilityFunction):
+        # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
+        ranges = [(i.min_value, i.max_value) for i in issues]
+        u = sorted([(ufun(outcome), outcome) for outcome in itertools.product(*ranges)])
+        return u[0][0], u[-1][0], u[0][1], u[-1][1]
+
     if outcomes is None:
         outcomes = Issue.sample(
             issues,
@@ -2847,10 +2857,16 @@ def utility_range(
     u = [ufun(o) for o in outcomes]
     u = [float(_) for _ in u if _ is not None]
     if infeasible_cutoff is not None:
-        u = [_ for _ in u if _ > infeasible_cutoff]
+        if return_outcomes:
+            outcomes = [o for o, _ in zip(outcomes, u) if _ > infeasible_cutoff]
+        u = np.array([_ for _ in u if _ > infeasible_cutoff])
+
     if len(u) == 0:
         return ufun
-    return min(u), max(u)
+    if return_outcomes:
+        minloc, maxloc = np.argmin(u), np.argmax(u)
+        return u[minloc], u[maxloc], outcomes[minloc], outcomes[maxloc]
+    return float(np.min(u)), float(np.max(u))
 
 
 class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
@@ -2906,6 +2922,10 @@ def outcome_with_utility(
         )
     n = min(len(outcomes), n_trials)
     mn, mx = rng
+    if mn is None:
+        mn = float("-inf")
+    if mx is None:
+        mx = float("inf")
     for i in range(n):
         o = outcomes[i]
         if mn <= ufun(o) <= mx:

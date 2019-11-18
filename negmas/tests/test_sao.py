@@ -1,9 +1,10 @@
 import random
+from collections import defaultdict
 from datetime import timedelta
 from pathlib import Path
 from typing import List, Optional, Dict
 
-from hypothesis import given, settings
+from hypothesis import given, settings, example
 from pytest import mark
 import hypothesis.strategies as st
 
@@ -19,6 +20,7 @@ from negmas import (
     SAOSyncController,
     SAOState,
     ResponseType,
+    LinearUtilityFunction,
 )
 from negmas.helpers import unique_name
 from negmas.sao import SAOResponse
@@ -40,6 +42,93 @@ def test_round_n_agents(n_negotiators):
     mechanism.step()
     assert mechanism.state.step == 1
     assert mechanism._current_offer is not None
+
+
+@given(
+    n_negotiators=st.integers(2, 4),
+    n_issues=st.integers(1, 3),
+    presort=st.booleans(),
+    randomize_offers=st.booleans(),
+)
+@settings(deadline=20000, max_examples=100)
+@example(n_negotiators=2, n_issues=1, presort=False, randomize_offers=False)
+def test_aspiration_continuous_issues(
+    n_negotiators, n_issues, presort, randomize_offers
+):
+    for k in range(5):
+        mechanism = SAOMechanism(
+            issues=[Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)],
+            n_steps=10,
+        )
+        ufuns = [
+            LinearUtilityFunction(
+                weights=[3.0 * random.random(), 2.0 * random.random()],
+                reserved_value=0.0,
+            )
+            for _ in range(n_negotiators)
+        ]
+        best_outcome = tuple([1.0] * n_issues)
+        worst_outcome = tuple([0.0] * n_issues)
+        i = 0
+        assert mechanism.add(
+            AspirationNegotiator(
+                name=f"agent{i}",
+                presort=presort,
+                randomize_offer=randomize_offers,
+                ufun=ufuns[i],
+                ufun_max=ufuns[i](best_outcome),
+                ufun_min=ufuns[i](worst_outcome),
+            )
+        ), "Cannot add negotiator"
+        for i in range(1, n_negotiators):
+            assert mechanism.add(
+                AspirationNegotiator(
+                    name=f"agent{i}",
+                    presort=presort,
+                    randomize_offer=randomize_offers,
+                    ufun_max=ufuns[i](best_outcome),
+                    ufun_min=ufuns[i](worst_outcome),
+                ),
+                ufun=ufuns[i],
+            ), "Cannot add negotiator"
+        assert mechanism.state.step == 0
+        agents = dict(zip([_.id for _ in mechanism.negotiators], mechanism.negotiators))
+        offers = defaultdict(list)
+        while not mechanism.state.ended:
+            mechanism.step()
+            for neg_id, offer in mechanism.state.new_offers:
+                assert neg_id in agents.keys()
+                neg = agents[neg_id]
+                prev = offers[neg_id]
+                last_offer = prev[-1] if len(prev) > 0 else float("inf")
+                if randomize_offers:
+                    assert neg.utility_function(offer) <= neg.utility_function(
+                        best_outcome
+                    )
+                else:
+                    assert neg.utility_function(offer) <= last_offer
+                    if not presort:
+                        assert (
+                            -neg.tolerance
+                            <= (
+                                neg.utility_function(offer)
+                                - neg.aspiration(
+                                    (mechanism.state.step) / mechanism.n_steps
+                                )
+                                * neg.utility_function(best_outcome)
+                            )
+                            < pow(neg.tolerance, 0.5 / neg.n_trials) + neg.tolerance
+                        )
+                    # else:
+                    #     assert -neg.tolerance <= (
+                    #         neg.utility_function(offer)
+                    #         - neg.aspiration(
+                    #             (mechanism.state.step - 1) / mechanism.n_steps
+                    #         )
+                    #         * neg.utility_function(best_outcome)
+                    #     )
+
+                offers[neg_id].append(neg.utility_function(offer))
 
 
 @mark.parametrize(["n_negotiators"], [(2,), (3,)])
@@ -250,7 +339,11 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
     )
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
-        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i], aspiration_type="conceder")
+        mechanism.add(
+            AspirationNegotiator(name=f"agent{i}"),
+            ufun=ufuns[i],
+            aspiration_type="conceder",
+        )
 
     mechanism.run()
 

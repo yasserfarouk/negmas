@@ -1,6 +1,35 @@
+import random
+
 import pytest
+from pytest import mark
 
 from negmas import *
+
+
+@mark.parametrize(["n_issues"], [(2,), (3,)])
+def test_ufun_range_linear(n_issues):
+    issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    rs = [(i + 1.0) * random.random() for i in range(n_issues)]
+    ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0)
+    assert ufun([0.0] * n_issues) == 0.0
+    assert ufun([1.0] * n_issues) == sum(rs)
+    rng = utility_range(ufun, issues=issues)
+    assert rng[0] >= 0.0
+    assert rng[1] <= sum(rs)
+
+
+@mark.parametrize(["n_issues"], [(2,), (3,)])
+def test_ufun_range_general(n_issues):
+    issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    rs = [(i + 1.0) * random.random() for i in range(n_issues)]
+    ufun = MappingUtilityFunction(
+        mapping=lambda x: sum(r * v for r, v in zip(rs, outcome_as_tuple(x)))
+    )
+    assert ufun([0.0] * n_issues) == 0.0
+    assert ufun([1.0] * n_issues) == sum(rs)
+    rng = utility_range(ufun, issues=issues)
+    assert rng[0] >= 0.0
+    assert rng[1] <= sum(rs)
 
 
 def test_pareto_frontier_does_not_depend_on_order():

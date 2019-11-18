@@ -35,6 +35,7 @@ from negmas.outcomes import (
     outcome_as_dict,
     outcome_as_tuple,
     outcome_is_complete,
+    Issue,
 )
 from negmas.utilities import (
     MappingUtilityFunction,
@@ -42,6 +43,8 @@ from negmas.utilities import (
     UtilityFunction,
     UtilityValue,
     JavaUtilityFunction,
+    utility_range,
+    outcome_with_utility,
 )
 import pandas as pd
 import seaborn as sns
@@ -1208,11 +1211,14 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         ranking=False,
         ufun_max=None,
         ufun_min=None,
+        presort: bool = True,
+        tolerance: float = 0.01,
     ):
         self.ordered_outcomes = []
         self.ufun_max = ufun_max
         self.ufun_min = ufun_min
         self.ranking = ranking
+        self.tolerance = tolerance
         if assume_normalized:
             self.ufun_max, self.ufun_min = 1.0, 0.0
         super().__init__(
@@ -1227,6 +1233,9 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             )
         self.randomize_offer = randomize_offer
         self._max_aspiration = self.max_aspiration
+        self.best_outcome, self.worst_outcome = None, None
+        self.presort = presort
+        self.presorted = False
         self.add_capabilities(
             {
                 "respond": True,
@@ -1235,25 +1244,52 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 "max-proposals": None,  # indicates infinity
             }
         )
+        self.__last_offer_util, self.__last_offer = float("inf"), None
+        self.n_outcomes_to_force_presort = 1000
 
     def on_ufun_changed(self):
         super().on_ufun_changed()
-        outcomes = self._ami.discrete_outcomes()
-        self.ordered_outcomes = sorted(
-            [(self._utility_function(outcome), outcome) for outcome in outcomes],
-            key=lambda x: float(x[0]) if x[0] is not None else float("-inf"),
-            reverse=True,
-        )
-        if not self.assume_normalized:
-            self.ufun_max = self.ordered_outcomes[0][0]
+        presort = self.presort
+        if (
+            not presort
+            and all(i.is_countable() for i in self._ami.issues)
+            and Issue.n_outcomes(self._ami.issues) >= self.n_outcomes_to_force_presort
+        ):
+            presort = True
+        if presort:
+            outcomes = self._ami.discrete_outcomes()
+            self.ordered_outcomes = sorted(
+                [(self._utility_function(outcome), outcome) for outcome in outcomes],
+                key=lambda x: float(x[0]) if x[0] is not None else float("-inf"),
+                reverse=True,
+            )
+            if not self.assume_normalized:
+                if self.ufun_max is None:
+                    self.ufun_max = self.ordered_outcomes[0][0]
 
-            # we set the minimum utility to the minimum finite value above both reserved_value
-            for j in range(len(outcomes) - 1, -1, -1):
-                self.ufun_min = self.ordered_outcomes[j][0]
-                if self.ufun_min is not None and self.ufun_min > float("-inf"):
-                    break
-            if self.reserved_value is not None and self.ufun_min < self.reserved_value:
-                self.ufun_min = self.reserved_value
+                if self.ufun_min is None:
+                    # we set the minimum utility to the minimum finite value above both reserved_value
+                    for j in range(len(outcomes) - 1, -1, -1):
+                        self.ufun_min = self.ordered_outcomes[j][0]
+                        if self.ufun_min is not None and self.ufun_min > float("-inf"):
+                            break
+                    if (
+                        self.reserved_value is not None
+                        and self.ufun_min < self.reserved_value
+                    ):
+                        self.ufun_min = self.reserved_value
+        else:
+            if self.ufun_min is None or self.ufun_max is None:
+                mn, mx, self.worst_outcome, self.best_outcome = utility_range(
+                    self.ufun, return_outcomes=True, issues=self._ami.issues
+                )
+                if self.ufun_min is None:
+                    self.ufun_min = mn
+                if self.ufun_max is None:
+                    self.ufun_max = mx
+
+        self.presorted = presort
+        self.n_trials = 10
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         if self._utility_function is None:
@@ -1278,20 +1314,49 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         )
         if self.reserved_value is not None and asp < self.reserved_value:
             return None
-        for i, (u, o) in enumerate(self.ordered_outcomes):
-            if u is None:
-                continue
-            if u < asp:
-                if self.reserved_value is not None and u < self.reserved_value:
-                    return None
-                if i == 0:
-                    return self.ordered_outcomes[i][1]
-                if self.randomize_offer:
-                    return random.sample(self.ordered_outcomes[:i], 1)[0][1]
-                return self.ordered_outcomes[i - 1][1]
-        if self.randomize_offer:
-            return random.sample(self.ordered_outcomes, 1)[0][1]
-        return self.ordered_outcomes[-1][1]
+        if self.presorted:
+            for i, (u, o) in enumerate(self.ordered_outcomes):
+                if u is None:
+                    continue
+                if u < asp:
+                    if self.reserved_value is not None and u < self.reserved_value:
+                        return None
+                    if i == 0:
+                        return self.ordered_outcomes[i][1]
+                    if self.randomize_offer:
+                        return random.sample(self.ordered_outcomes[:i], 1)[0][1]
+                    return self.ordered_outcomes[i - 1][1]
+            if self.randomize_offer:
+                return random.sample(self.ordered_outcomes, 1)[0][1]
+            return self.ordered_outcomes[-1][1]
+        else:
+            if asp >= 0.99999999999 and self.best_outcome is not None:
+                return self.best_outcome
+            if self.randomize_offer:
+                return outcome_with_utility(
+                    ufun=self._utility_function,
+                    rng=(asp, float("inf")),
+                    issues=self._ami.issues,
+                )
+            tol = self.tolerance
+            for _ in range(self.n_trials):
+                rng = self.ufun_max - self.ufun_min
+                mx = min(asp + tol * rng, self.__last_offer_util)
+                outcome = outcome_with_utility(
+                    ufun=self._utility_function, rng=(asp, mx), issues=self._ami.issues
+                )
+                if outcome is not None:
+                    break
+                tol = math.sqrt(tol)
+            else:
+                outcome = (
+                    self.best_outcome
+                    if self.__last_offer is None
+                    else self.__last_offer
+                )
+            self.__last_offer_util = self.utility_function(outcome)
+            self.__last_offer = outcome
+            return outcome
 
 
 class NiceNegotiator(SAONegotiator, RandomProposalMixin):
