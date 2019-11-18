@@ -1,8 +1,25 @@
 History
 =======
 
+Release 0.3.7
+-------------
+
+- [Core][Tutorials] fix documentation of "Running existing negotiators"
+- [Core][Utility] fixing a bug in xml() for UtilityFunction
+- [Core][Documentation] adding documentation for elicitors, and modeling
+- [Core][Genius] allowing Genius negotiators to be initialized using a ufun instead of files.
+- [Core][Genius] Adding some built-in genius negotiators (Atlas3, AgentX, YXAgent, etc)
+- [Core][Modeling] restructuring modeling into its own packages with modules for utility, strategy, acceptance and future modeling.
+- [Core][Modeling] Adding regression based future modeling
+- adding python 3.8 to tox
+- [Core][Outcomes] adding functions to generate outcomes at a given utility, find the range of a utility function, etc
+- [Core] restoring compatibility with python 3.6
+- [Core][Elicitation, Modeling] Added utility elicitation and basic acceptance modeling (experimental)
+
+
 Release 0.3.6
 -------------
+
 - Documentation Update.
 - Adding LinearUtilityFunction as a simple way to implement linear utility functions without the need to use
   LinearUtilityAggregationFunction.

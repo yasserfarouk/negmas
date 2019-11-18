@@ -1,0 +1,464 @@
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Coverage report</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="jquery.ba-throttle-debounce.min.js"></script>
+    <script type="text/javascript" src="jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="jquery.hotkeys.js"></script>
+    <script type="text/javascript" src="coverage_html.js"></script>
+    <script type="text/javascript">
+        jQuery(document).ready(coverage.index_ready);
+    </script>
+</head>
+<body class="indexfile">
+
+<div id="header">
+    <div class="content">
+        <h1>Coverage report:
+            <span class="pc_cov">33%</span>
+        </h1>
+
+        <img id="keyboard_icon" src="keybd_closed.png" alt="Show keyboard shortcuts" />
+
+        <form id="filter_container">
+            <input id="filter" type="text" value="" placeholder="filter..." />
+        </form>
+    </div>
+</div>
+
+<div class="help_panel">
+    <img id="panel_icon" src="keybd_open.png" alt="Hide keyboard shortcuts" />
+    <p class="legend">Hot-keys on this page</p>
+    <div>
+    <p class="keyhelp">
+        <span class="key">n</span>
+        <span class="key">s</span>
+        <span class="key">m</span>
+        <span class="key">x</span>
+        
+        <span class="key">b</span>
+        <span class="key">p</span>
+        
+        <span class="key">c</span> &nbsp; change column sorting
+    </p>
+    </div>
+</div>
+
+<div id="index">
+    <table class="index">
+        <thead>
+            
+            <tr class="tablehead" title="Click to sort">
+                <th class="name left headerSortDown shortkey_n">Module</th>
+                <th class="shortkey_s">statements</th>
+                <th class="shortkey_m">missing</th>
+                <th class="shortkey_x">excluded</th>
+                
+                <th class="shortkey_b">branches</th>
+                <th class="shortkey_p">partial</th>
+                
+                <th class="right shortkey_c">coverage</th>
+            </tr>
+        </thead>
+        
+        <tfoot>
+            <tr class="total">
+                <td class="name left">Total</td>
+                <td>11090</td>
+                <td>6531</td>
+                <td>20</td>
+                
+                <td>5241</td>
+                <td>1087</td>
+                
+                <td class="right" data-ratio="5350 16331">33%</td>
+            </tr>
+        </tfoot>
+        <tbody>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas___init___py.html">negmas/__init__.py</a></td>
+                <td>26</td>
+                <td>3</td>
+                <td>0</td>
+                
+                <td>2</td>
+                <td>1</td>
+                
+                <td class="right" data-ratio="24 28">86%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps___init___py.html">negmas/apps/__init__.py</a></td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                
+                <td>0</td>
+                <td>0</td>
+                
+                <td class="right" data-ratio="0 0">100%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml___init___py.html">negmas/apps/scml/__init__.py</a></td>
+                <td>16</td>
+                <td>0</td>
+                <td>0</td>
+                
+                <td>0</td>
+                <td>0</td>
+                
+                <td class="right" data-ratio="16 16">100%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_agent_py.html">negmas/apps/scml/agent.py</a></td>
+                <td>120</td>
+                <td>31</td>
+                <td>0</td>
+                
+                <td>18</td>
+                <td>3</td>
+                
+                <td class="right" data-ratio="98 138">71%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_awi_py.html">negmas/apps/scml/awi.py</a></td>
+                <td>126</td>
+                <td>54</td>
+                <td>0</td>
+                
+                <td>16</td>
+                <td>1</td>
+                
+                <td class="right" data-ratio="73 142">51%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_bank_py.html">negmas/apps/scml/bank.py</a></td>
+                <td>150</td>
+                <td>92</td>
+                <td>0</td>
+                
+                <td>50</td>
+                <td>2</td>
+                
+                <td class="right" data-ratio="66 200">33%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_common_py.html">negmas/apps/scml/common.py</a></td>
+                <td>772</td>
+                <td>511</td>
+                <td>0</td>
+                
+                <td>374</td>
+                <td>71</td>
+                
+                <td class="right" data-ratio="292 1146">25%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_consumers_py.html">negmas/apps/scml/consumers.py</a></td>
+                <td>354</td>
+                <td>181</td>
+                <td>0</td>
+                
+                <td>130</td>
+                <td>19</td>
+                
+                <td class="right" data-ratio="222 484">46%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_factory_managers_py.html">negmas/apps/scml/factory_managers.py</a></td>
+                <td>573</td>
+                <td>326</td>
+                <td>0</td>
+                
+                <td>153</td>
+                <td>12</td>
+                
+                <td class="right" data-ratio="259 726">36%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_helpers_py.html">negmas/apps/scml/helpers.py</a></td>
+                <td>23</td>
+                <td>15</td>
+                <td>0</td>
+                
+                <td>10</td>
+                <td>0</td>
+                
+                <td class="right" data-ratio="8 33">24%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_insurance_py.html">negmas/apps/scml/insurance.py</a></td>
+                <td>96</td>
+                <td>52</td>
+                <td>0</td>
+                
+                <td>26</td>
+                <td>1</td>
+                
+                <td class="right" data-ratio="45 122">37%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_miners_py.html">negmas/apps/scml/miners.py</a></td>
+                <td>132</td>
+                <td>26</td>
+                <td>0</td>
+                
+                <td>28</td>
+                <td>8</td>
+                
+                <td class="right" data-ratio="122 160">76%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_schedulers_py.html">negmas/apps/scml/schedulers.py</a></td>
+                <td>271</td>
+                <td>167</td>
+                <td>0</td>
+                
+                <td>130</td>
+                <td>1</td>
+                
+                <td class="right" data-ratio="121 401">30%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_simulators_py.html">negmas/apps/scml/simulators.py</a></td>
+                <td>604</td>
+                <td>254</td>
+                <td>3</td>
+                
+                <td>188</td>
+                <td>31</td>
+                
+                <td class="right" data-ratio="411 792">52%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_utils_py.html">negmas/apps/scml/utils.py</a></td>
+                <td>431</td>
+                <td>95</td>
+                <td>0</td>
+                
+                <td>258</td>
+                <td>42</td>
+                
+                <td class="right" data-ratio="514 689">75%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_apps_scml_world_py.html">negmas/apps/scml/world.py</a></td>
+                <td>1002</td>
+                <td>624</td>
+                <td>0</td>
+                
+                <td>581</td>
+                <td>129</td>
+                
+                <td class="right" data-ratio="426 1583">27%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_common_py.html">negmas/common.py</a></td>
+                <td>209</td>
+                <td>141</td>
+                <td>4</td>
+                
+                <td>42</td>
+                <td>13</td>
+                
+                <td class="right" data-ratio="71 251">28%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_events_py.html">negmas/events.py</a></td>
+                <td>59</td>
+                <td>27</td>
+                <td>0</td>
+                
+                <td>12</td>
+                <td>0</td>
+                
+                <td class="right" data-ratio="38 71">54%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_generics_py.html">negmas/generics.py</a></td>
+                <td>35</td>
+                <td>4</td>
+                <td>0</td>
+                
+                <td>12</td>
+                <td>1</td>
+                
+                <td class="right" data-ratio="42 47">89%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_genius_py.html">negmas/genius.py</a></td>
+                <td>244</td>
+                <td>199</td>
+                <td>0</td>
+                
+                <td>85</td>
+                <td>12</td>
+                
+                <td class="right" data-ratio="47 329">14%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_helpers_py.html">negmas/helpers.py</a></td>
+                <td>447</td>
+                <td>262</td>
+                <td>4</td>
+                
+                <td>193</td>
+                <td>60</td>
+                
+                <td class="right" data-ratio="200 640">31%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_inout_py.html">negmas/inout.py</a></td>
+                <td>135</td>
+                <td>43</td>
+                <td>0</td>
+                
+                <td>84</td>
+                <td>30</td>
+                
+                <td class="right" data-ratio="116 219">53%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_java_py.html">negmas/java.py</a></td>
+                <td>259</td>
+                <td>173</td>
+                <td>0</td>
+                
+                <td>172</td>
+                <td>14</td>
+                
+                <td class="right" data-ratio="117 431">27%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_mechanisms_py.html">negmas/mechanisms.py</a></td>
+                <td>402</td>
+                <td>230</td>
+                <td>2</td>
+                
+                <td>198</td>
+                <td>60</td>
+                
+                <td class="right" data-ratio="200 600">33%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_negotiators_py.html">negmas/negotiators.py</a></td>
+                <td>371</td>
+                <td>312</td>
+                <td>0</td>
+                
+                <td>138</td>
+                <td>12</td>
+                
+                <td class="right" data-ratio="63 509">12%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_outcomes_py.html">negmas/outcomes.py</a></td>
+                <td>606</td>
+                <td>426</td>
+                <td>2</td>
+                
+                <td>430</td>
+                <td>80</td>
+                
+                <td class="right" data-ratio="200 1036">19%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_sao_py.html">negmas/sao.py</a></td>
+                <td>886</td>
+                <td>568</td>
+                <td>0</td>
+                
+                <td>468</td>
+                <td>127</td>
+                
+                <td class="right" data-ratio="371 1354">27%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_situated_py.html">negmas/situated.py</a></td>
+                <td>1193</td>
+                <td>740</td>
+                <td>0</td>
+                
+                <td>511</td>
+                <td>139</td>
+                
+                <td class="right" data-ratio="510 1704">30%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_tournaments_py.html">negmas/tournaments.py</a></td>
+                <td>570</td>
+                <td>298</td>
+                <td>0</td>
+                
+                <td>325</td>
+                <td>99</td>
+                
+                <td class="right" data-ratio="327 895">37%</td>
+            </tr>
+            
+            <tr class="file">
+                <td class="name left"><a href="negmas_utilities_py.html">negmas/utilities.py</a></td>
+                <td>978</td>
+                <td>677</td>
+                <td>5</td>
+                
+                <td>607</td>
+                <td>119</td>
+                
+                <td class="right" data-ratio="351 1585">22%</td>
+            </tr>
+            
+        </tbody>
+    </table>
+
+    <p id="no_rows">
+        No items found using the specified filter.
+    </p>
+</div>
+
+<div id="footer">
+    <div class="content">
+        <p>
+            <a class="nav" href="https://coverage.readthedocs.io">coverage.py v4.5.4</a>,
+            created at 2019-11-18 15:12
+        </p>
+    </div>
+</div>
+
+</body>
+</html>

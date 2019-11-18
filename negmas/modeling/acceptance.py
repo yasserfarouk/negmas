@@ -2,6 +2,7 @@
 """
 import random
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Union, Collection, List, TYPE_CHECKING
 
 import numpy as np
@@ -12,25 +13,50 @@ from negmas.common import *
 if TYPE_CHECKING:
     from negmas.sao import SAONegotiator
 
-__all__ = ['DiscreteAcceptanceModel', 'AdaptiveDiscreteAcceptanceModel', 'RandomDiscreteAcceptanceModel',
-           'PeekingDiscreteAcceptanceModel'
-    , 'AggregatingDiscreteAcceptanceModel', 'UncertainOpponentModel', 'PeekingProbabilisticDiscreteAcceptanceModel']
+__all__ = [
+    "AcceptanceModelType",
+    "DiscreteAcceptanceModel",
+    "AdaptiveDiscreteAcceptanceModel",
+    "RandomDiscreteAcceptanceModel",
+    "PeekingDiscreteAcceptanceModel",
+    "AggregatingDiscreteAcceptanceModel",
+    "UncertainOpponentModel",
+    "PeekingProbabilisticDiscreteAcceptanceModel",
+]
+
+
+class AcceptanceModelType(Enum):
+    """Represents types of acceptance models."""
+
+    ACCEPTANCE_MODEL_RANDOM = -100
+    ACCEPTANCE_MODEL_AUTO = -1
+    ACCEPTANCE_MODEL_STATIC = 0
+    ACCEPTANCE_MODEL_HOMOGENEOUS_CONST = 1
+    ACCEPTANCE_MODEL_HOMOGENEOUS = 2
+    ACCEPTANCE_MODEL_MONOTONIC = 3
+    ACCEPTANCE_MODEL_GENERAL = 4
+    ACCEPTANCE_MODEL_BINARY_STATIC = 7
+    ACCEPTANCE_MODEL_BINARY_HOMOGENEOUS_CONST = 8
+    ACCEPTANCE_MODEL_BINARY_HOMOGENEOUS = 9
+    ACCEPTANCE_MODEL_BINARY_MONOTONIC = 10
+    ACCEPTANCE_MODEL_BINARY = 11
 
 
 class DiscreteAcceptanceModel(ABC):
     """"""
+
     def __init__(self, outcomes: Collection[Outcome]):
         outcomes = list(outcomes)
         self.outcomes = outcomes
         self.indx = dict(zip(outcomes, range(len(outcomes))))
 
-    def probability_of_acceptance(self, outcome: 'Outcome'):
+    def probability_of_acceptance(self, outcome: "Outcome"):
         indx = self.indx.get(outcome, None)
         if indx is None:
             return 0.0
         return self.probability_of_acceptance_indx(indx)
 
-    def update_rejected(self, outcome: 'Outcome'):
+    def update_rejected(self, outcome: "Outcome"):
         if outcome is None:
             return
         return self.update_rejected_indx(self.indx[outcome])
@@ -44,7 +70,9 @@ class DiscreteAcceptanceModel(ABC):
         return self.update_offered(outcome=outcome)
 
     def acceptance_probabilities(self) -> np.ndarray:
-        return np.array([self.probability_of_acceptance_indx(_) for _ in range(len(self.outcomes))])
+        return np.array(
+            [self.probability_of_acceptance_indx(_) for _ in range(len(self.outcomes))]
+        )
 
     @abstractmethod
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
@@ -60,21 +88,25 @@ class DiscreteAcceptanceModel(ABC):
 
 
 class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
-    def __init__(self, outcomes: Collection[Outcome]
-                 , n_negotiators: int = 2
-                 , prob: Union[float, List[float]] = 0.5
-                 , end_prob=0.0
-                 , p_accept_after_reject=0.0
-                 , p_reject_after_accept=0.0
-                 , rejection_discount=0.98
-                 , rejection_delta=0.0
-                 , not_offering_rejection_ratio=0.75
-                 ):
+    def __init__(
+        self,
+        outcomes: Collection[Outcome],
+        n_negotiators: int = 2,
+        prob: Union[float, List[float]] = 0.5,
+        end_prob=0.0,
+        p_accept_after_reject=0.0,
+        p_reject_after_accept=0.0,
+        rejection_discount=0.98,
+        rejection_delta=0.0,
+        not_offering_rejection_ratio=0.75,
+    ):
         super().__init__(outcomes=outcomes)
         outcomes = self.outcomes
         if isinstance(prob, list) and len(outcomes) != len(prob):
-            raise ValueError(f'{len(outcomes)} outcomes but {len(prob)} probabilities. Cannot initialize simple '
-                             f'opponents model')
+            raise ValueError(
+                f"{len(outcomes)} outcomes but {len(prob)} probabilities. Cannot initialize simple "
+                f"opponents model"
+            )
         self.n_agents = n_negotiators
         if not isinstance(prob, Collection):
             self.p = np.array([prob for _ in range(len(outcomes))])
@@ -88,19 +120,31 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         self.first = True
         self.not_offered = set(list(range(len(self.outcomes))))
         self.not_offering_rejection_ratio = not_offering_rejection_ratio
-        self.not_offering_discount = self.discount + (1.0 - self.not_offering_rejection_ratio) * (1.0-self.discount)
+        self.not_offering_discount = self.discount + (
+            1.0 - self.not_offering_rejection_ratio
+        ) * (1.0 - self.discount)
 
     @classmethod
-    def from_negotiation(cls, ami: AgentMechanismInterface
-                         , prob: Union[float, list] = 0.5
-                         , end_prob=0.0
-                         , p_accept_after_reject=0.0
-                         , p_reject_after_accept=0.0) -> 'AdaptiveDiscreteAcceptanceModel':
+    def from_negotiation(
+        cls,
+        ami: AgentMechanismInterface,
+        prob: Union[float, list] = 0.5,
+        end_prob=0.0,
+        p_accept_after_reject=0.0,
+        p_reject_after_accept=0.0,
+    ) -> "AdaptiveDiscreteAcceptanceModel":
         if not ami.n_outcomes or ami.outcomes is None:
-            raise ValueError('Cannot initialize this simple opponents model for a negotiation with uncountable outcomes')
-        return cls(outcomes=ami.outcomes, n_negotiators=ami.n_negotiators
-                   , prob=prob, end_prob=end_prob, p_accept_after_reject=p_accept_after_reject
-                   , p_reject_after_accept=p_reject_after_accept)
+            raise ValueError(
+                "Cannot initialize this simple opponents model for a negotiation with uncountable outcomes"
+            )
+        return cls(
+            outcomes=ami.outcomes,
+            n_negotiators=ami.n_negotiators,
+            prob=prob,
+            end_prob=end_prob,
+            p_accept_after_reject=p_accept_after_reject,
+            p_reject_after_accept=p_reject_after_accept,
+        )
 
     def probability_of_acceptance_indx(self, outcome_index: int) -> float:
         return self.p[outcome_index]
@@ -111,9 +155,18 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
 
     def _update(self, p: float, real_rejection: bool) -> float:
         if real_rejection:
-            return min(self.p_accept_after_reject, min(1.0,  (p - self.delta) * self.discount))
+            return min(
+                self.p_accept_after_reject, min(1.0, (p - self.delta) * self.discount)
+            )
         else:
-            return max(self.p_accept_after_reject, min(1.0, (p - self.delta*self.not_offering_rejection_ratio) * self.not_offering_discount))
+            return max(
+                self.p_accept_after_reject,
+                min(
+                    1.0,
+                    (p - self.delta * self.not_offering_rejection_ratio)
+                    * self.not_offering_discount,
+                ),
+            )
 
     def update_rejected_indx(self, outcome_index: int):
         self.p[outcome_index] = self._update(self.p[outcome_index], real_rejection=True)
@@ -157,7 +210,11 @@ class ConstantDiscreteAcceptanceModel(DiscreteAcceptanceModel):
 
 
 class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
-    def __init__(self, outcomes: Collection[Outcome], opponents: Union['SAONegotiator', Collection['SAONegotiator']]):
+    def __init__(
+        self,
+        outcomes: Collection[Outcome],
+        opponents: Union["SAONegotiator", Collection["SAONegotiator"]],
+    ):
         super().__init__(outcomes=outcomes)
         if not isinstance(opponents, Collection):
             opponents = [opponents]
@@ -184,7 +241,11 @@ class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
 
 
 class PeekingProbabilisticDiscreteAcceptanceModel(DiscreteAcceptanceModel):
-    def __init__(self, outcomes: Collection[Outcome], opponents: Union['SAONegotiator', Collection['SAONegotiator']]):
+    def __init__(
+        self,
+        outcomes: Collection[Outcome],
+        opponents: Union["SAONegotiator", Collection["SAONegotiator"]],
+    ):
         super().__init__(outcomes=outcomes)
         if not isinstance(opponents, Collection):
             opponents = [opponents]
@@ -196,7 +257,7 @@ class PeekingProbabilisticDiscreteAcceptanceModel(DiscreteAcceptanceModel):
             return 0.0
         prod = 1.0
         for o in self.opponents:
-            prod *= o.ufun(outcome) # type: ignore
+            prod *= o.ufun(outcome)  # type: ignore
         return prod
 
     def update_rejected_indx(self, outcome_index: int):
@@ -207,7 +268,12 @@ class PeekingProbabilisticDiscreteAcceptanceModel(DiscreteAcceptanceModel):
 
 
 class AggregatingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
-    def __init__(self, outcomes: Collection[Outcome], models: List[DiscreteAcceptanceModel], weights: List[float] = None):
+    def __init__(
+        self,
+        outcomes: Collection[Outcome],
+        models: List[DiscreteAcceptanceModel],
+        weights: List[float] = None,
+    ):
         super().__init__(outcomes=outcomes)
         if weights is None:
             weights = [1.0] * len(self.outcomes)
@@ -245,33 +311,47 @@ class UncertainOpponentModel(AggregatingDiscreteAcceptanceModel):
         rejection_delta: Only effective if adaptive is True. See `AdaptiveDiscreteAcceptanceModel`
 
     """
-    def __init__(self, outcomes: Collection[Outcome]
-                 , opponents: Union['SAONegotiator', Collection['SAONegotiator']]
-                 , uncertainty: float = 0.5
-                 , adaptive: bool = False
-                 , rejection_discount: float = 0.95
-                 , rejection_delta: float = 0.0
-                 , constant_base=True
-                 , accesses_real_acceptance=False
-                 ):
+
+    def __init__(
+        self,
+        outcomes: Collection[Outcome],
+        opponents: Union["SAONegotiator", Collection["SAONegotiator"]],
+        uncertainty: float = 0.5,
+        adaptive: bool = False,
+        rejection_discount: float = 0.95,
+        rejection_delta: float = 0.0,
+        constant_base=True,
+        accesses_real_acceptance=False,
+    ):
         randomizing_model: DiscreteAcceptanceModel
         peaking_model: DiscreteAcceptanceModel
         if adaptive:
-            randomizing_model = AdaptiveDiscreteAcceptanceModel(outcomes=outcomes
-                                                                , rejection_discount=rejection_discount
-                                                                , rejection_delta=rejection_delta)
+            randomizing_model = AdaptiveDiscreteAcceptanceModel(
+                outcomes=outcomes,
+                rejection_discount=rejection_discount,
+                rejection_delta=rejection_delta,
+            )
         elif constant_base:
             randomizing_model = ConstantDiscreteAcceptanceModel(outcomes=outcomes)
         else:
             randomizing_model = RandomDiscreteAcceptanceModel(outcomes=outcomes)
         if accesses_real_acceptance:
-            peaking_model = PeekingDiscreteAcceptanceModel(opponents=opponents, outcomes=outcomes)
+            peaking_model = PeekingDiscreteAcceptanceModel(
+                opponents=opponents, outcomes=outcomes
+            )
         else:
-            peaking_model = PeekingProbabilisticDiscreteAcceptanceModel(opponents=opponents, outcomes=outcomes)
+            peaking_model = PeekingProbabilisticDiscreteAcceptanceModel(
+                opponents=opponents, outcomes=outcomes
+            )
         if uncertainty < 1e-7:
-            super().__init__(outcomes=outcomes,models=[peaking_model], weights=[1.0])
-        elif uncertainty > 1.0-1e-7:
-            super().__init__(outcomes=outcomes, models=[randomizing_model], weights=[1.0])
+            super().__init__(outcomes=outcomes, models=[peaking_model], weights=[1.0])
+        elif uncertainty > 1.0 - 1e-7:
+            super().__init__(
+                outcomes=outcomes, models=[randomizing_model], weights=[1.0]
+            )
         else:
-            super().__init__(outcomes=outcomes, models=[peaking_model, randomizing_model]
-                             , weights=[1.0 - uncertainty, uncertainty])
+            super().__init__(
+                outcomes=outcomes,
+                models=[peaking_model, randomizing_model],
+                weights=[1.0 - uncertainty, uncertainty],
+            )

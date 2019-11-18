@@ -398,7 +398,7 @@ class TestCountableOutcomesElicitor(object):
         queries = list(elicitor.user.elicited_queries())
         assert len(neg.history) > 0
         assert neg.agreement is None or neg.agreement in accepted
-        assert elicitor.elicitation_cost > 0.0 or cost == 0.0 or elicitor.strategy is None
+        assert elicitor.elicitation_cost > 0.0 or cost == 0.0 or elicitor.strategy is None or neg.state < 2
         if neg.agreement is not None:
             assert elicitor.ufun(neg.agreement) == \
                    true_utilities[neg.agreement[0]] - elicitor.elicitation_cost
