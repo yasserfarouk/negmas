@@ -1,0 +1,333 @@
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=emulateIE7" />
+    <title>Coverage for negmas/apps/scml/__init__.py: 100%</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="jquery.hotkeys.js"></script>
+    <script type="text/javascript" src="jquery.isonscreen.js"></script>
+    <script type="text/javascript" src="coverage_html.js"></script>
+    <script type="text/javascript">
+        jQuery(document).ready(coverage.pyfile_ready);
+    </script>
+</head>
+<body class="pyfile">
+
+<div id="header">
+    <div class="content">
+        <h1>Coverage for <b>negmas/apps/scml/__init__.py</b> :
+            <span class="pc_cov">100%</span>
+        </h1>
+
+        <img id="keyboard_icon" src="keybd_closed.png" alt="Show keyboard shortcuts" />
+
+        <h2 class="stats">
+            16 statements &nbsp;
+            <span class="run hide_run shortkey_r button_toggle_run">16 run</span>
+            <span class="mis shortkey_m button_toggle_mis">0 missing</span>
+            <span class="exc shortkey_x button_toggle_exc">0 excluded</span>
+
+            
+                <span class="par run hide_run shortkey_p button_toggle_par">0 partial</span>
+            
+        </h2>
+    </div>
+</div>
+
+<div class="help_panel">
+    <img id="panel_icon" src="keybd_open.png" alt="Hide keyboard shortcuts" />
+    <p class="legend">Hot-keys on this page</p>
+    <div>
+    <p class="keyhelp">
+        <span class="key">r</span>
+        <span class="key">m</span>
+        <span class="key">x</span>
+        <span class="key">p</span> &nbsp; toggle line displays
+    </p>
+    <p class="keyhelp">
+        <span class="key">j</span>
+        <span class="key">k</span> &nbsp; next/prev highlighted chunk
+    </p>
+    <p class="keyhelp">
+        <span class="key">0</span> &nbsp; (zero) top of page
+    </p>
+    <p class="keyhelp">
+        <span class="key">1</span> &nbsp; (one) first highlighted chunk
+    </p>
+    </div>
+</div>
+
+<div id="source">
+    <table>
+        <tr>
+            <td class="linenos">
+<p id="n1" class="pln"><a href="#n1">1</a></p>
+<p id="n2" class="pln"><a href="#n2">2</a></p>
+<p id="n3" class="pln"><a href="#n3">3</a></p>
+<p id="n4" class="pln"><a href="#n4">4</a></p>
+<p id="n5" class="pln"><a href="#n5">5</a></p>
+<p id="n6" class="pln"><a href="#n6">6</a></p>
+<p id="n7" class="pln"><a href="#n7">7</a></p>
+<p id="n8" class="pln"><a href="#n8">8</a></p>
+<p id="n9" class="pln"><a href="#n9">9</a></p>
+<p id="n10" class="pln"><a href="#n10">10</a></p>
+<p id="n11" class="pln"><a href="#n11">11</a></p>
+<p id="n12" class="pln"><a href="#n12">12</a></p>
+<p id="n13" class="pln"><a href="#n13">13</a></p>
+<p id="n14" class="pln"><a href="#n14">14</a></p>
+<p id="n15" class="pln"><a href="#n15">15</a></p>
+<p id="n16" class="pln"><a href="#n16">16</a></p>
+<p id="n17" class="pln"><a href="#n17">17</a></p>
+<p id="n18" class="pln"><a href="#n18">18</a></p>
+<p id="n19" class="pln"><a href="#n19">19</a></p>
+<p id="n20" class="pln"><a href="#n20">20</a></p>
+<p id="n21" class="pln"><a href="#n21">21</a></p>
+<p id="n22" class="pln"><a href="#n22">22</a></p>
+<p id="n23" class="pln"><a href="#n23">23</a></p>
+<p id="n24" class="pln"><a href="#n24">24</a></p>
+<p id="n25" class="pln"><a href="#n25">25</a></p>
+<p id="n26" class="pln"><a href="#n26">26</a></p>
+<p id="n27" class="pln"><a href="#n27">27</a></p>
+<p id="n28" class="pln"><a href="#n28">28</a></p>
+<p id="n29" class="pln"><a href="#n29">29</a></p>
+<p id="n30" class="pln"><a href="#n30">30</a></p>
+<p id="n31" class="pln"><a href="#n31">31</a></p>
+<p id="n32" class="pln"><a href="#n32">32</a></p>
+<p id="n33" class="pln"><a href="#n33">33</a></p>
+<p id="n34" class="pln"><a href="#n34">34</a></p>
+<p id="n35" class="pln"><a href="#n35">35</a></p>
+<p id="n36" class="pln"><a href="#n36">36</a></p>
+<p id="n37" class="pln"><a href="#n37">37</a></p>
+<p id="n38" class="pln"><a href="#n38">38</a></p>
+<p id="n39" class="pln"><a href="#n39">39</a></p>
+<p id="n40" class="pln"><a href="#n40">40</a></p>
+<p id="n41" class="pln"><a href="#n41">41</a></p>
+<p id="n42" class="pln"><a href="#n42">42</a></p>
+<p id="n43" class="pln"><a href="#n43">43</a></p>
+<p id="n44" class="pln"><a href="#n44">44</a></p>
+<p id="n45" class="pln"><a href="#n45">45</a></p>
+<p id="n46" class="pln"><a href="#n46">46</a></p>
+<p id="n47" class="pln"><a href="#n47">47</a></p>
+<p id="n48" class="pln"><a href="#n48">48</a></p>
+<p id="n49" class="pln"><a href="#n49">49</a></p>
+<p id="n50" class="pln"><a href="#n50">50</a></p>
+<p id="n51" class="pln"><a href="#n51">51</a></p>
+<p id="n52" class="pln"><a href="#n52">52</a></p>
+<p id="n53" class="pln"><a href="#n53">53</a></p>
+<p id="n54" class="pln"><a href="#n54">54</a></p>
+<p id="n55" class="pln"><a href="#n55">55</a></p>
+<p id="n56" class="pln"><a href="#n56">56</a></p>
+<p id="n57" class="pln"><a href="#n57">57</a></p>
+<p id="n58" class="pln"><a href="#n58">58</a></p>
+<p id="n59" class="pln"><a href="#n59">59</a></p>
+<p id="n60" class="pln"><a href="#n60">60</a></p>
+<p id="n61" class="pln"><a href="#n61">61</a></p>
+<p id="n62" class="pln"><a href="#n62">62</a></p>
+<p id="n63" class="pln"><a href="#n63">63</a></p>
+<p id="n64" class="pln"><a href="#n64">64</a></p>
+<p id="n65" class="pln"><a href="#n65">65</a></p>
+<p id="n66" class="pln"><a href="#n66">66</a></p>
+<p id="n67" class="pln"><a href="#n67">67</a></p>
+<p id="n68" class="pln"><a href="#n68">68</a></p>
+<p id="n69" class="pln"><a href="#n69">69</a></p>
+<p id="n70" class="pln"><a href="#n70">70</a></p>
+<p id="n71" class="pln"><a href="#n71">71</a></p>
+<p id="n72" class="pln"><a href="#n72">72</a></p>
+<p id="n73" class="pln"><a href="#n73">73</a></p>
+<p id="n74" class="pln"><a href="#n74">74</a></p>
+<p id="n75" class="pln"><a href="#n75">75</a></p>
+<p id="n76" class="pln"><a href="#n76">76</a></p>
+<p id="n77" class="pln"><a href="#n77">77</a></p>
+<p id="n78" class="pln"><a href="#n78">78</a></p>
+<p id="n79" class="pln"><a href="#n79">79</a></p>
+<p id="n80" class="pln"><a href="#n80">80</a></p>
+<p id="n81" class="pln"><a href="#n81">81</a></p>
+<p id="n82" class="pln"><a href="#n82">82</a></p>
+<p id="n83" class="pln"><a href="#n83">83</a></p>
+<p id="n84" class="pln"><a href="#n84">84</a></p>
+<p id="n85" class="pln"><a href="#n85">85</a></p>
+<p id="n86" class="pln"><a href="#n86">86</a></p>
+<p id="n87" class="pln"><a href="#n87">87</a></p>
+<p id="n88" class="pln"><a href="#n88">88</a></p>
+<p id="n89" class="stm run hide_run"><a href="#n89">89</a></p>
+<p id="n90" class="stm run hide_run"><a href="#n90">90</a></p>
+<p id="n91" class="stm run hide_run"><a href="#n91">91</a></p>
+<p id="n92" class="stm run hide_run"><a href="#n92">92</a></p>
+<p id="n93" class="stm run hide_run"><a href="#n93">93</a></p>
+<p id="n94" class="stm run hide_run"><a href="#n94">94</a></p>
+<p id="n95" class="stm run hide_run"><a href="#n95">95</a></p>
+<p id="n96" class="stm run hide_run"><a href="#n96">96</a></p>
+<p id="n97" class="stm run hide_run"><a href="#n97">97</a></p>
+<p id="n98" class="stm run hide_run"><a href="#n98">98</a></p>
+<p id="n99" class="stm run hide_run"><a href="#n99">99</a></p>
+<p id="n100" class="stm run hide_run"><a href="#n100">100</a></p>
+<p id="n101" class="stm run hide_run"><a href="#n101">101</a></p>
+<p id="n102" class="stm run hide_run"><a href="#n102">102</a></p>
+<p id="n103" class="stm run hide_run"><a href="#n103">103</a></p>
+<p id="n104" class="pln"><a href="#n104">104</a></p>
+<p id="n105" class="pln"><a href="#n105">105</a></p>
+<p id="n106" class="stm run hide_run"><a href="#n106">106</a></p>
+<p id="n107" class="pln"><a href="#n107">107</a></p>
+<p id="n108" class="pln"><a href="#n108">108</a></p>
+<p id="n109" class="pln"><a href="#n109">109</a></p>
+<p id="n110" class="pln"><a href="#n110">110</a></p>
+<p id="n111" class="pln"><a href="#n111">111</a></p>
+<p id="n112" class="pln"><a href="#n112">112</a></p>
+<p id="n113" class="pln"><a href="#n113">113</a></p>
+<p id="n114" class="pln"><a href="#n114">114</a></p>
+<p id="n115" class="pln"><a href="#n115">115</a></p>
+<p id="n116" class="pln"><a href="#n116">116</a></p>
+<p id="n117" class="pln"><a href="#n117">117</a></p>
+<p id="n118" class="pln"><a href="#n118">118</a></p>
+<p id="n119" class="pln"><a href="#n119">119</a></p>
+<p id="n120" class="pln"><a href="#n120">120</a></p>
+<p id="n121" class="pln"><a href="#n121">121</a></p>
+
+            </td>
+            <td class="text">
+<p id="t1" class="pln"><span class="str">"""</span><span class="strut">&nbsp;</span></p>
+<p id="t2" class="pln"><span class="str">The implementation file for all entities needed for ANAC-SCML 2019.</span><span class="strut">&nbsp;</span></p>
+<p id="t3" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t4" class="pln"><span class="str">Participants need to provide a class inherited from `FactoryManager` that implements all of its abstract functions.</span><span class="strut">&nbsp;</span></p>
+<p id="t5" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t6" class="pln"><span class="str">Participants can optionally override any other methods of this class or implement new `NegotiatorUtility` class.</span><span class="strut">&nbsp;</span></p>
+<p id="t7" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t8" class="pln"><span class="str">Simulation steps:</span><span class="strut">&nbsp;</span></p>
+<p id="t9" class="pln"><span class="str">-----------------</span><span class="strut">&nbsp;</span></p>
+<p id="t10" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t11" class="pln"><span class="str">    #. prepare custom stats (call `_pre_step_stats`)</span><span class="strut">&nbsp;</span></p>
+<p id="t12" class="pln"><span class="str">    #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed</span><span class="strut">&nbsp;</span></p>
+<p id="t13" class="pln"><span class="str">    #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating</span><span class="strut">&nbsp;</span></p>
+<p id="t14" class="pln"><span class="str">       contracts for any resulting agreements</span><span class="strut">&nbsp;</span></p>
+<p id="t15" class="pln"><span class="str">    #. run all `Entity` objects registered (i.e. all agents). `Consumer` s run first then `FactoryManager` s then</span><span class="strut">&nbsp;</span></p>
+<p id="t16" class="pln"><span class="str">       `Miner` s</span><span class="strut">&nbsp;</span></p>
+<p id="t17" class="pln"><span class="str">    #. execute contracts that are executable at this time-step handling any breaches</span><span class="strut">&nbsp;</span></p>
+<p id="t18" class="pln"><span class="str">    #. Custom Simulation Steps:</span><span class="strut">&nbsp;</span></p>
+<p id="t19" class="pln"><span class="str">        #. step all factories (`Factory` objects) running any pre-scheduled commands</span><span class="strut">&nbsp;</span></p>
+<p id="t20" class="pln"><span class="str">        #. Apply interests and pay loans</span><span class="strut">&nbsp;</span></p>
+<p id="t21" class="pln"><span class="str">        #. remove expired `CFP` s</span><span class="strut">&nbsp;</span></p>
+<p id="t22" class="pln"><span class="str">        #. Deliver any products that are in transportation</span><span class="strut">&nbsp;</span></p>
+<p id="t23" class="pln"><span class="str">    #. remove any negotiations that are completed!</span><span class="strut">&nbsp;</span></p>
+<p id="t24" class="pln"><span class="str">    #. update basic stats</span><span class="strut">&nbsp;</span></p>
+<p id="t25" class="pln"><span class="str">    #. update custom stats (call `_post_step_stats`)</span><span class="strut">&nbsp;</span></p>
+<p id="t26" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t27" class="pln"><span class="str">Remarks about re-negotiation on breaches:</span><span class="strut">&nbsp;</span></p>
+<p id="t28" class="pln"><span class="str">-----------------------------------------</span><span class="strut">&nbsp;</span></p>
+<p id="t29" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t30" class="pln"><span class="str">    - The victim is asked first to specify the negotiation agenda (issues) then the perpetrator</span><span class="strut">&nbsp;</span></p>
+<p id="t31" class="pln"><span class="str">    - renegotiations for breaches run immediately to completion independent from settings of</span><span class="strut">&nbsp;</span></p>
+<p id="t32" class="pln"><span class="str">      `negotiation_speed_multiplier` and `immediate_negotiations`. That include conclusion and signing of any resulting</span><span class="strut">&nbsp;</span></p>
+<p id="t33" class="pln"><span class="str">      agreements.</span><span class="strut">&nbsp;</span></p>
+<p id="t34" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t35" class="pln"><span class="str">Remarks about timing:</span><span class="strut">&nbsp;</span></p>
+<p id="t36" class="pln"><span class="str">---------------------</span><span class="strut">&nbsp;</span></p>
+<p id="t37" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t38" class="pln"><span class="str">    - The order of events within a single time-step are as follows:</span><span class="strut">&nbsp;</span></p>
+<p id="t39" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t40" class="pln"><span class="str">        #. Contracts scheduled to be signed are signed.</span><span class="strut">&nbsp;</span></p>
+<p id="t41" class="pln"><span class="str">        #. Scheduled negotiations run for the predefined number of steps. Any negotiation that result in a contract or</span><span class="strut">&nbsp;</span></p>
+<p id="t42" class="pln"><span class="str">           fail may trigger other negotiations.</span><span class="strut">&nbsp;</span></p>
+<p id="t43" class="pln"><span class="str">        #. If `immediate_negotiations`, some of the newly added negotiations may be concluded/failed.</span><span class="strut">&nbsp;</span></p>
+<p id="t44" class="pln"><span class="str">        #. Any newly concluded contracts that are to be signed at this step are signed</span><span class="strut">&nbsp;</span></p>
+<p id="t45" class="pln"><span class="str">        #. Contracts are executed including full execution of any re-negotiations and breaches are handled. Notice that</span><span class="strut">&nbsp;</span></p>
+<p id="t46" class="pln"><span class="str">           if re-negotiation leads to new contracts, these will be concluded and signed immediately at this step. Please</span><span class="strut">&nbsp;</span></p>
+<p id="t47" class="pln"><span class="str">           note the following about contract execution:</span><span class="strut">&nbsp;</span></p>
+<p id="t48" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t49" class="pln"><span class="str">           - Products are moved from the seller's storage to a temporary *truck* as long as they are available at the</span><span class="strut">&nbsp;</span></p>
+<p id="t50" class="pln"><span class="str">             time of contract execution. Because contract execution happens *before* actual production, outputs from</span><span class="strut">&nbsp;</span></p>
+<p id="t51" class="pln"><span class="str">             production processes *CANNOT* be sold at the same time-step.</span><span class="strut">&nbsp;</span></p>
+<p id="t52" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t53" class="pln"><span class="str">        #. Production is executed on all factories. For a `Process` to start/continue on a `Line`, all its inputs</span><span class="strut">&nbsp;</span></p>
+<p id="t54" class="pln"><span class="str">           required at this time-step **MUST** be available in storage of the corresponding factory *by this point*.</span><span class="strut">&nbsp;</span></p>
+<p id="t55" class="pln"><span class="str">           This implies that it is impossible for any processes to start at time-step *0* except if initial storage was</span><span class="strut">&nbsp;</span></p>
+<p id="t56" class="pln"><span class="str">           nonzero. `FactoryManager` s are informed about processes that cannot start due to storage or fund shortage</span><span class="strut">&nbsp;</span></p>
+<p id="t57" class="pln"><span class="str">           (or cannot continue due to storage shortage) through an `on_production_failure` call.</span><span class="strut">&nbsp;</span></p>
+<p id="t58" class="pln"><span class="str">        #. Outputs of the `Process` are generated at *the end* of the corresponding time-step. It is immediately moved</span><span class="strut">&nbsp;</span></p>
+<p id="t59" class="pln"><span class="str">           to storage. Because outputs are generated at the *end* of the step and inputs are consumed at the beginning,</span><span class="strut">&nbsp;</span></p>
+<p id="t60" class="pln"><span class="str">           a factory cannot use outputs of a process as inputs to another process that starts at the same time-step.</span><span class="strut">&nbsp;</span></p>
+<p id="t61" class="pln"><span class="str">        #. Products are moved from the temporary *truck* to the buyer's storage after the `transportation_delay` have</span><span class="strut">&nbsp;</span></p>
+<p id="t62" class="pln"><span class="str">           passed at the *end* of the time-step. Transportation completes at the *end* of the time-step no matter</span><span class="strut">&nbsp;</span></p>
+<p id="t63" class="pln"><span class="str">           what is the value for `transportation_delay`. This means that if a `FactoryManager` believes</span><span class="strut">&nbsp;</span></p>
+<p id="t64" class="pln"><span class="str">           that it can produce some product at time *t*, it should never contract to sell it before *t+d + 1* where</span><span class="strut">&nbsp;</span></p>
+<p id="t65" class="pln"><span class="str">           *d* is the `transportation_delay` (the *1* comes from the fact that contract execution happens *before*</span><span class="strut">&nbsp;</span></p>
+<p id="t66" class="pln"><span class="str">           production). Even for a zero transportation delay, you cannot produce something and sell it in the same</span><span class="strut">&nbsp;</span></p>
+<p id="t67" class="pln"><span class="str">           time-step. Moreover, the buyer should never use the product to be delivered at time *t* as an input to a</span><span class="strut">&nbsp;</span></p>
+<p id="t68" class="pln"><span class="str">           production process that needs it before step *t+1*.</span><span class="strut">&nbsp;</span></p>
+<p id="t69" class="pln"><span class="str">        #. When contracts are executed, the funds are deducted from the buyer's wallet at the *beginning* of the</span><span class="strut">&nbsp;</span></p>
+<p id="t70" class="pln"><span class="str">           simulation step and deposited in the seller's wallet at the *end* of that step (similar to what happens to</span><span class="strut">&nbsp;</span></p>
+<p id="t71" class="pln"><span class="str">           the products). This means that a factory manager cannot use funds it receives from sales at time *t* for</span><span class="strut">&nbsp;</span></p>
+<p id="t72" class="pln"><span class="str">           buying products before *t + 1*.</span><span class="strut">&nbsp;</span></p>
+<p id="t73" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t74" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t75" class="pln"><span class="str">Remarks about ANAC 2019 SCML League:</span><span class="strut">&nbsp;</span></p>
+<p id="t76" class="pln"><span class="str">------------------------------------</span><span class="strut">&nbsp;</span></p>
+<p id="t77" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t78" class="pln"><span class="str">    Given the information above, and settings for the ANAC 2019 SCML you can confirm for yourself that the following</span><span class="strut">&nbsp;</span></p>
+<p id="t79" class="pln"><span class="str">    rules are all correct:</span><span class="strut">&nbsp;</span></p>
+<p id="t80" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t81" class="pln"><span class="str">        #. No agents except miners should contract on delivery at time *0*.</span><span class="strut">&nbsp;</span></p>
+<p id="t82" class="pln"><span class="str">        #. `FactoryManager` s should never sign contracts to sell the output of their production with delivery at *t*</span><span class="strut">&nbsp;</span></p>
+<p id="t83" class="pln"><span class="str">           except if this production starts at step *t* and the contract is signed no later than than *t-1*.</span><span class="strut">&nbsp;</span></p>
+<p id="t84" class="pln"><span class="str">        #. If not all inputs are available in storage, `FactoryManager` s should never sign contracts to sell the output</span><span class="strut">&nbsp;</span></p>
+<p id="t85" class="pln"><span class="str">           of production with delivery at *t* later than *t-2* (and that is optimistic).</span><span class="strut">&nbsp;</span></p>
+<p id="t86" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t87" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t88" class="pln"><span class="str">"""</span><span class="strut">&nbsp;</span></p>
+<p id="t89" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">common</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t90" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">schedulers</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t91" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">awi</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t92" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">agent</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t93" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">bank</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t94" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">insurance</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t95" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">world</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t96" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">factory_managers</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t97" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">consumers</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t98" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">miners</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t99" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span> <span class="key">import</span> <span class="nam">utils</span><span class="strut">&nbsp;</span></p>
+<p id="t100" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span> <span class="key">import</span> <span class="nam">helpers</span><span class="strut">&nbsp;</span></p>
+<p id="t101" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">utils</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t102" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">helpers</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t103" class="stm run hide_run"><span class="key">from</span> <span class="op">.</span><span class="nam">simulators</span> <span class="key">import</span> <span class="op">*</span><span class="strut">&nbsp;</span></p>
+<p id="t104" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t105" class="pln"><span class="strut">&nbsp;</span></p>
+<p id="t106" class="stm run hide_run"><span class="nam">__all__</span> <span class="op">=</span> <span class="op">(</span><span class="strut">&nbsp;</span></p>
+<p id="t107" class="pln">    <span class="nam">common</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t108" class="pln">    <span class="op">+</span> <span class="nam">awi</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t109" class="pln">    <span class="op">+</span> <span class="nam">factory_managers</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t110" class="pln">    <span class="op">+</span> <span class="nam">bank</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t111" class="pln">    <span class="op">+</span> <span class="nam">insurance</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t112" class="pln">    <span class="op">+</span> <span class="nam">agent</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t113" class="pln">    <span class="op">+</span> <span class="nam">simulators</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t114" class="pln">    <span class="op">+</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t115" class="pln">    <span class="op">+</span> <span class="nam">helpers</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t116" class="pln">    <span class="op">+</span> <span class="nam">schedulers</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t117" class="pln">    <span class="op">+</span> <span class="nam">world</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t118" class="pln">    <span class="op">+</span> <span class="nam">consumers</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t119" class="pln">    <span class="op">+</span> <span class="nam">miners</span><span class="op">.</span><span class="nam">__all__</span><span class="strut">&nbsp;</span></p>
+<p id="t120" class="pln">    <span class="op">+</span> <span class="op">[</span><span class="str">"utils"</span><span class="op">,</span> <span class="str">"helpers"</span><span class="op">]</span><span class="strut">&nbsp;</span></p>
+<p id="t121" class="pln"><span class="op">)</span><span class="strut">&nbsp;</span></p>
+
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div id="footer">
+    <div class="content">
+        <p>
+            <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v4.5.4</a>,
+            created at 2019-11-18 15:12
+        </p>
+    </div>
+</div>
+
+</body>
+</html>
