@@ -7,7 +7,6 @@ stages:
 cache:
   pip: true
   directories:
-    - "$HOME/.cache/pypoetry"
     - "$HOME/.cache/pre-commit"
 
 install:
@@ -25,6 +24,9 @@ matrix:
     - python: 3.7
       dist: xenial
       sudo: true
+    - python: 3.8
+      dist: xenial
+      sudo: true
 
 deploy:
   provider: pypi
@@ -38,3 +40,4 @@ deploy:
     python:
     - 3.6
     - 3.7
+    - 3.8

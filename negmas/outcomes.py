@@ -92,6 +92,8 @@ class Issue(NamedObject):
     Args:
             values: Possible values for the issue
             name: Name of the issue. If not given, a random name will be generated
+            min_value: Minimum value ( used only if the issue values parameter was a callable )
+            max_value: Maximum value ( used only if the issue values parameter was a callable )
 
     Examples:
 
@@ -105,6 +107,15 @@ class Issue(NamedObject):
         >>> a.is_uncountable()
         True
         >>> a.is_countable()
+        False
+        >>> a.is_continuous()
+        True
+        >>> a = Issue(lambda: random.randint(10), min_value=0, max_value=9)
+        >>> a.is_uncountable()
+        True
+        >>> a.is_countable()
+        False
+        >>> a.is_continuous()
         False
 
     Remarks:
@@ -121,6 +132,8 @@ class Issue(NamedObject):
         self,
         values: Union[List[str], int, Tuple[float, float], Callable[[], Any]],
         name: Optional[str] = None,
+        min_value: Any = None,
+        max_value: Any = None,
     ) -> None:
         super().__init__(name=name)
         # if isinstance(values, int) and values <= LARGE_NUMBER:
@@ -128,6 +141,14 @@ class Issue(NamedObject):
         if isinstance(values, tuple):
             values = (float(values[0]), float(values[1]))
         self.values = values
+        if isinstance(self.values, tuple):
+            self.min_value, self.max_value = values
+        elif isinstance(self, list):
+            self.min_value, self.max_value = min(values), max(values)
+        elif isinstance(self, int):
+            self.min_value, self.max_value = 0, values - 1
+        else:
+            self.min_value, self.max_value = min_value, max_value
 
     @classmethod
     def from_outcomes(
@@ -3066,4 +3087,6 @@ def outcome_as_tuple(outcome: Outcome):
         return outcome.astuple()
     if isinstance(outcome, dict):
         return tuple(list(outcome.values()))
+    if isinstance(outcome, Iterable):
+        return tuple(outcome)
     raise ValueError(f"Unknown type for outcome {type(outcome)}")

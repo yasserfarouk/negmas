@@ -162,3 +162,5 @@ tests/logs
 .wily
 /**/.wily
 wily-report.html
+distold
+distold/*

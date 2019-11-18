@@ -28,7 +28,6 @@ jupyter-latex-envs
 jupyter-nbextensions-configurator
 lockfile
 matplotlib
-matplotlib
 nb2plots
 nbconvert
 nbformat
@@ -67,6 +66,7 @@ wheel
 dill
 flask
 dash
+dash[testing]
 dash-daq
 dash-bootstrap-components
 blist
