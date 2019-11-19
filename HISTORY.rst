@@ -1,5 +1,11 @@
 History
 =======
+
+Release 0.3.9
+-------------
+
+- Minor updates to documentation and requirements to avoid issues with pypi rendering and Travis-CI integration.
+
 Release 0.3.8
 -------------
 
