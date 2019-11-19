@@ -1197,6 +1197,35 @@ class LimitedOutcomesAcceptor(SAONegotiator, LimitedOutcomesAcceptorMixin):
 
 
 class AspirationNegotiator(SAONegotiator, AspirationMixin):
+    """
+    Represents a time-based negotiation strategy that is independent of the offers received during the negotiation.
+
+    Args:
+        name: The agent name
+        ufun:  The utility function to attache with the agent
+        parent: The parent which should be an ``SAOController``
+        max_aspiration: The aspiration level to use for the first offer (or first acceptance decision).
+        aspiration_type: The polynomial aspiration curve type. Here you can pass the exponent as a real value or
+                         pass a string giving one of the predefined types: linear, conceder, boulware.
+        dynamic_ufun: If True, the utility function will be assumed to be changing over time. This is depricated.
+        randomize_offer: If True, the agent will propose outcomes with utility >= the current aspiration level not
+                         outcomes just above it.
+        can_propose: If True, the agent is allowed to propose
+        assume_normalized: If True, the ufun will just be assumed to have the range [0, 1] inclusive
+        ranking: If True, the aspiration level will not be based on the utility value but the ranking of the outcome
+                 within the presorted list. It is only effective when presort is set to True
+        ufun_max: The maximum utility value (used only when `presort` is True)
+        ufun_min: The minimum utility value (used only when `presort` is True)
+        presort: If True, the negotiator will catch a list of outcomes, presort them and only use them for offers
+                 and responses. This is much faster then other option for general continuous utility functions
+                 but with the obvious problem of only exploring a discrete subset of the issue space (Decided by
+                 the `discrete_outcomes` property of the `AgentMechanismInterface` . If the number of outcomes is
+                 very large (i.e. > 10000) and discrete, presort will be forced to be True. You can check if
+                 presorting is active in realtime by checking the "presorted" attribute.
+        tolerance: A tolerance used for sampling of outcomes when `presort` is set to False
+
+    """
+
     def __init__(
         self,
         name=None,
@@ -1245,7 +1274,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             }
         )
         self.__last_offer_util, self.__last_offer = float("inf"), None
-        self.n_outcomes_to_force_presort = 1000
+        self.n_outcomes_to_force_presort = 10000
 
     def on_ufun_changed(self):
         super().on_ufun_changed()

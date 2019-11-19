@@ -73,5 +73,6 @@ blist
 seaborn
 sklearn
 nose
+pytest-sugar
 
 
