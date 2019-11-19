@@ -1,5 +1,9 @@
 History
 =======
+Release 0.3.8
+-------------
+
+- [Core][SAO] allowed AspirationNegotiator to work using sampling with infinite outcome spaces by not presorting.
 
 Release 0.3.7
 -------------
