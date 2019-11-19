@@ -4,6 +4,8 @@ Release 0.3.8
 -------------
 
 - [Core][SAO] allowed AspirationNegotiator to work using sampling with infinite outcome spaces by not presorting.
+- [Core][Outcome] bug fix in outcome_as_tuple to resolve an issue when the input is an iterable that is not a tuple.
+- Documentation update for AspirationNegotiator
 
 Release 0.3.7
 -------------

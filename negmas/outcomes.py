@@ -122,9 +122,12 @@ class Issue(NamedObject):
 
         - Issues can be initialized by either an iterable of strings, an integer or a tuple of two real values with
           the following meanings:
-          - ``iterable of strings``: This is an issue that can any value within the given set of values (strings)
-          - ``int``: This is an issue that takes any value from 0 to the given value -1 (int)
-          - ``float``: This is an issue that can take any real value between the given limits (min, max)
+          - ``iterable of strings`` : This is an issue that can any value within the given set of values (strings)
+          - ``int`` : This is an issue that takes any value from 0 to the given value -1 (int)
+          - ``float`` : This is an issue that can take any real value between the given limits (min, max)
+          - ``Callable`` : The callable should take no parameters and should act as a generator of issue values. This
+             type of issue is always assumed to be neither countable nor continuous and are called uncountable. For
+             example, you can use this type to make an issue that generates all integers from 0 to infinity.
 
     """
 
