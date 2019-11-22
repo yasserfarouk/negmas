@@ -2,15 +2,17 @@
 import itertools
 import math
 import time
+import random
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 
 from negmas import MechanismRoundResult, Outcome, MechanismState
 from negmas.mechanisms import Mechanism
 
 __all__ = [
     "VetoSTMechanism",
+    "HillClimbingSTMechanism"
 ]
 
 
@@ -246,3 +248,90 @@ class VetoSTMechanism(Mechanism):
                 )
 
         fig_util.show()
+
+
+
+class HillClimbingSTMechanism(VetoSTMechanism):
+    """A single text mechanism that use hill climbing
+
+    Args:
+        *args: positional arguments to be passed to the base Mechanism
+        **kwargs: keyword arguments to be passed to the base Mechanism
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for issue in self.issues:
+            if issue.is_discrete() is False:
+                raise ValueError("This mechanism assume discrete issues")
+
+        if self.initial_outcome is None:
+            self.initial_outcome = self.random_outcomes(1)[0]
+
+        self.current_offer = self.initial_outcome
+        self.possible_offers = self.neighbors(self.current_offer)
+
+    def next_outcome(self, outcome: Outcome) -> Optional[Outcome]:
+        """Generate the next outcome given some outcome.
+
+        Args:
+             outcome: The current outcome
+
+        Returns:
+            a new outcome or None to end the mechanism run
+
+        """
+
+        if len(self.possible_offers) == 0:
+            return None
+        return self.possible_offers.pop(random.randint(0, len(self.possible_offers)) - 1)
+
+    def round(self) -> MechanismRoundResult:
+        """Single round of the protocol"""
+
+        new_offer = self.next_outcome(self.current_offer)
+        if new_offer is None:
+            return MechanismRoundResult(broken=False, timedout=False, agreement=self.current_offer)
+
+        responses = []
+        for neg in self.negotiators:
+            strt = time.perf_counter()
+            responses.append(neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon) is not False)
+            if time.perf_counter() - strt > self.ami.step_time_limit:
+                return MechanismRoundResult(broken=False, timedout=True, agreement=None)
+
+        self.last_responses = responses
+
+        if all(responses):
+            self.current_offer = new_offer
+            self.possible_offers = self.neighbors(self.current_offer)
+
+        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+
+    def neighbors(self, outcome: Outcome) -> List["Outcome"]:
+        """Returns all neighbors
+
+        Neighbor is an outcome that differs any one of the issues from the original outcome.
+        """
+
+        neighbors = []
+        for issue in self.issues:
+            values = []
+            if isinstance(issue.values, List):
+                values = issue.values
+            if isinstance(issue.values, int):
+                values = [max(0, outcome[issue.name] - 1), min(outcome[issue.name] + 1, issue.values)]
+            if isinstance(issue.values, Tuple):
+                delta = random.random(issue.values[0] - issue.values[0])
+                values.append(max(issue.values[0], outcome[issue.name] - delta))
+                values.append(min(outcome[issue.name] + delta, issue.values[0]))
+
+            for value in values:
+                neighbor = deepcopy(outcome)
+                if neighbor[issue.name] == value:
+                    continue
+                neighbor[issue.name] = value
+                neighbors.append(neighbor)
+
+        return neighbors
