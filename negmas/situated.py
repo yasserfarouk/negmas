@@ -2266,46 +2266,52 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self, contract: Contract, breaches: List[Breach], force_immediate_signing=True
     ) -> Optional[Contract]:
         new_contract = None
-
         # calculate total breach level
         total_breach_levels = defaultdict(int)
         for breach in breaches:
             total_breach_levels[breach.perpetrator] += breach.level
 
-        # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
-        for agent_name, _ in sorted(
-            zip(total_breach_levels.keys(), total_breach_levels.values()),
-            key=lambda x: x[1],
-        ):
-            agent = self.agents[agent_name]
-            agenda = agent.set_renegotiation_agenda(
-                contract=contract, breaches=breaches
-            )
-            if agenda is None:
-                continue
-            negotiators = []
-            for partner in contract.partners:
-                negotiator = self.agents[partner].respond_to_renegotiation_request(
-                    contract=contract, breaches=breaches, agenda=agenda
+        if self.breach_processing == BreachProcessing.VICTIM_THEN_PERPETRATOR:
+
+            # give agents the chance to set renegotiation agenda in ascending order of their total breach levels
+            for agent_name, _ in sorted(
+                zip(total_breach_levels.keys(), total_breach_levels.values()),
+                key=lambda x: x[1],
+            ):
+                agent = self.agents[agent_name]
+                agenda = agent.set_renegotiation_agenda(
+                    contract=contract, breaches=breaches
                 )
-                if negotiator is None:
-                    break
-                negotiators.append(negotiator)
-            else:
-                # everyone accepted this renegotiation
-                results = self.run_negotiation(
-                    caller=agent,
-                    issues=agenda.issues,
-                    partners=[self.agents[_] for _ in contract.partners],
-                )
-                if results is not None:
-                    new_contract, mechanism = results
-                    self._register_contract(
-                        mechanism=mechanism,
-                        negotiation=None,
-                        force_signature_now=force_immediate_signing,
+                if agenda is None:
+                    continue
+                negotiators = []
+                for partner in contract.partners:
+                    negotiator = self.agents[partner].respond_to_renegotiation_request(
+                        contract=contract, breaches=breaches, agenda=agenda
                     )
-                    break
+                    if negotiator is None:
+                        break
+                    negotiators.append(negotiator)
+                else:
+                    # everyone accepted this renegotiation
+                    results = self.run_negotiation(
+                        caller=agent,
+                        issues=agenda.issues,
+                        partners=[self.agents[_] for _ in contract.partners],
+                    )
+                    if results is not None:
+                        new_contract, mechanism = results
+                        self._register_contract(
+                            mechanism=mechanism,
+                            negotiation=None,
+                            force_signature_now=force_immediate_signing,
+                        )
+                        break
+        elif self.breach_processing == BreachProcessing.META_NEGOTIATION:
+            raise NotImplemented(
+                "Meta negotiation is not yet implemented. Agents should negotiate about the "
+                "agend then a negotiation should be conducted as usual"
+            )
 
         if new_contract is not None:
             for breach in breaches:
