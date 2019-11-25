@@ -1,7 +1,7 @@
 History
 =======
 
-Release 0.3.10
+Release 0.4.0
 --------------
 
 - Moving the SCML world to its own repository (https://github.com/yasserfarouk/scml)
