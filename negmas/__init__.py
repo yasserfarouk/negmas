@@ -49,5 +49,5 @@ __all__ = (
     + situated.__all__
     + elicitors.__all__
     + modeling.__all__
-    + ["generics", "helpers", "events", "apps", "tournaments"]
+    + ["generics", "helpers", "events", "tournaments"]
 )

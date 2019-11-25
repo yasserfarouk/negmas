@@ -65,7 +65,3 @@ Reference
 
 .. automodapi:: negmas.generics
     :include-all-objects:
-
-.. automodapi:: negmas.apps.scml
-    :include-all-objects:
-    :inherited-members:

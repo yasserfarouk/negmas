@@ -62,7 +62,6 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
    tutorials
 
    base_modules
-   application_modules
    helper_modules
    scripts
 

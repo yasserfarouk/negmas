@@ -9,16 +9,18 @@ The set of supported commands are:
 ===============       ===================================================================
  Command                                  Meaning
 ===============       ===================================================================
+genius-setup          Downloads the genius bridge and updates your settings.
+jnegmas-setup         Downloads jnegmas and updates your settings
 genius                Run a Genius Bridge. This bridge allows you to use GeniusNegotiator
                       agents. Please notice that this command by-default runs in the
-                      foreground preventing further input to the terminal.
-genius-setup          Downloads the genius bridge and updates your settings.
+                      foreground preventing further input to the terminal.\
 jnegmas               Start the bridge to JNegMAS (to use Java agents in worlds)
-jnegmas-setup         Downloads jnegmas and updates your settings
-scml                  Runs an SCML world
 tournament            Runs a tournament
 version               Prints NegMAS version
 ===============       ===================================================================
+
+The commands `genius-steup` and `jnegmas-setup`  have no parameters and will download genius and jnegmas (respectively)
+for later use by `genius` and `jnegmas` commands.
 
 Genius Bridge (negmas genius)
 -----------------------------
@@ -48,109 +50,30 @@ This tool supports the following *optional* arguments:
 --help                 Show help message and exit.
 ===================   ==============================================================
 
-
-SCML World Runner (negmas scml)
+JNegMAS bridge (negmas jnegmas)
 -------------------------------
 
-The SCML World Runner command (`scml`) runs an SCML world with default factory managers and reports
-the results of this run.
+Runs a bridge to jnegmas (notice that `negmas jnegmas-setup` must have been run at least once before that). It has the
+following parameters
 
-You can get help on this tool by running:
-
-.. code-block:: console
-
-    $ negmas scml --help
-
-
-These are the *optional* arguments of this tool:
-
-=========================  =================================================
-    Argument                     Meaning
-=========================  =================================================
---steps INTEGER            Number of steps.  [default: 120]
---levels INTEGER           Number of intermediate production levels
-                           (processes). -1 means a single product and no
-                           factories.  [default: 3]
---neg-speedup INTEGER      Negotiation Speedup.  [default: 21]
---negotiator TEXT          Negotiator type to use for builtin agents.
-                           [default: negmas.sao.AspirationNegotiator]
---min-consumption INTEGER  The minimum number of units consumed by each
-                           consumer at every time-step.  [default: 3]
---max-consumption INTEGER  The maximum number of units consumed by each
-                           consumer at every time-step.  [default: 5]
---agents INTEGER           Number of agents (miners/negmas.consumers) per
-                           production level  [default: 5]
---horizon INTEGER          Consumption horizon.  [default: 20]
---transport INTEGER        Transportation Delay.  [default: 0]
---time INTEGER             Total time limit.  [default: 5400]
---neg-time INTEGER         Time limit per single negotiation  [default: 240]
---neg-steps INTEGER        Number of rounds per single negotiation
-                           [default: 20]
---sign INTEGER             The default delay between contract conclusion and
-                           signing  [default: 1]
---guaranteed TEXT          Whether to only sign contracts that are
-                           guaranteed not to cause breaches  [default:
-                           False]
---lines INTEGER            The number of lines per factory  [default: 10]
---retrials INTEGER         The number of times an agent re-tries on failed
-                           negotiations  [default: 5]
---use-consumer TEXT        Use internal consumer object in factory managers
-                           [default: True]
---max-insurance INTEGER    Use insurance against partner in factory managers
-                           up to this premium  [default: 100]
---riskiness FLOAT          How risky is the default factory manager
-                           [default: 0.0]
---log TEXT                 Default location to save logs (A folder will be
-                           created under it)  [default: ~/negmas/logs]
---compact / --debug        If --compact, effort is exerted to reduce the memory
-                           footprint whichincludes reducing logs
-                           dramatically.  [default: --compact]
---log-ufuns                If given, ufuns are logged [default: False]
-                           Only used if --debug is given
---log-negs                 If given, all negotiations and their offers are logged
-                           [default: False]
---config FILENAME          configuration file name. If given all of the
-                           parameters given above can be entered in this file
-                           instead of being inputed on the command line.
---help                     Show help message and exit.
-=========================  =================================================
-
-
-Upon completion, a complete log and several statistics are saved in a new folder under the `log folder` location
-specified by the `--log` argument (default is negmas/logs under the HOME directory). To avoid over-writing earlier
-results, a new folder will be created for each run named by the current date and time (within an `scml` folder). The
-folder will contain the following files:
-
-=======================    =========    ====================================
-File Name                  Format       Content
-=======================    =========    ====================================
-all_contracts.csv             CSV        A record of all contracts [filled only if --debug is specified]
-contracts_full_info.csv       CSV        A record of all contracts with added information about the CFPs  [filled only if --debug is specified]
-cancelled_contracts.csv       CSV        Contracts that were cancelled because one partner refused to sign it  [filled only if --debug is specified]
-signed_contracts.csv          CSV        Contracts that were actually signed
-negotiations.csv              CSV        A record of all negotiations  [filled only if --debug is specified]
-breaches.csv                  CSV        A record of all breaches
-stats.csv                     CSV        Helpful statistics about the state of the world at every timestep
-                                         (e.g. N. negotiations, N. Contracts Executed, etc) in CSV format
-stats.json                    JSON       Helpful statistics about the state of the world at every timestep
-                                         (e.g. N. negotiations, N. Contracts Executed, etc) in JSON format
-params.json                   JSON       The arguments used to run the world
-logs.txt                      TXT        A log file giving details of most important events during the simulation
-                                         [filled only if --debug is specified]
-negotiation_info.csv          CSV        Negotiation information for all negotiation session logged (only if --log-negs
-                                         is given).
-negotiations                Folder       A folder containing a file for each negotiation giving all offers exchanged (only if --log-negs
-                                         is given).
-=======================    =========    ====================================
-
-
+===================== =================================================================
+ Argument               Meaning
+===================== =================================================================
+  -p, --path TEXT     Path to jnegmas*.jar with. Use "auto" to read the path
+                      from ~/negmas/config.json.  Config key is jnegmas_jar
+                      You can download the latest version of this
+                      jar from: http://www.yasserm.com/scml/jnegmas-all.jar
+                      [default: auto]
+  -r, --port INTEGER  Port to run the jnegmas on. Pass 0 for the default value
+                      [default: 0]
+  --config FILE       Read configuration from FILE.
+===================== =================================================================
 
 Tournament Command (negmas tournament)
 --------------------------------------
 
 The Tournament command (`tournament`) allows you to run a tournament between different agents in some world and
-compare their relative performance. The tool is general enough to support several world types but currently only the
-ANAC 2019 SCML (`anac2019`) configuration is supported.
+compare their relative performance. The tool is general enough to support several world types.
 
 
 You can get help on this tool by running:
@@ -159,70 +82,145 @@ You can get help on this tool by running:
 
     $ negmas tournament --help
 
+The `tournament` command has a set of sub-commands for creating, running, and combining tournament results as follows:
+
+========  ================================================
+Command   Action
+========  ================================================
+ combine  Finds winners of an arbitrary set of tournaments
+ create   Creates a tournament
+ run      Runs/continues a tournament
+ winners  Finds winners of a tournament or a set of
+          tournaments sharing
+========  ================================================
+
+
+Creating a tournament
+~~~~~~~~~~~~~~~~~~~~~
 
 These are the *optional* arguments of this tool:
 
-=================================== ==============================================================
-Argument                             Meaning
-=================================== ==============================================================
--n, --name TEXT                      The name of the tournament. The special
-                                     value "random" will result in a random name [default: random]
--s, --steps INTEGER                  Number of steps.  [default: 60]
--f, --config TEXT                    The config to use. Default is ANAC 2019 [default: anac2019]
--t, --timeout INTEGER                Timeout after the given number of seconds (0 for infinite)
-                                     [default: 0]
---runs INTEGER                       Number of runs for each configuration [default: 5]
---max-runs INTEGER                   Maximum total number of runs. Zero or negative numbers mean no
-                                     limit  [default:-1]
---configs INTEGER                    Number of unique configurations to generate.
-                                     [default: 5]
---runs INTEGER                       Number of runs for each configuration
-                                     [default: 2]
---max-runs INTEGER                   Maximum total number of runs. Zero or
-                                     negative numbers mean no limit  [default:
-                                     -1]
---factories INTEGER                  Minimum numbers of factories to have per
-                                     level.  [default: 5]
---competitors TEXT                   A semicolon (;) separated list of agent types to use for the
-                                     competition.
-                                     [default:negmas.apps.scml.DoNothingFactoryManager;
-                                     negmas.apps.scml.GreedyFactoryManager]
---jcompetitors /--java-competitors    A semicolon (;) separated list of agent
-                                      types to use for the competition.
---parallel / --serial                Run a parallel/serial tournament on a single machine
-                                     [default: True]
---distributed / --single-machine     Run a distributed tournament using dask [default: False]
--l, --log TEXT                       Default location to save logs (A folder will be created under
-                                     it)  [default:~/negmas/logs/tournaments]
---verbosity INTEGER                  verbosity level (from 0 == silent to 1 ==
-                                     world progress)  [default: 1]
---configs-only / --run               configs_only  [default: False]
---reveal-names / --hidden-names      Reveal agent names (should be used only for debugging)
-                                     [default: False]
---ip TEXT                            The IP address for a dask scheduler to run the distributed
-                                     tournament.
-                                     Effective only if --distributed  [default: 127.0.0.1]
---port INTEGER                       The IP port number a dask scheduler to run
-                                     the distributed tournament. Effective only
-                                     if --distributed  [default: 8786]
---compact / --debug                  If --compact, effort is exerted to reduce the memory
-                                     footprint whichincludes reducing logs
-                                     dramatically.  [default: --compact]
---log-ufuns                          If given, ufuns are logged [default: False]
-                                     Only used if --debug is given
---log-negs                           If given, all negotiations and their offers are logged.
-                                     Only used if --debug is given
-                                     [default: False]
---config FILENAME                    configuration file name. If given all of the
-                                     parameters given above can be entered in this file
-                                     instead of being inputed on the command line.
---help                               Show help message and exit.
-=================================== ==============================================================
+========================================== ==============================================================
+  Argument                                      Meaning
+========================================== ==============================================================
+  -n, --name TEXT                           The name of the tournament. The special
+                                            value "random" will result in a random name
+                                            [default: random]
+  -s, --steps INTEGER                       Number of steps. If passed then --steps-min
+                                            and --steps-max are ignored
+  --steps-min INTEGER                       Minimum number of steps (only used if
+                                            --steps was not passed  [default: 50]
+  --steps-max INTEGER                       Maximum number of steps (only used if
+                                            --steps was not passed  [default: 100]
+  -t, --timeout INTEGER                     Timeout the whole tournament after the given
+                                            number of seconds (0 for infinite)
+                                            [default: 0]
+  --configs INTEGER                         Number of unique configurations to generate.
+                                            [default: 5]
+  --runs INTEGER                            Number of runs for each configuration
+                                            [default: 2]
+  --max-runs INTEGER                        Maximum total number of runs. Zero or
+                                            negative numbers mean no limit  [default: -1]
+  --agents INTEGER                          Number of agents per competitor (not used
+                                            for anac2019std in which this is preset to
+                                            1).  [default: 3]
+  --factories INTEGER                       Minimum numbers of factories to have per
+                                            level.  [default: 5]
+  --competitors TEXT                        A semicolon (;) separated list of agent
+                                            types to use for the competition.
+  --jcompetitors, --java-competitors TEXT   A semicolon (;) separated list of agent
+                                            types to use for the competition.
+  --non-competitors TEXT                    A semicolon (;) separated list of agent
+                                            types to exist in the worlds as non-
+                                            competitors (their scores will not be
+                                            calculated).
+  -l, --log DIRECTORY                       Default location to save logs (A folder will
+                                            be created under it)  [default:
+                                            ~/negmas/logs/tournaments]
+  --world-config FILE                       A file to load extra configuration
+                                            parameters for world simulations from.
+  --verbosity INTEGER                       verbosity level (from 0 == silent to 1 ==
+                                            world progress)  [default: 1]
+  --reveal-names / --hidden-names           Reveal agent names (should be used only for
+                                            debugging)  [default: True]
+  --log-ufuns / --no-ufun-logs              Log ufuns into their own CSV file. Only
+                                            effective if --debug is given  [default: False]
+  --log-negs / --no-neg-logs                Log all negotiations. Only effective if
+                                            --debug is given  [default: False]
+  --compact / --debug                       If True, effort is exerted to reduce the
+                                            memory footprint whichincludes reducing logs
+                                            dramatically.  [default: True]
+  --raise-exceptions / --ignore-exceptions  Whether to ignore agent exceptions [default: True]
+  --path TEXT                               A path to be added to PYTHONPATH in which
+                                            all competitors are stored. You can path a :
+                                            separated list of paths on linux/mac and a ;
+                                            separated list in windows
+  --java-interop-class TEXT                 The full name of a class that is used to
+                                            represent Java agents to the python
+                                            envirnment. It is only used if jcompetitors
+                                            was passed
+  --config-generator TEXT                   The full path to a configuration generator
+                                            function that is used to generate all
+                                            configs for the tournament. MUST be
+                                            specified
+  --world-generator TEXT                    The full path to a world generator function
+                                            that is used to generate all worlds (given
+                                            the assigned configs for the tournament.
+                                            MUST be specified
+  --assigner TEXT                           The full path to an assigner function that
+                                            assigns competitors to different
+                                            configurations
+  --scorer TEXT                             The full path to a scoring function
+  --cw INTEGER                              Number of competitors to run at every world
+                                            simulation. It must either be left at
+                                            default or be a number > 1 and < the number
+                                            of competitors passed using --competitors
+  --config FILE                             Read configuration from FILE.
+========================================== ==============================================================
+
+
+Running a tournament
+~~~~~~~~~~~~~~~~~~~~
+
+After creating a tournament using the `tournament create` command, it can be run using the `tournament run` command.
+The parameters for this command are:
+
+========================================== ==============================================================
+ Argument                                   Meaning
+========================================== ==============================================================
+  -n, --name TEXT                           The name of the tournament. When invoked
+                                            after create, there is no need to pass it
+  -l, --log DIRECTORY                       Default location to save logs  [default:
+                                            ~/negmas/logs/tournaments]
+  --verbosity INTEGER                       verbosity level (from 0 == silent to 1 ==
+                                            world progress)  [default: 1]
+  --parallel / --serial                     Run a parallel/serial tournament on a single
+                                            machine  [default: True]
+  --distributed /  --single-machine         Run a distributed tournament using dask
+                                            [default: False]
+  --ip TEXT                                 The IP address for a dask scheduler to run
+                                            the distributed tournament. Effective only
+                                            if --distributed  [default: 127.0.0.1]
+  --port INTEGER                            The IP port number a dask scheduler to run
+                                            the distributed tournament. Effective only
+                                            if --distributed  [default: 8786]
+  --compact / --debug                       If True, effort is exerted to reduce the
+                                            memory footprint whichincludes reducing logs
+                                            dramatically.  [default: True]
+  --path TEXT                               A path to be added to PYTHONPATH in which
+                                            all competitors are stored. You can path a :
+                                            separated list of paths on linux/mac and a ;
+                                            separated list in windows
+  --metric TEXT                             The statistical metric used for choosing the
+                                            winners. Possibilities are mean, median,
+                                            std, var, sum  [default: mean]
+  --config FILE                             Read configuration from FILE.
+========================================== ==============================================================
 
 
 Upon completion, a complete log and several statistics are saved in a new folder under the `log folder` location
-specified by the `--log` argument (default is negmas/logs/tournaments under the HOME directory). To avoid over-writing earlier
-results, a new folder will be created for each run named by the current date and time. The
+specified by the `--log` argument (default is negmas/logs/tournaments under the HOME directory). To avoid over-writing
+earlier results, a new folder will be created for each run named by the current date and time. The
 folder will contain the following files:
 
 
@@ -245,8 +243,45 @@ ttest.csv                   CSV          Results of a factorial TTEST comparing 
 =========================   ========     =================================================================
 
 Other than these files, a folder with the same number as the corresponding config file in the configs folder, keeps full
-statistics/log of every world *but only if --debug is specified* (see the `SCML World Runner` section for the contents of
+statistics/log of every world *but only if --debug is specified* (see the `World Runner` section for the contents of
 this folder.
 
+Combining tournament results
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Can be used to combine the results of multiple tournaments runs using tournament `combine`.
+The parameters of this command are:
+
+======================  =======================================================
+ Argument                 Meaning
+======================  =======================================================
+  -d, --dest DIRECTORY  The location to save the results
+  --metric TEXT         The statistical metric used for choosing the winners.
+                        Possibilities are mean, median, std, var, sum
+                        [default: median]
+  --config FILE         Read configuration from FILE.
+======================  =======================================================
+
+
+Finding the winners of a tournament
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To report the winners of a tournament, you can use tournament `winners` . The parameters of this command are:
+
+============================== =======================================================
+ Argument                       Meaning
+============================== =======================================================
+  -n, --name TEXT               The name of the tournament. When invoked after
+                                create, there is no need to pass it
+  -l, --log DIRECTORY           Default location to save logs  [default:
+                                ~/negmas/logs/tournaments]
+  --recursive / --no-recursive  Whether to recursively look for tournament
+                                results. --name should not be given if
+                                --recursive  [default: True]
+  --metric TEXT                 The statistical metric used for choosing the
+                                winners. Possibilities are mean, median, std,
+                                var, sum  [default: median]
+  --config FILE                 Read configuration from FILE.
+============================== =======================================================
 
 

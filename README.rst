@@ -1,3 +1,10 @@
+========
+Overview
+========
+
+
+.. start-badges
+
 .. image:: https://img.shields.io/pypi/pyversions/negmas.svg
     :target: https://pypi.python.org/pypi/negmas
     :alt: Python
@@ -33,6 +40,10 @@
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/ambv/black
     :alt: Coding style black
+
+
+.. end-badges
+
 
 .. container:: twocol
 
@@ -110,7 +121,7 @@ Running existing negotiators/negotiation protocols
 Using the package for negotiation can be as simple as the following code snippet:
 
 .. code-block:: python
-    import random 
+    import random
     random.seed(0)
     from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
     session = SAOMechanism(outcomes=10, n_steps=100)

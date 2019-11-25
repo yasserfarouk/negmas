@@ -9,8 +9,10 @@ https://github.com/orsinium/poetry-setup
 # All changes will be lost after `poetry-setup` command execution.
 # ----------------------------------------------------------------
 # Always prefer setuptools over distutils
+import re
+
 from setuptools import setup, find_packages
-from os import path
+from os import path, read
 
 # io.open is needed for projects that support Python 2.7
 # It ensures open() defaults to text mode with universal newlines,
@@ -20,11 +22,18 @@ from io import open
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
-with open(path.join(here, "README.rst"), encoding="utf-8") as f:
-    long_description = f.read()
-long_description += "\n\n"
-with open(path.join(here, "HISTORY.rst"), encoding="utf-8") as f:
-    long_description += f.read()
+# with open(path.join(here, "README.rst"), encoding="utf-8") as f:
+#     long_description = f.read()
+# long_description += "\n\n"
+# with open(path.join(here, "HISTORY.rst"), encoding="utf-8") as f:
+#     long_description += f.read()
+
+long_description = "%s\n%s" % (
+    re.compile("^.. start-badges.*^.. end-badges", re.M | re.S).sub(
+        "", read("README.rst")
+    ),
+    re.sub(":[a-z]+:`~?(.*?)`", r"``\1``", read("HISTORY.rst")),
+)
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 setup(

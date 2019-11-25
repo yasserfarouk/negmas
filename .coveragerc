@@ -12,6 +12,7 @@ omit =
     negmas/external/*
     negmas/scripts/*
     negmas/logs/*
+    negmas/gui/*
     notebooks/*
     logs/*
 
