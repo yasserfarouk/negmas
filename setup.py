@@ -22,17 +22,14 @@ from io import open
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
-# with open(path.join(here, "README.rst"), encoding="utf-8") as f:
-#     long_description = f.read()
-# long_description += "\n\n"
-# with open(path.join(here, "HISTORY.rst"), encoding="utf-8") as f:
-#     long_description += f.read()
+with open(path.join(here, "README.rst"), encoding="utf-8") as f:
+    readme_txt = f.read()
+with open(path.join(here, "HISTORY.rst"), encoding="utf-8") as f:
+    history_txt = f.read()
 
 long_description = "%s\n%s" % (
-    re.compile("^.. start-badges.*^.. end-badges", re.M | re.S).sub(
-        "", read("README.rst")
-    ),
-    re.sub(":[a-z]+:`~?(.*?)`", r"``\1``", read("HISTORY.rst")),
+    re.compile("^.. start-badges.*^.. end-badges", re.M | re.S).sub("", readme_txt),
+    re.sub(":[a-z]+:`~?(.*?)`", r"``\1``", history_txt),
 )
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
@@ -41,7 +38,7 @@ setup(
     name="negmas",  # Required
     # https://www.python.org/dev/peps/pep-0440/
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="0.3.9",  # Required
+    version="0.3.10",  # Required
     # https://packaging.python.org/specifications/core-metadata/#summary
     description="NEGotiations Managed by Agent Simulations",  # Required
     # https://packaging.python.org/specifications/core-metadata/#description-optional
