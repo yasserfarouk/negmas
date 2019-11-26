@@ -20,7 +20,7 @@
 #
 
 import negmas
-
+import os
 import sphinx_rtd_theme
 
 # -- General configuration ---------------------------------------------
@@ -119,7 +119,12 @@ html_context = {
         ],
      }
 
-html_theme = "sphinx_rtd_theme"
+# on_rtd is whether we are on readthedocs.org
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if not on_rtd:  # only set the theme if we're building docs locally
+    html_theme = 'sphinx_rtd_theme'
+
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # theme options for sphinx_rtd_theme
 html_theme_options = {
