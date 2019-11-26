@@ -1,7 +1,5 @@
-========
 Overview
 ========
-
 
 .. start-badges
 
@@ -43,7 +41,6 @@ Overview
 
 
 .. end-badges
-
 
 .. container:: twocol
 
