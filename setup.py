@@ -44,7 +44,7 @@ setup(
     # https://packaging.python.org/specifications/core-metadata/#description-optional
     long_description=long_description,  # Optional
     # https://packaging.python.org/specifications/core-metadata/#description-content-type-optional
-    long_description_content_type="text/markdown",  # Optional (see note above)
+    long_description_content_type="text/x-rst",  # Optional (see note above)
     url="https://github.com/yasserfarouk/negmas",  # Optional
     author="Yasser Mohammad",  # Optional
     author_email="yasserfarouk@gmail.com",  # Optional
