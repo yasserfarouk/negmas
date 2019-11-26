@@ -52,12 +52,12 @@ def test_issues_construction():
 
     issues = Issues.from_single_issue(Issue(10, "issue"))
     assert len(issues.issues) == 1
-    assert str(issues) == "issue: 10"
+    assert str(issues) == "issue: (0, 9)"
 
     issues = Issues(price=[2, 3], cost=[1, 2, 3], delivery=["yes", "no"])
     assert issues.is_finite()
     assert not issues.is_infinite()
-    assert issues.cardinality() == issues.n_outcomes() == 2 * 3 * 2
+    assert issues.cardinality == issues.n_outcomes == 2 * 3 * 2
 
     valid = issues.rand_valid()
     invalid = issues.rand_invalid()

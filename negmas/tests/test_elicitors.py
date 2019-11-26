@@ -454,7 +454,7 @@ class TestCountableOutcomesElicitor(object):
             elicitor.elicitation_cost > 0.0
             or cost == 0.0
             or elicitor.strategy is None
-            or neg.state < 2
+            or neg.state.step < 2
         )
         if neg.agreement is not None:
             assert (

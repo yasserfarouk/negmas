@@ -9,8 +9,7 @@ def test_type(hamlet, cissue, dissue):
     assert dissue.type == "discrete", "int passes"
     assert hamlet.type == "discrete", "string list passes"
     hamlet.values = (1, 2)
-    with pytest.raises(ValueError):
-        print(hamlet.type)
+    assert hamlet.cardinality() == 2
 
 
 def test_is_continuous(cissue, dissue, hamlet):
@@ -78,7 +77,7 @@ def test_issue_generation_defaults():
     )
     for i, o in enumerate(options):
         assert issues[1].values[i] == o
-    assert issues[2].values == 5
+    assert issues[2].values == (0, 4)
     for i, issue in enumerate(issues):
         assert str(i) == issue.name
 
@@ -88,7 +87,7 @@ def test_issue_generation_multiples():
     assert len(issues_) == 10
     for i, issue in enumerate(issues_):
         assert issue.name.startswith(str(i))
-        assert issue.values == 5
+        assert issue.values == (0, 4)
 
 
 if __name__ == "__main__":

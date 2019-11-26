@@ -16,7 +16,7 @@ Examples:
   >>> for _ in issues: print(_)
   price: (0.5, 2.0)
   date: ['2018.10.1', '2018.10.2', '2018.10.3']
-  count: 20
+  count: (0, 19)
 
   Outcome example compatible with the given set of issues:
 
@@ -27,6 +27,7 @@ Examples:
 import itertools
 import math
 import random
+import numbers
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 import copy
@@ -94,13 +95,14 @@ class Issue(NamedObject):
             name: Name of the issue. If not given, a random name will be generated
             min_value: Minimum value ( used only if the issue values parameter was a callable )
             max_value: Maximum value ( used only if the issue values parameter was a callable )
+            value_type: If a type is given, all values will be forced to this type
 
     Examples:
 
         >>> print(Issue(['to be', 'not to be'], name='THE problem'))
         THE problem: ['to be', 'not to be']
         >>> print(Issue(3, name='Cars'))
-        Cars: 3
+        Cars: (0, 2)
         >>> print(Issue((0.0, 1.0), name='required accuracy'))
         required accuracy: (0.0, 1.0)
         >>> a = Issue((0.0, 1.0), name='required accuracy')
@@ -120,36 +122,104 @@ class Issue(NamedObject):
 
     Remarks:
 
-        - Issues can be initialized by either an iterable of strings, an integer or a tuple of two real values with
+        - Issues can be initialized by either an iterable of strings, an integer or a tuple of two values with
           the following meanings:
-          - ``iterable of strings`` : This is an issue that can any value within the given set of values (strings)
+
+          - ``list of anything`` : This is an issue that can any value within the given set of values
+            (strings, ints, floats, etc)
           - ``int`` : This is an issue that takes any value from 0 to the given value -1 (int)
-          - ``float`` : This is an issue that can take any real value between the given limits (min, max)
+          - Tuple[ ``float`` , ``float`` ] : This is an issue that can take any real value between the given limits (min, max)
+          - Tuple[ ``int`` , ``int`` ] : This is an issue that can take any integer value between the given limits (min, max)
           - ``Callable`` : The callable should take no parameters and should act as a generator of issue values. This
              type of issue is always assumed to be neither countable nor continuous and are called uncountable. For
              example, you can use this type to make an issue that generates all integers from 0 to infinity.
-
+        - If a list is given, min, max must be callable on it.
     """
 
     def __init__(
         self,
-        values: Union[List[str], int, Tuple[float, float], Callable[[], Any]],
+        values: Union[
+            List[Any],
+            int,
+            Tuple[float, float],
+            Tuple[int, int],
+            List[int],
+            Callable[[], Any],
+        ],
         name: Optional[str] = None,
         min_value: Any = None,
         max_value: Any = None,
+        value_type: Optional[Type] = None,
     ) -> None:
         super().__init__(name=name)
+        if value_type is not None and value_type != int and isinstance(values, int):
+            raise ValueError(
+                "Cannot force a type that is not int while passing a singular integer as values"
+            )
         # if isinstance(values, int) and values <= LARGE_NUMBER:
         #    values = list(range(values))
+        self._value_type: Type = value_type
+        self._n_values: int = float("inf")
+        self._is_generator: bool = False
+        self._is_range: bool = False
+        self._is_int_range: bool = False
+        self._is_float_range: bool = False
+        if isinstance(values, int):
+            values = (0, values - 1)
         if isinstance(values, tuple):
-            values = (float(values[0]), float(values[1]))
+            if len(values) != 2:
+                raise ValueError(
+                    f"Passing {values} is illegal. Issues with ranges need 2-values tuples"
+                )
+            if value_type is not None:
+                values = (value_type(values[0]), value_type(values[1]))
+            isint0, isint1 = (
+                isinstance(values[0], numbers.Integral),
+                isinstance(values[1], numbers.Integral),
+            )
+            isreal0, isreal1 = (
+                isinstance(values[0], numbers.Real),
+                isinstance(values[1], numbers.Real),
+            )
+
+            if (
+                (isint0 and not isint1)
+                or (isint1 and not isint0)
+                or (isreal0 and not isreal1)
+                or (isreal1 and not isreal0)
+                or (not (isint0 or isreal0) or not (isint1 or isreal1))
+            ):
+                raise ValueError(
+                    f"Confusing types: Received types ({type(values[0])}, {type(values[1])})"
+                )
+
+            values = (values[0], values[1])
+            self._is_int_range = isinstance(values[0], int)
+            self._is_float_range = isinstance(values[0], float)
+            self._value_type = type(values[0])
+            self._n_values = (
+                float("inf") if self._is_float_range else values[1] - values[0] + 1
+            )
+            self._is_range = True
+        elif isinstance(values, Callable):
+            self._is_generator = isinstance(values, Callable)
+        else:
+            values = list(values)
+            if len(values) < 1:
+                raise ValueError("values must include at least one item")
+            if value_type is not None:
+                values = [value_type(_) for _ in values]
+            self._value_type = type(values[0])
+            if value_type is None and not all(
+                isinstance(_, self._value_type) for _ in values
+            ):
+                raise ValueError(f"Not all values are of the same type: {values}")
+            self._n_values = len(values)
         self.values = values
         if isinstance(self.values, tuple):
             self.min_value, self.max_value = values
-        elif isinstance(self, list):
+        elif isinstance(self.values, list):
             self.min_value, self.max_value = min(values), max(values)
-        elif isinstance(self, int):
-            self.min_value, self.max_value = 0, values - 1
         else:
             self.min_value, self.max_value = min_value, max_value
 
@@ -296,30 +366,31 @@ class Issue(NamedObject):
             f'<objective description="" etype="objective" index="0" name="root" type="objective">\n'
         )
         for indx, issue in enumerate(issues):
-            if issue.values is None or isinstance(issue.values, Callable):
+            if issue.values is None or issue._is_generator:
                 raise ValueError(
-                    f"Cannot convert issue {issue.name} to xml because it has not defined values."
+                    f"Cannot convert issue {issue.name} to xml because it has no defined values (or uses a "
+                    f"generator)."
                 )
-            if isinstance(issue.values, int):
+            if issue._is_int_range:
                 if enumerate_integer:
-                    output += f'    <issue etype="discrete" index="{indx+1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
-                    for i, v in enumerate(range(issue.values)):
-                        output += f'        <item index="{i+1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
+                    output += f'    <issue etype="discrete" index="{indx + 1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
+                    for i, v in enumerate(range(issue.values[0], issue.values[1] + 1)):
+                        output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
                     output += "    </issue>\n"
                 else:
                     output += (
-                        f'    <issue etype="integer" index="{indx+1}" name="{issue.name}" type="integer" vtype="integer"'
-                        f' lowerbound="0" upperbound="{issue.values-1}" />\n'
+                        f'    <issue etype="integer" index="{indx + 1}" name="{issue.name}" type="integer" vtype="integer"'
+                        f' lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}" />\n'
                     )
-            elif isinstance(issue.values, tuple):
+            elif issue._is_float_range:
                 output += (
-                    f'    <issue etype="real" index="{indx+1}" name="{issue.name}" type="real" vtype="real">\n'
+                    f'    <issue etype="real" index="{indx + 1}" name="{issue.name}" type="real" vtype="real">\n'
                     f'        <range lowerbound="{issue.values[0]}" upperbound="{issue.values[1]}"></range>\n    </issue>\n'
                 )
             else:
-                output += f'    <issue etype="discrete" index="{indx+1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
+                output += f'    <issue etype="discrete" index="{indx + 1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
                 for i, v in enumerate(issue.values):
-                    output += f'        <item index="{i+1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
+                    output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
                 output += "    </issue>\n"
         output += f"</objective>\n</utility_space>\n</negotiation_template>"
         return output
@@ -479,7 +550,7 @@ class Issue(NamedObject):
             >>> type(issues)
             <class 'list'>
             >>> str(issues[0]).split(': ')[-1]
-            '3'
+            '(0, 2)'
             >>> print([_.cardinality() for _ in issues])
             [3, 3, 3]
 
@@ -682,7 +753,9 @@ class Issue(NamedObject):
 
     @staticmethod
     def generate(
-        issues: Sequence[Union[int, List[str], Tuple[float, float]]],
+        issues: Sequence[
+            Union[int, List[str], Tuple[int, int], Callable, Tuple[float, float]]
+        ],
         counts: Optional[Sequence[int]] = None,
         names: Optional[Sequence[str]] = None,
     ) -> List["Issue"]:
@@ -726,18 +799,9 @@ class Issue(NamedObject):
 
         """
 
-        if isinstance(self.values, tuple) and isinstance(self.values[0], float):
+        if self._is_float_range:
             return "continuous"
-
-        if isinstance(self.values, int) or isinstance(self.values, list):
-            return "discrete"
-
-        if isinstance(self.values, Callable):
-            return "uncountable"
-
-        raise ValueError(
-            "Unknown type. Note that a Tuple[int, int] is not allowed as a range."
-        )
+        return "uncountable" if self._is_generator else "discrete"
 
     def is_continuous(self) -> bool:
         """Test whether the issue is a continuous issue
@@ -784,8 +848,8 @@ class Issue(NamedObject):
                 "Cannot return all possibilities of a continuous/uncountable issue"
             )
 
-        if isinstance(self.values, int):
-            yield from range(self.values)
+        if self._is_int_range:
+            yield from range(self.values[0], self.values[1] + 1)
         else:
             yield from self.values  # type: ignore
 
@@ -801,61 +865,62 @@ class Issue(NamedObject):
             [0, 1, 2, 3, 4]
 
         """
-        if self.is_continuous():
+        if self._is_float_range:
             if n is None:
                 raise ValueError("Real valued issue with no discretization value")
             yield from np.linspace(
                 self.values[0], self.values[1], num=n, endpoint=True
             ).tolist()
-        elif self.is_uncountable():
+        elif self._is_generator:
             if n is None:
                 raise ValueError("Real valued issue with no discretization value")
             yield from (self.values() for _ in range(n))
-        elif isinstance(self.values, int):
-            yield from range(self.values)
+        elif self._is_int_range:
+            yield from range(self.values[0], self.values[1] + 1)
         else:
             yield from self.values  # type: ignore
 
-    def cardinality(self) -> int:
+    def cardinality(self) -> Union[int, float]:
         """The number of possible outcomes for the issue. A negative number means infinite"""
-        if isinstance(self.values, int):
-            return self.values
+        if self._is_int_range:
+            return self.values[1] - self.values[0] + 1
 
-        if self.is_uncountable():
+        if self._is_generator or self._is_float_range:
             return -1
 
         return len(self.values)  # type: ignore
 
     def rand(self) -> Union[int, float, str]:
         """Picks a random valid value."""
-        if isinstance(self.values, int):
-            return random.randint(0, self.values - 1)
-        elif self.is_continuous():
+        if self._is_float_range:
             return (
                 random.random() * (self.values[1] - self.values[0]) + self.values[0]
             )  # type: ignore
-        elif self.is_uncountable():
+        if self._is_int_range:
+            return random.randint(*self.values)
+        if self._is_generator:
             return self.values()
-
         return random.choice(self.values)  # type: ignore
 
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> Iterable["Outcome"]:
         """Picks a random valid value."""
-        if isinstance(self.values, int):
-            if n > self.values and not with_replacement:
+        if self._is_int_range:
+            if n > self.values[1] and not with_replacement:
                 if fail_if_not_enough:
                     raise ValueError(
                         f"Cannot sample {n} outcomes out of {self.values} without replacement"
                     )
                 else:
-                    return [_ for _ in range(self.values)]
+                    return [_ for _ in range(*self.values)]
             if with_replacement:
-                return np.random.randint(low=0, high=self.values, size=n).tolist()
+                return np.random.randint(
+                    low=self.values[0], high=self.values[1], size=n
+                ).tolist()
             else:
-                return random.shuffle([_ for _ in range(self.values)])[:n]
-        elif self.is_continuous():
+                return random.shuffle([_ for _ in range(*self.values)])[:n]
+        if self._is_float_range:
             if with_replacement:
                 return (
                     np.random.rand(n) * (self.values[1] - self.values[0])
@@ -865,7 +930,7 @@ class Issue(NamedObject):
                 return np.linspace(
                     self.values[0], self.values[1], num=n, endpoint=True
                 ).tolist()
-        elif self.is_uncountable():
+        if self._is_generator:
             if not with_replacement:
                 raise ValueError(
                     f"values is specified as a callables for this issue. Cannot sample from it without "
@@ -880,7 +945,7 @@ class Issue(NamedObject):
             else:
                 return self.values
         return np.random.choice(
-            np.asarray(self.values, dtype=type(self.values[0])),
+            np.asarray(self.values, dtype=self._value_type),
             size=n,
             replace=with_replacement,
         ).tolist()
@@ -889,21 +954,23 @@ class Issue(NamedObject):
 
     def rand_invalid(self) -> Union[int, float, str]:
         """Pick a random *invalid* value"""
-        if isinstance(self.values, int):
-            return random.randint(self.values + 1, 2 * self.values)
-
-        elif self.is_continuous():
+        if self._is_int_range:
+            return random.randint(self.max_value + 1, 2 * self.max_value)
+        if self._is_float_range:
             return (
-                random.random() * (self.values[1]) + self.values[1] + 1e-3
-            )  # type: ignore
-        elif self.is_uncountable():
+                random.random() * (self.max_value - self.min_value)
+                + self.max_value * 1.1
+            )
+        if self._is_generator:
             raise ValueError(
                 f"Cannot generate invalid outcomes because values is given as a callable"
             )
-        pick = (
-            unique_name("") + str(random.choice(self.values)) + unique_name("")
-        )  # type: ignore
-        return pick
+        if isinstance(self.values[0], float):
+            return random.random() * self.max_value + self.max_value * 1.1
+        if isinstance(self.values[0], int):
+            return random.randint(self.max_value + 1, self.max_value * 2)
+
+        return unique_name("") + str(random.choice(self.values)) + unique_name("")
 
     @classmethod
     def enumerate(
@@ -1057,9 +1124,9 @@ class Issue(NamedObject):
     def outcome_range(self) -> "OutcomeRange":
         """An outcome range that represents the full space of the issues"""
         outcome_range = {}
-        if self.is_continuous():
+        if self._is_range:
             outcome_range[self.name] = self.values
-        elif self.is_uncountable():
+        elif self._is_generator:
             outcome_range[self.name] = None
         else:
             outcome_range[self.name] = self.all
@@ -1097,39 +1164,39 @@ class Issue(NamedObject):
     def to_java(self):
         if self.values is None:
             return None
-        if isinstance(self.values, tuple):
-            if isinstance(self.values[0], int):
-                return {
-                    "name": self.name,
-                    "min": int(self.values[0]),
-                    "max": int(self.values[0]),
-                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntRangeIssue",
-                }
-            else:
-                return {
-                    "name": self.name,
-                    "min": float(self.values[0]),
-                    "max": float(self.values[0]),
-                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleRangeIssue",
-                }
-        if isinstance(self.values, Iterable):
-            if isinstance(self.values[0], int):
-                return {
-                    "name": self.name,
-                    "values": [int(_) for _ in self.values],
-                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntListIssue",
-                }
-            elif isinstance(self.values[0], str):
-                return {
-                    "name": self.name,
-                    "values": [str(_) for _ in self.values],
-                    PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.StringListIssue",
-                }
+        if self._is_int_range:
+            return {
+                "name": self.name,
+                "min": int(self.values[0]),
+                "max": int(self.values[0]),
+                PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntRangeIssue",
+            }
+        if self._is_float_range:
+            return {
+                "name": self.name,
+                "min": float(self.values[0]),
+                "max": float(self.values[0]),
+                PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleRangeIssue",
+            }
+        if self._is_generator:
+            raise ValueError("Cannot convert issues created by a callable to JAVA")
+        if isinstance(self.values[0], int):
+            return {
+                "name": self.name,
+                "values": [int(_) for _ in self.values],
+                PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntListIssue",
+            }
+        if isinstance(self.values[0], float):
             return {
                 "name": self.name,
                 "values": [float(_) for _ in self.values],
                 PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleListIssue",
             }
+        return {
+            "name": self.name,
+            "values": [str(_) for _ in self.values],
+            PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.StringListIssue",
+        }
 
 
 class Issues(object):
@@ -1155,22 +1222,22 @@ class Issues(object):
         self.issues = [Issue(name=k, values=v) for k, v in kwargs.items()]
 
     @classmethod
-    def from_issue_collection(cls, issues: Iterable[Issue], name: str = None):
-        out = Issues(name=name)
+    def from_issue_collection(cls, issues: Iterable[Issue]):
+        out = Issues()
         out.issues = issues
         return out
 
     @classmethod
-    def from_single_issue(cls, issue: Issue, name: str = None):
-        return Issues.from_issue_collection([issue], name=name)
+    def from_single_issue(cls, issue: Issue):
+        return Issues.from_issue_collection([issue])
 
-    def n_outcomes(self) -> int:
-        """Returns the total number of outcomes in a set of issues. `-1` indicates infinity"""
+    @property
+    def n_outcomes(self) -> Union[int, float]:
+        """Returns the total number of outcomes in a set of issues. Infinity is returned for uncountable or continuous
+        outcomes """
         n = 1
         for issue in self.issues:
-            n *= issue.cardinality()
-            if n < 0:
-                return -1
+            n *= issue._n_values
 
         return n
 
@@ -1220,9 +1287,8 @@ class Issues(object):
 
         yield from itertools.product(_.all for _ in self.issues)
 
-    def cardinality(self) -> int:
-        """The number of possible outcomes for the issue. A negative number means infinite"""
-        return self.n_outcomes()
+    cardinality = n_outcomes
+    """The number of possible outcomes for the issue. A negative number means infinite"""
 
     def rand(self) -> Dict[str, Union[int, float, str]]:
         """Picks a random valid value."""
@@ -1239,7 +1305,7 @@ class Issues(object):
         """An outcome range that represents the full space of the issues"""
         outcome_range = {}
         for issue in self.issues:
-            if issue.is_continuous():
+            if issue._is_range:
                 outcome_range[issue.name] = issue.values
             elif issue.is_uncountable():
                 outcome_range[issue.name] = None
@@ -1329,7 +1395,6 @@ Outcome = Union[
 Outcomes = List["Outcome"]
 OutcomeRanges = List["OutcomeRange"]
 
-
 OutcomeRange = Mapping[
     Union[int, str],
     Union[
@@ -1410,17 +1475,28 @@ def sample_outcomes(
     Examples:
 
         enumberate the whole space
-        >>> issues = [Issue(values=(0, 1), name='Price'), Issue(values=['a', 'b'], name='Name')]
+        >>> issues = [Issue(values=(0.0, 1.0), name='Price'), Issue(values=['a', 'b'], name='Name')]
         >>> sample_outcomes(issues=issues)
         [{'Price': 0.0, 'Name': 'a'}, {'Price': 0.0, 'Name': 'b'}, {'Price': 0.25, 'Name': 'a'}, {'Price': 0.25, 'Name': 'b'}, {'Price': 0.5, 'Name': 'a'}, {'Price': 0.5, 'Name': 'b'}, {'Price': 0.75, 'Name': 'a'}, {'Price': 0.75, 'Name': 'b'}, {'Price': 1.0, 'Name': 'a'}, {'Price': 1.0, 'Name': 'b'}]
 
         enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
-        >>> issues = [Issue(values=(0, 1), name='Price'), Issue(values=['a', 'b'], name='Name')]
+        >>> issues = [Issue(values=(0, 1), name='Price', value_type=float), Issue(values=['a', 'b'], name='Name')]
+        >>> issues[0].is_continuous()
+        True
         >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
         >>> len(sampled)
         5
         >>> len(set(tuple(_.values()) for _ in sampled))
         5
+
+        >>> issues = [Issue(values=(0, 1), name='Price'), Issue(values=['a', 'b'], name='Name')]
+        >>> issues[0].is_continuous()
+        False
+        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
+        >>> len(sampled)
+        4
+        >>> len(set(tuple(_.values()) for _ in sampled))
+        4
 
 
     """
@@ -1510,7 +1586,7 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
         >>> for _ in issues: print(_)
         price: (0.5, 2.0)
         date: ['2018.10.1', '2018.10.2', '2018.10.3']
-        count: 20
+        count: (0, 19)
         >>> print([outcome_is_valid({'price':3.0}, issues), outcome_is_valid({'date': '2018.10.4'}, issues)\
             , outcome_is_valid({'count': 21}, issues)])
         [False, False, False]
@@ -1541,17 +1617,14 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
             continue
 
         value = iget(outcome, key)
-        if isinstance(issue.values, int) and (
-            isinstance(value, str) or not 0 <= value < issue.values
+        if issue._is_range and (
+            isinstance(value, str) or not issue.values[0] <= value <= issue.values[1]
         ):
             return False
-
-        elif isinstance(issue.values, tuple) and (
-            isinstance(value, str) or not issue.values[0] < value < issue.values[1]
-        ):
+        if issue._value_type is not None and not isinstance(value, issue._value_type):
             return False
 
-        elif isinstance(issue.values, list) and value not in issue.values:
+        if isinstance(issue.values, list) and value not in issue.values:
             return False
 
     return True
@@ -1566,7 +1639,7 @@ def outcome_is_complete(outcome: Outcome, issues: Collection[Issue]) -> bool:
         >>> for _ in issues: print(_)
         price: (0.5, 2.0)
         date: ['2018.10.1', '2018.10.2', '2018.10.3']
-        count: 20
+        count: (0, 19)
         >>> print([outcome_is_complete({'price':3.0}, issues), outcome_is_complete({'date': '2018.10.4'}, issues)\
             , outcome_is_complete({'count': 21}, issues)])
         [False, False, False]
