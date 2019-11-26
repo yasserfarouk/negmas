@@ -1282,7 +1282,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if (
             not presort
             and all(i.is_countable() for i in self._ami.issues)
-            and Issue.n_outcomes(self._ami.issues) >= self.n_outcomes_to_force_presort
+            and Issue.num_outcomes(self._ami.issues) >= self.n_outcomes_to_force_presort
         ):
             presort = True
         if presort:

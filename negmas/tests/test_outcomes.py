@@ -57,7 +57,7 @@ def test_issues_construction():
     issues = Issues(price=[2, 3], cost=[1, 2, 3], delivery=["yes", "no"])
     assert issues.is_finite()
     assert not issues.is_infinite()
-    assert issues.cardinality == issues.n_outcomes == 2 * 3 * 2
+    assert issues.cardinality == issues.num_outcomes == 2 * 3 * 2
 
     valid = issues.rand_valid()
     invalid = issues.rand_invalid()
@@ -84,7 +84,7 @@ def test_from_outcomes():
     found = Issue.from_outcomes(Issue.enumerate(issues.issues))
     for i, f in zip(issues.issues, found):
         assert i.name == f.name
-        assert all(a == b for a, b in zip(sorted(i.values), f.values))
+        assert all(a == b for a, b in zip(sorted(i.values), f._values))
 
     issues = Issues(price=(1, 7), cost=(0, 5), delivery=["yes", "no"])
     found = Issue.from_outcomes(
@@ -93,7 +93,7 @@ def test_from_outcomes():
     for i, f in zip(issues.issues, found):
         v = sorted(i.values)
         assert i.name == f.name
-        assert f.values[0] >= v[0] and f.values[1] <= v[1]
+        assert f._values[0] >= v[0] and f._values[1] <= v[1]
 
 
 if __name__ == "__main__":
