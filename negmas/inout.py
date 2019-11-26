@@ -205,7 +205,7 @@ def load_genius_domain(
             n_outcomes: float = functools.reduce(
                 operator.mul,
                 (
-                    float(_.cardinality())
+                    float(_.cardinality)
                     if not _.is_uncountable()
                     else float(n_discretization)
                     if n_discretization is not None

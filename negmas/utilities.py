@@ -491,7 +491,7 @@ class UtilityFunction(ABC, NamedObject):
                             domain_issues is not None
                             and not domain_issues[myname].is_uncountable()
                         ):
-                            n_steps = domain_issues[myname].cardinality()
+                            n_steps = domain_issues[myname].cardinality
                             delta = (n_steps - 1) / (upper - lower)
                             value_shift = -lower * delta
                             value_scale = delta

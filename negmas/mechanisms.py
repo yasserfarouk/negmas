@@ -169,7 +169,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                         for issue in __issues:
                             if issue.is_uncountable():
                                 break
-                            n_outcomes *= issue.cardinality()
+                            n_outcomes *= issue.cardinality
                             if n_outcomes > max_n_outcomes:
                                 break
                         else:
