@@ -1476,7 +1476,7 @@ class LinearUtilityFunction(UtilityFunction):
 
         >>> issues = [Issue((10.0, 20.0), 'price'), Issue(5, 'quality')]
         >>> print(list(map(str, issues)))
-        ['price: (10.0, 20.0)', 'quality: 5']
+        ['price: (10.0, 20.0)', 'quality: (0, 4)']
         >>> f = LinearUtilityFunction({'price': 1.0, 'quality': 4.0})
         >>> float(f({'quality': 2, 'price': 14.0})
         ...       ) -  (14 + 8)
@@ -1598,7 +1598,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
         ...           , Issue(5, 'quality')]
         >>> print(list(map(str, issues)))
-        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: 5']
+        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
         >>> f = LinearUtilityAggregationFunction({'price': lambda x: 2.0*x
         ...                          , 'delivery': {'delivered': 10, 'not delivered': -10}
         ...                          , 'quality': MappingUtilityFunction(lambda x: x-3)}
@@ -1819,7 +1819,7 @@ class MappingUtilityFunction(UtilityFunction):
         >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
         ...           , Issue(5, 'quality')]
         >>> print(list(map(str, issues)))
-        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: 5']
+        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
         >>> f = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0)
         >>> g = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0
         ...     , default=-1000 )
@@ -1960,7 +1960,7 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
         ...           , Issue(5, 'quality')]
         >>> print(list(map(str, issues)))
-        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: 5']
+        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
         >>> g = NonLinearUtilityAggregationFunction({ 'price': lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}
         ...                                         , 'quality': MappingUtilityFunction(lambda x: x-3)}
