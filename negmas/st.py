@@ -10,15 +10,13 @@ from typing import Optional, Tuple, Union, List
 from negmas import MechanismRoundResult, Outcome, MechanismState
 from negmas.mechanisms import Mechanism
 
-__all__ = [
-    "VetoSTMechanism",
-    "HillClimbingSTMechanism"
-]
+__all__ = ["VetoSTMechanism", "HillClimbingSTMechanism"]
 
 
 @dataclass
 class STState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
+
     current_offer: Optional["Outcome"] = None
     new_offer: Optional["Outcome"] = None
 
@@ -42,12 +40,20 @@ class VetoSTMechanism(Mechanism):
 
     """
 
-    def __init__(self, *args, epsilon: float = 1e-6, initial_outcome=None, initial_responses: Tuple[bool] = tuple()
-                 , **kwargs):
+    def __init__(
+        self,
+        *args,
+        epsilon: float = 1e-6,
+        initial_outcome=None,
+        initial_responses: Tuple[bool] = tuple(),
+        **kwargs,
+    ):
         kwargs["state_factory"] = STState
         super().__init__(*args, **kwargs)
 
-        self.add_requirements({"compare-binary": True}) # assert that all agents must have compare-binary capability
+        self.add_requirements(
+            {"compare-binary": True}
+        )  # assert that all agents must have compare-binary capability
         self.current_offer = initial_outcome
         """The current offer"""
         self.initial_outcome = deepcopy(initial_outcome)
@@ -85,23 +91,26 @@ class VetoSTMechanism(Mechanism):
 
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon) is not False)
+            responses.append(
+                neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon)
+                is not False
+            )
             if time.perf_counter() - strt > self.ami.step_time_limit:
-                return MechanismRoundResult(
-                    broken=False, timedout=True, agreement=None
-                )
+                return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 
         self.last_responses = responses
         self.new_offer = new_offer
         if all(responses):
             self.current_offer = new_offer
 
-
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
-        if self.current_offer is not None and all(neg.is_acceptable_as_agreement(self.current_offer) for neg in self.negotiators):
+        if self.current_offer is not None and all(
+            neg.is_acceptable_as_agreement(self.current_offer)
+            for neg in self.negotiators
+        ):
             self._agreement = self.current_offer
 
         super().on_negotiation_end()
@@ -183,9 +192,7 @@ class VetoSTMechanism(Mechanism):
             if au is None:
                 break
             if has_history:
-                h = history.loc[:,
-                    ["step", "current_offer", "u0", "u1"],
-                ]
+                h = history.loc[:, ["step", "current_offer", "u0", "u1"]]
                 h["utility"] = h[f"u{a}"]
                 au.plot(h.step, h.utility)
                 au.set_ylim(0.0, 1.0)
@@ -221,11 +228,14 @@ class VetoSTMechanism(Mechanism):
                 )
 
             if has_history:
-                h = history.loc[:,
-                    ["step", "current_offer", "u0", "u1"],
-                ]
+                h = history.loc[:, ["step", "current_offer", "u0", "u1"]]
                 axu.scatter(h.u0, h.u1, color="green", label=f"Mediator's Offer")
-                axu.scatter([frontier[0][0]], [frontier[0][1]], color="blue", label=f"Max Welfare")
+                axu.scatter(
+                    [frontier[0][0]],
+                    [frontier[0][1]],
+                    color="blue",
+                    label=f"Max Welfare",
+                )
                 # axu.annotate(
                 #     "Max. Welfare",
                 #     xy=frontier[0],  # theta, radius
@@ -248,7 +258,6 @@ class VetoSTMechanism(Mechanism):
                 )
 
         fig_util.show()
-
 
 
 class HillClimbingSTMechanism(VetoSTMechanism):
@@ -285,19 +294,26 @@ class HillClimbingSTMechanism(VetoSTMechanism):
 
         if len(self.possible_offers) == 0:
             return None
-        return self.possible_offers.pop(random.randint(0, len(self.possible_offers)) - 1)
+        return self.possible_offers.pop(
+            random.randint(0, len(self.possible_offers)) - 1
+        )
 
     def round(self) -> MechanismRoundResult:
         """Single round of the protocol"""
 
         new_offer = self.next_outcome(self.current_offer)
         if new_offer is None:
-            return MechanismRoundResult(broken=False, timedout=False, agreement=self.current_offer)
+            return MechanismRoundResult(
+                broken=False, timedout=False, agreement=self.current_offer
+            )
 
         responses = []
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon) is not False)
+            responses.append(
+                neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon)
+                is not False
+            )
             if time.perf_counter() - strt > self.ami.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 
@@ -321,7 +337,10 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             if isinstance(issue.values, List):
                 values = issue.values
             if isinstance(issue.values, int):
-                values = [max(0, outcome[issue.name] - 1), min(outcome[issue.name] + 1, issue.values)]
+                values = [
+                    max(0, outcome[issue.name] - 1),
+                    min(outcome[issue.name] + 1, issue.values),
+                ]
             if isinstance(issue.values, Tuple):
                 delta = random.random(issue.values[0] - issue.values[0])
                 values.append(max(issue.values[0], outcome[issue.name] - delta))

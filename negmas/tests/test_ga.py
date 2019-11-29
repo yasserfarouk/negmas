@@ -1,8 +1,14 @@
-from negmas import SorterNegotiator, MappingUtilityFunction, BinaryComparatorNegotiator, Issue
+from negmas import (
+    SorterNegotiator,
+    MappingUtilityFunction,
+    BinaryComparatorNegotiator,
+    Issue,
+)
 from negmas.ga import GAMechanism
 from pytest import mark
 
-@mark.parametrize("n_negotiators,n_outcomes", [(2,10), (3,50),(2,50), (3,5)])
+
+@mark.parametrize("n_negotiators,n_outcomes", [(2, 10), (3, 50), (2, 50), (3, 5)])
 def test_ga_mechanism(n_negotiators, n_outcomes):
     mechanism = GAMechanism(outcomes=n_outcomes, n_steps=3)
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
