@@ -1923,14 +1923,17 @@ class MappingUtilityFunction(UtilityFunction):
 class RandomUtilityFunction(MappingUtilityFunction):
     """A random utility function for a discrete outcome space"""
 
-    def __init__(self, outcomes: List[Outcome]):
+    def __init__(self, outcomes: List[Outcome], reserved_value=None):
         if len(outcomes) < 1:
             raise ValueError("Cannot create a random utility function without outcomes")
         if isinstance(outcomes[0], tuple):
             pass
         else:
             outcomes = [tuple(o.keys()) for o in outcomes]
-        super().__init__(mapping=dict(zip(outcomes, np.random.rand(len(outcomes)))))
+        super().__init__(
+            mapping=dict(zip(outcomes, np.random.rand(len(outcomes)))),
+            reserved_value=reserved_value,
+        )
 
 
 class NonLinearUtilityAggregationFunction(UtilityFunction):
