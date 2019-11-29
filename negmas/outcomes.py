@@ -934,13 +934,15 @@ class Issue(NamedObject):
                         f"Cannot sample {n} outcomes out of {self._values} without replacement"
                     )
                 else:
-                    return [_ for _ in range(*self._values)]
+                    return [_ for _ in range(self._values[0], self._values[1] + 1)]
             if with_replacement:
                 return np.random.randint(
-                    low=self._values[0], high=self._values[1], size=n
+                    low=self._values[0], high=self._values[1] + 1, size=n
                 ).tolist()
             else:
-                return random.shuffle([_ for _ in range(*self._values)])[:n]
+                return random.shuffle(
+                    [_ for _ in range(self._values[0], self._values[1] + 1)]
+                )[:n]
         if self._is_float_range:
             if with_replacement:
                 return (
