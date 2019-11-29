@@ -1978,6 +1978,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 req_id=None,
                 run_to_completion=False,
             )
+            neg.partners.append(caller)
             if neg is None:
                 if all_or_none:
                     for _n in negs:
@@ -2021,6 +2022,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         negotiation=neg,
                         force_signature_now=True,
                     )
+                self._negotiations.pop(mechanism.uuid, None)
                 amis[i] = mechanism.ami
                 if all(completed):
                     break
