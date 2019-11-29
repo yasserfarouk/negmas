@@ -856,6 +856,8 @@ class Issue(NamedObject):
         """
         return not self._is_float_range and not self._is_generator
 
+    is_discrete = is_countable
+
     @property
     def all(self) -> Generator:
         """A generator that generates all possible values.
