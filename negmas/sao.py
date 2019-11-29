@@ -105,7 +105,7 @@ class SAOMechanism(Mechanism):
         step_time_limit=None,
         max_n_agents=None,
         dynamic_entry=True,
-        keep_issue_names=True,
+        keep_issue_names=False,
         cache_outcomes=True,
         max_n_outcomes: int = 1000000,
         annotation: Optional[Dict[str, Any]] = None,
@@ -1118,7 +1118,7 @@ class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
         reserved_value: float = None,
         p_acceptance=0.15,
         p_rejection=0.25,
-        p_ending=0.1,
+        p_ending=0.05,
         can_propose=True,
         ufun=None,
     ) -> None:
@@ -1321,6 +1321,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self.n_trials = 10
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
+        if self.ufun_max is None or self.ufun_min is None:
+            self.on_ufun_changed()
         if self._utility_function is None:
             return ResponseType.REJECT_OFFER
         u = self._utility_function(offer)
@@ -1337,6 +1339,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         return ResponseType.REJECT_OFFER
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        if self.ufun_max is None or self.ufun_min is None:
+            self.on_ufun_changed()
         asp = (
             self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
             + self.ufun_min

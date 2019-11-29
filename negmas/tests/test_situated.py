@@ -125,7 +125,7 @@ class DummyAgent(Agent):
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         negotiator = AspirationNegotiator(
-            ufun=MappingUtilityFunction(mapping=lambda x: 1.0 - x["i1"] / 10.0)
+            ufun=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
         )
         return negotiator
 
