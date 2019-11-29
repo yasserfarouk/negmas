@@ -967,6 +967,18 @@ def humanize_time(secs, align=False, always_show_all_units=False):
     return ":".join(parts)
 
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
+
+
 def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
     """
     Saves an object depending on the extension of the file given. If the filename given has no extension,
@@ -992,7 +1004,7 @@ def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
 
     if file_name.suffix == ".json":
         with open(file_name, "w") as f:
-            json.dump(d, f, sort_keys=True, indent=2)
+            json.dump(d, f, sort_keys=True, indent=2, cls=NpEncoder)
     elif file_name.suffix == ".yaml":
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
