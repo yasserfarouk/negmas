@@ -7,9 +7,11 @@ from typing import Optional, Tuple, List, Dict
 from negmas import MechanismRoundResult, Outcome, MechanismState
 from negmas.mechanisms import Mechanism
 
+
 @dataclass
 class GAState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
+
     dominant_outcomes: List[Optional["Outcome"]] = None
 
 
@@ -23,7 +25,9 @@ class GAMechanism(Mechanism):
         mutate_rate: The rate of mutation
     """
 
-    def __init__(self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs):
+    def __init__(
+        self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
+    ):
         kwargs["state_factory"] = GAState
         super().__init__(*args, **kwargs)
 
@@ -65,15 +69,19 @@ class GAMechanism(Mechanism):
         self.population = parents[:]
         for _ in range(self.n_population - len(self.dominant_outcomes)):
             if random.random() > self.mutate_rate and len(self.dominant_outcomes) >= 2:
-                self.population.append(self.crossover(*random.sample(self.dominant_outcomes, 2)))
+                self.population.append(
+                    self.crossover(*random.sample(self.dominant_outcomes, 2))
+                )
             else:
-                self.population.append(self.mutate(random.choice(self.dominant_outcomes)))
+                self.population.append(
+                    self.mutate(random.choice(self.dominant_outcomes))
+                )
 
     def update_ranks(self):
         self.ranks.clear()
         outcomes = {}
         for outcome in self.population:
-            outcomes[str(outcome)] = outcome    # merge duplicates
+            outcomes[str(outcome)] = outcome  # merge duplicates
             self.ranks[str(outcome)] = {}
 
         # get ranking from agents
@@ -88,7 +96,7 @@ class GAMechanism(Mechanism):
         self.dominant_outcomes.clear()
         outcomes = {}
         for outcome in self.population:
-            outcomes[str(outcome)] = outcome    # merge duplicates
+            outcomes[str(outcome)] = outcome  # merge duplicates
 
         # get dominant outcomes
         # naive approach (should be improved)
@@ -110,9 +118,3 @@ class GAMechanism(Mechanism):
         self.next_generation(self.select(self.population))
 
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
-
-
-
-
-
-
