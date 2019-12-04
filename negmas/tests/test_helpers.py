@@ -41,7 +41,7 @@ def disabled_test_create_loggers_with_file_params(capsys, tmpdir):
 
 def test_unique_name_defaults():
     a = unique_name("")
-    assert len(a) == 8 + 1 + 6 + 8
+    assert len(a) == 8 + 1 + 6 + 8 + 6
 
 
 def test_unique_name_no_time():

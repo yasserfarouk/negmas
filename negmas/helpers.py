@@ -265,22 +265,20 @@ def unique_name(
     Examples:
 
         >>> a = unique_name('')
-        >>> len(a) == 8 + 1 + 6 + 8
+        >>> len(a) == 8 + 1 + 6 + 8 + 6
         True
 
     Returns:
         str: The unique name.
 
     """
+    _time, rand_part = "", ""
     if rand_digits > 0:
-        characters = string.ascii_letters + string.digits
-        rand_part = "".join(random.choice(characters) for _ in range(rand_digits))
-    else:
-        rand_part = ""
+        rand_part = "".join(
+            random.choices(string.digits + string.ascii_letters, k=rand_digits)
+        )
     if add_time:
-        _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S")
-    else:
-        _time = ""
+        _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S%f")
     sub = _time + rand_part
     if len(sub) == 0:
         return base
