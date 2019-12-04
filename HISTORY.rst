@@ -1,6 +1,30 @@
 History
 =======
 
+Release 0.4.1
+-------------
+    - [Situated] adding accepted_negotiations and negotiation_requests to Agent (see the documentation for their use).
+    - [Situated] Now running_negotiations will contain both negotiations requested by the agent and negotiations accepted by it.
+    - [helpers] Adding microseconds to unique_name when add_time is True
+    - [Setup] separating requirements for elicitation and visualization to avoid an issue with compiling blist on windows machines unnecessarily if elicitation is not used.
+    - [core] adding is_discrete as an alias to is_countable in Issue
+    - [style] styling the mediated negotiators with black
+    - [core] resolving a bug in random generation of outcomes for issues with a single possible value
+    - [situated] resolving a bug that caused negotiations ran using run_negotiations() to run twice
+    - [core] making SAO mechanism ignore issue names by default (use tuples instead of dicts) for negotiation
+    - [core] allowed json dumping to work with numpy values
+    - [bug fix] Random Utility Function did not have a way to get a reserved value. Now it can.
+    - [core] Merging a pull request: Add mediated protocols
+    - [core] using num_outcomes instead of n_outcomes consistently when asking for n. outcomes of a set of issues
+    - [core] improving the robustness of Issue by testing against Integral, Real, and Number instead of int and float for interoperability with numpy
+    - [core] converted Issue.cardinality to a read-only property
+    - [core] converted Issue.values to a read-only property
+    - [core] improving the implementation of Issue class. It is now faster and supports Tuple[int, int] as values.
+    - [doc] preventing setting theme explicitly on RTD
+    - [doc] minor readme edit
+    - [doc] correcting readme type on pypi
+
+
 Release 0.4.0
 --------------
 

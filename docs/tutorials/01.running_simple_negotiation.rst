@@ -22,21 +22,21 @@ You can use these to run negotiations as follows:
 
 .. parsed-literal::
 
-    {'agreement': (8,),
+    {'agreement': (9,),
      'broken': False,
-     'current_offer': (8,),
-     'current_proposer': 'a2-5aac9b8c-26d4-4f65-87a9-80db194a2fb6',
+     'current_offer': (9,),
+     'current_proposer': 'a3-079be4c1-5322-4ef5-b664-307337d4e252',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
      'new_offers': [],
-     'relative_time': 0.15,
+     'relative_time': 0.09,
      'results': None,
      'running': False,
      'started': True,
-     'step': 14,
-     'time': 0.0038831250000015416,
+     'step': 8,
+     'time': 0.004660927999999842,
      'timedout': False,
      'waiting': False}
 
@@ -67,21 +67,21 @@ instead of a ``Mechanism`` object
 
 .. parsed-literal::
 
-    {'agreement': (8,),
+    {'agreement': (9,),
      'broken': False,
-     'current_offer': (8,),
-     'current_proposer': 'a2-4c716440-5f33-4d20-bbe1-13c2c7bb1f17',
+     'current_offer': (9,),
+     'current_proposer': 'a3-107c35bf-283d-49b2-8b1b-650e253df20c',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
      'n_negotiators': 5,
      'new_offers': [],
-     'relative_time': 0.15,
+     'relative_time': 0.09,
      'results': None,
      'running': False,
      'started': True,
-     'step': 14,
-     'time': 0.0074510620000012295,
+     'step': 8,
+     'time': 0.005280838000000898,
      'timedout': False,
      'waiting': False}
 
@@ -123,10 +123,10 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 8, 'price': 9, 'quantity': 9},
+    {'agreement': (9, 9, 8),
      'broken': False,
-     'current_offer': {'delivery_time': 8, 'price': 9, 'quantity': 9},
-     'current_proposer': 'seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2',
+     'current_offer': (9, 9, 8),
+     'current_proposer': 'seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
@@ -137,7 +137,7 @@ This can be modeled in the following negotiation:
      'running': False,
      'started': True,
      'step': 17,
-     'time': 0.003465158000000912,
+     'time': 0.003675460000000186,
      'timedout': False,
      'waiting': False}
 
@@ -157,22 +157,22 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 0})]
-    001: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 0})]
-    002: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 0})]
-    003: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 0})]
-    004: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 0})]
-    005: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 0})]
-    006: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 8, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 8, 'delivery_time': 0})]
-    007: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 7, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 7, 'delivery_time': 0})]
-    008: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 0, 'quantity': 5, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 5, 'delivery_time': 0})]
-    009: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 1, 'quantity': 8, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 8, 'delivery_time': 1})]
-    010: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 1, 'quantity': 5, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 5, 'delivery_time': 1})]
-    011: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 2, 'quantity': 7, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 7, 'delivery_time': 2})]
-    012: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 3, 'quantity': 7, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 7, 'delivery_time': 3})]
-    013: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 4, 'quantity': 6, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 6, 'delivery_time': 4})]
-    014: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 6, 'quantity': 8, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 8, 'delivery_time': 6})]
-    015: [('buyer-3c173a7a-5a49-420e-9d20-c9a6d0d5da7b', {'price': 8, 'quantity': 9, 'delivery_time': 9}), ('seller-ad4c617c-ff00-425f-91ea-1a5548dd15c2', {'price': 9, 'quantity': 9, 'delivery_time': 8})]
+    000: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
+    001: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
+    002: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
+    003: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
+    004: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
+    005: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
+    006: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 8, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 8, 0))]
+    007: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 7, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 7, 0))]
+    008: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 5, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 5, 0))]
+    009: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (1, 8, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 8, 1))]
+    010: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (1, 5, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 5, 1))]
+    011: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (2, 7, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 7, 2))]
+    012: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (3, 7, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 7, 3))]
+    013: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (4, 6, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 6, 4))]
+    014: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (6, 8, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 8, 6))]
+    015: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (8, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 8))]
     016: []
 
 
@@ -215,10 +215,10 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. parsed-literal::
 
-    {'agreement': {'delivery_time': 5, 'price': 5, 'quantity': 4},
+    {'agreement': (5, 4, 5),
      'broken': False,
-     'current_offer': {'delivery_time': 5, 'price': 5, 'quantity': 4},
-     'current_proposer': 'seller-173db5fe-e74c-4606-a852-20cab203b9a4',
+     'current_offer': (5, 4, 5),
+     'current_proposer': 'seller-49534369-8d93-42b7-b34e-b3f33083bc6d',
      'error_details': '',
      'has_error': False,
      'n_acceptances': 0,
@@ -229,7 +229,7 @@ the delivery time and price to go down. Let’s see what happens:
      'running': False,
      'started': True,
      'step': 44,
-     'time': 0.0098199189999999,
+     'time': 0.010532425000000956,
      'timedout': False,
      'waiting': False}
 
@@ -272,8 +272,8 @@ What happens if we give them more time to negotiate:
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_16_0.png
 
 
-It did not help! The two agents adjusted their concession to match the
-new time and they did not get to the Pareto-front.
+It did not help much! The two agents adjusted their concession to match
+the new time and they did not get to the Pareto-front.
 
 Let’s allow them to concede faster by setting their ``aspiration_type``
 to *linear* instead of the default *boulware*:
@@ -300,7 +300,6 @@ to *linear* instead of the default *boulware*:
 
 It is clear that longer negotiation time, and faster concession did not
 help the negotiators get to a point on the pareto-front.
-
 
 
 

@@ -10,6 +10,7 @@ Base Modules
     modules/negotiators
     modules/sao
     modules/st
+    modules/ga
     modules/modeling/utility
     modules/modeling/strategy
     modules/modeling/future

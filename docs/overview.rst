@@ -129,7 +129,7 @@ follows:
 
 .. parsed-literal::
 
-    2yW4Acq9GFz6Y1t9: ['to be', 'not to be']
+    ujsOSObZD5IZoGjd: ['to be', 'not to be']
     The Problem: ['to be', 'not to be']
 
 
@@ -144,7 +144,7 @@ follows:
 
 .. parsed-literal::
 
-    number of items: 10
+    number of items: (0, 9)
 
 
 -  Using a ``tuple`` with a lower and upper real-valued boundaries to
@@ -167,14 +167,14 @@ find the ``cardinality`` of any issue using:
 
 .. code:: ipython3
 
-    [issue2.cardinality(), issue3.cardinality(), issue4.cardinality()]
+    [issue2.cardinality, issue3.cardinality, issue4.cardinality]
 
 
 
 
 .. parsed-literal::
 
-    [2, 10, -1]
+    [2, 10, inf]
 
 
 
@@ -199,15 +199,15 @@ the usual ``-1`` encoding infinity):
 
 .. code:: ipython3
 
-    [Issue.n_outcomes([issue1, issue2, issue3, issue4]), # expected -1 because of issue4
-     Issue.n_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 4
+    [Issue.num_outcomes([issue1, issue2, issue3, issue4]), # expected -1 because of issue4
+     Issue.num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 4
 
 
 
 
 .. parsed-literal::
 
-    [-1, 40]
+    [inf, 40]
 
 
 
@@ -227,10 +227,11 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['not to be', '20190203-085645wL56nGisto be20190203-085645WgNZq6IT'],
-     ['to be', '20190203-085645tgUe52Rvnot to be20190203-085645JgwBuNO6'],
-     [3, 19],
-     [0.47700977655271704, 1.86630992777164]]
+    [['to be', '20191204H150950767460YFBbBciGto be20191204H1509507675026Qo5hsNR'],
+     ['to be',
+      '20191204H150950767526EOD79Q2cnot to be20191204H150950767559yWWU2KHE'],
+     [7, 16],
+     [0.372449262972256, 1.6379287837318206]]
 
 
 
@@ -254,7 +255,7 @@ when an issue has many values.
     ['to be', 'not to be']
     ['to be', 'not to be']
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    Cannot return all possibilities of a continuous issue
+    Cannot return all possibilities of a continuous/uncountable issue
 
 
 Outcomes
@@ -371,11 +372,11 @@ Now you can use objects of MyOutcome as normal outcomes
 
 .. parsed-literal::
 
-    MyOutcome(problem='to be', price=1.0848388916904823, quantity=0)
-    MyOutcome(problem='to be', price=1.8906644944040263, quantity=0)
-    MyOutcome(problem='not to be', price=1.2102407956353904, quantity=0)
-    MyOutcome(problem='not to be', price=2.957644296190988, quantity=1)
-    MyOutcome(problem='not to be', price=2.847064181581488, quantity=0)
+    MyOutcome(problem='to be', price=2.994358541523904, quantity=3)
+    MyOutcome(problem='not to be', price=2.702365619666316, quantity=3)
+    MyOutcome(problem='to be', price=1.0535014988939553, quantity=4)
+    MyOutcome(problem='not to be', price=1.693743551392433, quantity=3)
+    MyOutcome(problem='to be', price=1.8237347215154869, quantity=4)
 
 
 The *sample* function created objects of type MyOutcome that can be
@@ -390,9 +391,9 @@ accessed using either the dot notation or as a dict
 
 .. parsed-literal::
 
-    1.0848388916904823
-    1.0848388916904823
-    1.0848388916904823
+    2.994358541523904
+    2.994358541523904
+    2.994358541523904
 
 
 OutcomeType is intended to be used as a syntactic sugar around your
@@ -925,7 +926,6 @@ module for more details
     ['UtilityDistribution',
      'UtilityValue',
      'UtilityFunction',
-     'UtilityFunctionProxy',
      'ConstUFun',
      'LinDiscountedUFun',
      'ExpDiscountedUFun',
@@ -936,10 +936,16 @@ module for more details
      'NonlinearHyperRectangleUtilityFunction',
      'ComplexWeightedUtilityFunction',
      'ComplexNonlinearUtilityFunction',
+     'LinearUtilityFunction',
      'IPUtilityFunction',
      'pareto_frontier',
      'make_discounted_ufun',
-     'normalize']
+     'normalize',
+     'JavaUtilityFunction',
+     'RandomUtilityFunction',
+     'INVALID_UTILITY',
+     'outcome_with_utility',
+     'utility_range']
 
 
 Negotiators
@@ -964,7 +970,24 @@ Classes exposed in this module end with either ``Agent`` or ``Mixin``
 
 .. parsed-literal::
 
-    ['Negotiator', 'NegotiatorProxy', 'AspirationMixin']
+    ['Negotiator',
+     'AspirationMixin',
+     'Controller',
+     'PassThroughNegotiator',
+     'EvaluatorMixin',
+     'RealComparatorMixin',
+     'BinaryComparatorMixin',
+     'NLevelsComparatorMixin',
+     'RankerMixin',
+     'RankerWithWeightsMixin',
+     'SorterMixin',
+     'EvaluatorNegotiator',
+     'RealComparatorNegotiator',
+     'BinaryComparatorNegotiator',
+     'NLevelsComparatorNegotiator',
+     'RankerNegotiator',
+     'RankerWithWeightsNegotiator',
+     'SorterNegotiator']
 
 
 
@@ -993,8 +1016,7 @@ methods that MUST be implemented by any agent you inherit from it:
 
     ['SAOState',
      'SAOMechanism',
-     'SAOMechanismProxy',
-     'SAONegotiatorProxy',
+     'SAOProtocol',
      'SAONegotiator',
      'RandomNegotiator',
      'LimitedOutcomesNegotiator',
@@ -1003,7 +1025,12 @@ methods that MUST be implemented by any agent you inherit from it:
      'ToughNegotiator',
      'OnlyBestNegotiator',
      'NaiveTitForTatNegotiator',
-     'NiceNegotiator']
+     'SimpleTitForTatNegotiator',
+     'NiceNegotiator',
+     'SAOController',
+     'JavaSAONegotiator',
+     'PassThroughSAONegotiator',
+     'SAOSyncController']
 
 
 
@@ -1081,7 +1108,7 @@ You can create a new protocol by overriding a single function in the
             self.current_offerer = None
             self.n_accepting_agents = 0
     
-        def step_(self):
+        def round(self):
             end_negotiation = False
             n_agents = len(self.negotiators)
             accepted = False

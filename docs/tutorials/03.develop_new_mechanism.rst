@@ -176,7 +176,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.5000000029448386, 0.5000000063141529)
+    Agreement: (0.4999984748241864, 0.5000000039839807)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -457,7 +457,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.4017916167675054, 0.5982083832324946) after 503 steps
+    Agreed to: (0.2024096797135117, 0.7975903202864882) after 227 steps
 
 
 
@@ -548,6 +548,7 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 
 As expected, the agreement shifted toward the second agent.
+
 
 
 Download :download:`Notebook<notebooks/03.develop_new_mechanism.ipynb>`.
