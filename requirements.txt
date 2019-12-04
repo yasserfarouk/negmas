@@ -65,12 +65,6 @@ typing_extensions (>=3.7)
 twine
 wheel
 dill
-flask
-dash
-dash[testing]
-dash-daq
-dash-bootstrap-components
-blist
 seaborn
 sklearn
 nose
