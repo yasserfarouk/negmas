@@ -92,16 +92,15 @@ setup(
         "tqdm (>=4.31.1)",
         "click-config-file",
         "dill",
-        "flask",
-        # 'dash',
-        "dash-daq",
-        "dash-bootstrap-components",
-        "blist",
         "seaborn",
         "sklearn",
         "nose",
         "cython",
     ],  # Optional
+    extras_require={
+        "elicitation": ["blist"],
+        "visualizer": ["flask", "dash", "dash-daq", "dash-bootstrap-components"],
+    },
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional
     # https://stackoverflow.com/a/16576850

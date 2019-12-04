@@ -1,0 +1,5 @@
+flask
+dash
+dash[testing]
+dash-daq
+dash-bootstrap-components
