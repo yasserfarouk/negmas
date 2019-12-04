@@ -708,8 +708,14 @@ class MechanismFactory:
         ]
         if not all(responses):
             rejectors = [p for p, response in zip(partners, responses) if not response]
-            caller.on_neg_request_rejected_(req_id=req_id, by=[_.id for _ in rejectors])
-            self.world.loginfo(f"{caller.name} request was rejected by {rejectors}")
+            rej = [_.id for _ in rejectors]
+            caller.on_neg_request_rejected_(req_id=req_id, by=rej)
+            for partner, response in zip(partners, responses):
+                if partner.id != caller.id and response:
+                    partner.on_neg_request_rejected_(req_id=None, by=rej)
+            self.world.loginfo(
+                f"{caller.name} request was rejected by {[_.name for _ in rejectors]}"
+            )
             return NegotiationInfo(
                 mechanism=None,
                 partners=partners,
@@ -729,6 +735,9 @@ class MechanismFactory:
             requested_at=self.world.current_step,
         )
         caller.on_neg_request_accepted_(req_id=req_id, mechanism=mechanism.ami)
+        for partner, response in zip(partners, responses):
+            if partner.id != caller.id:
+                partner.on_neg_request_accepted_(req_id=None, mechanism=mechanism)
         self.world.loginfo(f"{caller.name} request was accepted")
         return neg_info
 
@@ -1194,16 +1203,21 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             single=single_checkpoint,
         )
         self.name = (
-            name
+            name.replace("/", ".")
             if name is not None
             else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
         )
         self.id = unique_name(self.name, add_time=True, rand_digits=8)
-        self._log_folder = (
-            Path(log_folder).absolute()
-            if log_folder is not None
-            else Path.home() / "negmas" / "logs" / self.name
-        )
+        if log_folder is not None:
+            self._log_folder = Path(log_folder).absolute()
+        else:
+            self._log_folder = Path.home() / "negmas" / "logs"
+            if name is not None:
+                for n in name.split("/"):
+                    self._log_folder /= n
+            else:
+                self._log_folder /= self.name
+        self._log_folder.mkdir(parents=True, exist_ok=True)
         if log_file_name is None:
             log_file_name = "log.txt"
         self.log_file_name = (
@@ -1233,7 +1247,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.save_negotiations = save_negotiations
         self.save_resolved_breaches = save_resolved_breaches
         self.save_unresolved_breaches = save_unresolved_breaches
-        self.current_step = 0
+        self._current_step = 0
         self.negotiation_speed = negotiation_speed
         self.default_signing_delay = default_signing_delay
         self.time_limit = time_limit
@@ -1273,6 +1287,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._stats_file_name = stats_file_name.name
             self._stats_dir_name = stats_file_name.parent
         self.loginfo(f"{self.name}: World Created")
+
+    @property
+    def current_step(self):
+        return self._current_step
 
     @property
     def log_folder(self):
@@ -1627,7 +1645,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             monitor.step(__stats, world_name=self.name)
         for monitor in self.world_monitors:
             monitor.step(self)
-        self.current_step += 1
+        self._current_step += 1
         # always indicate that the simulation is to continue
         return True
 
@@ -2490,13 +2508,14 @@ class NoContractExecutionMixin:
 
 
 RunningNegotiationInfo = namedtuple(
-    "RunningNegotiationInfo", ["negotiator", "annotation", "uuid", "extra"]
+    "RunningNegotiationInfo",
+    ["negotiator", "annotation", "uuid", "extra", "my_request"],
 )
 """Keeps track of running negotiations for an agent"""
 
 NegotiationRequestInfo = namedtuple(
     "NegotiationRequestInfo",
-    ["partners", "issues", "annotation", "uuid", "negotiator", "extra"],
+    ["partners", "issues", "annotation", "uuid", "negotiator", "requested", "extra"],
 )
 """Keeps track to negotiation requests that an agent sent"""
 
@@ -2516,6 +2535,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         super().__init__(name=name, type_postfix=type_postfix)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
+        self._accepted_requests: Dict[str, NegotiationRequestInfo] = {}
         self.contracts: List[Contract] = []
         self._unsigned_contracts: Set[Contract] = set()
         self._awi: AgentWorldInterface = None
@@ -2539,6 +2559,26 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         Returns:
 
             A list of negotiation request information objects (`NegotiationRequestInfo`)
+        """
+        return list(self._requested_negotiations.values())
+
+    @property
+    def accepted_negotiation_requests(self) -> List[NegotiationInfo]:
+        """A list of negotiation requests sent to this agent that are already accepted by it.
+
+        Remarks:
+            - These negotiations did not start yet as they are still not accepted  by all partners.
+              Once that happens, they will be moved to `running_negotiations`
+        """
+        return list(self._accepted_requests.values())
+
+    @property
+    def negotiation_requests(self) -> List[NegotiationInfo]:
+        """A list of the negotiation requests sent by this agent that are not yet accepted or rejected.
+
+        Remarks:
+            - These negotiations did not start yet as they are still not accepted  by all partners.
+              Once that happens, they will be moved to `running_negotiations`
         """
         return list(self._requested_negotiations.values())
 
@@ -2591,6 +2631,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
             annotation=annotation,
             negotiator=negotiator,
             extra=extra,
+            requested=True,
             uuid=req_id,
         )
         return req_id
@@ -2660,10 +2701,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
                 f"Sender of the negotiation end event is of type {sender.__class__.__name__} "
                 f"not Mechanism!!"
             )
-        if event.type == "negotiation_end":
-            # will be sent by the World once a negotiation in which this agent is involved is completed            l
-            mechanism_id = sender.id
-            self._running_negotiations.pop(mechanism_id, None)
+        # if event.type == "negotiation_end":
+        #     # will be sent by the World once a negotiation in which this agent is involved is completed            l
+        #     mechanism_id = sender.id
+        #     self._running_negotiations.pop(mechanism_id, None)
 
     # ------------------------------------------------------------------
     # EVENT CALLBACKS (Called by the `World` when certain events happen)
@@ -2683,19 +2724,25 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
     def on_neg_request_accepted_(self, req_id: str, mechanism: AgentMechanismInterface):
         """Called when a requested negotiation is accepted"""
-        neg = self._requested_negotiations.get(req_id, None)
+        my_request = req_id is not None
+        _request_dict = self._requested_negotiations
+        if req_id is None:
+            # I am not the requesting agent
+            req_id = mechanism.id
+            _request_dict = self._accepted_requests
+        neg = _request_dict.get(req_id, None)
         if neg is None:
             return
-        self.on_neg_request_accepted(req_id, mechanism)
-        neg = neg.negotiator
-        annotation = self._requested_negotiations[req_id].annotation
+        if my_request:
+            self.on_neg_request_accepted(req_id, mechanism)
         self._running_negotiations[mechanism.id] = RunningNegotiationInfo(
-            extra=self._requested_negotiations[req_id].extra,
-            negotiator=neg,
-            annotation=annotation,
+            extra=_request_dict[req_id].extra,
+            negotiator=neg.negotiator,
+            annotation=_request_dict[req_id].annotation,
             uuid=req_id,
+            my_request=my_request,
         )
-        self._requested_negotiations.pop(req_id, None)
+        _request_dict.pop(req_id, None)
 
     def on_negotiation_failure_(
         self,
@@ -2741,10 +2788,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
     ) -> Optional[Negotiator]:
         """Called when a negotiation request is received"""
         if req_id is not None:
+            # I am the one who requested this negotiation
             info = self._requested_negotiations.get(req_id, None)
             if info and info.negotiator is not None:
                 return info.negotiator
-        return self._respond_to_negotiation_request(
+        negotiator = self._respond_to_negotiation_request(
             initiator=initiator,
             partners=partners,
             issues=issues,
@@ -2753,6 +2801,17 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
             role=role,
             req_id=req_id,
         )
+        if negotiator is not None:
+            self._accepted_requests[mechanism.id] = NegotiationRequestInfo(
+                partners,
+                issues,
+                annotation,
+                uuid,
+                negotiator,
+                extra={"my_request": False},
+                requested=False,
+            )
+        return negotiator
 
     def __str__(self):
         return f"{self.name}"
