@@ -118,6 +118,7 @@ Running existing negotiators/negotiation protocols
 Using the package for negotiation can be as simple as the following code snippet:
 
 .. code-block:: python
+
     import random
     random.seed(0)
     from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
