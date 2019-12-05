@@ -1217,7 +1217,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     self._log_folder /= n
             else:
                 self._log_folder /= self.name
-        self._log_folder.mkdir(parents=True, exist_ok=True)
+        if (
+            log_folder
+            or log_negotiations
+            or log_stats_every
+            or log_to_file
+            or log_ufuns
+        ):
+            self._log_folder.mkdir(parents=True, exist_ok=True)
         if log_file_name is None:
             log_file_name = "log.txt"
         self.log_file_name = (
