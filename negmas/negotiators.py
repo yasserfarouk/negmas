@@ -91,6 +91,11 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
     ufun = utility_function
 
+    @property
+    def parent(self) -> "Controller":
+        """Returns the parent controller"""
+        return self.__parent
+
     def before_death(self, cntxt: Dict[str, Any]) -> bool:
         """Called whenever the parent is about to kill this negotiator. It should return False if the negotiator
         does not want to be killed but the controller can still force-kill it"""
@@ -339,7 +344,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
 class PassThroughNegotiator(Negotiator):
     """
     A negotiator that can be used to pass all method calls to a parent (Controller).
-    
+
     It uses magic dunder methods to implement a general way of passing calls to the parent. This method is slow.
 
     It is recommended to implement a PassThrough*Negotiator for each mechanism that does this passing explicitly which
