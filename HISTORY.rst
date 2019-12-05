@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.4.2
+-------------
+
+- [situated] Adding events to logging and added the main event types to the documentation of the situated module
+- [situated] Do not create log folder if it is not going to be used.
+- [negotiators] adding parent property to negotiator to access its controller
 
 Release 0.4.1
 -------------
