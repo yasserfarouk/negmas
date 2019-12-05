@@ -435,7 +435,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if role is None:
             role = "agent"
 
-        if negotiator.join(ami=self.ami, state=self.state, ufun=ufun, role=role):
+        if negotiator.join(
+            ami=self._get_ami(negotiator, role), state=self.state, ufun=ufun, role=role
+        ):
             self._negotiators.append(negotiator)
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
@@ -940,6 +942,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def extra_state(self) -> Optional[Dict[str, Any]]:
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return None
+
+    def _get_ami(self, negotiator: Negotiator, role: str) -> AgentMechanismInterface:
+        return self.ami
 
 
 # @dataclass
