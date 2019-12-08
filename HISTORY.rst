@@ -1,6 +1,14 @@
 History
 =======
 
+Release 0.4.3
+-------------
+
+- [mechainsms] Allowing mechanisms to customize the AMI for each negotiator
+- [concurrent] Adding ChainNegotiationMechanism as a first example of concurrent negotiation mechanisms.
+- [core] avoiding an import error due to inability to compile blist in windows
+- [core] removing the global mechanisms variable and using an internal _mechanism pointer in AMI instead.
+
 Release 0.4.2
 -------------
 
