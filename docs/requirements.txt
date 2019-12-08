@@ -146,14 +146,13 @@ urllib3
 virtualenv
 virtualenv-clone
 watchdog
-watchdog
 wcwidth
 webencodings
 white
 widgetsnbextension
 yapf
 yappi
-yarg  
+yarg
 zict
 poetry
 
