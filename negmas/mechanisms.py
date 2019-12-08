@@ -32,12 +32,7 @@ from negmas.outcomes import (
     enumerate_outcomes,
     outcome_as_tuple,
 )
-from negmas.common import (
-    AgentMechanismInterface,
-    MechanismState,
-    register_all_mechanisms,
-    NamedObject,
-)
+from negmas.common import AgentMechanismInterface, MechanismState, NamedObject
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import NegotiatorInfo
 from negmas.events import *
@@ -72,9 +67,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     Override the `round` function of this class to implement a round of your mechanism
     """
-
-    all: Dict[str, "Mechanism"] = {}
-    register_all_mechanisms(all)
 
     def __init__(
         self,
@@ -224,6 +216,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             max_n_agents=max_n_agents,
             annotation=annotation,
         )
+        self.ami._mechanism = self
 
         self._history = []
         # if self.ami.issues is not None:
@@ -231,7 +224,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # if self.ami.outcomes is not None:
         #     self.ami.outcomes = tuple(self.ami.outcomes)
         self._state_factory = state_factory
-        Mechanism.all[self.id] = self
 
         self._requirements = {}
         self._negotiators = []
@@ -260,11 +252,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.__outcome_index is not None:
             return self.__outcome_index[outcome_as_tuple(outcome)]
         return self.__outcomes.index(outcome)
-
-    @classmethod
-    def get_info(cls, id: str) -> AgentMechanismInterface:
-        """Returns the mechanism information which contains its static config plus methods to access current state"""
-        return cls.all[id].ami
 
     @property
     def participants(self) -> List[NegotiatorInfo]:

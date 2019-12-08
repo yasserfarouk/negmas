@@ -23,12 +23,9 @@ __all__ = [
     "NamedObject",
     "AgentMechanismInterface",
     "MechanismState",
-    "register_all_mechanisms",
     "NegotiatorInfo",
     "_ShadowAgentMechanismInterface",
 ]
-
-_running_negotiations: Dict[str, "Mechanism"] = {}
 
 
 @dataclass
@@ -145,6 +142,8 @@ class AgentMechanismInterface:
     annotation: Dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `Dict[str, Any]` that is always available for all agents"""
 
+    _mechanism = None
+
     def random_outcomes(
         self, n: int = 1, astype: Type["Outcome"] = dict
     ) -> List["Outcome"]:
@@ -160,7 +159,7 @@ class AgentMechanismInterface:
             List[Outcome]: List of `n` or less outcomes
 
         """
-        return _running_negotiations[self.id].random_outcomes(n=n, astype=astype)
+        return self._mechanism.random_outcomes(n=n, astype=astype)
 
     def discrete_outcomes(
         self, n_max: int = None, astype: Type["Outcome"] = dict
@@ -177,9 +176,7 @@ class AgentMechanismInterface:
             List[Outcome]: List of `n` or less outcomes
 
         """
-        return _running_negotiations[self.id].discrete_outcomes(
-            n_max=n_max, astype=astype
-        )
+        return self._mechanism.discrete_outcomes(n_max=n_max, astype=astype)
 
     def outcome_index(self, outcome: "Outcome") -> Optional[int]:
         """
@@ -192,11 +189,11 @@ class AgentMechanismInterface:
 
             int: The index of this outcome in the list of outcomes. Only valid if n_outcomes is finite and not None.
         """
-        return _running_negotiations[self.id].outcome_index(outcome)
+        return self._mechanism.outcome_index(outcome)
 
     @property
     def participants(self) -> List[NegotiatorInfo]:
-        return _running_negotiations[self.id].participants
+        return self._mechanism.participants
 
     @property
     def state(self) -> MechanismState:
@@ -209,7 +206,7 @@ class AgentMechanismInterface:
               protocol by accessing this property.
 
         """
-        return _running_negotiations[self.id].state
+        return self._mechanism.state
 
     @property
     def requirements(self) -> dict:
@@ -219,7 +216,7 @@ class AgentMechanismInterface:
         Returns:
             - A dict of str/Any pairs giving the requirements
         """
-        return _running_negotiations[self.id].requirements
+        return self._mechanism.requirements
 
     @property
     def n_negotiators(self) -> int:
@@ -301,12 +298,6 @@ class _ShadowAgentMechanismInterface:
 
     class Java:
         implements = ["jnegmas.common.AgentMechanismInterface"]
-
-
-def register_all_mechanisms(mechanisms: Dict[str, "Mechanism"]) -> None:
-    """registers the running mechanisms. Used internally. **DO NOT CALL THIS.**"""
-    global _running_negotiations
-    _running_negotiations = mechanisms
 
 
 @runtime
