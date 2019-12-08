@@ -497,7 +497,7 @@ class Controller(NamedObject):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             return
-        response = negotiator.on_kill(cntxt=cntxt)
+        response = negotiator.before_death(cntxt=cntxt)
         if response or force:
             self._negotiators.pop(negotiator_id, None)
 
