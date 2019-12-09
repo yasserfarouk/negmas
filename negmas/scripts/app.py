@@ -47,6 +47,16 @@ GENIUS_JAR_NAME = "genius-8.0.4-bridge.jar"
 DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 
 
+def default_log_path():
+    """Default location for all logs"""
+    return Path.home() / "negmas" / "logs"
+
+
+def default_tournament_path():
+    """The default path to store tournament run info"""
+    return default_log_path() / "tournaments"
+
+
 def print_progress(_, i, n) -> None:
     """Prints the progress of a tournament"""
     global n_completed, n_total
@@ -366,7 +376,7 @@ def tournament(ctx, ignore_warnings):
     "--log",
     "-l",
     type=click.Path(dir_okay=True, file_okay=False),
-    default="~/negmas/logs/tournaments",
+    default=default_tournament_path(),
     help="Default location to save logs (A folder will be created under it)",
 )
 @click.option(
@@ -668,7 +678,7 @@ def create(
     "--log",
     "-l",
     type=click.Path(dir_okay=True, file_okay=False),
-    default="~/negmas/logs/tournaments",
+    default=default_tournament_path(),
     help="Default location to save logs",
 )
 @click.option(
@@ -770,7 +780,7 @@ def run(
     "--log",
     "-l",
     type=click.Path(dir_okay=True, file_okay=False),
-    default="~/negmas/logs/tournaments",
+    default=default_tournament_path(),
     help="Default location to save logs",
 )
 @click.option(
@@ -812,10 +822,13 @@ def winners(ctx, name, log, recursive, metric):
 
 def _path(path) -> Path:
     """Creates an absolute path from given path which can be a string"""
+    if isinstance(path, Path):
+        return path.absolute()
+    path.replace("/", os.sep)
     if isinstance(path, str):
         if path.startswith("~"):
-            path = Path.home() / ("/".join(path.split("/")[1:]))
-    return pathlib.Path(path).absolute()
+            path = Path.home() / (os.sep.join(path.split(os.sep)[1:]))
+    return Path(path).absolute()
 
 
 def display_results(results, metric):
