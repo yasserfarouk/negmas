@@ -1,5 +1,5 @@
 """Implements Concurrent Negotiation Mechanisms and their agents"""
 
-from .nested import *
+from .chain import *
 
-__all__ = nested.__all__
+__all__ = chain.__all__
