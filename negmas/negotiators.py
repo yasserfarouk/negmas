@@ -140,7 +140,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
     def reserved_value(self):
         """Reserved value is what the agent gets if no agreement is reached in the negotiation."""
         if self._utility_function is None:
-            return -float("inf")
+            return float("-inf")
         return self._utility_function.reserved_value
 
     @property

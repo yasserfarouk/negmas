@@ -990,6 +990,7 @@ def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
 
         - Supported formats are json, yaml
         - If None is given, the file will be created but will be empty
+        - Numpy arrays will be converted to lists before being dumped
 
     """
     file_name = pathlib.Path(file_name).expanduser().absolute()
@@ -999,7 +1000,6 @@ def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
     if d is None:
         with open(file_name, "w") as f:
             pass
-
     if file_name.suffix == ".json":
         with open(file_name, "w") as f:
             json.dump(d, f, sort_keys=True, indent=2, cls=NpEncoder)

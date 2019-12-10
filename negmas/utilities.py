@@ -142,7 +142,7 @@ class UtilityFunction(ABC, NamedObject):
         self,
         name: Optional[str] = None,
         ami: AgentMechanismInterface = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
     ) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
@@ -251,7 +251,7 @@ class UtilityFunction(ABC, NamedObject):
             output += "</objective>\n"
             if discount_factor is not None:
                 output += f'<discount_factor value="{discount_factor}" />\n'
-        if u.reserved_value != -float("inf") and "<reservation value" not in output:
+        if u.reserved_value != float("-inf") and "<reservation value" not in output:
             output += f'<reservation value="{u.reserved_value}" />\n'
         if "</utility_space>" not in output:
             output += "</utility_space>\n"
@@ -1328,7 +1328,7 @@ class ExpDiscountedUFun(UtilityFunction):
         discount: Optional[float] = None,
         factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
         name=None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         dynamic_reservation=True,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1400,7 +1400,7 @@ class LinDiscountedUFun(UtilityFunction):
         ] = "current_step",
         power: float = 1.0,
         name=None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         dynamic_reservation=True,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1458,7 +1458,7 @@ class ConstUFun(UtilityFunction):
         self,
         value: float,
         name=None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1589,7 +1589,7 @@ class LinearUtilityFunction(UtilityFunction):
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
         missing_value: Optional[float] = None,
         name: Optional[str] = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1747,7 +1747,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         ],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
         name: Optional[str] = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1956,7 +1956,7 @@ class MappingUtilityFunction(UtilityFunction):
         mapping: OutcomeUtilityMapping,
         default=None,
         name: str = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2036,7 +2036,7 @@ class MappingUtilityFunction(UtilityFunction):
 class RandomUtilityFunction(MappingUtilityFunction):
     """A random utility function for a discrete outcome space"""
 
-    def __init__(self, outcomes: List[Outcome], reserved_value=-float("inf")):
+    def __init__(self, outcomes: List[Outcome], reserved_value=float("-inf")):
         if len(outcomes) < 1:
             raise ValueError("Cannot create a random utility function without outcomes")
         if isinstance(outcomes[0], tuple):
@@ -2099,7 +2099,7 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         issue_utilities: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
         name: Optional[str] = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2276,7 +2276,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
         name: Optional[str] = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2344,7 +2344,7 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         mappings: OutcomeUtilityMappings,
         f: Callable[[List[UtilityValue]], UtilityValue],
         name: Optional[str] = None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2382,7 +2382,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
         ufuns: Iterable[UtilityFunction],
         weights: Optional[Iterable[float]] = None,
         name=None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2442,7 +2442,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         ufuns: Iterable[UtilityFunction],
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
         name=None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2505,7 +2505,7 @@ class IPUtilityFunction(UtilityFunction):
         distributions: Iterable["UtilityDistribution"] = None,
         issue_names: Iterable[str] = None,
         name=None,
-        reserved_value: UtilityValue = -float("inf"),
+        reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2614,7 +2614,7 @@ class IPUtilityFunction(UtilityFunction):
         range: Tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
-        reserved_value: float = -float("inf"),
+        reserved_value: float = float("-inf"),
     ) -> "IPUtilityFunction":
         """
         Generates a distribution from which `u` may have been sampled
