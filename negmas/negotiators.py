@@ -113,8 +113,6 @@ class Negotiator(NamedObject, Notifiable, ABC):
         than the utility of the outcome.
 
         """
-        if self.reserved_value is None:
-            return True
         return self._utility_function(outcome) >= self.reserved_value
 
     @property
@@ -142,13 +140,8 @@ class Negotiator(NamedObject, Notifiable, ABC):
     def reserved_value(self):
         """Reserved value is what the agent gets if no agreement is reached in the negotiation."""
         if self._utility_function is None:
-            return None
-        if self._utility_function.reserved_value is not None:
-            return self._utility_function.reserved_value
-        try:
-            return self._utility_function(None)
-        except:
-            return None
+            return -float("inf")
+        return self._utility_function.reserved_value
 
     @property
     def capabilities(self) -> Dict[str, Any]:
