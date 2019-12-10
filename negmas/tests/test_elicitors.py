@@ -7,6 +7,7 @@ import pkg_resources
 import pytest
 
 from negmas import *
+from negmas.elicitors import *
 from negmas.elicitors import User
 from negmas.elicitors import SAOElicitingMechanism
 from negmas.helpers import Distribution as U

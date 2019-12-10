@@ -1115,7 +1115,7 @@ class RandomNegotiator(Negotiator, RandomResponseMixin, RandomProposalMixin):
         outcomes: Union[int, List["Outcome"]],
         name: str = None,
         parent: Controller = None,
-        reserved_value: float = -float("inf"),
+        reserved_value: float = float("-inf"),
         p_acceptance=0.15,
         p_rejection=0.25,
         p_ending=0.05,
@@ -1302,7 +1302,10 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                         self.ufun_min = self.ordered_outcomes[j][0]
                         if self.ufun_min is not None and self.ufun_min > float("-inf"):
                             break
-                    if self.ufun_min < self.reserved_value:
+                    if (
+                        self.ufun_min is not None
+                        and self.ufun_min < self.reserved_value
+                    ):
                         self.ufun_min = self.reserved_value
         else:
             if self.ufun_min is None or self.ufun_max is None:

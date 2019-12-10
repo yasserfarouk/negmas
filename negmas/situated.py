@@ -39,7 +39,7 @@ either by announcing them using `announce` or as a side-effect of logging them u
 extra-step                           none
 entity-exception                     exception: `Exception`
 contract-exception                   exception: `Exception`
-agent-joins                          agent: `Agent`
+agent-joined                         agent: `Agent`
 negotiation-request                  caller: `Agent` , partners: `List` [ `Agent` ], issues: `List` [ `Issue` ]
                                      , mechanism_name: `str` , annotation: `Dict` [ `str`, `Any` ], req_id: `str`
 negotiation-request-immediate        caller: `Agent` , partners: `List` [ `Agent` ], issues: `List` [ `Issue` ]
@@ -1222,6 +1222,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         extra_checkpoint_info: Dict[str, Any] = None,
         single_checkpoint: bool = True,
         exist_ok: bool = True,
+        info: Optional[Dict[str, Any]] = None,
         name=None,
     ):
         """
@@ -1242,6 +1243,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
                                    a dictionary with string keys
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
+            info: A dictionary of key-value pairs that is kept within the world but never used. It is useful for storing
+                  contextual information. For example, when running tournaments.
             name: Name of the simulator
         """
         super().__init__()
@@ -1281,6 +1284,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._log_folder.mkdir(parents=True, exist_ok=True)
         if log_file_name is None:
             log_file_name = "log.txt"
+        if len(log_file_name) == 0:
+            log_to_file = False
         self.log_file_name = (
             str(self._log_folder / log_file_name) if log_to_file else ""
         )
@@ -1321,6 +1326,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._log_ufuns = log_ufuns
         self._log_negs = log_negotiations
         self.safe_stats_monitoring = safe_stats_monitoring
+        self.info = info if info is not None else dict()
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
@@ -3091,9 +3097,9 @@ def save_stats(
 
     Args:
 
-        world:
-        log_dir:
-        params:
+        world: The world
+        log_dir: The directory to save the stats into.
+        params: A parameter list to save with the world
         stats_file_name: File name to use for stats file(s) without extension
 
     Returns:
@@ -3124,6 +3130,9 @@ def save_stats(
         stats_file_name = "stats"
     dump(params, log_dir / "params")
     dump(world.stats, log_dir / stats_file_name)
+
+    if hasattr(world, "info") and world.info is not None:
+        dump(world.info, log_dir / "info")
 
     try:
         data = pd.DataFrame.from_dict(world.stats)
