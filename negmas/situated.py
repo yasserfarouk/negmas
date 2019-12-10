@@ -642,10 +642,7 @@ class MechanismFactory:
                     record[f"agent{i}"] = partner_.name
                     # record[f"agent_type{i}"] = partner_.type_name
                     # record[f"negotiator{i}"] = _negotiator.name
-                    if hasattr(_negotiator, "reserved_value"):
-                        record[f"reserved{i}"] = _negotiator.reserved_value
-                    else:
-                        record[f"reserved{i}"] = None
+                    record[f"reserved{i}"] = _negotiator.reserved_value
                     if hasattr(_negotiator, "utility_function"):
                         record[f"u{i}"] = _negotiator.utility_function(
                             record["outcome"]

@@ -134,7 +134,7 @@ class UtilityFunction(ABC, NamedObject):
     Args:
 
         name (str): Name of the utility function. If None, a random name will be given.
-        reserved_value(float): The value to return if the input offer to `apply` is None
+        reserved_value(float): The value to return if the input offer to `__call__` is None
 
     """
 
@@ -142,7 +142,7 @@ class UtilityFunction(ABC, NamedObject):
         self,
         name: Optional[str] = None,
         ami: AgentMechanismInterface = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
     ) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
@@ -251,7 +251,7 @@ class UtilityFunction(ABC, NamedObject):
             output += "</objective>\n"
             if discount_factor is not None:
                 output += f'<discount_factor value="{discount_factor}" />\n'
-        if u.reserved_value is not None and "<reservation value" not in output:
+        if u.reserved_value != -float("inf") and "<reservation value" not in output:
             output += f'<reservation value="{u.reserved_value}" />\n'
         if "</utility_space>" not in output:
             output += "</utility_space>\n"
@@ -775,7 +775,7 @@ class UtilityFunction(ABC, NamedObject):
                 u = ComplexWeightedUtilityFunction(
                     ufuns=[u, uhyper], weights=[1.0, 1.0]
                 )
-        if reserved_value is not None and not ignore_reserved and u is not None:
+        if not ignore_reserved and u is not None:
             u.reserved_value = reserved_value
         if ignore_discount:
             discount_factor = None
@@ -786,7 +786,7 @@ class UtilityFunction(ABC, NamedObject):
         return self(offer)
 
     @abstractmethod
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -794,17 +794,19 @@ class UtilityFunction(ABC, NamedObject):
 
 
         Remarks:
-            - You cannot return None from overriden apply() functions but raise an exception (ValueError) if it was
+
+            - You cannot return None from overriden __call__() functions but raise an exception (ValueError) if it was
               not possible to calculate the UtilityValue.
             - Return A UtilityValue not a float for real-valued utilities for the benefit of inspection code.
+            - Return the reserved value if the offer was None
 
         Returns:
-            UtilityValue: The utility_function value which may be a distribution. If `None` it means the utility_function value cannot be
-            calculated.
+            UtilityValue: The utility_function value which may be a distribution. If `None` it means the
+                          utility_function value cannot be calculated.
         """
         if offer is None:
             return self.reserved_value
-        return None
+        raise ValueError("Could not calculate the utility value.")
 
     @classmethod
     def approximate(
@@ -1216,6 +1218,94 @@ class UtilityFunction(ABC, NamedObject):
             return None
         return signs.mean()
 
+    def outcome_with_utility(
+        self,
+        rng: Tuple[float, float],
+        issues: List[Issue] = None,
+        outcomes: List[Outcome] = None,
+        n_trials: int = 100,
+        astype: Type = dict,
+    ) -> Optional[Outcome]:
+        """
+        Gets one outcome within the given utility range or None on failure
+
+        Args:
+            self: The utility function
+            rng: The utility range
+            issues: The issues the utility function is defined on
+            outcomes: The outcomes to sample from
+            n_trials: The maximum number of trials
+
+        Returns:
+
+            - Either issues, or outcomes should be given but not both
+
+        """
+        if outcomes is None:
+            outcomes = Issue.sample(
+                issues=issues,
+                n_outcomes=n_trials,
+                astype=astype,
+                with_replacement=False,
+                fail_if_not_enough=False,
+            )
+        n = min(len(outcomes), n_trials)
+        mn, mx = rng
+        if mn is None:
+            mn = float("-inf")
+        if mx is None:
+            mx = float("inf")
+        for i in range(n):
+            o = outcomes[i]
+            if mn <= self(o) <= mx:
+                return o
+        return None
+
+    def utility_range(
+        self,
+        issues: List[Issue] = None,
+        outcomes: Collection[Outcome] = None,
+        infeasible_cutoff: Optional[float] = None,
+        return_outcomes=False,
+    ) -> Union[
+        Tuple[UtilityValue, UtilityValue],
+        Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
+    ]:
+        """Finds the range of the given utility function for the given outcomes
+
+        Args:
+            self: The utility function
+            issues: List of issues (optional)
+            outcomes: A collection of outcomes (optional)
+            infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
+            return_outcomes: If true, will also return an outcome for min and max utils
+
+        Returns:
+            UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
+
+        """
+
+        if outcomes is None:
+            outcomes = Issue.sample(
+                issues,
+                n_outcomes=len(issues) * 100,
+                with_replacement=True,
+                fail_if_not_enough=False,
+            )
+        u = [self(o) for o in outcomes]
+        u = [float(_) for _ in u if _ is not None]
+        if infeasible_cutoff is not None:
+            if return_outcomes:
+                outcomes = [o for o, _ in zip(outcomes, u) if _ > infeasible_cutoff]
+            u = np.array([_ for _ in u if _ > infeasible_cutoff])
+
+        if len(u) == 0:
+            return self
+        if return_outcomes:
+            minloc, maxloc = np.argmin(u), np.argmax(u)
+            return u[minloc], u[maxloc], outcomes[minloc], outcomes[maxloc]
+        return float(np.min(u)), float(np.max(u))
+
 
 UtilityFunctions = List["UtilityFunction"]
 
@@ -1238,7 +1328,7 @@ class ExpDiscountedUFun(UtilityFunction):
         discount: Optional[float] = None,
         factor: Union[str, Callable[["AgentMechanismInterface"], float]] = "step",
         name=None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         dynamic_reservation=True,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1247,7 +1337,7 @@ class ExpDiscountedUFun(UtilityFunction):
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
 
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -1310,7 +1400,7 @@ class LinDiscountedUFun(UtilityFunction):
         ] = "current_step",
         power: float = 1.0,
         name=None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         dynamic_reservation=True,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1320,7 +1410,7 @@ class LinDiscountedUFun(UtilityFunction):
         self.power = power
         self.dynamic_reservation = dynamic_reservation
 
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -1368,13 +1458,13 @@ class ConstUFun(UtilityFunction):
         self,
         value: float,
         name=None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.value = value
 
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         if offer is None:
             return self.reserved_value
         return self.value
@@ -1499,7 +1589,7 @@ class LinearUtilityFunction(UtilityFunction):
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
         missing_value: Optional[float] = None,
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1573,6 +1663,29 @@ class LinearUtilityFunction(UtilityFunction):
     def __str__(self):
         return f"w: {self.weights}"
 
+    def utility_range(
+        self,
+        issues: List[Issue] = None,
+        outcomes: Collection[Outcome] = None,
+        infeasible_cutoff: Optional[float] = None,
+        return_outcomes=False,
+    ) -> Union[
+        Tuple[UtilityValue, UtilityValue],
+        Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
+    ]:
+        # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
+        if issues is not None:
+            ranges = [(i.min_value, i.max_value) for i in issues]
+            u = sorted(
+                [(self(outcome), outcome) for outcome in itertools.product(*ranges)]
+            )
+            if return_outcomes:
+                return u[0][0], u[-1][0], u[0][1], u[-1][1]
+            return u[0][0], u[-1][0]
+        return super().utility_range(
+            issues, outcomes, infeasible_cutoff, return_outcomes
+        )
+
 
 class LinearUtilityAggregationFunction(UtilityFunction):
     r"""A linear aggregation utility function for multi-issue negotiations.
@@ -1634,7 +1747,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         ],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1843,7 +1956,7 @@ class MappingUtilityFunction(UtilityFunction):
         mapping: OutcomeUtilityMapping,
         default=None,
         name: str = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -1923,7 +2036,7 @@ class MappingUtilityFunction(UtilityFunction):
 class RandomUtilityFunction(MappingUtilityFunction):
     """A random utility function for a discrete outcome space"""
 
-    def __init__(self, outcomes: List[Outcome], reserved_value=None):
+    def __init__(self, outcomes: List[Outcome], reserved_value=-float("inf")):
         if len(outcomes) < 1:
             raise ValueError("Cannot create a random utility function without outcomes")
         if isinstance(outcomes[0], tuple):
@@ -1986,7 +2099,7 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         issue_utilities: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2163,7 +2276,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2231,7 +2344,7 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         mappings: OutcomeUtilityMappings,
         f: Callable[[List[UtilityValue]], UtilityValue],
         name: Optional[str] = None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2269,7 +2382,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
         ufuns: Iterable[UtilityFunction],
         weights: Optional[Iterable[float]] = None,
         name=None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2278,7 +2391,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
             weights = [1.0] * len(self.ufuns)
         self.weights = list(weights)
 
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -2329,14 +2442,14 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         ufuns: Iterable[UtilityFunction],
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
         name=None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -2392,7 +2505,7 @@ class IPUtilityFunction(UtilityFunction):
         distributions: Iterable["UtilityDistribution"] = None,
         issue_names: Iterable[str] = None,
         name=None,
-        reserved_value: Optional[UtilityValue] = None,
+        reserved_value: UtilityValue = -float("inf"),
         ami: AgentMechanismInterface = None,
     ):
         super().__init__(name=name, reserved_value=reserved_value, ami=ami)
@@ -2501,7 +2614,7 @@ class IPUtilityFunction(UtilityFunction):
         range: Tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
-        reserved_value: Optional[float] = None,
+        reserved_value: float = -float("inf"),
     ) -> "IPUtilityFunction":
         """
         Generates a distribution from which `u` may have been sampled
@@ -2509,6 +2622,8 @@ class IPUtilityFunction(UtilityFunction):
             mapping: mapping from outcomes to float values
             range: range of the utility_function values
             uncertainty: uncertainty level
+            variability: The variability within the ufun
+            reserved_value: The reserved value
 
         Examples:
 
@@ -2622,7 +2737,7 @@ class IPUtilityFunction(UtilityFunction):
             return outcome
         return tuple((outcome.get(_, None) for _ in self.issue_names))
 
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __call__(self, offer: Outcome) -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -2779,11 +2894,7 @@ def normalize(
         if -epsilon <= mn <= 1 + epsilon:
             return ufun
         else:
-            r = (
-                float(ufun.reserved_value) / mn
-                if ufun.reserved_value is not None and mn != 0.0
-                else 0.0
-            )
+            r = float(ufun.reserved_value) / mn if mn != 0.0 else 0.0
             if infeasible_cutoff is not None:
                 return ComplexNonlinearUtilityFunction(
                     ufuns=[ufun],
@@ -2802,7 +2913,7 @@ def normalize(
                     ami=ufun.ami,
                 )
     scale = (rng[1] - rng[0]) / (mx - mn)
-    r = scale * (ufun.reserved_value - mn) if ufun.reserved_value is not None else 0.0
+    r = scale * (ufun.reserved_value - mn)
     if infeasible_cutoff is not None:
         return ComplexNonlinearUtilityFunction(
             ufuns=[ufun],
@@ -2822,6 +2933,53 @@ def normalize(
         )
 
 
+class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
+    """A utility function implemented in Java"""
+
+    def __init__(self, java_object, java_class_name: Optional[str], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_java_bridge(
+            java_object=java_object,
+            java_class_name=java_class_name,
+            auto_load_java=False,
+        )
+        if java_object is None:
+            self._java_object.fromMap(to_java(self))
+
+    def __call__(self, offer: Outcome) -> UtilityValue:
+        return self._java_object.call(to_java(outcome_as_dict(offer)))
+
+    def xml(self, issues: List[Issue]) -> str:
+        return "Java UFun"
+
+
+def outcome_with_utility(
+    ufun: UtilityFunction,
+    rng: Tuple[float, float],
+    issues: List[Issue] = None,
+    outcomes: List[Outcome] = None,
+    n_trials: int = 100,
+    astype: Type = tuple,
+) -> Optional[Outcome]:
+    """
+    Gets one outcome within the given utility range or None on failure
+
+    Args:
+        ufun: The utility function
+        rng: The utility range
+        issues: The issues the utility function is defined on
+        outcomes: The outcomes to sample from
+        n_trials: The maximum number of trials
+        astype: The type of the outcome (tuple, dict, OutcomeType)
+
+    Returns:
+
+        - Either issues, or outcomes should be given but not both
+
+    """
+    return ufun.outcome_with_utility(rng, issues, outcomes, n_trials, astype)
+
+
 def utility_range(
     ufun: UtilityFunction,
     issues: List[Issue] = None,
@@ -2839,98 +2997,10 @@ def utility_range(
         issues: List of issues (optional)
         outcomes: A collection of outcomes (optional)
         infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
+        return_outcomes: If true, returns an outcome with the min and another with the max utility
 
     Returns:
-        UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
+        Minumum utility, maximum utility (and if return_outcomes, an outcome at each)
 
     """
-    if outcomes is None and isinstance(ufun, LinearUtilityFunction):
-        # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
-        ranges = [(i.min_value, i.max_value) for i in issues]
-        u = sorted([(ufun(outcome), outcome) for outcome in itertools.product(*ranges)])
-        return u[0][0], u[-1][0], u[0][1], u[-1][1]
-
-    if outcomes is None:
-        outcomes = Issue.sample(
-            issues,
-            n_outcomes=len(issues) * 100,
-            with_replacement=True,
-            fail_if_not_enough=False,
-        )
-    u = [ufun(o) for o in outcomes]
-    u = [float(_) for _ in u if _ is not None]
-    if infeasible_cutoff is not None:
-        if return_outcomes:
-            outcomes = [o for o, _ in zip(outcomes, u) if _ > infeasible_cutoff]
-        u = np.array([_ for _ in u if _ > infeasible_cutoff])
-
-    if len(u) == 0:
-        return ufun
-    if return_outcomes:
-        minloc, maxloc = np.argmin(u), np.argmax(u)
-        return u[minloc], u[maxloc], outcomes[minloc], outcomes[maxloc]
-    return float(np.min(u)), float(np.max(u))
-
-
-class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
-    """A utility function implemented in Java"""
-
-    def __init__(self, java_object, java_class_name: Optional[str], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.init_java_bridge(
-            java_object=java_object,
-            java_class_name=java_class_name,
-            auto_load_java=False,
-        )
-        if java_object is None:
-            self._java_object.fromMap(to_java(self))
-
-    def __call__(self, offer: Outcome) -> Optional[UtilityValue]:
-        return self._java_object.call(to_java(outcome_as_dict(offer)))
-
-    def xml(self, issues: List[Issue]) -> str:
-        return "Java UFun"
-
-
-def outcome_with_utility(
-    ufun: UtilityFunction,
-    rng: Tuple[float, float],
-    issues: List[Issue] = None,
-    outcomes: List[Outcome] = None,
-    n_trials: int = 100,
-    astype: Type = dict,
-) -> Optional[Outcome]:
-    """
-    Gets one outcome within the given utility range or None on failure
-
-    Args:
-        ufun: The utility function
-        rng: The utility range
-        issues: The issues the utility function is defined on
-        outcomes: The outcomes to sample from
-        n_trials: The maximum number of trials
-
-    Returns:
-
-        - Either issues, or outcomes should be given but not both
-
-    """
-    if outcomes is None:
-        outcomes = Issue.sample(
-            issues=issues,
-            n_outcomes=n_trials,
-            astype=astype,
-            with_replacement=False,
-            fail_if_not_enough=False,
-        )
-    n = min(len(outcomes), n_trials)
-    mn, mx = rng
-    if mn is None:
-        mn = float("-inf")
-    if mx is None:
-        mx = float("inf")
-    for i in range(n):
-        o = outcomes[i]
-        if mn <= ufun(o) <= mx:
-            return o
-    return None
+    return ufun.utility_range(issues, outcomes, infeasible_cutoff, return_outcomes)
