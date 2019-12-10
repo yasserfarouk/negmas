@@ -62,6 +62,8 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
    tutorials
 
    base_modules
+   negotiation_mechanisms
+   advanced_negotiation
    helper_modules
    scripts
 
