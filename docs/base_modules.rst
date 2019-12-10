@@ -8,15 +8,5 @@ Base Modules
     modules/mechanisms
     modules/common
     modules/negotiators
-    modules/sao
-    modules/st
-    modules/ga
-    modules/modeling/utility
-    modules/modeling/strategy
-    modules/modeling/future
-    modules/modeling/acceptance
-    modules/elicitors
-    modules/situated
     modules/genius
-    modules/events
 
