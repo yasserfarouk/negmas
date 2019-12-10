@@ -26,7 +26,16 @@ import scipy.optimize as opt
 try:
     from blist import sortedlist
 except:
-    pass
+    print(
+        "blist is not found. VOI based elicitation methods will not work. YOu can install"
+        " blist by running:"
+        ""
+        ">> pip install blist"
+        ""
+        "or "
+        ""
+        ">> pip install negmas[elicitation]"
+    )
 from dataclasses import dataclass
 
 # from typing import TYPE_CHECKING
