@@ -1,6 +1,23 @@
 History
 =======
 
+Release 0.4.4
+-------------
+
+- replacing -float("inf") with float("-inf") everywhere
+- [core] avoid importing elicitation in the main negmas __init__
+- [concurrent] renaming nested module to chain
+- [documentation] improving module listing
+- [concurrent] Adding a draft implementation of MultiChainMechanism with the corresponding negotiator
+- [elicitors] adding a printout if blist is not available.
+- [documentation] improving the structure of module documentation
+- [core] Defaulting reserved_value to -inf instead of None and removing unnecessary tests that it is not None
+- [core] default __call__ of UtilityFunction now raises an exception if there is an error in evaluating the utility value of an offer instead or returning None
+- [core] Adding utility_range and outcome_with_utility as members of UtilityFuction. Global functions of the same name are still there for backward compatibility
+- [CLI] improving path management for windows environments.
+- black formatting
+
+
 Release 0.4.3
 -------------
 
