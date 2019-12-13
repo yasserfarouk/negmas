@@ -93,7 +93,7 @@ import pandas as pd
 import yaml
 from dataclasses import dataclass, field
 
-from negmas import UtilityFunction
+from negmas import UtilityFunction, Outcome
 from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import NamedObject
@@ -1195,6 +1195,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
         default_signing_delay=0,
+        force_signing=False,
+        batch_signing=True,
         breach_processing=BreachProcessing.NONE,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
@@ -1228,13 +1230,72 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
 
         Args:
-            bulletin_board:
+
+            * General *
+
+            name: World Name
+            bulletin_board: A bulletin board object to use. If not given one will be created
+            awi_type: The type used for agent world interfaces (must descend from or behave like `AgentWorldInterface` )
+            info: A dictionary of key-value pairs that is kept within the world but never used. It is useful for storing
+                  contextual information. For example, when running tournaments.
+
+            * Simulation parameters *
+
             n_steps: Total simulation time in steps
             time_limit: Real-time limit on the simulation
+
+            * Negotiation Paramters *
+
             negotiation_speed: The number of negotiation steps per simulation step. None means infinite
             neg_n_steps: Maximum number of steps allowed for a negotiation.
             neg_step_time_limit: Time limit for single step of the negotiation protocol.
             neg_time_limit: Real-time limit on each single negotiation
+            start_negotiations_immediately: If true negotiations start immediately when registered rather than waiting
+                                            for the next step
+            mechanisms: The mechanism types allowed in this world associated with each keyward arguments to be passed
+                        to it.
+
+            * Signining parameters *
+
+            default_signing_delay: The default number of steps between contract conclusion and signing it. Only takes
+                                   effect if `force_signing` is `False`
+            force_signing: If true, agents are not asked to sign contracts. They are forced to do so. In this
+                           case, `default_singing_delay` is not effective and signature is immediate
+            batch_signing: If true, contracts are signed in batches not individually
+
+
+            * Breach Processing *
+
+            breach_processing: How to handle breaches. Can be any of `BreachProcessing` values
+
+            * Logging *
+
+            log_folder: Folder to save all logs
+            log_to_file: If true, will log to a file
+            log_file_name: Name of the log file
+            log_file_level: The log-level to save to file (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
+            log_ufuns: Log utility functions
+            log_negotiations: Log all negotiation events
+            log_to_screen: Whether to log to screen
+            log_screen_level: The log-level to show on screen (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
+            log_stats_every: If nonzero and positive, the period of saving stats
+
+            * What to save *
+
+            save_signed_contracts: Save all signed contracts
+            save_cancelled_contracts: Save all cancelled contracts
+            save_negotiations: Save all negotiation records
+            save_resolved_breaches: Save all resolved breaches
+            save_unresolved_breaches: Save all unresolved breaches
+
+            * Exception Handling *
+
+            ignore_agent_exceptions: Ignore agent exceptions and keep running
+            ignore_contract_execution_exceptions: Ignore contract execution exceptions and keep running
+            safe_stats_monitoring: Never throw an exception for a failure to save stats or because of a Stats Monitor
+                                   object
+
+            * Checkpoints *
             checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
             checkpoint_folder: The folder to save checkpoints into. Set to None to disable
             checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
@@ -1243,9 +1304,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
                                    a dictionary with string keys
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
-            info: A dictionary of key-value pairs that is kept within the world but never used. It is useful for storing
-                  contextual information. For example, when running tournaments.
-            name: Name of the simulator
         """
         super().__init__()
         NamedObject.__init__(self, name=name)
@@ -1322,6 +1380,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.neg_step_time_limit = neg_step_time_limit
         self._entities: Dict[int, Set[Entity]] = defaultdict(set)
         self._negotiations: Dict[str, NegotiationInfo] = {}
+        self.force_signing = force_signing
         self._start_time = -1
         self._log_ufuns = log_ufuns
         self._log_negs = log_negotiations
@@ -1342,6 +1401,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._saved_negotiations: Dict[str, Dict[str, Any]] = {}
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
         self._started = False
+        self.batch_signing = batch_signing
         self.agents: Dict[str, Agent] = {}
         self.immediate_negotiations = start_negotiations_immediately
         self.stats_monitors: Set[StatsMonitor] = set()
@@ -1476,6 +1536,58 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def stats(self) -> Dict[str, Any]:
         return self._stats
 
+    def _process_unsigned(self):
+        """Processes all concluded but unsigned contracts"""
+        unsigned = self.unsigned_contracts.get(self.current_step, None)
+        signed = []
+        cancelled = []
+        if unsigned:
+            if self.batch_signing:
+                agent_contracts = defaultdict(list)
+                agent_signed = defaultdict(list)
+                agent_cancelled = defaultdict(list)
+                contract_signatures = defaultdict(int)
+                contract_rejectors = defaultdict(list)
+                for contract in unsigned:
+                    for p in contract.partners:
+                        agent_contracts[p].append(contract)
+                for agent_id, contracts in agent_contracts.items():
+                    slist = self.agents[agent_id].sign_all_contracts(contracts)
+                    for contract, signature in zip(contracts, slist):
+                        if signature is not None:
+                            contract_signatures[contract.id] += 1
+                        else:
+                            contract_rejectors[contract.id].append(agent_id)
+                for contract in unsigned:
+                    if contract_signatures[contract.id] == len(contract.partners):
+                        for partner in contract.partners:
+                            agent_signed[partner].append(contract)
+                        signed.append(contract)
+                    else:
+                        rejectors = contract_rejectors.get(contract.id, [])
+                        for partner in contract.partners:
+                            agent_cancelled[partner].append((contract, rejectors))
+                        cancelled.append(contract)
+                everyone = set(agent_signed.keys()).union(set(agent_cancelled.keys()))
+                for agent_id in everyone:
+                    cinfo = agent_cancelled[agent_id]
+                    rejectors = [_[1] for _ in cinfo]
+                    clist = [_[0] for _ in cinfo]
+                    self.agents[agent_id].on_contracts_finalized(
+                        agent_signed[agent_id], clist, rejectors
+                    )
+            else:
+                for contract in unsigned:
+                    rejectors = self._sign_contract(contract)
+                    if rejectors is not None and len(rejectors) == 0:
+                        signed.append(contract)
+                    else:
+                        cancelled.append(contract)
+            for contract in signed:
+                self.on_contract_signed(contract)
+            for contract in cancelled:
+                self.on_contract_cancelled(contract)
+
     def _log_negotiation(self, negotiation: NegotiationInfo) -> None:
         if not self._log_negs:
             return
@@ -1497,6 +1609,68 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         add_records(str(Path(self._log_folder) / "negotiation_info.csv"), [record])
         data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
         data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
+
+    def _step_a_mechanism(
+        self, mechanism, force_immediate_signing
+    ) -> Tuple[Optional[Contract], bool]:
+        """Steps a mechanism one step.
+
+
+        Returns:
+
+            the agreement or NOne and whether the negotaition is still urnning
+        """
+        contract = None
+        result = mechanism.step()
+        agreement, is_running = result.agreement, result.running
+        if agreement is not None or not is_running:
+            negotiation = self._negotiations.get(mechanism.id, None)
+            self._log_negotiation(negotiation)
+            if agreement is None:
+                self._register_failed_negotiation(mechanism.ami, negotiation)
+            else:
+                contract = self._register_contract(
+                    mechanism.ami,
+                    negotiation,
+                    self._tobe_signed_at(agreement, force_immediate_signing),
+                )
+            if negotiation:
+                self._negotiations.pop(mechanism.uuid, None)
+        return contract, is_running
+
+    def _step_negotiations(
+        self,
+        mechanisms: List[Mechanism],
+        n_steps: Optional[int] = None,
+        force_immediate_signing=False,
+    ) -> Tuple[List[Contract], List[bool], int, int]:
+        """ Runs all bending negotiations """
+        running = [_ is not None for _ in mechanisms]
+        contracts = [None] * len(mechanisms)
+        indices = list(range(len(mechanisms)))
+        n_steps_broken_, n_steps_success_ = 0, 0
+        current_step = 0
+        if n_steps is None:
+            n_steps = float("inf")
+
+        while any(running):
+            random.shuffle(indices)
+            for i in indices:
+                if not running[i]:
+                    continue
+                mechanism = mechanisms[i]
+                contract, r = self._step_a_mechanism(mechanism, force_immediate_signing)
+                contracts[i] = contract
+                running[i] = r
+                if not running:
+                    if contract is None:
+                        n_steps_broken_ += mechanism.state.step + 1
+                    else:
+                        n_steps_success_ += mechanism.state.step + 1
+            current_step += 1
+            if current_step >= n_steps:
+                break
+        return contracts, running, n_steps_broken_, n_steps_success_
 
     def step(self) -> bool:
         """A single simulation step"""
@@ -1533,50 +1707,20 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
         )
 
-        def _run_negotiations(n_steps: Optional[int] = None):
+        def _run_all_pending_negotiations(n_steps: Optional[int] = None):
             """ Runs all bending negotiations """
-            n_steps_broken_, n_steps_success_ = 0, 0
             mechanisms = list(
-                (k, _.mechanism) for k, _ in self._negotiations.items() if _ is not None
+                _.mechanism for _ in self._negotiations.values() if _ is not None
             )
-            current_step = 0
-            while len(mechanisms) > 0:
-                random.shuffle(mechanisms)
-                for puuid, mechanism in mechanisms:
-                    result = mechanism.step()
-                    agreement, is_running = result.agreement, result.running
-                    if (
-                        agreement is not None or not is_running
-                    ):  # or not mechanism.running:
-
-                        negotiation = self._negotiations.get(puuid, None)
-                        self._log_negotiation(negotiation)
-
-                        if agreement is None:
-                            n_steps_broken_ += mechanism.state.step + 1
-                            self._register_failed_negotiation(
-                                mechanism.ami, negotiation
-                            )
-                        else:
-                            n_steps_success_ += mechanism.state.step + 1
-                            self._register_contract(mechanism.ami, negotiation)
-                        if negotiation:
-                            self._negotiations.pop(mechanism.uuid, None)
-                mechanisms = list(
-                    (k, _.mechanism)
-                    for k, _ in self._negotiations.items()
-                    if _ is not None
-                )
-                current_step += 1
-                if n_steps is not None and current_step >= n_steps:
-                    break
+            _, _, n_steps_broken_, n_steps_success_ = self._step_negotiations(
+                mechanisms, n_steps, False
+            )
             return n_steps_broken_, n_steps_success_
 
         # initialize stats
         # ----------------
         n_new_contract_executions = 0
         n_new_breaches = 0
-        n_cancelled = 0
         activity_level = 0
         n_steps_broken, n_steps_success = 0, 0
 
@@ -1586,25 +1730,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # sign contacts that are to be signed in this step
         # ------------------------------------------------
         # this is done first to allow these contracts to be executed immediately
-        unsigned = self.unsigned_contracts.get(self.current_step, None)
-        signed = []
-        cancelled = []
-        if unsigned:
-            for contract in unsigned:
-                rejectors = self._sign_contract(contract=contract)
-                if rejectors is not None and len(rejectors) == 0:
-                    signed.append(contract)
-                else:
-                    cancelled.append(contract)
-            for contract in signed:
-                self.on_contract_signed(contract=contract)
-            for contract in cancelled:
-                self.on_contract_cancelled(contract=contract)
-
+        self._process_unsigned()
         # run all negotiations before the simulation step if that is the meeting strategy
         # --------------------------------------------------------------------------------
         if self.negotiation_speed is None:
-            n_steps_broken, n_steps_success = _run_negotiations()
+            n_steps_broken, n_steps_success = _run_all_pending_negotiations()
 
         # Step all entities in the world once:
         # ------------------------------------
@@ -1625,6 +1755,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     f"{traceback.format_tb(exc_traceback)}",
                     Event("entity-exception", dict(exception=e)),
                 )
+
+        # process any contracts concluded but not signed while stepping all entities
+        self._process_unsigned()
 
         # execute contracts that are executable at this step
         # --------------------------------------------------
@@ -1677,6 +1810,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         )
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
+        # process any contracts concluded but not signed while executing contracts (may be in callbacks to them)
+        self._process_unsigned()
+
         # World Simulation Step:
         # ----------------------
         # The world manager should execute a single step of simulation in this function. It may lead to new negotiations
@@ -1684,10 +1820,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # do one step of all negotiations if that is specified as the meeting strategy
         if self.negotiation_speed is not None:
-            n_steps_broken, n_steps_success = _run_negotiations(
-                n_steps=self.negotiation_speed
+            n_steps_broken, n_steps_success = _run_all_pending_negotiations(
+                self.negotiation_speed
             )
 
+        # process any contracts concluded but not signed during the simulation step
+        self._process_unsigned()
         # remove all negotiations that are completed
         # ------------------------------------------
         completed = list(
@@ -1823,8 +1961,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         issues,
         req_id,
         run_to_completion=False,
-    ) -> Optional[NegotiationInfo]:
-        """Registers a negotiation and returns the list of rejectors if any or None"""
+        may_run_immediately=True,
+    ) -> Tuple[Optional[NegotiationInfo], Optional[Contract], Optional[Mechanism]]:
+        """Registers a negotiation and returns the negotiation info"""
         factory = MechanismFactory(
             world=self,
             mechanism_name=mechanism_name,
@@ -1844,31 +1983,26 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         neg = factory.init()
         if neg is None:
-            return None
+            return None, None, None
         if neg.mechanism is None:
-            return neg
+            return neg, None, None
         self.__n_negotiations += 1
+        # if not run_to_completion:
+        self._negotiations[neg.mechanism.uuid] = neg
         if run_to_completion:
-            pass
-        else:
-            self._negotiations[neg.mechanism.uuid] = neg
-            if self.immediate_negotiations:
-                mechanism = neg.mechanism
-                puuid = mechanism.uuid
-                result = mechanism.step()
-                agreement, is_running = result.agreement, result.running
-                if agreement is not None or not is_running:  # or not mechanism.running:
-                    self._log_negotiation(neg)
-                    negotiation = self._negotiations.get(puuid, None)
-                    if agreement is None:
-                        self._register_failed_negotiation(mechanism.ami, negotiation)
-                    else:
-                        self._register_contract(mechanism.ami, negotiation)
-                    if negotiation:
-                        self._negotiations.pop(mechanism.uuid, None)
+            running = True
+            while running:
+                contract, running = self._step_a_mechanism(neg.mechanism, True)
+            return None, contract, neg.mechanism
+        if may_run_immediately and self.immediate_negotiations:
+            running = True
+            for i in range(self.negotiation_speed):
+                contract, running = self._step_a_mechanism(neg.mechanism, False)
+                if not running:
+                    return None, contract, neg.mechanism
         # self.loginfo(
         #    f'{caller.id} request was accepted')
-        return neg
+        return neg, None, None
 
     def _unregister_negotiation(self, neg: MechanismFactory) -> None:
         if neg is None or neg.mechanism is None:
@@ -1928,7 +2062,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 ),
             ),
         )
-        neg = self._register_negotiation(
+        neg, *_ = self._register_negotiation(
             mechanism_name=mechanism_name,
             mechanism_params=mechanism_params,
             roles=roles,
@@ -1994,7 +2128,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 ),
             ),
         )
-        neg = self._register_negotiation(
+        req_id = caller.create_negotiation_request(
+            issues=issues,
+            partners=partners,
+            annotation=annotation,
+            negotiator=negotiator,
+            extra={},
+        )
+        neg, contract, mechanism = self._register_negotiation(
             mechanism_name=mechanism_name,
             mechanism_params=mechanism_params,
             roles=roles,
@@ -2002,9 +2143,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             partners=partners,
             annotation=annotation,
             issues=issues,
-            req_id=None,
+            req_id=req_id,
             run_to_completion=True,
         )
+        if contract is not None:
+            return contract, mechanism.ami
         if neg and neg.mechanism:
             mechanism = neg.mechanism
             if negotiator is not None:
@@ -2017,7 +2160,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
             else:
                 contract = self._register_contract(
-                    mechanism=mechanism.ami, negotiation=neg, force_signature_now=True
+                    mechanism.ami, neg, self._tobe_signed_at(mechanism.agreement, True)
                 )
             return contract, mechanism.ami
         return None, None
@@ -2062,28 +2205,28 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         partners = [[self.agents[_] for _ in p] for p in partners]
-        n_neg = len(partners)
+        n_negs = len(partners)
         if isinstance(issues[0], Issue):
-            issues = [issues] * n_neg
+            issues = [issues] * n_negs
         if roles is None or not (
             isinstance(roles, list) and isinstance(roles[0], list)
         ):
-            roles = [roles] * n_neg
+            roles = [roles] * n_negs
         if annotations is None or isinstance(annotations, dict):
-            annotations = [annotations] * n_neg
+            annotations = [annotations] * n_negs
         if mechanism_names is None or isinstance(mechanism_names, str):
-            mechanism_names = [mechanism_names] * n_neg
+            mechanism_names = [mechanism_names] * n_negs
         if mechanism_params is None or isinstance(mechanism_params, dict):
-            mechanism_params = [mechanism_params] * n_neg
+            mechanism_params = [mechanism_params] * n_negs
         if caller_roles is None or isinstance(caller_roles, str):
-            caller_roles = [caller_roles] * n_neg
+            caller_roles = [caller_roles] * n_negs
         if negotiators is None or isinstance(negotiators, Negotiator):
             raise ValueError(f"Must pass all negotiators for run_negotiations")
         if ufuns is None or isinstance(ufuns, UtilityFunction):
-            ufuns = [ufuns] * n_neg
+            ufuns = [ufuns] * n_negs
 
         self.loginfo(
-            f"{caller.name} requested {n_neg} immediate negotiation "
+            f"{caller.name} requested {n_negs} immediate negotiation "
             f"{mechanism_names}[{mechanism_params}] with {[[_.name for _ in p] for p in partners]}",
             Event(
                 "negotiation-request",
@@ -2101,7 +2244,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         for (issue, partner, role, annotation, mech_name, mech_param) in zip(
             issues, partners, roles, annotations, mechanism_names, mechanism_params
         ):
-            neg = self._register_negotiation(
+            neg, *_ = self._register_negotiation(
                 mechanism_name=mech_name,
                 mechanism_params=mech_param,
                 roles=role,
@@ -2111,55 +2254,58 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 issues=issue,
                 req_id=None,
                 run_to_completion=False,
+                may_run_immediately=False,
             )
             neg.partners.append(caller)
-            if neg is None:
-                if all_or_none:
-                    for _n in negs:
-                        self._unregister_negotiation(_n)
-                    return []
+            if neg is None and all_or_none:
+                for _n in negs:
+                    self._unregister_negotiation(_n)
+                return []
             negs.append(neg)
         if all(_ is None for _ in negs):
             return []
-        completed = [False] * n_neg
-        contracts = [None] * n_neg
-        amis = [
-            neg.mechanism.ami if neg is not None and neg.mechanism is not None else None
-            for neg in negs
-        ]
+        completed = [False] * n_negs
+        contracts = [None] * n_negs
+        amis = [None] * n_negs
         for i, (neg, crole, ufun, negotiator) in enumerate(
             zip(negs, caller_roles, ufuns, negotiators)
         ):
-            if neg is None or (neg.mechanism is None) or negotiator is None:
-                completed[i] = True
+            completed[i] = neg is None or (neg.mechanism is None) or negotiator is None
+            if completed[i]:
                 continue
             mechanism = neg.mechanism
             mechanism.add(negotiator, ufun=ufun, role=crole)
 
-        while not all(completed):
-            for i, (done, neg) in enumerate(zip(completed, negs)):
-                if completed[i]:
-                    continue
-                mechanism = neg.mechanism
-                result = mechanism.step()
-                if result.running:
-                    continue
-                completed[i] = True
-                if mechanism.agreement is None:
-                    contracts[i] = None
-                    self._register_failed_negotiation(
-                        mechanism=mechanism.ami, negotiation=neg
-                    )
-                else:
-                    contracts[i] = self._register_contract(
-                        mechanism=mechanism.ami,
-                        negotiation=neg,
-                        force_signature_now=True,
-                    )
-                self._negotiations.pop(mechanism.uuid, None)
-                amis[i] = mechanism.ami
-                if all(completed):
-                    break
+        locs = [i for i in range(n_negs) if not completed[i]]
+        cs, rs, _, _ = self._step_negotiations(
+            [negs[i].mechanism for i in locs], float("inf"), True
+        )
+        for i, loc in enumerate(locs):
+            contracts[loc] = cs[i]
+            completed[loc] = not rs[i]
+            amis[i] = negs[i].mechanism.ami
+        # while not all(completed):
+        #     for i, (done, neg) in enumerate(zip(completed, negs)):
+        #         if completed[i]:
+        #             continue
+        #         mechanism = neg.mechanism
+        #         result = mechanism.step()
+        #         if result.running:
+        #             continue
+        #         completed[i] = True
+        #         if mechanism.agreement is None:
+        #             contracts[i] = None
+        #             self._register_failed_negotiation(
+        #                 mechanism=mechanism.ami, negotiation=neg
+        #             )
+        #         else:
+        #             contracts[i] = self._register_contract(
+        #                 mechanism=mechanism.ami, negotiation=neg, was_run=True
+        #             )
+        #         self._negotiations.pop(mechanism.uuid, None)
+        #         amis[i] = mechanism.ami
+        #         if all(completed):
+        #             break
         return list(zip(contracts, amis))
 
     def _log_header(self):
@@ -2168,7 +2314,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         return f"{self.current_step}/{self.n_steps} [{self.relative_time:0.2%}]"
 
     def _register_contract(
-        self, mechanism, negotiation, force_signature_now=False
+        self, mechanism, negotiation, to_be_signed_at
     ) -> Optional[Contract]:
         partners = negotiation.partners
         if self.save_negotiations:
@@ -2189,10 +2335,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             agreement, issue_names=[_.name for _ in mechanism.issues]
         )
         signed_at = None
-        if force_signature_now:
-            signing_delay = 0
-        else:
-            signing_delay = agreement.get("signing_delay", self.default_signing_delay)
 
         contract = Contract(
             partners=list(_.id for _ in partners),
@@ -2200,29 +2342,29 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             issues=negotiation.issues,
             agreement=agreement,
             concluded_at=self.current_step,
-            to_be_signed_at=self.current_step + signing_delay,
+            to_be_signed_at=to_be_signed_at,
             signed_at=signed_at,
             mechanism_state=mechanism.state,
         )
-        if not force_signature_now:
-            self.on_contract_concluded(
-                contract, to_be_signed_at=self.current_step + signing_delay
-            )
+        self.on_contract_concluded(contract, to_be_signed_at)
         for partner in partners:
             partner.on_negotiation_success_(contract=contract, mechanism=mechanism)
-        if signing_delay == 0:
-            rejectors = self._sign_contract(contract)
-            signed = rejectors is not None and len(rejectors) == 0
-            if signed and not force_signature_now:
-                self.on_contract_signed(contract=contract)
-            sign_status = (
-                "signed"
-                if signed
-                else f"cancelled by {rejectors if rejectors is not None else 'error!!'}"
-            )
-        else:
+        if self.batch_signing:
             sign_status = f"to be signed at {contract.to_be_signed_at}"
-            self.on_contract_cancelled(contract=contract)
+        else:
+            if to_be_signed_at == self.current_step:
+                rejectors = self._sign_contract(contract)
+                signed = rejectors is not None and len(rejectors) == 0
+                if signed:
+                    self.on_contract_signed(contract, was_run)
+                sign_status = (
+                    "signed"
+                    if signed
+                    else f"cancelled by {rejectors if rejectors is not None else 'error!!'}"
+                )
+            else:
+                sign_status = f"to be signed at {contract.to_be_signed_at}"
+            self.on_contract_processed(contract=contract)
         if negotiation.annotation is not None:
             annot_ = dict(
                 zip(
@@ -2233,7 +2375,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         else:
             annot_ = ""
         self.logdebug(
-            f"Contract<{'immediate-signature-forced' if force_signature_now else ''}> [{sign_status}]: "
+            f"Contract [{sign_status}]: "
             f"{[_.name for _ in partners]}"
             f" > {str(mechanism.state.agreement)} on annotation {annot_}",
             Event(
@@ -2281,7 +2423,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         def _do_sign(c, p):
             try:
-                return p.sign_contract(contract=c)
+                return p.sign_all_contracts([c])
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
@@ -2290,10 +2432,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
                 return None
 
-        signatures = list(
-            zip(partners, (_do_sign(contract, partner) for partner in partners))
-        )
-        rejectors = [partner for partner, signature in signatures if signature is None]
+        if self.force_signing:
+            signatures = [partner.id for partner in partners]
+            rejectors = []
+        else:
+            signatures = list(
+                zip(partners, (_do_sign(contract, partner) for partner in partners))
+            )
+            rejectors = [
+                partner for partner, signature in signatures if signature is None
+            ]
         if len(rejectors) == 0:
             contract.signatures = [
                 Signature(id=a.id, signature=s) for a, s in signatures
@@ -2316,12 +2464,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
         return [_.id for _ in rejectors]
 
-    def on_contract_signed(self, contract: Contract) -> None:
+    def on_contract_signed(self, contract: Contract, ran: bool = False) -> None:
         """Called to add a contract to the existing set of contract after it is signed
 
         Args:
 
             contract: The contract to add
+            ran: True if the negotiation was ran directly not registered
 
         Remarks:
 
@@ -2340,6 +2489,26 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         else:
             self._saved_contracts.pop(contract.id, None)
 
+    def on_contract_processed(self, contract):
+        """
+        Called whenever a contract finished processing to be removed from unsigned contracts
+
+        Args:
+            contract: Contract
+
+        Remarks:
+
+            - called by on_contract_cancelled and on_contract_signed
+
+        """
+        unsigned = self.unsigned_contracts.get(self.current_step, None)
+        if unsigned is None:
+            return
+        try:
+            unsigned.remove(contract)
+        except KeyError:
+            pass
+
     def on_contract_cancelled(self, contract):
         """Called whenever a concluded contract is not signed (cancelled)
 
@@ -2354,13 +2523,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         self.__n_contracts_cancelled += 1
-        unsigned = self.unsigned_contracts.get(self.current_step, None)
-        if unsigned is None:
-            return
-        try:
-            unsigned.remove(contract)
-        except KeyError:
-            pass
+        self.on_contract_processed(contract)
 
     @property
     def saved_contracts(self) -> List[Dict[str, Any]]:
@@ -2381,6 +2544,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             contract: The contract to add
             to_be_signed_at: The timestep at which the contract is to be signed
+            ran: if true, the negotaition was ran not registered
 
         Remarks:
 
@@ -2447,7 +2611,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self._register_contract(
                             mechanism=mechanism,
                             negotiation=None,
-                            force_signature_now=force_immediate_signing,
+                            to_be_signed_at=self._tobe_signed_at(
+                                mechanism.agreement, force_immediate_signing
+                            ),
                         )
                         break
         elif self.breach_processing == BreachProcessing.META_NEGOTIATION:
@@ -2470,6 +2636,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 self._saved_breaches.pop(breach.id, None)
             self._register_breach(breach)
         return None
+
+    def _tobe_signed_at(self, agreement: Outcome, force_immediate_signing=False) -> int:
+        return (
+            self.current_step
+            if force_immediate_signing
+            else self.current_step + self.default_signing_delay
+        )
+        # todo add _get_signing_delay(contract) and implement it in SCML2019
 
     @abstractmethod
     def delete_executed_contracts(self) -> None:
@@ -3016,13 +3190,40 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
     ) -> None:
         """Called whenever a negotiation ends with agreement"""
 
-    @abstractmethod
     def on_contract_signed(self, contract: Contract) -> None:
         """Called whenever a contract is signed by all partners"""
 
-    @abstractmethod
     def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
         """Called whenever at least a partner did not sign the contract"""
+
+    def on_contracts_finalized(
+        self,
+        signed: List[Contract],
+        cancelled: List[Contract],
+        rejectors: List[List[str]],
+    ) -> None:
+        """
+        Called for all contracts in a single step to inform the agent about which were finally signed
+        and which were rejected by any agents (including itself)
+
+        Args:
+            signed: A list of signed contracts. These are binding
+            cancelled: A list of cancelled contracts. These are not binding
+            rejectors: A list of lists where each of the internal lists gives the rejectors of one of the
+                       cancelled contracts. Notice that it is possible that this list is empty which
+                       means that the contract other than being rejected by any agents (if that was possible in
+                       the specific world).
+
+        Remarks:
+
+            The default implementation is to call `on_contract_signed` for singed contracts and `on_contract_cancelled`
+            for cancelled contracts
+
+        """
+        for contract in signed:
+            self.on_contract_signed_(contract)
+        for contract, r in zip(cancelled, rejectors):
+            self.on_contract_cancelled_(contract, r)
 
     @abstractmethod
     def set_renegotiation_agenda(
@@ -3060,11 +3261,18 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
         """
 
-    @abstractmethod
     def sign_contract(self, contract: Contract) -> Optional[str]:
         """Called after the signing delay from contract conclusion to sign the contract. Contracts become binding
         only after they are signed."""
         return self.id
+
+    def sign_all_contracts(self, contracts: List[Contract]) -> List[Optional[str]]:
+        """Called to sign all contracts concluded in a single step by this agent
+
+        Remarks:
+            default implementation calls `sign_contract` for each contract returning the results
+        """
+        return [self.sign_contract(contract) for contract in contracts]
 
     @abstractmethod
     def on_contract_executed(self, contract: Contract) -> None:
