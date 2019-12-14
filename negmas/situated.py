@@ -1194,7 +1194,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_n_steps=100,
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
-        default_signing_delay=0,
+        default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
         breach_processing=BreachProcessing.NONE,
@@ -2356,7 +2356,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 rejectors = self._sign_contract(contract)
                 signed = rejectors is not None and len(rejectors) == 0
                 if signed:
-                    self.on_contract_signed(contract, was_run)
+                    self.on_contract_signed(contract)
                 sign_status = (
                     "signed"
                     if signed
@@ -2423,7 +2423,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         def _do_sign(c, p):
             try:
-                return p.sign_all_contracts([c])
+                return p.sign_all_contracts([c])[0]
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
@@ -2464,13 +2464,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
         return [_.id for _ in rejectors]
 
-    def on_contract_signed(self, contract: Contract, ran: bool = False) -> None:
+    def on_contract_signed(self, contract: Contract) -> None:
         """Called to add a contract to the existing set of contract after it is signed
 
         Args:
 
             contract: The contract to add
-            ran: True if the negotiation was ran directly not registered
 
         Remarks:
 
