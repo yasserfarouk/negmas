@@ -1129,6 +1129,10 @@ class AgentWorldInterface:
             section=section, query=query, key=key, query_keys=query_keys, value=value
         )
 
+    @property
+    def settings(self):
+        return self._world.bulletin_board.data.get("settings", dict())
+
     class Java:
         implements = ["jnegmas.situated.AgentWorldInterface"]
 
@@ -1194,7 +1198,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_n_steps=100,
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
-        default_signing_delay=0,
+        default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
         breach_processing=BreachProcessing.NONE,
@@ -1361,7 +1365,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.ignore_contract_execution_exceptions = ignore_contract_execution_exceptions
         self.ignore_agent_exception = ignore_agent_exceptions
         self.bulletin_board: BulletinBoard = bulletin_board
-        self.set_bulletin_board(bulletin_board=bulletin_board)
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self.unsigned_contracts: Dict[int, Set[Contract]] = defaultdict(set)
         self.breach_processing = breach_processing
@@ -1413,6 +1416,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             stats_file_name = _path(str(Path(self._log_folder) / "stats.csv"))
             self._stats_file_name = stats_file_name.name
             self._stats_dir_name = stats_file_name.parent
+
+        self.set_bulletin_board(bulletin_board=bulletin_board)
         self.loginfo(f"{self.name}: World Created")
 
     @property
@@ -1478,6 +1483,37 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.bulletin_board.add_section("breaches")
         self.bulletin_board.add_section("stats")
         self.bulletin_board.add_section("settings")
+        self.bulletin_board.record("settings", self.n_steps, "n_steps")
+        self.bulletin_board.record("settings", self.time_limit, "time_limit")
+        self.bulletin_board.record(
+            "settings", self.negotiation_speed, "negotiation_speed"
+        )
+        self.bulletin_board.record("settings", self.neg_n_steps, "neg_n_steps")
+        self.bulletin_board.record("settings", self.neg_time_limit, "neg_time_limit")
+        self.bulletin_board.record(
+            "settings", self.neg_step_time_limit, "neg_step_time_limit"
+        )
+        self.bulletin_board.record(
+            "settings", self.default_signing_delay, "default_signing_delay"
+        )
+        self.bulletin_board.record("settings", self.force_signing, "force_signing")
+        self.bulletin_board.record("settings", self.batch_signing, "batch_signing")
+        self.bulletin_board.record(
+            "settings", self.breach_processing, "breach_processing"
+        )
+        self.bulletin_board.record(
+            "settings",
+            list(self.mechanisms.keys()) if self.mechanisms is not None else [],
+            "mechanism_names",
+        )
+        self.bulletin_board.record(
+            "settings",
+            self.mechanisms if self.mechanisms is not None else dict(),
+            "mechanisms",
+        )
+        self.bulletin_board.record(
+            "settings", self.immediate_negotiations, "start_negotiations_immediately"
+        )
 
     @property
     def time(self) -> Optional[float]:
@@ -2227,7 +2263,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         self.loginfo(
             f"{caller.name} requested {n_negs} immediate negotiation "
-            f"{mechanism_names}[{mechanism_params}] with {[[_.name for _ in p] for p in partners]}",
+            f"{mechanism_names}[{mechanism_params}] between {[[_.name for _ in p] for p in partners]}",
             Event(
                 "negotiation-request",
                 dict(
@@ -2356,7 +2392,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 rejectors = self._sign_contract(contract)
                 signed = rejectors is not None and len(rejectors) == 0
                 if signed:
-                    self.on_contract_signed(contract, was_run)
+                    self.on_contract_signed(contract)
                 sign_status = (
                     "signed"
                     if signed
@@ -2423,7 +2459,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         def _do_sign(c, p):
             try:
-                return p.sign_all_contracts([c])
+                return p.sign_all_contracts([c])[0]
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
@@ -2464,13 +2500,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
         return [_.id for _ in rejectors]
 
-    def on_contract_signed(self, contract: Contract, ran: bool = False) -> None:
+    def on_contract_signed(self, contract: Contract) -> None:
         """Called to add a contract to the existing set of contract after it is signed
 
         Args:
 
             contract: The contract to add
-            ran: True if the negotiation was ran directly not registered
 
         Remarks:
 
@@ -2775,9 +2810,15 @@ class TimeInAgreementMixin:
         self._time_field_name = time_field
         self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
 
-    def on_contract_signed(self: World, contract: Contract):
-        super().on_contract_signed(contract=contract)
-        self.contracts[contract.agreement[self._time_field_name]].add(contract)
+    def on_contracts_finalized(
+        self,
+        signed: List[Contract],
+        cancelled: List[Contract],
+        rejectors: List[List[str]],
+    ) -> None:
+        super().on_contract_finalized(signed, cancelled, rejectors)
+        for contract in signed:
+            self.contracts[contract.agreement[self._time_field_name]].add(contract)
 
     def executable_contracts(self: World) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
@@ -3338,6 +3379,9 @@ def save_stats(
         stats_file_name = "stats"
     dump(params, log_dir / "params")
     dump(world.stats, log_dir / stats_file_name)
+
+    if world.info is not None:
+        dump(world.info, log_dir / "info")
 
     if hasattr(world, "info") and world.info is not None:
         dump(world.info, log_dir / "info")
