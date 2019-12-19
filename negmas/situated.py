@@ -1596,6 +1596,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             contract_rejectors[contract.id].append(agent_id)
                 for contract in unsigned:
                     if contract_signatures[contract.id] == len(contract.partners):
+                        contract.signatures = [
+                            Signature(id=a, signature=a) for a in contract.partners
+                        ]
+                        contract.signed_at = self.current_step
                         for partner in contract.partners:
                             agent_signed[partner].append(contract)
                         signed.append(contract)
@@ -2486,14 +2490,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             for partner in partners:
                 partner.on_contract_signed_(contract=contract)
         else:
-            # if self.save_cancelled_contracts:
-            record = self.contract_record(contract)
-            record["signed"] = False
-            record["executed"] = None
-            record["breaches"] = ""
-            self._saved_contracts[contract.id] = record
-            # else:
-            #     self._saved_contracts.pop(contract.id, None)
             for partner in partners:
                 partner.on_contract_cancelled_(
                     contract=contract, rejectors=[_.id for _ in rejectors]
@@ -2557,6 +2553,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     - You should ALWAYS call this function when overriding it.
 
         """
+        record = self.contract_record(contract)
+        record["signed"] = False
+        record["executed"] = None
+        record["breaches"] = ""
+        self._saved_contracts[contract.id] = record
         self.__n_contracts_cancelled += 1
         self.on_contract_processed(contract)
 
