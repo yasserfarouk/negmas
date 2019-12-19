@@ -2810,15 +2810,9 @@ class TimeInAgreementMixin:
         self._time_field_name = time_field
         self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
 
-    def on_contracts_finalized(
-        self,
-        signed: List[Contract],
-        cancelled: List[Contract],
-        rejectors: List[List[str]],
-    ) -> None:
-        super().on_contract_finalized(signed, cancelled, rejectors)
-        for contract in signed:
-            self.contracts[contract.agreement[self._time_field_name]].add(contract)
+    def on_contract_signed(self: World, contract: Contract):
+        super().on_contract_signed(contract=contract)
+        self.contracts[contract.agreement[self._time_field_name]].add(contract)
 
     def executable_contracts(self: World) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
