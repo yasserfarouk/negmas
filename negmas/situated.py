@@ -172,14 +172,14 @@ class Contract(OutcomeType):
     """Misc. information to be kept with the agreement."""
     issues: List[Issue] = field(default_factory=list)
     """Issues of the negotiations from which this agreement was concluded. It may be empty"""
-    signed_at: Optional[int] = None
+    signed_at: int = -1
     """The time-step at which the contract was signed"""
-    concluded_at: Optional[int] = None
+    concluded_at: int = -1
     """The time-step at which the contract was concluded (but it is still not binding until signed)"""
-    nullified_at: Optional[int] = None
+    nullified_at: int = -1
     """The time-step at which the contract was nullified after being signed. That can happen if a partner declares 
     bankruptcy"""
-    to_be_signed_at: Optional[int] = None
+    to_be_signed_at: int = -1
     """The time-step at which the contract should be signed"""
     signatures: List[Signature] = field(default_factory=list)
     """A list of signatures giving agent name, signature"""
@@ -1714,6 +1714,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def step(self) -> bool:
         """A single simulation step"""
+
+        # update monitors
         did_not_start, self._started = self._started, True
         if self.current_step == 0:
             for priority in sorted(self._entities.keys()):
@@ -1728,7 +1730,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 monitor.init(__stats, world_name=self.name)
             for monitor in self.world_monitors:
                 monitor.step(self)
+
+        # do checkpoint processing
         self.checkpoint_on_step_started()
+
+        # confirm that we can still step the world
         if self.current_step >= self.n_steps:
             self.logerror(
                 f"Asked  to step after the simulation ({self.n_steps}). Will just ignore this",
@@ -1761,6 +1767,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # ----------------
         n_new_contract_executions = 0
         n_new_breaches = 0
+        n_new_contract_errors = 0
+        n_new_contract_nullifications = 0
         activity_level = 0
         n_steps_broken, n_steps_success = 0, 0
 
@@ -1770,7 +1778,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # sign contacts that are to be signed in this step
         # ------------------------------------------------
         # this is done first to allow these contracts to be executed immediately
+        # self.logdebug(f"Processing Unsigned before running negotaitions")
         self._process_unsigned()
+
         # run all negotiations before the simulation step if that is the meeting strategy
         # --------------------------------------------------------------------------------
         if self.negotiation_speed is None:
@@ -1797,22 +1807,32 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
 
         # process any contracts concluded but not signed while stepping all entities
+        # self.logdebug(f"Processing Unsigned before executing contracts")
         self._process_unsigned()
 
         # execute contracts that are executable at this step
         # --------------------------------------------------
         current_contracts = [
-            _ for _ in self.executable_contracts() if _.nullified_at is None
+            _ for _ in self.executable_contracts() if _.nullified_at < 0
         ]
+        blevel = 0.0
         if len(current_contracts) > 0:
             # remove expired contracts
             executed = set()
             current_contracts = self.order_contracts_for_execution(current_contracts)
 
             for contract in current_contracts:
+                if contract.signed_at < 0:
+                    continue
                 try:
                     contract_breaches = self.start_contract_execution(contract)
                 except Exception as e:
+                    self._saved_contracts[contract.id]["breaches"] = ""
+                    self._saved_contracts[contract.id]["executed_at"] = -1
+                    self._saved_contracts[contract.id]["dropped_at"] = -1
+                    self._saved_contracts[contract.id]["nullified_at"] = -1
+                    self._saved_contracts[contract.id]["erred_at"] = self._current_step
+                    n_new_contract_errors += 1
                     if not self.ignore_contract_execution_exceptions:
                         raise e
                     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -1822,9 +1842,23 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         Event("contract-exceptin", dict(exception=e)),
                     )
                     continue
-                if len(contract_breaches) < 1:
-                    self._saved_contracts[contract.id]["executed"] = True
+                if contract_breaches is None:
                     self._saved_contracts[contract.id]["breaches"] = ""
+                    self._saved_contracts[contract.id]["executed_at"] = -1
+                    self._saved_contracts[contract.id]["dropped_at"] = -1
+                    self._saved_contracts[contract.id][
+                        "nullified_at"
+                    ] = self._current_step
+                    self._saved_contracts[contract.id]["erred_at"] = -1
+                    n_new_contract_nullifications += 1
+                elif len(contract_breaches) < 1:
+                    self._saved_contracts[contract.id]["breaches"] = ""
+                    self._saved_contracts[contract.id]["dropped_at"] = -1
+                    self._saved_contracts[contract.id][
+                        "executed_at"
+                    ] = self._current_step
+                    self._saved_contracts[contract.id]["nullified_at"] = -1
+                    self._saved_contracts[contract.id]["erred_at"] = -1
                     executed.add(contract)
                     n_new_contract_executions += 1
                     _size = self.contract_size(contract)
@@ -1833,14 +1867,22 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     for partner in contract.partners:
                         self.agents[partner].on_contract_executed(contract)
                 else:
-                    self._saved_contracts[contract.id]["executed"] = False
+                    self._saved_contracts[contract.id]["executed_at"] = -1
+                    self._saved_contracts[contract.id]["nullified_at"] = -1
+                    self._saved_contracts[contract.id]["dropped_at"] = -1
+                    self._saved_contracts[contract.id]["erred_at"] = -1
                     self._saved_contracts[contract.id]["breaches"] = "; ".join(
-                        str(_) for _ in current_contracts
+                        f"{_.perpetrator}:{_.type}({_.level})"
+                        for _ in contract_breaches
                     )
                     for b in contract_breaches:
                         self._saved_breaches[b.id] = b.as_dict()
                     resolution = self._process_breach(contract, list(contract_breaches))
-                    n_new_breaches += 1 - int(resolution is not None)
+                    if resolution is None:
+                        n_new_breaches += 1
+                        blevel += sum(_.level for _ in contract_breaches)
+                    else:
+                        n_new_contract_executions += 1
                     self.complete_contract_execution(
                         contract, list(contract_breaches), resolution
                     )
@@ -1848,9 +1890,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self.agents[partner].on_contract_breached(
                             contract, list(contract_breaches), resolution
                         )
-            self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
 
         # process any contracts concluded but not signed while executing contracts (may be in callbacks to them)
+        # self.logdebug(f"Processing Unsigned before world simulation step")
         self._process_unsigned()
 
         # World Simulation Step:
@@ -1865,7 +1907,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             )
 
         # process any contracts concluded but not signed during the simulation step
+        # self.logdebug(f"Processing Unsigned after everything")
         self._process_unsigned()
+        dropped = self.get_dropped_contracts()
+        self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
+        for c in dropped:
+            self._saved_contracts[c.id]["dropped_at"] = self._current_step
+        self._stats["n_contracts_dropped"].append(len(dropped))
+
         # remove all negotiations that are completed
         # ------------------------------------------
         completed = list(
@@ -1880,10 +1929,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # ------------
         n_total_contracts = n_new_contract_executions + n_new_breaches
         self._stats["n_contracts_executed"].append(n_new_contract_executions)
+        self._stats["n_contracts_erred"].append(n_new_contract_errors)
+        self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
         self._stats["n_contracts_cancelled"].append(self.__n_contracts_cancelled)
         self._stats["n_breaches"].append(n_new_breaches)
         self._stats["breach_level"].append(
-            n_new_breaches / n_total_contracts if n_total_contracts > 0 else np.nan
+            blevel / n_total_contracts if n_total_contracts > 0 else np.nan
         )
         self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
         self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
@@ -2374,7 +2425,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         agreement = outcome_as_dict(
             agreement, issue_names=[_.name for _ in mechanism.issues]
         )
-        signed_at = None
+        signed_at = -1
 
         contract = Contract(
             partners=list(_.id for _ in partners),
@@ -2512,10 +2563,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.__n_contracts_signed += 1
         self.unsigned_contracts[self.current_step].remove(contract)
         record = self.contract_record(contract)
+
         if self.save_signed_contracts:
-            record["signed"] = True
-            record["executed"] = None
+            record["signed_at"] = self.current_step
+            record["executed_at"] = -1
             record["breaches"] = ""
+            record["nullified_at"] = -1
+            record["erred_at"] = -1
+            record["dropped_at"] = -1
             self._saved_contracts[contract.id] = record
         else:
             self._saved_contracts.pop(contract.id, None)
@@ -2554,9 +2609,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         record = self.contract_record(contract)
-        record["signed"] = False
-        record["executed"] = None
+        record["signed_at"] = -1
+        record["executed_at"] = -1
         record["breaches"] = ""
+        record["nullified_at"] = -1
+        record["dropped_at"] = -1
+        record["erred_at"] = -1
+
         self._saved_contracts[contract.id] = record
         self.__n_contracts_cancelled += 1
         self.on_contract_processed(contract)
@@ -2566,12 +2625,34 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         return list(self._saved_contracts.values())
 
     @property
+    def executed_contracts(self) -> List[Dict[str, Any]]:
+        return list(
+            _ for _ in self._saved_contracts.values() if _.get("executed_at", -1) >= 0
+        )
+
+    @property
     def signed_contracts(self) -> List[Dict[str, Any]]:
-        return list(_ for _ in self._saved_contracts.values() if _["signed"])
+        return list(
+            _ for _ in self._saved_contracts.values() if _.get("signed_at", -1) >= 0
+        )
+
+    @property
+    def nullified_contracts(self) -> List[Dict[str, Any]]:
+        return list(
+            _ for _ in self._saved_contracts.values() if _.get("nullified_at", -1) >= 0
+        )
+
+    @property
+    def erred_contracts(self) -> List[Dict[str, Any]]:
+        return list(
+            _ for _ in self._saved_contracts.values() if _.get("erred_at", -1) >= 0
+        )
 
     @property
     def cancelled_contracts(self) -> List[Dict[str, Any]]:
-        return list(_ for _ in self._saved_contracts.values() if not _["signed"])
+        return list(
+            _ for _ in self._saved_contracts.values() if not _.get("signed_at", -1) < 0
+        )
 
     def on_contract_concluded(self, contract: Contract, to_be_signed_at: int) -> None:
         """Called to add a contract to the existing set of contract after it is signed
@@ -2681,6 +2762,100 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         # todo add _get_signing_delay(contract) and implement it in SCML2019
 
+    @property
+    def business_size(self) -> float:
+        """The total business size defined as the total money transferred within the system"""
+        return sum(self.stats["activity_level"])
+
+    @property
+    def agreement_fraction(self) -> float:
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        n_negs = sum(self.stats["n_negotiations"])
+        n_contracts = len(self._saved_contracts)
+        return n_contracts / n_negs if n_negs != 0 else np.nan
+
+    @property
+    def cancellation_fraction(self) -> float:
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        n_negs = sum(self.stats["n_negotiations"])
+        n_contracts = len(self._saved_contracts)
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
+
+    @property
+    def n_negotiation_rounds_successful(self) -> float:
+        """Average number of rounds in a successful negotiation"""
+        n_negs = sum(self.stats["n_contracts_concluded"])
+        if n_negs == 0:
+            return np.nan
+        return sum(self.stats["n_negotiation_rounds_successful"]) / n_negs
+
+    @property
+    def n_negotiation_rounds_failed(self) -> float:
+        """Average number of rounds in a successful negotiation"""
+        n_negs = sum(self.stats["n_negotiations"]) - sum(
+            self.stats["n_contracts_concluded"]
+        )
+        if n_negs == 0:
+            return np.nan
+        return sum(self.stats["n_negotiation_rounds_failed"]) / n_negs
+
+    @property
+    def contract_execution_fraction(self) -> float:
+        """Fraction of signed contracts successfully executed with no breaches, or errors"""
+        n_executed = sum(self.stats["n_contracts_executed"])
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return n_executed / n_signed_contracts if n_signed_contracts > 0 else np.nan
+
+    @property
+    def contract_dropping_fraction(self) -> float:
+        """Fraction of signed contracts that were never executed because they were signed to late to be executable"""
+        n_executed = sum(self.stats["n_contracts_dropped"])
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return n_executed / n_signed_contracts if n_signed_contracts > 0 else np.nan
+
+    @property
+    def contract_err_fraction(self) -> float:
+        """Fraction of signed contracts that caused execption during their execution"""
+        n_erred = sum(self.stats["n_contracts_erred"])
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return n_erred / n_signed_contracts if n_signed_contracts > 0 else np.nan
+
+    @property
+    def contract_nullification_fraction(self) -> float:
+        """Fraction of signed contracts were nullified by the system (e.g. due to bankruptcy)"""
+        n_nullified = sum(self.stats["n_contracts_nullified"])
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return n_nullified / n_signed_contracts if n_signed_contracts > 0 else np.nan
+
+    @property
+    def breach_level(self) -> float:
+        """The average breach level per contract """
+        return np.nansum(self.stats["breach_level"])
+
+    @property
+    def breach_fraction(self) -> float:
+        """Fraction of signed contracts that led to breaches"""
+        n_breaches = sum(self.stats["n_breaches"])
+        n_signed_contracts = len(
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+        )
+        return n_breaches / n_signed_contracts if n_signed_contracts != 0 else np.nan
+
+    breach_rate = breach_fraction
+    agreement_rate = agreement_fraction
+    cancellation_rate = cancellation_fraction
+
     @abstractmethod
     def delete_executed_contracts(self) -> None:
         """Called after processing executable contracts at every simulation step to delete processed contracts"""
@@ -2688,6 +2863,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @abstractmethod
     def executable_contracts(self) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
+
+    def get_dropped_contracts(self) -> Collection[Contract]:
+        """Called at the end of every time-step to get a list of the contracts that are signed but will never be
+        executed"""
+        return []
 
     @abstractmethod
     def post_step_stats(self):
@@ -2704,6 +2884,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self, contracts: Collection[Contract]
     ) -> Collection[Contract]:
         """Orders the contracts in a specific time-step that are about to be executed"""
+        return contracts
 
     @abstractmethod
     def contract_record(self, contract: Contract) -> Dict[str, Any]:
@@ -2714,7 +2895,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Converts a breach to a record suitable for storage during the simulation"""
 
     @abstractmethod
-    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
+    def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
         """
         Tries to execute the contract
 
@@ -2727,6 +2908,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         Remarks:
 
             - You must call super() implementation of this method before doing anything
+            - It is possible to return None which indicates that the contract was nullified (i.e. not executed due to a
+              reason other than an execution exeception).
 
         """
         self.loginfo(
@@ -2817,10 +3000,46 @@ class TimeInAgreementMixin:
 
     def executable_contracts(self: World) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
+        if set(
+            _["id"]
+            for _ in self._saved_contracts.values()
+            if _["delivery_time"] == self.current_step and _["signed_at"] >= 0
+        ) != set(_.id for _ in self.contracts.get(self.current_step, [])):
+            saved = set(
+                _["id"]
+                for _ in self._saved_contracts.values()
+                if _["delivery_time"] == self.current_step and _["signed_at"] >= 0
+            )
+            used = set(_.id for _ in self.contracts.get(self.current_step, []))
+            err = (
+                f"Some signed contracts due at {self.current_step} are not being executed: {saved - used} "
+                f"({used - saved}):\n"
+            )
+            for c in saved - used:
+                err += f"Saved Only:{str(self._saved_contracts[c])}\n"
+            for c in used - saved:
+                con = None
+                for _ in self.contracts.get(self.current_step, []):
+                    if _.id == c:
+                        con = _
+                        break
+                err += f"Executable Only:{con}\n"
+            raise ValueError(err)
         return self.contracts.get(self.current_step, [])
 
     def delete_executed_contracts(self: World) -> None:
         self.contracts.pop(self.current_step, None)
+
+    def get_dropped_contracts(self) -> Collection[Contract]:
+        return [
+            _
+            for _ in self.contracts.get(self.current_step, [])
+            if self._saved_contracts[_.id]["signed_at"] >= 0
+            and self._saved_contracts[_.id].get("breaches", "") == ""
+            and self._saved_contracts[_.id].get("nullified_at", -1) < 0
+            and self._saved_contracts[_.id].get("erred_at", -1) < 0
+            and self._saved_contracts[_.id].get("executed_at", -1) < 0
+        ]
 
 
 class NoContractExecutionMixin:
