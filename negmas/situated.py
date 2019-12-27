@@ -851,7 +851,7 @@ class AgentWorldInterface:
 
     @property
     def default_signing_delay(self) -> int:
-        return self._world.default_signing_delay
+        return self._world.default_signing_delay if not self._world.force_signing else 0
 
     def run_negotiation(
         self,
@@ -1300,6 +1300,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                    object
 
             * Checkpoints *
+
             checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
             checkpoint_folder: The folder to save checkpoints into. Set to None to disable
             checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
@@ -1309,6 +1310,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                    a dictionary with string keys
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
         """
+        if force_signing:
+            batch_signing = False
         super().__init__()
         NamedObject.__init__(self, name=name)
         CheckpointMixin.checkpoint_init(
@@ -1933,9 +1936,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
         self._stats["n_contracts_cancelled"].append(self.__n_contracts_cancelled)
         self._stats["n_breaches"].append(n_new_breaches)
-        self._stats["breach_level"].append(
-            blevel / n_total_contracts if n_total_contracts > 0 else np.nan
-        )
+        self._stats["breach_level"].append(blevel)
         self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
         self._stats["n_contracts_concluded"].append(self.__n_contracts_concluded)
         self._stats["n_negotiations"].append(self.__n_negotiations)
@@ -2441,7 +2442,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         for partner in partners:
             partner.on_negotiation_success_(contract=contract, mechanism=mechanism)
         if self.batch_signing:
-            sign_status = f"to be signed at {contract.to_be_signed_at}"
+            if to_be_signed_at != self.current_step:
+                sign_status = f"to be signed at {contract.to_be_signed_at}"
+            else:
+                sign_status = ""
         else:
             if to_be_signed_at == self.current_step:
                 rejectors = self._sign_contract(contract)
@@ -2455,7 +2459,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
             else:
                 sign_status = f"to be signed at {contract.to_be_signed_at}"
-            self.on_contract_processed(contract=contract)
+            # self.on_contract_processed(contract=contract)
         if negotiation.annotation is not None:
             annot_ = dict(
                 zip(
@@ -2524,7 +2528,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 return None
 
         if self.force_signing:
-            signatures = [partner.id for partner in partners]
+            signatures = [(partner, partner.id) for partner in partners]
             rejectors = []
         else:
             signatures = list(
@@ -2561,7 +2565,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         self.__n_contracts_signed += 1
-        self.unsigned_contracts[self.current_step].remove(contract)
+        try:
+            self.unsigned_contracts[self.current_step].remove(contract)
+        except KeyError:
+            print(f"Unsigned: {self.unsigned_contracts[self.current_step]}")
+            print(f"To remove {contract}")
         record = self.contract_record(contract)
 
         if self.save_signed_contracts:
@@ -2598,14 +2606,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def on_contract_cancelled(self, contract):
         """Called whenever a concluded contract is not signed (cancelled)
 
-                Args:
+            Args:
 
-                    contract: The contract to add
+                contract: The contract to add
 
-                Remarks:
+            Remarks:
 
-                    - By default this function just adds the contract to the set of contracts maintaned by the world.
-                    - You should ALWAYS call this function when overriding it.
+                - By default this function just adds the contract to the set of contracts maintaned by the world.
+                - You should ALWAYS call this function when overriding it.
 
         """
         record = self.contract_record(contract)
@@ -2618,6 +2626,22 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         self._saved_contracts[contract.id] = record
         self.__n_contracts_cancelled += 1
+        self.on_contract_processed(contract)
+
+    def ignore_contract(self, contract):
+        """Ignores the contract as if it was never agreed upon
+
+            Args:
+
+                contract: The contract to add
+
+        """
+        if contract.agreement is not None:
+            self.__n_contracts_concluded -= 1
+        if contract.id in self._saved_contracts.keys():
+            if self._saved_contracts[contract.id]["signed_at"] >= 0:
+                self.__n_contracts_signed -= 1
+            del self._saved_contracts[contract.id]
         self.on_contract_processed(contract)
 
     @property
@@ -2841,7 +2865,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @property
     def breach_level(self) -> float:
         """The average breach level per contract """
-        return np.nansum(self.stats["breach_level"])
+        blevel = np.nansum(self.stats["breach_level"])
+        n_contracts = sum(self.stats["n_contracts_executed"]) + sum(
+            self.stats["n_breaches"]
+        )
+        return blevel / n_contracts if n_contracts > 0 else np.nan
 
     @property
     def breach_fraction(self) -> float:
