@@ -1551,17 +1551,18 @@ def combine_tournament_stats(
             p = load(filename)
             # removing default factory managers from the dict because the balances/storages are mixed
             # @todo unmix balances/scores of default fms.
-            p = dict(
-                zip(
-                    [c for c in p.keys() if "_df_" not in c],
-                    [p[c] for c in p.keys() if "_df_" not in c],
-                )
-            )
+            # p = dict(
+            #     zip(
+            #         [c for c in p.keys() if "_df_" not in c],
+            #         [p[c] for c in p.keys() if "_df_" not in c],
+            #     )
+            # )
             try:
                 p = pd.DataFrame.from_dict(p)
             except Exception as e:
                 print("Arrays are not of the same length")
                 pprint(dict(zip(p.keys(), [len(_) for _ in p.values()])))
+                pprint(p)
                 raise e
             p = p.loc[
                 :, [c for c in p.columns if "balance" not in c and "storage" not in c]
