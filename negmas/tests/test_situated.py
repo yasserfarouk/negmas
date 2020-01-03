@@ -108,7 +108,10 @@ class DummyWorld(World):
         s = {"partners": [_ for _ in self.the_agents if _ is not agent]}
         return s
 
-    def simulation_step(self):
+    def simulation_step_before_execution(self):
+        pass
+
+    def simulation_step_after_execution(self):
         pass
 
 

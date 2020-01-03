@@ -17,9 +17,10 @@ Simulation steps:
     #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
     #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating
        contracts for any resulting agreements
+    #. Allow custom simulation (simulation_step_before_execution)
     #. run all `Entity` objects registered (i.e. all agents) in the predefined `simulation_order`.
     #. execute contracts that are executable at this time-step handling any breaches
-    #. allow custom simulation steps to run (call `_simulation_step`)
+    #. allow custom simulation steps to run (call `simulation_step_after_execution`)
     #. remove any negotiations that are completed!
     #. update basic stats
     #. update custom stats (call `_post_step_stats`)
@@ -177,7 +178,7 @@ class Contract(OutcomeType):
     concluded_at: int = -1
     """The time-step at which the contract was concluded (but it is still not binding until signed)"""
     nullified_at: int = -1
-    """The time-step at which the contract was nullified after being signed. That can happen if a partner declares 
+    """The time-step at which the contract was nullified after being signed. That can happen if a partner declares
     bankruptcy"""
     to_be_signed_at: int = -1
     """The time-step at which the contract should be signed"""
@@ -210,7 +211,7 @@ class Breach:
     type: str
     """The type of the breach. Can be one of: `refusal`, `product`, `money`, `penalty`."""
     victims: List[str] = field(default_factory=list)
-    """Specific victims of the breach. If not given all partners in the agreement (except perpetrator) are considered 
+    """Specific victims of the breach. If not given all partners in the agreement (except perpetrator) are considered
     victims"""
     level: float = 1.0
     """Breach level defaulting to full breach (a number between 0 and 1)"""
@@ -1789,6 +1790,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if self.negotiation_speed is None:
             n_steps_broken, n_steps_success = _run_all_pending_negotiations()
 
+        # World Simulation Step:
+        # ----------------------
+        # The world manager should execute a single step of simulation in this function. It may lead to new negotiations
+        self.simulation_step_before_execution()
+
         # Step all entities in the world once:
         # ------------------------------------
         # note that entities are simulated in the partial-order specified by their priority value
@@ -1901,7 +1907,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # World Simulation Step:
         # ----------------------
         # The world manager should execute a single step of simulation in this function. It may lead to new negotiations
-        self.simulation_step()
+        self.simulation_step_after_execution()
 
         # do one step of all negotiations if that is specified as the meeting strategy
         if self.negotiation_speed is not None:
@@ -2679,13 +2685,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
 
     def on_contract_concluded(self, contract: Contract, to_be_signed_at: int) -> None:
-        """Called to add a contract to the existing set of contract after it is signed
+        """Called to add a contract to the existing set of unsigned contract after it is concluded
 
         Args:
 
             contract: The contract to add
             to_be_signed_at: The timestep at which the contract is to be signed
-            ran: if true, the negotaition was ran not registered
 
         Remarks:
 
@@ -2695,7 +2700,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         self.__n_contracts_concluded += 1
         self.unsigned_contracts[to_be_signed_at].add(contract)
-        # self.saved_contracts.append(self._contract_record(contract))
 
     def save_config(self, file_name: str):
         """
@@ -2791,18 +2795,27 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """The total business size defined as the total money transferred within the system"""
         return sum(self.stats["activity_level"])
 
+    def n_saved_contracts(self, ignore_no_issue: bool = True) -> int:
+        """
+        Number of saved contracts
+
+        Args:
+            ignore_no_issue: If true, only contracts resulting from negotiation (has some issues) will be counted
+        """
+        return len(self._saved_contracts)
+
     @property
     def agreement_fraction(self) -> float:
         """Fraction of negotiations ending in agreement and leading to signed contracts"""
         n_negs = sum(self.stats["n_negotiations"])
-        n_contracts = len(self._saved_contracts)
+        n_contracts = self.n_saved_contracts(True)
         return n_contracts / n_negs if n_negs != 0 else np.nan
 
     @property
     def cancellation_fraction(self) -> float:
         """Fraction of negotiations ending in agreement and leading to signed contracts"""
         n_negs = sum(self.stats["n_negotiations"])
-        n_contracts = len(self._saved_contracts)
+        n_contracts = self.n_saved_contracts(True)
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
@@ -2819,9 +2832,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @property
     def n_negotiation_rounds_failed(self) -> float:
         """Average number of rounds in a successful negotiation"""
-        n_negs = sum(self.stats["n_negotiations"]) - sum(
-            self.stats["n_contracts_concluded"]
-        )
+        n_negs = sum(self.stats["n_negotiations"]) - self.n_saved_contracts(True)
         if n_negs == 0:
             return np.nan
         return sum(self.stats["n_negotiation_rounds_failed"]) / n_negs
@@ -2833,7 +2844,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_executed / n_signed_contracts if n_signed_contracts > 0 else np.nan
+        return n_executed / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def contract_dropping_fraction(self) -> float:
@@ -2842,16 +2853,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_executed / n_signed_contracts if n_signed_contracts > 0 else np.nan
+        return n_executed / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def contract_err_fraction(self) -> float:
-        """Fraction of signed contracts that caused execption during their execution"""
+        """Fraction of signed contracts that caused exception during their execution"""
         n_erred = sum(self.stats["n_contracts_erred"])
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_erred / n_signed_contracts if n_signed_contracts > 0 else np.nan
+        return n_erred / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def contract_nullification_fraction(self) -> float:
@@ -2860,7 +2871,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_nullified / n_signed_contracts if n_signed_contracts > 0 else np.nan
+        return n_nullified / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def breach_level(self) -> float:
@@ -2869,7 +2880,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_contracts = sum(self.stats["n_contracts_executed"]) + sum(
             self.stats["n_breaches"]
         )
-        return blevel / n_contracts if n_contracts > 0 else np.nan
+        return blevel / n_contracts if n_contracts > 0 else 0.0
 
     @property
     def breach_fraction(self) -> float:
@@ -2878,7 +2889,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
-        return n_breaches / n_signed_contracts if n_signed_contracts != 0 else np.nan
+        return n_breaches / n_signed_contracts if n_signed_contracts != 0 else 0.0
 
     breach_rate = breach_fraction
     agreement_rate = agreement_fraction
@@ -2972,9 +2983,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def get_private_state(self, agent: "Agent") -> dict:
         """Reads the private state of the given agent"""
 
+    def simulation_step_before_execution(self):
+        """A single step of the simulation if any (before entity and contract execution)"""
+
     @abstractmethod
-    def simulation_step(self):
-        """A single step of the simulation if any"""
+    def simulation_step_after_execution(self):
+        """A single step of the simulation if any (after entity and contract execution)"""
 
     @abstractmethod
     def contract_size(self, contract: Contract) -> float:
