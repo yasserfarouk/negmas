@@ -138,10 +138,12 @@ def create_loggers(
     if module_name is None:
         module_name = __file__.split("/")[-1][:-3]
     # create logger if it does not already exist
-    logger = logging.getLogger(module_name)
-    if len(logger.handlers) > 0:
-        return logger
-    logger.setLevel(logging.DEBUG)
+    logger = None
+    if module_wide_log_file or app_wide_log_file:
+        logger = logging.getLogger(module_name)
+        if len(logger.handlers) > 0:
+            return logger
+        logger.setLevel(logging.DEBUG)
     # create formatter
     if colored and "colorlog" in sys.modules and os.isatty(2):
         date_format = "%Y-%m-%d %H:%M:%S"
@@ -159,7 +161,7 @@ def create_loggers(
         )
     else:
         formatter = logging.Formatter(format_str)
-    if screen_level is not None:
+    if screen_level is not None and (module_wide_log_file or app_wide_log_file):
         # create console handler and set level to logdebug
         screen_logger = logging.StreamHandler()
         screen_logger.setLevel(screen_level)
@@ -169,6 +171,9 @@ def create_loggers(
         logger.addHandler(screen_logger)
     if file_name is not None and file_level is not None:
         file_name = str(file_name)
+        if logger is None:
+            logger = logging.getLogger(file_name)
+            logger.setLevel(file_level)
         if len(file_name) == 0:
             if app_wide_log_file:
                 file_name = COMMON_LOG_FILE_NAME

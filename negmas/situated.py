@@ -1049,6 +1049,54 @@ class AgentWorldInterface:
         """
         self._world.logerror(msg)
 
+    def loginfo_agent(self, msg: str) -> None:
+        """
+        Logs an INFO message to the agent's log
+
+        Args:
+            msg: The message to log
+
+        Returns:
+
+        """
+        self._world.loginfo(self.agent.id, msg)
+
+    def logwarning_agent(self, msg: str) -> None:
+        """
+        Logs a WARNING message to the agent's log
+
+        Args:
+            msg: The message to log
+
+        Returns:
+
+        """
+        self._world.logwarning(self.agent.id, msg)
+
+    def logdebug_agent(self, msg: str) -> None:
+        """
+        Logs a WARNING message to the agent's log
+
+        Args:
+            msg: The message to log
+
+        Returns:
+
+        """
+        self._world.logdebug_agent(self.agent.id, msg)
+
+    def logerror_agent(self, msg: str) -> None:
+        """
+        Logs a WARNING message to the agent's log
+
+        Args:
+            msg: The message to log
+
+        Returns:
+
+        """
+        self._world.logerror_agent(self.agent.id, msg)
+
     def bb_query(
         self, section: Optional[Union[str, List[str]]], query: Any, query_keys=False
     ) -> Optional[Dict[str, Any]]:
@@ -1348,6 +1396,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             or log_ufuns
         ):
             self._log_folder.mkdir(parents=True, exist_ok=True)
+            self._agent_log_folder = self._log_folder / "_agent_logs"
+            self._agent_log_folder.mkdir(parents=True, exist_ok=True)
+        self._agent_loggers: Dict[str, logging.Logger] = {}
         if log_file_name is None:
             log_file_name = "log.txt"
         if len(log_file_name) == 0:
@@ -1431,6 +1482,70 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @property
     def log_folder(self):
         return self._log_folder
+
+    def _agent_logger(self, aid: str) -> logging.Logger:
+        """Returns the logger associated with a given agent"""
+        if aid not in self._agent_loggers.keys():
+            self._agent_loggers[aid] = create_loggers(
+                file_name=self._agent_log_folder / f"{aid}.txt",
+                module_name=None,
+                file_level=self.log_file_level,
+                app_wide_log_file=False,
+                module_wide_log_file=False,
+            )
+        return self._agent_loggers[aid]
+
+    def loginfo_agent(self, aid: str, s: str, event: Event = None) -> None:
+        """logs information to the agent individual log
+
+        Args:
+            s (str): The string to log
+            event (Event): The event to announce after logging
+
+        """
+        logger = self._agent_logger(aid)
+        logger.info(f"{self._log_header()}: " + s.strip())
+        if event:
+            self.announce(event)
+
+    def logdebug_agent(self, aid: str, s: str, event: Event = None) -> None:
+        """logs debug to the agent individual log
+
+        Args:
+            s (str): The string to log
+            event (Event): The event to announce after logging
+
+        """
+        logger = self._agent_logger(aid)
+        logger.debug(f"{self._log_header()}: " + s.strip())
+        if event:
+            self.announce(event)
+
+    def logwarning_agent(self, aid: str, s: str, event: Event = None) -> None:
+        """logs warning to the agent individual log
+
+        Args:
+            s (str): The string to log
+            event (Event): The event to announce after logging
+
+        """
+        logger = self._agent_logger(aid)
+        logger.warning(f"{self._log_header()}: " + s.strip())
+        if event:
+            self.announce(event)
+
+    def logerror_agent(self, aid: str, s: str, event: Event = None) -> None:
+        """logs information to the agent individual log
+
+        Args:
+            s (str): The string to log
+            event (Event): The event to announce after logging
+
+        """
+        logger = self._agent_logger(aid)
+        logger.error(f"{self._log_header()}: " + s.strip())
+        if event:
+            self.announce(event)
 
     def loginfo(self, s: str, event: Event = None) -> None:
         """logs info-level information
