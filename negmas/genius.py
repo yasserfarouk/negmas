@@ -47,6 +47,7 @@ __all__ = [
     "AgentX",
     "YXAgent",
     "Caduceus",
+    "ParsCat",
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
@@ -755,4 +756,10 @@ class AgentX(GeniusNegotiator):
 class Atlas3(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.Atlas3.Atlas3"
+        super().__init__(**kwargs)
+
+
+class ParsCat(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.parscat.ParsCat"
         super().__init__(**kwargs)
