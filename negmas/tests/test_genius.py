@@ -129,19 +129,12 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
     assert len(u1) > 0
 
 
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-@given(
-    first=st.sampled_from((YXAgent, AgentX)), second=st.sampled_from((YXAgent, AgentX))
-)
-def test_genius_agent_top2016_yx_second_classes(init_genius, first, second):
+def do_run(first_type, second_type):
     p, _, issues = load_genius_domain_from_folder(
         dom_folder,
         agent_factories=[
-            lambda: first(domain_file_name=dom, utility_file_name=util1),
-            lambda: second(domain_file_name=dom, utility_file_name=util2),
+            lambda: first_type(domain_file_name=dom, utility_file_name=util1),
+            lambda: second_type(domain_file_name=dom, utility_file_name=util2),
         ],
         keep_issue_names=True,
         keep_value_names=True,
@@ -172,6 +165,15 @@ def test_genius_agent_top2016_yx_second_classes(init_genius, first, second):
     #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
     # print(p.state)
     assert len(u1) > 0
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+@pytest.mark.parametrize("first_type, second_type", [(AgentX, YXAgent)])
+def test_genius_agent_top2016_yx_second_classes(init_genius, first_type, second_type):
+    do_run(first_type, second_type)
 
 
 @pytest.mark.skipif(
