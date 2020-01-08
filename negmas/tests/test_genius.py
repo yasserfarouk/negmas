@@ -3,6 +3,8 @@ import pathlib
 import numpy as np
 import pkg_resources
 import pytest
+from hypothesis import given
+import hypothesis.strategies as st
 
 from negmas import (
     GeniusNegotiator,
@@ -10,7 +12,7 @@ from negmas import (
     load_genius_domain_from_folder,
     genius_bridge_is_running,
 )
-from negmas.genius import YXAgent, AgentX
+from negmas.genius import YXAgent, AgentX, ParsCat
 
 dom_folder = pathlib.Path(
     pkg_resources.resource_filename(
@@ -131,12 +133,16 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_genius_agent_top2016_yx_second_classes(init_genius):
+@given(
+    first=st.sampled_from((YXAgent, AgentX, ParsCat)),
+    second=st.sampled_from((YXAgent, AgentX, ParsCat)),
+)
+def test_genius_agent_top2016_yx_second_classes(init_genius, first, second):
     p, _, issues = load_genius_domain_from_folder(
         dom_folder,
         agent_factories=[
-            lambda: YXAgent(domain_file_name=dom, utility_file_name=util1),
-            lambda: AgentX(domain_file_name=dom, utility_file_name=util2),
+            lambda: first(domain_file_name=dom, utility_file_name=util1),
+            lambda: second(domain_file_name=dom, utility_file_name=util2),
         ],
         keep_issue_names=True,
         keep_value_names=True,
