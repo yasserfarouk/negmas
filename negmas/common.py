@@ -64,10 +64,10 @@ class MechanismState:
     """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
     results: Optional[Union["Outcome", List["Outcome"], List["Issue"]]] = None
     """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
-    outcomes or even a list of negotiation issues for future negotiations. 
+    outcomes or even a list of negotiation issues for future negotiations.
     """
     n_negotiators: int = 0
-    """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports 
+    """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports
     dynamic entry"""
     has_error: bool = False
     """Does the mechanism have any errors"""
@@ -93,11 +93,11 @@ class MechanismState:
         return self.__hash__() == other.__hash__()
 
     def __copy__(self):
-        return AgentMechanismInterface(**self.__dict__)
+        return MechanismState(**self.__dict__)
 
     def __deepcopy__(self, memodict={}):
         d = {k: deepcopy(v) for k, v in self.__dict__.items()}
-        return AgentMechanismInterface(**d)
+        return MechanismState(**d)
 
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
