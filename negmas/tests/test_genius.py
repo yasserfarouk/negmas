@@ -134,8 +134,7 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 @given(
-    first=st.sampled_from((YXAgent, AgentX, ParsCat)),
-    second=st.sampled_from((YXAgent, AgentX, ParsCat)),
+    first=st.sampled_from((YXAgent, AgentX)), second=st.sampled_from((YXAgent, AgentX))
 )
 def test_genius_agent_top2016_yx_second_classes(init_genius, first, second):
     p, _, issues = load_genius_domain_from_folder(
