@@ -1,6 +1,21 @@
 History
 =======
 
+Release 0.5.0
+-------------
+
+- [genius] adding ParsCat as a Genius Agent
+- [situated] added agent specific logs to situated
+- [situated] adding simulation steps after and before entity/contract execution
+- [situated] adding ignore_contract to ignore contracts completely as if they were never concluded
+- [siutated] adding dropped contracts to the possible contract types. Now contracts can be concluded, signed, nullified, erred, breached, executed, and dropped
+- [situated] Correcting the implementation of TimeInAgreementMixin taking into account batch signing
+- [situated] Added aggregate management of contract signing through sign_all_contracts and on_contracts_finalized. We still support the older sign_contract and on_contract_signed/cancelled as a fallback if sign_all_contracts and on_contracts_finalized are not overriden
+- [situated] Now contract related callbacks are called even for contracts ran through run_negotaiation(s)
+- [situated] added batch_signing to control whether contracts are signed one by one or in batch. Default is batch (that is different from earlier versions)
+- [situated] added force_signing. If set to true, the sign_* methods are never called and all concluded negotiations are immediately considered to be signed. The callbacks on_contracts_finalized (and by extension on_contract_signed/cancelled) will still be called so code that used them will still work as expected. The main difference is in timing.
+- replacing -float("inf") with float("-inf") everywhere
+
 Release 0.4.4
 -------------
 
