@@ -14,11 +14,12 @@ Simulation steps:
 -----------------
 
     #. prepare custom stats (call `_pre_step_stats`)
-    #. sign contracts that are to be signed at this step calling `on_contract_signed` as needed
     #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating
        contracts for any resulting agreements
     #. Allow custom simulation (simulation_step_before_execution)
     #. run all `Entity` objects registered (i.e. all agents) in the predefined `simulation_order`.
+    #. sign contracts that are to be signed at this step calling `on_contracts_finalized`  / `on_contract_signed` as
+       needed
     #. execute contracts that are executable at this time-step handling any breaches
     #. allow custom simulation steps to run (call `simulation_step_after_execution`)
     #. remove any negotiations that are completed!
@@ -157,10 +158,6 @@ class Action:
         return f"{self.type}: {self.params}"
 
 
-Signature = namedtuple("Signature", ["id", "signature"])
-"""A signature with the name of signature and her signature"""
-
-
 @dataclass
 class Contract(OutcomeType):
     """A agreement definition which encapsulates an agreement with partners and extra information"""
@@ -182,8 +179,8 @@ class Contract(OutcomeType):
     bankruptcy"""
     to_be_signed_at: int = -1
     """The time-step at which the contract should be signed"""
-    signatures: List[Signature] = field(default_factory=list)
-    """A list of signatures giving agent name, signature"""
+    signatures: Dict[str, Optional[str]] = field(default_factory=dict)
+    """A mapping from each agent to its signature"""
     mechanism_state: Optional[MechanismState] = None
     """The mechanism state at the contract conclusion"""
     id: str = field(default_factory=lambda: str(uuid.uuid4()), init=True)
@@ -1250,6 +1247,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
+        single_signing=True,
         breach_processing=BreachProcessing.NONE,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
@@ -1308,13 +1306,15 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             mechanisms: The mechanism types allowed in this world associated with each keyward arguments to be passed
                         to it.
 
-            * Signining parameters *
+            * Signing parameters *
 
             default_signing_delay: The default number of steps between contract conclusion and signing it. Only takes
                                    effect if `force_signing` is `False`
             force_signing: If true, agents are not asked to sign contracts. They are forced to do so. In this
                            case, `default_singing_delay` is not effective and signature is immediate
             batch_signing: If true, contracts are signed in batches not individually
+            single_signing: If true, (and `batch_signing` is also true), the agent is guaratneed to receive a single
+                            `sign_all_contracts` call per simulation step.
 
 
             * Breach Processing *
@@ -1429,6 +1429,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.save_negotiations = save_negotiations
         self.save_resolved_breaches = save_resolved_breaches
         self.save_unresolved_breaches = save_unresolved_breaches
+        self.single_signing = single_signing
         self._current_step = 0
         self.negotiation_speed = negotiation_speed
         self.default_signing_delay = default_signing_delay
@@ -1705,7 +1706,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 contract_rejectors = defaultdict(list)
                 for contract in unsigned:
                     for p in contract.partners:
-                        agent_contracts[p].append(contract)
+                        if contract.signatures.get(p, None) is None:
+                            agent_contracts[p].append(contract)
                 for agent_id, contracts in agent_contracts.items():
                     slist = self.agents[agent_id].sign_all_contracts(contracts)
                     for contract, signature in zip(contracts, slist):
@@ -1715,9 +1717,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             contract_rejectors[contract.id].append(agent_id)
                 for contract in unsigned:
                     if contract_signatures[contract.id] == len(contract.partners):
-                        contract.signatures = [
-                            Signature(id=a, signature=a) for a in contract.partners
-                        ]
+                        contract.signatures = dict(
+                            zip(contract.partners, contract.partners)
+                        )
                         contract.signed_at = self.current_step
                         for partner in contract.partners:
                             agent_signed[partner].append(contract)
@@ -1894,12 +1896,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.pre_step_stats()
         self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
 
-        # sign contacts that are to be signed in this step
-        # ------------------------------------------------
-        # this is done first to allow these contracts to be executed immediately
-        # self.logdebug(f"Processing Unsigned before running negotaitions")
-        self._process_unsigned()
-
         # run all negotiations before the simulation step if that is the meeting strategy
         # --------------------------------------------------------------------------------
         if self.negotiation_speed is None:
@@ -1930,6 +1926,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     Event("entity-exception", dict(exception=e)),
                 )
 
+        # sign contacts that are to be signed in this step
+        # ------------------------------------------------
+        # this is done first to allow these contracts to be executed immediately
+        # self.logdebug(f"Processing Unsigned before running negotaitions")
         # process any contracts concluded but not signed while stepping all entities
         # self.logdebug(f"Processing Unsigned before executing contracts")
         self._process_unsigned()
@@ -2017,7 +2017,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # process any contracts concluded but not signed while executing contracts (may be in callbacks to them)
         # self.logdebug(f"Processing Unsigned before world simulation step")
-        self._process_unsigned()
+        if not self.single_signing:
+            self._process_unsigned()
 
         # World Simulation Step:
         # ----------------------
@@ -2032,7 +2033,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # process any contracts concluded but not signed during the simulation step
         # self.logdebug(f"Processing Unsigned after everything")
-        self._process_unsigned()
+        if not self.single_signing:
+            self._process_unsigned()
         dropped = self.get_dropped_contracts()
         self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
         for c in dropped:
@@ -2659,9 +2661,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 partner for partner, signature in signatures if signature is None
             ]
         if len(rejectors) == 0:
-            contract.signatures = [
-                Signature(id=a.id, signature=s) for a, s in signatures
-            ]
+            contract.signatures = {a.id: s for a, s in signatures}
             contract.signed_at = self.current_step
             for partner in partners:
                 partner.on_contract_signed_(contract=contract)
