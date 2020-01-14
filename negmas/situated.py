@@ -1708,6 +1708,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     for p in contract.partners:
                         if contract.signatures.get(p, None) is None:
                             agent_contracts[p].append(contract)
+                        else:
+                            contract_signatures[contract.id] += 1
                 for agent_id, contracts in agent_contracts.items():
                     slist = self.agents[agent_id].sign_all_contracts(contracts)
                     for contract, signature in zip(contracts, slist):
@@ -2640,6 +2642,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         partners = [self.agents[_] for _ in contract.partners]
 
         def _do_sign(c, p):
+            s_ = c.signatures.get(p, None)
+            if s_ is not None:
+                return s_
             try:
                 return p.sign_all_contracts([c])[0]
             except Exception as e:
