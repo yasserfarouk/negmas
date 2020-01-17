@@ -1247,7 +1247,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
-        single_signing=True,
+        sign_first=True,
+        sign_before_execution=False,
+        sign_after_execution=False,
+        sign_last=True,
         breach_processing=BreachProcessing.NONE,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
@@ -1313,8 +1316,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             force_signing: If true, agents are not asked to sign contracts. They are forced to do so. In this
                            case, `default_singing_delay` is not effective and signature is immediate
             batch_signing: If true, contracts are signed in batches not individually
-            single_signing: If true, (and `batch_signing` is also true), the agent is guaratneed to receive a single
-                            `sign_all_contracts` call per simulation step.
+            sign_first: If true, contracts are signed at the beginning of the simulation step (before anything else)
+            sign_before_execution: If true, contracts are signed before contract execution
+            sign_after_execution: If true, contracts are signed after contract execution
+            sign_last: If true, contracts are signed at the end of each simulation step (after everything)
 
 
             * Breach Processing *
@@ -1429,7 +1434,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.save_negotiations = save_negotiations
         self.save_resolved_breaches = save_resolved_breaches
         self.save_unresolved_breaches = save_unresolved_breaches
-        self.single_signing = single_signing
+        self.sign_first, self.sign_last = sign_first, sign_last
+        self.sign_after_execution, self.sign_before_execution = (
+            sign_after_execution,
+            sign_before_execution,
+        )
         self._current_step = 0
         self.negotiation_speed = negotiation_speed
         self.default_signing_delay = default_signing_delay
@@ -1898,6 +1907,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.pre_step_stats()
         self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
 
+        # sign contracts if specified
+        # ---------------------------
+        if self.sign_first:
+            self._process_unsigned()
+
         # run all negotiations before the simulation step if that is the meeting strategy
         # --------------------------------------------------------------------------------
         if self.negotiation_speed is None:
@@ -1934,7 +1948,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # self.logdebug(f"Processing Unsigned before running negotaitions")
         # process any contracts concluded but not signed while stepping all entities
         # self.logdebug(f"Processing Unsigned before executing contracts")
-        self._process_unsigned()
+        if self.sign_before_execution:
+            self._process_unsigned()
 
         # execute contracts that are executable at this step
         # --------------------------------------------------
@@ -2019,7 +2034,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # process any contracts concluded but not signed while executing contracts (may be in callbacks to them)
         # self.logdebug(f"Processing Unsigned before world simulation step")
-        if not self.single_signing:
+        if self.sign_after_execution:
             self._process_unsigned()
 
         # World Simulation Step:
@@ -2035,7 +2050,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # process any contracts concluded but not signed during the simulation step
         # self.logdebug(f"Processing Unsigned after everything")
-        if not self.single_signing:
+        if self.sign_last:
             self._process_unsigned()
         dropped = self.get_dropped_contracts()
         self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
@@ -2694,8 +2709,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         try:
             self.unsigned_contracts[self.current_step].remove(contract)
         except KeyError:
-            print(f"Unsigned: {self.unsigned_contracts[self.current_step]}")
-            print(f"To remove {contract}")
+            pass
         record = self.contract_record(contract)
 
         if self.save_signed_contracts:
@@ -3154,11 +3168,13 @@ class SimpleWorld(World, ABC):
 class TimeInAgreementMixin:
     def init(self, time_field="time"):
         self._time_field_name = time_field
-        self.contracts: Dict[int, Set[Contract]] = defaultdict(set)
+        self.contracts_per_step: Dict[int, List[Contract]] = defaultdict(list)
 
     def on_contract_signed(self: World, contract: Contract):
         super().on_contract_signed(contract=contract)
-        self.contracts[contract.agreement[self._time_field_name]].add(contract)
+        self.contracts_per_step[contract.agreement[self._time_field_name]].append(
+            contract
+        )
 
     def executable_contracts(self: World) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
@@ -3166,13 +3182,13 @@ class TimeInAgreementMixin:
             _["id"]
             for _ in self._saved_contracts.values()
             if _["delivery_time"] == self.current_step and _["signed_at"] >= 0
-        ) != set(_.id for _ in self.contracts.get(self.current_step, [])):
+        ) != set(_.id for _ in self.contracts_per_step.get(self.current_step, [])):
             saved = set(
                 _["id"]
                 for _ in self._saved_contracts.values()
                 if _["delivery_time"] == self.current_step and _["signed_at"] >= 0
             )
-            used = set(_.id for _ in self.contracts.get(self.current_step, []))
+            used = set(_.id for _ in self.contracts_per_step.get(self.current_step, []))
             err = (
                 f"Some signed contracts due at {self.current_step} are not being executed: {saved - used} "
                 f"({used - saved}):\n"
@@ -3181,21 +3197,21 @@ class TimeInAgreementMixin:
                 err += f"Saved Only:{str(self._saved_contracts[c])}\n"
             for c in used - saved:
                 con = None
-                for _ in self.contracts.get(self.current_step, []):
+                for _ in self.contracts_per_step.get(self.current_step, []):
                     if _.id == c:
                         con = _
                         break
                 err += f"Executable Only:{con}\n"
             raise ValueError(err)
-        return self.contracts.get(self.current_step, [])
+        return self.contracts_per_step.get(self.current_step, [])
 
     def delete_executed_contracts(self: World) -> None:
-        self.contracts.pop(self.current_step, None)
+        self.contracts_per_step.pop(self.current_step, None)
 
     def get_dropped_contracts(self) -> Collection[Contract]:
         return [
             _
-            for _ in self.contracts.get(self.current_step, [])
+            for _ in self.contracts_per_step.get(self.current_step, [])
             if self._saved_contracts[_.id]["signed_at"] >= 0
             and self._saved_contracts[_.id].get("breaches", "") == ""
             and self._saved_contracts[_.id].get("nullified_at", -1) < 0
