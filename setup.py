@@ -11,14 +11,14 @@ https://github.com/orsinium/poetry-setup
 # Always prefer setuptools over distutils
 import re
 
-from setuptools import setup, find_packages
-from os import path, read
-
 # io.open is needed for projects that support Python 2.7
 # It ensures open() defaults to text mode with universal newlines,
 # and accepts an argument to specify the text encoding
 # Python 3 only projects can skip this import
 from io import open
+from os import path
+
+from setuptools import setup, find_packages
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
@@ -38,7 +38,7 @@ setup(
     name="negmas",  # Required
     # https://www.python.org/dev/peps/pep-0440/
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="0.5.0",  # Required
+    version="0.5.1",  # Required
     # https://packaging.python.org/specifications/core-metadata/#summary
     description="NEGotiations Managed by Agent Simulations",  # Required
     # https://packaging.python.org/specifications/core-metadata/#description-optional

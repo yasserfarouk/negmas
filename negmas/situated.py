@@ -64,20 +64,20 @@ negotiation-request-accepted         caller: `Agent` , partners: `List` [ `Agent
 import copy
 import json
 import logging
+import math
 import os
 import random
 import re
 import sys
 import time
-import math
-import uuid
 import traceback
-import itertools
+import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Sized
+from typing import Dict
 from typing import (
     Optional,
     List,
@@ -90,17 +90,17 @@ from typing import (
     Iterator,
     Collection,
 )
+
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
 import yaml
-from dataclasses import dataclass, field
-import networkx as nx
 from matplotlib.axis import Axis
 
 from negmas import UtilityFunction, Outcome
-from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.checkpoints import CheckpointMixin
+from negmas.common import AgentMechanismInterface, MechanismState
 from negmas.common import NamedObject
 from negmas.events import Event, EventSource, EventSink, Notifier
 from negmas.helpers import (
@@ -196,7 +196,6 @@ EDGE_COLORS = {
 
 def show_edge_colors():
     """Plots the edge colors used with their meaning"""
-    from matplotlib import colors as mcolors
 
     colors = {}
     for t in EDGE_TYPES:
@@ -2699,7 +2698,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         for _ in contract_breaches
                     )
                     breachers = set(
-                        (_.perpetrator, _.victims) for _ in contract_breaches
+                        (_.perpetrator, tuple(_.victims)) for _ in contract_breaches
                     )
                     for breacher, victims in breachers:
                         if isinstance(victims, str) or isinstance(victims, Agent):
