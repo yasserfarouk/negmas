@@ -1,6 +1,15 @@
 History
 =======
 
+Release 0.5.1
+-------------
+
+- [situated] Adding graph construction and drawing
+- [situated] renaming contracts in TimeInAgreement to contracts_per_step to avoid name clashes
+- [situated] Adding fine control for when are contracts to be signed relative to different main events during the simulation
+- [situated] adding basic support for partial contract signature (contracts that are signed by some of the partners are now treated as unsigned until the rest of the partners sign them).
+- [situated] changing signatures into a dict inside Contract objects to simplify searching them
+
 Release 0.5.0
 -------------
 
