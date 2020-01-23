@@ -96,6 +96,7 @@ setup(
         "sklearn",
         "nose",
         "cython",
+        "networkx",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
