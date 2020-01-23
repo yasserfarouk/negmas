@@ -69,5 +69,6 @@ seaborn
 sklearn
 nose
 pytest-sugar
+networkx
 
 
