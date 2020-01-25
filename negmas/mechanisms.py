@@ -1,12 +1,11 @@
 """Provides interfaces for defining negotiation mechanisms.
 """
-import itertools
-import math
 import pprint
 import time
 import uuid
 from abc import abstractmethod, ABC
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Tuple,
@@ -21,10 +20,13 @@ from typing import (
     Collection,
 )
 
-import pandas as pd
-from dataclasses import dataclass
-
-from negmas.utilities import UtilityFunction, MappingUtilityFunction, pareto_frontier
+from negmas.checkpoints import CheckpointMixin
+from negmas.common import AgentMechanismInterface, MechanismState, NamedObject
+from negmas.common import NegotiatorInfo
+from negmas.events import *
+from negmas.generics import ikeys
+from negmas.helpers import snake_case
+from negmas.negotiators import Negotiator
 from negmas.outcomes import (
     outcome_is_valid,
     Issue,
@@ -32,13 +34,7 @@ from negmas.outcomes import (
     enumerate_outcomes,
     outcome_as_tuple,
 )
-from negmas.common import AgentMechanismInterface, MechanismState, NamedObject
-from negmas.checkpoints import CheckpointMixin
-from negmas.common import NegotiatorInfo
-from negmas.events import *
-from negmas.generics import ikeys
-from negmas.helpers import snake_case
-from negmas.negotiators import Negotiator
+from negmas.utilities import UtilityFunction, MappingUtilityFunction, pareto_frontier
 
 __all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
 
@@ -832,9 +828,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         Remarks:
             - When overriding this function you **MUST** call the base class version
         """
-        if self._enable_callbacks:
-            for a in self.negotiators:
-                a.on_negotiation_end(state=self.state)
+        for a in self.negotiators:
+            a.on_negotiation_end(state=self.state)
         self.announce(
             Event(
                 type="negotiation_end",

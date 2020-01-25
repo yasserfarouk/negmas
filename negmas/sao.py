@@ -1929,6 +1929,9 @@ class PassThroughSAONegotiator(SAONegotiator):
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         return self._Negotiator__parent.respond(self.id, state, offer)
 
+    def on_negotiation_end(self, state: MechanismState) -> None:
+        return self._Negotiator__parent.on_negotiation_end(self.id, state)
+
 
 class SAOController(Controller):
     """A controller that can manage multiple negotiators taking full or partial control from them."""
@@ -1958,6 +1961,9 @@ class SAOController(Controller):
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         return self.call(negotiator, "respond", state=state, offer=offer)
+
+    def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
+        pass
 
 
 class SAOSyncController(SAOController):
