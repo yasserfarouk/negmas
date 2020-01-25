@@ -2,21 +2,19 @@
 
 """
 import functools
-import itertools
 import math
 import warnings
-from abc import ABC, abstractmethod
-from copy import copy
+from abc import ABC
 from random import sample
 from typing import Optional, Tuple, Union, Type, List
 from typing import TYPE_CHECKING, Dict, Any, Callable
 
+import numpy as np
+
 from negmas.common import *
 from negmas.events import Notifiable, Notification
 from negmas.helpers import get_class
-from negmas.utilities import make_discounted_ufun
 from negmas.outcomes import Issue
-import numpy as np
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
@@ -63,6 +61,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
         name: str = None,
         ufun: Optional["UtilityFunction"] = None,
         parent: "Controller" = None,
+        owner: "Agent" = None,
     ) -> None:
         super().__init__(name=name)
         self.__parent = parent
@@ -74,6 +73,12 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._init_utility = ufun
         self._role = None
         self._ufun_modified = ufun is not None
+        self.__owner = owner
+
+    @property
+    def owner(self):
+        """Returns the owner agent of the negotiator"""
+        return self.__owner
 
     @property
     def utility_function(self):

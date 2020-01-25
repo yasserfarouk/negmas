@@ -12,6 +12,7 @@ from typing import Dict, Any, Callable, Type
 from typing import Sequence, Optional, List, Tuple, Iterable, Union
 
 import numpy as np
+import pandas as pd
 
 from negmas.common import *
 from negmas.common import _ShadowAgentMechanismInterface
@@ -28,28 +29,21 @@ from negmas.java import (
 from negmas.mechanisms import MechanismRoundResult, Mechanism
 from negmas.negotiators import Negotiator, AspirationMixin, Controller
 from negmas.outcomes import (
-    sample_outcomes,
     Outcome,
     outcome_is_valid,
     ResponseType,
     outcome_as_dict,
-    outcome_as_tuple,
     outcome_is_complete,
     Issue,
 )
 from negmas.utilities import (
     MappingUtilityFunction,
-    normalize,
     UtilityFunction,
     UtilityValue,
     JavaUtilityFunction,
     utility_range,
     outcome_with_utility,
 )
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 
 __all__ = [
     "SAOState",
@@ -907,8 +901,9 @@ class SAONegotiator(Negotiator):
         name: Optional[str] = None,
         rational_proposal=True,
         parent: Controller = None,
+        owner: "Agent" = None,
     ):
-        super().__init__(name=name, ufun=ufun, parent=parent)
+        super().__init__(name=name, ufun=ufun, parent=parent, owner=owner)
         self.assume_normalized = assume_normalized
         self.__end_negotiation = False
         self.my_last_proposal: Optional["Outcome"] = None
