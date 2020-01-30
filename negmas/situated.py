@@ -12,16 +12,18 @@ Remarks:
 
 Simulation steps:
 -----------------
+    It is possible to control the order of the simulation steps differently using the operations paramter to the world
+    constructor. this is the default order
 
     #. prepare custom stats (call `_pre_step_stats`)
     #. step all existing negotiations `negotiation_speed_multiple` times handling any failed negotiations and creating
        contracts for any resulting agreements
-    #. Allow custom simulation (simulation_step_before_execution)
+    #. Allow custom simulation (call `simulation_step` ) with stage 0
     #. run all `Entity` objects registered (i.e. all agents) in the predefined `simulation_order`.
     #. sign contracts that are to be signed at this step calling `on_contracts_finalized`  / `on_contract_signed` as
        needed
     #. execute contracts that are executable at this time-step handling any breaches
-    #. allow custom simulation steps to run (call `simulation_step_after_execution`)
+    #. allow custom simulation steps to run (call `simulation_step` ) with stage 1
     #. remove any negotiations that are completed!
     #. update basic stats
     #. update custom stats (call `_post_step_stats`)
@@ -120,6 +122,7 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import OutcomeType, Issue, outcome_as_dict
 
 __all__ = [
+    "Operations",
     "Action",  # An action that an `Agent` can execute in the `World`.
     "Contract",  # A agreement definition which encapsulates an agreement with partners and extra information
     "Breach",  # A breach in executing a contract
@@ -1166,7 +1169,7 @@ class AgentWorldInterface:
         Returns:
 
         """
-        self._world.loginfo(self.agent.id, msg)
+        self._world.loginfo_agent(self.agent.id, msg)
 
     def logwarning_agent(self, msg: str) -> None:
         """
@@ -1178,7 +1181,7 @@ class AgentWorldInterface:
         Returns:
 
         """
-        self._world.logwarning(self.agent.id, msg)
+        self._world.logwarning_agent(self.agent.id, msg)
 
     def logdebug_agent(self, msg: str) -> None:
         """
@@ -1632,6 +1635,12 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
     __repr__ = __str__
 
+    def on_simulation_step_ended(self):
+        """Will be called at the end of the simulation step after everything else"""
+
+    def on_simulation_step_started(self):
+        """Will be called at the beginning of the simulation step before everything else (except init)"""
+
     @abstractmethod
     def step(self):
         """Called by the simulator at every simulation step"""
@@ -1812,6 +1821,15 @@ def deflistdict():
     return defaultdict(list)
 
 
+class Operations(Enum):
+    Negotiations = 1
+    ContractSigning = 2
+    AgentSteps = 3
+    ContractExecution = 4
+    SimulationStep = 5
+    StatsUpdate = 6
+
+
 class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, ABC):
     """Base world class encapsulating a world that runs a simulation with several agents interacting within some
     dynamically changing environment.
@@ -1848,10 +1866,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
-        sign_first=True,
-        sign_before_execution=False,
-        sign_after_execution=False,
-        sign_last=True,
         breach_processing=BreachProcessing.NONE,
         mechanisms: Dict[str, Dict[str, Any]] = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
@@ -1880,6 +1894,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         extra_checkpoint_info: Dict[str, Any] = None,
         single_checkpoint: bool = True,
         exist_ok: bool = True,
+        operations: Collection[Operations] = (
+            Operations.StatsUpdate,
+            Operations.Negotiations,
+            Operations.ContractSigning,
+            Operations.AgentSteps,
+            Operations.ContractExecution,
+            Operations.SimulationStep,
+            Operations.ContractSigning,
+            Operations.StatsUpdate,
+        ),
         info: Optional[Dict[str, Any]] = None,
         name=None,
     ):
@@ -1899,8 +1923,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             n_steps: Total simulation time in steps
             time_limit: Real-time limit on the simulation
+            operations: A list of `Operations` to run in order during every simulation step
 
-            * Negotiation Paramters *
+            * Negotiation Parameters *
 
             negotiation_speed: The number of negotiation steps per simulation step. None means infinite
             neg_n_steps: Maximum number of steps allowed for a negotiation.
@@ -1918,10 +1943,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             force_signing: If true, agents are not asked to sign contracts. They are forced to do so. In this
                            case, `default_singing_delay` is not effective and signature is immediate
             batch_signing: If true, contracts are signed in batches not individually
-            sign_first: If true, contracts are signed at the beginning of the simulation step (before anything else)
-            sign_before_execution: If true, contracts are signed before contract execution
-            sign_after_execution: If true, contracts are signed after contract execution
-            sign_last: If true, contracts are signed at the end of each simulation step (after everything)
 
 
             * Breach Processing *
@@ -2038,11 +2059,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.save_resolved_breaches = save_resolved_breaches
         self.save_unresolved_breaches = save_unresolved_breaches
         self.construct_graphs = construct_graphs
-        self.sign_first, self.sign_last = sign_first, sign_last
-        self.sign_after_execution, self.sign_before_execution = (
-            sign_after_execution,
-            sign_before_execution,
-        )
+        self.operations = operations
         self._current_step = 0
         self.negotiation_speed = negotiation_speed
         self.default_signing_delay = default_signing_delay
@@ -2129,6 +2146,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._stats_dir_name = stats_file_name.parent
 
         self.set_bulletin_board(bulletin_board=bulletin_board)
+        stats_calls = [_ for _ in self.operations if _ == Operations.StatsUpdate]
+        self._single_stats_call = len(stats_calls) == 1
+        self._two_stats_calls = len(stats_calls) == 2
+
         self.loginfo(f"{self.name}: World Created")
 
     @property
@@ -2462,12 +2483,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_steps: Optional[int],
         force_immediate_signing,
         partners: List[Agent],
-    ) -> Tuple[List[Contract], List[bool], int, int]:
+    ) -> Tuple[List[Contract], List[bool], int, int, int, int]:
         """ Runs all bending negotiations """
         running = [_ is not None for _ in mechanisms]
         contracts = [None] * len(mechanisms)
         indices = list(range(len(mechanisms)))
         n_steps_broken_, n_steps_success_ = 0, 0
+        n_broken_, n_success_ = 0, 0
         current_step = 0
         if n_steps is None:
             n_steps = float("inf")
@@ -2483,8 +2505,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 running[i] = r
                 if not running:
                     if contract is None:
+                        n_broken_ += 1
                         n_steps_broken_ += mechanism.state.step + 1
                     else:
+                        n_success_ += 1
                         n_steps_success_ += mechanism.state.step + 1
                     self._add_edges(
                         partners[0],
@@ -2498,13 +2522,19 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             current_step += 1
             if current_step >= n_steps:
                 break
-        return contracts, running, n_steps_broken_, n_steps_success_
+        return (
+            contracts,
+            running,
+            n_steps_broken_,
+            n_steps_success_,
+            n_broken_,
+            n_success_,
+        )
 
     def step(self) -> bool:
         """A single simulation step"""
         if self.current_step >= self.n_steps:
             return False
-        # update monitors
         did_not_start, self._started = self._started, True
         if self.current_step == 0:
             self._sim_start = time.perf_counter()
@@ -2512,7 +2542,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             for priority in sorted(self._entities.keys()):
                 for agent in self._entities[priority]:
                     agent.init_()
-
+            # update monitors
             for monitor in self.stats_monitors:
                 if self.safe_stats_monitoring:
                     __stats = copy.deepcopy(self.stats)
@@ -2520,42 +2550,18 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     __stats = self.stats
                 monitor.init(__stats, world_name=self.name)
             for monitor in self.world_monitors:
-                monitor.step(self)
+                monitor.init(self)
         else:
             self._step_start = time.perf_counter()
         # do checkpoint processing
         self.checkpoint_on_step_started()
 
-        # confirm that we can still step the world
-        if self.current_step >= self.n_steps:
-            self.logerror(
-                f"Asked  to step after the simulation ({self.n_steps}). Will just ignore this",
-                Event(type="extra-step", data=None),
-            )
-            for monitor in self.stats_monitors:
-                if self.safe_stats_monitoring:
-                    __stats = copy.deepcopy(self.stats)
-                else:
-                    __stats = self.stats
-                monitor.step(__stats, world_name=self.name)
-            for monitor in self.world_monitors:
-                monitor.step(self)
-            return False
+        for agent in self.agents.values():
+            agent.on_simulation_step_started()
+
         self.loginfo(
             f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
         )
-
-        def _run_all_pending_negotiations(n_steps: Optional[int] = None):
-            """ Runs all bending negotiations """
-            mechanisms = list(
-                (_.mechanism, _.partners)
-                for _ in self._negotiations.values()
-                if _ is not None
-            )
-            _, _, n_steps_broken_, n_steps_success_ = self._step_negotiations(
-                [_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms]
-            )
-            return n_steps_broken_, n_steps_success_
 
         # initialize stats
         # ----------------
@@ -2565,187 +2571,207 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         n_new_contract_nullifications = 0
         activity_level = 0
         n_steps_broken, n_steps_success = 0, 0
+        n_broken, n_success = 0, 0
+        stage = 0
+        stats_stage = 0
+        blevel = 0.0
 
-        self.pre_step_stats()
         self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
 
-        # sign contracts if specified
-        # ---------------------------
-        if self.sign_first:
-            self._process_unsigned()
+        def _run_negotiations(n_steps: Optional[int] = None):
+            """ Runs all bending negotiations """
+            nonlocal n_steps_broken, n_steps_success, n_broken, n_success
+            mechanisms = list(
+                (_.mechanism, _.partners)
+                for _ in self._negotiations.values()
+                if _ is not None
+            )
+            _, _, n_steps_broken_, n_steps_success_, n_broken_, n_success_ = self._step_negotiations(
+                [_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms]
+            )
+            n_total_broken = n_broken + n_broken_
+            if n_total_broken > 0:
+                n_steps_broken = (
+                                     n_steps_broken * n_broken + n_steps_broken_ * n_broken_
+                                 ) / n_total_broken
+                n_broken = n_total_broken
+            n_total_success = n_success + n_success_
+            if n_total_success > 0:
+                n_steps_success = (
+                                      n_steps_success * n_success + n_steps_success_ * n_success_
+                                  ) / n_total_success
+                n_success = n_total_success
 
-        # run all negotiations before the simulation step if that is the meeting strategy
-        # --------------------------------------------------------------------------------
-        if self.negotiation_speed is not None:
-            n_steps_broken, n_steps_success = _run_all_pending_negotiations()
+        def _step_agents():
+            # Step all entities in the world once:
+            # ------------------------------------
+            # note that entities are simulated in the partial-order specified by their priority value
+            tasks: List[Entity] = []
+            for priority in sorted(self._entities.keys()):
+                tasks += [_ for _ in self._entities[priority]]
 
-        # World Simulation Step:
-        # ----------------------
-        # The world manager should execute a single step of simulation in this function. It may lead to new negotiations
-        self.simulation_step_before_execution()
-
-        # Step all entities in the world once:
-        # ------------------------------------
-        # note that entities are simulated in the partial-order specified by their priority value
-        tasks: List[Entity] = []
-        for priority in sorted(self._entities.keys()):
-            tasks += [_ for _ in self._entities[priority]]
-
-        for task in tasks:
-            try:
-                task.step_()
-            except Exception as e:
-                if not self.ignore_agent_exception:
-                    raise e
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                self.logerror(
-                    f"Entity exception @{task.id}: "
-                    f"{traceback.format_tb(exc_traceback)}",
-                    Event("entity-exception", dict(exception=e)),
-                )
-
-        # sign contacts that are to be signed in this step
-        # ------------------------------------------------
-        # this is done first to allow these contracts to be executed immediately
-        # self.logdebug(f"Processing Unsigned before running negotaitions")
-        # process any contracts concluded but not signed while stepping all entities
-        # self.logdebug(f"Processing Unsigned before executing contracts")
-        if self.sign_before_execution:
-            self._process_unsigned()
-
-        # execute contracts that are executable at this step
-        # --------------------------------------------------
-        current_contracts = [
-            _ for _ in self.executable_contracts() if _.nullified_at < 0
-        ]
-        blevel = 0.0
-        if len(current_contracts) > 0:
-            # remove expired contracts
-            executed = set()
-            current_contracts = self.order_contracts_for_execution(current_contracts)
-
-            for contract in current_contracts:
-                if contract.signed_at < 0:
-                    continue
+            for task in tasks:
                 try:
-                    contract_breaches = self.start_contract_execution(contract)
+                    task.step_()
                 except Exception as e:
-                    contract.executed_at = self.current_step
-                    self._saved_contracts[contract.id]["breaches"] = ""
-                    self._saved_contracts[contract.id]["executed_at"] = -1
-                    self._saved_contracts[contract.id]["dropped_at"] = -1
-                    self._saved_contracts[contract.id]["nullified_at"] = -1
-                    self._saved_contracts[contract.id]["erred_at"] = self._current_step
-                    self._add_edges(
-                        contract.partners[0],
-                        contract.partners,
-                        self._edges_contracts_erred,
-                        bi=True,
-                    )
-                    n_new_contract_errors += 1
-                    if not self.ignore_contract_execution_exceptions:
+                    if not self.ignore_agent_exception:
                         raise e
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     self.logerror(
-                        f"Contract exception @{str(contract)}: "
+                        f"Entity exception @{task.id}: "
                         f"{traceback.format_tb(exc_traceback)}",
-                        Event("contract-exceptin", dict(exception=e)),
+                        Event("entity-exception", dict(exception=e)),
                     )
-                    continue
-                if contract_breaches is None:
-                    self._saved_contracts[contract.id]["breaches"] = ""
-                    self._saved_contracts[contract.id]["executed_at"] = -1
-                    self._saved_contracts[contract.id]["dropped_at"] = -1
-                    self._saved_contracts[contract.id][
-                        "nullified_at"
-                    ] = self._current_step
-                    self._add_edges(
-                        contract.partners[0],
-                        contract.partners,
-                        self._edges_contracts_nullified,
-                        bi=True,
-                    )
-                    self._saved_contracts[contract.id]["erred_at"] = -1
-                    n_new_contract_nullifications += 1
-                elif len(contract_breaches) < 1:
-                    self._saved_contracts[contract.id]["breaches"] = ""
-                    self._saved_contracts[contract.id]["dropped_at"] = -1
-                    self._saved_contracts[contract.id][
-                        "executed_at"
-                    ] = self._current_step
-                    self._add_edges(
-                        contract.partners[0],
-                        contract.partners,
-                        self._edges_contracts_executed,
-                        bi=True,
-                    )
-                    self._saved_contracts[contract.id]["nullified_at"] = -1
-                    self._saved_contracts[contract.id]["erred_at"] = -1
-                    executed.add(contract)
-                    n_new_contract_executions += 1
-                    _size = self.contract_size(contract)
-                    if _size is not None:
-                        activity_level += _size
-                    for partner in contract.partners:
-                        self.agents[partner].on_contract_executed(contract)
-                else:
-                    self._saved_contracts[contract.id]["executed_at"] = -1
-                    self._saved_contracts[contract.id]["nullified_at"] = -1
-                    self._saved_contracts[contract.id]["dropped_at"] = -1
-                    self._saved_contracts[contract.id]["erred_at"] = -1
-                    self._saved_contracts[contract.id]["breaches"] = "; ".join(
-                        f"{_.perpetrator}:{_.type}({_.level})"
-                        for _ in contract_breaches
-                    )
-                    breachers = set(
-                        (_.perpetrator, tuple(_.victims)) for _ in contract_breaches
-                    )
-                    for breacher, victims in breachers:
-                        if isinstance(victims, str) or isinstance(victims, Agent):
-                            victims = [victims]
+
+        def _sign_contracts():
+            self._process_unsigned()
+
+        def _simulation_step():
+            nonlocal stage
+            self.simulation_step(stage)
+            stage += 1
+
+        def _execute_contracts():
+            # execute contracts that are executable at this step
+            # --------------------------------------------------
+            nonlocal n_new_breaches, n_new_contract_executions, n_new_contract_errors, n_new_contract_nullifications, activity_level, blevel
+            current_contracts = [
+                _ for _ in self.executable_contracts() if _.nullified_at < 0
+            ]
+            if len(current_contracts) > 0:
+                # remove expired contracts
+                executed = set()
+                current_contracts = self.order_contracts_for_execution(
+                    current_contracts
+                )
+
+                for contract in current_contracts:
+                    if contract.signed_at < 0:
+                        continue
+                    try:
+                        contract_breaches = self.start_contract_execution(contract)
+                    except Exception as e:
+                        contract.executed_at = self.current_step
+                        self._saved_contracts[contract.id]["breaches"] = ""
+                        self._saved_contracts[contract.id]["executed_at"] = -1
+                        self._saved_contracts[contract.id]["dropped_at"] = -1
+                        self._saved_contracts[contract.id]["nullified_at"] = -1
+                        self._saved_contracts[contract.id][
+                            "erred_at"
+                        ] = self._current_step
                         self._add_edges(
-                            breacher, victims, self._edges_contracts_breached, bi=False
+                            contract.partners[0],
+                            contract.partners,
+                            self._edges_contracts_erred,
+                            bi=True,
                         )
-                    for b in contract_breaches:
-                        self._saved_breaches[b.id] = b.as_dict()
-                    resolution = self._process_breach(contract, list(contract_breaches))
-                    if resolution is None:
-                        n_new_breaches += 1
-                        blevel += sum(_.level for _ in contract_breaches)
-                    else:
+                        n_new_contract_errors += 1
+                        if not self.ignore_contract_execution_exceptions:
+                            raise e
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        self.logerror(
+                            f"Contract exception @{str(contract)}: "
+                            f"{traceback.format_tb(exc_traceback)}",
+                            Event("contract-exceptin", dict(exception=e)),
+                        )
+                        continue
+                    if contract_breaches is None:
+                        self._saved_contracts[contract.id]["breaches"] = ""
+                        self._saved_contracts[contract.id]["executed_at"] = -1
+                        self._saved_contracts[contract.id]["dropped_at"] = -1
+                        self._saved_contracts[contract.id][
+                            "nullified_at"
+                        ] = self._current_step
+                        self._add_edges(
+                            contract.partners[0],
+                            contract.partners,
+                            self._edges_contracts_nullified,
+                            bi=True,
+                        )
+                        self._saved_contracts[contract.id]["erred_at"] = -1
+                        n_new_contract_nullifications += 1
+                    elif len(contract_breaches) < 1:
+                        self._saved_contracts[contract.id]["breaches"] = ""
+                        self._saved_contracts[contract.id]["dropped_at"] = -1
+                        self._saved_contracts[contract.id][
+                            "executed_at"
+                        ] = self._current_step
+                        self._add_edges(
+                            contract.partners[0],
+                            contract.partners,
+                            self._edges_contracts_executed,
+                            bi=True,
+                        )
+                        self._saved_contracts[contract.id]["nullified_at"] = -1
+                        self._saved_contracts[contract.id]["erred_at"] = -1
+                        executed.add(contract)
                         n_new_contract_executions += 1
-                    self.complete_contract_execution(
-                        contract, list(contract_breaches), resolution
-                    )
-                    for partner in contract.partners:
-                        self.agents[partner].on_contract_breached(
+                        _size = self.contract_size(contract)
+                        if _size is not None:
+                            activity_level += _size
+                        for partner in contract.partners:
+                            self.agents[partner].on_contract_executed(contract)
+                    else:
+                        self._saved_contracts[contract.id]["executed_at"] = -1
+                        self._saved_contracts[contract.id]["nullified_at"] = -1
+                        self._saved_contracts[contract.id]["dropped_at"] = -1
+                        self._saved_contracts[contract.id]["erred_at"] = -1
+                        self._saved_contracts[contract.id]["breaches"] = "; ".join(
+                            f"{_.perpetrator}:{_.type}({_.level})"
+                            for _ in contract_breaches
+                        )
+                        breachers = set(
+                            (_.perpetrator, tuple(_.victims)) for _ in contract_breaches
+                        )
+                        for breacher, victims in breachers:
+                            if isinstance(victims, str) or isinstance(victims, Agent):
+                                victims = [victims]
+                            self._add_edges(
+                                breacher,
+                                victims,
+                                self._edges_contracts_breached,
+                                bi=False,
+                            )
+                        for b in contract_breaches:
+                            self._saved_breaches[b.id] = b.as_dict()
+                        resolution = self._process_breach(
+                            contract, list(contract_breaches)
+                        )
+                        if resolution is None:
+                            n_new_breaches += 1
+                            blevel += sum(_.level for _ in contract_breaches)
+                        else:
+                            n_new_contract_executions += 1
+                        self.complete_contract_execution(
                             contract, list(contract_breaches), resolution
                         )
-                contract.executed_at = self.current_step
-        # process any contracts concluded but not signed while executing contracts (may be in callbacks to them)
-        # self.logdebug(f"Processing Unsigned before world simulation step")
-        if self.sign_after_execution:
-            self._process_unsigned()
+                        for partner in contract.partners:
+                            self.agents[partner].on_contract_breached(
+                                contract, list(contract_breaches), resolution
+                            )
+                    contract.executed_at = self.current_step
+            dropped = self.get_dropped_contracts()
+            self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
+            for c in dropped:
+                self._saved_contracts[c.id]["dropped_at"] = self._current_step
+            self._stats["n_contracts_dropped"].append(len(dropped))
 
-        # World Simulation Step:
-        # ----------------------
-        # The world manager should execute a single step of simulation in this function. It may lead to new negotiations
-        self.simulation_step_after_execution()
+        def _stats_update():
+            nonlocal stats_stage
+            self.update_stats(stats_stage)
+            stats_stage += 1
 
-        # process any contracts concluded but not signed during the simulation step
-        # self.logdebug(f"Processing Unsigned after everything")
-        if self.sign_last:
-            # do one step of all negotiations if that is specified as the meeting strategy
-            if self.negotiation_speed is not None:
-                n_steps_broken, n_steps_success = _run_all_pending_negotiations(
-                    self.negotiation_speed
-                )
-            self._process_unsigned()
-        dropped = self.get_dropped_contracts()
-        self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
-        for c in dropped:
-            self._saved_contracts[c.id]["dropped_at"] = self._current_step
-        self._stats["n_contracts_dropped"].append(len(dropped))
+        operation_map = {
+            Operations.AgentSteps: _step_agents,
+            Operations.ContractExecution: _execute_contracts,
+            Operations.ContractSigning: _sign_contracts,
+            Operations.Negotiations: _run_negotiations,
+            Operations.SimulationStep: _simulation_step,
+            Operations.StatsUpdate: _stats_update,
+        }
+
+        for operation in self.operations:
+            operation_map[operation]()
 
         # remove all negotiations that are completed
         # ------------------------------------------
@@ -2759,7 +2785,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # update stats
         # ------------
-        n_total_contracts = n_new_contract_executions + n_new_breaches
         self._stats["n_contracts_executed"].append(n_new_contract_executions)
         self._stats["n_contracts_erred"].append(n_new_contract_errors)
         self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
@@ -2771,17 +2796,23 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._stats["n_negotiations"].append(self.__n_negotiations)
         self._stats["n_negotiation_rounds_successful"].append(n_steps_success)
         self._stats["n_negotiation_rounds_failed"].append(n_steps_broken)
+        self._stats["n_negotiation_successful"].append(n_success)
+        self._stats["n_negotiation_failed"].append(n_broken)
         self._stats["n_registered_negotiations_after"].append(len(self._negotiations))
         self._stats["activity_level"].append(activity_level)
         current_time = time.perf_counter() - self._step_start
         self._stats["step_time"].append(current_time)
-        self.post_step_stats()
+        total = self._stats.get("total_time", [0.0])[-1]
+        self._stats["total_time"].append(total + current_time)
         self.__n_negotiations = 0
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
         self.__n_contracts_cancelled = 0
 
         self.append_stats()
+        for agent in self.agents.values():
+            agent.on_simulation_step_ended()
+
         for monitor in self.stats_monitors:
             if self.safe_stats_monitoring:
                 __stats = copy.deepcopy(self.stats)
@@ -2790,10 +2821,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             monitor.step(__stats, world_name=self.name)
         for monitor in self.world_monitors:
             monitor.step(self)
+
         self._current_step += 1
         # always indicate that the simulation is to continue
-        total = self._stats.get("total_time", [0.0])[-1]
-        self._stats["total_time"].append(total + current_time)
         return True
 
     @property
@@ -3299,7 +3329,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             mechanism.add(negotiator, ufun=ufun, role=crole)
 
         locs = [i for i in range(n_negs) if not completed[i]]
-        cs, rs, _, _ = self._step_negotiations(
+        cs, rs, _, _, _, _ = self._step_negotiations(
             [negs[i].mechanism for i in locs],
             float("inf"),
             True,
@@ -3309,28 +3339,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             contracts[loc] = cs[i]
             completed[loc] = not rs[i]
             amis[i] = negs[i].mechanism.ami
-        # while not all(completed):
-        #     for i, (done, neg) in enumerate(zip(completed, negs)):
-        #         if completed[i]:
-        #             continue
-        #         mechanism = neg.mechanism
-        #         result = mechanism.step()
-        #         if result.running:
-        #             continue
-        #         completed[i] = True
-        #         if mechanism.agreement is None:
-        #             contracts[i] = None
-        #             self._register_failed_negotiation(
-        #                 mechanism=mechanism.ami, negotiation=neg
-        #             )
-        #         else:
-        #             contracts[i] = self._register_contract(
-        #                 mechanism=mechanism.ami, negotiation=neg, was_run=True
-        #             )
-        #         self._negotiations.pop(mechanism.uuid, None)
-        #         amis[i] = mechanism.ami
-        #         if all(completed):
-        #             break
         return list(zip(contracts, amis))
 
     def _log_header(self):
@@ -3801,6 +3809,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         axs: Collection[Axis] = None,
         ncols: int = 4,
         figsize: Tuple[int, int] = (15, 15),
+        show_node_labels=True,
+        show_edge_labels=True,
         **kwargs,
     ) -> Union[Tuple[Axis, nx.Graph], Tuple[Axis, List[nx.Graph]]]:
         """
@@ -3818,6 +3828,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             together: IF specified all edge types are put in the same graph.
             axs: The axes used for drawing. If together is true, it should be a single `Axis` object otherwise it should
                  be a list of `Axis` objects with the same length as what.
+            show_node_labels: show node labels!
+            show_edge_labels: show edge labels!
             kwargs: passed to networx.draw_networkx
 
         Returns:
@@ -3886,24 +3898,30 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     nx.draw_networkx_edges(
                         g, pos, edgelist=g.edges, edge_color=clr, ax=axs[0]
                     )
-                info = [_ for _ in g.edges.data("weight")]
-                weights = [str(_[2]) for _ in info if _[2] > 1]
-                edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                nx.draw_networkx_edge_labels(
-                    g, pos, dict(zip(edges, weights)), ax=axs[0]
-                )
-            nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0])
+                if show_edge_labels:
+                    info = [_ for _ in g.edges.data("weight")]
+                    weights = [str(_[2]) for _ in info if _[2] > 1]
+                    edges = [(_[0], _[1]) for _ in info if _[2] > 1]
+                    nx.draw_networkx_edge_labels(
+                        g, pos, dict(zip(edges, weights)), ax=axs[0]
+                    )
+            if show_node_labels:
+                nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0])
         else:
             for g, ax, title in zip(graphs, axs, titles):
                 nx.draw_networkx_nodes(g, pos, ax=ax)
                 nx.draw_networkx_edges(
                     g, pos, edgelist=g.edges, edge_color=EDGE_COLORS[title], ax=ax
                 )
-                info = [_ for _ in g.edges.data("weight")]
-                weights = [str(_[2]) for _ in info if _[2] > 1]
-                edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                nx.draw_networkx_edge_labels(g, pos, dict(zip(edges, weights)), ax=ax)
-                nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=ax)
+                if show_edge_labels:
+                    info = [_ for _ in g.edges.data("weight")]
+                    weights = [str(_[2]) for _ in info if _[2] > 1]
+                    edges = [(_[0], _[1]) for _ in info if _[2] > 1]
+                    nx.draw_networkx_edge_labels(
+                        g, pos, dict(zip(edges, weights)), ax=ax
+                    )
+                if show_node_labels:
+                    nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=ax)
                 ax.set_ylabel(title)
         total_time = time.perf_counter() - self._sim_start
         step = max(steps)
@@ -4037,15 +4055,37 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         executed"""
         return []
 
-    @abstractmethod
-    def post_step_stats(self):
-        """Called at the end of the simulation step to update all stats"""
-        pass
+    def update_stats(self, stage: int):
+        """
+        Called to update any custom stats that the world designer wants to keep
 
-    @abstractmethod
+        Args:
+            stage: How many times was this method called during this stage
+
+        Remarks:
+
+            - Default behavior is:
+              - If `Operations` . `StatsUpdate` appears once in operations, it calls post_step_stats once
+              - Otherwise: it calls pre_step_stats for stage 0,  and post_step_stats for any other stage.
+        """
+        if self._single_stats_call:
+            self.post_step_stats()
+            return
+        if stage == 0:
+            self.pre_step_stats()
+            return
+        self.post_step_stats()
+        return
+
+    def post_step_stats(self):
+        """Called at the end of the simulation step to update all stats
+
+        Kept for backward compatibility and will be dropped. Override `update_stats` ins"""
+
     def pre_step_stats(self):
-        """Called at the beginning of the simulation step to prepare stats or update them"""
-        pass
+        """Called at the beginning of the simulation step to prepare stats or update them
+
+        Kept for backward compatibility and will be dropped. Override `update_stats` instead"""
 
     @abstractmethod
     def order_contracts_for_execution(
@@ -4112,12 +4152,19 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def get_private_state(self, agent: "Agent") -> dict:
         """Reads the private state of the given agent"""
 
-    def simulation_step_before_execution(self):
-        """A single step of the simulation if any (before entity and contract execution)"""
-
     @abstractmethod
-    def simulation_step_after_execution(self):
-        """A single step of the simulation if any (after entity and contract execution)"""
+    def simulation_step(self, stage: int):
+        """A single step of the simulation.
+
+        Args:
+            stage: How many times so far was this method called within the current simulation step
+
+        Remarks:
+
+            - Using the stage parameter, it is possible to have `Operations` . `SimulationStep` several times with
+              the list of operations while differentiating between these calls.
+
+        """
 
     @abstractmethod
     def contract_size(self, contract: Contract) -> float:

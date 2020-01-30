@@ -1,40 +1,23 @@
 from pathlib import Path
-from typing import (
-    List,
-    Optional,
-    Tuple,
-    Dict,
-    Any,
-    Union,
-    Callable,
-    Set,
-    Iterable,
-    Collection,
-)
+from typing import List, Optional, Dict, Any, Callable, Set, Collection
 
+import hypothesis.strategies as st
 import pytest
 from hypothesis import given, settings
-import hypothesis.strategies as st
 
 from negmas import (
     Issue,
     AspirationNegotiator,
-    LinearUtilityAggregationFunction,
-    Mechanism,
-    Negotiator,
     SAOMechanism,
-    Mechanism,
     Negotiator,
     RenegotiationRequest,
     AgentMechanismInterface,
     MechanismState,
     MappingUtilityFunction,
-    WorldMonitor,
 )
 from negmas.events import EventSink, Event, EventSource
-from negmas.helpers import ConfigReader, unique_name
+from negmas.helpers import unique_name
 from negmas.situated import World, Agent, Action, Breach, Contract
-
 
 results = []  # will keep results not to use printing
 
@@ -108,10 +91,7 @@ class DummyWorld(World):
         s = {"partners": [_ for _ in self.the_agents if _ is not agent]}
         return s
 
-    def simulation_step_before_execution(self):
-        pass
-
-    def simulation_step_after_execution(self):
+    def simulation_step(self, stage: int):
         pass
 
 
@@ -231,8 +211,6 @@ def test_config_reader_with_a_world():
 
 
 def test_config_reader_with_a_world_with_enum():
-    from negmas.situated import BulletinBoard, World
-
     world = DummyWorld()
     assert world.bulletin_board is not None
     assert world.n_steps == 10000
