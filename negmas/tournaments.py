@@ -4,11 +4,11 @@ Tournament generation and management.
 """
 import concurrent.futures as futures
 import copy
+import hashlib
 import itertools
 import math
 import pathlib
 import random
-import shutil
 import time
 import traceback
 import warnings
@@ -32,8 +32,8 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from scipy.stats import ttest_ind, ttest_rel, ks_2samp
 import yaml
+from scipy.stats import ttest_ind, ks_2samp
 from typing_extensions import Protocol
 
 from negmas.helpers import (
@@ -47,7 +47,6 @@ from negmas.helpers import (
     load,
 )
 from .situated import Agent, World, save_stats
-import hashlib
 
 __all__ = [
     "tournament",
@@ -517,7 +516,7 @@ def tournament(
     competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
     n_competitors_per_world: Optional[int] = None,
     round_robin: bool = False,
-    stage_winners_fraction: float = 0.5,
+    stage_winners_fraction: float = 0.0,
     agent_names_reveal_type=False,
     n_agents_per_competitor=1,
     n_configs: int = 10,
@@ -541,6 +540,7 @@ def tournament(
     configs_only: bool = False,
     compact: bool = False,
     print_exceptions: bool = True,
+    metric="median",
     **kwargs,
 ) -> Union[TournamentResults, PathLike]:
     """
@@ -623,11 +623,11 @@ def tournament(
 
     if stage_winners_fraction < 0:
         stage_winners_fraction = 0
-    if not round_robin and stage_winners_fraction == 0:
-        raise ValueError(
-            f"elimination tournaments (i.e. ones that are not round_robin), cannot have zero stage winner"
-            f"fraction"
-        )
+    # if not round_robin and stage_winners_fraction == 0:
+    #     raise ValueError(
+    #         f"elimination tournaments (i.e. ones that are not round_robin), cannot have zero stage winner"
+    #         f"fraction"
+    #     )
 
     competitor_indx = dict(
         zip(
@@ -688,6 +688,7 @@ def tournament(
             tournament_path=final_tournament_path,
             verbose=verbose,
             recursive=round_robin,
+            metric=metric,
         )
 
     def _keep_n(competitors_, results_, n):
@@ -737,6 +738,7 @@ def tournament(
                 winners_ = _keep_n(competitors, results, n_winners_per_match)
                 next_stage_competitors += winners_
             competitors = next_stage_competitors
+            n_competitors_per_world = min(n_competitors_per_world, len(competitors))
             if len(competitors) == 1:
                 return results
         stage += 1
