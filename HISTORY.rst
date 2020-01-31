@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.6.0
+-------------
+
+- [situated] adding negotiation quotas and setting negotiator owner
+- [base] adding accessor to negotiator's ami and a setter for the owner
+- [sao] removing deadlocks in SAOSyncController
+- [tournament] allowing round-robin tournaments to have zero stage winners (which will resolve to one winner)
+- [tournament] making median the default metric
+- [base] on_negotiation_end is always sent to negotiators
+- [base] Adding owner to negotiators to keep track of the agent owning a negotiator.
+- [situated] Resolving a possible bug if the victims of a breach were more than one agent
+
 Release 0.5.1
 -------------
 
