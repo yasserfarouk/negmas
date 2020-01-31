@@ -760,6 +760,7 @@ class MechanismFactory:
                         )
                     else:
                         record[f"u{i}"] = None
+            _negotiator.owner = partner_
             mechanism.add(negotiator=_negotiator, role=_role)
 
         if self.log_ufuns_file is not None:
@@ -1863,6 +1864,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_n_steps=100,
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
+        negotiation_quota_per_step=float("inf"),
+        negotiation_quota_per_simulation=float("inf"),
         default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
@@ -1931,6 +1934,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             neg_n_steps: Maximum number of steps allowed for a negotiation.
             neg_step_time_limit: Time limit for single step of the negotiation protocol.
             neg_time_limit: Real-time limit on each single negotiation
+            negotiation_quota_per_step: Number of negotiations an agent is allowed to start per step
+            negotiation_quota_per_simulation: Number of negotiations an agent is allowed to start in the simulation
             start_negotiations_immediately: If true negotiations start immediately when registered rather than waiting
                                             for the next step
             mechanisms: The mechanism types allowed in this world associated with each keyward arguments to be passed
@@ -2070,6 +2075,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._entities: Dict[int, Set[Entity]] = defaultdict(set)
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self.force_signing = force_signing
+        self.neg_quota_step = negotiation_quota_per_step
+        self.neg_quota_simulation = negotiation_quota_per_simulation
         self._start_time = -1
         self._log_ufuns = log_ufuns
         self._log_negs = log_negotiations
@@ -2149,6 +2156,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         stats_calls = [_ for _ in self.operations if _ == Operations.StatsUpdate]
         self._single_stats_call = len(stats_calls) == 1
         self._two_stats_calls = len(stats_calls) == 2
+        self._n_negs_per_agent_per_step: Dict[str, int] = defaultdict(int)
+        self._n_negs_per_agent: Dict[str, int] = defaultdict(int)
 
         self.loginfo(f"{self.name}: World Created")
 
@@ -2533,6 +2542,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def step(self) -> bool:
         """A single simulation step"""
+        self._n_negs_per_agent_per_step = defaultdict(int)
         if self.current_step >= self.n_steps:
             return False
         did_not_start, self._started = self._started, True
@@ -2983,6 +2993,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         may_run_immediately=True,
     ) -> Tuple[Optional[NegotiationInfo], Optional[Contract], Optional[Mechanism]]:
         """Registers a negotiation and returns the negotiation info"""
+        if self._n_negs_per_agent_per_step[caller.id] >= self.neg_quota_step:
+            return None, None, None
+        if self._n_negs_per_agent[caller.id] >= self.neg_quota_simulation:
+            return None, None, None
         factory = MechanismFactory(
             world=self,
             mechanism_name=mechanism_name,
@@ -3012,6 +3026,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             )
             return neg, None, None
         self.__n_negotiations += 1
+        self._n_negs_per_agent_per_step[caller.id] += 1
+        self._n_negs_per_agent[caller.id] += 1
         self._add_edges(
             caller, partners, self._edges_negotiations_started, issues=issues
         )
