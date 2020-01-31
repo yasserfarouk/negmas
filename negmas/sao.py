@@ -7,6 +7,7 @@ import random
 import time
 import warnings
 from abc import abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, Any, Callable, Type
 from typing import Sequence, Optional, List, Tuple, Iterable, Union
@@ -468,10 +469,11 @@ class SAOMechanism(Mechanism):
                 )
         # if this is the first step (or no one has offered yet) which means that there is no _current_offer
         if self._current_offer is None and n_proposers > 1 and self._avoid_ultimatum:
-
-            assert self.dynamic_entry or self.state.step == 0
-            assert self._current_proposer is None
-            assert self._last_checked_negotiator == -1
+            if not self.dynamic_entry and not self.state.step == 0:
+                if self.end_negotiation_on_refusal_to_propose:
+                    return MechanismRoundResult(broken=True)
+            # assert self._current_proposer is None
+            # assert self._last_checked_negotiator == -1
 
             # if we are trying to avoid an ultimatum, we take an offer from everyone and ignore them but one.
             # this way, the agent cannot know its order. For example, if we have two agents and 3 steps, this will
@@ -1972,14 +1974,22 @@ class SAOSyncController(SAOController):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.offers: Dict[str, "Outcome"] = {}
+        """Keeps the last offer received for each negotiation"""
         self.responses: Dict[str, ResponseType] = {}
+        """Keeps the next response type for each negotiation"""
         self.proposals: Dict[str, "Outcome"] = {}
+        """Keeps the next proposal for each negotiation"""
         self.offer_states: Dict[str, "SAOState"] = {}
+        """Keeps the last state received for each negotiation"""
+        self.n_waits: Dict[str, int] = defaultdict(int)
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
+        # if there are no proposals yet, get first proposals
         if len(self.proposals) == 0:
             self.proposals = self.first_proposals()
+        # get the saved proposal if it exists and return it
         proposal = self.proposals.get(negotiator_id, None)
+        # if some proposal was there, delete it to force the controller to get a new one
         if proposal is not None:
             self.proposals[negotiator_id] = None
         return proposal
@@ -1987,23 +1997,32 @@ class SAOSyncController(SAOController):
     def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
     ) -> "ResponseType":
+        # get the saved response to this negotiator if any
         response = self.responses.get(negotiator_id, None)
         if response is not None:
+            # remove the response and return it
             del self.responses[negotiator_id]
+            self.n_waits[negotiator_id] = 0
             return response
-        if negotiator_id not in self.offers.keys():
-            self.offers[negotiator_id] = offer
-            self.offer_states[negotiator_id] = state
-            if len(self.offers) == len(self.negotiators):
-                responses = self.counter_all(
-                    offers=self.offers, states=self.offer_states
-                )
-                for nid in self.negotiators.keys():
-                    if nid != negotiator_id:
-                        self.responses[nid] = responses[nid].response
-                    self.proposals[nid] = responses[nid].outcome
-                self.offers = dict()
-                return responses[negotiator_id].response
+
+        # set the saved offer for this negotiator
+        self.offers[negotiator_id] = offer
+        self.offer_states[negotiator_id] = state
+
+        # if we got all the offers or waited long enough, counter all the offers so-far
+        if len(self.offers) == len(self.negotiators) or self.n_waits[
+            negotiator_id
+        ] >= len(self.negotiators):
+            responses = self.counter_all(offers=self.offers, states=self.offer_states)
+            for nid in self.responses.keys():
+                # register the responses for next time for all other negotiators
+                if nid != negotiator_id:
+                    self.responses[nid] = responses[nid].response
+                self.proposals[nid] = responses[nid].outcome
+            self.offers = dict()
+            self.n_waits[negotiator_id] = 0
+            return responses[negotiator_id].response
+        self.n_waits[negotiator_id] += 1
         return ResponseType.WAIT
 
     @abstractmethod
@@ -2018,6 +2037,8 @@ class SAOSyncController(SAOController):
 
         Remarks:
             - The response type CANNOT be WAIT.
+            - If the system determines that a loop is formed, the agent may receive this call for a subset of
+              negotiations not all of them.
 
         """
 
