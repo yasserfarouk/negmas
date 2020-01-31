@@ -76,9 +76,18 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self.__owner = owner
 
     @property
+    def ami(self):
+        return self._ami
+
+    @property
     def owner(self):
         """Returns the owner agent of the negotiator"""
         return self.__owner
+
+    @owner.setter
+    def owner(self, owner):
+        """Sets the owner"""
+        self.__owner = owner
 
     @property
     def utility_function(self):
