@@ -22,6 +22,9 @@ for notebook in ../notebooks/tutorials/*.ipynb ; do
     cp $notebook ./tutorials/notebooks
 done
 
+for notebook in ../notebooks/tutorials/*.gif ; do
+    cp $notebook ./tutorials/notebooks
+done
 for rstfile in ./tutorials/*.rst; do
     filename1=${rstfile##*/}
     filename=${filename1%????}
