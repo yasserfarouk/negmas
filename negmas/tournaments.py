@@ -190,6 +190,7 @@ class TournamentResults:
     stats: pd.DataFrame = None
     agg_stats: pd.DataFrame = None
     score_stats: pd.DataFrame = None
+    path: str = None
 
 
 def run_world(
@@ -1370,6 +1371,7 @@ def evaluate_tournament(
             stats=pd.DataFrame(),
             agg_stats=pd.DataFrame(),
             score_stats=pd.DataFrame(),
+            path=str(tournament_path) if tournament_path is not None else None,
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
@@ -1507,6 +1509,7 @@ def evaluate_tournament(
         stats=stats,
         agg_stats=agg_stats,
         score_stats=score_stats,
+        path=str(tournament_path) if tournament_path is not None else None,
     )
 
 
