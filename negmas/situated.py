@@ -2873,6 +2873,20 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if not self.step():
                 break
 
+    def run_with_progress(self, callback: Callable[[int], None] = None) -> None:
+        """Runs the simulation showing progress, with optional callback"""
+        from tqdm import tqdm
+
+        self._start_time = time.monotonic()
+        for _ in tqdm(range(self.n_steps)):
+            if (
+                self.time_limit is not None
+                and (time.monotonic() - self._start_time) >= self.time_limit
+            ):
+                break
+            if not self.step():
+                break
+
     def register(self, x: "Entity", simulation_priority: int = 0):
         """
         Registers an entity in the world so it can be looked up by name. Should not be called directly
