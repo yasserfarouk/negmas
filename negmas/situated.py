@@ -2602,14 +2602,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             n_total_broken = n_broken + n_broken_
             if n_total_broken > 0:
                 n_steps_broken = (
-                                     n_steps_broken * n_broken + n_steps_broken_ * n_broken_
-                                 ) / n_total_broken
+                    n_steps_broken * n_broken + n_steps_broken_ * n_broken_
+                ) / n_total_broken
                 n_broken = n_total_broken
             n_total_success = n_success + n_success_
             if n_total_success > 0:
                 n_steps_success = (
-                                      n_steps_success * n_success + n_steps_success_ * n_success_
-                                  ) / n_total_success
+                    n_steps_success * n_success + n_steps_success_ * n_success_
+                ) / n_total_success
                 n_success = n_total_success
 
         def _step_agents():
