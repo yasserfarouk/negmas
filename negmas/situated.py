@@ -1881,6 +1881,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         log_stats_every: int = 0,
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
+        no_logs=False,
         log_file_name="log.txt",
         save_signed_contracts: bool = True,
         save_cancelled_contracts: bool = True,
@@ -1964,6 +1965,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             log_negotiations: Log all negotiation events
             log_to_screen: Whether to log to screen
             log_screen_level: The log-level to show on screen (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
+            no_logs: If True, All logging will be disabled no matter what other options are given.
             log_stats_every: If nonzero and positive, the period of saving stats
             construct_graphs: If true, information needed to draw graphs using `draw` method are kept.
 
@@ -2013,6 +2015,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             else unique_name(base=self.__class__.__name__, add_time=True, rand_digits=5)
         )
         self.id = unique_name(self.name, add_time=True, rand_digits=8)
+        self._no_logs = no_logs
         if log_folder is not None:
             self._log_folder = Path(log_folder).absolute()
         else:
@@ -2022,6 +2025,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     self._log_folder /= n
             else:
                 self._log_folder /= self.name
+        if log_file_name is None:
+            log_file_name = "log.txt"
+        if len(log_file_name) == 0:
+            log_to_file = False
         if (
             log_folder
             or log_negotiations
@@ -2033,23 +2040,23 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._agent_log_folder = self._log_folder / "_agent_logs"
             self._agent_log_folder.mkdir(parents=True, exist_ok=True)
         self._agent_loggers: Dict[str, logging.Logger] = {}
-        if log_file_name is None:
-            log_file_name = "log.txt"
-        if len(log_file_name) == 0:
-            log_to_file = False
         self.log_file_name = (
-            str(self._log_folder / log_file_name) if log_to_file else ""
+            str(self._log_folder / log_file_name) if log_to_file else None
         )
         self.log_file_level = log_file_level
         self.log_screen_level = log_screen_level
         self.log_to_screen = log_to_screen
         self.log_negotiations = log_negotiations
-        self.logger = create_loggers(
-            file_name=self.log_file_name,
-            module_name=None,
-            screen_level=log_screen_level if log_to_screen else None,
-            file_level=log_file_level,
-            app_wide_log_file=True,
+        self.logger = (
+            create_loggers(
+                file_name=self.log_file_name,
+                module_name=None,
+                screen_level=log_screen_level if log_to_screen else None,
+                file_level=log_file_level,
+                app_wide_log_file=True,
+            )
+            if not no_logs
+            else None
         )
         self.ignore_contract_execution_exceptions = ignore_contract_execution_exceptions
         self.ignore_agent_exception = ignore_agent_exceptions
@@ -2172,12 +2179,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def _agent_logger(self, aid: str) -> logging.Logger:
         """Returns the logger associated with a given agent"""
         if aid not in self._agent_loggers.keys():
-            self._agent_loggers[aid] = create_loggers(
-                file_name=self._agent_log_folder / f"{aid}.txt",
-                module_name=None,
-                file_level=self.log_file_level,
-                app_wide_log_file=False,
-                module_wide_log_file=False,
+            self._agent_loggers[aid] = (
+                create_loggers(
+                    file_name=self._agent_log_folder / f"{aid}.txt",
+                    module_name=None,
+                    file_level=self.log_file_level,
+                    app_wide_log_file=False,
+                    module_wide_log_file=False,
+                )
+                if not self._no_logs
+                else None
             )
         return self._agent_loggers[aid]
 
@@ -2189,10 +2200,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        logger = self._agent_logger(aid)
-        logger.info(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        logger = self._agent_logger(aid)
+        logger.info(f"{self._log_header()}: " + s.strip())
 
     def logdebug_agent(self, aid: str, s: str, event: Event = None) -> None:
         """logs debug to the agent individual log
@@ -2202,10 +2215,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        logger = self._agent_logger(aid)
-        logger.debug(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        logger = self._agent_logger(aid)
+        logger.debug(f"{self._log_header()}: " + s.strip())
 
     def logwarning_agent(self, aid: str, s: str, event: Event = None) -> None:
         """logs warning to the agent individual log
@@ -2215,10 +2230,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        logger = self._agent_logger(aid)
-        logger.warning(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        logger = self._agent_logger(aid)
+        logger.warning(f"{self._log_header()}: " + s.strip())
 
     def logerror_agent(self, aid: str, s: str, event: Event = None) -> None:
         """logs information to the agent individual log
@@ -2228,10 +2245,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        logger = self._agent_logger(aid)
-        logger.error(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        logger = self._agent_logger(aid)
+        logger.error(f"{self._log_header()}: " + s.strip())
 
     def loginfo(self, s: str, event: Event = None) -> None:
         """logs info-level information
@@ -2241,9 +2260,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        self.logger.info(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        self.logger.info(f"{self._log_header()}: " + s.strip())
 
     def logdebug(self, s: str, event: Event = None) -> None:
         """logs debug-level information
@@ -2253,9 +2274,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        self.logger.debug(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        self.logger.debug(f"{self._log_header()}: " + s.strip())
 
     def logwarning(self, s: str, event: Event = None) -> None:
         """logs warning-level information
@@ -2265,9 +2288,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        self.logger.warning(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        self.logger.warning(f"{self._log_header()}: " + s.strip())
 
     def logerror(self, s: str, event: Event = None) -> None:
         """logs error-level information
@@ -2277,9 +2302,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             event (Event): The event to announce after logging
 
         """
-        self.logger.error(f"{self._log_header()}: " + s.strip())
         if event:
             self.announce(event)
+        if self._no_logs:
+            return
+        self.logger.error(f"{self._log_header()}: " + s.strip())
 
     def set_bulletin_board(self, bulletin_board):
         self.bulletin_board = (
@@ -2540,6 +2567,15 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             n_success_,
         )
 
+    def on_exception(self, entity: Entity, e: Exception) -> None:
+        """
+        Called when an exception happens.
+
+        Args:
+            entity: The entity that caused the exception
+            e: The exception
+        """
+
     def step(self) -> bool:
         """A single simulation step"""
         self._n_negs_per_agent_per_step = defaultdict(int)
@@ -2624,6 +2660,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 try:
                     task.step_()
                 except Exception as e:
+                    self.on_exception(task, e)
                     if not self.ignore_agent_exception:
                         raise e
                     exc_type, exc_value, exc_traceback = sys.exc_info()
