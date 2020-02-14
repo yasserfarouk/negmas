@@ -407,10 +407,12 @@ def process_world_run(
                     f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n"
                 )
     scores = []
+    log_files = [_ if _ is not None else "" for _ in log_files]
     stat_folders = ";".join(
-        str(pathlib.Path(log_file_name).name) for log_file_name in log_files
+        str(pathlib.Path(log_file_name).name) if log_file_name else ""
+        for log_file_name in log_files
     )
-    base_folder = str(pathlib.Path(log_files[0]).parent)
+    base_folder = str(pathlib.Path(log_files[0]).parent) if log_files[0] else ""
     for name_, type_, score in zip(results.names, results.types, results.scores):
 
         scores.append(
@@ -525,7 +527,7 @@ def tournament(
     n_runs_per_world: int = 5,
     max_n_configs: int = None,
     n_runs_per_config: int = None,
-    tournament_path: str = "./logs/tournaments",
+    tournament_path: str = None,
     total_timeout: Optional[int] = None,
     parallelism="parallel",
     scheduler_ip: Optional[str] = None,
@@ -1002,7 +1004,7 @@ def create_tournament(
     n_runs_per_world: int = 5,
     max_n_configs: int = None,
     n_runs_per_config: int = None,
-    base_tournament_path: str = "./logs/tournaments",
+    base_tournament_path: str = None,
     total_timeout: Optional[int] = None,
     parallelism="parallel",
     scheduler_ip: Optional[str] = None,
@@ -1105,6 +1107,8 @@ def create_tournament(
             f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
             f"later does not divide the former. You have to set all_competitor_combinations to True"
         )
+    if base_tournament_path is None:
+        base_tournament_path = str(pathlib.Path.home() / "negmas" / "tournaments")
 
     original_tournament_path = base_tournament_path
     base_tournament_path = _path(base_tournament_path)
