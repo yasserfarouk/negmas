@@ -2079,6 +2079,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.neg_n_steps = neg_n_steps
         self.neg_time_limit = neg_time_limit
         self.neg_step_time_limit = neg_step_time_limit
+        self.frozen_time = 0.0
         self._entities: Dict[int, Set[Entity]] = defaultdict(set)
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self.force_signing = force_signing
@@ -2870,6 +2871,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             monitor.step(self)
 
         self._current_step += 1
+        self.frozen_time = self.time
         # always indicate that the simulation is to continue
         return True
 

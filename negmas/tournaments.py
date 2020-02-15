@@ -164,9 +164,9 @@ class WorldRunResults:
     """Results of a world run"""
 
     world_names: List[str]
-    """World name"""
+    """World names (there can be multiple worlds for each scoring call)"""
     log_file_names: List[str]
-    """Log file name"""
+    """Log file names"""
     names: List[str] = field(default_factory=list, init=False)
     """Agent names"""
     ids: List[str] = field(default_factory=list, init=False)
@@ -178,24 +178,50 @@ class WorldRunResults:
 
 
 @dataclass
+class WorldSetRunStats:
+    """Statistics kept in the tournament about the set of worlds"""
+
+    name: str
+    """Names of the world set separated by ;"""
+    planned_n_steps: int
+    """Planned number of steps for each world"""
+    executed_n_steps: int
+    """Actually executed number of steps for each world"""
+    execution_time: int
+    """Total execution time of each world"""
+
+
+@dataclass
 class TournamentResults:
     scores: pd.DataFrame
+    """Scores of individual agent instantiations"""
     total_scores: pd.DataFrame
+    """Total scores collected by competitor types"""
     winners: List[str]
     """Winner type name(s) which may be a list"""
     winners_scores: np.array
     """Winner score (accumulated)"""
     ttest: pd.DataFrame = None
+    """Results of ttest analysis of the scores"""
     kstest: pd.DataFrame = None
+    """Results of the nonparametric kstest"""
     stats: pd.DataFrame = None
+    """Stats of all worlds"""
     agg_stats: pd.DataFrame = None
+    """Aggregated stats per world"""
     score_stats: pd.DataFrame = None
+    """Score statistics for different competitor types"""
     path: str = None
+    """Path at which tournament results are stored"""
+    world_stats: pd.DataFrame = None
+    """Some satistics about each world run"""
+    params: Dict[str, Any] = None
+    """Parameters of the tournament"""
 
 
 def run_world(
     world_params: dict, dry_run: bool = False, save_world_stats: bool = True
-) -> Tuple[str, WorldRunResults]:
+) -> Tuple[str, WorldRunResults, WorldSetRunStats]:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -249,7 +275,7 @@ def run_world(
 
 def run_worlds(
     worlds_params: List[dict], dry_run: bool = False, save_world_stats: bool = True
-) -> Tuple[str, WorldRunResults]:
+) -> Tuple[str, WorldRunResults, WorldSetRunStats]:
     """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -317,7 +343,7 @@ def _run_worlds(
     world_progress_callback: Callable[[Optional[World]], None] = None,
     dry_run: bool = False,
     save_world_stats: bool = True,
-) -> Tuple[str, WorldRunResults]:
+) -> Tuple[str, WorldRunResults, WorldSetRunStats]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
     Args:
@@ -372,7 +398,13 @@ def _run_worlds(
         if save_world_stats:
             save_stats(world=world, log_dir=dir_name)
     scores = score_calculator(worlds, scoring_context, dry_run)
-    return run_id, scores
+    world_stats = WorldSetRunStats(
+        name=";".join(_.name for _ in worlds),
+        planned_n_steps=sum(_.n_steps for _ in worlds),
+        executed_n_steps=sum(_.current_step for _ in worlds),
+        execution_time=sum(_.frozen_time for _ in worlds),
+    )
+    return run_id, scores, world_stats
 
 
 def process_world_run(
@@ -414,19 +446,17 @@ def process_world_run(
     )
     base_folder = str(pathlib.Path(log_files[0]).parent) if log_files[0] else ""
     for name_, type_, score in zip(results.names, results.types, results.scores):
-
-        scores.append(
-            {
-                "agent_name": name_,
-                "agent_type": type_,
-                "score": score,
-                "log_file": ";".join(log_files),
-                "world": ";".join(world_names_),
-                "stats_folders": stat_folders,
-                "base_stats_folder": base_folder,
-                "run_id": run_id,
-            }
-        )
+        d = {
+            "agent_name": name_,
+            "agent_type": type_,
+            "score": score,
+            "log_file": ";".join(log_files),
+            "world": ";".join(world_names_),
+            "stats_folders": stat_folders,
+            "base_stats_folder": base_folder,
+            "run_id": run_id,
+        }
+        scores.append(d)
     return scores
 
 
@@ -443,6 +473,7 @@ def _run_dask(
     dry_run,
     save_world_stats,
     scores_file,
+    world_stats_file,
     run_ids,
     print_exceptions,
 ) -> None:
@@ -483,7 +514,7 @@ def _run_dask(
         distributed.as_completed(future_results, with_results=True, raise_errors=False)
     ):
         try:
-            run_id, score_ = future.result()
+            run_id, score_, world_stats_ = future.result()
             if tournament_progress_callback is not None:
                 tournament_progress_callback(score_, i, n_worlds)
             add_records(
@@ -494,6 +525,7 @@ def _run_dask(
                     tournament_name=name,
                     save_world_stats=save_world_stats,
                 ),
+                add_records(world_stats_file, [vars(world_stats_)]),
             )
             if verbose:
                 _duration = time.perf_counter() - _strt
@@ -828,6 +860,7 @@ def run_tournament(
         )
 
     scores_file = tournament_path / "scores.csv"
+    world_stats_file = tournament_path / "world_stats.csv"
     run_ids = set()
     if scores_file.exists():
         tmp_ = pd.read_csv(scores_file)
@@ -864,7 +897,7 @@ def run_tournament(
                     )
                 continue
             try:
-                run_id, score_ = _run_worlds(
+                run_id, score_, world_stats_ = _run_worlds(
                     worlds_params=worlds_params,
                     world_generator=world_generator,
                     world_progress_callback=world_progress_callback,
@@ -880,6 +913,7 @@ def run_tournament(
                         run_id, score_, tournament_name=name, save_world_stats=True
                     ),
                 )
+                add_records(world_stats_file, [vars(world_stats_)])
                 if verbose:
                     _duration = time.perf_counter() - strt
                     print(
@@ -935,7 +969,7 @@ def run_tournament(
             futures.as_completed(future_results, timeout=total_timeout)
         ):
             try:
-                run_id, score_ = future.result()
+                run_id, score_, world_stats_ = future.result()
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
                 add_records(
@@ -946,6 +980,7 @@ def run_tournament(
                         tournament_name=name,
                         save_world_stats=not compact,
                     ),
+                    add_records(world_stats_file, [vars(world_stats_)]),
                 )
                 if verbose:
                     _duration = time.perf_counter() - _strt
@@ -961,6 +996,11 @@ def run_tournament(
                 if verbose:
                     print("Tournament timed-out")
                 break
+            except futures.BrokenProcessPool as e:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_world_configs)
+                if print_exceptions:
+                    print(e)
             except Exception as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_world_configs)
@@ -981,6 +1021,7 @@ def run_tournament(
             False,
             True,
             scores_file,
+            world_stats_file,
             run_ids,
             print_exceptions,
         )
@@ -1318,10 +1359,10 @@ def evaluate_tournament(
     tournament_path: Optional[Union[str, PathLike, Path]],
     scores: Optional[pd.DataFrame] = None,
     stats: Optional[pd.DataFrame] = None,
+    world_stats: Optional[pd.DataFrame] = None,
     metric: Union[str, Callable[[pd.DataFrame], float]] = "mean",
     verbose: bool = False,
     recursive: bool = True,
-    # independent_test: bool = True,  # dependent test implementation is not correct as there is no way to know how to correspond measurements
 ) -> TournamentResults:
     """
     Evaluates the results of a tournament
@@ -1333,6 +1374,7 @@ def evaluate_tournament(
                 scores.csv in `tournament_path`
         stats: Optionally the stats of all world runs. If not given they will be read from the file
                stats.csv in `tournament_path`
+        world_stats: Optionally the aggregate stats collected in `WorldSetRunStats` for each world set
         metric: The metric used for evaluation. Possibilities are: mean, median, std, var, sum or a callable that
                 receives a pandas data-frame and returns a float.
         verbose: If true, the winners will be printed
@@ -1343,11 +1385,18 @@ def evaluate_tournament(
     Returns:
 
     """
+    params, world_stats = None, None
     if tournament_path is not None:
         tournament_path = _path(tournament_path)
         tournament_path = tournament_path.absolute()
         tournament_path.mkdir(parents=True, exist_ok=True)
         scores_file = str(tournament_path / "scores.csv")
+        world_stats_file = tournament_path / "world_stats.csv"
+        params_file = tournament_path / "params.json"
+        if world_stats is None and world_stats_file.exists():
+            world_stats = pd.read_csv(world_stats_file, index_col=None)
+        if params_file.exists():
+            params = load(str(params_file))
         if scores is None:
             if recursive:
                 scores = combine_tournaments(
@@ -1376,6 +1425,8 @@ def evaluate_tournament(
             agg_stats=pd.DataFrame(),
             score_stats=pd.DataFrame(),
             path=str(tournament_path) if tournament_path is not None else None,
+            params=params,
+            world_stats=world_stats,
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
@@ -1514,6 +1565,8 @@ def evaluate_tournament(
         agg_stats=agg_stats,
         score_stats=score_stats,
         path=str(tournament_path) if tournament_path is not None else None,
+        params=params,
+        world_stats=world_stats,
     )
 
 
