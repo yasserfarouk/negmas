@@ -996,7 +996,7 @@ def run_tournament(
                 if verbose:
                     print("Tournament timed-out")
                 break
-            except futures.BrokenProcessPool as e:
+            except futures.process.BrokenProcessPool as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_world_configs)
                 if print_exceptions:
