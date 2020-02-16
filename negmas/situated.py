@@ -791,14 +791,18 @@ class MechanismFactory:
         ):
             return None
         if issues is None:
-            caller.on_neg_request_rejected_(req_id=req_id, by=None)
+            self.world.call(
+                caller, caller.on_neg_request_rejected_, req_id=req_id, by=None
+            )
             return None
         if (
             mechanisms is not None
             and mechanism_name is not None
             and mechanism_name not in mechanisms.keys()
         ):
-            caller.on_neg_request_rejected_(req_id=req_id, by=None)
+            self.world.call(
+                caller, caller.on_neg_request_rejected_, req_id=req_id, by=None
+            )
             return None
         if mechanisms is not None and mechanism_name is not None:
             mechanism_name = mechanisms[mechanism_name].pop(
@@ -825,6 +829,7 @@ class MechanismFactory:
         try:
             mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
         except Exception as e:
+            self.world.n_negotiation_exceptions += 1
             mechanism = None
             self.world.logerror(
                 f"Failed to create {mechanism_name} with params {mechanism_params}",
@@ -839,7 +844,9 @@ class MechanismFactory:
 
         partner_names = [p.id for p in partners]
         responses = [
-            partner.respond_to_negotiation_request_(
+            self.world.call(
+                partner,
+                partner.respond_to_negotiation_request_,
                 initiator=caller.id,
                 partners=partner_names,
                 issues=issues,
@@ -853,10 +860,14 @@ class MechanismFactory:
         if not all(responses):
             rejectors = [p for p, response in zip(partners, responses) if not response]
             rej = [_.id for _ in rejectors]
-            caller.on_neg_request_rejected_(req_id=req_id, by=rej)
+            self.world.call(
+                caller, caller.on_neg_request_rejected_, req_id=req_id, by=rej
+            )
             for partner, response in zip(partners, responses):
                 if partner.id != caller.id and response:
-                    partner.on_neg_request_rejected_(req_id=None, by=rej)
+                    self.world.call(
+                        partner, partner.on_neg_request_rejected_, req_id=None, by=rej
+                    )
             self.world.loginfo(
                 f"{caller.name} request was rejected by {[_.name for _ in rejectors]}",
                 Event(
@@ -888,10 +899,20 @@ class MechanismFactory:
             issues=issues,
             requested_at=self.world.current_step,
         )
-        caller.on_neg_request_accepted_(req_id=req_id, mechanism=mechanism.ami)
+        self.world.call(
+            caller,
+            caller.on_neg_request_accepted_,
+            req_id=req_id,
+            mechanism=mechanism.ami,
+        )
         for partner, response in zip(partners, responses):
             if partner.id != caller.id:
-                partner.on_neg_request_accepted_(req_id=None, mechanism=mechanism)
+                self.world.call(
+                    partner,
+                    partner.on_neg_request_accepted_,
+                    req_id=None,
+                    mechanism=mechanism,
+                )
         self.world.loginfo(
             f"{caller.name} request was accepted",
             Event(
@@ -1890,6 +1911,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         save_unresolved_breaches: bool = True,
         ignore_agent_exceptions: bool = False,
         ignore_contract_execution_exceptions: bool = False,
+        ignore_simulation_exceptions: bool = False,
         safe_stats_monitoring: bool = False,
         construct_graphs: bool = False,
         checkpoint_every: int = 1,
@@ -1980,6 +2002,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             * Exception Handling *
 
             ignore_agent_exceptions: Ignore agent exceptions and keep running
+            ignore_simulation_exceptions: Ignore simulation exceptions and keep running
             ignore_contract_execution_exceptions: Ignore contract execution exceptions and keep running
             safe_stats_monitoring: Never throw an exception for a failure to save stats or because of a Stats Monitor
                                    object
@@ -1995,6 +2018,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                    a dictionary with string keys
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
         """
+        self.ignore_simulation_exceptions = ignore_simulation_exceptions
         if force_signing:
             batch_signing = False
         super().__init__()
@@ -2060,6 +2084,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         self.ignore_contract_execution_exceptions = ignore_contract_execution_exceptions
         self.ignore_agent_exception = ignore_agent_exceptions
+        self.n_agent_exceptions = 0
+        self.n_simulation_exceptions = 0
+        self.n_negotiation_exceptions = 0
+        self.n_contract_exceptions = 0
         self.bulletin_board: BulletinBoard = bulletin_board
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self.unsigned_contracts: Dict[int, Set[Contract]] = defaultdict(set)
@@ -2424,7 +2452,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         else:
                             contract_signatures[contract.id] += 1
                 for agent_id, contracts in agent_contracts.items():
-                    slist = self.agents[agent_id].sign_all_contracts(contracts)
+                    slist = self.call(
+                        self.agents[agent_id],
+                        self.agents[agent_id].sign_all_contracts,
+                        contracts,
+                    )
                     for contract, signature in zip(contracts, slist):
                         if signature is not None:
                             contract_signatures[contract.id] += 1
@@ -2449,8 +2481,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     cinfo = agent_cancelled[agent_id]
                     rejectors = [_[1] for _ in cinfo]
                     clist = [_[0] for _ in cinfo]
-                    self.agents[agent_id].on_contracts_finalized(
-                        agent_signed[agent_id], clist, rejectors
+                    self.call(
+                        self.agents[agent_id],
+                        self.agents[agent_id].on_contracts_finalized,
+                        agent_signed[agent_id],
+                        clist,
+                        rejectors,
                     )
             else:
                 for contract in unsigned:
@@ -2577,6 +2613,33 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             e: The exception
         """
 
+    def call(self, agent: Agent, method: Callable, *args, **kwargs) -> Any:
+        """
+        Calls a method on an agent updating exeption count
+
+        Args:
+            agent: The agent on which the method is to be called
+            method: The bound method (bound to the agent)
+            *args: position arguments
+            **kwargs: keyword arguments
+
+        Returns:
+            whatever method returns
+        """
+        try:
+            return method(*args, **kwargs)
+        except Exception as e:
+            self.n_agent_exceptions += 1
+            self.on_exception(agent, e)
+            if not self.ignore_agent_exception:
+                raise e
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logerror(
+                f"Entity exception @{agent.id}: "
+                f"{traceback.format_tb(exc_traceback)}",
+                Event("entity-exception", dict(exception=e)),
+            )
+
     def step(self) -> bool:
         """A single simulation step"""
         self._n_negs_per_agent_per_step = defaultdict(int)
@@ -2588,7 +2651,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._step_start = self._sim_start
             for priority in sorted(self._entities.keys()):
                 for agent in self._entities[priority]:
-                    agent.init_()
+                    self.call(agent, agent.init_)
             # update monitors
             for monitor in self.stats_monitors:
                 if self.safe_stats_monitoring:
@@ -2604,7 +2667,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.checkpoint_on_step_started()
 
         for agent in self.agents.values():
-            agent.on_simulation_step_started()
+            self.call(agent, agent.on_simulation_step_started)
 
         self.loginfo(
             f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
@@ -2658,25 +2721,19 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 tasks += [_ for _ in self._entities[priority]]
 
             for task in tasks:
-                try:
-                    task.step_()
-                except Exception as e:
-                    self.on_exception(task, e)
-                    if not self.ignore_agent_exception:
-                        raise e
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    self.logerror(
-                        f"Entity exception @{task.id}: "
-                        f"{traceback.format_tb(exc_traceback)}",
-                        Event("entity-exception", dict(exception=e)),
-                    )
+                self.call(task, task.step_)
 
         def _sign_contracts():
             self._process_unsigned()
 
         def _simulation_step():
             nonlocal stage
-            self.simulation_step(stage)
+            try:
+                self.simulation_step(stage)
+            except Exception as e:
+                self.n_simulation_exceptions += 1
+                if not self.ignore_simulation_exceptions:
+                    raise (e)
             stage += 1
 
         def _execute_contracts():
@@ -2699,6 +2756,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     try:
                         contract_breaches = self.start_contract_execution(contract)
                     except Exception as e:
+                        self.n_contract_exceptions += 1
                         contract.executed_at = self.current_step
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["executed_at"] = -1
@@ -2758,7 +2816,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         if _size is not None:
                             activity_level += _size
                         for partner in contract.partners:
-                            self.agents[partner].on_contract_executed(contract)
+                            self.call(
+                                self.agents[partner],
+                                self.agents[partner].on_contract_executed,
+                                contract,
+                            )
                     else:
                         self._saved_contracts[contract.id]["executed_at"] = -1
                         self._saved_contracts[contract.id]["nullified_at"] = -1
@@ -2794,8 +2856,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             contract, list(contract_breaches), resolution
                         )
                         for partner in contract.partners:
-                            self.agents[partner].on_contract_breached(
-                                contract, list(contract_breaches), resolution
+                            self.call(
+                                self.agents[partner],
+                                self.agents[partner].on_contract_breached,
+                                contract,
+                                list(contract_breaches),
+                                resolution,
                             )
                     contract.executed_at = self.current_step
             dropped = self.get_dropped_contracts()
@@ -2859,7 +2925,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         self.append_stats()
         for agent in self.agents.values():
-            agent.on_simulation_step_ended()
+            self.call(agent, agent.on_simulation_step_ended)
 
         for monitor in self.stats_monitors:
             if self.safe_stats_monitoring:
@@ -3450,7 +3516,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         self.on_contract_concluded(contract, to_be_signed_at)
         for partner in partners:
-            partner.on_negotiation_success_(contract=contract, mechanism=mechanism)
+            self.call(
+                partner,
+                partner.on_negotiation_success_,
+                contract=contract,
+                mechanism=mechanism,
+            )
         if self.batch_signing:
             if to_be_signed_at != self.current_step:
                 sign_status = f"to be signed at {contract.to_be_signed_at}"
@@ -3513,7 +3584,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
         for partner in partners:
-            partner.on_negotiation_failure_(
+            self.call(
+                partner,
+                partner.on_negotiation_failure_,
                 partners=[_.id for _ in partners],
                 annotation=annotation,
                 mechanism=mechanism,
@@ -3537,8 +3610,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             s_ = c.signatures.get(p, None)
             if s_ is not None:
                 return s_
+
             try:
-                return p.sign_all_contracts([c])[0]
+                self.n_agent_exceptions += 1
+                return self.call(p, p.sign_all_contracts, [c])[0]
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
@@ -3561,11 +3636,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             contract.signatures = {a.id: s for a, s in signatures}
             contract.signed_at = self.current_step
             for partner in partners:
-                partner.on_contract_signed_(contract=contract)
+                self.call(partner, partner.on_contract_signed_, contract=contract)
         else:
             for partner in partners:
-                partner.on_contract_cancelled_(
-                    contract=contract, rejectors=[_.id for _ in rejectors]
+                self.call(
+                    partner,
+                    partner.on_contract_cancelled_,
+                    contract=contract,
+                    rejectors=[_.id for _ in rejectors],
                 )
         return [_.id for _ in rejectors]
 
@@ -3768,8 +3846,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     continue
                 negotiators = []
                 for partner in contract.partners:
-                    negotiator = self.agents[partner].respond_to_renegotiation_request(
-                        contract=contract, breaches=breaches, agenda=agenda
+                    negotiator = self.call(
+                        self.agents[partner],
+                        self.agents[partner].respond_to_renegotiation_request,
+                        contract=contract,
+                        breaches=breaches,
+                        agenda=agenda,
                     )
                     if negotiator is None:
                         break
