@@ -189,6 +189,14 @@ class WorldSetRunStats:
     """Actually executed number of steps for each world"""
     execution_time: int
     """Total execution time of each world"""
+    n_agent_exceptions: int = 0
+    """Exceptions in agent code"""
+    n_negotiation_exceptions: int = 0
+    """Exceptions in negotiations"""
+    n_other_exceptions: int = 0
+    """Exceptions when running the tournament"""
+    n_simulation_exceptions: int = 0
+    """Exceptions when running the tournament"""
 
 
 @dataclass
@@ -355,9 +363,12 @@ def _run_worlds(
         save_world_stats: If true, saves individual world stats
 
     Returns:
+        A tuple with the following components in order:
 
-        A tuple with the list of `WorldRunResults` for all the worlds generated using this config and the directory in
-        which these results are stored
+            - The run ID for this world-set
+            - The results (scores) for this world set (will be None in case of exception)
+            - The stats for this world set (will not be None even in case of exception)
+
 
     Remarks:
 
@@ -369,41 +380,60 @@ def _run_worlds(
             - others: values of all other keys are passed to the world generator as kwargs
 
     """
-    worlds = []
+    worlds, dir_names = [], []
     scoring_context = {}
     run_id = _hash(worlds_params)
     for world_params in worlds_params:
         world_params = world_params.copy()
         dir_name = world_params["__dir_name"]
+        dir_names.append(dir_name)
         world_params.pop("__dir_name", None)
         scoring_context.update(world_params.get("scoring_context", {}))
         world = world_generator(**world_params)
+        worlds.append(world)
         if dry_run:
             world.save_config(dir_name)
             continue
-        if world_progress_callback is None:
-            world.run()
-        else:
-            _start_time = time.monotonic()
-            for _ in range(world.n_steps):
-                if (
-                    world.time_limit is not None
-                    and (time.monotonic() - _start_time) >= world.time_limit
-                ):
-                    break
-                if not world.step():
-                    break
-                world_progress_callback(world)
-        worlds.append(world)
-        if save_world_stats:
-            save_stats(world=world, log_dir=dir_name)
-    scores = score_calculator(worlds, scoring_context, dry_run)
-    world_stats = WorldSetRunStats(
-        name=";".join(_.name for _ in worlds),
-        planned_n_steps=sum(_.n_steps for _ in worlds),
-        executed_n_steps=sum(_.current_step for _ in worlds),
-        execution_time=sum(_.frozen_time for _ in worlds),
-    )
+    try:
+        for world, dir_name in zip(worlds, dir_names):
+            if world_progress_callback is None:
+                world.run()
+            else:
+                _start_time = time.monotonic()
+                for _ in range(world.n_steps):
+                    if (
+                        world.time_limit is not None
+                        and (time.monotonic() - _start_time) >= world.time_limit
+                    ):
+                        break
+                    if not world.step():
+                        break
+                    world_progress_callback(world)
+            if save_world_stats:
+                save_stats(world=world, log_dir=dir_name)
+        scores = score_calculator(worlds, scoring_context, dry_run)
+        world_stats = WorldSetRunStats(
+            name=";".join(_.name for _ in worlds),
+            planned_n_steps=sum(_.n_steps for _ in worlds),
+            executed_n_steps=sum(_.current_step for _ in worlds),
+            execution_time=sum(_.frozen_time for _ in worlds),
+            n_negotiation_exceptions=sum(_.n_negotiation_exceptions for _ in worlds),
+            n_simulation_exceptions=sum(_.n_simulation_exceptions for _ in worlds),
+            n_other_exceptions=0,
+            n_agent_exceptions=sum(_.n_agent_exceptions for _ in worlds),
+        )
+    except Exception as e:
+        scores = None
+        world_stats = WorldSetRunStats(
+            name=";".join(_.name for _ in worlds),
+            planned_n_steps=sum(_.n_steps for _ in worlds),
+            executed_n_steps=sum(_.current_step for _ in worlds),
+            execution_time=sum(_.frozen_time for _ in worlds),
+            n_negotiation_exceptions=sum(_.n_negotiation_exceptions for _ in worlds),
+            n_simulation_exceptions=sum(_.n_simulation_exceptions for _ in worlds),
+            n_other_exceptions=1,
+            n_agent_exceptions=sum(_.n_agent_exceptions for _ in worlds),
+        )
     return run_id, scores, world_stats
 
 
@@ -427,6 +457,8 @@ def process_world_run(
         A pandas DataFrame with agent_name, agent_type, score, log_file, world, and stats_folder columns
 
     """
+    if results is None:
+        return []
     log_files, world_names_ = results.log_file_names, results.world_names
     for world_name_, log_file in zip(world_names_, log_files):
         if (
