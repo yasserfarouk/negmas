@@ -1,6 +1,22 @@
 History
 =======
 
+Release 0.6.1
+-------------
+
+- [situated] Adding the method call to World and using it always
+  when calling agents to count exceptions
+- [situated] Adding n_*_exceptions to count exceptions happening in
+  agents, simulation and negotiations
+- [tournaments] Adding n_*_exceptions to the tournament Results
+  structure (TournamentResults) reporting the number of exceptions
+  that happened during the tournament from different types
+- [tournament] adding more details to tournament results and andding world_stats.csv to the saved data
+- [situated] handling compact world running better:
+  - added a no_logs option to World that disables all logging including agent logging
+  - Corrected the tournament running functions to deal correctly with worlds with no logs
+- [tournament] adding path to tournament results
+
 Release 0.6.0
 -------------
 
