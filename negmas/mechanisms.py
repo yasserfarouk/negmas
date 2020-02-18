@@ -665,6 +665,26 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         return result
 
+    def abort(self) -> MechanismState:
+        """
+        Aborts the negotiation
+        """
+        self._error, self._error_details, self._waiting = (
+            True,
+            "Uncaught Exception",
+            False,
+        )
+        self.on_mechanism_error()
+        self._broken, self._timedout, self._agreement = (True, False, None)
+        self._running = False
+        if self._enable_callbacks:
+            for agent in self._negotiators:
+                agent.on_round_end(state=self.state)
+        self._history.append(self.state)
+        self._step += 1
+        self.on_negotiation_end()
+        return self.state
+
     def step(self) -> MechanismState:
         """Runs a single step of the mechanism.
 

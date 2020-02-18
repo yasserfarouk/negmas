@@ -574,6 +574,28 @@ def _run_dask(
     client.shutdown()
 
 
+def _divide_into_sets(competitors, n_competitors_per_world):
+    if len(competitors) % n_competitors_per_world == 0:
+        return (
+            np.array(competitors)
+            .reshape(
+                (len(competitors) // n_competitors_per_world, n_competitors_per_world)
+            )
+            .tolist()
+        )
+    n_div = (len(competitors) // n_competitors_per_world) * n_competitors_per_world
+    divisable = competitors[:n_div]
+    competitor_sets = (
+        np.array(divisable)
+        .reshape((len(divisable) // n_competitors_per_world, n_competitors_per_world))
+        .tolist()
+    )
+    competitor_sets.append(
+        competitors[n_div:] + ([None] * (n_competitors_per_world - n_div))
+    )
+    return competitor_sets
+
+
 def tournament(
     competitors: Sequence[Union[str, Type[Agent]]],
     config_generator: ConfigGenerator,
@@ -783,16 +805,8 @@ def tournament(
             competitors = _keep_n(competitors, results, n_winners_per_stage)
         else:
             random.shuffle(competitors)
-            competitor_sets = (
-                np.array(competitors)
-                .reshape(
-                    (
-                        len(competitors) // n_competitors_per_world,
-                        n_competitors_per_world,
-                    )
-                )
-                .tolist()
-            )
+            competitor_sets = _divide_into_sets(competitors, n_competitors_per_world)
+
             next_stage_competitors = []
             results = None
             for c in competitor_sets:
@@ -1175,11 +1189,11 @@ def create_tournament(
     if n_competitors_per_world is None:
         n_competitors_per_world = len(competitors)
 
-    if not round_robin and not (1 < n_competitors_per_world <= len(competitors)):
-        raise ValueError(
-            f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
-            f"later does not divide the former. You have to set all_competitor_combinations to True"
-        )
+    # if not round_robin and not (len(competitors) >= n_competitors_per_world > 0):
+    #     raise ValueError(
+    #         f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
+    #         f"later does not divide the former. You have to set all_competitor_combinations to True"
+    #     )
     if base_tournament_path is None:
         base_tournament_path = str(pathlib.Path.home() / "negmas" / "tournaments")
 
@@ -1255,14 +1269,9 @@ def create_tournament(
     else:
         comp_ind = list(range(len(competitor_info)))
         random.shuffle(comp_ind)
-        competitor_sets = (
-            np.array(comp_ind)
-            .reshape(
-                (len(comp_ind) // n_competitors_per_world, n_competitors_per_world)
-            )
-            .tolist()
-        )
+        competitor_sets = _divide_into_sets(comp_ind, n_competitors_per_world)
         competitor_sets = [[competitor_info[_] for _ in lst] for lst in competitor_sets]
+
     for effective_competitor_infos in competitor_sets:
         effective_competitors = [_[0] for _ in effective_competitor_infos]
         effective_params = [_[1] for _ in effective_competitor_infos]
@@ -1658,9 +1667,7 @@ def combine_tournament_stats(
                 pprint(dict(zip(p.keys(), [len(_) for _ in p.values()])))
                 pprint(p)
                 raise e
-            p = p.loc[
-                :, [c for c in p.columns if "balance" not in c and "storage" not in c]
-            ]
+            p = p.loc[:, [c for c in p.columns if World.is_basic_stat(c)]]
             p["step"] = list(range(len(p)))
             p["world"] = filename.parent.name
             p["path"] = filename.parent.parent
@@ -1691,17 +1698,29 @@ def _combine_stats(stats: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
         ]
         .groupby(["world"])
         .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
-        .reset_index()
     )
 
     def get_last(x):
         return x.loc[x["step"] == x["step"].max(), :]
 
     last = stats.groupby(["world"]).apply(get_last)
+    # print("IN COMBINE ---------------")
+    # print(last.columns)
+    # print(last.index)
+    # print("IN COMBINE ---------------")
     last.columns = [
         f"{str(c)}_final" if c not in ("world", "path") else c for c in last.columns
     ]
-    last.index = range(len(last))
+    last.set_index("world")
+    last.drop("world", axis=1, inplace=True)
+    # last.index = range(len(last))
+    # combined.index = range(len(last))
+    # print(combined)
+    # print(last)
+    combined.columns = combined.columns.to_flat_index()
+    combined.columns = [
+        f"{a[0]}_a{1}" if a not in ("world", "path") else a[0] for a in combined.columns
+    ]
     combined = pd.merge(combined, last, on=["world"])
 
     def adjust_name(s):

@@ -1910,6 +1910,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         save_resolved_breaches: bool = True,
         save_unresolved_breaches: bool = True,
         ignore_agent_exceptions: bool = False,
+        ignore_negotiation_exceptions: bool = False,
         ignore_contract_execution_exceptions: bool = False,
         ignore_simulation_exceptions: bool = False,
         safe_stats_monitoring: bool = False,
@@ -2002,6 +2003,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             * Exception Handling *
 
             ignore_agent_exceptions: Ignore agent exceptions and keep running
+            ignore_mechanism_exceptions: If true, all mechanism exceptions are ignored and the mechanism is aborted
             ignore_simulation_exceptions: Ignore simulation exceptions and keep running
             ignore_contract_execution_exceptions: Ignore contract execution exceptions and keep running
             safe_stats_monitoring: Never throw an exception for a failure to save stats or because of a Stats Monitor
@@ -2019,6 +2021,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
         """
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
+        self.ignore_negotiation_exceptions = ignore_negotiation_exceptions
         if force_signing:
             batch_signing = False
         super().__init__()
@@ -2196,6 +2199,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._n_negs_per_agent: Dict[str, int] = defaultdict(int)
 
         self.loginfo(f"{self.name}: World Created")
+
+    @classmethod
+    def is_basic_stat(self, s: str) -> bool:
+        """Checks whether a given statistic is agent specific."""
+        return (
+            s in ["activity_level", "breach_level", "n_bankrupt", "n_breaches"]
+            or s.startswith("n_contracts")
+            or s.startswith("n_negotiation")
+            or s.startswith("n_registered_negotiations")
+        )
 
     @property
     def current_step(self):
@@ -2533,7 +2546,18 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             the agreement or NOne and whether the negotaition is still urnning
         """
         contract = None
-        result = mechanism.step()
+        try:
+            result = mechanism.step()
+        except Exception as e:
+            result = mechanism.abort()
+            self.n_negotiation_exceptions += 1
+            if not self.ignore_negotiation_exceptions:
+                raise e
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.logerror(
+                f"Mechanism exception: " f"{traceback.format_tb(exc_traceback)}",
+                Event("entity-exception", dict(exception=e)),
+            )
         agreement, is_running = result.agreement, result.running
         if agreement is not None or not is_running:
             negotiation = self._negotiations.get(mechanism.id, None)
