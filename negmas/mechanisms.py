@@ -817,6 +817,39 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                     break
         return states
 
+    @classmethod
+    def stepall(
+        cls, mechanisms: List["Mechanism"], keep_order=True
+    ) -> List[MechanismState]:
+        """
+        Step all mechanisms
+
+        Args:
+            mechanisms: List of mechanisms
+            keep_order: if True, the mechanisms will be run in order every step otherwise the order will be randomized
+                        at every step
+
+        Returns:
+            - List of states of all mechanisms after completion
+
+        """
+        if not keep_order:
+            raise NotImplementedError(
+                "running mechanisms in random order is not yet supported"
+            )
+
+        completed = [_ is None for _ in mechanisms]
+        states = [None] * len(mechanisms)
+        for i, (done, mechanism) in enumerate(zip(completed, mechanisms)):
+            if done:
+                continue
+            result = mechanism.step()
+            if result.running:
+                continue
+            completed[i] = True
+            states[i] = mechanism.state
+        return states
+
     def run(self, timeout=None) -> MechanismState:
         if timeout is None:
             for _ in self:

@@ -94,7 +94,11 @@ from typing import (
 )
 
 import matplotlib.pyplot as plt
-import networkx as nx
+
+try:
+    import networkx as nx
+except:
+    nx = None
 import numpy as np
 import pandas as pd
 import yaml
@@ -839,6 +843,7 @@ class MechanismFactory:
         if mechanism is None:
             return None
 
+        self.mechanism.register_listener("negotiator_exception", self.world)
         if roles is None:
             roles = [None] * len(partners)
 
@@ -2093,6 +2098,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.n_contract_exceptions = 0
         self.bulletin_board: BulletinBoard = bulletin_board
         self._negotiations: Dict[str, NegotiationInfo] = {}
+        self._agent_exceptions = defaultdict(int)
+        self._agent_negotiator_exceptions = defaultdict(int)
         self.unsigned_contracts: Dict[int, Set[Contract]] = defaultdict(set)
         self.breach_processing = breach_processing
         self.n_steps = n_steps
@@ -2213,6 +2220,22 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @property
     def current_step(self):
         return self._current_step
+
+    def on_event(self, event: Event, sender: EventSource):
+        """Received when an event is raised"""
+        if event.type == "negotiator_exception":
+            negotiator = event.data.get("negotiator")
+            if not negotiator:
+                return
+            agent = negotiator.owner
+            if not agent:
+                return
+            self.n_agent_exceptions[agent.id] += 1
+            self.logdebug_agent(
+                agent.id,
+                f"Negotiator {negotiator.name} raised: "
+                + str(event.data.get("exception", "Unknown exception")),
+            )
 
     @property
     def log_folder(self):
@@ -2653,6 +2676,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         try:
             return method(*args, **kwargs)
         except Exception as e:
+            self._agent_exceptions[agent.id] += 1
             self.n_agent_exceptions += 1
             self.on_exception(agent, e)
             if not self.ignore_agent_exception:
@@ -3636,9 +3660,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 return s_
 
             try:
-                self.n_agent_exceptions += 1
                 return self.call(p, p.sign_all_contracts, [c])[0]
             except Exception as e:
+                self._agent_exceptions[p.id] += 1
+                self.n_agent_exceptions += 1
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
                     f"Signature exception @ {p.name}: {traceback.format_tb(exc_traceback)}",
@@ -3926,191 +3951,234 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         # todo add _get_signing_delay(contract) and implement it in SCML2019
 
-    def graph(
+    if nx:
+
+        def graph(
+            self,
+            steps: Optional[Union[Tuple[int, int], int]] = None,
+            what: Collection[str] = EDGE_TYPES,
+            who: Callable[[Agent], bool] = None,
+            together: bool = True,
+        ) -> Union[nx.Graph, List[nx.Graph]]:
+            """
+            Generates a graph showing some aspect of the simulation
+
+            Args:
+                steps: The step/steps to generate the graphs for. If a tuple is given all edges within the given range
+                       (inclusive beginning, exclusive end) will be accumulated
+                what: The edges to have on the graph. Options are: negotiations, concluded, signed, executed
+                who: Either a callable that receives an agent and returns True if it is to be shown or None for all
+                together: IF specified all edge types are put in the same graph.
+
+            Returns:
+                A networkx graph representing the world if together==True else a list of graphs one for each item in what
+
+            """
+            if steps is None:
+                steps = self.current_step
+            if isinstance(steps, int):
+                steps = [steps, steps + 1]
+            steps = tuple(min(self.n_steps - 1, max(0, _)) for _ in steps)
+            if who is None:
+                who = lambda x: True
+            agents = [_.id for _ in self.agents.values() if who(_)]
+            if together:
+                g = nx.MultiDiGraph()
+                g.add_nodes_from(agents)
+                graphs = [g] * len(what)
+            else:
+                graphs = [nx.DiGraph() for _ in what]
+                for g in graphs:
+                    g.add_nodes_from(agents)
+            max_step = max(steps) - 1
+            for g, edge_type in zip(graphs, what):
+                edge_info = getattr(self, f"_edges_{edge_type.replace('-', '_')}")
+                edge_info = {max_step: self._combine_edges(*steps, edge_info)}
+                color = EDGE_COLORS[edge_type]
+                edgelist = self._get_edges(edge_info, max_step)
+                for e in edgelist:
+                    e[2]["color"] = color
+                g.add_edges_from(edgelist)
+            return graphs[0] if together else graphs
+
+        def draw(
+            self,
+            steps: Optional[Union[Tuple[int, int], int]] = None,
+            what: Collection[str] = DEFAULT_EDGE_TYPES,
+            who: Callable[[Agent], bool] = None,
+            where: Callable[[Agent], Union[int, Tuple[float, float]]] = None,
+            together: bool = True,
+            axs: Collection[Axis] = None,
+            ncols: int = 4,
+            figsize: Tuple[int, int] = (15, 15),
+            show_node_labels=True,
+            show_edge_labels=True,
+            **kwargs,
+        ) -> Union[Tuple[Axis, nx.Graph], Tuple[Axis, List[nx.Graph]]]:
+            """
+            Generates a graph showing some aspect of the simulation
+
+            Args:
+
+                steps: The step/steps to generate the graphs for. If a tuple is given all edges within the given range
+                       (inclusive beginning, exclusive end) will be accomulated
+                what: The edges to have on the graph. Options are: negotiations, concluded, signed, executed
+                who: Either a callable that receives an agent and returns True if it is to be shown or None for all
+                where: A callable that returns for each agent the position it showed by drawn at either as an integer
+                       specifying the column in which to draw the column or a tuple of two floats specifying the position
+                       within the drawing area of the agent. If None, the default Networkx layout will be used.
+                together: IF specified all edge types are put in the same graph.
+                axs: The axes used for drawing. If together is true, it should be a single `Axis` object otherwise it should
+                     be a list of `Axis` objects with the same length as what.
+                show_node_labels: show node labels!
+                show_edge_labels: show edge labels!
+                kwargs: passed to networx.draw_networkx
+
+            Returns:
+                A networkx graph representing the world if together==True else a list of graphs one for each item in what
+
+            """
+            if not self.construct_graphs:
+                self.logwarning(
+                    "Asked to draw a world simulation without enabling `construct_graphs`. Will be ignored"
+                )
+                return [None, None]
+            if steps is None:
+                steps = self.current_step
+            if isinstance(steps, int):
+                steps = [steps, steps + 1]
+            steps = tuple(min(self.n_steps - 1, max(0, _)) for _ in steps)
+            if who is None:
+                who = lambda x: True
+            if together:
+                titles = [""]
+            else:
+                titles = what
+            if axs is None:
+                if together:
+                    fig, axs = plt.subplots()
+                else:
+                    nrows = int(math.ceil(len(what) / ncols))
+                    fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
+                    axs = axs.flatten().tolist()
+            if together:
+                axs = [axs]
+            graphs = self.graph(steps, what, who, together)
+            graph = graphs[0] if not together else graphs
+            graphs = [graphs] if together else graphs
+            if where is None:
+                pos = None
+            else:
+                pos = [where(a) for a in graph.nodes]
+                if not isinstance(pos[0], tuple):
+                    deltax = 5
+                    deltay = 5
+                    cols = defaultdict(list)
+                    for agent, p in zip(graph.nodes, pos):
+                        cols[p].append(agent)
+                    pos = dict()
+                    for c, ros in cols.items():
+                        for r, agent in enumerate(ros):
+                            pos[agent] = ((1 + c) * deltay, r * deltax)
+                else:
+                    pos = dict(zip(graph.nodes, pos))
+            if together:
+                g = graph
+                nx.draw_networkx_nodes(g, pos, ax=axs[0])
+                edges = [_ for _ in g.edges]
+                if len(edges) > 0:
+                    info = [_ for _ in g.edges.data("color")]
+                    colors = [_[2] for _ in info]
+                    edges = [(_[0], _[1]) for _ in info]
+                    clist = list(set(colors))
+                    edgelists = [list() for _ in range(len(clist))]
+                    for c, lst in zip(clist, edgelists):
+                        for i, clr in enumerate(colors):
+                            if clr == c:
+                                lst.append(edges[i])
+                    for lst, clr in zip(edgelists, clist):
+                        nx.draw_networkx_edges(
+                            g, pos, edgelist=g.edges, edge_color=clr, ax=axs[0]
+                        )
+                    if show_edge_labels:
+                        info = [_ for _ in g.edges.data("weight")]
+                        weights = [str(_[2]) for _ in info if _[2] > 1]
+                        edges = [(_[0], _[1]) for _ in info if _[2] > 1]
+                        nx.draw_networkx_edge_labels(
+                            g, pos, dict(zip(edges, weights)), ax=axs[0]
+                        )
+                if show_node_labels:
+                    nx.draw_networkx_labels(
+                        g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0]
+                    )
+            else:
+                for g, ax, title in zip(graphs, axs, titles):
+                    nx.draw_networkx_nodes(g, pos, ax=ax)
+                    nx.draw_networkx_edges(
+                        g, pos, edgelist=g.edges, edge_color=EDGE_COLORS[title], ax=ax
+                    )
+                    if show_edge_labels:
+                        info = [_ for _ in g.edges.data("weight")]
+                        weights = [str(_[2]) for _ in info if _[2] > 1]
+                        edges = [(_[0], _[1]) for _ in info if _[2] > 1]
+                        nx.draw_networkx_edge_labels(
+                            g, pos, dict(zip(edges, weights)), ax=ax
+                        )
+                    if show_node_labels:
+                        nx.draw_networkx_labels(
+                            g, pos, dict(zip(g.nodes, g.nodes)), ax=ax
+                        )
+                    ax.set_ylabel(title)
+            total_time = time.perf_counter() - self._sim_start
+            step = max(steps)
+            remaining = (self.n_steps - step - 1) * total_time / (step + 1)
+            title = (
+                f"Step: {step + 1}/{self.n_steps} [{humanize_time(total_time)} rem "
+                f"{humanize_time(remaining)}] {total_time / (remaining + total_time):04.2%}"
+            )
+            if together:
+                axs[0].set_title(title)
+            else:
+                f = plt.gcf()
+                f.suptitle(title)
+            return (axs[0], graph) if together else (axs, graphs)
+
+    def save_gif(
         self,
-        steps: Optional[Union[Tuple[int, int], int]] = None,
+        path: Union[str, Path] = None,
         what: Collection[str] = EDGE_TYPES,
         who: Callable[[Agent], bool] = None,
         together: bool = True,
-    ) -> Union[nx.Graph, List[nx.Graph]]:
-        """
-        Generates a graph showing some aspect of the simulation
+        draw_every: int = 1,
+        fps: int = 5,
+    ) -> None:
+        import gif
 
-        Args:
-            steps: The step/steps to generate the graphs for. If a tuple is given all edges within the given range
-                   (inclusive beginning, exclusive end) will be accumulated
-            what: The edges to have on the graph. Options are: negotiations, concluded, signed, executed
-            who: Either a callable that receives an agent and returns True if it is to be shown or None for all
-            together: IF specified all edge types are put in the same graph.
+        if path is None and self.log_folder is not None:
+            path = Path(self.log_folder) / (self.name + ".gif")
 
-        Returns:
-            A networkx graph representing the world if together==True else a list of graphs one for each item in what
-
-        """
-        if steps is None:
-            steps = self.current_step
-        if isinstance(steps, int):
-            steps = [steps, steps + 1]
-        steps = tuple(min(self.n_steps - 1, max(0, _)) for _ in steps)
-        if who is None:
-            who = lambda x: True
-        agents = [_.id for _ in self.agents.values() if who(_)]
-        if together:
-            g = nx.MultiDiGraph()
-            g.add_nodes_from(agents)
-            graphs = [g] * len(what)
-        else:
-            graphs = [nx.DiGraph() for _ in what]
-            for g in graphs:
-                g.add_nodes_from(agents)
-        max_step = max(steps) - 1
-        for g, edge_type in zip(graphs, what):
-            edge_info = getattr(self, f"_edges_{edge_type.replace('-', '_')}")
-            edge_info = {max_step: self._combine_edges(*steps, edge_info)}
-            color = EDGE_COLORS[edge_type]
-            edgelist = self._get_edges(edge_info, max_step)
-            for e in edgelist:
-                e[2]["color"] = color
-            g.add_edges_from(edgelist)
-        return graphs[0] if together else graphs
-
-    def draw(
-        self,
-        steps: Optional[Union[Tuple[int, int], int]] = None,
-        what: Collection[str] = DEFAULT_EDGE_TYPES,
-        who: Callable[[Agent], bool] = None,
-        where: Callable[[Agent], Union[int, Tuple[float, float]]] = None,
-        together: bool = True,
-        axs: Collection[Axis] = None,
-        ncols: int = 4,
-        figsize: Tuple[int, int] = (15, 15),
-        show_node_labels=True,
-        show_edge_labels=True,
-        **kwargs,
-    ) -> Union[Tuple[Axis, nx.Graph], Tuple[Axis, List[nx.Graph]]]:
-        """
-        Generates a graph showing some aspect of the simulation
-
-        Args:
-
-            steps: The step/steps to generate the graphs for. If a tuple is given all edges within the given range
-                   (inclusive beginning, exclusive end) will be accomulated
-            what: The edges to have on the graph. Options are: negotiations, concluded, signed, executed
-            who: Either a callable that receives an agent and returns True if it is to be shown or None for all
-            where: A callable that returns for each agent the position it showed by drawn at either as an integer
-                   specifying the column in which to draw the column or a tuple of two floats specifying the position
-                   within the drawing area of the agent. If None, the default Networkx layout will be used.
-            together: IF specified all edge types are put in the same graph.
-            axs: The axes used for drawing. If together is true, it should be a single `Axis` object otherwise it should
-                 be a list of `Axis` objects with the same length as what.
-            show_node_labels: show node labels!
-            show_edge_labels: show edge labels!
-            kwargs: passed to networx.draw_networkx
-
-        Returns:
-            A networkx graph representing the world if together==True else a list of graphs one for each item in what
-
-        """
-        if not self.construct_graphs:
-            self.logwarning(
-                "Asked to draw a world simulation without enabling `construct_graphs`. Will be ignored"
+        # define the animation function. Simply draw the world
+        @gif.frame
+        def plot_frame(s):
+            self.draw(
+                steps=(s - draw_every, s),
+                what=what,
+                who=who,
+                together=together,
+                ncols=3,
+                figsize=(20, 20),
             )
-            return [None, None]
-        if steps is None:
-            steps = self.current_step
-        if isinstance(steps, int):
-            steps = [steps, steps + 1]
-        steps = tuple(min(self.n_steps - 1, max(0, _)) for _ in steps)
-        if who is None:
-            who = lambda x: True
-        if together:
-            titles = [""]
-        else:
-            titles = what
-        if axs is None:
-            if together:
-                fig, axs = plt.subplots()
-            else:
-                nrows = int(math.ceil(len(what) / ncols))
-                fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-                axs = axs.flatten().tolist()
-        if together:
-            axs = [axs]
-        graphs = self.graph(steps, what, who, together)
-        graph = graphs[0] if not together else graphs
-        graphs = [graphs] if together else graphs
-        if where is None:
-            pos = None
-        else:
-            pos = [where(a) for a in graph.nodes]
-            if not isinstance(pos[0], tuple):
-                deltax = 5
-                deltay = 5
-                cols = defaultdict(list)
-                for agent, p in zip(graph.nodes, pos):
-                    cols[p].append(agent)
-                pos = dict()
-                for c, ros in cols.items():
-                    for r, agent in enumerate(ros):
-                        pos[agent] = ((1 + c) * deltay, r * deltax)
-            else:
-                pos = dict(zip(graph.nodes, pos))
-        if together:
-            g = graph
-            nx.draw_networkx_nodes(g, pos, ax=axs[0])
-            edges = [_ for _ in g.edges]
-            if len(edges) > 0:
-                info = [_ for _ in g.edges.data("color")]
-                colors = [_[2] for _ in info]
-                edges = [(_[0], _[1]) for _ in info]
-                clist = list(set(colors))
-                edgelists = [list() for _ in range(len(clist))]
-                for c, lst in zip(clist, edgelists):
-                    for i, clr in enumerate(colors):
-                        if clr == c:
-                            lst.append(edges[i])
-                for lst, clr in zip(edgelists, clist):
-                    nx.draw_networkx_edges(
-                        g, pos, edgelist=g.edges, edge_color=clr, ax=axs[0]
-                    )
-                if show_edge_labels:
-                    info = [_ for _ in g.edges.data("weight")]
-                    weights = [str(_[2]) for _ in info if _[2] > 1]
-                    edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                    nx.draw_networkx_edge_labels(
-                        g, pos, dict(zip(edges, weights)), ax=axs[0]
-                    )
-            if show_node_labels:
-                nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0])
-        else:
-            for g, ax, title in zip(graphs, axs, titles):
-                nx.draw_networkx_nodes(g, pos, ax=ax)
-                nx.draw_networkx_edges(
-                    g, pos, edgelist=g.edges, edge_color=EDGE_COLORS[title], ax=ax
-                )
-                if show_edge_labels:
-                    info = [_ for _ in g.edges.data("weight")]
-                    weights = [str(_[2]) for _ in info if _[2] > 1]
-                    edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                    nx.draw_networkx_edge_labels(
-                        g, pos, dict(zip(edges, weights)), ax=ax
-                    )
-                if show_node_labels:
-                    nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=ax)
-                ax.set_ylabel(title)
-        total_time = time.perf_counter() - self._sim_start
-        step = max(steps)
-        remaining = (self.n_steps - step - 1) * total_time / (step + 1)
-        title = (
-            f"Step: {step + 1}/{self.n_steps} [{humanize_time(total_time)} rem "
-            f"{humanize_time(remaining)}] {total_time/(remaining + total_time):04.2%}"
-        )
-        if together:
-            axs[0].set_title(title)
-        else:
-            f = plt.gcf()
-            f.suptitle(title)
-        return (axs[0], graph) if together else (axs, graphs)
+
+        # create frames
+        frames = []
+        for s in range(self.n_steps):
+            if s % draw_every != 0:
+                continue
+            frames.append(plot_frame(s))
+        if path is not None:
+            path.unlink(missing_ok=True)
+            gif.save(frames, str(path), duration=1000 // fps)
+        return frames
 
     @property
     def business_size(self) -> float:
@@ -4328,7 +4396,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Reads the private state of the given agent"""
 
     @abstractmethod
-    def simulation_step(self, stage: int):
+    def simulation_step(self, stage: int = 0):
         """A single step of the simulation.
 
         Args:

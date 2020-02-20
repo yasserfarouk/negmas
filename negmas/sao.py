@@ -17,7 +17,7 @@ import pandas as pd
 
 from negmas.common import *
 from negmas.common import _ShadowAgentMechanismInterface
-from negmas.events import Notification
+from negmas.events import Notification, Event
 from negmas.java import (
     JavaCallerMixin,
     to_java,
@@ -91,6 +91,15 @@ class SAOAMI(AgentMechanismInterface):
 
 
 class SAOMechanism(Mechanism):
+    """
+
+    Remarks:
+
+        Events:
+            - negotiator_exception: Data=(negotiator, exception) raised whenever a negotiator raises an exception if
+              ignore_negotiator_exceptions is set to True.
+    """
+
     def __init__(
         self,
         issues=None,
@@ -436,6 +445,12 @@ class SAOMechanism(Mechanism):
                     response = negotiator.counter(*args, **kwargs)
             except Exception as ex:
                 if self.ignore_negotiator_exceptions:
+                    self.announce(
+                        Event(
+                            "negotiator_exception",
+                            {"negotiator": negotiator, "exception": ex},
+                        )
+                    )
                     return SAOResponse(ResponseType.END_NEGOTIATION, None)
                 else:
                     raise ex
