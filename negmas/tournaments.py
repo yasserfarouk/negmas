@@ -383,11 +383,15 @@ def _run_worlds(
     worlds, dir_names = [], []
     scoring_context = {}
     run_id = _hash(worlds_params)
+    video_savers, video_saver_params_list, save_videos = [], [], []
     for world_params in worlds_params:
         world_params = world_params.copy()
         dir_name = world_params["__dir_name"]
         dir_names.append(dir_name)
         world_params.pop("__dir_name", None)
+        video_savers.append(world_params.get("__video_saver", None))
+        video_saver_params_list.append(world_params.get("__video_saver_params", dict()))
+        save_videos.append(world_params.get("__save_video", False))
         scoring_context.update(world_params.get("scoring_context", {}))
         world = world_generator(**world_params)
         worlds.append(world)
@@ -395,7 +399,9 @@ def _run_worlds(
             world.save_config(dir_name)
             continue
     try:
-        for world, dir_name in zip(worlds, dir_names):
+        for world, dir_name, save_video, video_saver, video_saver_params in zip(
+            worlds, dir_names, save_videos, video_savers, video_saver_params_list
+        ):
             if world_progress_callback is None:
                 world.run()
             else:
@@ -411,6 +417,13 @@ def _run_worlds(
                     world_progress_callback(world)
             if save_world_stats:
                 save_stats(world=world, log_dir=dir_name)
+            if save_video:
+                if video_saver is None:
+                    video_saver = World.save_gif
+                if video_saver_params is None:
+                    video_saver_params = {}
+                video_saver(world, **video_saver_params)
+
         scores = score_calculator(worlds, scoring_context, dry_run)
         world_stats = WorldSetRunStats(
             name=";".join(_.name for _ in worlds),
@@ -630,6 +643,10 @@ def tournament(
     compact: bool = False,
     print_exceptions: bool = True,
     metric="median",
+    save_video_fraction: float = 0.001,
+    forced_logs_fraction: float = 0.001,
+    video_params=None,
+    video_saver=None,
     **kwargs,
 ) -> Union[TournamentResults, PathLike]:
     """
@@ -691,6 +708,13 @@ def tournament(
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        print_exceptions: If true, print all exceptions to screen
+        metric: The metric to use for evaluation
+        save_video_fraction: The fraction of simulations for which to save videos
+        forced_logs_fraction: The fraction of simulations for which to always save logs. Notice that this has no
+                              effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
+        video_params: The parameters to pass to the video saving function
+        video_saver: The parameters to pass to the video saving function after the world
         kwargs: Arguments to pass to the `config_generator` function
 
     Returns:
@@ -755,6 +779,10 @@ def tournament(
             name=stage_name,
             verbose=verbose,
             compact=compact,
+            save_video_fraction=save_video_fraction,
+            forced_logs_fraction=forced_logs_fraction,
+            video_params=video_params,
+            video_saver=video_saver,
             **kwargs,
         )
         if configs_only:
@@ -1101,6 +1129,10 @@ def create_tournament(
     name: str = None,
     verbose: bool = False,
     compact: bool = False,
+    save_video_fraction: float = 0.001,
+    forced_logs_fraction: float = 0.001,
+    video_params=None,
+    video_saver=None,
     **kwargs,
 ) -> PathLike:
     """
@@ -1155,6 +1187,11 @@ def create_tournament(
         non_competitor_params: paramters of non competitor agents
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        save_video_fraction: The fraction of simulations for which to save videos
+        forced_logs_fraction: The fraction of simulations for which to always save logs. Notice that this has no
+                              effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
+        video_params: The parameters to pass to the video saving function
+        video_saver: The parameters to pass to the video saving function after the world
         kwargs: Arguments to pass to the `config_generator` function
 
     Returns:
@@ -1363,9 +1400,34 @@ def create_tournament(
                     "__dir_name": str(dir_name),
                 }
             )
-            config["world_params"].update({"log_file_name": str("log.txt")})
-            config["world_params"].update({"log_folder": str(dir_name)})
+            config["world_params"].update(
+                {"log_file_name": str("log.txt"), "log_folder": str(dir_name)}
+            )
+    if forced_logs_fraction > 0.0:
+        n_logged = max(1, int(len(assigned) * forced_logs_fraction))
+        for cs in assigned[:n_logged]:
+            for _ in cs:
+                if _["world_params"].get("log_folder", None) is None:
+                    _["world_params"].update(
+                        {
+                            "log_folder": str(
+                                (
+                                    tournament_path / _["world_params"].get("name", ".")
+                                ).absolute()
+                            ),
+                            "log_to_file": True,
+                            "compact": False,
+                        }
+                    )
 
+    if save_video_fraction > 0.0:
+        n_videos = max(1, int(len(assigned) * forced_logs_fraction))
+        for cs in assigned[:n_videos]:
+            for _ in cs:
+                _["world_params"]["construct_graphs"] = True
+                _["__save_video"] = True
+                _["__video_saver"] = video_saver
+                _["__video_saver_params"] = video_params
     saved_configs = []
     for cs in assigned:
         for _ in cs:
