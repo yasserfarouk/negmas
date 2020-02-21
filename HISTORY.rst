@@ -1,6 +1,14 @@
 History
 =======
 
+Release 0.6.2
+-------------
+
+- [mechanism] triggering a negotiator_exception even on negotiator exceptions
+- [situated] adding a count of exceptions per agent
+- [situated] counting exceptions in negotiations as exceptions by the owner agent
+- [mechanism] adding mechanism abortion
+
 Release 0.6.1
 -------------
 

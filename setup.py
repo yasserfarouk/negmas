@@ -10,7 +10,6 @@ https://github.com/orsinium/poetry-setup
 # ----------------------------------------------------------------
 # Always prefer setuptools over distutils
 import re
-
 # io.open is needed for projects that support Python 2.7
 # It ensures open() defaults to text mode with universal newlines,
 # and accepts an argument to specify the text encoding
@@ -38,7 +37,7 @@ setup(
     name="negmas",  # Required
     # https://www.python.org/dev/peps/pep-0440/
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="0.6.1",  # Required
+    version="0.6.2",  # Required
     # https://packaging.python.org/specifications/core-metadata/#summary
     description="NEGotiations Managed by Agent Simulations",  # Required
     # https://packaging.python.org/specifications/core-metadata/#description-optional
