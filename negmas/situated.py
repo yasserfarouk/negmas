@@ -4152,33 +4152,37 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         draw_every: int = 1,
         fps: int = 5,
     ) -> None:
-        import gif
+        try:
+            import gif
 
-        if path is None and self.log_folder is not None:
-            path = Path(self.log_folder) / (self.name + ".gif")
+            if path is None and self.log_folder is not None:
+                path = Path(self.log_folder) / (self.name + ".gif")
 
-        # define the animation function. Simply draw the world
-        @gif.frame
-        def plot_frame(s):
-            self.draw(
-                steps=(s - draw_every, s),
-                what=what,
-                who=who,
-                together=together,
-                ncols=3,
-                figsize=(20, 20),
-            )
+            # define the animation function. Simply draw the world
+            @gif.frame
+            def plot_frame(s):
+                self.draw(
+                    steps=(s - draw_every, s),
+                    what=what,
+                    who=who,
+                    together=together,
+                    ncols=3,
+                    figsize=(20, 20),
+                )
 
-        # create frames
-        frames = []
-        for s in range(self.n_steps):
-            if s % draw_every != 0:
-                continue
-            frames.append(plot_frame(s))
-        if path is not None:
-            path.unlink(missing_ok=True)
-            gif.save(frames, str(path), duration=1000 // fps)
-        return frames
+            # create frames
+            frames = []
+            for s in range(self.n_steps):
+                if s % draw_every != 0:
+                    continue
+                frames.append(plot_frame(s))
+            if path is not None:
+                path.unlink(missing_ok=True)
+                gif.save(frames, str(path), duration=1000 // fps)
+            return frames
+        except Exception as e:
+            self.logwarning(f"GIF generation failed with exception {str(e)}")
+            return []
 
     @property
     def business_size(self) -> float:
