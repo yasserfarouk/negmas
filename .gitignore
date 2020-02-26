@@ -165,3 +165,6 @@ wily-report.html
 distold
 distold/*
 dist/*
+.vscode
+.vscode/*
+/.vscode

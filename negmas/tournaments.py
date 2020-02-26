@@ -1417,6 +1417,7 @@ def create_tournament(
                             ),
                             "log_to_file": True,
                             "compact": False,
+                            "no_logs": False,
                         }
                     )
 

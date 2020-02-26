@@ -489,37 +489,45 @@ def create(
     scorer,
     java_interop_class,
 ):
-    if len(scorer.trim()) == 0:
-        print(
-            "ERROR: You did not specify a scorer. Use --scorer to specify one and see the documentation of the "
-            "create_tournament method in negmas.situated for details about it."
-        )
-        return -1
-    if len(assigner.trim()) == 0:
-        print(
-            "ERROR: You did not specify an assigner. Use --assigner to specify one and see the documentation"
-            " of the create_tournament method in negmas.situated for details about it."
-        )
-        return -2
-    if len(world_generator.trim()) == 0:
-        print(
-            "ERROR: You did not specify a world generator. Use --world-generator to specify one and see the "
-            "documentation of the create_tournament method in negmas.situated for details about it."
-        )
-        return -3
-    if len(config_generator.trim()) == 0:
+    if len(config_generator is None or config_generator.strip()) == 0:
         print(
             "ERROR: You did not specify a config generator. Use --config-generator to specify one and see the "
             "documentation of the create_tournament method in negmas.situated for details about it."
+            "\nThe following must be explicitly specified to create a tournament: a world-generator, "
+            "an assigner, a scorer, and a config-generator."
         )
         return -4
+    if len(world_generator is None or world_generator.strip()) == 0:
+        print(
+            "ERROR: You did not specify a world generator. Use --world-generator to specify one and see the "
+            "documentation of the create_tournament method in negmas.situated for details about it."
+            "\nThe following must be explicitly specified to create a tournament: a world-generator, "
+            "an assigner, a scorer, and a config-generator."
+        )
+        return -3
+    if len(assigner is None or assigner.strip()) == 0:
+        print(
+            "ERROR: You did not specify an assigner. Use --assigner to specify one and see the documentation"
+            " of the create_tournament method in negmas.situated for details about it."
+            "\nThe following must be explicitly specified to create a tournament: a world-generator, "
+            "an assigner, a scorer, and a config-generator."
+        )
+        return -2
+    if len(scorer is None or scorer.strip()) == 0:
+        print(
+            "ERROR: You did not specify a scorer. Use --scorer to specify one and see the documentation of the "
+            "create_tournament method in negmas.situated for details about it."
+            "\nThe following must be explicitly specified to create a tournament: a world-generator, "
+            "an assigner, a scorer, and a config-generator."
+        )
+        return -1
     if (
         jcompetitors is not None
         and len(jcompetitors) > 0
-        and len(java_interop_class.trim()) == 0
+        and len(java_interop_class.strip()) == 0
     ):
         print(
-            f"ERROR: You are passing java competitors but not java interop class (use --java-interop-class to "
+            f"ERROR: You are passing java competitors but not java interop class (use --java-interop-class "
             f" to pass the name of that class or do not pass java competitors [--jcompetitors])"
         )
         return -5
