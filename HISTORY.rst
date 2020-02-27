@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.6.4
+-------------
+
+- [situated] Cancellation fraction and Agreement fraction now consider only
+  negotiated contracts
+
 Release 0.6.3
 -------------
 
