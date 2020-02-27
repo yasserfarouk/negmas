@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.6.5
+-------------
+
+- [helpers] making add_records more robust to input
+- [bugfix] Resolving a bug in creating graphs while running a tournament
+
 Release 0.6.4
 -------------
 
