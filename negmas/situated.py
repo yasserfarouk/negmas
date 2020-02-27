@@ -4203,18 +4203,18 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @property
     def agreement_fraction(self) -> float:
-        """Fraction of negotiations ending in agreement and leading to concluded contracts"""
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
         n_negs = sum(self.stats["n_negotiations"])
         n_contracts = self.n_saved_contracts(True)
         return n_contracts / n_negs if n_negs != 0 else np.nan
 
     @property
     def cancellation_fraction(self) -> float:
-        """Fraction concluded contracts that gets cancelled"""
+        """Fraction of negotiations ending in agreement and leading to signed contracts"""
         n_negs = sum(self.stats["n_negotiations"])
         n_contracts = self.n_saved_contracts(True)
         n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0 and _["issues"]]
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
         return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
 
