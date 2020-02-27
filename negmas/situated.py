@@ -2623,7 +2623,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 contract, r = self._step_a_mechanism(mechanism, force_immediate_signing)
                 contracts[i] = contract
                 running[i] = r
-                if not running:
+                if not running[i]:
                     if contract is None:
                         n_broken_ += 1
                         n_steps_broken_ += mechanism.state.step + 1
@@ -4196,22 +4196,25 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         Args:
             ignore_no_issue: If true, only contracts resulting from negotiation (has some issues) will be counted
         """
+        if ignore_no_issue:
+            return len([_ for _ in self._saved_contracts.values() if _["issues"]])
         return len(self._saved_contracts)
+
 
     @property
     def agreement_fraction(self) -> float:
-        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        """Fraction of negotiations ending in agreement and leading to concluded contracts"""
         n_negs = sum(self.stats["n_negotiations"])
         n_contracts = self.n_saved_contracts(True)
         return n_contracts / n_negs if n_negs != 0 else np.nan
 
     @property
     def cancellation_fraction(self) -> float:
-        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        """Fraction concluded contracts that gets cancelled"""
         n_negs = sum(self.stats["n_negotiations"])
         n_contracts = self.n_saved_contracts(True)
         n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
+            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0 and _["issues"]]
         )
         return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
 
