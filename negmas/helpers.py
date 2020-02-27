@@ -1068,17 +1068,30 @@ def add_records(
 
     """
     data = pd.DataFrame(data=data, columns=col_names)
+    if len(data) < 1:
+        return
     file_name = pathlib.Path(file_name)
     file_name.parent.mkdir(parents=True, exist_ok=True)
     new_file = True
+    mode = "a"
     if file_name.exists():
         new_file = False
         with open(file_name, "r") as f:
             header = f.readline().strip().strip("\n")
         cols = header.split(",")
         for col in cols:
-            if col not in data.columns:
+            if len(col)>0 and col not in data.columns:
                 data[col] = None
-        data = data.loc[:, cols]
-    data.to_csv(str(file_name), index=False, index_label="", mode="a", header=new_file)
-    return
+        if set([_ for _ in data.columns]) == set(cols):
+            data = data.loc[:, cols]
+        else:
+            try:
+                old_data = pd.read_csv(file_name, index_col=None)
+                data = pd.concat((old_data, data), axis=0, ignore_index=True)
+            except Exception as e:
+                print(f"Failed to read data from file {str(file_name)} will override it")
+
+            mode="w"
+            new_file=True
+        
+    data.to_csv(str(file_name), index=False, index_label="", mode=mode, header=new_file)

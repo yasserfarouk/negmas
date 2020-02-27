@@ -2630,15 +2630,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     else:
                         n_success_ += 1
                         n_steps_success_ += mechanism.state.step + 1
-                    self._add_edges(
-                        partners[0],
-                        partners,
-                        self._edges_negotiations_succeeded
-                        if contract is not None
-                        else self._edges_negotiations_failed,
-                        issues=mechanism.issues,
-                        bi=True,
-                    )
+                    for _p in partners:
+                        self._add_edges(
+                            _p[0],
+                            _p,
+                            self._edges_negotiations_succeeded
+                            if contract is not None
+                            else self._edges_negotiations_failed,
+                            issues=mechanism.issues,
+                            bi=True,
+                        )
             current_step += 1
             if current_step >= n_steps:
                 break

@@ -393,6 +393,9 @@ def _run_worlds(
         video_saver_params_list.append(world_params.get("__video_saver_params", dict()))
         save_videos.append(world_params.get("__save_video", False))
         scoring_context.update(world_params.get("scoring_context", {}))
+        world_params.pop("__video_saver", None)
+        world_params.pop("__video_saver_params", None)
+        world_params.pop("__save_video", None)
         world = world_generator(**world_params)
         worlds.append(world)
         if dry_run:
@@ -437,6 +440,8 @@ def _run_worlds(
         )
     except Exception as e:
         scores = None
+        print(traceback.format_exc())
+        print(e)
         world_stats = WorldSetRunStats(
             name=";".join(_.name for _ in worlds),
             planned_n_steps=sum(_.n_steps for _ in worlds),
@@ -1723,13 +1728,7 @@ def combine_tournament_stats(
             #         [p[c] for c in p.keys() if "_df_" not in c],
             #     )
             # )
-            try:
-                p = pd.DataFrame.from_dict(p)
-            except Exception as e:
-                print("Arrays are not of the same length")
-                pprint(dict(zip(p.keys(), [len(_) for _ in p.values()])))
-                pprint(p)
-                raise e
+            p = pd.DataFrame.from_dict(p)
             p = p.loc[:, [c for c in p.columns if World.is_basic_stat(c)]]
             p["step"] = list(range(len(p)))
             p["world"] = filename.parent.name
@@ -1776,14 +1775,10 @@ def _combine_stats(stats: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
     ]
     last.set_index("world")
     last.drop("world", axis=1, inplace=True)
-    # last.index = range(len(last))
-    # combined.index = range(len(last))
-    # print(combined)
-    # print(last)
     combined.columns = combined.columns.to_flat_index()
-    combined.columns = [
-        f"{a[0]}_a{1}" if a not in ("world", "path") else a[0] for a in combined.columns
-    ]
+    # combined.columns = [
+    #     f"{a[0]}_a{1}" if a not in ("world", "path") else a[0] for a in combined.columns
+    # ]
     combined = pd.merge(combined, last, on=["world"])
 
     def adjust_name(s):
