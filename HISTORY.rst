@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.6.3
+-------------
+
+- [situated] never fail for gif generation (just pass the exception)
+- [CLI] Fixing a bug that prevented negmas tournament create from failing 
+  gracefully when not given a scorer/assigner/world-config or world-generator.
+
 Release 0.6.2
 -------------
 
