@@ -404,7 +404,7 @@ class Entity(NamedObject):
 
     @classmethod
     def _type_name(cls):
-        return snake_case(cls.__name__)
+        return snake_case(cls.__module__ + "." + cls.__name__)
 
     @property
     def type_name(self):
@@ -4211,9 +4211,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @property
     def cancellation_fraction(self) -> float:
-        """Fraction of negotiations ending in agreement and leading to signed contracts"""
+        """Fraction of contracts concluded (through negotiation or otherwise)
+        that were cancelled."""
         n_negs = sum(self.stats["n_negotiations"])
-        n_contracts = self.n_saved_contracts(True)
+        n_contracts = self.n_saved_contracts(False)
         n_signed_contracts = len(
             [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
         )
