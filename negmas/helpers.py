@@ -1014,6 +1014,13 @@ def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
     elif file_name.suffix == ".pickle":
         with open(file_name, "wb") as f:
             pickle.dump(d, f)
+    elif file_name.suffix == ".csv":
+        if not isinstance(d, pd.DataFrame):
+            try:
+                d = pd.DataFrame(d)
+            except Exception as e:
+                raise ValueError(f"Failed to convert to a dataframe: {str(e)}")
+        d.to_csv(file_name)
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
 
@@ -1045,6 +1052,8 @@ def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
     elif file_name.suffix == ".pickle":
         with open(file_name, "rb") as f:
             d = pickle.load(f)
+    elif file_name.suffix == ".csv":
+        d = pd.read_csv(file_name).to_dict()
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
     return d
