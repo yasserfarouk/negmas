@@ -64,6 +64,7 @@ __all__ = [
     "JavaSAONegotiator",
     "PassThroughSAONegotiator",
     "SAOSyncController",
+    "SAOSingleAgreementController",
 ]
 
 
@@ -2061,6 +2062,50 @@ class SAOSyncController(SAOController):
         """Gets a set of proposals to use for initializing the negotiation. To avoid offering anything, just return None
         for all of them. That is the default"""
         return dict(zip(self.negotiators.keys(), itertools.repeat(None)))
+
+
+class SAOSingleAgreementController(SAOSyncController):
+    """A synchronized controller that can at most get one agreement"""
+    def counter_all(self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]) -> Dict[str, SAOResponse]:
+        """
+        Counters all responses
+
+        Args:
+            offers: A dictionary mapping partner ID to offer
+            states: A dictionary mapping partner ID to mechanism state
+
+        Returns:
+            A dictionary mapping partner ID to a response
+
+        Remarks:
+
+            The agent will counter all offers by either ending all negotiations except one which is accepted or by
+            rejecting all offers and countering them using the `make_offer` method.
+
+        """
+        partner = self.best_offer(offers)
+        if partner is None:
+            current_offers = [self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()]
+            return dict(zip(offers.keys(), [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers]))
+        acceptable = self.is_acceptable(partner)
+        if acceptable:
+            responses = dict(zip(offers.keys(), itertools.repeat(SAOResponse(ResponseType.END_NEGOTIATION, None))))
+            responses[partner] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
+            return responses
+        current_offers = [self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()]
+        return dict(zip(offers.keys(), [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers]))
+
+    @abstractmethod
+    def is_acceptable(self, offer: "Outcome") -> bool:
+        """ Should decide if the given offer is acceptable """
+
+    @abstractmethod
+    def best_offer(self, offers: List["Outcome"]) -> str:
+        """ returns the ID of the negotiator with the best offer (should break ties randomly) """
+
+    @abstractmethod
+    def make_offer(self, partner: str, state: SAOState) -> Optional[Outcome]:
+        """Generate an offer for the given partner"""
 
 
 SAOProtocol = SAOMechanism
