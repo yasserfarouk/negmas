@@ -372,18 +372,7 @@ class BreachProcessing(Enum):
 
 @dataclass
 class RenegotiationRequest:
-    """A request for renegotiation.
-
-    The issues can be any or all of the following:
-
-    immediate_delivery: int
-    immediate_unit_price: float
-    later_quantity: int
-    later_unit_price: int
-    later_penalty: float
-    later_time: int
-
-    """
+    """A request for renegotiation."""
 
     publisher: "Agent"
     issues: List[Issue]
