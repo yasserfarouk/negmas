@@ -4,6 +4,18 @@ History
 Release 0.6.5
 -------------
 
+- [tournament] Adding a string conversion to TournamentResults
+- [sao] Adding SAOSingleAgreementController that is guaranteed to get
+  at most one agreement only.
+- [helperrs] Supporting dumping csv files in dump/load
+- [situated] making _type_name add the module name to the class name
+  before snake-casing it
+- [situated] [bug] correcting cancellation_fraction implementation to
+  take into account non-negotiated contracts
+
+Release 0.6.5
+-------------
+
 - [helpers] making add_records more robust to input
 - [bugfix] Resolving a bug in creating graphs while running a tournament
 
