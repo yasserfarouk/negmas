@@ -226,6 +226,19 @@ class TournamentResults:
     params: Dict[str, Any] = None
     """Parameters of the tournament"""
 
+    def __str__(self):
+        import tabulate
+
+        results = ""
+        results += tabulate.tabulate(self.total_scores)
+        results += f"The winner(s) is: {self.winners}"
+        if self.kstest is not None:
+            results += tabulate.tabulate(self.kstest)
+        elif self.ttest is not None:
+            results += tabulate.tabulate(self.ttest)
+        results += f"\n See stats at {self.path}"
+        return results
+
 
 def run_world(
     world_params: dict, dry_run: bool = False, save_world_stats: bool = True
