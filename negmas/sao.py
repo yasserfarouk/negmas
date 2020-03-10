@@ -2100,7 +2100,7 @@ class SAOSingleAgreementController(SAOSyncController):
         """ Should decide if the given offer is acceptable """
 
     @abstractmethod
-    def best_offer(self, offers: List["Outcome"]) -> str:
+    def best_offer(self, offers: : Dict[str, "outcome"]) -> str:
         """ returns the ID of the negotiator with the best offer (should break ties randomly) """
 
     @abstractmethod
