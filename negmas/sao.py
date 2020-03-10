@@ -2066,7 +2066,10 @@ class SAOSyncController(SAOController):
 
 class SAOSingleAgreementController(SAOSyncController):
     """A synchronized controller that can at most get one agreement"""
-    def counter_all(self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]) -> Dict[str, SAOResponse]:
+
+    def counter_all(
+        self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
+    ) -> Dict[str, SAOResponse]:
         """
         Counters all responses
 
@@ -2085,22 +2088,41 @@ class SAOSingleAgreementController(SAOSyncController):
         """
         partner = self.best_offer(offers)
         if partner is None:
-            current_offers = [self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()]
-            return dict(zip(offers.keys(), [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers]))
+            current_offers = [
+                self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()
+            ]
+            return dict(
+                zip(
+                    offers.keys(),
+                    [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers],
+                )
+            )
         acceptable = self.is_acceptable(partner)
         if acceptable:
-            responses = dict(zip(offers.keys(), itertools.repeat(SAOResponse(ResponseType.END_NEGOTIATION, None))))
+            responses = dict(
+                zip(
+                    offers.keys(),
+                    itertools.repeat(SAOResponse(ResponseType.END_NEGOTIATION, None)),
+                )
+            )
             responses[partner] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
             return responses
-        current_offers = [self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()]
-        return dict(zip(offers.keys(), [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers]))
+        current_offers = [
+            self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()
+        ]
+        return dict(
+            zip(
+                offers.keys(),
+                [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers],
+            )
+        )
 
     @abstractmethod
     def is_acceptable(self, offer: "Outcome") -> bool:
         """ Should decide if the given offer is acceptable """
 
     @abstractmethod
-    def best_offer(self, offers: : Dict[str, "outcome"]) -> str:
+    def best_offer(self, offers: Dict[str, "outcome"]) -> str:
         """ returns the ID of the negotiator with the best offer (should break ties randomly) """
 
     @abstractmethod
