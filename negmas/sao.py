@@ -80,8 +80,10 @@ class SAOResponse:
 class SAOState(MechanismState):
     current_offer: Optional["Outcome"] = None
     current_proposer: Optional[str] = None
+    current_proposer_agent: Optional[str] = None
     n_acceptances: int = 0
     new_offers: List[Tuple[str, "Outcome"]] = field(default_factory=list)
+    new_offerer_agents: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -179,13 +181,28 @@ class SAOMechanism(Mechanism):
         return True
 
     def extra_state(self):
+        current_proposer_agent = (
+            self._current_proposer.owner if self._current_proposer else None
+        )
+        if current_proposer_agent and self.publish_proposer:
+            current_proposer_agent = current_proposer_agent.id
+        new_offerer_agents = []
+        for neg_id, outcome in self._new_offers:
+            neg = self._negotiator_map.get(neg_id, None)
+            agent = neg.owner if neg else None
+            if agent is not None and self.publish_proposer:
+                new_offerer_agents.append(agent.id)
+            else:
+                new_offerer_agents.append(None)
         return SAOState(
             current_offer=self._current_offer,
             new_offers=self._new_offers,
             current_proposer=self._current_proposer.id
             if self._current_proposer and self.publish_proposer
             else None,
+            current_proposer_agent=current_proposer_agent,
             n_acceptances=self._n_accepting if self.publish_n_acceptances else 0,
+            new_offerer_agents=new_offerer_agents,
         )
 
     def plot(

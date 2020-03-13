@@ -92,7 +92,7 @@ from typing import (
     Iterator,
     Collection,
 )
-
+from pandas import json_normalize
 import matplotlib.pyplot as plt
 
 try:
@@ -114,7 +114,6 @@ from negmas.helpers import (
     instantiate,
     get_class,
     unique_name,
-    snake_case,
     dump,
     create_loggers,
     add_records,
@@ -300,6 +299,8 @@ class Contract(OutcomeType):
     """A mapping from each agent to its signature"""
     mechanism_state: Optional[MechanismState] = None
     """The mechanism state at the contract conclusion"""
+    mechanism_id: Optional[str] = None
+    """The Id of the mechanism that led to this contract"""
     id: str = field(default_factory=lambda: str(uuid.uuid4()), init=True)
     """Object name"""
 
@@ -393,7 +394,7 @@ class Entity(NamedObject):
 
     @classmethod
     def _type_name(cls):
-        return snake_case(cls.__module__ + "." + cls.__name__)
+        return cls.__module__ + "." + cls.__name__
 
     @property
     def type_name(self):
@@ -1372,6 +1373,19 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         self.contracts: List[Contract] = []
         self._unsigned_contracts: Set[Contract] = set()
         self._awi: AgentWorldInterface = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the agent into  dict for storage purposes.
+
+        The agent need not be recoverable from this representation.
+
+        """
+        try:
+            d = to_dict(self, False, False, False)
+            _ = json.dumps(d)
+            return d
+        except:
+            return {"id": self.id, "name": self.name}
 
     @property
     def initialized(self) -> bool:
@@ -2543,6 +2557,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             "id": negotiation.mechanism.id,
         }
         record.update(to_flat_dict(negotiation.annotation))
+        record.update(self._saved_negotiations.get(mechanism.id, {}))
         add_records(str(Path(self._log_folder) / "negotiation_info.csv"), [record])
         data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
         data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
@@ -2573,7 +2588,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         agreement, is_running = result.agreement, result.running
         if agreement is not None or not is_running:
             negotiation = self._negotiations.get(mechanism.id, None)
-            self._log_negotiation(negotiation)
             if agreement is None:
                 self._register_failed_negotiation(mechanism.ami, negotiation)
             else:
@@ -2582,6 +2596,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     negotiation,
                     self._tobe_signed_at(agreement, force_immediate_signing),
                 )
+            self._log_negotiation(negotiation)
             if negotiation:
                 self._negotiations.pop(mechanism.uuid, None)
         return contract, is_running
@@ -3525,12 +3540,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         partners = negotiation.partners
         if self.save_negotiations:
             _stats = {
-                "final_status": "failed",
+                "final_status": "succeeded",
                 "partners": [_.id for _ in partners],
                 "partner_types": [_.__class__.__name__ for _ in partners],
                 "ended_at": self.current_step,
                 "requested_at": negotiation.requested_at,
                 "mechanism_type": mechanism.__class__.__name__,
+                "negotiation_id": mechanism.id,
             }
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
@@ -3551,6 +3567,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             to_be_signed_at=to_be_signed_at,
             signed_at=signed_at,
             mechanism_state=mechanism.state,
+            mechanism_id=mechanism.id,
         )
         self.on_contract_concluded(contract, to_be_signed_at)
         for partner in partners:
@@ -3618,6 +3635,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 "ended_at": self.current_step,
                 "requested_at": negotiation.requested_at,
                 "mechanism_type": mechanism.__class__.__name__,
+                "negotiation_id": mechanism.id,
             }
             _stats.update(mechanism.state.__dict__)
             self._saved_negotiations[mechanism.id] = _stats
@@ -3710,7 +3728,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.unsigned_contracts[self.current_step].remove(contract)
         except KeyError:
             pass
-        record = self.contract_record(contract)
+        record = self._contract_record(contract)
 
         if self.save_signed_contracts:
             record["signed_at"] = self.current_step
@@ -3762,7 +3780,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._edges_contracts_cancelled,
             bi=True,
         )
-        record = self.contract_record(contract)
+        record = self._contract_record(contract)
         record["signed_at"] = -1
         record["executed_at"] = -1
         record["breaches"] = ""
@@ -4190,7 +4208,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return len([_ for _ in self._saved_contracts.values() if _["issues"]])
         return len(self._saved_contracts)
 
-
     @property
     def agreement_fraction(self) -> float:
         """Fraction of negotiations ending in agreement and leading to signed contracts"""
@@ -4334,6 +4351,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     ) -> Collection[Contract]:
         """Orders the contracts in a specific time-step that are about to be executed"""
         return contracts
+
+    def _contract_record(self, contract: Contract) -> Dict[str, Any]:
+        """Converts a contract to a record suitable for permanent storage"""
+        record = self.contract_record(contract)
+        record.update({"negotiation_id": contract.mechanism_id})
+        return record
 
     @abstractmethod
     def contract_record(self, contract: Contract) -> Dict[str, Any]:
@@ -4565,6 +4588,8 @@ def save_stats(
         params = d
     if stats_file_name is None:
         stats_file_name = "stats"
+    agents = {k: a.to_dict() for k, a in world.agents.items()}
+    dump(agents, log_dir / "agents")
     dump(params, log_dir / "params")
     dump(world.stats, log_dir / stats_file_name)
 
@@ -4583,6 +4608,8 @@ def save_stats(
     if world.save_negotiations:
         if len(world.saved_negotiations) > 0:
             data = pd.DataFrame(world.saved_negotiations)
+            if "ended_at" in data.columns:
+                data = data.sort_values(["ended_at"])
             data.to_csv(str(log_dir / "negotiations.csv"), index_label="index")
         else:
             with open(log_dir / "negotiations.csv", "w") as f:
@@ -4599,24 +4626,6 @@ def save_stats(
     if world.save_signed_contracts:
         if len(world.signed_contracts) > 0:
             data = pd.DataFrame(world.signed_contracts)
-            # data = data.sort_values(["delivery_time"])
-            # data = data.loc[
-            #     :,
-            #     [
-            #         "seller_type",
-            #         "buyer_type",
-            #         "seller_name",
-            #         "buyer_name",
-            #         "delivery_time",
-            #         "unit_price",
-            #         "quantity",
-            #         "product_name",
-            #         "n_neg_steps",
-            #         "signed_at",
-            #         "concluded_at",
-            #         "cfp",
-            #     ],
-            # ]
             data.to_csv(str(log_dir / "signed_contracts.csv"), index_label="index")
         else:
             with open(log_dir / "signed_contracts.csv", "w") as f:
@@ -4625,24 +4634,6 @@ def save_stats(
     if world.save_cancelled_contracts:
         if len(world.cancelled_contracts) > 0:
             data = pd.DataFrame(world.cancelled_contracts)
-            # data = data.sort_values(["delivery_time"])
-            # data = data.loc[
-            #     :,
-            #     [
-            #         "seller_type",
-            #         "buyer_type",
-            #         "seller_name",
-            #         "buyer_name",
-            #         "delivery_time",
-            #         "unit_price",
-            #         "quantity",
-            #         "product_name",
-            #         "n_neg_steps",
-            #         "signed_at",
-            #         "concluded_at",
-            #         "cfp",
-            #     ],
-            # ]
             data.to_csv(str(log_dir / "cancelled_contracts.csv"), index_label="index")
         else:
             with open(log_dir / "cancelled_contracts.csv", "w") as f:
@@ -4656,23 +4647,6 @@ def save_stats(
                     data = data.sort_values(["delivery_time"])
                     break
             data.to_csv(str(log_dir / "contracts_full_info.csv"), index_label="index")
-            # data = data.loc[
-            #     :,
-            #     [
-            #         "seller_type",
-            #         "buyer_type",
-            #         "seller_name",
-            #         "buyer_name",
-            #         "delivery_time",
-            #         "unit_price",
-            #         "quantity",
-            #         "product_name",
-            #         "n_neg_steps",
-            #         "signed_at",
-            #         "concluded_at",
-            #         "cfp",
-            #     ],
-            # ]
             if world.save_signed_contracts and world.save_cancelled_contracts:
                 data.to_csv(str(log_dir / "all_contracts.csv"), index_label="index")
         else:
