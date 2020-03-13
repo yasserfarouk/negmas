@@ -223,6 +223,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         self._requirements = {}
         self._negotiators = []
+        self._negotiator_map: Dict[str, "SAONegotiator"] = dict()
         self._roles = []
         self._start_time = None
         self._started = False
@@ -422,13 +423,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             ami=self._get_ami(negotiator, role), state=self.state, ufun=ufun, role=role
         ):
             self._negotiators.append(negotiator)
+            self._negotiator_map[negotiator.id] = negotiator
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
             self.agents_of_role[role].append(negotiator)
             return True
         return None
 
-    def remove(self, agent: "Negotiator", **kwargs) -> Optional[bool]:
+    def remove(self, negotiator: "Negotiator", **kwargs) -> Optional[bool]:
         """Remove the agent from the negotiation.
 
         Args:
@@ -439,16 +441,15 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             * False if the agent was not in the negotiation already.
             * None if the agent cannot be removed.
         """
-        try:
-            indx = self._negotiators.index(agent)
-        except ValueError:
+        if not self.can_leave(negotiator):
             return False
-
-        if not self.can_leave(agent):
-            return None
-        self._negotiators = self._negotiators[0:indx] + self._negotiators[indx + 1 :]
+        n = self._negotiator_map.get(negotiator.id, None)
+        if n is None:
+            return False
+        self._negotiators.remove(negotiator)
+        self._negotiator_map.pop(negotiator.id)
         if self._enable_callbacks:
-            agent.on_leave(self.ami, **kwargs)
+            negotiator.on_leave(self.ami, **kwargs)
         return True
 
     def add_requirements(self, requirements: dict) -> None:
@@ -680,9 +681,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self._enable_callbacks:
             for agent in self._negotiators:
                 agent.on_round_end(state=self.state)
-        self._history.append(self.state)
+        self._history.append(self.state4history)
         self._step += 1
         self.on_negotiation_end()
+        return self.state
+
+    @property
+    def state4history(self) -> Any:
+        """Returns the state as it should be stored in the history"""
         return self.state
 
     def step(self) -> MechanismState:
@@ -701,22 +707,22 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.checkpoint_on_step_started()
         if self.time > self.time_limit:
             self._agreement, self._broken, self._timedout = None, False, True
-            self._history.append(self.state)
+            self._history.append(self.state4history)
             self.on_negotiation_end()
             return self.state
         if len(self._negotiators) < 2:
             if self.ami.dynamic_entry:
-                self._history.append(self.state)
+                self._history.append(self.state4history)
                 return self.state
             else:
                 self.ami.state.running = False
                 self._agreement, self._broken, self._timedout = None, False, False
-                self._history.append(self.state)
+                self._history.append(self.state4history)
                 self.on_negotiation_end()
                 return self.state
 
         if self._broken or self._timedout or self._agreement is not None:
-            self._history.append(self.state)
+            self._history.append(self.state4history)
             return self.state
 
         if not self._running:
@@ -726,7 +732,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._started = True
             if self.on_negotiation_start() is False:
                 self._agreement, self._broken, self._timedout = None, False, False
-                self._history.append(self.state)
+                self._history.append(self.state4history)
                 return self.state
             if self._enable_callbacks:
                 for a in self.negotiators:
@@ -739,7 +745,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             ):
                 self._running = False
                 self._agreement, self._broken, self._timedout = None, False, True
-                self._history.append(self.state)
+                self._history.append(self.state4history)
                 self.on_negotiation_end()
                 return self.state
 
@@ -775,7 +781,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             if self._enable_callbacks:
                 for agent in self._negotiators:
                     agent.on_round_end(state=self.state)
-            self._history.append(self.state)
+            self._history.append(self.state4history)
             self._step += 1
         if not self._running:
             self.on_negotiation_end()
