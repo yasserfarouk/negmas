@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any, Iterable, Union
 import numpy as np
 
 import pkg_resources
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
 from py4j.java_collections import (
     ListConverter,
@@ -309,7 +309,7 @@ def to_flat_dict(value, deep=True) -> Dict[str, Any]:
 
 
 def to_dict(value, deep=True, add_type_field=True, camel=True):
-    """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
+    """Encodes the given value as nothing more complex than simple dict of either dicts, lists or builtin numeric
     or string values
 
     Args:
