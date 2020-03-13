@@ -97,6 +97,7 @@ setup(
         "nose",
         "cython",
         "networkx",
+        "PyQT5",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
