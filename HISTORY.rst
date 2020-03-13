@@ -1,7 +1,17 @@
 History
 =======
 
-Release 0.6.5
+Release 0.6.7
+-------------
+
+- Adding information about the agent in SAOState
+- Preliminary GUI support
+- Correcting the import of json_normalize to match
+- Pandas 1.0
+- Correcting the types of offers in SingleAgreement
+- Documentation update (removing inherited members)
+
+Release 0.6.6
 -------------
 
 - [tournament] Adding a string conversion to TournamentResults
