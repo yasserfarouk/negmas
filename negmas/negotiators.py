@@ -508,6 +508,53 @@ class Controller(NamedObject):
         if response or force:
             self._negotiators.pop(negotiator_id, None)
 
+    def before_join(
+        self,
+        negotiator_id: str,
+        ami: AgentMechanismInterface,
+        state: MechanismState,
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: str = "agent",
+    ) -> bool:
+        """
+        Called by children negotiators to get permission to join negotiations
+
+        Args:
+            negotiator_id: The negotiator ID
+            ami  (AgentMechanismInterface): The negotiation.
+            state (MechanismState): The current state of the negotiation
+            ufun (UtilityFunction): The ufun function to use before any discounting.
+            role (str): role of the agent.
+
+        Returns:
+            True if the negotiator is allowed to join the negotiation otherwise
+            False
+
+        """
+        return True
+        
+    def after_join(
+        self,
+        negotiator_id: str,
+        ami: AgentMechanismInterface,
+        state: MechanismState,
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: str = "agent",
+    ) -> None:
+        """
+        Called by children negotiators after joining a negotiation to inform 
+        the controller
+
+        Args:
+            negotiator_id: The negotiator ID
+            ami  (AgentMechanismInterface): The negotiation.
+            state (MechanismState): The current state of the negotiation
+            ufun (UtilityFunction): The ufun function to use before any discounting.
+            role (str): role of the agent.
+        """
+
     def join(
         self,
         negotiator_id: str,
@@ -535,7 +582,13 @@ class Controller(NamedObject):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(negotiator, "join", ami=ami, state=state, ufun=ufun, role=role)
+        permission = self.before_join(negotiator, ami, state, ufun=ufun, role=role)
+        if not permission:
+            return False
+        if self.call(negotiator, "join", ami=ami, state=state, ufun=ufun, role=role):
+            self.after_join(negotiator, ami, state, ufun=ufun, role=role)
+            return True
+        return False
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         """
@@ -666,7 +719,8 @@ class AspirationMixin:
             aspiration_type:
             above_reserved_value:
         """
-        self.add_capabilities({"aspiration": True})
+        if hasattr(self, "add_capabilities"):
+            self.add_capabilities({"aspiration": True})
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
         self.exponent = 1.0

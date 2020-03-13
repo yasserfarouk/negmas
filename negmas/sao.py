@@ -1967,6 +1967,19 @@ class PassThroughSAONegotiator(SAONegotiator):
     def on_negotiation_end(self, state: MechanismState) -> None:
         return self._Negotiator__parent.on_negotiation_end(self.id, state)
 
+    def join(self, ami, state, *, ufun=None, role="agent",) -> bool:
+        permission = self._Negotiator__parent.before_join(
+            self.id, ami, state, ufun=ufun, role=role
+        )
+        if not permission:
+            return False
+        if super().join(ami, state, ufun=ufun, role=role):
+            self._Negotiator__parent.after_join(
+                self.id, ami, state, ufun=ufun, role=role
+            )
+            return True
+        return False
+
 
 class SAOController(Controller):
     """A controller that can manage multiple negotiators taking full or partial control from them."""
@@ -2106,7 +2119,10 @@ class SAOSingleAgreementController(SAOSyncController):
         partner = self.best_offer(offers)
         if partner is None:
             current_offers = [
-                self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()
+                self.make_offer(
+                    negotiator=nid, state=states[nid], best_offer=None, best_from=None
+                )
+                for nid in offers.keys()
             ]
             return dict(
                 zip(
@@ -2114,7 +2130,7 @@ class SAOSingleAgreementController(SAOSyncController):
                     [SAOResponse(ResponseType.REJECT_OFFER, o) for o in current_offers],
                 )
             )
-        acceptable = self.is_acceptable(partner)
+        acceptable = self.is_acceptable(offers[partner], partner)
         if acceptable:
             responses = dict(
                 zip(
@@ -2125,7 +2141,13 @@ class SAOSingleAgreementController(SAOSyncController):
             responses[partner] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
             return responses
         current_offers = [
-            self.make_offer(partner=nid, state=states[nid]) for nid in offers.keys()
+            self.make_offer(
+                negotiator=nid,
+                state=states[nid],
+                best_offer=offers[partner],
+                best_from=partner,
+            )
+            for nid in offers.keys()
         ]
         return dict(
             zip(
@@ -2135,16 +2157,56 @@ class SAOSingleAgreementController(SAOSyncController):
         )
 
     @abstractmethod
-    def is_acceptable(self, offer: "Outcome") -> bool:
-        """ Should decide if the given offer is acceptable """
+    def is_acceptable(self, offer: "Outcome", source: str) -> bool:
+        """ Should decide if the given offer is acceptable
+
+        Args:
+            offer: The offer being tested
+            source: The ID of the negotiator that received this offer
+
+        Remarks:
+            - If True is returned, this offer will be accepted and all other
+              negotiations will be ended.
+        """
 
     @abstractmethod
-    def best_offer(self, offers: Dict[str, "outcome"]) -> str:
-        """ returns the ID of the negotiator with the best offer (should break ties randomly) """
+    def best_offer(self, offers: Dict[str, "Outcome"]) -> Optional[str]:
+        """
+        Return the ID of the negotiator with the best offer
 
-    @abstractmethod
-    def make_offer(self, partner: str, state: SAOState) -> Optional[Outcome]:
-        """Generate an offer for the given partner"""
+        Args:
+            offers: A mapping from negotiator ID to the offer it received
+
+        Returns:
+            The ID of the negotiator with best offer. Ties should be broken.
+            Return None only if there is no way to calculate the best offer.
+        """
+
+    def make_offer(
+        self,
+        negotiator: str,
+        state: SAOState,
+        best_offer: Optional["Outcome"],
+        best_from: Optional[str],
+    ) -> Optional[Outcome]:
+        """Generate an offer for the given partner
+
+        Args:
+            negotiator: The ID of the negotiator for who an offer is to be made.
+            state: The mechanism state of this partner
+            best_offer: The best offer received in this round. None means that
+                        no known best offers.
+            best_from: The ID of the negotiator that received the best offer
+
+        Returns:
+            The outcome to be offered to `negotiator` (None means no-offer)
+
+        Remarks:
+            Default behavior is to offer everyone `best_offer` if available
+            otherwise, it returns no offers (None)
+
+        """
+        return best_offer
 
 
 SAOProtocol = SAOMechanism
