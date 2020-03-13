@@ -684,6 +684,8 @@ class NegotiationInfo:
     issues: List["Issue"]
     requested_at: int
     rejectors: Optional[List["Agent"]] = None
+    caller: "Agent" = None
+    group: "str" = None
 
 
 class MechanismFactory:
@@ -705,9 +707,11 @@ class MechanismFactory:
         neg_step_time_limit=None,
         allow_self_negotiation=False,
         log_ufuns_file=None,
+        group: str = None,
     ):
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller
+        self.group = group
         self.partners = partners
         self.roles = roles
         self.annotation = annotation
@@ -883,6 +887,8 @@ class MechanismFactory:
                 issues=issues,
                 rejectors=rejectors,
                 requested_at=self.world.current_step,
+                caller=caller,
+                group=self.group,
             )
         mechanism = self._create_negotiation_session(
             mechanism=mechanism, responses=zip(responses, roles), partners=partners
@@ -893,6 +899,8 @@ class MechanismFactory:
             annotation=annotation,
             issues=issues,
             requested_at=self.world.current_step,
+            caller=caller,
+            group=self.group,
         )
         self.world.call(
             caller,
@@ -1088,6 +1096,7 @@ class AgentWorldInterface:
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
         mechanism_params: Dict[str, Any] = None,
+        group: Optional[str] = None,
     ) -> bool:
         """
         Requests to start a negotiation with some other agents
@@ -1102,6 +1111,9 @@ class AgentWorldInterface:
             `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
             must also be None
             mechanism_params: A dict of parameters used to initialize the mechanism object
+            group: An opational identifier for the group to which this negotiation belongs. It is not used by the system
+                   but is logged for debugging purposes. Moreover, the agent have access to it through its `negotiations`
+                   property.
 
         Returns:
 
@@ -1123,6 +1135,7 @@ class AgentWorldInterface:
             partners=partner_agents,
             roles=roles,
             issues=issues,
+            group=group,
             annotation=annotation,
             mechanism_name=mechanism_name,
             mechanism_params=mechanism_params,
@@ -1493,6 +1506,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         mechanism_params: Dict[str, Any] = None,
         negotiator: Negotiator = None,
         extra: Optional[Dict[str, Any]] = None,
+        group: Optional[str] = None,
     ) -> bool:
         """
         Requests to start a negotiation with some other agents
@@ -1508,6 +1522,8 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
             mechanism_params: A dict of parameters used to initialize the mechanism object
             negotiator: My negotiator to use in this negotiation. Can be none
             extra: Any extra information I would like to keep to myself for this negotiation
+            group: The negotiation group
+
         Returns:
 
             List["Agent"] the list of partners who rejected the negotiation if any. If None then the negotiation was
@@ -1538,6 +1554,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
             req_id=req_id,
             roles=roles,
             annotation=annotation,
+            group=group,
             mechanism_name=mechanism_name,
             mechanism_params=mechanism_params,
         )
@@ -2555,6 +2572,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             "Failed": agreement is None,
             "agreement": str(agreement),
             "id": negotiation.mechanism.id,
+            "group": negotiation.group,
+            "caller": negotaition.caller,
         }
         record.update(to_flat_dict(negotiation.annotation))
         record.update(self._saved_negotiations.get(mechanism.id, {}))
@@ -3163,6 +3182,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         req_id,
         run_to_completion=False,
         may_run_immediately=True,
+        group: str = None,
     ) -> Tuple[Optional[NegotiationInfo], Optional[Contract], Optional[Mechanism]]:
         """Registers a negotiation and returns the negotiation info"""
         if self._n_negs_per_agent_per_step[caller.id] >= self.neg_quota_step:
@@ -3179,6 +3199,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             partners=partners,
             roles=roles,
             annotation=annotation,
+            group=group,
             neg_n_steps=self.neg_n_steps,
             neg_time_limit=self.neg_time_limit,
             neg_step_time_limit=self.neg_step_time_limit,
@@ -3251,6 +3272,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
         mechanism_params: Dict[str, Any] = None,
+        group: str = None,
     ) -> bool:
         """
         Requests to start a negotiation with some other agents
@@ -3267,6 +3289,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
             must also be None
             mechanism_params: A dict of parameters used to initialize the mechanism object
+            group: An identifier for the group to which the negotiation belongs. This is not not used by the system.
 
         Returns:
 
@@ -3301,6 +3324,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             caller=caller,
             partners=partners,
             annotation=annotation,
+            group=group,
             issues=issues,
             req_id=req_id,
             run_to_completion=False,
@@ -3444,12 +3468,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
              the partner refused the negotiation])
 
         """
+        group = unique_name(base="NG")
         partners = [[self.agents[_] for _ in p] for p in partners]
         n_negs = len(partners)
         if isinstance(issues[0], Issue):
             issues = [issues] * n_negs
         if roles is None or not (
-            isinstance(roles, list) and isinstance(roles[0], list)
+                isinstance(roles, list) and isinstance(roles[0], list)
         ):
             roles = [roles] * n_negs
         if annotations is None or isinstance(annotations, dict):
@@ -3481,22 +3506,30 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             ),
         )
         negs = []
-        for (issue, partner, role, annotation, mech_name, mech_param) in zip(
-            issues, partners, roles, annotations, mechanism_names, mechanism_params
+        for (issue, partner, role, annotation, mech_name, mech_param, negotiator_) in zip(
+            issues, partners, roles, annotations, mechanism_names, mechanism_params, negotiators
         ):
+            req_id = caller.create_negotiation_request(
+                issues=issue,
+                partners=partner,
+                annotation=annotation,
+                negotiator=negotiator_,
+                extra={},
+            )
             neg, *_ = self._register_negotiation(
                 mechanism_name=mech_name,
                 mechanism_params=mech_param,
                 roles=role,
                 caller=caller,
                 partners=partner,
+                group=group,
                 annotation=annotation,
                 issues=issue,
-                req_id=None,
+                req_id=req_id,
                 run_to_completion=False,
                 may_run_immediately=False,
             )
-            neg.partners.append(caller)
+            # neg.partners.append(caller)
             if neg is None and all_or_none:
                 for _n in negs:
                     self._unregister_negotiation(_n)
@@ -3508,7 +3541,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         contracts = [None] * n_negs
         amis = [None] * n_negs
         for i, (neg, crole, ufun, negotiator) in enumerate(
-            zip(negs, caller_roles, ufuns, negotiators)
+                zip(negs, caller_roles, ufuns, negotiators)
         ):
             completed[i] = neg is None or (neg.mechanism is None) or negotiator is None
             if completed[i]:
