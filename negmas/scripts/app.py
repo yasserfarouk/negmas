@@ -4,25 +4,19 @@ import json
 import os
 import pathlib
 import sys
-import traceback
 import urllib.request
-import warnings
 from functools import partial
 from pathlib import Path
-from pprint import pformat, pprint
+from pprint import pprint
 from time import perf_counter
-import numpy as np
 
 import click
 import click_config_file
-import pandas as pd
-import progressbar
 import yaml
 from tabulate import tabulate
 
 import negmas
-from negmas import save_stats
-from negmas.helpers import humanize_time, unique_name, camel_case, load
+from negmas.helpers import humanize_time, unique_name, load
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 from negmas.tournaments import (
     create_tournament,
@@ -31,6 +25,8 @@ from negmas.tournaments import (
     combine_tournaments,
     combine_tournament_stats,
 )
+
+from .vendor.quick.quick import gui_option
 
 try:
     # disable a warning in yaml 1b1 version
@@ -83,6 +79,7 @@ def print_world_progress(world) -> None:
 click.option = partial(click.option, show_default=True)
 
 
+@gui_option
 @click.group()
 def cli():
     pass
@@ -433,7 +430,8 @@ def tournament(ctx, ignore_warnings):
 @click.option(
     "--config-generator",
     default="",
-    help="The full path to a configuration generator function that is used to generate all configs for the "
+    help="The full path to a configuration generator function that is used to generate"
+    " all configs for the "
     "tournament. MUST be specified",
 )
 @click.option(
@@ -527,8 +525,10 @@ def create(
         and len(java_interop_class.strip()) == 0
     ):
         print(
-            f"ERROR: You are passing java competitors but not java interop class (use --java-interop-class "
-            f" to pass the name of that class or do not pass java competitors [--jcompetitors])"
+            f"ERROR: You are passing java competitors but not java interop "
+            f"class (use --java-interop-class "
+            f" to pass the name of that class or do not pass java competitors"
+            f" [--jcompetitors])"
         )
         return -5
     if len(path) > 0:
@@ -551,7 +551,8 @@ def create(
     if not compact:
         if not reveal_names:
             print(
-                "You are running the tournament with --debug. Will reveal agent types in their names"
+                "You are running the tournament with --debug. Will reveal "
+                "agent types in their names"
             )
         reveal_names = True
         verbosity = max(1, verbosity)

@@ -70,5 +70,4 @@ sklearn
 nose
 pytest-sugar
 networkx
-
-
+PyQT5
