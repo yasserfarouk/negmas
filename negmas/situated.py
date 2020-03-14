@@ -2560,24 +2560,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if not self._log_negs:
             return
         mechanism = negotiation.mechanism
-        agreement = mechanism.state.agreement
         negs_folder = str(Path(self._log_folder) / "negotiations")
         os.makedirs(negs_folder, exist_ok=True)
-        record = {
-            "partner_ids": [_.id for _ in negotiation.partners],
-            "partners": [_.name for _ in negotiation.partners],
-            "requested_at": negotiation.requested_at,
-            "concluded_at": self.current_step,
-            "issues": [str(issue) for issue in negotiation.issues],
-            "Failed": agreement is None,
-            "agreement": str(agreement),
-            "id": negotiation.mechanism.id,
-            "group": negotiation.group,
-            "caller": negotaition.caller,
-        }
-        record.update(to_flat_dict(negotiation.annotation))
-        record.update(self._saved_negotiations.get(mechanism.id, {}))
-        add_records(str(Path(self._log_folder) / "negotiation_info.csv"), [record])
+        record = self._make_negotiation_record(negotiation)
+        if len(record) < 1:
+            return
+        add_records(str(Path(self._log_folder) / "negotiations.csv"), [record])
         data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
         data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
 
@@ -2768,7 +2756,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 for _ in self._negotiations.values()
                 if _ is not None
             )
-            _, _, n_steps_broken_, n_steps_success_, n_broken_, n_success_ = self._step_negotiations(
+            (
+                _,
+                _,
+                n_steps_broken_,
+                n_steps_success_,
+                n_broken_,
+                n_success_,
+            ) = self._step_negotiations(
                 [_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms]
             )
             n_total_broken = n_broken + n_broken_
@@ -3474,7 +3469,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if isinstance(issues[0], Issue):
             issues = [issues] * n_negs
         if roles is None or not (
-                isinstance(roles, list) and isinstance(roles[0], list)
+            isinstance(roles, list) and isinstance(roles[0], list)
         ):
             roles = [roles] * n_negs
         if annotations is None or isinstance(annotations, dict):
@@ -3506,8 +3501,22 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             ),
         )
         negs = []
-        for (issue, partner, role, annotation, mech_name, mech_param, negotiator_) in zip(
-            issues, partners, roles, annotations, mechanism_names, mechanism_params, negotiators
+        for (
+            issue,
+            partner,
+            role,
+            annotation,
+            mech_name,
+            mech_param,
+            negotiator_,
+        ) in zip(
+            issues,
+            partners,
+            roles,
+            annotations,
+            mechanism_names,
+            mechanism_params,
+            negotiators,
         ):
             req_id = caller.create_negotiation_request(
                 issues=issue,
@@ -3541,7 +3550,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         contracts = [None] * n_negs
         amis = [None] * n_negs
         for i, (neg, crole, ufun, negotiator) in enumerate(
-                zip(negs, caller_roles, ufuns, negotiators)
+            zip(negs, caller_roles, ufuns, negotiators)
         ):
             completed[i] = neg is None or (neg.mechanism is None) or negotiator is None
             if completed[i]:
@@ -3567,21 +3576,43 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return f"{self.name} (not started)"
         return f"{self.current_step}/{self.n_steps} [{self.relative_time:0.2%}]"
 
+    def _make_negotiation_record(self, negotiation: NegotiationInfo) -> Dict[str, Any]:
+        """Creates a record of the negotiation to be saved"""
+        if negotiation is None:
+            return {}
+        mechanism = negotiation.mechanism
+        if mechanism is None:
+            return {}
+        running, agreement = mechanism.state.running, mechanism.state.agreement
+        record = {
+            "id": mechanism.id,
+            "partner_ids": [_.id for _ in negotiation.partners],
+            "partners": [_.name for _ in negotiation.partners],
+            "partner_types": [_.type_name for _ in negotiation.partners],
+            "requested_at": negotiation.requested_at,
+            "ended_at": self.current_step,
+            "mechanism_type": mechanism.__class__.__name__,
+            "issues": [str(issue) for issue in negotiation.issues],
+            "final_status": "running"
+            if running
+            else "succeeded"
+            if agreement is not None
+            else "failed",
+            "failed": agreement is None,
+            "agreement": str(agreement),
+            "group": negotiation.group,
+            "caller": negotiation.caller,
+        }
+        record.update(to_flat_dict(negotiation.annotation))
+        record.update(mechanism.state.__dict__)
+        return record
+
     def _register_contract(
         self, mechanism, negotiation, to_be_signed_at
     ) -> Optional[Contract]:
         partners = negotiation.partners
         if self.save_negotiations:
-            _stats = {
-                "final_status": "succeeded",
-                "partners": [_.id for _ in partners],
-                "partner_types": [_.__class__.__name__ for _ in partners],
-                "ended_at": self.current_step,
-                "requested_at": negotiation.requested_at,
-                "mechanism_type": mechanism.__class__.__name__,
-                "negotiation_id": mechanism.id,
-            }
-            _stats.update(mechanism.state.__dict__)
+            _stats = self._make_negotiation_record(negotiation)
             self._saved_negotiations[mechanism.id] = _stats
         if mechanism.state.agreement is None or negotiation is None:
             return None
@@ -3661,16 +3692,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             bi=True,
         )
         if self.save_negotiations:
-            _stats = {
-                "final_status": "failed",
-                "partners": [_.id for _ in partners],
-                "partner_types": [_.__class__.__name__ for _ in partners],
-                "ended_at": self.current_step,
-                "requested_at": negotiation.requested_at,
-                "mechanism_type": mechanism.__class__.__name__,
-                "negotiation_id": mechanism.id,
-            }
-            _stats.update(mechanism.state.__dict__)
+            _stats = self._make_negotiation_record(negotiation)
             self._saved_negotiations[mechanism.id] = _stats
         for partner in partners:
             self.call(
