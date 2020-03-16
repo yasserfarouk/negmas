@@ -549,9 +549,9 @@ class CommandLayout(QtWidgets.QGridLayout):
         if func.help:
             label = _HelpLabel(func.help)
             label.setWordWrap(True)
-            self.addWidget(label, 0, 0, 1, 2)
+            self.addWidget(label, 0, 0, 1, 4)
             frame = _Spliter()
-            self.addWidget(frame, 1, 0, 1, 2)
+            self.addWidget(frame, 1, 0, 1, 4)
         self.params_func, self.widgets = self.append_opts(self.func.params)
 
 
@@ -570,6 +570,7 @@ class CommandLayout(QtWidgets.QGridLayout):
             widgets.append(widget)
             params_func.append(value_func)
             for idx, w in enumerate(widget):
+
                 if isinstance(w, QtWidgets.QLayout):
                     self.addLayout(w, i, idx)
                 else:
@@ -600,7 +601,7 @@ class CommandLayout(QtWidgets.QGridLayout):
         for col, arg in enumerate(args):
             button = self.generate_cmd_button(**arg)
             cmd_layout.addWidget(button, 0, col)
-        self.addLayout(cmd_layout, row, 0, 1, 2)
+        self.addLayout(cmd_layout, row, 0, 1, 4)
 
 
     @QtCore.pyqtSlot()
@@ -656,7 +657,7 @@ class GuiStream(QtCore.QObject):
     textWritten = QtCore.pyqtSignal(str)
 
     def flush(self):
-        pass 
+        pass
 
     def write(self, text):
         self.textWritten.emit(str(text))
@@ -714,7 +715,7 @@ class App(QtWidgets.QWidget):
                 tab.setLayout(sub_opt_set)
                 tabs.addTab(tab, cmd)
             opt_set.addWidget(
-                    tabs, opt_set.rowCount(), 0, 1, 2
+                    tabs, opt_set.rowCount(), 0, 1, 4
                     )
             # return opt_set
         elif isinstance(func, click.Command):
@@ -767,7 +768,7 @@ class App(QtWidgets.QWidget):
 
 
 def gui_it(click_func, style="qdarkstyle", **argvs)->None:
-    """ 
+    """
     Parameters
     ----------
     click_func
