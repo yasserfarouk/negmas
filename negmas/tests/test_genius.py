@@ -1,18 +1,18 @@
 import pathlib
 
+import hypothesis.strategies as st
 import numpy as np
 import pkg_resources
 import pytest
 from hypothesis import given
-import hypothesis.strategies as st
 
 from negmas import (
     GeniusNegotiator,
+    genius_bridge_is_running,
     load_genius_domain,
     load_genius_domain_from_folder,
-    genius_bridge_is_running,
 )
-from negmas.genius import YXAgent, AgentX, ParsCat
+from negmas.genius import AgentX, ParsCat, YXAgent
 
 dom_folder = pathlib.Path(
     pkg_resources.resource_filename(

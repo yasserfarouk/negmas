@@ -2,25 +2,25 @@ import random
 from collections import defaultdict
 from datetime import timedelta
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
-from hypothesis import given, settings, example
-from pytest import mark
 import hypothesis.strategies as st
+from hypothesis import example, given, settings
+from pytest import mark
 
 from negmas import (
-    SAOMechanism,
     AspirationNegotiator,
-    MappingUtilityFunction,
-    UtilityFunction,
     Issue,
-    Outcome,
-    UtilityValue,
-    PassThroughSAONegotiator,
-    SAOSyncController,
-    SAOState,
-    ResponseType,
     LinearUtilityFunction,
+    MappingUtilityFunction,
+    Outcome,
+    PassThroughSAONegotiator,
+    ResponseType,
+    SAOMechanism,
+    SAOState,
+    SAOSyncController,
+    UtilityFunction,
+    UtilityValue,
 )
 from negmas.helpers import unique_name
 from negmas.sao import SAOResponse

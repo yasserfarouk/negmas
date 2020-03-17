@@ -2,11 +2,10 @@
 import itertools
 import random
 from collections import defaultdict
-from typing import Any, Dict, Union, Optional, Set, Callable, List
-
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
-from negmas import NamedObject
+from .common import NamedObject
 
 __all__ = [
     "Event",

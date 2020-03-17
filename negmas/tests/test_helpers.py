@@ -3,8 +3,13 @@ from enum import Enum
 
 import pytest
 
-from negmas.helpers import create_loggers, unique_name, is_nonzero_file, ConfigReader
-from negmas.helpers import pretty_string
+from negmas.helpers import (
+    ConfigReader,
+    create_loggers,
+    is_nonzero_file,
+    pretty_string,
+    unique_name,
+)
 
 
 def test_create_loggers_with_default_params(capsys):

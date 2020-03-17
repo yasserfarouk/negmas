@@ -2,10 +2,10 @@
 import time
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
-from negmas import MechanismRoundResult, Outcome, MechanismState
-from negmas.mechanisms import Mechanism
+from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .outcomes import Outcome
 
 __all__ = [
     "VetoMTMechanism",
@@ -15,6 +15,7 @@ __all__ = [
 @dataclass
 class MTState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
+
     current_offers: List[Optional["Outcome"]] = field(default_factory=list)
 
 
@@ -38,27 +39,39 @@ class VetoMTMechanism(Mechanism):
 
     """
 
-    def __init__(self, *args, epsilon: float = 1e-6, n_texts: int = 10, initial_outcomes=None
-                 , initial_responses: Tuple[Tuple[bool]] = None
-                 , **kwargs):
+    def __init__(
+        self,
+        *args,
+        epsilon: float = 1e-6,
+        n_texts: int = 10,
+        initial_outcomes=None,
+        initial_responses: Tuple[Tuple[bool]] = None,
+        **kwargs
+    ):
         kwargs["state_factory"] = MTState
         super().__init__(*args, **kwargs)
 
-        self.add_requirements({"compare-binary": True}) # assert that all agents must have compare-binary capability
-        self.current_offers = initial_outcomes if initial_outcomes is not None else [None] * n_texts
+        self.add_requirements(
+            {"compare-binary": True}
+        )  # assert that all agents must have compare-binary capability
+        self.current_offers = (
+            initial_outcomes if initial_outcomes is not None else [None] * n_texts
+        )
         """The current offer"""
         self.initial_outcomes = deepcopy(self.current_offers.copy)
         """The initial offer"""
-        self.last_responses = [list(_) for _ in initial_responses] if initial_responses is not None else [None]* n_texts
+        self.last_responses = (
+            [list(_) for _ in initial_responses]
+            if initial_responses is not None
+            else [None] * n_texts
+        )
         """The responses of all negotiators for the last offer"""
         self.initial_responses = deepcopy(self.last_responses)
         """The initial set of responses. See the remarks of this class to understand its role."""
         self.epsilon = epsilon
 
     def extra_state(self):
-        return MTState(
-            current_offers=deepcopy(self.current_offers),
-        )
+        return MTState(current_offers=deepcopy(self.current_offers),)
 
     def next_outcome(self, outcome: Optional[Outcome]) -> Optional[Outcome]:
         """Generate the next outcome given some outcome.
@@ -80,7 +93,10 @@ class VetoMTMechanism(Mechanism):
 
             for neg in self.negotiators:
                 strt = time.perf_counter()
-                responses.append(neg.is_better(new_offer, current_offer, epsilon=self.epsilon) is not False)
+                responses.append(
+                    neg.is_better(new_offer, current_offer, epsilon=self.epsilon)
+                    is not False
+                )
                 if time.perf_counter() - strt > self.ami.step_time_limit:
                     return MechanismRoundResult(
                         broken=False, timedout=True, agreement=None
@@ -98,5 +114,3 @@ class VetoMTMechanism(Mechanism):
         self._agreement = self.current_offers
 
         super().on_negotiation_end()
-
-

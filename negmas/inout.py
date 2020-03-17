@@ -4,12 +4,18 @@ import functools
 import operator
 import os
 import shutil
-from typing import List, Optional, Tuple, Union, Dict, Callable, Iterable
+import xml.etree.ElementTree as ET
+from os import listdir
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pkg_resources
 
-from negmas.generics import ivalues
+from .generics import ivalues
+from .negotiators import Negotiator
+from .outcomes import Issue, enumerate_outcomes
+from .sao import AspirationNegotiator, SAOMechanism
+from .utilities import UtilityFunction, make_discounted_ufun
 
 __all__ = [
     "load_genius_domain",
@@ -19,13 +25,6 @@ __all__ = [
     "find_domain_and_utility_files",
     "get_domain_issues",
 ]
-
-import xml.etree.ElementTree as ET
-from os import listdir
-from negmas import Issue, enumerate_outcomes, make_discounted_ufun
-from negmas import Negotiator
-from negmas import UtilityFunction
-from negmas import SAOMechanism, AspirationNegotiator
 
 
 def get_domain_issues(

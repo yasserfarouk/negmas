@@ -1,14 +1,14 @@
 """Implements single text negotiation mechanisms"""
 import itertools
 import math
-import time
 import random
+import time
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union, List
+from typing import List, Optional, Tuple, Union
 
-from negmas import MechanismRoundResult, Outcome, MechanismState
-from negmas.mechanisms import Mechanism
+from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .outcomes import Outcome
 
 __all__ = ["VetoSTMechanism", "HillClimbingSTMechanism"]
 

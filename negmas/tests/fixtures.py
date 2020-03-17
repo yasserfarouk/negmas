@@ -1,4 +1,5 @@
 from pytest import fixture
+
 from negmas.outcomes import Issue
 
 

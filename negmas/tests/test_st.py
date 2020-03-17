@@ -1,11 +1,12 @@
+from pytest import mark
+
 from negmas import (
-    RankerNegotiator,
-    MappingUtilityFunction,
     BinaryComparatorNegotiator,
     Issue,
+    MappingUtilityFunction,
+    RankerNegotiator,
 )
-from negmas.st import VetoSTMechanism, HillClimbingSTMechanism
-from pytest import mark
+from negmas.st import HillClimbingSTMechanism, VetoSTMechanism
 
 
 @mark.parametrize(

@@ -1,10 +1,10 @@
-from os import walk
 import os
+from os import walk
 
 import pkg_resources
 import pytest
 
-from negmas import load_genius_domain_from_folder, AspirationNegotiator
+from negmas import AspirationNegotiator, load_genius_domain_from_folder
 
 
 @pytest.fixture

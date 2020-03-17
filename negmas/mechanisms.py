@@ -3,38 +3,42 @@
 import pprint
 import time
 import uuid
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
-    Tuple,
+    Any,
+    Collection,
+    Dict,
+    Iterable,
     List,
     Optional,
-    Any,
-    Iterable,
-    Union,
-    Dict,
     Set,
+    Tuple,
     Type,
-    Collection,
+    Union,
 )
 
 from negmas.checkpoints import CheckpointMixin
-from negmas.common import AgentMechanismInterface, MechanismState, NamedObject
-from negmas.common import NegotiatorInfo
+from negmas.common import (
+    AgentMechanismInterface,
+    MechanismState,
+    NamedObject,
+    NegotiatorInfo,
+)
 from negmas.events import *
 from negmas.generics import ikeys
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
 from negmas.outcomes import (
-    outcome_is_valid,
     Issue,
     Outcome,
     enumerate_outcomes,
     outcome_as_tuple,
+    outcome_is_valid,
 )
-from negmas.utilities import UtilityFunction, MappingUtilityFunction, pareto_frontier
+from negmas.utilities import MappingUtilityFunction, UtilityFunction, pareto_frontier
 
 __all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
 

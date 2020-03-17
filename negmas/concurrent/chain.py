@@ -1,19 +1,14 @@
 """Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
-from abc import abstractmethod, ABC
-from collections import namedtuple, defaultdict
+from abc import ABC, abstractmethod
+from collections import defaultdict, namedtuple
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from negmas import (
-    MechanismRoundResult,
-    Negotiator,
-    MechanismState,
-    ResponseType,
-    UtilityFunction,
-    Outcome,
-    AgentMechanismInterface,
-)
-from negmas.mechanisms import Mechanism
+from negmas.common import AgentMechanismInterface
+from negmas.mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from negmas.negotiators import Negotiator
+from negmas.outcomes import Outcome, ResponseType
+from negmas.utilities import UtilityFunction
 
 __all__ = [
     "ChainNegotiationsMechanism",

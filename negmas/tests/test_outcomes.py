@@ -1,8 +1,10 @@
-import pytest
 import random
 
+import pytest
+
+from negmas import Issues, outcome_in_range, outcome_is_valid
+
 from .fixtures import *
-from negmas import Issues, outcome_is_valid, outcome_in_range
 
 
 def test_dict_outcomes(issues, valid_outcome_dict, invalid_outcome_dict):

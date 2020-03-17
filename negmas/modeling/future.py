@@ -11,6 +11,7 @@ class FutureUtilityRegressor:
     Remarks:
         - We assume that the negotiation goes from time 0 to 1 (relative_time).
     """
+
     def __init__(self, regressor_factory=GaussianProcessRegressor, **kwargs):
         self.regressor = regressor_factory(**kwargs)
         self.inverse_regressor = regressor_factory(**kwargs)
@@ -39,4 +40,6 @@ class FutureUtilityRegressor:
     def predict_time_prob(self, utils, return_cov=False) -> np.ndarray:
         utils = np.array(utils)
         utils = utils.flatten().reshape((1, len(utils)))
-        return self.inverse_regressor.predict(utils, return_std=True, return_cov=return_cov)
+        return self.inverse_regressor.predict(
+            utils, return_std=True, return_cov=return_cov
+        )

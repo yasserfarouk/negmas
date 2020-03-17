@@ -7,23 +7,17 @@ import socket
 import subprocess
 import time
 from contextlib import contextmanager
-from typing import Optional, Dict, Any, Iterable, Union
-import numpy as np
+from typing import Any, Dict, Iterable, Optional, Union
 
+import numpy as np
 import pkg_resources
 from pandas import json_normalize
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
-from py4j.java_collections import (
-    ListConverter,
-    JavaMap,
-    MapConverter,
-    JavaList,
-    JavaSet,
-)
+from py4j.java_collections import JavaList, JavaMap, JavaSet, ListConverter
 from py4j.java_gateway import (
-    JavaGateway,
-    GatewayParameters,
     CallbackServerParameters,
+    GatewayParameters,
+    JavaGateway,
     JavaObject,
 )
 
@@ -31,8 +25,7 @@ from py4j.java_gateway import (
 #  somewhere
 from py4j.protocol import Py4JNetworkError
 
-from .helpers import get_class, instantiate, camel_case, snake_case
-
+from .helpers import camel_case, get_class, snake_case
 
 __all__ = [
     "JavaCallerMixin",
@@ -302,6 +295,12 @@ def to_flat_dict(value, deep=True) -> Dict[str, Any]:
 
     """
     d = to_dict(value, add_type_field=False, deep=deep)
+    if d is None:
+        return {}
+    if not isinstance(d, dict):
+        raise ValueError(
+            f"value is of type {type(value)} cannot be converted to a flat dict"
+        )
     for k, v in d.items():
         if isinstance(v, list) or isinstance(v, tuple):
             d[k] = str(v)

@@ -4,4 +4,3 @@
 Examples include: `Negotiator` and `Agent`
 
 """
-

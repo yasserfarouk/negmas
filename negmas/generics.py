@@ -6,7 +6,7 @@ collections (e.g. `list`, `tuple`, `generator`) or even `Callable`\ s without aw
 other modules of the library.
 
 """
-from typing import Iterable, Union, Mapping, Sequence, Callable, Any, Tuple, Dict
+from typing import Any, Callable, Dict, Iterable, Mapping, Sequence, Tuple, Union
 
 __all__ = [
     "IterableMapping",  # A mapping combining dicts, lists, tuples, and generators
@@ -49,6 +49,7 @@ def gmap(group: GenericMapping, param: Any) -> Any:
     Returns:
 
     """
+
     if hasattr(group, "__call__"):
         return group(param)  # type: ignore
 
@@ -88,6 +89,7 @@ def gget(x: GenericMapping, _key: Any, default=None) -> Any:
     Returns:
 
     """
+
     if hasattr(x, "apply"):
         # noinspection PyBroadException
         try:
@@ -132,6 +134,7 @@ def ienumerate(x: IterableMapping) -> Iterable[Tuple[Any, Any]]:
         a generator/iterator with tuples of key-value pairs.
 
     """
+
     if isinstance(x, Dict):
         return x.items()
 
@@ -174,6 +177,7 @@ def ivalues(x: IterableMapping) -> Iterable[Any]:
         a generator/iterator with tuples of key-value pairs.
 
     """
+
     if isinstance(x, Dict):
         return list(x.values())
 
@@ -213,6 +217,7 @@ def ikeys(x: IterableMapping) -> Iterable[Any]:
         a generator/iterator with tuples of key-value pairs.
 
     """
+
     if isinstance(x, Dict):
         return list(x.keys())
 
@@ -253,6 +258,7 @@ def iget(x: IterableMapping, _key: Any, default=None) -> Any:
     Returns:
 
     """
+
     if isinstance(x, Dict):
         return x.get(_key, default)
 

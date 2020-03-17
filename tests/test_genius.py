@@ -1,18 +1,19 @@
 import os
+import pathlib
+
+import hypothesis.strategies as st
 import numpy as np
 import pkg_resources
 import pytest
-import pathlib
 from hypothesis import given, settings
-import hypothesis.strategies as st
 from py4j.protocol import Py4JNetworkError
 
 from negmas import (
     GeniusNegotiator,
+    genius_bridge_is_running,
+    init_genius_bridge,
     load_genius_domain,
     load_genius_domain_from_folder,
-    init_genius_bridge,
-    genius_bridge_is_running,
 )
 
 dom_folder = pathlib.Path(

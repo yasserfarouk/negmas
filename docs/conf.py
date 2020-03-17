@@ -19,9 +19,11 @@
 # absolute, like shown here.
 #
 
-import negmas
 import os
+
 import sphinx_rtd_theme
+
+import negmas
 
 # -- General configuration ---------------------------------------------
 

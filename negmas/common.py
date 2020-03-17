@@ -4,19 +4,19 @@ This module does not import anything from the library except during type checkin
 """
 import datetime
 import uuid
-import dill
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import List, Optional, Any, TYPE_CHECKING, Union, Dict, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+
+import dill
 from typing_extensions import Protocol, runtime
 
-from .helpers import unique_name, load, dump, get_full_type_name
-from .java import to_java, to_dict
+from .helpers import dump, get_full_type_name, load, unique_name
+from .java import to_dict, to_java
 
 if TYPE_CHECKING:
-    from .mechanisms import Mechanism
-    from .outcomes import Issue, Outcome
+    from .outcomes import Outcome
 
 
 __all__ = [
