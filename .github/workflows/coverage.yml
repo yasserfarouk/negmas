@@ -1,4 +1,4 @@
-name: Coverage (Codecov)
+name: Coverage
 on: [push]
 jobs:
   run:
