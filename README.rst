@@ -31,8 +31,8 @@ Overview
     :target: https://pypi.python.org/pypi/negmas
     :alt: Pypi
 
-.. image:: https://img.shields.io/travis/yasserfarouk/negmas.svg
-    :target: https://travis-ci.org/yasserfarouk/negmas
+.. image:: https://github.com/yasserfarouk/negmas/workflows/CI/badge.svg
+    :target: https://www.github.com/yasserfarouk/negmas
     :alt: Build Status
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
