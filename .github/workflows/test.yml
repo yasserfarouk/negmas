@@ -72,7 +72,7 @@ jobs:
       - name: "List result"
         run: "ls -l dist"
       - name: "Check long_description"
-        run: "python -m twine check"
+        run: "python -m twine check dist/*"
         
   install-dev:
     strategy:
