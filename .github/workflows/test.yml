@@ -72,19 +72,7 @@ jobs:
       - name: "List result"
         run: "ls -l dist"
       - name: "Check long_description"
-        run: "python -m twine check dist/*"
-      - name: Publish package To Test
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypitesttoken }}
-      - name: Publish package
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypiapitoken }}
-
+        run: "python -m twine check
         
   install-dev:
     strategy:
