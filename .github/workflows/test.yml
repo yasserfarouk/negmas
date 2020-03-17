@@ -52,7 +52,7 @@ jobs:
           python -m pip install -r docs/requirements.txt
           python -m pip install -e .
       - name: "Create documentation"
-        run: sh ./make_docs
+        run: sh make_docs.sh
         working-directory: ./docs
 
   package:
