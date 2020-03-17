@@ -1,14 +1,15 @@
-import dash
 import sys
-from dash.dependencies import Input, Output, State
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_bootstrap_components as dbc
-import dash_table as tbl
-import dash_daq as daq
 from typing import Type
 
-from negmas import NamedObject
+import dash
+import dash_bootstrap_components as dbc
+import dash_core_components as dcc
+import dash_daq as daq
+import dash_html_components as html
+import dash_table as tbl
+from dash.dependencies import Input, Output, State
+
+from negmas.common import NamedObject
 from negmas.visualizers import *
 
 # 'https://codepen.io/chriddyp/pen/bWLwgP.css',

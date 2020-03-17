@@ -1,8 +1,9 @@
+import random
 from pprint import pprint
 from typing import Iterable
 
 import pytest
-import random
+
 from negmas import *
 
 random.seed(0)

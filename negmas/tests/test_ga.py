@@ -1,11 +1,12 @@
+from pytest import mark
+
 from negmas import (
-    SorterNegotiator,
-    MappingUtilityFunction,
     BinaryComparatorNegotiator,
     Issue,
+    MappingUtilityFunction,
+    SorterNegotiator,
 )
 from negmas.ga import GAMechanism
-from pytest import mark
 
 
 @mark.parametrize("n_negotiators,n_outcomes", [(2, 10), (3, 50), (2, 50), (3, 5)])

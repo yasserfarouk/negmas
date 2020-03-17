@@ -27,41 +27,39 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from operator import mul
 from typing import (
-    MutableMapping,
-    Mapping,
-    Union,
-    Optional,
+    TYPE_CHECKING,
     Any,
-    Sequence,
     Callable,
-    Dict,
-    List,
-    Iterable,
-    Tuple,
     Collection,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
     Type,
+    Union,
 )
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pkg_resources
 
-from negmas.common import NamedObject
-from negmas.common import AgentMechanismInterface
+from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
-from negmas.helpers import Distribution
-from negmas.helpers import snake_case, gmap, ikeys, Floats
+from negmas.helpers import Distribution, Floats, gmap, ikeys, snake_case
 from negmas.java import JavaCallerMixin, to_java
 from negmas.outcomes import (
-    sample_outcomes,
-    OutcomeRange,
-    Outcome,
-    outcome_in_range,
     Issue,
-    outcome_is_valid,
+    Outcome,
+    OutcomeRange,
     OutcomeType,
     outcome_as_dict,
     outcome_as_tuple,
+    outcome_in_range,
+    outcome_is_valid,
+    sample_outcomes,
 )
 
 if TYPE_CHECKING:
@@ -173,7 +171,7 @@ class UtilityFunction(ABC, NamedObject):
 
         Examples:
 
-            >>> from negmas import UtilityFunction
+            >>> from negmas.utilities import UtilityFunction
             >>> u, d = UtilityFunction.from_genius(file_name = pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml'))
             >>> u.__class__.__name__
@@ -210,8 +208,8 @@ class UtilityFunction(ABC, NamedObject):
 
         Examples:
 
-            >>> from negmas import UtilityFunction
-            >>> from negmas import load_genius_domain
+            >>> from negmas.utilities import UtilityFunction
+            >>> from negmas.inout import load_genius_domain
             >>> _, _, issues = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
             ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
             ...             , keep_issue_names=False)

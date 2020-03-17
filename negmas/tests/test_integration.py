@@ -1,17 +1,20 @@
+import os
+import time
+from pprint import pprint
 from random import seed
 
 # seed(0)
 import pytest
-from pprint import pprint
-import time
-from negmas import UtilityDistribution as U
+
 import negmas
+from negmas import (
+    HyperRectangleUtilityFunction,
+    LimitedOutcomesNegotiator,
+    SAOMechanism,
+)
+from negmas import UtilityDistribution as U
 
 start = time.monotonic()
-import os
-from negmas import HyperRectangleUtilityFunction
-from negmas import LimitedOutcomesNegotiator
-from negmas import SAOMechanism
 
 print(f"Import took {time.monotonic()-start}")
 

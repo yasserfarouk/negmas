@@ -1,23 +1,23 @@
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Callable, Set, Collection
+from typing import Any, Callable, Collection, Dict, List, Optional, Set
 
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given, settings
 
 from negmas import (
-    Issue,
+    AgentMechanismInterface,
     AspirationNegotiator,
-    SAOMechanism,
+    Issue,
+    MappingUtilityFunction,
+    MechanismState,
     Negotiator,
     RenegotiationRequest,
-    AgentMechanismInterface,
-    MechanismState,
-    MappingUtilityFunction,
+    SAOMechanism,
 )
-from negmas.events import EventSink, Event, EventSource
+from negmas.events import Event, EventSink, EventSource
 from negmas.helpers import unique_name
-from negmas.situated import World, Agent, Action, Breach, Contract
+from negmas.situated import Action, Agent, Breach, Contract, World
 
 results = []  # will keep results not to use printing
 

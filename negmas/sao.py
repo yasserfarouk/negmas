@@ -9,41 +9,51 @@ import warnings
 from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, Any, Callable, Type
-from typing import Sequence, Optional, List, Tuple, Iterable, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
 
 from negmas.common import *
 from negmas.common import _ShadowAgentMechanismInterface
-from negmas.events import Notification, Event
+from negmas.events import Event, Notification
 from negmas.java import (
     JavaCallerMixin,
-    to_java,
+    JNegmasGateway,
     from_java,
     java_link,
-    to_dict,
-    JNegmasGateway,
     python_identifier,
+    to_dict,
+    to_java,
 )
-from negmas.mechanisms import MechanismRoundResult, Mechanism
-from negmas.negotiators import Negotiator, AspirationMixin, Controller
+from negmas.mechanisms import Mechanism, MechanismRoundResult
+from negmas.negotiators import AspirationMixin, Controller, Negotiator
 from negmas.outcomes import (
+    Issue,
     Outcome,
-    outcome_is_valid,
     ResponseType,
     outcome_as_dict,
     outcome_is_complete,
-    Issue,
+    outcome_is_valid,
 )
 from negmas.utilities import (
+    JavaUtilityFunction,
     MappingUtilityFunction,
     UtilityFunction,
     UtilityValue,
-    JavaUtilityFunction,
-    utility_range,
     outcome_with_utility,
+    utility_range,
 )
 
 __all__ = [

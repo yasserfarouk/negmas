@@ -3,41 +3,35 @@ Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
+import json
 import math
-import pathlib
-
 import os
+import pathlib
 import random
 import socket
 import subprocess
 import tempfile
 import time
 import typing
-from typing import Optional, List, Tuple, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 import pkg_resources
-from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
+from py4j.java_gateway import CallbackServerParameters, GatewayParameters, JavaGateway
 from py4j.protocol import Py4JNetworkError
 
-from negmas import (
-    SAONegotiator,
-    make_discounted_ufun,
-    get_domain_issues,
-    NEGMAS_CONFIG,
-    CONFIG_KEY_GENIUS_BRIDGE_JAR,
-    Controller,
-    Issue,
-)
-from negmas import ResponseType, load_genius_domain
-from negmas.common import *
-from negmas.utilities import UtilityFunction
-import json
+from .common import *
+from .config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
+from .inout import get_domain_issues, load_genius_domain
+from .negotiators import Controller
+from .outcomes import Issue, ResponseType
+from .sao import SAONegotiator
+from .utilities import UtilityFunction, make_discounted_ufun
 
 DEFAULT_JAVA_PORT = 25337
 DEFAULT_PYTHON_PORT = 25338
 
 if typing.TYPE_CHECKING:
-    from negmas import Outcome
+    from .outcomes import Outcome
 
 __all__ = [
     "GeniusNegotiator",  # Most abstract kind of agent

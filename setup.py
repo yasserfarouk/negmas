@@ -18,7 +18,7 @@ import re
 from io import open
 from os import path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
@@ -97,7 +97,7 @@ setup(
         "nose",
         "cython",
         "networkx",
-        "PyQT5",
+        "pyqt5",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],

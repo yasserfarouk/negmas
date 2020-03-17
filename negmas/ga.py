@@ -1,11 +1,12 @@
 """Implements GA-based negotiation mechanisms"""
 
-import random, copy
+import copy
+import random
 from dataclasses import dataclass
-from typing import Optional, Tuple, List, Dict
+from typing import Dict, List, Optional, Tuple
 
-from negmas import MechanismRoundResult, Outcome, MechanismState
-from negmas.mechanisms import Mechanism
+from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .outcomes import Outcome
 
 
 @dataclass

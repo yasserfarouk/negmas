@@ -1,14 +1,16 @@
-from typing import List
 import random
+from typing import List
+
 import numpy as np
 import pytest
+
 from negmas import (
-    ToughNegotiator,
-    SAOMechanism,
     AspirationNegotiator,
+    NaiveTitForTatNegotiator,
     OnlyBestNegotiator,
     SAOController,
-    NaiveTitForTatNegotiator,
+    SAOMechanism,
+    ToughNegotiator,
 )
 from negmas.utilities import RandomUtilityFunction
 

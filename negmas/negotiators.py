@@ -6,8 +6,17 @@ import math
 import warnings
 from abc import ABC
 from random import sample
-from typing import Optional, Tuple, Union, Type, List
-from typing import TYPE_CHECKING, Dict, Any, Callable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -533,7 +542,7 @@ class Controller(NamedObject):
 
         """
         return True
-        
+
     def after_join(
         self,
         negotiator_id: str,

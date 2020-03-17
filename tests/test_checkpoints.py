@@ -1,9 +1,10 @@
 from datetime import timedelta
 from pathlib import Path, PosixPath
 
-from hypothesis import given, example, settings
 import hypothesis.strategies as st
-from negmas import SAOMechanism, MappingUtilityFunction, AspirationNegotiator
+from hypothesis import example, given, settings
+
+from negmas import AspirationNegotiator, MappingUtilityFunction, SAOMechanism
 from negmas.checkpoints import CheckpointRunner
 from negmas.helpers import unique_name
 
@@ -17,8 +18,11 @@ def checkpoint_every(args):
     checkpoint_every=st.integers(1, 4),
     exist_ok=st.booleans(),
 )
-def test_can_run_from_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok):
+def test_can_run_from_checkpoint(
+    tmp_path, single_checkpoint, checkpoint_every, exist_ok
+):
     import shutil
+
     new_folder: Path = tmp_path / unique_name("empty", sep="")
     second_folder: Path = tmp_path / unique_name("second", sep="")
     new_folder.mkdir(parents=True, exist_ok=True)
@@ -104,8 +108,11 @@ def test_can_run_from_checkpoint(tmp_path, single_checkpoint, checkpoint_every, 
     fork_after_reset=st.booleans(),
 )
 @settings(deadline=20000, max_examples=100)
-def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset):
+def test_can_run_from_checkpoint(
+    tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset
+):
     import shutil
+
     new_folder: Path = tmp_path / unique_name("empty", sep="")
     second_folder: Path = tmp_path / unique_name("second", sep="")
     new_folder.mkdir(parents=True, exist_ok=True)
@@ -133,7 +140,11 @@ def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, for
     )
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
-        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i], aspiration_type="conceder")
+        mechanism.add(
+            AspirationNegotiator(name=f"agent{i}"),
+            ufun=ufuns[i],
+            aspiration_type="conceder",
+        )
 
     mechanism.run()
     files = list(new_folder.glob("*"))
@@ -182,8 +193,7 @@ def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, for
     runner.reset()
 
     if fork_after_reset:
-        m = runner.fork(copy_past_checkpoints=copy
-                        , folder=second_folder)
+        m = runner.fork(copy_past_checkpoints=copy, folder=second_folder)
         assert m is None
         return
     runner.step()
@@ -228,4 +238,3 @@ def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, for
     runner.reset()
 
     runner.run()
-

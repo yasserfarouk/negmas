@@ -5,6 +5,9 @@ from functools import partial
 import click
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+MAX_ROWS = 21
+
+
 try:
     import qdarkstyle
 
@@ -22,10 +25,10 @@ class GStyle(object):
         ._OptionLabel {
             font-size: 16px;
             font: bold;
-            font-family: monospace;
+            font-family: arial;
             }
         ._HelpLabel {
-            font-family: serif;
+            font-family: arial;
             font-size: 14px;
             }
         ._InputComboBox{
@@ -48,7 +51,7 @@ class GStyle(object):
             font-size: 16px;
             }
         QToolTip{
-            font-family: serif;
+            font-family: arial;
             }
         """
 
@@ -551,13 +554,11 @@ def layout_append_opts(layout, opts):
     i = 0
 
     for i, para in enumerate(opts):
-        print(i)
         widget, value_func = _to_widget(para)
         widgets.append(widget)
         params_func.append(value_func)
 
         for idx, w in enumerate(widget):
-            print(idx)
 
             if isinstance(w, QtWidgets.QLayout):
                 layout.addLayout(w, i, idx)
@@ -623,7 +624,7 @@ class CommandLayout(QtWidgets.QGridLayout):
         if func.help:
             label = _HelpLabel(func.help)
             label.setWordWrap(True)
-            self.addWidget(label, 0, 0, 1, 4)
+            self.addWidget(label, 0, 0, 1, 2)
             frame = _Spliter()
             self.addWidget(frame, 1, 0, 1, 4)
         self.params_func, self.widgets = self.append_opts(self.func.params)
@@ -637,18 +638,26 @@ class CommandLayout(QtWidgets.QGridLayout):
         params_func = []
         widgets = []
 
-        for i, para in enumerate(opts, self.rowCount()):
+        def _nwidgets(x):
+            return -len(_to_widget(x)[0])
+
+        opts = sorted(opts, key=_nwidgets)
+        row, col = 0, 0
+        for para in opts:
             widget, value_func = _to_widget(para)
             widgets.append(widget)
             params_func.append(value_func)
 
             for idx, w in enumerate(widget):
-
                 if isinstance(w, QtWidgets.QLayout):
-                    self.addLayout(w, i, idx)
+                    self.addLayout(w, row + 2, 2 * col + idx)
                 else:
-                    self.addWidget(w, i, idx)
-            self.setRowStretch(i, 5)
+                    self.addWidget(w, row + 2, 2 * col + idx)
+            self.setRowStretch(row, 5)
+            row += 1
+            if row >= MAX_ROWS - 1:
+                row = 0
+                col += 1
 
         return params_func, widgets
 
@@ -665,18 +674,20 @@ class CommandLayout(QtWidgets.QGridLayout):
         run_button = self.generate_cmd_button(label, cmd_slot)
 
         if pos is None:
-            pos = self.rowCount() + 1, 0
+            # pos = self.rowCount() + 1, 0
+            pos = 0, 2
         self.addWidget(run_button, pos[0], pos[1])
 
     def add_cmd_buttons(self, args):
-        row = self.rowCount() + 1
+        # row = self.rowCount() + 1
+        row = 0
         cmd_layout = QtWidgets.QGridLayout()
         cmd_layout.setHorizontalSpacing(20)
 
         for col, arg in enumerate(args):
             button = self.generate_cmd_button(**arg)
-            cmd_layout.addWidget(button, 0, col)
-        self.addLayout(cmd_layout, row, 0, 1, 4)
+            cmd_layout.addWidget(button, col, 0)
+        self.addLayout(cmd_layout, row, 2, 1, 2)
 
     @QtCore.pyqtSlot()
     def clean_sysargv(self):
@@ -759,8 +770,8 @@ class App(QtWidgets.QWidget):
         output="gui",
         left=10,
         top=10,
-        width=400,
-        height=140,
+        width=800,
+        height=280,
     ):
         """
         Parameters
@@ -870,7 +881,7 @@ def gui_it(click_func, style="qdarkstyle", **argvs) -> None:
     argvs["run_exit"] = argvs.get("run_exit", False)
     argvs["new_thread"] = argvs.get("new_thread", False)
 
-    ex = App(click_func, **argvs)
+    _ = App(click_func, **argvs)
     sys.exit(app.exec_())
 
 

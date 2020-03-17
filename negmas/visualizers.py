@@ -2,15 +2,21 @@
 to any custom components (or custom visualizers for built-in components)  compatible with the Dash-based visualizer."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Type, Union
 
-from typing import List, Type, Dict, Any, Optional, Union
-
-from negmas import Mechanism, NamedObject, Agent
-from negmas.helpers import get_full_type_name, instantiate, get_class
+from .common import NamedObject
+from .helpers import get_class, get_full_type_name, instantiate
+from .mechanisms import Mechanism
+from .situated import Agent
 
 __all__ = [
-    "Visualizer", "MechanismVisualizer", "register_visualizer", "visualizer", "visualizer_type", "visualizer_type_name"
-    , "Widget"
+    "Visualizer",
+    "MechanismVisualizer",
+    "register_visualizer",
+    "visualizer",
+    "visualizer_type",
+    "visualizer_type_name",
+    "Widget",
 ]
 
 
@@ -23,6 +29,7 @@ class Widget:
 
 class Visualizer(ABC):
     """Base class for all visualizers in NegMAS"""
+
     def __init__(self, x: NamedObject = None):
         self.object: NamedObject = x
 
@@ -48,15 +55,23 @@ class Visualizer(ABC):
         return dict()
 
     @abstractmethod
-    def render_widget(self, name: str, params: Dict[str, Any] = None) -> Optional[Widget]:
+    def render_widget(
+        self, name: str, params: Dict[str, Any] = None
+    ) -> Optional[Widget]:
         """Returns the content of a widget given its name and parameters as a dict"""
         if self.object is None:
             return None
         if name == "basic_info":
-            return Widget(self.widget_kind(name), content=dict(name=self.object.name, id=self.object.id)
-                          , params=params)
+            return Widget(
+                self.widget_kind(name),
+                content=dict(name=self.object.name, id=self.object.id),
+                params=params,
+            )
         if name == "children":
-            return {k: [_.visualizer.render_widget("basic_info").contents for _ in v] for k, v in self.children.items()}
+            return {
+                k: [_.visualizer.render_widget("basic_info").contents for _ in v]
+                for k, v in self.children.items()
+            }
         return dict()
 
     @property
@@ -89,7 +104,10 @@ class Visualizer(ABC):
 VISUALIZERS: Dict[str, str] = dict()
 
 
-def register_visualizer(type_name: Union[str, Type[NamedObject]], visualizer_name: Union[str, Type[Visualizer]]):
+def register_visualizer(
+    type_name: Union[str, Type[NamedObject]],
+    visualizer_name: Union[str, Type[Visualizer]],
+):
     """
     Registers a visualizer type
 
@@ -113,11 +131,13 @@ def visualizer(x: Union[str, Type[NamedObject], NamedObject]) -> Optional[Visual
     """
     obj = None
     if isinstance(x, NamedObject):
-        obj, x = x,  x.__class__
+        obj, x = x, x.__class__
     return instantiate(visualizer_type(x), x=obj)
 
 
-def visualizer_type(x: Union[str, Type[NamedObject], NamedObject]) -> Optional[Type[Visualizer]]:
+def visualizer_type(
+    x: Union[str, Type[NamedObject], NamedObject]
+) -> Optional[Type[Visualizer]]:
     """Finds the type of the visualizer of a given type or object.
 
     Remarks:
@@ -147,7 +167,9 @@ def visualizer_type(x: Union[str, Type[NamedObject], NamedObject]) -> Optional[T
     return Visualizer
 
 
-def visualizer_type_name(x: Union[str, Type[NamedObject], NamedObject]) -> Optional[Type[Visualizer]]:
+def visualizer_type_name(
+    x: Union[str, Type[NamedObject], NamedObject]
+) -> Optional[Type[Visualizer]]:
     """Finds the type name of the visualizer of a given type or object.
 
     Remarks:
@@ -162,7 +184,6 @@ def visualizer_type_name(x: Union[str, Type[NamedObject], NamedObject]) -> Optio
 
 
 class MechanismVisualizer(Visualizer):
-
     @classmethod
     def widget_kind(cls, widget_name: str) -> str:
         if widget_name == "ofer_utils":
@@ -179,15 +200,15 @@ class MechanismVisualizer(Visualizer):
             return {"first": str, "second": str}
         return super().widget_params(name)
 
-    def render_widget(self, name: str, params: Dict[str, Any] = None) -> Optional[Widget]:
+    def render_widget(
+        self, name: str, params: Dict[str, Any] = None
+    ) -> Optional[Widget]:
         raise NotImplementedError()
 
     @property
     def children(self) -> Dict[str, List[NamedObject]]:
         mech: Mechanism = self.object
-        return {
-            "negotiators": mech.negotiators
-        }
+        return {"negotiators": mech.negotiators}
 
     @classmethod
     def children_categories(cls) -> List[str]:
@@ -209,7 +230,9 @@ class AgentVisualizer(Visualizer):
     def widget_params(cls, widget_name: str) -> Dict[str, Type]:
         return super().widget_params(widget_name)
 
-    def render_widget(self, name: str, params: Dict[str, Any] = None) -> Optional[Widget]:
+    def render_widget(
+        self, name: str, params: Dict[str, Any] = None
+    ) -> Optional[Widget]:
         return super().render_widget(name, params)
 
     @property
@@ -237,7 +260,9 @@ class WorldVisualizer(Visualizer):
     def widget_params(cls, widget_name: str) -> Dict[str, Type]:
         return super().widget_params(widget_name)
 
-    def render_widget(self, name: str, params: Dict[str, Any] = None) -> Optional[Widget]:
+    def render_widget(
+        self, name: str, params: Dict[str, Any] = None
+    ) -> Optional[Widget]:
         return super().render_widget(name, params)
 
     @classmethod

@@ -16,17 +16,23 @@ import yaml
 from tabulate import tabulate
 
 import negmas
-from negmas.helpers import humanize_time, unique_name, load
+from negmas.helpers import humanize_time, load, unique_name
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 from negmas.tournaments import (
-    create_tournament,
-    run_tournament,
-    evaluate_tournament,
-    combine_tournaments,
     combine_tournament_stats,
+    combine_tournaments,
+    create_tournament,
+    evaluate_tournament,
+    run_tournament,
 )
 
-from .vendor.quick.quick import gui_option
+try:
+    from .vendor.quick.quick import gui_option
+except:
+
+    def gui_option(x):
+        return x
+
 
 try:
     # disable a warning in yaml 1b1 version
@@ -45,11 +51,13 @@ DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 
 def default_log_path():
     """Default location for all logs"""
+
     return Path.home() / "negmas" / "logs"
 
 
 def default_tournament_path():
     """The default path to store tournament run info"""
+
     return default_log_path() / "tournaments"
 
 
@@ -71,6 +79,7 @@ def print_world_progress(world) -> None:
         f"World# {n_completed:04}: {step:04}  of {world.n_steps:04} "
         f"steps completed ({step / world.n_steps:0.2f}) "
     )
+
     if n_total > 0:
         s += f"TOTAL: ({n_completed + step / world.n_steps / n_total:0.2f})"
     print(s, flush=True)
@@ -302,25 +311,6 @@ def tournament(ctx, ignore_warnings):
     help='The name of the tournament. The special value "random" will result in a random name',
 )
 @click.option(
-    "--steps",
-    "-s",
-    default=None,
-    type=int,
-    help="Number of steps. If passed then --steps-min and --steps-max are " "ignored",
-)
-@click.option(
-    "--steps-min",
-    default=50,
-    type=int,
-    help="Minimum number of steps (only used if --steps was not passed",
-)
-@click.option(
-    "--steps-max",
-    default=100,
-    type=int,
-    help="Maximum number of steps (only used if --steps was not passed",
-)
-@click.option(
     "--timeout",
     "-t",
     default=0,
@@ -341,31 +331,31 @@ def tournament(ctx, ignore_warnings):
     help="Maximum total number of runs. Zero or negative numbers mean no limit",
 )
 @click.option(
-    "--agents",
-    default=3,
+    "--steps-min",
+    default=50,
     type=int,
-    help="Number of agents per competitor (not used for anac2019std in which this is preset to 1).",
+    help="Minimum number of steps (only used if --steps was not passed",
 )
 @click.option(
-    "--factories",
-    default=5,
+    "--steps-max",
+    default=100,
     type=int,
-    help="Minimum numbers of factories to have per level.",
+    help="Maximum number of steps (only used if --steps was not passed",
+)
+@click.option(
+    "--agents", default=3, type=int, help="Number of agents per competitor",
 )
 @click.option(
     "--competitors",
-    default="DoNothingFactoryManager;GreedyFactoryManager",
     help="A semicolon (;) separated list of agent types to use for the competition.",
 )
 @click.option(
     "--jcompetitors",
     "--java-competitors",
-    default="",
     help="A semicolon (;) separated list of agent types to use for the competition.",
 )
 @click.option(
     "--non-competitors",
-    default="",
     help="A semicolon (;) separated list of agent types to exist in the worlds as non-competitors "
     "(their scores will not be calculated).",
 )
@@ -388,11 +378,6 @@ def tournament(ctx, ignore_warnings):
     default=1,
     type=int,
     help="verbosity level (from 0 == silent to 1 == world progress)",
-)
-@click.option(
-    "--reveal-names/--hidden-names",
-    default=True,
-    help="Reveal agent names (should be used only for " "debugging)",
 )
 @click.option(
     "--log-ufuns/--no-ufun-logs",
@@ -459,7 +444,6 @@ def tournament(ctx, ignore_warnings):
 def create(
     ctx,
     name,
-    steps,
     timeout,
     log,
     verbosity,
@@ -472,7 +456,6 @@ def create(
     jcompetitors,
     non_competitors,
     compact,
-    factories,
     agents,
     log_ufuns,
     log_negs,
@@ -494,7 +477,9 @@ def create(
             "\nThe following must be explicitly specified to create a tournament: a world-generator, "
             "an assigner, a scorer, and a config-generator."
         )
+
         return -4
+
     if len(world_generator is None or world_generator.strip()) == 0:
         print(
             "ERROR: You did not specify a world generator. Use --world-generator to specify one and see the "
@@ -502,7 +487,9 @@ def create(
             "\nThe following must be explicitly specified to create a tournament: a world-generator, "
             "an assigner, a scorer, and a config-generator."
         )
+
         return -3
+
     if len(assigner is None or assigner.strip()) == 0:
         print(
             "ERROR: You did not specify an assigner. Use --assigner to specify one and see the documentation"
@@ -510,7 +497,9 @@ def create(
             "\nThe following must be explicitly specified to create a tournament: a world-generator, "
             "an assigner, a scorer, and a config-generator."
         )
+
         return -2
+
     if len(scorer is None or scorer.strip()) == 0:
         print(
             "ERROR: You did not specify a scorer. Use --scorer to specify one and see the documentation of the "
@@ -518,7 +507,9 @@ def create(
             "\nThe following must be explicitly specified to create a tournament: a world-generator, "
             "an assigner, a scorer, and a config-generator."
         )
+
         return -1
+
     if (
         jcompetitors is not None
         and len(jcompetitors) > 0
@@ -530,21 +521,28 @@ def create(
             f" to pass the name of that class or do not pass java competitors"
             f" [--jcompetitors])"
         )
+
         return -5
+
     if len(path) > 0:
         sys.path.append(path)
     kwargs = {}
+
     if world_config is not None and len(world_config) > 0:
         for wc in world_config:
             kwargs.update(load(wc))
     warning_n_runs = 2000
+
     if timeout <= 0:
         timeout = None
+
     if name == "random":
         name = unique_name(base="", rand_digits=0)
     ctx.obj["tournament_name"] = name
+
     if max_runs <= 0:
         max_runs = None
+
     if compact:
         log_ufuns = False
 
@@ -563,12 +561,14 @@ def create(
 
     all_competitors = competitors.split(";")
     all_competitors_params = [dict() for _ in range(len(all_competitors))]
+
     if jcompetitors is not None and len(jcompetitors) > 0:
         jcompetitor_params = [{"java_class_name": _} for _ in jcompetitors.split(";")]
         jcompetitors = [java_interop_class] * len(jcompetitor_params)
         all_competitors += jcompetitors
         all_competitors_params += jcompetitor_params
         print("You are using some Java agents. The tournament MUST run serially")
+
         if not jnegmas_bridge_is_running():
             print(
                 "Error: You are using java competitors but jnegmas bridge is not running\n\nTo correct this issue"
@@ -579,11 +579,13 @@ def create(
 
     permutation_size = 1
     recommended = runs * configs * permutation_size
+
     if worlds_per_config is not None and worlds_per_config < 1:
         print(
             f"You need at least {(configs * runs)} runs even with a single permutation of managers."
             f".\n\nSet --max-runs to at least {(configs * runs)} (Recommended {recommended})"
         )
+
         return
 
     if max_runs is not None and max_runs < recommended:
@@ -592,12 +594,12 @@ def create(
             f"{recommended}. Will continue"
         )
 
-    if steps is None:
-        steps = (steps_min, steps_max)
+    steps = (steps_min, steps_max)
 
     if worlds_per_config is None:
         n_comp = len(all_competitors)
         n_worlds = permutation_size * runs * configs
+
         if n_worlds > warning_n_runs:
             print(
                 f"You are running the maximum possible number of permutations for each configuration. This is roughly"
@@ -618,8 +620,10 @@ def create(
                     f"simulations. ^C or a negative number to exit [0 : {n_worlds}]:"
                 )
             )
+
             if max_runs == 0:
                 max_runs = None
+
             if max_runs is not None and max_runs < 0:
                 exit(0)
             worlds_per_config = (
@@ -631,6 +635,7 @@ def create(
         parallelism = "serial"
 
     non_competitor_params = None
+
     if len(non_competitors) < 1:
         non_competitors = None
     else:
@@ -659,7 +664,6 @@ def create(
         config_generator=config_generator,
         config_assigner=assigner,
         score_calculator=scorer,
-        min_factories_per_level=factories,
         compact=compact,
         n_steps=steps,
         log_ufuns=log_ufuns,
@@ -744,14 +748,17 @@ def run(
 ):
     if len(name) == 0:
         name = ctx.obj.get("tournament_name", "")
+
     if len(name) == 0:
         print(
             "Name is not given to run command and was not stored during a create command call"
         )
         exit(1)
+
     if len(path) > 0:
         sys.path.append(path)
     saved_log_folder = ctx.obj.get("tournament_log_folder", None)
+
     if saved_log_folder is not None:
         log = saved_log_folder
     parallelism = "distributed" if distributed else "parallel" if parallel else "serial"
@@ -811,14 +818,17 @@ def winners(ctx, name, log, recursive, metric):
             name = ctx.obj.get("tournament_name", "")
         else:
             name = None
+
     if (name is None or len(name) == 0) and not recursive:
         print(
             "Name is not given to run command and was not stored during a create command call"
         )
         exit(1)
     saved_log_folder = ctx.obj.get("tournament_log_folder", None)
+
     if saved_log_folder is not None:
         log = saved_log_folder
+
     if name is not None and len(name) > 0:
         tpath = str(pathlib.Path(log) / name)
     else:
@@ -831,12 +841,15 @@ def winners(ctx, name, log, recursive, metric):
 
 def _path(path) -> Path:
     """Creates an absolute path from given path which can be a string"""
+
     if isinstance(path, Path):
         return path.absolute()
     path.replace("/", os.sep)
+
     if isinstance(path, str):
         if path.startswith("~"):
             path = Path.home() / (os.sep.join(path.split(os.sep)[1:]))
+
     return Path(path).absolute()
 
 
@@ -849,6 +862,7 @@ def display_results(results, metric):
             tablefmt="psql",
         )
     )
+
     if metric in ("mean", "sum"):
         print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
     else:
@@ -886,6 +900,7 @@ def display_results(results, metric):
 @click_config_file.configuration_option()
 def combine(path, dest, metric):
     tpath = [_path(_) for _ in path]
+
     if len(tpath) < 1:
         print("No paths are given to combine")
     scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
@@ -966,6 +981,7 @@ def download_and_set(key, url, file_name):
     urllib.request.urlretrieve(url, jar_path)
     config = {}
     config_file = config_path / "config.json"
+
     if config_file.exists():
         with open(config_file, "r") as f:
             config = json.load(f)

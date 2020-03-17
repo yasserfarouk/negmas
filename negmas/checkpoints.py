@@ -2,16 +2,17 @@
 
 import shutil
 from pathlib import Path
-from typing import Optional, Union, Dict, Any, Callable, Type, List
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 
-from negmas import NamedObject
+from negmas.common import NamedObject
 from negmas.helpers import load
 
 
 class CheckpointMixin:
     """Adds the ability to save checkpoints to a `NamedObject` """
+
     def checkpoint_init(
         self,
         step_attrib: str = "current_step",
@@ -62,7 +63,7 @@ class CheckpointMixin:
         if self.__checkpoint_every < 1 or self.__checkpoint_folder is None:
             return None
         step = getattr(self, self.__step_atrrib)
-        if step % self.__checkpoint_every == 0 or self.__checkpoint_every==1:
+        if step % self.__checkpoint_every == 0 or self.__checkpoint_every == 1:
             me: NamedObject = self  # type: ignore
             return me.checkpoint(
                 path=self.__checkpoint_folder,

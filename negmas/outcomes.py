@@ -24,37 +24,38 @@ Examples:
 
 """
 
+import copy
 import itertools
-import math
-import random
 import numbers
+import random
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-import copy
+from dataclasses import dataclass, fields
 from enum import Enum
 from functools import reduce
 from operator import mul
 from typing import (
-    Optional,
+    Any,
+    Callable,
     Collection,
-    List,
+    Dict,
     Generator,
     Iterable,
+    List,
+    Mapping,
+    Optional,
     Sequence,
-    Union,
+    Tuple,
     Type,
+    Union,
 )
-from typing import Tuple, Mapping, Dict, Any
 
 import numpy as np
-import pkg_resources
-from dataclasses import dataclass, fields
 
-from .java import PYTHON_CLASS_IDENTIFIER
 from .common import NamedObject
 from .generics import *
 from .helpers import unique_name
-from typing import Callable
+from .java import PYTHON_CLASS_IDENTIFIER
 
 LARGE_NUMBER = 100
 __all__ = [
@@ -152,6 +153,7 @@ class Issue(NamedObject):
         value_type: Optional[Type] = None,
     ) -> None:
         super().__init__(name=name)
+
         if (
             value_type is not None
             and value_type is not numbers.Integral
@@ -170,13 +172,16 @@ class Issue(NamedObject):
         self._is_float_range: bool = False
         self._is_integer_valued: bool = False
         self._is_real_valued: bool = False
+
         if isinstance(values, numbers.Integral):
             values = (0, int(values) - 1)
+
         if isinstance(values, tuple):
             if len(values) != 2:
                 raise ValueError(
                     f"Passing {values} is illegal. Issues with ranges need 2-values tuples"
                 )
+
             if value_type is not None:
                 values = (value_type(values[0]), value_type(values[1]))
             isint0, isint1 = (
@@ -212,6 +217,7 @@ class Issue(NamedObject):
             self._is_real_valued = not self._is_integer_valued and isinstance(
                 values[0], numbers.Real
             )
+
             if self._is_int_range:
                 self._n_values = values[1] - values[0] + 1
 
@@ -219,11 +225,14 @@ class Issue(NamedObject):
             self._is_generator = isinstance(values, Callable)
         else:
             values = list(values)
+
             if len(values) < 1:
                 raise ValueError("values must include at least one item")
+
             if value_type is not None:
                 values = [value_type(_) for _ in values]
             self._value_type = type(values[0])
+
             if value_type is None and not all(
                 isinstance(_, self._value_type) for _ in values
             ):
@@ -234,6 +243,7 @@ class Issue(NamedObject):
                 values[0], numbers.Real
             )
         self._values = values
+
         if isinstance(self._values, tuple):
             self.min_value, self.max_value = values
         elif isinstance(self._values, list):
@@ -275,33 +285,42 @@ class Issue(NamedObject):
                 old, numbers.Integral
             ):
                 return float(v)
+
             if not isinstance(v, numbers.Integral) and isinstance(
                 old, numbers.Integral
             ):
                 for i, _ in enumerate(values):
                     values[i] = float(_)
+
                 return v
+
             if isinstance(v, str) and (isinstance(old, numbers.Number)):
                 raise ValueError("a string after a number")
+
             if isinstance(old, str) and (isinstance(v, numbers.Number)):
                 raise ValueError("a number after a string")
+
             return v
 
         names = None
         n_issues = None
         values = defaultdict(list)
+
         for i, o in enumerate(outcomes):
             o = outcome_as_dict(o)
+
             if n_issues is not None and len(o) != n_issues:
                 raise ValueError(
                     f"Outcome {o} at {i} has {len(o)} issues but an earlier outcome had {n_issues} issues"
                 )
             n_issues = len(o)
+
             if names is not None and not all(a == b for a, b in zip(names, o.keys())):
                 raise ValueError(
                     f"Outcome {o} at {i} has issues {list(o.keys())} but an earlier outcome had issues {names}"
                 )
             names = list(o.keys())
+
             for k, v in o.items():
                 if len(values[k]) > 0:
                     try:
@@ -312,6 +331,7 @@ class Issue(NamedObject):
                             f"value {values[k][-1]} ({str(e)})"
                         )
                 values[k].append(v)
+
         for k, vals in values.items():
             values[k] = sorted(list(set(vals)))
 
@@ -391,15 +411,18 @@ class Issue(NamedObject):
             f'<negotiation_template>\n<utility_space number_of_issues="{len(issues)}">\n'
             f'<objective description="" etype="objective" index="0" name="root" type="objective">\n'
         )
+
         for indx, issue in enumerate(issues):
             if issue._values is None or issue._is_generator:
                 raise ValueError(
                     f"Cannot convert issue {issue.name} to xml because it has no defined values (or uses a "
                     f"generator)."
                 )
+
             if issue._is_int_range:
                 if enumerate_integer:
                     output += f'    <issue etype="discrete" index="{indx + 1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
+
                     for i, v in enumerate(
                         range(issue._values[0], issue._values[1] + 1)
                     ):
@@ -417,10 +440,12 @@ class Issue(NamedObject):
                 )
             else:
                 output += f'    <issue etype="discrete" index="{indx + 1}" name="{issue.name}" type="discrete" vtype="discrete">\n'
+
                 for i, v in enumerate(issue._values):
                     output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
                 output += "    </issue>\n"
         output += f"</objective>\n</utility_space>\n</negotiation_template>"
+
         return output
 
     @classmethod
@@ -441,6 +466,7 @@ class Issue(NamedObject):
 
         Examples:
 
+            >>> import pkg_resources
             >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
             >>> Issue.to_genius(issues=issues, file_name = pkg_resources.resource_filename('negmas'
@@ -513,6 +539,7 @@ class Issue(NamedObject):
 
         Examples:
 
+            >>> import pkg_resources
             >>> domain_file_name = pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
             >>> issues, _ = Issue.from_xml_str(open(domain_file_name, 'r').read()
@@ -596,17 +623,21 @@ class Issue(NamedObject):
             [inf]
         """
         root = ET.fromstring(xml_str)
+
         if safe_parsing and root.tag != "negotiation_template":
             raise ValueError(f"Root tag is {root.tag}: negotiation_template")
 
         utility_space = None
         agents = []
+
         for child in root:
             if child.tag == "utility_space":
                 utility_space = child
+
                 for _ in utility_space:
                     if _.tag == "objective":
                         utility_space = _
+
                         break
             elif child.tag == "agent":
                 agents.append(child.attrib)
@@ -619,6 +650,7 @@ class Issue(NamedObject):
         issues = {}
         issue_info = {}
         all_discrete = True
+
         for child in utility_space:
             if child.tag == "issue":
                 indx = int(child.attrib["index"]) - 1
@@ -626,11 +658,14 @@ class Issue(NamedObject):
                 issue_key = myname if keep_issue_names else indx
                 issue_info[issue_key] = {"name": myname, "index": indx}
                 info = {"type": "discrete", "etype": "discrete", "vtype": "discrete"}
+
                 for a in ("type", "etype", "vtype"):
                     info[a] = child.attrib.get(a, info[a])
                 mytype = info["type"]
+
                 if mytype == "discrete":
                     issues[issue_key] = []
+
                     for item in child:
                         if item.tag == "item":
                             item_indx = int(item.attrib["index"]) - 1
@@ -642,10 +677,12 @@ class Issue(NamedObject):
                                 and not force_numeric
                                 else item_indx
                             )
+
                             if (
                                 item_key not in issues[issue_key]
                             ):  # ignore repeated items
                                 issues[issue_key].append(item_key)
+
                     if not keep_value_names:
                         issues[issue_key] = len(issues[issue_key])
                 elif mytype in ("integer", "real"):
@@ -653,14 +690,17 @@ class Issue(NamedObject):
                         child.attrib.get("lowerbound", None),
                         child.attrib.get("upperbound", None),
                     )
+
                     for rng_child in child:
                         if rng_child.tag == "range":
                             lower, upper = (
                                 rng_child.attrib.get("lowerbound", lower),
                                 rng_child.attrib.get("upperbound", upper),
                             )
+
                     if mytype == "integer":
                         lower, upper = int(lower), int(upper)
+
                         if keep_value_names:
                             issues[issue_key] = list(range(lower, upper + 1))
                         else:
@@ -685,17 +725,22 @@ class Issue(NamedObject):
                 else str(issue_info[key]["index"]),
             )
         issues = list(issues.values())
+
         if force_single_issue:
             issue_name_ = (
                 "-".join([_.name for _ in issues]) if keep_issue_names else "0"
             )
+
             if all_discrete or n_discretization is not None:
                 n_outcomes = None
+
                 if max_n_outcomes is not None:
                     n_items = [len(list(_.alli(n=n_discretization))) for _ in issues]
                     n_outcomes = reduce(mul, n_items, 1)
+
                     if n_outcomes > max_n_outcomes:
                         return None, None
+
                 if keep_value_names:
                     if len(issues) > 1:
                         all_values = itertools.product(
@@ -719,6 +764,7 @@ class Issue(NamedObject):
                     issues = [Issue(values=n_outcomes, name=issue_name_)]
             else:
                 return None, None
+
         return issues, agents
 
     @classmethod
@@ -746,6 +792,7 @@ class Issue(NamedObject):
 
         Examples:
 
+            >>> import pkg_resources
             >>> issues, _ = Issue.from_genius(file_name = pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
             >>> print([_.name for _ in issues])
@@ -757,6 +804,7 @@ class Issue(NamedObject):
         """
         with open(file_name, "r", encoding="utf-8") as f:
             xml_str = f.read()
+
             return cls.from_xml_str(
                 xml_str=xml_str,
                 force_single_issue=force_single_issue,
@@ -772,6 +820,7 @@ class Issue(NamedObject):
     def num_outcomes(issues: Iterable["Issue"]) -> Union[int, float]:
         """Returns the total number of outcomes in a set of issues. `-1` indicates infinity"""
         n = 1
+
         for issue in issues:
             n *= issue.cardinality
 
@@ -802,14 +851,17 @@ class Issue(NamedObject):
         int_names = names is None
         result = []
         nxt = 0
+
         for i, issue in enumerate(issues):
             count = 1 if one_each else counts[i]  # type: ignore
+
             for j in range(count):
                 name = str(nxt) if int_names else names[i]  # type: ignore
                 # if count > 1:
                 #    name = name + f' {j}'
                 nxt += 1
                 result.append(Issue(values=issue, name=name))
+
         return result
 
     @property
@@ -827,6 +879,7 @@ class Issue(NamedObject):
 
         if self._is_float_range:
             return "continuous"
+
         return "uncountable" if self._is_generator else "discrete"
 
     def is_continuous(self) -> bool:
@@ -836,6 +889,7 @@ class Issue(NamedObject):
             bool: uncountable (including continuous) or not
 
         """
+
         return self._is_float_range
 
     def is_uncountable(self) -> bool:
@@ -845,6 +899,7 @@ class Issue(NamedObject):
             bool: uncountable (including continuous) or not
 
         """
+
         return self._is_float_range or self._is_generator
 
     def is_countable(self) -> bool:
@@ -854,6 +909,7 @@ class Issue(NamedObject):
             bool: countable or not
 
         """
+
         return not self._is_float_range and not self._is_generator
 
     is_discrete = is_countable
@@ -871,6 +927,7 @@ class Issue(NamedObject):
             [0, 1, 2, 3, 4]
 
         """
+
         if self.is_uncountable():
             raise ValueError(
                 "Cannot return all possibilities of a continuous/uncountable issue"
@@ -893,6 +950,7 @@ class Issue(NamedObject):
             [0, 1, 2, 3, 4]
 
         """
+
         if self._is_float_range:
             if n is None:
                 raise ValueError("Real valued issue with no discretization value")
@@ -911,24 +969,30 @@ class Issue(NamedObject):
     @property
     def cardinality(self) -> Union[int, float]:
         """The number of possible outcomes for the issue. Returns infinity for continuous and uncountable spaces"""
+
         return self._n_values
 
     def rand(self) -> Union[int, float, str]:
         """Picks a random valid value."""
+
         if self._is_float_range:
             return (
                 random.random() * (self._values[1] - self._values[0]) + self._values[0]
             )  # type: ignore
+
         if self._is_int_range:
             return random.randint(*self._values)
+
         if self._is_generator:
             return self._values()
+
         return random.choice(self._values)  # type: ignore
 
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> Iterable["Outcome"]:
         """Picks a random valid value."""
+
         if self._is_int_range:
             if n > self._values[1] and not with_replacement:
                 if fail_if_not_enough:
@@ -937,6 +1001,7 @@ class Issue(NamedObject):
                     )
                 else:
                     return [_ for _ in range(self._values[0], self._values[1] + 1)]
+
             if with_replacement:
                 return np.random.randint(
                     low=self._values[0], high=self._values[1] + 1, size=n
@@ -945,6 +1010,7 @@ class Issue(NamedObject):
                 return random.shuffle(
                     [_ for _ in range(self._values[0], self._values[1] + 1)]
                 )[:n]
+
         if self._is_float_range:
             if with_replacement:
                 return (
@@ -955,13 +1021,16 @@ class Issue(NamedObject):
                 return np.linspace(
                     self._values[0], self._values[1], num=n, endpoint=True
                 ).tolist()
+
         if self._is_generator:
             if not with_replacement:
                 raise ValueError(
                     f"values is specified as a callables for this issue. Cannot sample from it without "
                     f"replacement"
                 )
+
             return [self._values() for _ in range(n)]
+
         if n > len(self._values) and not with_replacement:
             if fail_if_not_enough:
                 raise ValueError(
@@ -969,6 +1038,7 @@ class Issue(NamedObject):
                 )
             else:
                 return self._values
+
         return np.random.choice(
             np.asarray(self._values, dtype=self._value_type),
             size=n,
@@ -979,19 +1049,24 @@ class Issue(NamedObject):
 
     def rand_invalid(self) -> Union[int, float, str]:
         """Pick a random *invalid* value"""
+
         if self._is_int_range:
             return random.randint(self.max_value + 1, 2 * self.max_value)
+
         if self._is_float_range:
             return (
                 random.random() * (self.max_value - self.min_value)
                 + self.max_value * 1.1
             )
+
         if self._is_generator:
             raise ValueError(
                 f"Cannot generate invalid outcomes because values is given as a callable"
             )
+
         if self._is_real_valued:
             return random.random() * self.max_value + self.max_value * 1.1
+
         if self._is_integer_valued:
             return random.randint(self.max_value + 1, self.max_value * 2)
 
@@ -1004,13 +1079,27 @@ class Issue(NamedObject):
         max_n_outcomes: int = None,
         astype: Type = dict,
     ) -> List["Outcome"]:
+        """
+        Enumerates the outcomes of a list of issues.
+
+        Args:
+            issues: The list of issues.
+            max_n_outcomes: The maximum number of outcomes to return
+            astype: The type to use for the returned outcomes. Can be `typle`
+                    `dict`, or any `OutcomeType`.
+        Returns:
+            List of outcomes of the given type.
+        """
         n = num_outcomes(issues)
+
         if n is None:
             return cls.sample(issues=issues, n_outcomes=max_n_outcomes, astype=astype)
         values = enumerate_outcomes(issues, keep_issue_names=False)
+
         if max_n_outcomes is not None and n > max_n_outcomes:
             values = random.sample(values, max_n_outcomes)
         outcomes = []
+
         for value in values:
             if astype == tuple:
                 outcomes.append(tuple(value))
@@ -1018,6 +1107,7 @@ class Issue(NamedObject):
                 outcomes.append(dict(zip((i.name for i in issues), value)))
             else:
                 outcomes.append(astype(**dict(zip((i.name for i in issues), value))))
+
         return outcomes
 
     @classmethod
@@ -1046,7 +1136,7 @@ class Issue(NamedObject):
 
         Examples:
 
-            >>> from negmas import Issue, OutcomeType
+            >>> from negmas.outcomes import Issue, OutcomeType
             >>> issues = [Issue(name='price', values=(0.0, 3.0)), Issue(name='quantity', values=10)]
 
             Sampling outcomes as tuples
@@ -1086,6 +1176,7 @@ class Issue(NamedObject):
 
         """
         n_total = num_outcomes(issues)
+
         if (
             n_total is not None
             and n_outcomes is not None
@@ -1096,6 +1187,7 @@ class Issue(NamedObject):
             raise ValueError(
                 f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes"
             )
+
         if n_total is not None and n_outcomes is None:
             values = enumerate_outcomes(issues=issues, keep_issue_names=False)
         elif n_total is None and n_outcomes is None:
@@ -1104,6 +1196,7 @@ class Issue(NamedObject):
             )
         else:
             samples = []
+
             for issue in issues:
                 samples.append(
                     issue.rand_outcomes(
@@ -1111,15 +1204,19 @@ class Issue(NamedObject):
                     )
                 )
             values = []
+
             for i in range(n_outcomes):
                 values.append([s[i] for s in samples])
+
             if not with_replacement and not any(i.is_uncountable() for i in issues):
                 tmp_values = []
+
                 for value in values:
                     tmp_values.append(tuple(value))
                 tmp_values = set(tmp_values)
                 remaining = n_outcomes - len(tmp_values)
                 n_max_trials, i = 10, 0
+
                 while remaining < 0 and i < n_max_trials:
                     tmp_values = tmp_values.union(
                         set(
@@ -1136,6 +1233,7 @@ class Issue(NamedObject):
                 values = list(tmp_values)
 
         outcomes = []
+
         for value in values:
             if astype == tuple:
                 outcomes.append(tuple(value))
@@ -1143,18 +1241,21 @@ class Issue(NamedObject):
                 outcomes.append(dict(zip((i.name for i in issues), value)))
             else:
                 outcomes.append(astype(**dict(zip((i.name for i in issues), value))))
+
         return outcomes
 
     @property
     def outcome_range(self) -> "OutcomeRange":
         """An outcome range that represents the full space of the issues"""
         outcome_range = {}
+
         if self._is_range:
             outcome_range[self.name] = self._values
         elif self._is_generator:
             outcome_range[self.name] = None
         else:
             outcome_range[self.name] = self.all
+
         return outcome_range
 
     def __str__(self):
@@ -1174,12 +1275,14 @@ class Issue(NamedObject):
     def __deepcopy__(self, memodict={}):
         if isinstance(self._values, list):
             return Issue(name=self.name, values=[_ for _ in self._values])
+
         return Issue(name=self.name, values=self._values)
 
     @classmethod
     def from_java(cls, d: Dict[str, Any], class_name: str) -> "Issue":
         if class_name.endswith("ListIssue"):
             return Issue(name=d.get("name", None), values=d["values"])
+
         if class_name.endswith("RangeIssue"):
             return Issue(name=d.get("name", None), values=(d["min"], d["max"]))
         raise ValueError(
@@ -1189,6 +1292,7 @@ class Issue(NamedObject):
     def to_java(self):
         if self._values is None:
             return None
+
         if self._is_int_range:
             return {
                 "name": self.name,
@@ -1196,6 +1300,7 @@ class Issue(NamedObject):
                 "max": int(self._values[0]),
                 PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntRangeIssue",
             }
+
         if self._is_float_range:
             return {
                 "name": self.name,
@@ -1203,20 +1308,24 @@ class Issue(NamedObject):
                 "max": float(self._values[0]),
                 PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleRangeIssue",
             }
+
         if self._is_generator:
             raise ValueError("Cannot convert issues created by a callable to JAVA")
+
         if self._is_integer_valued:
             return {
                 "name": self.name,
                 "values": [int(_) for _ in self._values],
                 PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntListIssue",
             }
+
         if self._is_real_valued:
             return {
                 "name": self.name,
                 "values": [float(_) for _ in self._values],
                 PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleListIssue",
             }
+
         return {
             "name": self.name,
             "values": [str(_) for _ in self._values],
@@ -1250,6 +1359,7 @@ class Issues(object):
     def from_issue_collection(cls, issues: Iterable[Issue]):
         out = Issues()
         out.issues = issues
+
         return out
 
     @classmethod
@@ -1261,6 +1371,7 @@ class Issues(object):
         """Returns the total number of outcomes in a set of issues. Infinity is returned for uncountable or continuous
         outcomes """
         n = 1
+
         for issue in self.issues:
             n *= issue._n_values
 
@@ -1275,8 +1386,10 @@ class Issues(object):
 
         """
         types_ = []
+
         for issue in self.issues:
             types_.append(issue.type)
+
         return types_
 
     def is_infinite(self) -> bool:
@@ -1286,6 +1399,7 @@ class Issues(object):
             bool: continuous or not
 
         """
+
         return any(_.startswith("c") for _ in self.types)
 
     def is_finite(self) -> bool:
@@ -1295,6 +1409,7 @@ class Issues(object):
             bool: discrete or not
 
         """
+
         return all(_.startswith("d") for _ in self.types)
 
     @property
@@ -1307,6 +1422,7 @@ class Issues(object):
 
 
         """
+
         if self.is_infinite():
             raise ValueError("Cannot return all possibilities of a continuous issues")
 
@@ -1317,18 +1433,21 @@ class Issues(object):
 
     def rand(self) -> Dict[str, Union[int, float, str]]:
         """Picks a random valid value."""
+
         return {_.name: _.rand() for _ in self.issues}
 
     rand_valid = rand
 
     def rand_invalid(self) -> Dict[str, Union[int, float, str]]:
         """Pick a random *invalid* value"""
+
         return {_.name: _.rand_invalid() for _ in self.issues}
 
     @property
     def outcome_range(self) -> "OutcomeRange":
         """An outcome range that represents the full space of the issues"""
         outcome_range = {}
+
         for issue in self.issues:
             if issue.is_continuous():
                 outcome_range[issue.name] = issue.values
@@ -1336,6 +1455,7 @@ class Issues(object):
                 outcome_range[issue.name] = None
             else:
                 outcome_range[issue.name] = issue.all
+
         return outcome_range
 
     def __str__(self):
@@ -1354,7 +1474,7 @@ class OutcomeType:
 
     Examples:
 
-        >>> from negmas import OutcomeType, Issue
+        >>> from negmas.outcomes import OutcomeType, Issue
         >>> @dataclass
         ... class MyOutcome(OutcomeType):
         ...     price: float = 0.0
@@ -1386,6 +1506,7 @@ class OutcomeType:
 
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
+
         return self.__dict__[item]
 
     def keys(self) -> List[str]:
@@ -1396,10 +1517,12 @@ class OutcomeType:
 
     def astuple(self):
         """Converts the outcome to a tuple where the order of items is the same as they are defined as fields"""
+
         return tuple(self.__dict__[_.name] for _ in fields(self))
 
     def asdict(self):
         """Converts the outcome to a dict containing all fields"""
+
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
     def get(self, name, default: Any = None):
@@ -1434,14 +1557,20 @@ OutcomeRange = Mapping[
         List[Tuple[Union[int, float], Union[int, float]]],
     ],
 ]
+"""Represents a range of outcomes."""
 
 
 def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
+    """
+    Returns the total number of outcomes in a set of issues.
+    `-1` indicates infinity
+    """
     return Issue.num_outcomes(issues)
 
 
 def is_outcome(x: Any) -> bool:
     """Checks if x is acceptable as an outcome type"""
+
     return isinstance(x, dict) or isinstance(x, tuple) or isinstance(x, OutcomeType)
 
 
@@ -1461,10 +1590,13 @@ def enumerate_outcomes(
         outcomes = list(itertools.product(*[_.all for _ in issues]))
     except:
         return None
+
     if keep_issue_names:
         issue_names = [_.name for _ in issues]
+
         for i, outcome in enumerate(outcomes):
             outcomes[i] = dict(zip(issue_names, outcome))
+
     return outcomes
 
 
@@ -1526,6 +1658,7 @@ def sample_outcomes(
     uindx = []
     discrete = []
     n_disc = 0
+
     for i, issue in enumerate(issues):
         if issue.is_continuous():
             continuous.append(issue)
@@ -1536,11 +1669,13 @@ def sample_outcomes(
         else:
             discrete.append(issue)
             n_disc += issue.cardinality
+
     if len(continuous) > 0:
         if n_outcomes is not None:
             n_per_issue = max(min_per_dim, (n_outcomes - n_disc) / len(continuous))
         else:
             n_per_issue = min_per_dim
+
         for i, issue in enumerate(continuous):
             issues[indx[i]] = Issue(
                 name=issue.name,
@@ -1556,12 +1691,14 @@ def sample_outcomes(
             n_per_issue = max(min_per_dim, (n_outcomes - n_disc) / len(uncountable))
         else:
             n_per_issue = min_per_dim
+
         for i, issue in enumerate(uncountable):
             issues[uindx[i]] = Issue(
                 name=issue.name, values=[issue.values() for _ in range(n_per_issue)]
             )
 
     cardinality = 1
+
     for issue in issues:
         cardinality *= issue.cardinality
 
@@ -1570,6 +1707,7 @@ def sample_outcomes(
 
     if cardinality < n_outcomes:
         outcomes = list(enumerate_outcomes(issues, keep_issue_names=keep_issue_names))
+
         if expansion_policy == "no" or expansion_policy is None:
             return outcomes
         elif expansion_policy == "null":
@@ -1577,11 +1715,14 @@ def sample_outcomes(
         elif expansion_policy == "repeat":
             n_reps = n_outcomes // cardinality
             n_rem = n_outcomes % cardinality
+
             if n_reps > 1:
                 for _ in n_reps:
                     outcomes += outcomes
+
             if n_rem > 0:
                 outcomes += outcomes[:n_rem]
+
             return outcomes
 
     return list(
@@ -1593,6 +1734,7 @@ def sample_outcomes(
 
 def _is_single(x):
     """Checks whether a value is a single value which is defined as either a string or not an Iterable."""
+
     return isinstance(x, str) or isinstance(x, numbers.Number)
 
 
@@ -1627,6 +1769,7 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
                                       reason of failure
     """
     outcome = outcome_as_dict(outcome, [_.name for _ in issues])
+
     for issue in issues:
         for key in ikeys(outcome):
             if str(issue.name) == str(key):
@@ -1636,6 +1779,7 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
             continue
 
         value = iget(outcome, key)
+
         if issue._is_range and (
             isinstance(value, str) or not issue.min_value <= value <= issue.max_value
         ):
@@ -1688,10 +1832,12 @@ def outcome_is_complete(outcome: Outcome, issues: Collection[Issue]) -> bool:
         return False
 
     valid = outcome_is_valid(outcome, issues)
+
     if not valid:
         return False
 
     outcome_keys = [str(k) for k in ikeys(outcome)]
+
     for issue in issues:
         if str(issue.name) not in outcome_keys:
             return False
@@ -1840,6 +1986,7 @@ def outcome_in_range(
           tuple or another list. Notice that lists of lists can always be combined into a single list of values
 
     """
+
     if (
         fail_incomplete
         and len(set(ikeys(outcome_range)).difference(ikeys(outcome))) > 0
@@ -1854,6 +2001,7 @@ def outcome_in_range(
             continue
 
         values = iget(outcome_range, key, None)
+
         if values is None:
             return False
 
@@ -1885,1301 +2033,45 @@ def outcome_in_range(
     return True
 
 
-#
-# def _make_iterable(
-#     v: Union[list, tuple, int, str, float]
-# ) -> Union[list, tuple]:
-#     """Ensures the output is an Iterable if it was a single value.
-#
-#     >>> [_make_iterable(1), _make_iterable('1'), _make_iterable(1.0), _make_iterable([1])]
-#     [{1}, {'1'}, {1.0}, {1}]
-#
-#     """
-#     if _is_single(v):
-#         return {v}
-#
-#     return set(v)
-#
-#
-# def _intersect_tuples(v1: tuple, v2: tuple) -> tuple:
-#     """Finds intersection between two tuples.
-#
-#     Examples:
-#
-#         >>> print(_intersect_tuples((0.0, 1.0), (1.1, 2.0)))
-#         (0.0, 0.0)
-#         >>> _intersect_tuples((0.0, 1.0), (1.0, 2.0))
-#         (1.0, 1.0)
-#         >>> _intersect_tuples((0.0, 1.0), (0.5, 2.0))
-#         (0.5, 1.0)
-#
-#     """
-#     if not (v1[0] <= v2[0] <= v1[1] or v2[0] <= v1[0] <= v2[1]):
-#         return (v1[0], v1[0])
-#
-#     return max((v1[0], v2[0])), min((v1[1], v2[1]))
-#
-#
-# def _union_tuples(v1: tuple, v2: tuple) -> Union[tuple, List[tuple]]:
-#     """The union of two tuples.
-#
-#     Examples:
-#
-#         >>> _union_tuples((0.0, 1.0), (0.0, 1.0))
-#         (0.0, 1.0)
-#         >>> _union_tuples((0.0, 1.0), (0.5, 1.0))
-#         (0.0, 1.0)
-#         >>> _union_tuples((0.0, 1.0), (0.5, 2.0))
-#         (0.0, 2.0)
-#         >>> _union_tuples((0.0, 1.0), (1.0, 2.0))
-#         [(0.0, 1.0), (1.0, 2.0)]
-#         >>> _union_tuples((0.0, 1.0), (2.0, 3.0))
-#         [(0.0, 1.0), (2.0, 3.0)]
-#
-#     """
-#     if v1[0] == v2[0] and v1[1] == v2[1]:
-#         return v1
-#
-#     if not (v1[0] < v2[0] < v1[1] or v2[0] < v1[0] < v2[1]):
-#         return [v1, v2]
-#
-#     return min((v1[0], v2[0])), max((v1[1], v2[1]))
-#
-#
-# def _subtract_tuples(v1: tuple, v2: tuple) -> Union[tuple, List[tuple]]:
-#     """The difference between first and second tuple (v1 - v2)
-#
-#     Examples:
-#
-#         >>> _subtract_tuples((0.0, 1.0), (-1.0, 0.0))
-#         (0.0, 1.0)
-#         >>> _subtract_tuples((0.0, 1.0), (-1.0, 0.5))
-#         (0.5, 1.0)
-#         >>> _subtract_tuples((0.0, 1.0), (0.2, 0.5))
-#         [(0.0, 0.2), (0.5, 1.0)]
-#         >>> _subtract_tuples((0.0, 1.0), (0.5, 1.5))
-#         (0.0, 0.5)
-#         >>> _subtract_tuples((0.0, 1.0), (1.5, 2.0))
-#         (0.0, 1.0)
-#
-#     """
-#     v = _intersect_tuples(v1, v2)
-#     if v[0] == v[1]:
-#         return v1
-#
-#     if v[0] <= v1[0] and v[1] <= v1[1]:
-#         return (v[1], v1[1])
-#
-#     if v[0] > v1[0] and v[1] < v1[1]:
-#         return [(v1[0], v[0]), (v[1], v1[1])]
-#
-#     return (v1[0], v[0])
-#
-#
-# def _apply_on_lists(
-#     v1: Union[set, list], v2: Union[set, list], op: str
-# ) -> set:
-#     """Applies a set operation on lists.
-#
-#     Examples:
-#
-#         >>> _apply_on_lists([1, 2, 3], [2, 4 ,5], 'intersection')
-#         {2}
-#         >>> _apply_on_lists([1, 2, 3], [2, 4 ,5], 'union')
-#         {1, 2, 3, 4, 5}
-#         >>> _apply_on_lists([1, 2, 3], [2, 4 ,5], 'subtract')
-#         {1, 3}
-#
-#     """
-#     v1, v2 = set(v1), set(v2)
-#     if op.startswith('i'):
-#         return v1.intersection(v2)
-#
-#     elif op.startswith('u'):
-#         return v1.union(v2)
-#
-#     elif op.startswith('s'):
-#         return v1.difference(v2)
-#     raise ValueError()
-#
-#
-# def _intersect_list_tuple(lst: list, tpl: tuple) -> list:
-#     """Intersection between a list and tuple.
-#
-#     Examples:
-#
-#         >>> _intersect_list_tuple([1, 2, 3], (2.5, 4.0))
-#         [3]
-#         >>> _intersect_list_tuple([1, 2, 3], (6.0, 7.0))
-#         []
-#         >>> _intersect_list_tuple([1, 2, 3], (0.0, 3.0))
-#         [1, 2, 3]
-#         >>> _intersect_list_tuple([], (0.0, 3.0))
-#         []
-#
-#     """
-#     result = []
-#     for _ in lst:
-#         if tpl[0] <= _ <= tpl[1]:
-#             result.append(_)
-#     return result
-#
-#
-# def _union_list_tuple(
-#     lst: list, tpl: tuple
-# ) -> Union[tuple, List[Union[tuple, list]]]:
-#     """Finds the union between a list and a tuple.
-#
-#     Examples:
-#
-#         >>> _union_list_tuple([1, 2, 3], (2.5, 4.0))
-#         [(2.5, 4.0), [1, 2, 3]]
-#         >>> _union_list_tuple([1, 2, 3], (6.0, 7.0))
-#         [(6.0, 7.0), [1, 2, 3]]
-#         >>> _union_list_tuple([1, 2, 3], (0.0, 3.0))
-#         (0.0, 3.0)
-#         >>> _union_list_tuple([], (0.0, 3.0))
-#         (0.0, 3.0)
-#
-#     """
-#     for _ in lst:
-#         if not (tpl[0] <= _ <= tpl[1]):
-#             return [tpl, lst]
-#
-#     return tpl
-
-
-# def range_intersection(r1: OutcomeRange, r2: OutcomeRange) -> OutcomeRange:
-#     """A new outcome range at the intersection of given outcome ranges
-#
-#     Examples:
-#         >>> r1 = {'price': (0.0, 1.0), 'cost':[1, 2, 3, 4, 5]
-#         ...        , 'delivery': ['yes', 'no'], 'honor':'yes'}
-#         >>> r2 = {'price': (0.5, 2.0), 'cost':[4, 5, 6]
-#         ...        , 'delivery': ['yes'], 'honor':'yes'}
-#         >>> r3 = {'price': (0.5, 2.0), 'cost':[4, 5, 6]
-#         ...        , 'delivery': ['yes'], 'honor':'no'}
-#         >>> r4 = {'price': (0.5, 2.0), 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':'yes'}
-#         >>> r5 = {'price': [1.0, 3.0], 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':None}
-#         >>> r6 = {'price': [1.0, 3.0], 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':[]}
-#         >>> r7 = {'price': 9.0, 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':None}
-#         >>> r8 = {'price': 0.5, 'cost':[9]
-#         ...        , 'delivery': 'no', 'honor':None}
-#         >>> r9 = {'price': 0.5}
-#         >>> range_intersection(r1, r2)
-#         {'price': (0.5, 1.0), 'cost': [4, 5], 'delivery': 'yes', 'honor': 'yes'}
-#         >>> range_intersection(r1, r3)
-#         {'price': (0.5, 1.0), 'cost': [4, 5], 'delivery': 'yes', 'honor': []}
-#         >>> range_intersection(r1, r4)
-#         {'price': (0.5, 1.0), 'cost': [4, 5], 'delivery': 'yes', 'honor': 'yes'}
-#         >>> range_intersection(r1, r5)
-#         {'price': 1.0, 'cost': [4, 5], 'delivery': 'yes', 'honor': 'yes'}
-#         >>> range_intersection(r1, r6)
-#         {'price': 1.0, 'cost': [4, 5], 'delivery': 'yes', 'honor': []}
-#         >>> range_intersection(r1, r7)
-#         {'price': [], 'cost': [4, 5], 'delivery': 'yes', 'honor': 'yes'}
-#         >>> range_intersection(r1, r8)
-#         {'price': 0.5, 'cost': [], 'delivery': 'no', 'honor': 'yes'}
-#         >>> range_intersection(r1, r9)
-#         {'price': 0.5, 'cost': [1, 2, 3, 4, 5], 'delivery': ['yes', 'no'], 'honor': 'yes'}
-#
-#     """
-#     r = {}
-#     r1 = range_simplify(r1, compress=False)
-#     r2 = range_simplify(r2, compress=False)
-#     for k, v1 in r1.items():
-#         if k not in r2.keys():
-#             r[k] = copy.copy(v1)
-#             continue
-#         v2 = r2[k]
-#         if v1 is None:
-#             r[k] = copy.copy(v2)
-#             continue
-#         if v2 is None:
-#             r[k] = copy.copy(v1)
-#             continue
-#         v1 = copy.copy(_make_iterable(v1))
-#         v2 = copy.copy(_make_iterable(v2))
-#         if isinstance(v1, tuple) and isinstance(v2, tuple):
-#             r[k] = _intersect_tuples(v1, v2)
-#         elif isinstance(v1, tuple) and not isinstance(v2, tuple):
-#             r[k] = _intersect_list_tuple(lst=v2, tpl=v1)
-#         elif not isinstance(v1, tuple) and isinstance(v2, tuple):
-#             r[k] = _intersect_list_tuple(lst=v1, tpl=v2)
-#         else:
-#             r[k] = set(v1).intersection(v2)
-#         if isinstance(r[k], list) and len(r[k]) == 1:
-#             r[k] = r[k][0]
-#     return r
-#
-#
-# def range_simplify(r: OutcomeRange, compress: bool=False) -> OutcomeRange:
-#     """Simplifies an outcome range.
-#
-#     Args:
-#
-#         r: The outcome range
-#         compress: If true the dimensions that are not constrained are removed.
-#
-#     Examples:
-#
-#         >>> range_simplify({'a': [5], 'b': [4, 1, 3, 2], 'c': (1.0, 1.0)})
-#         {'a': 5, 'b': [4, 1, 3, 2], 'c': 1.0}
-#
-#         >>> range_simplify({'a': [5], 'b': [4, 1, 3, 2], 'c': [(0.0, 2.0), (1.5, 3.0)
-#         ...                              , 4, 2, [1, 2, 3], [1], (0.5, 0.5)]})
-#         {'a': 5, 'b': [1, 2, 3, 4], 'c': [(0.0, 3.0), [1, 2, 3, 4]]
-#
-#
-#     """
-#
-#     def _simplify_value(cutoff_utility):
-#         """Puts the value in the most compressed form. """
-#
-#         if _is_single(cutoff_utility):
-#             return cutoff_utility
-#         if isinstance(cutoff_utility, tuple) and cutoff_utility[0] == cutoff_utility[1]:
-#             return cutoff_utility[0]
-#         if isinstance(cutoff_utility, list) and len(cutoff_utility) == 1:
-#             return cutoff_utility
-#         if isinstance(cutoff_utility, list):
-#             combined_list = []
-#             tuples = []
-#             for item in cutoff_utility:
-#                 if _is_single(item):
-#                     combined_list.append(item)
-#                 elif isinstance(item, tuple):
-#                     tuples.append(item)
-#                 elif isinstance(item, list):
-#                     combined_list += item
-#                 else:
-#                     raise ValueError('not a single, tuple or list!!! cannot understand')
-#             if len(tuples) > 1:
-#                 results = _union_tuples(tuples[0], tuples[1])
-#                 for i in range(2, len(tuples)):
-#                     results = _union_tuples(results, tuples[i])
-#                 tuples = results
-#             if isinstance(tuples, tuple):
-#                 tuples = [tuples]
-#             cutoff_utility = tuples + sorted(list(set(combined_list)))
-#             if len(cutoff_utility) == 1:
-#                 cutoff_utility = cutoff_utility[0]
-#         return cutoff_utility
-#
-#     keys = sorted(r.keys())
-#     return {k: _simplify_value(r[k]) for k in keys}
-#
-#
-# def range_equal(r1: OutcomeRange, r2: OutcomeRange) -> OutcomeRange:
-#     """Tests if the two outcomes are equal
-#
-#     Examples:
-#         >>> range_equal({'a': 5, 'b': [1, 2, 3, 4], 'c': (1.0, 2.0)},
-#         ...             {'a': [5], 'b': [4, 1, 3, 2], 'c': (1.0, 2.0)})
-#
-#     """
-#
-# def range_union(r1: OutcomeRange, r2: OutcomeRange) -> OutcomeRange:
-#     """A new outcome range covering the union of input outcome ranges.
-#
-#     Examples:
-#         >>> r1 = {'price': (0.0, 1.0), 'cost':[1, 2, 3, 4, 5]
-#         ...        , 'delivery': ['yes', 'no'], 'honor':'yes'}
-#         >>> r2 = {'price': (0.5, 2.0), 'cost':[4, 5, 6]
-#         ...        , 'delivery': ['yes'], 'honor':'yes'}
-#         >>> r3 = {'price': (0.5, 2.0), 'cost':[4, 5, 6]
-#         ...        , 'delivery': ['yes'], 'honor':'no'}
-#         >>> r4 = {'price': (0.5, 2.0), 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':'yes'}
-#         >>> r5 = {'price': [1.0, 3.0], 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':None}
-#         >>> r6 = {'price': [1.0, 3.0], 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':[]}
-#         >>> r7 = {'price': 9.0, 'cost':[4, 5, 6]
-#         ...        , 'delivery': 'yes', 'honor':None}
-#         >>> r8 = {'price': 0.5, 'cost':[9]
-#         ...        , 'delivery': 'no', 'honor':None}
-#         >>> r9 = {'price': 0.5}
-#         >>> range_union(r1, r2)
-#         {'honor': 'yes', 'cost': [1, 2, 3, 4, 5, 6], 'price': (0.0, 2.0), 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r3)
-#         {'honor': ['yes', 'no'], 'cost': [1, 2, 3, 4, 5, 6], 'price': (0.0, 2.0), 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r4)
-#         {'honor': 'yes', 'cost': [1, 2, 3, 4, 5, 6], 'price': (0.0, 2.0), 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r5)
-#         {'honor': None, 'cost': [1, 2, 3, 4, 5, 6], 'price': [(0.0, 1.0), [3]], 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r6)
-#         {'honor': 'yes', 'cost': [1, 2, 3, 4, 5, 6], 'price': [(0.0, 1.0), [3]], 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r7)
-#         {'honor': None, 'cost': [1, 2, 3, 4, 5, 9], 'price': [(0.0, 1.0), [9.0]], 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r8)
-#         {'honor': None, 'cost': [1, 2, 3, 4, 5, 6], 'price': (0.0, 1.0), 'delivery': ['yes', 'no']}
-#         >>> range_union(r1, r9)
-#         {'honor': None, 'cost': None, 'price': (0.0, 1.0), 'delivery': None}
-#
-#     """
-#     r = {}
-#     all_k = list(set(r1.keys()).union(r2.keys()))
-#     for k in all_k:
-#         if k not in r1.keys():
-#             r[k] = None
-#             continue
-#         if k not in r2.keys():
-#             r[k] = None
-#             continue
-#         v1, v2 = r1[k], r2[k]
-#         if v1 is None or v2 is None:
-#             r[k] = None
-#             continue
-#         v1 = _make_iterable(v1)
-#         v2 = _make_iterable(v2)
-#         if isinstance(v1, tuple) and isinstance(v2, tuple):
-#             r[k] = _union_tuples(v1, v2)
-#         elif isinstance(v1, tuple) and not isinstance(v2, tuple):
-#             r[k] = _union_list_tuple(lst=v2, tpl=v1)
-#         elif not isinstance(v1, tuple) and isinstance(v2, tuple):
-#             r[k] = _union_list_tuple(lst=v1, tpl=v2)
-#         else:
-#             r[k] = _apply_on_lists(v1, v2, 'union')
-#     return r
-#
-# def range_subtract(r1: OutcomeRange, r2: OutcomeRange, parent1: OutcomeRange=None, parent2: OutcomeRange=None) -> OutcomeRange:
-#     r = {}
-#
-#     for k, v1 in r1.items():
-#         if k not in r2.keys():
-#             r[k] = []
-#             continue
-#         v2 = r2[k]
-#         if v1 is None:
-#             if parent1 is None:
-#                 raise RuntimeError('No parent is defined, cannot invert')
-#             r[k] = range_invert({k: v2}, {k: parent1.get(k, None)})
-#             continue
-#         v1 = _make_iterable(v1)
-#         v2 = _make_iterable(v2)
-#         if isinstance(v1, tuple) and isinstance(v2, tuple):
-#             r[k] = _subtract_tuples(v1, v2)
-#         elif isinstance(v1, tuple) and not isinstance(v2, tuple):
-#             r[k] = _subtract_list_tuple(lst=v2, tpl=v1)
-#         elif not isinstance(v1, tuple) and isinstance(v2, tuple):
-#             r[k] = _subtract_list_tuple(lst=v1, tpl=v2)
-#         else:
-#             r[k] = _apply_on_lists(v1, v2, 'subtract')
-#     return r
-#
-#
-# def range_invert(r1: OutcomeRange, issues=Iterable[Issue], resolution=1e-6) -> OutcomeRange:
-#     r = {}
-#
-#     for k, v1 in r1.items():
-#         if v1 is None:
-#             r[k] = []
-#             continue
-#     # TODO complete this
-#
-#     return r
-#
-#
-# def _dim_cardinality(x: Any, recursing=False) -> Union[int, float]:
-#     if isinstance(x, str):
-#         return 1
-#     if isinstance(x, int) and not recursing:
-#         return x
-#     if isinstance(x, tuple):
-#         if x[0] != x[1]:
-#             return math.inf
-#         else:
-#             return 1
-#     if isinstance(x, Iterable):
-#         return sum([_dim_cardinality(_, recursing=True) for _ in x])
-#     return 1
-#
-#
-# def _all_values(x: Any, recursing=False):
-#     if isinstance(x, str):
-#         yield x
-#         raise StopIteration
-#     if isinstance(x, int) and not recursing:
-#         yield from range(x)
-#         raise StopIteration
-#     if isinstance(x, tuple):
-#         raise RuntimeError('Cannot iterate over ranges (tuples)')
-#     if isinstance(x, Iterable):
-#         yield from x
-#     raise StopIteration
-SingleValue = Union[int, float, str]
-EPSILON = 1e-9
-
-
-# class SingleIssueSpace(NamedObject):
-#     """Encodes the space of values for a single issue.
-#
-#     Examples:
-#
-#         You can define a complex issue space combining ranges and sets of values:
-#         >>> everything = SingleIssueSpace(ranges= (20.0, 30.0), count = 10, name='everything')
-#         >>> print(everything)
-#         everything: (20.0, 30.0) and {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-#
-#         You can create child issue spaces that belong to it as needed
-#         >>> i1 = SingleIssueSpace(ranges= (20.0, 25.0), values = [1, 2, 3, 4, 5], name='i1', parent=everything)
-#         >>> i2 = SingleIssueSpace(ranges= (20.0, 25.0), name='i2', parent=everything)
-#         >>> i3 = SingleIssueSpace(values = [1, 2, 3, 4, 5], name='i3', parent=everything)
-#         >>> i4 = SingleIssueSpace(values = [6, 7, 8, 9], ranges = (25.0, 29.0), name='i3', parent=everything)
-#
-#         You can make complex spaces by combining them arbitrary using arithmetic operators
-#         >>> print(everything - ((i2 + i3) ))
-#         (everything-(i2+i3)): (25.0, 30.0) and {0, 6, 7, 8, 9}
-#         >>> print(-(i2 + i4))
-#         -(i2+i3): (29.0, 30.0) and {0, 1, 2, 3, 4, 5}
-#
-#         You can also use logical operators
-#         >>> print(everything % ((i2 | i3) ))
-#         (everything-(i2+i3)): (25.0, 30.0) and {0, 6, 7, 8, 9}
-#         >>> print(~(i2 | i4))
-#         -(i2+i3): (29.0, 30.0) and {0, 1, 2, 3, 4, 5}
-#
-#
-#         See the documentation of arithmetic operators to find more examples
-#
-#     """
-#     __slots__ = ['ranges', 'values', 'parent', 'everything']
-#
-#     def __init__(
-#         self,
-#         ranges: Union[Tuple[Any, Any], Iterable[Tuple[Any, Any]]] = None,
-#         values: Iterable[SingleValue] = None,
-#         count: int = None,
-#         parent: 'SingleIssueSpace' = None,
-#         everything=False,
-#         name: str = None,
-#     ):
-#         super().__init__(name=name)
-#         self.parent = parent
-#         self.everything = everything
-#         if everything:
-#             self.ranges = self.values = None
-#         else:
-#             if ranges is None:
-#                 ranges = []
-#             if values is None:
-#                 values = []
-#             if isinstance(ranges, tuple):
-#                 ranges = [ranges]
-#             self.ranges = list(ranges)
-#             self.values = set(values)
-#             if count is not None:
-#                 self.values = self.values.union(range(count))
-#             self.simplify()
-#
-#     @property
-#     def n_outcomes(self) -> Union[int, float]:
-#         """Returns the total number of outcomes in a set of issues. `math.inf` indicates infinity
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> SingleIssueSpace(ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0]).n_outcomes
-#             inf
-#             >>> SingleIssueSpace(values=[2.0, 3.0, 4.0]).n_outcomes
-#             3
-#             >>> SingleIssueSpace(count=10).n_outcomes
-#             10
-#             >>> SingleIssueSpace(count=10, values=[20, 30, 40]).n_outcomes
-#             13
-#             >>> SingleIssueSpace(count=10, values=[20, 30, 40, 40, 40]).n_outcomes
-#             13
-#             >>> SingleIssueSpace(count=10, values=[1, 2, 4]).n_outcomes
-#             10
-#
-#
-#         """
-#         if self.everything:
-#             return self.parent.n_outcomes if self.parent is not None else math.inf
-#
-#         if len(self.ranges) > 0:
-#             return math.inf
-#
-#         return len(self.values)
-#
-#     @property
-#     def cardinalities(self) -> Dict[str, Union[int, float]]:
-#         """The cardinality of that issue space with its name. Useful when creating complex OutcomeSpaces
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> SingleIssueSpace(name='issue', ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0]).cardinalities
-#             {'issue': inf}
-#             >>> SingleIssueSpace(name='issue', values=[2.0, 3.0, 4.0]).cardinalities
-#             {'issue': 3}
-#             >>> SingleIssueSpace(name='issue', count=10).cardinalities
-#             {'issue': 10}
-#             >>> SingleIssueSpace(name='issue', count=10, values=[20, 30, 40]).cardinalities
-#             {'issue': 13}
-#             >>> SingleIssueSpace(name='issue', count=10, values=[20, 30, 40, 40, 40]).cardinalities
-#             {'issue': 13}
-#             >>> SingleIssueSpace(name='issue', count=10, values=[1, 2, 4]).cardinalities
-#             {'issue': 10}
-#
-#         """
-#         return {self.name: self.cardinality}
-#
-#     @property
-#     def type(self) -> str:
-#         """The type of the issue.
-#
-#         Returns:
-#             str: either 'continuous' or 'discrete'
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> SingleIssueSpace(name='issue', ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0]).type
-#             'continuous'
-#             >>> SingleIssueSpace(name='issue', values=[2.0, 3.0, 4.0]).type
-#             'discrete'
-#             >>> SingleIssueSpace(name='issue', count=10).type
-#             'discrete'
-#             >>> SingleIssueSpace(name='issue', count=10, values=[20, 30, 40]).type
-#             'discrete'
-#
-#         """
-#         if self.everything:
-#             return self.parent.type if self.parent is not None else (
-#                 'continuous' if len(self.ranges) > 0 else 'discrete'
-#             )
-#
-#         return 'continuous' if len(self.ranges) > 0 else 'discrete'
-#
-#     @property
-#     def infinite(self) -> bool:
-#         """Test whether any issue is continuous (infinite outcome space)
-#
-#         Returns:
-#             bool: continuous (== infinite) or not
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> SingleIssueSpace(name='issue', ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0]).infinite
-#             True
-#             >>> SingleIssueSpace(name='issue', values=[2.0, 3.0, 4.0]).infinite
-#             False
-#             >>> SingleIssueSpace(name='issue', count=10).infinite
-#             False
-#             >>> SingleIssueSpace(name='issue', count=10, values=[20, 30, 40]).infinite
-#             False
-#
-#         """
-#         if self.everything:
-#             return self.parent.infinite if self.parent is not None else len(
-#                 self.ranges
-#             ) > 0
-#
-#         return len(self.ranges) > 0
-#
-#     @property
-#     def finite(self) -> bool:
-#         """Test whether all issues are discrete (finite outcome space)
-#
-#         Returns:
-#             bool: discrete or not
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> SingleIssueSpace(name='issue', ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0]).finite
-#             False
-#             >>> SingleIssueSpace(name='issue', values=[2.0, 3.0, 4.0]).finite
-#             True
-#             >>> SingleIssueSpace(name='issue', count=10).finite
-#             True
-#             >>> SingleIssueSpace(name='issue', count=10, values=[20, 30, 40]).finite
-#             True
-#
-#         """
-#         return not self.infinite
-#
-#     @property
-#     def all(self) -> Generator:
-#         """A generator that generates all possible values.
-#
-#         Remarks:
-#             - This function returns a generator for the case when the number of values is very large.
-#             - If you need a list then use something like:
-#
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> try:
-#             ...     list(SingleIssueSpace(name='issue', ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0]).all)
-#             ... except ValueError:
-#             ...     print('failed')
-#             failed
-#             >>> list(SingleIssueSpace(name='issue', values=[2.0, 3.0, 4.0]).all)
-#             [2.0, 3.0, 4.0]
-#             >>> list(SingleIssueSpace(name='issue', count=10).all)
-#             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-#             >>> parent = SingleIssueSpace(name='issue', count=10)
-#             >>> list(SingleIssueSpace(name='issue', count=3, parent=parent).all)
-#             [0, 1, 2]
-#             >>> list(SingleIssueSpace(name='issue', parent=parent).all)
-#             []
-#             >>> list(SingleIssueSpace(name='issue', everything=True, parent=parent).all)
-#             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-#
-#         """
-#         if self.infinite:
-#             raise ValueError(
-#                 'Cannot return all possibilities of a continuous issues'
-#             )
-#
-#         if self.everything:
-#             yield from self.parent.all
-#
-#         else:
-#             yield from self.values
-#
-#     def __contains__(self, item: SingleValue) -> bool:
-#         """Tests if an outcome is within this issue space.
-#
-#
-#         Examples:
-#
-#             >>> prices = SingleIssueSpace(name='price', ranges = [(0.0, 10.0), (20.0, 30.0)], values=[2.0, 3.0, 44])
-#             >>> [_ in prices for _ in (0.0, 0.5, 1.0, 15.0, 20.0, 22.0, 40, 44.0)]
-#             [False, True, True, False, False, True, False, True]
-#
-#         """
-#         if self.everything:
-#             return item in self.parent
-#
-#         for r in self.ranges:
-#             if r[0] < item < r[1]:
-#                 return True
-#
-#         return item in self.values
-#
-#     def _in_ranges(self, v: SingleValue):
-#         """Checks if a value is within the ranges."""
-#         for r in self.ranges:
-#             if r[0] < v < r[1]:
-#                 return True
-#
-#         return False
-#
-#     def _compress_ranges(self) -> None:
-#         """Combines ranges and removes empty ones."""
-#         self.ranges = sorted(
-#             [_ for _ in self.ranges if _[0] != _[1]], key=lambda x: x[0]
-#         )
-#         if len(self.ranges) > 1:
-#             ranges = _union_tuples(self.ranges[0], self.ranges[1])
-#             for i in range(2, len(self.ranges)):
-#                 if isinstance(ranges, tuple):
-#                     ranges = _union_tuples(ranges, self.ranges[i])
-#                 else:
-#                     last_union = _union_tuples(ranges[-1], self.ranges[i])
-#                     if isinstance(last_union, tuple):
-#                         last_union = [last_union]
-#                     ranges = ranges[:-1] + last_union
-#             if isinstance(ranges, tuple):
-#                 ranges = [ranges]
-#             self.ranges = ranges
-#
-#     def simplify(self) -> None:
-#         """Simplifies internal representation.
-#
-#         Examples:
-#
-#             >>> print(SingleIssueSpace(count=8, ranges= [(22.0, 34.0), (25, 41), (5.0, 7.0)]
-#             ...                                     , values= [12, 11, 10, 13, 50], name='i2'))
-#             i2: [(5.0, 7.0), (22.0, 41)] and {0, 1, 2, 3, 4, 5, 7, 10, 11, 12, 13, 50}
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (2.0, 3.0)], values={10.0, 11.0}, name='issue 1'))
-#             issue 1: [(0.0, 1.0), (2.0, 3.0)] and {10.0, 11.0}
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (0.5, 3.0)], values={10.0, 11.0}, name='issue 2'))
-#             issue 2: (0.0, 3.0) and {10.0, 11.0}
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (0.5, 3.0)], values={0.1, 0.9}, name='issue 3'))
-#             issue 3: (0.0, 3.0)
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (1.0, 2.0)], values={0.3, 1.0, 2.5}, name='issue 4'))
-#             issue 4: (0.0, 2.0) and {2.5}
-#         """
-#         if self.everything:
-#             return
-#
-#         self._compress_ranges()
-#         self.values = set(_ for _ in self.values if not self._in_ranges(_))
-#         if len(self.ranges) > 1:
-#             comp = []
-#             for i in range(len(self.ranges) - 1):
-#                 if self.ranges[i][1] == self.ranges[i + 1][0] and self.ranges[
-#                     i
-#                 ][
-#                     1
-#                 ] in self.values:
-#                     self.values.remove(self.ranges[i][1])
-#                     comp.append(i)
-#             for i in comp:
-#                 self.ranges = self.ranges[0:i] + [
-#                     (self.ranges[i][0], self.ranges[i + 1][1])
-#                 ] + self.ranges[
-#                     i + 2:
-#                     ]
-#
-#     @property
-#     def ancestors(self) -> List['SingleIssueSpace']:
-#         """Returns all the ancestors of this issue space
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, name='i1')
-#             >>> i1.ancestors
-#             []
-#             >>> i2 = SingleIssueSpace(count=10, name='i2')
-#             >>> i2.ancestors
-#             []
-#             >>> i_1 = SingleIssueSpace(count=10, name='i_1', parent=i1)
-#             >>> [_.name for _ in i_1.ancestors]
-#             ['i1']
-#             >>> i_12 = SingleIssueSpace(count=10, name='i_12', parent=i_1)
-#             >>> [_.name for _ in i_12.ancestors]
-#             ['i_1', 'i1']
-#             >>> i_123 = SingleIssueSpace(count=10, name='i_123', parent=i_12)
-#             >>> [_.name for _ in i_123.ancestors]
-#             ['i_12', 'i_1', 'i1']
-#             >>> i_2 = SingleIssueSpace(count=10, name='i_2', parent=i2)
-#             >>> [_.name for _ in i_2.ancestors]
-#             ['i2']
-#
-#
-#         """
-#         if self.parent is None:
-#             return []
-#
-#         return [self.parent] + self.parent.ancestors
-#
-#     def __add__(self, other: Union[SingleValue, 'SingleIssueSpace']):
-#         """Finds the union of two outcome spaces.
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, ranges= [(20.0, 30.0), (40, 50.0)], values= [50], name='i1')
-#             >>> i2 = SingleIssueSpace(count=8, ranges= [(22.0, 34.0), (25, 41), (5.0, 7.0)]
-#             ...                                     , values= [12, 11, 10, 13, 50], name='i2')
-#             >>> print(i1 + i2)
-#             (i1+i2): [(5.0, 7.0), (20.0, 50.0)] and {0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 50}
-#             >>> print(i1 + 144)
-#             (i1+144): [(20.0, 30.0), (40, 50.0)] and {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 144, 50}
-#
-#         """
-#         if self.everything:
-#             return self.parent + other
-#
-#         if _is_single(other):
-#             result = SingleIssueSpace(
-#                 ranges=self.ranges,
-#                 values=self.values,
-#                 count=None,
-#                 parent=self.parent,
-#                 name=f'({self.name}+{other})',
-#             )
-#             result.values.add(other)
-#         else:
-#             result = SingleIssueSpace(
-#                 ranges=self.ranges,
-#                 values=self.values,
-#                 count=None,
-#                 parent=self.parent,
-#                 name=f'({self.name}+{other.name})',
-#             )
-#             result.values = self.values.union(other.values)
-#             result.ranges += other.ranges
-#         result.simplify()
-#         return result
-#
-#     def __mul__(self, other: Union[SingleValue, 'SingleIssueSpace']):
-#         """Finds the intersection of two outcome spaces.
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, ranges= [(20.0, 30.0), (40, 50.0)], values= [50], name='i1')
-#             >>> i2 = SingleIssueSpace(count=8, ranges= [(22.0, 34.0), (25, 41), (5.0, 7.0)]
-#             ...                                     , values= [12, 11, 10, 13, 50], name='i2')
-#             >>> print(i1 * i2)
-#             (i1*i2): [(22.0, 30.0), (40, 41)] and {0, 1, 2, 3, 4, 5, 7, 50}
-#             >>> print(i1 * 144)
-#             (144*i1): set()
-#             >>> print(i1 * 21.2)
-#             (21.2*i1): {21.2}
-#
-#         """
-#         if self.everything:
-#             return self.parent * other
-#
-#         if _is_single(other):
-#             if other in self:
-#                 return SingleIssueSpace(
-#                     ranges=None,
-#                     values=[other],
-#                     count=None,
-#                     parent=self.parent,
-#                     name=f'({other}*{self.name})',
-#                 )
-#
-#             else:
-#                 return SingleIssueSpace(
-#                     ranges=None,
-#                     values=None,
-#                     count=None,
-#                     parent=self.parent,
-#                     name=f'({other}*{self.name})',
-#                 )
-#
-#         result = SingleIssueSpace(
-#             ranges=None,
-#             values=None,
-#             count=None,
-#             parent=self.parent,
-#             name=f'({self.name}*{other.name})',
-#         )
-#         result.values = self.values.intersection(other.values)
-#         for r1 in self.ranges:
-#             for r2 in other.ranges:
-#                 intersection = _intersect_tuples(r1, r2)
-#                 result.ranges.append(intersection)
-#         result.simplify()
-#         return result
-#
-#     def __sub__(self, other: Union[SingleValue, 'SingleIssueSpace']):
-#         """An outcome space containing this outcome space minus the intersection with other.
-#
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, ranges= [(20.0, 30.0), (40, 50.0)], values= [50], name='i1')
-#             >>> i2 = SingleIssueSpace(count=8, ranges= [(22.0, 34.0), (25, 41), (5.0, 7.0)]
-#             ...                                     , values= [12, 11, 10, 13, 50], name='i2')
-#             >>> print(i1 - i2)
-#             (i1-i2): [(20.0, 22.0), (41, 50.0)] and {8, 9, 6}
-#             >>> print(i1 - 144)
-#             (i1-144): [(20.0, 30.0), (40, 50.0)] and {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 50}
-#             >>> print(i1 - 21.2)
-#             (i1-21.2): [(20.0, 21.2), (21.2, 30.0), (40, 50.0)] and {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 50}
-#
-#
-#
-#         """
-#         if self.everything:
-#             return self.parent - other
-#
-#         if _is_single(other):
-#             ranges = []
-#             for r in self.ranges:
-#                 if r[0] < other < r[1]:
-#                     ranges.append((r[0], other))
-#                     ranges.append((other, r[1]))
-#                 else:
-#                     ranges.append(r)
-#             values = self.values.copy()
-#             if other in values:
-#                 values.remove(other)
-#             return SingleIssueSpace(
-#                 ranges=ranges,
-#                 values=values,
-#                 count=None,
-#                 parent=self.parent,
-#                 name=f'({self.name}-{other})',
-#             )
-#
-#         result = SingleIssueSpace(
-#             ranges=None,
-#             values=None,
-#             count=None,
-#             parent=self.parent,
-#             name=f'({self.name}-{other.name})',
-#         )
-#         result.values = self.values.difference(other.values)
-#         other *= self
-#         for r1 in self.ranges:
-#             survived = r1
-#             for r2 in other.ranges:
-#                 if isinstance(survived, tuple):
-#                     survived = _subtract_tuples(survived, r2)
-#                 else:
-#                     survived = [_subtract_tuples(_, r2) for _ in survived]
-#             if isinstance(survived, tuple):
-#                 survived = [survived]
-#             result.ranges += survived
-#         result.simplify()
-#         return result
-#
-#     @property
-#     def empty(self):
-#         """Checks if this is an empty SingleIssueSpace.
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> SingleIssueSpace().empty
-#             True
-#             >>> SingleIssueSpace(everything=True).empty
-#             True
-#             >>> i1 = SingleIssueSpace(count=10)
-#             >>> i1.empty
-#             False
-#             >>> SingleIssueSpace(everything=True, parent=i1).empty
-#             False
-#
-#         """
-#         if self.everything:
-#             if self.parent is None:
-#                 return True
-#
-#             return self.parent.empty
-#
-#         return len(self.ranges) == 0 and len(self.values) == 0
-#
-#     def __neg__(self) -> 'SingleIssueSpace':
-#         """The inverse of this outcome space. Assumes that a parent outcome space is defined.
-#
-#         Examples:
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, ranges= [(20.0, 30.0), (40, 50.0)], values= [50], name='i1')
-#             >>> i2 = SingleIssueSpace(count=8, ranges= [(22.0, 34.0), (25, 41), (5.0, 7.0)]
-#             ...                                     , values= [12, 11, 10, 13, 50], name='i2')
-#             >>> try:
-#             ...     print(-i2)
-#             ... except RuntimeError:
-#             ...     print('cannot inverse without a parent')
-#             cannot inverse without a parent
-#             >>> i2 = SingleIssueSpace(count=8, ranges= [(22.0, 34.0), (25, 41), (5.0, 7.0)]
-#             ...                                     , values= [12, 11, 10, 13, 50], parent=i1, name='i2')
-#             >>> print(-i2)
-#             -i2: [(20.0, 22.0), (41, 50.0)] and {8, 9, 6}
-#
-#
-#         """
-#         if self.everything:
-#             return self.parent if self.parent is not None else SingleIssueSpace(
-#                 ranges=None,
-#                 values=None,
-#                 count=None,
-#                 parent=None,
-#                 name=f'-{self.name}',
-#             )
-#
-#         if self.empty:
-#             return self.parent if self.parent is not None else SingleIssueSpace(
-#                 ranges=None,
-#                 values=None,
-#                 count=None,
-#                 parent=None,
-#                 everything=True,
-#                 name=f'-{self.name}',
-#             )
-#
-#         if self.parent is None:
-#             raise RuntimeError(
-#                 'Cannot find the inverse of an issue space that has no parent'
-#             )
-#
-#         result = self.parent - self
-#         result.rename(f'-{self.name}')
-#         return result
-#
-#     def rand(self) -> Optional[SingleValue]:
-#         """Picks a random valid value.
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, ranges= [(20.0, 30.0), (40, 50.0)], values= [50], name='i1')
-#             >>> samples = [i1.rand() for _ in range(10)]
-#             >>> [_ in i1 for _ in samples]
-#             [True, True, True, True, True, True, True, True, True, True]
-#
-#         """
-#         if self.everything:
-#             if self.parent is None:
-#                 return None
-#
-#             return self.parent.rand()
-#
-#         if self.empty:
-#             return None
-#
-#         if len(self.ranges) == 0:
-#             return random.sample(self.values)
-#
-#         sizes = [_[1] - _[0] for _ in self.ranges]
-#         total_size = sum(sizes)
-#         v = random.random() * total_size
-#         total = 0.0
-#         for s, r in zip(sizes, self.ranges):
-#             total += s
-#             if v > total:
-#                 return r[0] + v - total
-#
-#         return self.ranges[-1][1] - EPSILON
-#
-#     rand_valid = rand
-#
-#     def rand_invalid(self) -> Optional[SingleValue]:
-#         """Pick a random *invalid* value
-#
-#         Examples:
-#
-#             >>> from negmas import SingleIssueSpace
-#             >>> i1 = SingleIssueSpace(count=10, ranges= [(20.0, 30.0), (40, 50.0)], values= [50], name='i1')
-#             >>> samples = [i1.rand_invalid() for _ in range(10)]
-#             >>> [_ in i1 for _ in samples]
-#             [False, False, False, False, False, False, False, False, False, False]
-#
-#
-#         """
-#         if self.everything:
-#             if self.parent is None:
-#                 return None
-#
-#             return self.parent.rand_invalid()
-#
-#         if self.empty:
-#             return 'anything'
-#
-#         if len(self.ranges) == 0:
-#             if isinstance(random.sample(self.values), str):
-#                 return unique_name('', add_time=False)
-#
-#             mx = max(self.values)
-#             return random.randint(mx + 1, 2 * mx)
-#
-#         mx = self.ranges[0][1]
-#         mn = self.ranges[0][0]
-#         for r in self.ranges:
-#             mx = max([mx, r[1]])
-#             mn = min([mn, r[1]])
-#         return random.random() * (mx - mn) + mx
-#
-#     def __str__(self):
-#         """Returns a string representation.
-#
-#         Examples:
-#
-#             >>> i1 = SingleIssueSpace(ranges=(0.0, 1.0), values=[2.0, 3.0, 4.0], name='issue 1')
-#             >>> print(i1)
-#             issue 1: (0.0, 1.0) and {2.0, 3.0, 4.0}
-#             >>> print(SingleIssueSpace(ranges=(0.0, 1.0), name='issue 2'))
-#             issue 2: (0.0, 1.0)
-#             >>> print(SingleIssueSpace(ranges=(0.0, 1.0), name='issue 3', parent=i1))
-#             issue 3 (parent: issue 1): (0.0, 1.0)
-#             >>> print(SingleIssueSpace(parent=i1, name='issue 4'))
-#             issue 4 (parent: issue 1): set()
-#             >>> print(SingleIssueSpace(parent=i1, everything=True, name='issue 4'))
-#             issue 4 (parent: issue 1): everything
-#             >>> print(SingleIssueSpace(values={0.0, 1.0}, name='issue 5'))
-#             issue 5: {0.0, 1.0}
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (2.0, 3.0)], values={10.0, 11.0}, name='issue 6'))
-#             issue 6: [(0.0, 1.0), (2.0, 3.0)] and {10.0, 11.0}
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (0.5, 3.0)], values={10.0, 11.0}, name='issue 6'))
-#             issue 6: (0.0, 3.0) and {10.0, 11.0}
-#             >>> print(SingleIssueSpace(ranges=[(0.0, 1.0), (0.5, 3.0)], values={0.1, 0.9}, name='issue 6'))
-#             issue 6: (0.0, 3.0)
-#
-#         """
-#         if self.everything:
-#             base = f'everything'
-#         elif len(self.ranges) == 0:
-#             base = f'{self.values}'
-#         elif len(self.values) == 0:
-#             if len(self.ranges) == 1:
-#                 base = f'{self.ranges[0]}'
-#             else:
-#                 base = f'{self.ranges}'
-#         else:
-#             if len(self.ranges) == 1:
-#                 base = f'{self.ranges[0]} and {self.values}'
-#             else:
-#                 base = f'{self.ranges} and {self.values}'
-#         if self.parent is not None:
-#             parent = f' (parent: {self.parent.name})'
-#         else:
-#             parent = ''
-#         return f'{self.name}{parent}: {base}'
-#
-#     def __and__(self, other):
-#         return self * other
-#
-#     def __or__(self, other):
-#         return self + other
-#
-#     def __xor__(self, other):
-#         return self + other - (self * other)
-#
-#     def __invert__(self):
-#         return -self
-#
-#     def __mod__(self, other):
-#         return self - other
-#
-#     cardinality = n_outcomes
-#     dimensionality = 1
-#     n_dims = 1
-#     contains = __contains__
-#     union = __add__
-#     instersection = __mul__
-#     difference = __sub__
-
-# class OutcomeSpace(object):
-#     """An arbitrary constraint on outcomes.
-#
-#     Overrides standard operators so it can be used something like the following:
-#
-#
-#
-#     """
-#     __slots__ = ('_parent', '_range')
-#     def __init__(self, parent: Optional['OutcomeSpace']=None, **kwargs) -> None:
-#         super().__init__()
-#         self._parent = parent
-#         self._range = copy.deepcopy(kwargs)
-#
-#     @property
-#     def n_augmented_outcomes(self) -> Union[int, float]:
-#         """Returns the total number of outcomes in a set of issues. `-1` indicates infinity"""
-#
-#         n = 1
-#         for dim in self._range.values():
-#             n *= _dim_cardinality(dim)
-#             if math.isinf(n):
-#                 return math.inf
-#         return n
-#
-#     cardinality = n_augmented_outcomes
-#
-#     @property
-#     def n_dims(self):
-#         return len(self._range)
-#
-#     dimensionality = n_dims
-#
-#     @property
-#     def cardinalities(self) -> Dict[str, Union[int, float]]:
-#         """The cardinality of all dimensions"""
-#         return {k: _dim_cardinality(cutoff_utility) for k, cutoff_utility in self._range}
-#
-#     @property
-#     def types(self) -> Dict[str, str]:
-#         """The type of the issue.
-#
-#         Returns:
-#             str: either 'continuous' or 'discrete'
-#
-#         """
-#         return {k: 'continuous' if math.isinf(_dim_cardinality(cutoff_utility)) else 'discrete' for k, cutoff_utility in self._range}
-#
-#     def is_infinite(self) -> bool:
-#         """Test whether any issue is continuous (infinite outcome space)
-#
-#         Returns:
-#             bool: continuous or not
-#
-#         """
-#         return any(math.isinf(_) for _ in self.cardinalities)
-#
-#     def is_finite(self) -> bool:
-#         """Test whether all issues are discrete (finite outcome space)
-#
-#         Returns:
-#             bool: discrete or not
-#
-#         """
-#         return not self.is_infinite()
-#
-#     @property
-#     def all(self) -> Generator:
-#         """A generator that generates all possible values.
-#
-#         Remarks:
-#             - This function returns a generator for the case when the number of values is very large.
-#             - If you need a list then use something like:
-#
-#
-#         """
-#         if self.is_infinite():
-#             raise ValueError('Cannot return all possibilities of a continuous issues')
-#         if len(self._range) == 0:
-#             raise StopIteration
-#         yield from itertools.product(_all_values for _ in self._range)
-#
-#     def __contains__(self, item: Union[Outcome, OutcomeRange, 'OutcomeSpace']):
-#         """Tests if an outcome, outcome range, or another outcome space is within this outcome space."""
-#         return outcome_in_range(item, self._range)
-#
-#     def __add__(self, other: Union[Outcome, OutcomeRange, 'OutcomeSpace']):
-#         """Finds the union of two outcome spaces."""
-#         r = OutcomeSpace(parent=self._parent)
-#         r._range = range_union(self._range, other._range)
-#         return r
-#
-#     def __mul__(self, other: Union[Outcome, OutcomeRange, 'OutcomeSpace']):
-#         """Finds the intersection of two outcome spaces."""
-#         r = OutcomeSpace(parent=self._parent)
-#         r._range = range_intersection(self._range, other._range)
-#         return r
-#
-#     def __sub__(self, other: Union[Outcome, OutcomeRange, 'OutcomeSpace']):
-#         """An outcome space containing this outcome space minus the intersection with other."""
-#
-#     def __neg__(self):
-#         """The inverse of this outcome space. Assumes that a parent outcome space is defined."""
-#
-#     def rand(self) -> Dict[str, Union[int, float, str]]:
-#         """Picks a random valid value."""
-#
-#     rand_valid = rand
-#
-#     def rand_invalid(self) -> Dict[str, Union[int, float, str]]:
-#         """Pick a random *invalid* value"""
-
-
 def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
     """Converts the outcome to a dict no matter what was its type"""
+
     if outcome is None:
         return None
+
     if isinstance(outcome, np.ndarray):
         outcome = tuple(outcome.tolist())
+
     if isinstance(outcome, dict):
         return outcome
+
     if isinstance(outcome, OutcomeType):
         return outcome.asdict()
+
     if issue_names is not None:
         return dict(zip(issue_names, outcome))
+
     return dict(zip((str(_) for _ in range(len(outcome))), outcome))
 
 
 def outcome_as_tuple(outcome: Outcome):
     """Converts the outcome to a tuple no matter what was its type"""
+
     if outcome is None:
         return None
+
     if isinstance(outcome, np.ndarray):
         return tuple(outcome.tolist())
+
     if isinstance(outcome, tuple):
         return outcome
+
     if isinstance(outcome, OutcomeType):
         return outcome.astuple()
+
     if isinstance(outcome, dict):
         return tuple(list(outcome.values()))
+
     if isinstance(outcome, Iterable):
         return tuple(outcome)
     raise ValueError(f"Unknown type for outcome {type(outcome)}")

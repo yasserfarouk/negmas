@@ -8,8 +8,7 @@ import pytest
 
 from negmas import *
 from negmas.elicitors import *
-from negmas.elicitors import User
-from negmas.elicitors import SAOElicitingMechanism
+from negmas.elicitors import SAOElicitingMechanism, User
 from negmas.helpers import Distribution as U
 
 n_outcomes = 5

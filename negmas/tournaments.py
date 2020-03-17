@@ -18,34 +18,35 @@ from os import PathLike
 from pathlib import Path
 from pprint import pprint
 from typing import (
-    Optional,
-    List,
-    Callable,
-    Union,
-    Type,
-    Sequence,
-    Dict,
     Any,
-    Tuple,
+    Callable,
+    Dict,
     Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
 )
 
 import numpy as np
 import pandas as pd
 import yaml
-from scipy.stats import ttest_ind, ks_2samp
+from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas.helpers import (
+    add_records,
+    dump,
     get_class,
-    unique_name,
-    import_by_name,
     get_full_type_name,
     humanize_time,
-    dump,
-    add_records,
+    import_by_name,
     load,
+    unique_name,
 )
+
 from .situated import Agent, World, save_stats
 
 __all__ = [

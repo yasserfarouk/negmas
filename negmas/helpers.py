@@ -4,49 +4,49 @@
 This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
+import copy
 import datetime
 import importlib
 import json
 import logging
 import math
+import os
 import pathlib
 import pickle
+import random
+import re
 import string
 import sys
+from enum import Enum
 from typing import (
-    List,
-    Optional,
-    Iterable,
-    Union,
-    Callable,
-    Mapping,
+    TYPE_CHECKING,
     Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
     Sequence,
     Tuple,
-    Dict,
     Type,
+    Union,
 )
-from typing import TYPE_CHECKING
 
+import colorlog
+import inflect
+import numpy as np
 import pandas as pd
+import scipy.stats as stats
+import stringcase
+import yaml
 
-from negmas import NEGMAS_CONFIG
+from negmas.config import NEGMAS_CONFIG
+from negmas.generics import *
 
 if TYPE_CHECKING:
     pass
 
-import colorlog
-import numpy as np
-import os
-import random
-import re
-import scipy.stats as stats
-import inflect
-import stringcase
-from enum import Enum
-import yaml
-from negmas.generics import *
-import copy
 
 __all__ = [
     "create_loggers",
@@ -1089,7 +1089,7 @@ def add_records(
             header = f.readline().strip().strip("\n")
         cols = header.split(",")
         for col in cols:
-            if len(col)>0 and col not in data.columns:
+            if len(col) > 0 and col not in data.columns:
                 data[col] = None
         if set([_ for _ in data.columns]) == set(cols):
             data = data.loc[:, cols]
@@ -1098,9 +1098,11 @@ def add_records(
                 old_data = pd.read_csv(file_name, index_col=None)
                 data = pd.concat((old_data, data), axis=0, ignore_index=True)
             except Exception as e:
-                print(f"Failed to read data from file {str(file_name)} will override it")
+                print(
+                    f"Failed to read data from file {str(file_name)} will override it"
+                )
 
-            mode="w"
-            new_file=True
-        
+            mode = "w"
+            new_file = True
+
     data.to_csv(str(file_name), index=False, index_label="", mode=mode, header=new_file)

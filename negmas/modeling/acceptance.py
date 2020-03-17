@@ -3,12 +3,12 @@
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Union, Collection, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Collection, List, Union
 
 import numpy as np
 
-from negmas.outcomes import Outcome, ResponseType
 from negmas.common import *
+from negmas.outcomes import Outcome, ResponseType
 
 if TYPE_CHECKING:
     from negmas.sao import SAONegotiator
