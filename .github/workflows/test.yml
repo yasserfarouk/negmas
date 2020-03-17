@@ -28,10 +28,12 @@ jobs:
           python -VV
           python -m site
           python -m pip install --upgrade pip setuptools wheel pytest
-          python -m pip install --upgrade coverage[toml] virtualenv tox tox-gh-actions
+          python -m pip install --upgrade  virtualenv
+          python -m pip install -r requirements.txt
 
-      - name: "Run tox targets for ${{ matrix.python-version }}"
+      - name: "Run pytest for ${{ matrix.python-version }}"
         run: "python -m pytest ."
+
   docs:
     name: "Build Documentation"
     runs-on: "ubuntu-latest"
@@ -42,12 +44,14 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: "Install pep517 and twine"
+      - name: "Install documentation requirements"
         run: |
-          cd docs
           python -m pip install -r requirements.txt
-          ./make_docs
-          
+          python -m pip install -r docs/requirements.txt
+          python -m pip install -e .
+          cd docs
+          sh ./make_docs
+
   package:
     name: "Build & verify package"
     runs-on: "ubuntu-latest"
@@ -66,7 +70,7 @@ jobs:
         run: "ls -l dist"
       - name: "Check long_description"
         run: "python -m twine check dist/*"
-  
+
   install-dev:
     strategy:
       matrix:
