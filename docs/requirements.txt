@@ -140,7 +140,6 @@ tqdm
 traitlets
 twine
 typed-ast
-typeshed
 typing-extensions
 urllib3
 virtualenv
