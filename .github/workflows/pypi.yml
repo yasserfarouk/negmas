@@ -20,6 +20,7 @@ jobs:
     - name: "Check long_description"
       run: "python -m twine check dist/*"
     - name: Publish distribution 📦 to Test PyPI
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
         user: __token__
