@@ -31,7 +31,7 @@ Overview
     :target: https://www.github.com/yasserfarouk/negmas
     :alt: Build Status
 
-.. image:: https://github.com/yasserfarouk/negmas/workflows/Coverage/badge.svg
+.. image:: https://codecov.io/gh/yasserfarouk/negmas/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/yasserfarouk/negmas
     :alt: Coverage Status
 
