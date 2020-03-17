@@ -19,10 +19,6 @@ Overview
     :target: https://pypi.python.org/pypi/negmas
     :alt: Downloads
 
-.. image:: https://img.shields.io/codacy/coverage/1b204fe0a69e41a298a175ea225d7b81.svg
-    :target: https://app.codacy.com/project/yasserfarouk/negmas/dashboard
-    :alt: Coveage
-
 .. image:: https://img.shields.io/codacy/grade/1b204fe0a69e41a298a175ea225d7b81.svg
     :target: https://app.codacy.com/project/yasserfarouk/negmas/dashboard
     :alt: Code Quality
@@ -34,6 +30,14 @@ Overview
 .. image:: https://github.com/yasserfarouk/negmas/workflows/CI/badge.svg
     :target: https://www.github.com/yasserfarouk/negmas
     :alt: Build Status
+
+.. image:: https://github.com/yasserfarouk/negmas/workflows/Coverage/badge.svg
+    :target: https://codecov.io/gh/yasserfarouk/negmas
+    :alt: Coverage Status
+
+.. image:: https://github.com/yasserfarouk/negmas/workflows/PyPI/badge.svg
+    :target: https://pypi.python.org/pypi/negmas
+    :alt: Published on Pypi
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/ambv/black
