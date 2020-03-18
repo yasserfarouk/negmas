@@ -1,6 +1,26 @@
 History
 =======
 
+Release 0.6.8
+-------------
+
+- [situated] Improving the description of partners and handling in
+  request/run negotiations by having the caller being added to the
+  partners list automatically if it has one item.
+- adding a helper to find shortest_unique_names.
+- Better adherence to the black format
+- Documentation Update
+- Separating configuration into config.py
+- Moving CI to Github Actions
+- Removing negotiation_info.csv and keeping only negotiations.csv
+  Now negotiation.csv contains all the information about the negotiation
+  that was scattered between it an negotiation_info.csv
+- [situated] Adding the concept of a neg. group
+- [bugfix] correcting the implementation of joining in
+  SAOPassThroughNegotiator
+- [negotiators] Making it possible to use the `AspirationMixin`
+  for controllers.
+
 Release 0.6.7
 -------------
 
