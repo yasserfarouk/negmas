@@ -993,7 +993,7 @@ class AgentWorldInterface:
     def run_negotiation(
         self,
         issues: Collection[Issue],
-        partners: Collection["Agent"],
+        partners: Collection[Union[str, "Agent"]],
         negotiator: Negotiator,
         ufun: UtilityFunction = None,
         caller_role: str = None,
@@ -1006,7 +1006,16 @@ class AgentWorldInterface:
         Runs a negotiation until completion
 
         Args:
-            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            partners: A list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners is passed as a single string/`Agent` or as a list
+                      containing a single string/`Agent`, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             negotiator: The negotiator to be used in the negotiation
             ufun: The utility function. Only needed if the negotiator does not already know it
             caller_role: The role of the caller in the negotiation
@@ -1040,7 +1049,7 @@ class AgentWorldInterface:
     def run_negotiations(
         self,
         issues: Union[List[Issue], List[List[Issue]]],
-        partners: List[List["Agent"]],
+        partners: List[List[Union[str, "Agent"]]],
         negotiators: List[Negotiator],
         ufuns: List[UtilityFunction] = None,
         caller_roles: List[str] = None,
@@ -1054,7 +1063,16 @@ class AgentWorldInterface:
         Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
 
         Args:
-            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            partners: A list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners is passed as a single string/`Agent` or as a list
+                      containing a single string/`Agent`, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             issues: Negotiation issues
             negotiators: The negotiator to be used in the negotiation
             ufuns: The utility function. Only needed if the negotiator does not already know it
@@ -1106,7 +1124,16 @@ class AgentWorldInterface:
             req_id:
             issues: Negotiation issues
             annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
-            partners: A list of partners to participate in the negotiation
+            partners: A list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners is passed as a single string/`Agent` or as a list
+                      containing a single string/`Agent`, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             roles: The roles of different partners. If None then each role for each partner will be None
             mechanism_name: Name of the mechanism to use. It must be one of the mechanism_names that are supported by the
             `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
@@ -1129,7 +1156,7 @@ class AgentWorldInterface:
 
 
         """
-        partner_agents = [self._world.agents[_] for _ in partners]
+        partner_agents = [self._world.agents[_] if isinstance(_, str) else _ for _ in partners]
         return self._world.request_negotiation_about(
             req_id=req_id,
             caller=self.agent,
@@ -1515,7 +1542,16 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
         Args:
             issues: Negotiation issues
             annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
-            partners: A list of partners to participate in the negotiation
+            partners: A list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners is passed as a single string or as a list
+                      containing a single string, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             roles: The roles of different partners. If None then each role for each partner will be None
             mechanism_name: Name of the mechanism to use. It must be one of the mechanism_names that are supported by the
             `World` or None which means that the `World` should select the mechanism. If None, then `roles` and `my_role`
@@ -1542,6 +1578,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
 
 
         """
+        if roles is None:
+            if isinstance(partners, str) or isinstance(partners, Agent):
+                partners = [partners]
+            if len(partners) == 1 and partners[0] != self.agent.id:
+                partners = [self.agent.id, partners[0]]
         req_id = self.create_negotiation_request(
             issues=issues,
             partners=partners,
@@ -3263,7 +3304,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         req_id: str,
         caller: "Agent",
         issues: List[Issue],
-        partners: List["Agent"],
+        partners: List[Union[str, "Agent"]],
         roles: List[str] = None,
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
@@ -3276,7 +3317,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         Args:
             req_id: An ID For the request that is unique to the caller
             caller: The agent requesting the negotiation
-            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            partners: A list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners is passed as a single string/`Agent` or as a list
+                      containing a single string/`Agent`, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             issues: Negotiation issues
             annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
             partners: A list of partners to participate in the negotiation
@@ -3293,6 +3343,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             `on_neg_request_rejected` about the status of the negotiation.
 
         """
+        if roles is None:
+            if isinstance(partners, str) or isinstance(partners, Agent):
+                partners = [partners]
+            if len(partners ) == 1 and isinstance(partners[0], str) and partners[0] != caller.id:
+                partners = [caller.id, partners[0]]
+            if len(partners ) == 1 and isinstance(partners[0], Agent) and partners[0] != caller:
+                partners = [caller, partners[0]]
         self.loginfo(
             f"{caller.name} requested negotiation "
             + (
@@ -3341,7 +3398,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         caller: "Agent",
         issues: Collection[Issue],
-        partners: Collection["Agent"],
+        partners: Collection[Union[str, "Agent"]],
         negotiator: Negotiator,
         ufun: UtilityFunction = None,
         caller_role: str = None,
@@ -3355,7 +3412,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         Args:
             caller: The agent requesting the negotiation
-            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            partners: A list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners is passed as a single string/`Agent` or as a list
+                      containing a single string/`Agent`, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             negotiator: The negotiator to be used in the negotiation
             ufun: The utility function. Only needed if the negotiator does not already know it
             caller_role: The role of the caller in the negotiation
@@ -3373,7 +3439,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             A Tuple of a contract and the ami of the mechanism used to get it in case of success. None otherwise
 
         """
-        partners = [self.agents[_] for _ in partners]
+        if roles is None:
+            if isinstance(partners, str) or isinstance(partners, Agent):
+                partners = [partners]
+            if len(partners ) == 1 and isinstance(partners[0], str) and partners[0] != caller.id:
+                partners = [caller.id, partners[0]]
+            if len(partners ) == 1 and isinstance(partners[0], Agent) and partners[0] != caller:
+                partners = [caller, partners[0]]
+        partners = [self.agents[_] if isinstance(_, str) else _ for _ in partners]
         self.loginfo(
             f"{caller.name} requested immediate negotiation "
             f"{mechanism_name}[{mechanism_params}] with {[_.name for _ in partners]}",
@@ -3429,7 +3502,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         caller: "Agent",
         issues: Union[List[Issue], List[List[Issue]]],
-        partners: List[List["Agent"]],
+        partners: List[List[Union[str, "Agent"]]],
         negotiators: List[Negotiator],
         ufuns: List[UtilityFunction] = None,
         caller_roles: List[str] = None,
@@ -3444,7 +3517,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         Args:
             caller: The agent requesting the negotiation
-            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.
+            partners: A list of list of partners to participate in the negotiation.
+                      Note that the caller itself may not be in this list which
+                      makes it possible for an agent to request a negotaition
+                      that it does not participate in. If that is not to be
+                      allowed in some world, override this method and explicitly
+                      check for these kinds of negotiations and return False.
+                      If partners[i] is passed as a single string/`Agent` or as a list
+                      containing a single string/`Agent`, then he caller will be added
+                      at the beginning of the list. This will only be done if
+                      `roles` was passed as None.
             issues: Negotiation issues
             negotiators: The negotiator to be used in the negotiation
             ufuns: The utility function. Only needed if the negotiator does not already know it
@@ -3465,7 +3547,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         group = unique_name(base="NG")
-        partners = [[self.agents[_] for _ in p] for p in partners]
+        partners = [[self.agents[_] if isinstance(_, str) else _ for _ in p] for p in partners]
         n_negs = len(partners)
         if isinstance(issues[0], Issue):
             issues = [issues] * n_negs
@@ -3519,6 +3601,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             mechanism_params,
             negotiators,
         ):
+            if role is None:
+                if isinstance(partner, str) or isinstance(partner, Agent):
+                    partner = [partner]
+            if len(partner ) == 1 and isinstance(partner[0], str) and partner[0] != caller.id:
+                partner = [caller.id, partners[0]]
+            if len(partner ) == 1 and isinstance(partner[0], Agent) and partner[0] != caller:
+                partner = [caller, partner[0]]
             req_id = caller.create_negotiation_request(
                 issues=issue,
                 partners=partner,
