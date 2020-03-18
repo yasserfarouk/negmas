@@ -47,8 +47,8 @@ from negmas.generics import *
 if TYPE_CHECKING:
     pass
 
-
 __all__ = [
+    "shortest_unique_names",
     "create_loggers",
     # 'MultiIssueUtilityFunctionMapping',
     "ReturnCause",
@@ -100,6 +100,40 @@ class ReturnCause(Enum):
     TIMEOUT = 0
     SUCCESS = 1
     FAILURE = 2
+
+
+def shortest_unique_names(strs: List[str], sep="."):
+    """
+    Finds the shortest unique strings starting from the end of each input
+    string based on the separator.
+
+    The final strings will only be unique if the inputs are unique.
+
+    Example:
+        given ["a.b.c", "d.e.f", "a.d.c"] it will generate ["b.c", "f", "d.c"]
+    """
+    lsts = [_.split(sep) for _ in strs]
+    names = [_[-1] for _ in lsts]
+    if len(names) == len(set(names)):
+        return names
+    locs = defaultdict(list)
+    for i, s in enumerate(names):
+        locs[s].append(i)
+    mapping = {"": ""}
+    for s, l in locs.items():
+        if len(s) < 1:
+            continue
+        if len(l) == 1:
+            mapping[strs[l[0]]] = s
+            continue
+        strs_new = [sep.join(lsts[_][:-1]) for _ in l]
+        prefixes = shortest_unique_names(strs_new, sep)
+        for loc, prefix in zip(l, prefixes):
+            x = sep.join([prefix, s])
+            if x.startswith(sep):
+                x = x[len(sep) :]
+            mapping[strs[loc]] = x
+    return [mapping[_] for _ in strs]
 
 
 def create_loggers(
