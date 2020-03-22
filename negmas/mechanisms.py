@@ -1,12 +1,14 @@
 """Provides interfaces for defining negotiation mechanisms.
 """
 import pprint
+import random
 import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+
 from typing import (
     Any,
     Collection,
@@ -807,15 +809,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - List of states of all mechanisms after completion
 
         """
-        if not keep_order:
-            raise NotImplementedError(
-                "running mechanisms in random order is not yet supported"
-            )
-
         completed = [_ is None for _ in mechanisms]
         states = [None] * len(mechanisms)
         while not all(completed):
-            for i, (done, mechanism) in enumerate(zip(completed, mechanisms)):
+            lst = zip(completed, mechanisms)
+            if not keep_order:
+                lst = list(lst)
+                random.shuffle(lst)
+            for i, (done, mechanism) in enumerate(lst):
                 if done:
                     continue
                 result = mechanism.step()

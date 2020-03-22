@@ -6,6 +6,8 @@ import math
 import warnings
 from abc import ABC
 from random import sample
+
+import numpy as np
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -17,8 +19,6 @@ from typing import (
     Type,
     Union,
 )
-
-import numpy as np
 
 from negmas.common import *
 from negmas.events import Notifiable, Notification
@@ -390,7 +390,6 @@ class PassThroughNegotiator(Negotiator):
 
 
 class Controller(NamedObject):
-
     """Controls the behavior of multiple negotiators in multiple negotiations
 
     The controller class MUST implement any methods of the negotiator class it is controlling with one added
@@ -400,6 +399,15 @@ class Controller(NamedObject):
     Controllers for specific classes should inherit from this class and implement whatever methods they want to override
     on their `PassThroughNegotiator` objects. For example, the SAO module defines `SAOController` that needs only to
     implement `propose` and `respond` .
+
+    Args:
+        default_negotiator_type: The negotiator type to use for adding negotiator
+                                 if no type is explicitly given.
+        default_negotiator_params: The parameters to use to construct the default
+                                   negotiator type.
+        parent: The parent which can be an `Agent` or another `Controller`
+        auto_kill: If True, negotiators will be killed once their negotiation finishes.
+        name: The controller name
 
     Remarks:
 
@@ -413,6 +421,8 @@ class Controller(NamedObject):
         self,
         default_negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
         default_negotiator_params: Dict[str, Any] = None,
+        parent: Union["Controller", "Agent"] = None,
+        auto_kill: bool = False,
         name: str = None,
     ):
         super().__init__(name=name)
@@ -423,10 +433,28 @@ class Controller(NamedObject):
             default_negotiator_type = get_class(default_negotiator_type)
         self.__default_negotiator_type = default_negotiator_type
         self.__default_negotiator_params = default_negotiator_params
+        self.__parent = parent
+        self._auto_kill = auto_kill
 
     @property
     def negotiators(self) -> Dict[str, Tuple[Negotiator, Any]]:
+        """
+        Returns a dictionary mapping negotiator ID to the a tuple containing
+        the negotiator and its context
+        """
         return self._negotiators
+
+    @property
+    def active_negotiators(self) -> Dict[str, Tuple[Negotiator, Any]]:
+        """
+        Returns the negotiators whose negotiations are running.
+        Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
+        and its context"""
+        return {
+            k: v
+            for k, v in self._negotiators.items()
+            if v[0].ami is not None and v[0].ami.state.running
+        }
 
     @property
     def states(self) -> Dict[str, MechanismState]:
@@ -451,8 +479,7 @@ class Controller(NamedObject):
         Args:
             negotiator_type: Type of the negotiator to be created
             name: negotiator name
-            cntxt: The context to be associated with this negotiator. It will not be passed to the negotiator
-            constructor.
+            cntxt: The context to be associated with this negotiator.
             **kwargs: any key-value pairs to be passed to the negotiator constructor
 
         Returns:
@@ -553,7 +580,7 @@ class Controller(NamedObject):
         role: str = "agent",
     ) -> None:
         """
-        Called by children negotiators after joining a negotiation to inform 
+        Called by children negotiators after joining a negotiation to inform
         the controller
 
         Args:
@@ -594,7 +621,9 @@ class Controller(NamedObject):
         permission = self.before_join(negotiator, ami, state, ufun=ufun, role=role)
         if not permission:
             return False
-        if self.call(negotiator, "join", ami=ami, state=state, ufun=ufun, role=role):
+        if hasattr(negotiator, "join") and self.call(
+            negotiator, "join", ami=ami, state=state, ufun=ufun, role=role
+        ):
             self.after_join(negotiator, ami, state, ufun=ufun, role=role)
             return True
         return False
@@ -696,7 +725,10 @@ class Controller(NamedObject):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(negotiator, "on_negotiation_end", state=state)
+        result = self.call(negotiator, "on_negotiation_end", state=state)
+        if self._auto_kill:
+            self.kill_negotiator(negotiator_id=negotiator_id, force=True)
+        return result
 
     def on_notification(
         self, negotiator_id: str, notification: Notification, notifier: str

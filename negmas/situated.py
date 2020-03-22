@@ -79,6 +79,12 @@ from collections import defaultdict, namedtuple
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import yaml
+from matplotlib.axis import Axis
 from typing import (
     Any,
     Callable,
@@ -92,13 +98,6 @@ from typing import (
     Tuple,
     Union,
 )
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import yaml
-from matplotlib.axis import Axis
-from pandas import json_normalize
 
 from .checkpoints import CheckpointMixin
 from .common import AgentMechanismInterface, MechanismState, NamedObject
@@ -1156,7 +1155,9 @@ class AgentWorldInterface:
 
 
         """
-        partner_agents = [self._world.agents[_] if isinstance(_, str) else _ for _ in partners]
+        partner_agents = [
+            self._world.agents[_] if isinstance(_, str) else _ for _ in partners
+        ]
         return self._world.request_negotiation_about(
             req_id=req_id,
             caller=self.agent,
@@ -3346,9 +3347,17 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if roles is None:
             if isinstance(partners, str) or isinstance(partners, Agent):
                 partners = [partners]
-            if len(partners ) == 1 and isinstance(partners[0], str) and partners[0] != caller.id:
+            if (
+                len(partners) == 1
+                and isinstance(partners[0], str)
+                and partners[0] != caller.id
+            ):
                 partners = [caller.id, partners[0]]
-            if len(partners ) == 1 and isinstance(partners[0], Agent) and partners[0] != caller:
+            if (
+                len(partners) == 1
+                and isinstance(partners[0], Agent)
+                and partners[0] != caller
+            ):
                 partners = [caller, partners[0]]
         self.loginfo(
             f"{caller.name} requested negotiation "
@@ -3442,9 +3451,17 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if roles is None:
             if isinstance(partners, str) or isinstance(partners, Agent):
                 partners = [partners]
-            if len(partners ) == 1 and isinstance(partners[0], str) and partners[0] != caller.id:
+            if (
+                len(partners) == 1
+                and isinstance(partners[0], str)
+                and partners[0] != caller.id
+            ):
                 partners = [caller.id, partners[0]]
-            if len(partners ) == 1 and isinstance(partners[0], Agent) and partners[0] != caller:
+            if (
+                len(partners) == 1
+                and isinstance(partners[0], Agent)
+                and partners[0] != caller
+            ):
                 partners = [caller, partners[0]]
         partners = [self.agents[_] if isinstance(_, str) else _ for _ in partners]
         self.loginfo(
@@ -3547,7 +3564,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         group = unique_name(base="NG")
-        partners = [[self.agents[_] if isinstance(_, str) else _ for _ in p] for p in partners]
+        partners = [
+            [self.agents[_] if isinstance(_, str) else _ for _ in p] for p in partners
+        ]
         n_negs = len(partners)
         if isinstance(issues[0], Issue):
             issues = [issues] * n_negs
@@ -3604,9 +3623,17 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if role is None:
                 if isinstance(partner, str) or isinstance(partner, Agent):
                     partner = [partner]
-            if len(partner ) == 1 and isinstance(partner[0], str) and partner[0] != caller.id:
+            if (
+                len(partner) == 1
+                and isinstance(partner[0], str)
+                and partner[0] != caller.id
+            ):
                 partner = [caller.id, partners[0]]
-            if len(partner ) == 1 and isinstance(partner[0], Agent) and partner[0] != caller:
+            if (
+                len(partner) == 1
+                and isinstance(partner[0], Agent)
+                and partner[0] != caller
+            ):
                 partner = [caller, partner[0]]
             req_id = caller.create_negotiation_request(
                 issues=issue,

@@ -2,13 +2,14 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
-from negmas.common import AgentMechanismInterface
-from negmas.mechanisms import Mechanism, MechanismRoundResult, MechanismState
-from negmas.negotiators import Negotiator
-from negmas.outcomes import Outcome, ResponseType
-from negmas.utilities import UtilityFunction
+from typing import Dict, List, Optional
+
+from ..common import AgentMechanismInterface
+from ..mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from ..negotiators import Negotiator
+from ..outcomes import Outcome, ResponseType
+from ..utilities import UtilityFunction
 
 __all__ = [
     "ChainNegotiationsMechanism",
