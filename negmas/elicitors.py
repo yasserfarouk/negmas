@@ -13,11 +13,11 @@ from collections import defaultdict
 from dataclasses import dataclass
 from heapq import *
 from math import sqrt
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import scipy.optimize as opt
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from .common import *
 from .genius import GeniusNegotiator
@@ -2853,11 +2853,7 @@ def create_negotiator(
                 **kwargs,
             )
     elif negotiator_type == "random":
-        negotiator = RandomNegotiator(
-            reserved_value=ufun.reserved_value,
-            outcomes=outcomes,
-            can_propose=can_propose,
-        )
+        negotiator = RandomNegotiator(can_propose=can_propose, )
     elif negotiator_type == "tough":
         negotiator = ToughNegotiator(dynamic_ufun=dynamic_ufun, can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):

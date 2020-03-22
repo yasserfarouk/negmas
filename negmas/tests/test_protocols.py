@@ -1,8 +1,7 @@
 import random
-from pprint import pprint
-from typing import Iterable
 
 import pytest
+from typing import Iterable
 
 from negmas import *
 
@@ -65,7 +64,7 @@ def test_set_requirements(mechanism):
 
 
 def test_can_work_with_no_requirements(mechanism):
-    assert mechanism.can_participate(RandomNegotiator(outcomes=mechanism.outcomes))
+    assert mechanism.can_participate(RandomNegotiator())
 
 
 def test_can_check_compatibility(mechanism):
@@ -172,45 +171,35 @@ def test_different_capability_types(mechanism):
 def test_can_accept_more_agents(mechanism):
     mechanism.max_n_agents = 2
     assert mechanism.can_accept_more_agents() is True
-    mechanism.add(RandomNegotiator(mechanism.outcomes), ufun=lambda x: 5.0)
+    mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     assert mechanism.can_accept_more_agents() is True
-    mechanism.add(RandomNegotiator(mechanism.outcomes), ufun=lambda x: 5.0)
+    mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     assert mechanism.can_accept_more_agents() is False
 
 
 def test_dynamic_entry(static_mechanism: Mechanism):
-    a = RandomNegotiator(static_mechanism.outcomes)
+    a = RandomNegotiator()
     assert static_mechanism.can_enter(a)
     assert not static_mechanism.can_leave(a)
 
     static_mechanism.add(a, ufun=lambda x: 5.0)
-    static_mechanism.add(
-        RandomNegotiator(static_mechanism.outcomes), ufun=lambda x: 5.0
-    )
+    static_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
 
 
 def test_mechanism_fails_on_less_than_two_agents(static_mechanism):
     assert not static_mechanism.run().started
-    static_mechanism.add(
-        RandomNegotiator(static_mechanism.outcomes), ufun=lambda x: 5.0
-    )
+    static_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     assert not static_mechanism.run().started
-    static_mechanism.add(
-        RandomNegotiator(static_mechanism.outcomes), ufun=lambda x: 5.0
-    )
+    static_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     static_mechanism.run()
     assert len(static_mechanism.history) > 0 and static_mechanism.state.broken is False
 
 
 def test_mechanism_fails_on_less_than_two_agents_dynamic(dynamic_mechanism):
     assert not dynamic_mechanism.run().broken
-    dynamic_mechanism.add(
-        RandomNegotiator(dynamic_mechanism.outcomes), ufun=lambda x: 5.0
-    )
+    dynamic_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     assert not dynamic_mechanism.run().broken
-    dynamic_mechanism.add(
-        RandomNegotiator(dynamic_mechanism.outcomes), ufun=lambda x: 5.0
-    )
+    dynamic_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     dynamic_mechanism.run()
     assert (
         len(dynamic_mechanism.history) > 0 and dynamic_mechanism.state.broken is False
@@ -221,8 +210,8 @@ def test_mechanisms_get_some_rounds():
     lengths = []
     for _ in range(10):
         p = MyMechanism(dynamic_entry=False)
-        p.add(RandomNegotiator(outcomes=10), ufun=lambda x: 5.0)
-        p.add(RandomNegotiator(outcomes=10), ufun=lambda x: 5.0)
+        p.add(RandomNegotiator(), ufun=lambda x: 5.0)
+        p.add(RandomNegotiator(), ufun=lambda x: 5.0)
         p.run()
         lengths.append(len(p.history))
 

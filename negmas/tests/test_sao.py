@@ -1,12 +1,11 @@
 import random
 from collections import defaultdict
-from datetime import timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import hypothesis.strategies as st
 from hypothesis import example, given, settings
 from pytest import mark
+from typing import Dict
 
 from negmas import (
     AspirationNegotiator,
@@ -14,13 +13,10 @@ from negmas import (
     LinearUtilityFunction,
     MappingUtilityFunction,
     Outcome,
-    PassThroughSAONegotiator,
     ResponseType,
     SAOMechanism,
     SAOState,
     SAOSyncController,
-    UtilityFunction,
-    UtilityValue,
 )
 from negmas.helpers import unique_name
 from negmas.sao import SAOResponse
@@ -358,3 +354,46 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
         assert len(list(new_folder.glob("*"))) == 2
     else:
         assert len(list(new_folder.glob("*"))) == 0
+
+
+@given(n_negs=st.integers(1, 10))
+def test_sync_controller_gets_all_offers(n_negs):
+    from negmas.mechanisms import Mechanism
+    from negmas.sao import SAORandomSyncController, RandomNegotiator
+
+    class MyController(SAORandomSyncController):
+        def counter_all(self, offers, states):
+            assert len(offers) == len(self.active_negotiators)
+            responses = super().counter_all(offers, states)
+            assert len(responses) == len(offers)
+            return responses
+
+    c = MyController()
+    negs = [
+        SAOMechanism(issues=[Issue((0.0, 1.0), "price")], n_steps=20)
+        for _ in range(n_negs)
+    ]
+    for neg in negs:
+        neg.add(RandomNegotiator())
+        neg.add(c.create_negotiator())
+
+    Mechanism.runall(negs, True)
+
+
+@given(n_negs=st.integers(1, 10))
+def test_single_agreement_gets_one_agreement(n_negs):
+    from negmas.mechanisms import Mechanism
+    from negmas.sao import SAOSingleAgreementRandomController, RandomNegotiator
+
+    c = SAOSingleAgreementRandomController()
+    negs = [
+        SAOMechanism(issues=[Issue((0.0, 1.0), "price")], n_steps=50)
+        for _ in range(n_negs)
+    ]
+    for neg in negs:
+        neg.add(RandomNegotiator())
+        neg.add(c.create_negotiator())
+
+    Mechanism.runall(negs, True)
+    agreements = [neg.state.agreement for neg in negs]
+    assert sum(_ is not None for _ in agreements) == 1
