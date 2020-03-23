@@ -6,10 +6,10 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 from os import listdir
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pkg_resources
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from .generics import ivalues
 from .negotiators import Negotiator
@@ -214,7 +214,9 @@ def load_genius_domain(
                 1.0,
             )
             if n_outcomes < max_n_outcomes:
-                outcomes = enumerate_outcomes(issues, keep_issue_names=keep_issue_names)
+                outcomes = enumerate_outcomes(
+                    issues, astype=dict if keep_issue_names else tuple
+                )
     except ValueError:
         pass
     if domain_file_name is not None:
@@ -232,7 +234,7 @@ def load_genius_domain(
             max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
             name=mechanism_name,
-            keep_issue_names=keep_issue_names,
+            outcome_type=dict if keep_issue_names else tuple,
             enable_callbacks=True,
         )
         if agent_info is not None and len(agent_info) > 0:

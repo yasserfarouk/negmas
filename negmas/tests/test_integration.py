@@ -1,18 +1,13 @@
-import os
 import time
-from pprint import pprint
-from random import seed
 
 # seed(0)
 import pytest
 
-import negmas
 from negmas import (
     HyperRectangleUtilityFunction,
     LimitedOutcomesNegotiator,
     SAOMechanism,
 )
-from negmas import UtilityDistribution as U
 
 start = time.monotonic()
 
@@ -24,7 +19,7 @@ def test_a_session():
     p = SAOMechanism(outcomes=50, n_steps=50)
     for _ in range(4):
         p.add(
-            LimitedOutcomesNegotiator(outcomes=50, p_ending=0.01, name=f"agent {_}"),
+            LimitedOutcomesNegotiator(p_ending=0.01, name=f"agent {_}"),
             ufun=HyperRectangleUtilityFunction([None], [lambda x: x[0]]),
         )
     p.run()

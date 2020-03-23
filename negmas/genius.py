@@ -3,25 +3,22 @@ Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
-import json
 import math
-import os
 import pathlib
 import random
 import socket
 import subprocess
 import tempfile
 import time
-import typing
-from typing import List, Optional, Sequence, Tuple
 
-import pkg_resources
+import typing
 from py4j.java_gateway import CallbackServerParameters, GatewayParameters, JavaGateway
 from py4j.protocol import Py4JNetworkError
+from typing import List, Optional, Tuple
 
 from .common import *
 from .config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
-from .inout import get_domain_issues, load_genius_domain
+from .inout import get_domain_issues
 from .negotiators import Controller
 from .outcomes import Issue, ResponseType
 from .sao import SAONegotiator
@@ -425,6 +422,14 @@ class GeniusNegotiator(SAONegotiator):
         Returns an agent with a random class name
 
         Args:
+            name: negotiator name
+            can_propose: Can this negotiator propose?
+            auto_load_java: load the JVM if needed
+            keep_value_names: Keep value names if values are strings
+            keep_issue_names: Use dictionaries instead of tuples for representing outcomes
+            utility_file_name: Name of the utility xml file
+            domain_file_name: Name of the domain XML file
+            port: port number to use if the JVM is to be started
             agent_based: Old agents based on the Java class Negotiator
             party_based: Newer agents based on the Java class AbstractNegotiationParty
 

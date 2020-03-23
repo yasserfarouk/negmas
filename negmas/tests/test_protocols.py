@@ -245,8 +245,8 @@ def test_alternating_offers_mechanism_fails_on_no_offerer():
     )
     to_be_offered = [(0,), (1,), (2,)]
     to_be_accepted = [(2,)]
-    a1 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_offered, outcomes=10)
-    a2 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_accepted, outcomes=10)
+    a1 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_offered)
+    a2 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_accepted)
     p.add(a1, ufun=MappingUtilityFunction(lambda x: x[0] + 1.0))
     p.add(a2, ufun=MappingUtilityFunction(lambda x: x[0] + 1.0))
     try:
@@ -266,9 +266,7 @@ def test_alternating_offers_mechanism_with_one_agent_run():
     accepted = [(2,), (3,), (4,), (5,)]
     neg = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps)
     opponent = LimitedOutcomesNegotiator(
-        outcomes=n_outcomes,
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted),
     )
     neg.add(opponent)
     neg.add(opponent)
@@ -282,14 +280,10 @@ def test_same_utility_leads_to_agreement():
     accepted = [(2,), (3,), (4,), (5,)]
     neg = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps)
     opponent = LimitedOutcomesNegotiator(
-        outcomes=n_outcomes,
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted),
     )
     acceptor = LimitedOutcomesAcceptor(
-        outcomes=n_outcomes,
-        acceptable_outcomes=accepted,
-        acceptance_probabilities=[1.0] * len(accepted),
+        acceptable_outcomes=accepted, acceptance_probabilities=[1.0] * len(accepted),
     )
     neg.add(opponent)
     neg.add(acceptor)
