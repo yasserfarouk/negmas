@@ -397,3 +397,32 @@ def test_single_agreement_gets_one_agreement(n_negs):
     Mechanism.runall(negs, True)
     agreements = [neg.state.agreement for neg in negs]
     assert sum(_ is not None for _ in agreements) == 1
+
+
+@given(keep_order=st.booleans())
+def test_loops_are_broken(keep_order):
+    """Tests that loops formed by concurrent negotiations are broken for syn controllers"""
+    from negmas.mechanisms import Mechanism
+    from negmas.sao import SAOSingleAgreementAspirationController
+
+    a, b, c = (
+        SAOSingleAgreementAspirationController(ufun=MappingUtilityFunction(lambda x: x["price"])),
+        SAOSingleAgreementAspirationController(ufun=MappingUtilityFunction(lambda x: x["price"])),
+        SAOSingleAgreementAspirationController(ufun=MappingUtilityFunction(lambda x: x["price"])),
+    )
+
+    n1 = SAOMechanism(name="ab", issues=[Issue((0.0, 1.0), "price")], n_steps=50)
+    n2 = SAOMechanism(name="ac", issues=[Issue((0.0, 1.0), "price")], n_steps=50)
+    n3 = SAOMechanism(name="bc", issues=[Issue((0.0, 1.0), "price")], n_steps=50)
+
+    n1.add(a.create_negotiator(name="a>b"))
+    n1.add(b.create_negotiator(name="b>a"))
+    n2.add(a.create_negotiator(name="a>c"))
+    n2.add(c.create_negotiator(name="c>a"))
+    n3.add(b.create_negotiator(name="b>c"))
+    n3.add(c.create_negotiator(name="c>b"))
+    negs = [n1, n2, n3]
+    Mechanism.runall(negs, keep_order)
+
+    agreements = [neg.state.agreement for neg in negs]
+    assert sum(_ is not None for _ in agreements) > 0
