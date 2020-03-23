@@ -26,6 +26,9 @@ import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import reduce
 from operator import mul
+
+import numpy as np
+import pkg_resources
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -43,9 +46,6 @@ from typing import (
     Union,
 )
 
-import numpy as np
-import pkg_resources
-
 from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
 from negmas.helpers import Distribution, Floats, gmap, ikeys, snake_case
@@ -54,7 +54,6 @@ from negmas.outcomes import (
     Issue,
     Outcome,
     OutcomeRange,
-    OutcomeType,
     outcome_as_dict,
     outcome_as_tuple,
     outcome_in_range,
@@ -118,7 +117,7 @@ class ExactUtilityValue(float):
 UtilityValue = Union[UtilityDistribution, float]
 """Either a utility_function distribution or an exact offerable_outcomes utility_function value.
 
-`UtilityFunction`s always return a `UtilityValue` which makes it easier to implement algorithms relying  on 
+`UtilityFunction`s always return a `UtilityValue` which makes it easier to implement algorithms relying  on
 probabilistic modeling of utility_function values."""
 
 
@@ -1290,15 +1289,33 @@ class UtilityFunction(ABC, NamedObject):
                 with_replacement=True,
                 fail_if_not_enough=False,
             )
+        outcomes = [_ for _ in outcomes if _ is not None]
         u = [self(o) for o in outcomes]
-        u = [float(_) for _ in u if _ is not None]
+
+        # remove outcomes and utilities for which the ufun returns None
+        to_keep = []
+        for i, uval in enumerate(u):
+            if uval is not None:
+                to_keep.append(i)
+        to_keep = np.array(to_keep)
+        outcomes = np.array(outcomes)[to_keep].tolist()
+        u = np.array(u)[to_keep].tolist()
+
+        # if there are no outcomes return zeros for utils
+        if len(u) == 0:
+            if return_outcomes:
+                return 0.0, 0.0, None, None
+            return 0.0, 0.0
+
+        # make sure the utility value is converted to float
+        u = [float(_) for _ in u]
+
+        # if there is an infeasible_cutoff, apply it
         if infeasible_cutoff is not None:
             if return_outcomes:
                 outcomes = [o for o, _ in zip(outcomes, u) if _ > infeasible_cutoff]
             u = np.array([_ for _ in u if _ > infeasible_cutoff])
 
-        if len(u) == 0:
-            return self
         if return_outcomes:
             minloc, maxloc = np.argmin(u), np.argmax(u)
             return u[minloc], u[maxloc], outcomes[minloc], outcomes[maxloc]
