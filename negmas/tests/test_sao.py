@@ -356,7 +356,7 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
         assert len(list(new_folder.glob("*"))) == 0
 
 
-@given(n_negs=st.integers(1, 10))
+@mark.parametrize(["n_negs"], [(_,) for _ in range(1, 10)])
 def test_sync_controller_gets_all_offers(n_negs):
     from negmas.mechanisms import Mechanism
     from negmas.sao import SAORandomSyncController, RandomNegotiator
@@ -380,40 +380,75 @@ def test_sync_controller_gets_all_offers(n_negs):
     Mechanism.runall(negs, True)
 
 
-@given(n_negs=st.integers(1, 10))
-def test_single_agreement_gets_one_agreement(n_negs):
+# @given(n_negs=st.integers(1, 10), strict=st.booleans())
+@mark.parametrize(
+    ["n_negs", "strict"], [(_, s) for s in (True, False) for _ in range(1, 10)]
+)
+def test_single_agreement_gets_one_agreement(n_negs, strict):
     from negmas.mechanisms import Mechanism
-    from negmas.sao import SAOSingleAgreementRandomController, RandomNegotiator
+    from negmas.sao import SAOSingleAgreementRandomController, AspirationNegotiator
 
-    c = SAOSingleAgreementRandomController()
+    c = SAOSingleAgreementRandomController(strict=strict)
     negs = [
-        SAOMechanism(issues=[Issue((0.0, 1.0), "price")], n_steps=50)
+        SAOMechanism(
+            issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=tuple
+        )
         for _ in range(n_negs)
     ]
-    for neg in negs:
-        neg.add(RandomNegotiator())
-        neg.add(c.create_negotiator())
+    for i, neg in enumerate(negs):
+        neg.add(
+            AspirationNegotiator(aspiration_type="linear", name=f"opponent-{i}"),
+            ufun=LinearUtilityFunction(weights=[1.0]),
+        )
+        neg.add(c.create_negotiator(name=f"against-{i}"))
 
     Mechanism.runall(negs, True)
     agreements = [neg.state.agreement for neg in negs]
-    assert sum(_ is not None for _ in agreements) == 1
+    if strict:
+        # assert that the controller never had multiple agreements
+        assert sum(_ is not None for _ in agreements) == 1
+    else:
+        # assert that the controller never accepted twice. It may still have multiple agreements though
+        assert (
+            len(
+                [
+                    neg.state.agreement
+                    for neg in negs
+                    if neg.state.agreement is not None
+                    and neg.state.current_proposer.startswith("opponent")
+                ]
+            )
+            < 2
+        )
 
 
-@given(keep_order=st.booleans())
+@mark.parametrize(["keep_order"], [(False,), (True,)])
 def test_loops_are_broken(keep_order):
     """Tests that loops formed by concurrent negotiations are broken for syn controllers"""
     from negmas.mechanisms import Mechanism
     from negmas.sao import SAOSingleAgreementAspirationController
 
     a, b, c = (
-        SAOSingleAgreementAspirationController(ufun=MappingUtilityFunction(lambda x: x["price"])),
-        SAOSingleAgreementAspirationController(ufun=MappingUtilityFunction(lambda x: x["price"])),
-        SAOSingleAgreementAspirationController(ufun=MappingUtilityFunction(lambda x: x["price"])),
+        SAOSingleAgreementAspirationController(
+            ufun=MappingUtilityFunction(lambda x: x["price"])
+        ),
+        SAOSingleAgreementAspirationController(
+            ufun=MappingUtilityFunction(lambda x: x["price"])
+        ),
+        SAOSingleAgreementAspirationController(
+            ufun=MappingUtilityFunction(lambda x: x["price"])
+        ),
     )
 
-    n1 = SAOMechanism(name="ab", issues=[Issue((0.0, 1.0), "price")], n_steps=50)
-    n2 = SAOMechanism(name="ac", issues=[Issue((0.0, 1.0), "price")], n_steps=50)
-    n3 = SAOMechanism(name="bc", issues=[Issue((0.0, 1.0), "price")], n_steps=50)
+    n1 = SAOMechanism(
+        name="ab", issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=dict,
+    )
+    n2 = SAOMechanism(
+        name="ac", issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=dict,
+    )
+    n3 = SAOMechanism(
+        name="bc", issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=dict,
+    )
 
     n1.add(a.create_negotiator(name="a>b"))
     n1.add(b.create_negotiator(name="b>a"))
@@ -426,3 +461,87 @@ def test_loops_are_broken(keep_order):
 
     agreements = [neg.state.agreement for neg in negs]
     assert sum(_ is not None for _ in agreements) > 0
+
+
+def test_can_create_all_negotiator_types():
+    from negmas.helpers import instantiate
+
+    issues = [Issue((0.0, 1.0), name="price"), Issue(10, name="quantity")]
+    for outcome_type in [tuple, dict]:
+        outcomes = Issue.enumerate(issues, max_n_outcomes=100, astype=outcome_type)
+        neg_types = [
+            (
+                "RandomNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+            ("LimitedOutcomesNegotiator", dict()),
+            ("LimitedOutcomesAcceptor", dict()),
+            (
+                "AspirationNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+            (
+                "ToughNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+            (
+                "OnlyBestNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+            (
+                "NaiveTitForTatNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+            (
+                "SimpleTitForTatNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+            (
+                "NiceNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=dict(price=1.0, quantity=1.0))),
+            ),
+        ]
+        for neg_type, params in neg_types:
+            _ = instantiate("negmas.sao." + neg_type, **params)
+
+
+@mark.parametrize("asdict", [True, False])
+def test_can_run_all_negotiators(asdict):
+    from negmas.helpers import instantiate
+
+    issues = [Issue((0.0, 1.0), name="price"), Issue(10, name="quantity")]
+    weights = dict(price=1.0, quantity=1.0) if asdict else (1.0, 1.0)
+    for outcome_type in [tuple, dict]:
+        outcomes = Issue.enumerate(issues, max_n_outcomes=100, astype=outcome_type)
+        neg_types = [
+            ("RandomNegotiator", dict(ufun=LinearUtilityFunction(weights=weights)),),
+            (
+                "AspirationNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=weights)),
+            ),
+            ("LimitedOutcomesNegotiator", dict(acceptance_probabilities=0.5),),
+            ("LimitedOutcomesAcceptor", dict(acceptance_probabilities=0.5),),
+            ("ToughNegotiator", dict(ufun=LinearUtilityFunction(weights=weights)),),
+            ("OnlyBestNegotiator", dict(ufun=LinearUtilityFunction(weights=weights)),),
+            (
+                "NaiveTitForTatNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=weights)),
+            ),
+            (
+                "SimpleTitForTatNegotiator",
+                dict(ufun=LinearUtilityFunction(weights=weights)),
+            ),
+            ("NiceNegotiator", dict(ufun=LinearUtilityFunction(weights=weights)),),
+        ]
+        for i, (neg_type, params) in enumerate(neg_types):
+            for n2, p2 in neg_types:
+                print(f"{neg_type} <> {n2}")
+                n1 = instantiate("negmas.sao." + neg_type, **params)
+                n2 = instantiate("negmas.sao." + n2, **p2)
+                m = SAOMechanism(
+                    n_steps=30, issues=issues, outcome_type=dict if asdict else tuple
+                )
+                m.add(n1)
+                m.add(n2)
+                m.run()
+                assert not m.running

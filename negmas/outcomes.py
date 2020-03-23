@@ -28,12 +28,15 @@ import copy
 import itertools
 import numbers
 import random
+import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass, fields
 from enum import Enum
 from functools import reduce
 from operator import mul
+
+import numpy as np
 from typing import (
     Any,
     Callable,
@@ -49,8 +52,6 @@ from typing import (
     Type,
     Union,
 )
-
-import numpy as np
 
 from .common import NamedObject
 from .generics import *
@@ -74,7 +75,10 @@ __all__ = [
     "sample_outcomes",
     "outcome_as_dict",
     "outcome_as_tuple",
+    "outcome_as",
+    "is_outcome",
     "num_outcomes",
+    "outcome_for",
 ]
 
 
@@ -783,6 +787,13 @@ class Issue(NamedObject):
 
         Args:
 
+            max_n_outcomes: Maximum number of outcomes to use
+            n_discretization: Number of discretization levels per issue
+            safe_parsing: Add more checks to parsing
+            keep_issue_names: Use dictionaries instead of tuples to represent outcomes
+            keep_value_names: keep value names in case of strings
+            force_numeric: Force the issue values to be numeric
+            force_single_issue: Combine all issues into a single issue
             file_name (str): File name to import from
 
         Returns:
@@ -1092,23 +1103,51 @@ class Issue(NamedObject):
         """
         n = num_outcomes(issues)
 
-        if n is None:
-            return cls.sample(issues=issues, n_outcomes=max_n_outcomes, astype=astype)
-        values = enumerate_outcomes(issues, keep_issue_names=False)
+        if n is None or n == float("inf"):
+            return cls.sample(
+                issues=issues,
+                n_outcomes=max_n_outcomes,
+                astype=astype,
+                fail_if_not_enough=False,
+                with_replacement=False,
+            )
+        values = enumerate_outcomes(issues, astype=tuple)
 
         if max_n_outcomes is not None and n > max_n_outcomes:
             values = random.sample(values, max_n_outcomes)
-        outcomes = []
 
-        for value in values:
-            if astype == tuple:
-                outcomes.append(tuple(value))
-            elif astype == dict:
-                outcomes.append(dict(zip((i.name for i in issues), value)))
-            else:
-                outcomes.append(astype(**dict(zip((i.name for i in issues), value))))
+        if issubclass(astype, tuple):
+            return values
+        issue_names = [_.name for _ in issues]
+        if issubclass(astype, dict):
+            return [outcome_as_dict(value, issue_names) for value in values]
+        return [astype(**outcome_as_dict(value, issue_names)) for value in values]
 
-        return outcomes
+    @classmethod
+    def discretize_and_enumerate(
+        cls,
+        issues: Collection["Issue"],
+        n_discretization: int = 10,
+        astype: Type = dict,
+    ) -> List["Outcome"]:
+        """
+        Enumerates the outcomes of a list of issues.
+
+        Args:
+            issues: The list of issues.
+            max_n_outcomes: The maximum number of outcomes to return
+            astype: The type to use for the returned outcomes. Can be `typle`
+                    `dict`, or any `OutcomeType`.
+        Returns:
+            List of outcomes of the given type.
+        """
+        issues = [
+            _
+            if _.is_countable()
+            else Issue(values=_.alli(n_discretization), name=_.name)
+            for _ in issues
+        ]
+        return cls.enumerate(issues, max_n_outcomes=None, astype=astype)
 
     @classmethod
     def sample(
@@ -1179,6 +1218,7 @@ class Issue(NamedObject):
 
         if (
             n_total is not None
+            and n_total != float("inf")
             and n_outcomes is not None
             and n_total < n_outcomes
             and fail_if_not_enough
@@ -1188,8 +1228,8 @@ class Issue(NamedObject):
                 f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes"
             )
 
-        if n_total is not None and n_outcomes is None:
-            values = enumerate_outcomes(issues=issues, keep_issue_names=False)
+        if n_total is not None and n_total != float("inf") and n_outcomes is None:
+            values = enumerate_outcomes(issues=issues, astype=tuple)
         elif n_total is None and n_outcomes is None:
             raise ValueError(
                 f"Cannot sample unknown number of outcomes from continuous outcome spaces"
@@ -1232,17 +1272,12 @@ class Issue(NamedObject):
                     i += 1
                 values = list(tmp_values)
 
-        outcomes = []
-
-        for value in values:
-            if astype == tuple:
-                outcomes.append(tuple(value))
-            elif astype == dict:
-                outcomes.append(dict(zip((i.name for i in issues), value)))
-            else:
-                outcomes.append(astype(**dict(zip((i.name for i in issues), value))))
-
-        return outcomes
+        if issubclass(astype, tuple):
+            return [tuple(_) for _ in values]
+        issue_names = [_.name for _ in issues]
+        if issubclass(astype, dict):
+            return [outcome_as_dict(value, issue_names) for value in values]
+        return [astype(**outcome_as_dict(value, issue_names)) for value in values]
 
     @property
     def outcome_range(self) -> "OutcomeRange":
@@ -1575,27 +1610,37 @@ def is_outcome(x: Any) -> bool:
 
 
 def enumerate_outcomes(
-    issues: Iterable[Issue], keep_issue_names=True
+    issues: Iterable[Issue], keep_issue_names=None, astype=dict
 ) -> Optional[Union[List["Outcome"], Dict[str, "Outcome"]]]:
     """Enumerates all outcomes of this set of issues if possible
 
     Args:
-        issues:
-        keep_issue_names:
+        issues: A list of issues
+        keep_issue_names: DEPRECTED. use `astype` instead
+        astype: The type to use for returning outcomes. Can be tuple, dict or any `OutcomeType`
 
     Returns:
-        List
+        list of outcomes
     """
+    if keep_issue_names is not None:
+        warnings.warn(
+            "keep_issue_names is depricated. Use outcome_type instead.\n"
+            "keep_issue_names=True <--> outcome_type=dict\n"
+            "keep_issue_names=False <--> outcome_type=tuple\n",
+            DeprecationWarning,
+        )
+        astype = dict if keep_issue_names else tuple
     try:
-        outcomes = list(itertools.product(*[_.all for _ in issues]))
+        outcomes = list(tuple(_) for _ in itertools.product(*[_.all for _ in issues]))
     except:
         return None
 
-    if keep_issue_names:
+    if issubclass(astype, dict):
         issue_names = [_.name for _ in issues]
-
-        for i, outcome in enumerate(outcomes):
-            outcomes[i] = dict(zip(issue_names, outcome))
+        outcomes = [outcome_as_dict(_, issue_names) for _ in outcomes]
+    elif not issubclass(astype, tuple):
+        issue_names = [_.name for _ in issues]
+        outcomes = [astype(**outcome_as_dict(_, issue_names)) for _ in outcomes]
 
     return outcomes
 
@@ -1603,7 +1648,8 @@ def enumerate_outcomes(
 def sample_outcomes(
     issues: Iterable[Issue],
     n_outcomes: Optional[int] = None,
-    keep_issue_names=True,
+    keep_issue_names=None,
+    astype=dict,
     min_per_dim=5,
     expansion_policy=None,
 ) -> Optional[List[Optional["Outcome"]]]:
@@ -1613,15 +1659,15 @@ def sample_outcomes(
         issues: The issues describing the issue space to be discretized
         n_outcomes: If None then exactly `min_per_dim` bins will be used for every continuous dimension and all outcomes
         will be returned
-        keep_issue_names:
-        min_per_dim:
+        keep_issue_names: DEPRICATED. Use `astype` instead
+        min_per_dim: Max levels of discretization per dimension
         expansion_policy: None or 'repeat' or 'null' or 'no'. If repeat, then some of the outcomes will be repeated
         if None or 'no' then no expansion will happen if the total number of outcomes is less than
-        n_outcomes. If 'null' then expansion will be with None values
+        n_outcomes: If 'null' then expansion will be with None values
+        astype: The type used for returning outcomes. Can be tuple, dict or any `OutcomeType`
 
     Returns:
         List
-
 
     Examples:
 
@@ -1651,6 +1697,14 @@ def sample_outcomes(
 
 
     """
+    if keep_issue_names is not None:
+        warnings.warn(
+            "keep_issue_names is depricated. Use outcome_type instead.\n"
+            "keep_issue_names=True <--> outcome_type=dict\n"
+            "keep_issue_names=False <--> outcome_type=tuple\n",
+            DeprecationWarning,
+        )
+        astype = dict if keep_issue_names else tuple
     issues = [copy.deepcopy(_) for _ in issues]
     continuous = []
     uncountable = []
@@ -1703,10 +1757,10 @@ def sample_outcomes(
         cardinality *= issue.cardinality
 
     if cardinality == n_outcomes or n_outcomes is None:
-        return list(enumerate_outcomes(issues, keep_issue_names=keep_issue_names))
+        return list(enumerate_outcomes(issues, astype=astype))
 
     if cardinality < n_outcomes:
-        outcomes = list(enumerate_outcomes(issues, keep_issue_names=keep_issue_names))
+        outcomes = list(enumerate_outcomes(issues, astype=astype))
 
         if expansion_policy == "no" or expansion_policy is None:
             return outcomes
@@ -1725,11 +1779,7 @@ def sample_outcomes(
 
             return outcomes
 
-    return list(
-        random.sample(
-            enumerate_outcomes(issues, keep_issue_names=keep_issue_names), n_outcomes
-        )
-    )
+    return list(random.sample(enumerate_outcomes(issues, astype=astype), n_outcomes))
 
 
 def _is_single(x):
@@ -2075,3 +2125,34 @@ def outcome_as_tuple(outcome: Outcome):
     if isinstance(outcome, Iterable):
         return tuple(outcome)
     raise ValueError(f"Unknown type for outcome {type(outcome)}")
+
+
+def outcome_as(outcome: Outcome, astype: Type, issue_names: List[str] = None):
+    """Converts the outcome to tuple, dict or any `OutcomeType`.
+
+    Args:
+         outcome: The outcome to adjust type
+         astype: The type to return. None returns the outcome as it is
+         issue_names: Only needed if `astype` is not tuple
+
+    """
+    if astype is None:
+        return outcome
+    if issubclass(astype, tuple):
+        return outcome_as_tuple(outcome)
+    if issubclass(astype, dict):
+        return outcome_as_dict(outcome, issue_names)
+    return astype(**outcome_as_dict(outcome, issue_names))
+
+
+def outcome_for(outcome: Outcome, ami: "Mechanism") -> Optional[Outcome]:
+    """Converts the outcome the type specified by the mechanism
+
+    Args:
+         outcome: The outcome to adjust type
+         ami: The Agent Mechanism Interface
+
+    """
+    astype = ami.outcome_type
+    issue_names = None if issubclass(astype, tuple) else [_.name for _ in ami.issues]
+    return outcome_as(outcome, astype, issue_names)

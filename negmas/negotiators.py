@@ -348,6 +348,18 @@ class Negotiator(NamedObject, Notifiable, ABC):
             - You MUST call the super() version of this function either before or after your code when you are overriding
               it.
         """
+        if hasattr(self._utility_function, "outcome_type"):
+            if self._utility_function.outcome_type is None:
+                self._utility_function.outcome_type = self._ami.outcome_type
+                self._utility_function.issue_names = [_.name for _ in self._ami.issues]
+            elif (
+                self._ami
+                and self._utility_function.outcome_type != self._ami.outcome_type
+            ):
+                raise ValueError(
+                    f"UFun uses outcome type {self._utility_function.outcome_type}, but the mechanism uses "
+                    f"{self._ami.outcome_type}"
+                )
         self._ufun_modified = False
 
     def __str__(self):

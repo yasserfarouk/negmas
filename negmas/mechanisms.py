@@ -4,6 +4,7 @@ import pprint
 import random
 import time
 import uuid
+import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
@@ -81,7 +82,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         dynamic_entry=False,
         cache_outcomes=True,
         max_n_outcomes: int = 1000000,
-        keep_issue_names=True,
+        keep_issue_names=None,
         annotation: Optional[Dict[str, Any]] = None,
         state_factory=MechanismState,
         enable_callbacks=False,
@@ -92,6 +93,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         single_checkpoint: bool = True,
         exist_ok: bool = True,
         name=None,
+        outcome_type=tuple,
     ):
         """
 
@@ -104,7 +106,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             dynamic_entry: Allow agents to enter/leave negotiations between rounds
             cache_outcomes: If true, a list of all possible outcomes will be cached
             max_n_outcomes: The maximum allowed number of outcomes in the cached set
-            keep_issue_names: If True, dicts with issue names will be used for outcomes otherwise tuples
+            keep_issue_names: DEPRICATED. Use `outcome_type` instead. If True, dicts with issue names will be used for outcomes otherwise tuples
             annotation: Arbitrary annotation
             state_factory: A callable that receives an arbitrary set of key-value pairs and return a MechanismState
                           descendant object
@@ -117,6 +119,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                                    a dictionary with string keys
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
             name: Name of the mechanism session. Should be unique. If not given, it will be generated.
+            outcome_type: The type used for representing outcomes. Can be tuple, dict or any `OutcomeType`
         """
         super().__init__(name=name)
         CheckpointMixin.checkpoint_init(
@@ -133,6 +136,15 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         step_time_limit = (
             step_time_limit if step_time_limit is not None else float("inf")
         )
+        if keep_issue_names is not None:
+            warnings.warn(
+                "keep_issue_names is depricated. Use outcome_type instead.\n"
+                "keep_issue_names=True <--> outcome_type=dict\n"
+                "keep_issue_names=False <--> outcome_type=tuple\n",
+                DeprecationWarning,
+            )
+            outcome_type = dict if keep_issue_names else tuple
+        keep_issue_names = not issubclass(outcome_type, tuple)
         # parameters fixed for all runs
         if issues is None:
             if outcomes is None:
@@ -167,16 +179,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                             if n_outcomes > max_n_outcomes:
                                 break
                         else:
-                            outcomes = enumerate_outcomes(
-                                __issues, keep_issue_names=keep_issue_names
-                            )
+                            outcomes = enumerate_outcomes(__issues, astype=outcome_type)
 
                 except ValueError:
                     pass
             elif outcomes is not None:
                 issue_names = [_.name for _ in issues]
-                assert (keep_issue_names and isinstance(outcomes[0], dict)) or (
-                    not keep_issue_names and isinstance(outcomes[0], tuple)
+                assert (not keep_issue_names and isinstance(outcomes[0], tuple)) or (
+                    keep_issue_names and not isinstance(outcomes[0], tuple)
                 ), (
                     f"Either you request to keep issue"
                     f" names but use tuple outcomes or "
@@ -217,6 +227,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             dynamic_entry=dynamic_entry,
             max_n_agents=max_n_agents,
             annotation=annotation,
+            outcome_type=dict if keep_issue_names else tuple,
         )
         self.ami._mechanism = self
 
@@ -272,7 +283,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return outcome_is_valid(outcome, self.ami.issues)
 
     def discrete_outcomes(
-        self, n_max: int = None, astype: Type["Outcome"] = dict
+        self, n_max: int = None, astype: Type["Outcome"] = None
     ) -> List["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
@@ -287,6 +298,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             List[Outcome]: List of `n` or less outcomes
 
         """
+        if astype is None:
+            astype = self.ami.outcome_type
         if self.outcomes is not None:
             return self.outcomes
         if self.__discrete_outcomes is None:
@@ -309,7 +322,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self.__discrete_outcomes
 
     def random_outcomes(
-        self, n: int = 1, astype: Type[Outcome] = dict
+        self, n: int = 1, astype: Type[Outcome] = None
     ) -> List["Outcome"]:
         """Returns random offers.
 
@@ -326,6 +339,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 - Sampling is done without replacement (i.e. returned outcomes are unique).
 
         """
+        if astype is None:
+            astype = self.ami.outcome_type
         if self.ami.issues is None or len(self.ami.issues) == 0:
             raise ValueError("I do not have any issues to generate offers from")
         return Issue.sample(

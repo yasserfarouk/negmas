@@ -29,7 +29,7 @@ from .modeling import (
     UncertainOpponentModel,
 )
 from .negotiators import AspirationMixin
-from .outcomes import Outcome, ResponseType
+from .outcomes import Outcome, ResponseType, outcome_as_tuple
 from .sao import *
 from .sao import AspirationNegotiator, SAONegotiator
 from .utilities import (
@@ -576,7 +576,7 @@ class EStrategy(object):
         """
 
         lower, upper, outcomes = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome]
+        index = self.indices[outcome_as_tuple(outcome)]
         lower, upper = lower[index], upper[index]
         epsilon = self.resolution
 
@@ -615,7 +615,7 @@ class EStrategy(object):
 
     def next_query(self, outcome: Outcome) -> Optional[Query]:
         lower, upper, outcomes = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome]
+        index = self.indices[outcome_as_tuple(outcome)]
         lower, upper = lower[index], upper[index]
 
         if abs(upper - lower) < self.resolution:
@@ -766,7 +766,7 @@ class EStrategy(object):
 
     def utility_estimate(self, outcome: Outcome) -> UtilityValue:
         """Gets a probability distribution of the Negotiator for this outcome without elicitation. Costs nothing"""
-        indx = self.indices[outcome]
+        indx = self.indices[outcome_as_tuple(outcome)]
         scale = self.upper[indx] - self.lower[indx]
         if scale < self.resolution:
             return self.lower[indx]
@@ -813,7 +813,9 @@ class EStrategy(object):
     ) -> None:
         self.lower = [0.0] * ami.n_outcomes
         self.upper = [1.0] * ami.n_outcomes
-        self.indices = dict(zip(ami.outcomes, range(ami.n_outcomes)))
+        self.indices = dict(
+            zip((outcome_as_tuple(_) for _ in ami.outcomes), range(ami.n_outcomes))
+        )
         if ufun is not None:
             distributions = list(ufun.distributions.values())
             for i, dist in enumerate(distributions):
@@ -2842,18 +2844,16 @@ def create_negotiator(
             negotiator = LimitedOutcomesNegotiator(
                 acceptable_outcomes=outcomes,
                 acceptance_probabilities=list(ufun.mapping.values()),
-                outcomes=outcomes,
                 **kwargs,
             )
         else:
             negotiator = LimitedOutcomesAcceptor(
                 acceptable_outcomes=outcomes,
                 acceptance_probabilities=list(ufun.mapping.values()),
-                outcomes=outcomes,
                 **kwargs,
             )
     elif negotiator_type == "random":
-        negotiator = RandomNegotiator(can_propose=can_propose, )
+        negotiator = RandomNegotiator(can_propose=can_propose,)
     elif negotiator_type == "tough":
         negotiator = ToughNegotiator(dynamic_ufun=dynamic_ufun, can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):
@@ -3000,7 +3000,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 time_limit=time_limit,
                 max_n_agents=2,
                 dynamic_entry=False,
-                keep_issue_names=False,
+                outcome_type=tuple,
                 cache_outcomes=True,
             )
 
@@ -3079,6 +3079,7 @@ class SAOElicitingMechanism(SAOMechanism):
             max_n_agents=2,
             dynamic_entry=False,
             name=name,
+            outcome_type=tuple,
         )
         if elicitor_reserved_value is None:
             elicitor_reserved_value = 0.0

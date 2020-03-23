@@ -7,9 +7,9 @@ import uuid
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import dill
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 from typing_extensions import Protocol, runtime
 
 from .helpers import dump, get_full_type_name, load, unique_name
@@ -123,6 +123,8 @@ class AgentMechanismInterface:
 
     id: str
     """Mechanism session ID. That is unique for all mechanisms"""
+    outcome_type: Type
+    """The type used for representing outcomes. It can be tuple, dict or any `OutcomeType`"""
     n_outcomes: Optional[int]
     """Number of outcomes which may be None indicating infinity"""
     issues: List["Issue"]
@@ -145,7 +147,7 @@ class AgentMechanismInterface:
     _mechanism = None
 
     def random_outcomes(
-        self, n: int = 1, astype: Type["Outcome"] = dict
+        self, n: int = 1, astype: Type["Outcome"] = None
     ) -> List["Outcome"]:
         """
         A set of random outcomes from the issues of this negotiation
@@ -162,14 +164,15 @@ class AgentMechanismInterface:
         return self._mechanism.random_outcomes(n=n, astype=astype)
 
     def discrete_outcomes(
-        self, n_max: int = None, astype: Type["Outcome"] = dict
+        self, n_max: int = None, astype: Type["Outcome"] = None
     ) -> List["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
         Args:
             n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
-            astype: A type to cast the resulting outcomes to.
+            astype: A type to cast the resulting outcomes to. None means use the default type for this
+                    mechanism
 
         Returns:
 

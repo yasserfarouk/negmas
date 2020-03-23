@@ -34,7 +34,7 @@ jobs:
           python -m pip install -r requirements-elicitation.txt
 
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -m pytest ."
+        run: "python -m pytest . || python -m pytest --last-failed ."
 
   docs:
     name: "Build Documentation"

@@ -3,7 +3,8 @@
 import copy
 import random
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+
+from typing import List, Optional
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome
@@ -30,6 +31,7 @@ class GAMechanism(Mechanism):
         self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
     ):
         kwargs["state_factory"] = GAState
+        kwargs["outcome_type"] = dict
         super().__init__(*args, **kwargs)
 
         self.n_population = n_population

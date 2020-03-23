@@ -1,10 +1,9 @@
 import os
-import pprint
-from typing import Union
 
 import numpy as np
 import pkg_resources
 import pytest
+from typing import Union
 
 from negmas import *
 from negmas.elicitors import *
@@ -392,7 +391,6 @@ class TestCountableOutcomesElicitor(object):
         neg = SAOMechanism(outcomes=[(_,) for _ in range(n_outcomes)], n_steps=10)
         accepted = [(0,), (2,)]
         opponent = LimitedOutcomesNegotiator(
-            outcomes=n_outcomes,
             acceptable_outcomes=accepted,
             acceptance_probabilities=[1.0] * len(accepted),
         )
@@ -413,7 +411,6 @@ class TestCountableOutcomesElicitor(object):
         user, strategy = master
         neg = SAOMechanism(outcomes=[(_,) for _ in range(n_outcomes)], n_steps=10)
         opponent = LimitedOutcomesNegotiator(
-            outcomes=n_outcomes,
             acceptable_outcomes=accepted,
             acceptance_probabilities=[1.0] * len(accepted),
         )
@@ -436,7 +433,6 @@ class TestCountableOutcomesElicitor(object):
         neg = SAOMechanism(outcomes=n_outcomes, n_steps=10)
         user, strategy = master
         opponent = LimitedOutcomesNegotiator(
-            outcomes=n_outcomes,
             acceptable_outcomes=accepted,
             acceptance_probabilities=[1.0] * len(accepted),
         )
@@ -500,10 +496,14 @@ class TestCountableOutcomesElicitor(object):
         frontier, frontier_locs = pareto_frontier(
             [
                 MappingUtilityFunction(
-                    lambda o: elicitor_utilities[o[0]], reserved_value=reserved_value
+                    lambda o: elicitor_utilities[o[0]],
+                    reserved_value=reserved_value,
+                    outcome_type=tuple,
                 ),
                 MappingUtilityFunction(
-                    lambda o: opponent_utilities[o[0]], reserved_value=reserved_value
+                    lambda o: opponent_utilities[o[0]],
+                    reserved_value=reserved_value,
+                    outcome_type=tuple,
                 ),
             ],
             outcomes=outcomes,
@@ -514,14 +514,15 @@ class TestCountableOutcomesElicitor(object):
         ).tolist()
         # print(f'frontier: {frontier}\nmax. welfare: {max(welfare)} at outcome: ({welfare.index(max(welfare))},)')
         # print(f'frontier_locs: frontier_locs')
-        neg = SAOMechanism(outcomes=n_outcomes, n_steps=10)
+        neg = SAOMechanism(outcomes=n_outcomes, n_steps=10, outcome_type=tuple)
         opponent = LimitedOutcomesNegotiator(
-            outcomes=outcomes,
             acceptable_outcomes=accepted,
             acceptance_probabilities=[1.0] * len(accepted),
         )
         eufun = MappingUtilityFunction(
-            dict(zip(outcomes, elicitor_utilities)), reserved_value=reserved_value
+            dict(zip(outcomes, elicitor_utilities)),
+            reserved_value=reserved_value,
+            outcome_type=tuple,
         )
         user = User(ufun=eufun, cost=cost)
         strategy = EStrategy(strategy=strategy)
@@ -590,7 +591,7 @@ class TestCountableOutcomesElicitor(object):
             force_single_issue=True,
             keep_issue_names=True,
             keep_value_names=True,
-            agent_factories=lambda: LimitedOutcomesNegotiator(outcomes=n_outcomes),
+            agent_factories=lambda: AspirationNegotiator(),
         )
         # [domain.add(LimitedOutcomesNegotiator(outcomes=n_outcomes)
         #            , ufun=_['ufun']) for _ in agents_info]
@@ -608,7 +609,7 @@ class TestCountableOutcomesElicitor(object):
             force_single_issue=True,
             keep_issue_names=False,
             keep_value_names=False,
-            agent_factories=lambda: LimitedOutcomesNegotiator(outcomes=n_outcomes),
+            agent_factories=lambda: AspirationNegotiator(),
         )
         # [domain.add(LimitedOutcomesNegotiator(outcomes=n_outcomes)
         #            , ufun=_['ufun']) for _ in agents_info]
@@ -630,9 +631,7 @@ class TestCountableOutcomesElicitor(object):
         )
         assert len(issues) == 1
         assert len(agents_info) == 2
-        domain.add(
-            LimitedOutcomesNegotiator(outcomes=n_outcomes), ufun=agents_info[0]["ufun"]
-        )
+        domain.add(LimitedOutcomesNegotiator(), ufun=agents_info[0]["ufun"])
         user = User(ufun=agents_info[0]["ufun"], cost=cost)
         strategy = EStrategy(strategy="titration-0.5")
         strategy.on_enter(ami=domain.ami)
@@ -648,9 +647,7 @@ class TestCountableOutcomesElicitor(object):
             keep_issue_names=False,
             keep_value_names=False,
         )
-        domain.add(
-            LimitedOutcomesNegotiator(outcomes=n_outcomes), ufun=agents_info[0]["ufun"]
-        )
+        domain.add(LimitedOutcomesNegotiator(), ufun=agents_info[0]["ufun"])
         # domain.n_steps = 10
         user = User(ufun=agents_info[0]["ufun"], cost=0.2)
         strategy = EStrategy(strategy="titration-0.5")
@@ -670,14 +667,12 @@ class TestCountableOutcomesElicitor(object):
         outcomes = [(0,), (1,)]
         alphas = [0.0, 1.0]
         opponent = LimitedOutcomesNegotiator(
-            outcomes=n_outcomes,
-            acceptable_outcomes=outcomes,
-            acceptance_probabilities=alphas,
+            acceptable_outcomes=outcomes, acceptance_probabilities=alphas,
         )
 
 
 def test_elicitation_run_with_no_conflict():
-    n_outcomes = 100
+    n_outcomes = 50
     n_steps = 100
     config = SAOElicitingMechanism.generate_config(
         cost=0.05,

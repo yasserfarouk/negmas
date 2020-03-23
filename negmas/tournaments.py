@@ -16,7 +16,11 @@ from dataclasses import dataclass, field
 from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
-from pprint import pprint
+
+import numpy as np
+import pandas as pd
+import yaml
+from scipy.stats import ks_2samp, ttest_ind
 from typing import (
     Any,
     Callable,
@@ -29,11 +33,6 @@ from typing import (
     Type,
     Union,
 )
-
-import numpy as np
-import pandas as pd
-import yaml
-from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas.helpers import (
@@ -46,7 +45,6 @@ from negmas.helpers import (
     load,
     unique_name,
 )
-
 from .situated import Agent, World, save_stats
 
 __all__ = [
@@ -1275,25 +1273,25 @@ def create_tournament(
         if non_competitors is None
         else [get_full_type_name(_) for _ in non_competitors]
     )
-    params = {
-        "competitors": competitors,
-        "competitor_params": competitor_params,
-        "non_competitors": non_competitors,
-        "non_competitor_params": non_competitor_params,
-        "n_agents_per_competitor": n_agents_per_competitor,
-        "tournament_path": str(tournament_path),
-        "total_timeout": total_timeout,
-        "parallelism": parallelism,
-        "scheduler_ip": scheduler_ip,
-        "scheduler_port": scheduler_port,
-        "name": name,
-        "n_configs": n_configs,
-        "n_world_per_config": max_worlds_per_config,
-        "n_runs_per_world": n_runs_per_world,
-        "n_worlds": None,
-        "compact": compact,
-        "n_competitors_per_world": n_competitors_per_world,
-    }
+    params = dict(
+        competitors=competitors,
+        competitor_params=competitor_params,
+        non_competitors=non_competitors,
+        non_competitor_params=non_competitor_params,
+        n_agents_per_competitor=n_agents_per_competitor,
+        tournament_path=str(tournament_path),
+        total_timeout=total_timeout,
+        parallelism=parallelism,
+        scheduler_ip=scheduler_ip,
+        scheduler_port=scheduler_port,
+        name=name,
+        n_configs=n_configs,
+        n_world_per_config=max_worlds_per_config,
+        n_runs_per_world=n_runs_per_world,
+        n_worlds=None,
+        compact=compact,
+        n_competitors_per_world=n_competitors_per_world,
+    )
     params.update(kwargs)
     dump(params, tournament_path / "params")
 

@@ -1,10 +1,10 @@
 """Implements single text negotiation mechanisms"""
-import itertools
 import math
 import random
 import time
 from copy import deepcopy
 from dataclasses import dataclass
+
 from typing import List, Optional, Tuple, Union
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
@@ -269,6 +269,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
     """
 
     def __init__(self, *args, **kwargs):
+        kwargs["outcome_type"] = dict
         super().__init__(*args, **kwargs)
 
         for issue in self.issues:

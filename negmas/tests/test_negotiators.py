@@ -1,8 +1,8 @@
 import random
-from typing import List
 
 import numpy as np
 import pytest
+from typing import List
 
 from negmas import (
     AspirationNegotiator,
@@ -24,7 +24,7 @@ def test_tough_asp_negotiator():
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
-    neg = SAOMechanism(outcomes=outcomes, n_steps=100)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=100, outcome_type=tuple)
     neg.add(a1, ufun=u1)
     neg.add(a2, ufun=u2)
     neg.run()
@@ -42,7 +42,7 @@ def test_tough_tit_for_tat_negotiator():
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
-    neg = SAOMechanism(outcomes=outcomes, n_steps=100)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=100, outcome_type=tuple)
     neg.add(a1, ufun=u1)
     neg.add(a2, ufun=u2)
     neg.run()
