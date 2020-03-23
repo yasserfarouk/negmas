@@ -2208,7 +2208,33 @@ class SAOSyncController(SAOController):
     def first_proposals(self) -> Dict[str, "Outcome"]:
         """Gets a set of proposals to use for initializing the negotiation. To avoid offering anything, just return None
         for all of them. That is the default"""
-        return dict(zip(self.negotiators.keys(), itertools.repeat(None)))
+        return dict(zip(self.negotiators.keys(), (self.first_offer(_) for _ in self.negotiators.keys())))
+
+    def first_offer(self, negotiator_id: str) -> Optional[Outcome]:
+        """
+        Finds the first offer for this given negotiator. By default it will be the best offer
+
+        Args:
+            negotiator_id: The ID of the negotiator
+
+        Returns:
+            The first offer to use.
+
+        Remarks:
+            Default behavior is to use the ufun defined for the controller if any then try the ufun
+            defined for the negotiator. If neither exists, the first offer will be None.
+        """
+        negotiator, _ = self.negotiators.get(negotiator_id, (None, None))
+        if negotiator is None:
+            return None
+        if negotiator.ami is None:
+            return None
+        # if the controller has a ufun, use it otherwise use the negotiator ufun
+        if hasattr(self, "ufun"):
+            _, _, _, best = utility_range(self.ufun, issues=negotiator.ami.issues, return_outcomes=True)
+        else:
+            _, _, _, best = utility_range(negotiator.ufun, issues=negotiator.ami.issues, return_outcomes=True)
+        return best
 
 
 class SAORandomSyncController(SAOSyncController):
