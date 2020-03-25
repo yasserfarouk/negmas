@@ -1,6 +1,18 @@
 History
 =======
 
+Release 0.6.9
+-------------
+
+- [sao] always calculating best outcome in AspirationNegotiator
+- [utilities] making the calculation of utility ranges in utility_range more robust
+- [sao] Making SyncController default to the outcome with maximum utility in the first round instead of sending no response.
+- [chain] moved to relative imports
+- [negotiators] Removed the outcomes/reserved_value parameters when constructing RandomNegotiator
+- [negotiators] Improvements to the implementation of Controller
+- [sao] Adding SAOAspirationSingleAgreementController, SAOMetaController, SAORandomSyncController and improving the implementation of SAOSyncController and SAOSingleAgreementController
+- adding more tests
+
 Release 0.6.8
 -------------
 
