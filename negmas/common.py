@@ -223,7 +223,7 @@ class AgentMechanismInterface:
 
     @property
     def n_negotiators(self) -> int:
-        """Syntactic sugar for state.n_agents"""
+        """Syntactic sugar for state.n_negotiators"""
         return self.state.n_negotiators
 
     def __str__(self):
