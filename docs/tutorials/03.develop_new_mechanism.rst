@@ -281,7 +281,7 @@ persist? Does it lead to the same welfare every time? Can you explain
 it?
 
 Rubinstein Bargaining Protocol (Stateful Mechanism)
----------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Rubinstein provided one of the earliest and most widely cited results
 for multi-round bilateral negotiation.

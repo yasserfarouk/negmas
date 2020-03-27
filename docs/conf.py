@@ -18,6 +18,9 @@
 # relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
 #
+from __future__ import annotations
+import typing
+typing.get_type_hints = lambda obj, *unused: obj
 
 import os
 
@@ -41,7 +44,6 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.graphviz",
     "sphinx_autodoc_annotation",
-    "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
     "sphinx_automodapi.automodapi",
     "sphinx.ext.intersphinx",
@@ -50,6 +52,7 @@ extensions = [
     "nb2plots",
     #'nbsphinx',
     "sphinx.ext.mathjax",
+    # "sphinx_autodoc_typehints",
 ]
 
 intersphinx_mapping = {
@@ -224,4 +227,5 @@ html_domain_indices = True
 
 automodsumm_inherited_members = False
 
+autodoc_typehints = 'description'
 # mathjax_path =
