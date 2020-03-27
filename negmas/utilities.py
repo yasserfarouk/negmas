@@ -44,6 +44,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    NewType,
 )
 
 from negmas.common import AgentMechanismInterface, NamedObject
@@ -101,15 +102,25 @@ OutcomeUtilityMapping = Union[
     Callable[[Union["Outcome", int, str, float]], "UtilityValue"],
     Mapping[Union[Sequence, Mapping, int, str, float], "UtilityValue"],
 ]
+"""A mapping from an outcome to its utility value"""
+
+
 OutcomeUtilityMappings = List[OutcomeUtilityMapping]
 """Maps from multi-issue or single-issue outcomes to Negotiator values."""
-IssueUtilityFunctionMapping = Union[  # type: ignore
-    Callable[["Issue"], "UtilityFunction"],  # type: ignore
-    Mapping["Issue", "UtilityFunction"],  # type: ignore
-]  # type: ignore
+
+
+IssueUtilityFunctionMapping = Union[
+    Callable[["Issue"], "UtilityFunction"], Mapping["Issue", "UtilityFunction"],
+]
+"""A mapping from issues to utility functions"""
+
+
 IssueUtilityFunctionMappings = List[IssueUtilityFunctionMapping]
+"""A list of `IssueUtilityFunctionMapping`"""
+
 
 UtilityDistribution = Distribution
+"""A probability distribution over utility values"""
 
 
 class ExactUtilityValue(float):
@@ -120,7 +131,7 @@ UtilityValue = Union[UtilityDistribution, float]
 """Either a utility_function distribution or an exact offerable_outcomes utility_function value.
 
 `UtilityFunction`s always return a `UtilityValue` which makes it easier to implement algorithms relying  on
-probabilistic modeling of utility_function values."""
+probabilistic modeling of utility functions."""
 
 
 class UtilityFunction(ABC, NamedObject):
@@ -144,13 +155,13 @@ class UtilityFunction(ABC, NamedObject):
         name: Optional[str] = None,
         ami: AgentMechanismInterface = None,
         reserved_value: UtilityValue = float("-inf"),
-        outcome_type: Optional[Type[Outcome]] = None,
+        outcome_type: Optional[Type] = None,
         issue_names: Optional[List[str]] = None,
     ) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
-        self.ami = ami
-        self.outcome_type = outcome_type
+        self._ami = ami
+        self._outcome_type = outcome_type
         self.issue_names = issue_names
         if outcome_type is not None and (
             not issubclass(outcome_type, tuple) and issue_names is None
@@ -158,6 +169,22 @@ class UtilityFunction(ABC, NamedObject):
             raise ValueError(
                 "You must specify issue_names because you are using a non-tuple outcome type"
             )
+
+    @property
+    def ami(self):
+        return self._ami
+
+    @ami.setter
+    def ami(self, value: AgentMechanismInterface):
+        self._ami = value
+
+    @property
+    def outcome_type(self):
+        return self._outcome_type
+
+    @outcome_type.setter
+    def outcome_type(self, value: Type):
+        self._outcome_type = value
 
     @property
     def is_dynamic(self):
@@ -792,11 +819,11 @@ class UtilityFunction(ABC, NamedObject):
             discount_factor = None
         return u, discount_factor
 
-    def __getitem__(self, offer: Outcome) -> Optional[UtilityValue]:
+    def __getitem__(self, offer: "Outcome") -> Optional[UtilityValue]:
         """Overrides [] operator to call the ufun allowing it to act as a mapping"""
         return self(offer)
 
-    def __call__(self, offer: Outcome) -> UtilityValue:
+    def __call__(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -834,8 +861,7 @@ class UtilityFunction(ABC, NamedObject):
                 offer = self.outcome_type(offer)
         return self.eval(offer)
 
-    @abstractmethod
-    def eval(self, offer: Outcome) -> UtilityValue:
+    def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility value for a given outcome.
 
         Args:
@@ -852,7 +878,7 @@ class UtilityFunction(ABC, NamedObject):
             UtilityValue: The utility_function value which may be a distribution. If `None` it means the
                           utility_function value cannot be calculated.
         """
-        raise ValueError("Could not calculate the utility value.")
+        raise NotImplementedError("Could not calculate the utility value.")
 
     @classmethod
     def approximate(
@@ -906,7 +932,7 @@ class UtilityFunction(ABC, NamedObject):
 
         return utils, output_outcomes, output_issues
 
-    def compare_real(self, o1: Outcome, o2: Outcome) -> float:
+    def compare_real(self, o1: "Outcome", o2: "Outcome") -> float:
         """Compares the two outcomes and returns a measure of the difference between their utilities"""
         u1, u2 = self(o1), self(o2)
         if isinstance(u1, float) and isinstance(u2, float):
@@ -954,7 +980,7 @@ class UtilityFunction(ABC, NamedObject):
     """Ranks the given list of outcomes. None stands for the null outcome"""
 
     def is_better(
-        self, first: Outcome, second: Outcome, epsilon=1e-10
+        self, first: "Outcome", second: "Outcome", epsilon=1e-10
     ) -> Optional[bool]:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
@@ -1275,7 +1301,7 @@ class UtilityFunction(ABC, NamedObject):
         issues: List[Issue] = None,
         outcomes: List[Outcome] = None,
         n_trials: int = 100,
-    ) -> Optional[Outcome]:
+    ) -> Optional["Outcome"]:
         """
         Gets one outcome within the given utility range or None on failure
 
@@ -1410,7 +1436,7 @@ class ExpDiscountedUFun(UtilityFunction):
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    def eval(self, offer: "Outcome") -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -1486,7 +1512,7 @@ class LinDiscountedUFun(UtilityFunction):
         self.power = power
         self.dynamic_reservation = dynamic_reservation
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    def eval(self, offer: "Outcome") -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -1543,7 +1569,7 @@ class ConstUFun(UtilityFunction):
         )
         self.value = value
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    def eval(self, offer: "Outcome") -> UtilityValue:
         if offer is None:
             return self.reserved_value
         return self.value
@@ -2002,16 +2028,21 @@ class LinearUtilityAggregationFunction(UtilityFunction):
 class MappingUtilityFunction(UtilityFunction):
     """Outcome mapping utility function.
 
-    This is the simplest possible utility function and it just maps a set of ``Outcome``s to a set of
-    ``UtilityValue``(s). It is only usable with single-issue negotiations. It can be constructed with wither a mapping
-    (e.g. a dirct) or a callable function.
+    This is the simplest possible utility function and it just maps a set of `Outcome`s to a set of
+    `UtilityValue`(s). It is only usable with single-issue negotiations. It can be constructed with wither a mapping
+    (e.g. a dict) or a callable function.
 
     Args:
-            mapping: Either a callable or a mapping from ``Outcome`` (dict) to ``UtilityValue``.
+            mapping: Either a callable or a mapping from `Outcome` to `UtilityValue`.
             default: value returned for outcomes causing exception (e.g. invalid outcomes).
             name: name of the utility function. If None a random name will be generated.
+            reserved_value: The reserved value (utility of not getting an agreement = utility(None) )
+            ami: an `AgentMechnismInterface` that is used mostly for setting the outcome-type in methods returning
+                 outcomes.
+            outcome_type: The type that should be returned from methods returning `Outcome` which can be tuple, dict or
+                          any `OutcomeType`.
 
-    Eamples:
+    Examples:
 
         Single issue outcome case:
 
@@ -2513,7 +2544,29 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
             weights = [1.0] * len(self.ufuns)
         self.weights = list(weights)
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    @property
+    def outcome_type(self):
+        return super().outcome_type
+
+    @outcome_type.setter
+    def outcome_type(self, value: Type):
+        super().outcome_type = value
+        for ufun in self.ufuns:
+            if hasattr(ufun, "ami"):
+                ufun.outcome_type = value
+
+    @property
+    def ami(self):
+        return super().ami
+
+    @ami.setter
+    def ami(self, value):
+        super().ami = value
+        for ufun in self.ufuns:
+            if hasattr(ufun, "ami"):
+                ufun.ami = value
+
+    def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -2574,7 +2627,29 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    @property
+    def outcome_type(self):
+        return super().outcome_type
+
+    @outcome_type.setter
+    def outcome_type(self, value: Type):
+        super().outcome_type = value
+        for ufun in self.ufuns:
+            if hasattr(ufun, "ami"):
+                ufun.outcome_type = value
+
+    @property
+    def ami(self):
+        return super().ami
+
+    @ami.setter
+    def ami(self, value):
+        super().ami = value
+        for ufun in self.ufuns:
+            if hasattr(ufun, "ami"):
+                ufun.ami = value
+
+    def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -2865,7 +2940,7 @@ class IPUtilityFunction(UtilityFunction):
             return outcome
         return tuple((outcome.get(_, None) for _ in self.issue_names))
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -3075,7 +3150,7 @@ class JavaUtilityFunction(UtilityFunction, JavaCallerMixin):
         if java_object is None:
             self._java_object.fromMap(to_java(self))
 
-    def eval(self, offer: Outcome) -> UtilityValue:
+    def eval(self, offer: "Outcome") -> UtilityValue:
         return self._java_object.call(to_java(outcome_as_dict(offer)))
 
     def xml(self, issues: List[Issue]) -> str:
@@ -3088,7 +3163,7 @@ def outcome_with_utility(
     issues: List[Issue] = None,
     outcomes: List[Outcome] = None,
     n_trials: int = 100,
-) -> Optional[Outcome]:
+) -> Optional["Outcome"]:
     """
     Gets one outcome within the given utility range or None on failure
 
