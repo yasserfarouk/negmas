@@ -50,7 +50,7 @@ class GAMechanism(Mechanism):
     def generate(self, n: int) -> List[Outcome]:
         return self.random_outcomes(n)
 
-    def crossover(self, outcome1: Outcome, outcome2: Outcome) -> Outcome:
+    def crossover(self, outcome1: "Outcome", outcome2: "Outcome") -> "Outcome":
         """Uniform crossover"""
         outcome = copy.deepcopy(outcome1)
         for issue in self.issues:
@@ -59,7 +59,7 @@ class GAMechanism(Mechanism):
 
         return outcome
 
-    def mutate(self, outcome: Outcome) -> Outcome:
+    def mutate(self, outcome: "Outcome") -> "Outcome":
         """Uniform crossover with random outcome"""
         return self.crossover(outcome, self.generate(1)[0])
 

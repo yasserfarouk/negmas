@@ -865,7 +865,7 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         )
         return indx
 
-    def propose(self, state: MechanismState) -> Optional[Outcome]:
+    def propose(self, state: MechanismState) -> Optional["Outcome"]:
         indx = self._propose(state)
         self.proposed_utility = self.ordered_outcomes[indx][0]
         return self.ordered_outcomes[indx][1]

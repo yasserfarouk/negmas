@@ -23,7 +23,7 @@ __all__ = [
 class Offer:
     """Defines an offer"""
 
-    outcome: Outcome
+    outcome: "Outcome"
     left: bool
     temp: bool
     partner: str = None
@@ -111,7 +111,7 @@ class ChainNegotiator(Negotiator, ABC):
 
     @abstractmethod
     def respond(
-        self, state: MechanismState, outcome: Outcome, from_left: bool, temp: bool
+        self, state: MechanismState, outcome: "Outcome", from_left: bool, temp: bool
     ) -> ResponseType:
         """
         Called to respond to an offer
@@ -189,7 +189,7 @@ class MultiChainNegotiator(Negotiator, ABC):
     def respond(
         self,
         state: MechanismState,
-        outcome: Outcome,
+        outcome: "Outcome",
         from_left: bool,
         temp: bool,
         source: str,

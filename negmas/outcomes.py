@@ -51,6 +51,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    NewType,
 )
 
 from .common import NamedObject
@@ -1667,16 +1668,18 @@ def sample_outcomes(
         astype: The type used for returning outcomes. Can be tuple, dict or any `OutcomeType`
 
     Returns:
-        List
+        List of outcomes
 
     Examples:
 
         enumberate the whole space
+
         >>> issues = [Issue(values=(0.0, 1.0), name='Price'), Issue(values=['a', 'b'], name='Name')]
         >>> sample_outcomes(issues=issues)
         [{'Price': 0.0, 'Name': 'a'}, {'Price': 0.0, 'Name': 'b'}, {'Price': 0.25, 'Name': 'a'}, {'Price': 0.25, 'Name': 'b'}, {'Price': 0.5, 'Name': 'a'}, {'Price': 0.5, 'Name': 'b'}, {'Price': 0.75, 'Name': 'a'}, {'Price': 0.75, 'Name': 'b'}, {'Price': 1.0, 'Name': 'a'}, {'Price': 1.0, 'Name': 'b'}]
 
         enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
+
         >>> issues = [Issue(values=(0, 1), name='Price', value_type=float), Issue(values=['a', 'b'], name='Name')]
         >>> issues[0].is_continuous()
         True
@@ -1694,7 +1697,6 @@ def sample_outcomes(
         4
         >>> len(set(tuple(_.values()) for _ in sampled))
         4
-
 
     """
     if keep_issue_names is not None:
@@ -1788,7 +1790,7 @@ def _is_single(x):
     return isinstance(x, str) or isinstance(x, numbers.Number)
 
 
-def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
+def outcome_is_valid(outcome: "Outcome", issues: Collection[Issue]) -> bool:
     """Test validity of an outcome given a set of issues.
 
     Examples:
@@ -1841,7 +1843,7 @@ def outcome_is_valid(outcome: Outcome, issues: Collection[Issue]) -> bool:
     return True
 
 
-def outcome_is_complete(outcome: Outcome, issues: Collection[Issue]) -> bool:
+def outcome_is_complete(outcome: "Outcome", issues: Collection[Issue]) -> bool:
     """Tests that the outcome is valid and complete.
 
     Examples:
@@ -1945,7 +1947,7 @@ def outcome_range_is_complete(
 # Outcome space implementation  #
 #################################
 def outcome_in_range(
-    outcome: Outcome,
+    outcome: "Outcome",
     outcome_range: OutcomeRange,
     *,
     strict=False,
@@ -1958,8 +1960,8 @@ def outcome_in_range(
 
     Args:
 
-        outcome: Outcome being tested
-        outcome_range: Outcome range being tested against
+        outcome: "Outcome" being tested
+        outcome_range: "Outcome" range being tested against
         strict: Whether to enforce that all issues in the outcome must be mentioned in the outcome_range
         fail_incomplete: If True then outcomes that do not sepcify a value for all keys in the outcome_range
         will be considered not falling within it. If False then these outcomes will be considered falling
@@ -2083,7 +2085,7 @@ def outcome_in_range(
     return True
 
 
-def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
+def outcome_as_dict(outcome: "Outcome", issue_names: List[str] = None):
     """Converts the outcome to a dict no matter what was its type"""
 
     if outcome is None:
@@ -2104,30 +2106,31 @@ def outcome_as_dict(outcome: Outcome, issue_names: List[str] = None):
     return dict(zip((str(_) for _ in range(len(outcome))), outcome))
 
 
-def outcome_as_tuple(outcome: Outcome):
+def outcome_as_tuple(outcome: "Outcome"):
     """Converts the outcome to a tuple no matter what was its type"""
 
     if outcome is None:
         return None
 
-    if isinstance(outcome, np.ndarray):
-        return tuple(outcome.tolist())
-
     if isinstance(outcome, tuple):
         return outcome
-
-    if isinstance(outcome, OutcomeType):
-        return outcome.astuple()
 
     if isinstance(outcome, dict):
         return tuple(list(outcome.values()))
 
+    if isinstance(outcome, OutcomeType):
+        return outcome.astuple()
+
+    if isinstance(outcome, np.ndarray):
+        return tuple(outcome.tolist())
+
     if isinstance(outcome, Iterable):
         return tuple(outcome)
+
     raise ValueError(f"Unknown type for outcome {type(outcome)}")
 
 
-def outcome_as(outcome: Outcome, astype: Type, issue_names: List[str] = None):
+def outcome_as(outcome: "Outcome", astype: Type, issue_names: List[str] = None):
     """Converts the outcome to tuple, dict or any `OutcomeType`.
 
     Args:
@@ -2145,7 +2148,7 @@ def outcome_as(outcome: Outcome, astype: Type, issue_names: List[str] = None):
     return astype(**outcome_as_dict(outcome, issue_names))
 
 
-def outcome_for(outcome: Outcome, ami: "Mechanism") -> Optional[Outcome]:
+def outcome_for(outcome: "Outcome", ami: "Mechanism") -> Optional["Outcome"]:
     """Converts the outcome the type specified by the mechanism
 
     Args:
