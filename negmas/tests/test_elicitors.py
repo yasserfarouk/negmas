@@ -689,7 +689,7 @@ def test_elicitation_run_with_no_conflict():
     frontier, frontier_outcomes = neg.pareto_frontier(sort_by_welfare=True)
     assert len(frontier) > 0
     neg.run()
-    assert neg.agreement in frontier_outcomes
+    assert neg.agreement is None or neg.agreement in frontier_outcomes
 
 
 def test_alternating_offers_eliciting_mechanism():

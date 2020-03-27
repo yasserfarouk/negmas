@@ -430,13 +430,13 @@ def test_loops_are_broken(keep_order):
 
     a, b, c = (
         SAOSingleAgreementAspirationController(
-            ufun=MappingUtilityFunction(lambda x: x["price"])
+            ufun=MappingUtilityFunction(lambda x: x["price"]), strict=False
         ),
         SAOSingleAgreementAspirationController(
-            ufun=MappingUtilityFunction(lambda x: x["price"])
+            ufun=MappingUtilityFunction(lambda x: x["price"]), strict=False
         ),
         SAOSingleAgreementAspirationController(
-            ufun=MappingUtilityFunction(lambda x: x["price"])
+            ufun=MappingUtilityFunction(lambda x: x["price"]), strict=False
         ),
     )
 
