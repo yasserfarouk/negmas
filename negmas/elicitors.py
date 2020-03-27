@@ -168,7 +168,7 @@ class Constraint(ABC):
         ...
 
     @abstractmethod
-    def marginal(self, outcome: Outcome) -> UtilityDistribution:
+    def marginal(self, outcome: "Outcome") -> UtilityDistribution:
         ...
 
 
@@ -191,7 +191,7 @@ class MarginalNeutralConstraint(Constraint):
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: Outcome) -> UtilityDistribution:
+    def marginal(self, outcome: "Outcome") -> UtilityDistribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
             return UtilityDistribution(
@@ -354,7 +354,7 @@ class RangeConstraint(Constraint):
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: Outcome) -> UtilityDistribution:
+    def marginal(self, outcome: "Outcome") -> UtilityDistribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
             return UtilityDistribution(
@@ -563,7 +563,7 @@ class EStrategy(object):
         ]
 
     def apply(
-        self, user: User, outcome: Outcome
+        self, user: User, outcome: "Outcome"
     ) -> Tuple[Optional[UtilityValue], Optional[QResponse]]:
         """Do the elicitation and incur the cost.
 
@@ -613,7 +613,7 @@ class EStrategy(object):
             u = UtilityDistribution(dtype="uniform", loc=lower, scale=upper - lower)
         return u, reply
 
-    def next_query(self, outcome: Outcome) -> Optional[Query]:
+    def next_query(self, outcome: "Outcome") -> Optional[Query]:
         lower, upper, outcomes = self.lower, self.upper, self.outcomes
         index = self.indices[outcome_as_tuple(outcome)]
         lower, upper = lower[index], upper[index]
@@ -764,7 +764,7 @@ class EStrategy(object):
 
         return query
 
-    def utility_estimate(self, outcome: Outcome) -> UtilityValue:
+    def utility_estimate(self, outcome: "Outcome") -> UtilityValue:
         """Gets a probability distribution of the Negotiator for this outcome without elicitation. Costs nothing"""
         indx = self.indices[outcome_as_tuple(outcome)]
         scale = self.upper[indx] - self.lower[indx]
@@ -774,7 +774,7 @@ class EStrategy(object):
 
     def until(
         self,
-        outcome: Outcome,
+        outcome: "Outcome",
         user: User,
         dist: Union[List[UtilityValue], UtilityValue],
     ) -> UtilityValue:
@@ -830,7 +830,7 @@ def possible_queries(
     ami: AgentMechanismInterface,
     strategy: EStrategy,
     user: User,
-    outcome: Outcome = None,
+    outcome: "Outcome" = None,
 ) -> List[Tuple[Outcome, List["UtilityDistribution"], float]]:
     """Gets all queries that could be asked for that outcome until an exact value of ufun is found.
 
@@ -884,7 +884,7 @@ def possible_queries(
 
 
 def next_query(
-    strategy: EStrategy, user: User, outcome: Outcome = None
+    strategy: EStrategy, user: User, outcome: "Outcome" = None
 ) -> List[Tuple[Outcome, Query, float]]:
     """Gets the possible outcomes for the next ask with its cost.
 
@@ -1119,7 +1119,7 @@ class BaseElicitor(SAONegotiator):
         self,
         state: MechanismState,
         agent_id: str,
-        outcome: Outcome,
+        outcome: "Outcome",
         response: "ResponseType",
     ):
         self.base_negotiator.on_partner_response(
@@ -1136,7 +1136,7 @@ class BaseElicitor(SAONegotiator):
             new_probs = [self.opponent_model.probability_of_acceptance(outcome)]
             self.on_opponent_model_updated([outcome], old=old_probs, new=new_probs)
 
-    def respond_(self, state: MechanismState, offer: Outcome) -> ResponseType:
+    def respond_(self, state: MechanismState, offer: "Outcome") -> ResponseType:
         ami = self._ami
         my_offer, meu = self.best_offer(state=state)
         if my_offer is None:
@@ -1157,7 +1157,7 @@ class BaseElicitor(SAONegotiator):
         else:
             return self.base_negotiator.respond_(state=state, offer=offer)
 
-    def propose(self, state: MechanismState) -> Outcome:
+    def propose(self, state: MechanismState) -> "Outcome":
         if self.can_elicit():
             self.elicit(state=state)
         return self.base_negotiator.propose(state=state)
@@ -1239,10 +1239,10 @@ class BaseElicitor(SAONegotiator):
         ps = np.asarray(self.opponent_model.acceptance_probabilities())
         return ps * us + (1 - ps) * np.asarray(self.utilities_on_rejection(state=state))
 
-    def utility_on_acceptance(self, outcome: Outcome) -> UtilityValue:
+    def utility_on_acceptance(self, outcome: "Outcome") -> UtilityValue:
         return self.utility_function(outcome)
 
-    def best_offer(self, state) -> Tuple[Optional[Outcome], float]:
+    def best_offer(self, state) -> Tuple[Optional["Outcome"], float]:
         """Maximum Expected Utility at a given aspiration level (alpha)
 
         Args:
@@ -1263,7 +1263,7 @@ class BaseElicitor(SAONegotiator):
         return best, self.expect(best_utility, state=state)
 
     def utility_on_rejection(
-        self, outcome: Outcome, state: MechanismState
+        self, outcome: "Outcome", state: MechanismState
     ) -> UtilityValue:
         """Expected Negotiator if this outcome is given and rejected
 
@@ -1312,7 +1312,7 @@ class BaseElicitor(SAONegotiator):
 
 class DummyElicitor(BaseElicitor):
     def utility_on_rejection(
-        self, outcome: Outcome, state: MechanismState
+        self, outcome: "Outcome", state: MechanismState
     ) -> UtilityValue:
         return self.reserved_value
 
@@ -1335,7 +1335,7 @@ class DummyElicitor(BaseElicitor):
 
 class FullKnowledgeElicitor(BaseElicitor):
     def utility_on_rejection(
-        self, outcome: Outcome, state: MechanismState
+        self, outcome: "Outcome", state: MechanismState
     ) -> UtilityValue:
         return self.reserved_value
 
@@ -1403,7 +1403,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
                 "max-proposals": None,  # indicates infinity
             }
         )
-        self.my_last_proposals: Optional[Outcome] = None
+        self.my_last_proposals: Optional["Outcome"] = None
         self.deep_elicitation = deep_elicitation
         self.elicitation_history = []
         self.cutoff_utility = None
@@ -1420,7 +1420,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         self.incremental = incremental
 
     def utility_on_rejection(
-        self, outcome: Outcome, state: MechanismState
+        self, outcome: "Outcome", state: MechanismState
     ) -> UtilityValue:
         return self.aspiration(state.relative_time)
 
@@ -1453,7 +1453,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         self.elicitation_history.append((outcome, u, state.step))
         return True
 
-    def do_elicit(self, outcome: Outcome, state: MechanismState) -> UtilityValue:
+    def do_elicit(self, outcome: "Outcome", state: MechanismState) -> UtilityValue:
         # @todo replace input with negotiation instead of ami
         if not self.deep_elicitation:
             return self.strategy.apply(user=self.user, outcome=outcome)[0]
@@ -1493,7 +1493,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             return -unknowns[0][0], unknowns[0][1]
         return 0.0, None
 
-    def update_best_offer_utility(self, outcome: Outcome, u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
         self.unknown[0] = (
             -weitzman_index_uniform(_loc(u), _scale(u), self.user.cost_of_asking()),
             self.unknown[0][1],
@@ -1605,7 +1605,7 @@ class FullElicitor(BasePandoraElicitor):
         )
         self.elicited = {}
 
-    def update_best_offer_utility(self, outcome: Outcome, u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
         pass
 
     def init_elicitation(
@@ -1666,7 +1666,7 @@ class RandomElicitor(BasePandoraElicitor):
         heapify(z)
         self.unknown = z
 
-    def update_best_offer_utility(self, outcome: Outcome, u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
         pass
 
 
@@ -1757,11 +1757,11 @@ class FastElicitor(PandoraElicitor):
         super().__init__(*args, **kwargs)
         self.deep_elicitation = False
 
-    def update_best_offer_utility(self, outcome: Outcome, u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
         """We need not do anything here as we will remove the outcome anyway to the known list"""
         pass
 
-    def do_elicit(self, outcome: Outcome, state: MechanismState):
+    def do_elicit(self, outcome: "Outcome", state: MechanismState):
         return self.expect(super().do_elicit(outcome, None), state=state)
 
 
@@ -2070,7 +2070,7 @@ class BaseVOIElicitor(BaseElicitor):
         self.init_query_eeus()
         self._elicitation_time += time.perf_counter() - strt_time
 
-    def best_offer(self, state: MechanismState) -> Tuple[Optional[Outcome], float]:
+    def best_offer(self, state: MechanismState) -> Tuple[Optional["Outcome"], float]:
         """Maximum Expected Utility at a given aspiration level (alpha)
 
         Args:
@@ -2095,7 +2095,7 @@ class BaseVOIElicitor(BaseElicitor):
     def can_elicit(self) -> bool:
         return True
 
-    def best_offers(self, n: int) -> List[Tuple[Optional[Outcome], float]]:
+    def best_offers(self, n: int) -> List[Tuple[Optional["Outcome"], float]]:
         """Maximum Expected Utility at a given aspiration level (alpha)"""
         return [self.best_offer()] * n
 
@@ -2110,7 +2110,7 @@ class BaseVOIElicitor(BaseElicitor):
             self.init_query_eeus()
 
     def update_optimal_policy(
-        self, index: int, outcome: Outcome, oldu: float, newu: float
+        self, index: int, outcome: "Outcome", oldu: float, newu: float
     ):
         """Updates the optimal policy after a change happens to some utility"""
         if oldu != newu:
@@ -2217,7 +2217,7 @@ class BaseVOIElicitor(BaseElicitor):
         self.eeu_query = eeu_query
 
     def utility_on_rejection(
-        self, outcome: Outcome, state: MechanismState
+        self, outcome: "Outcome", state: MechanismState
     ) -> UtilityValue:
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 
@@ -2549,7 +2549,7 @@ class VOIOptimalElicitor(BaseElicitor):
         self.init_query_eeus()
         self._elicitation_time += time.perf_counter() - strt_time
 
-    def best_offer(self, state: MechanismState) -> Tuple[Optional[Outcome], float]:
+    def best_offer(self, state: MechanismState) -> Tuple[Optional["Outcome"], float]:
         """Maximum Expected Utility at a given aspiration level (alpha)
 
         Args:
@@ -2574,7 +2574,7 @@ class VOIOptimalElicitor(BaseElicitor):
     def can_elicit(self) -> bool:
         return True
 
-    def best_offers(self, n: int) -> List[Tuple[Optional[Outcome], float]]:
+    def best_offers(self, n: int) -> List[Tuple[Optional["Outcome"], float]]:
         """Maximum Expected Utility at a given aspiration level (alpha)"""
         return [self.best_offer()] * n
 
@@ -2589,7 +2589,7 @@ class VOIOptimalElicitor(BaseElicitor):
             self.init_query_eeus()
 
     def update_optimal_policy(
-        self, index: int, outcome: Outcome, oldu: float, newu: float
+        self, index: int, outcome: "Outcome", oldu: float, newu: float
     ):
         """Updates the optimal policy after a change happens to some utility"""
         if oldu != newu:
@@ -2669,7 +2669,7 @@ class VOIOptimalElicitor(BaseElicitor):
         self.elicitation_history.append((query, newu, state.step, self.current_eeu))
         return True
 
-    def _update_query_eeus(self, k: int, outcome: Outcome, s, p, n, eeu, eus):
+    def _update_query_eeus(self, k: int, outcome: "Outcome", s, p, n, eeu, eus):
         """Updates the best query for a single outcome"""
         this_outcome_solutions = []
         m = self.opponent_model.probability_of_acceptance(outcome)
@@ -2782,7 +2782,7 @@ class VOIOptimalElicitor(BaseElicitor):
             )
 
     def utility_on_rejection(
-        self, outcome: Outcome, state: MechanismState
+        self, outcome: "Outcome", state: MechanismState
     ) -> UtilityValue:
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 

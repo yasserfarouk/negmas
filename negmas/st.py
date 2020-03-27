@@ -72,7 +72,7 @@ class VetoSTMechanism(Mechanism):
             new_offer=deepcopy(self.new_offer),
         )
 
-    def next_outcome(self, outcome: Optional[Outcome]) -> Optional[Outcome]:
+    def next_outcome(self, outcome: Optional["Outcome"]) -> Optional["Outcome"]:
         """Generate the next outcome given some outcome.
 
         Args:
@@ -282,7 +282,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         self.current_offer = self.initial_outcome
         self.possible_offers = self.neighbors(self.current_offer)
 
-    def next_outcome(self, outcome: Outcome) -> Optional[Outcome]:
+    def next_outcome(self, outcome: "Outcome") -> Optional["Outcome"]:
         """Generate the next outcome given some outcome.
 
         Args:
@@ -326,7 +326,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
 
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
-    def neighbors(self, outcome: Outcome) -> List["Outcome"]:
+    def neighbors(self, outcome: "Outcome") -> List["Outcome"]:
         """Returns all neighbors
 
         Neighbor is an outcome that differs any one of the issues from the original outcome.

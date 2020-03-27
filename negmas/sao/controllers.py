@@ -235,7 +235,7 @@ class SAOSyncController(SAOController):
             )
         )
 
-    def first_offer(self, negotiator_id: str) -> Optional[Outcome]:
+    def first_offer(self, negotiator_id: str) -> Optional["Outcome"]:
         """
         Finds the first offer for this given negotiator. By default it will be the best offer
 
@@ -490,8 +490,8 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         )
 
     def response_to_best_offer(
-        self, negotiator: str, state: SAOState, offer: Outcome
-    ) -> Optional[Outcome]:
+        self, negotiator: str, state: SAOState, offer: "Outcome"
+    ) -> Optional["Outcome"]:
         """
         Return a response to the partner from which the best current offer was
         received
@@ -515,12 +515,12 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
 
     def best_outcome(
         self, negotiator: str, state: Optional[SAOState] = None
-    ) -> Optional[Outcome]:
+    ) -> Optional["Outcome"]:
         """
         The best outcome for the negotiation `negotiator` engages in given the
         `state` .
 
-        Arg:
+        Args:
             negotiator: The negotiator for which the best outcome is to be found
             state: If given, the state of the negotiation. If None, should
                    return the absolute best outcome
@@ -557,7 +557,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         state: SAOState,
         best_offer: Optional["Outcome"],
         best_from: Optional[str],
-    ) -> Optional[Outcome]:
+    ) -> Optional["Outcome"]:
         """Generate an offer for the given partner
 
         Args:
@@ -616,12 +616,12 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
 
     @abstractmethod
-    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
+    def is_better(self, a: "Outcome", b: "Outcome", negotiator: str, state: SAOState):
         """Compares two outcomes of the same negotiation
 
         Args:
-            a: Outcome
-            b: Outcome
+            a: "Outcome"
+            b: "Outcome"
             negotiator: The negotiator for which the comparison is to be made
             state: Current state of the negotiation
 
@@ -684,7 +684,7 @@ class SAOSingleAgreementRandomController(SAOSingleAgreementController):
     def best_offer(self, offers: Dict[str, "Outcome"]) -> Optional[str]:
         return random.sample(list(offers.keys()), 1)[0]
 
-    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
+    def is_better(self, a: "Outcome", b: "Outcome", negotiator: str, state: SAOState):
         return random.random() > 0.5
 
     def __init__(self, *args, p_acceptance=0.1, **kwargs):
@@ -741,10 +741,10 @@ class SAOSingleAgreementAspirationController(
                 )
             self.ufun.outcome_type = ami.outcome_type
 
-    def is_acceptable(self, offer: Outcome, source: str, state: SAOState):
+    def is_acceptable(self, offer: "Outcome", source: str, state: SAOState):
         return self.ufun(offer) >= self.aspiration(state.relative_time)
 
-    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
+    def is_better(self, a: "Outcome", b: "Outcome", negotiator: str, state: SAOState):
         return self.ufun(a) > self.ufun(b)
 
     def best_offer(self, offers):

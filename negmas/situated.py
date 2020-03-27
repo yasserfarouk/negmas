@@ -12,7 +12,7 @@ Remarks:
 
 Simulation steps:
 -----------------
-    It is possible to control the order of the simulation steps differently using the operations paramter to the world
+    It is possible to control the order of the simulation steps differently using the `operations` parameter to the world
     constructor. this is the default order
 
     #. prepare custom stats (call `_pre_step_stats`)
@@ -30,7 +30,7 @@ Simulation steps:
 
 
 Monitoring a simulation:
------------------------
+------------------------
 
 You can monitor a running simulation using a `WorldMonitor` or `StatsMonitor` object. The former monitors events in the
 world while the later monitors the statistics of the simulation.
@@ -120,7 +120,7 @@ from .utilities import UtilityFunction
 
 try:
     import networkx as nx
-except:
+except ImportError:
     nx = None
 
 
@@ -4123,7 +4123,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._register_breach(breach)
         return None
 
-    def _tobe_signed_at(self, agreement: Outcome, force_immediate_signing=False) -> int:
+    def _tobe_signed_at(
+        self, agreement: "Outcome", force_immediate_signing=False
+    ) -> int:
         return (
             self.current_step
             if force_immediate_signing
