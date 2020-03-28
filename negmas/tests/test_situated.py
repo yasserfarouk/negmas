@@ -386,6 +386,16 @@ class MyMonitor(EventSink):
         assert event.type == "agent-joined"
 
 
+def test_cannot_start_a_neg_with_no_outcomes():
+    world = DummyWorld(n_steps=10)
+    a, b = DummyAgent(name="a"), DummyAgent(name="b")
+    world.join(a)
+    world.join(b)
+    assert not a.awi.request_negotiation_about(
+        issues=[Issue((1, 0))], partners=[a.id, b.id], req_id="1234"
+    )
+
+
 def test_world_monitor():
     monitor = MyMonitor()
     world = DummyWorld(n_steps=10)
