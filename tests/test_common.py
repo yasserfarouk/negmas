@@ -23,7 +23,7 @@ class WithStep(NamedObject):
     _step = 3
 
 
-class MyEntity(Entity):
+class MyEntity(NamedObject):
     pass
 
 

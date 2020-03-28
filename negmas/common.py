@@ -4,6 +4,7 @@ This module does not import anything from the library except during type checkin
 """
 import datetime
 import uuid
+import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "NamedObject",
+    "Rational",
     "AgentMechanismInterface",
     "MechanismState",
     "NegotiatorInfo",
@@ -493,3 +495,63 @@ class NamedObject(object):
         """
         file_name = Path(file_name).absolute()
         return load(file_name.parent / (file_name.name + ".json"))
+
+
+class Rational(NamedObject):
+    """
+    A rational object is an object that can have a utility function.
+
+
+    Args:
+        name: Object name. Used for printing and logging but not internally by the system
+        ufun: An optional utility function to attach to the object
+    """
+
+    def __init__(self, name: str = None, ufun: Optional["UtilityFunction"] = None):
+        super().__init__(name)
+        self._utility_function = ufun
+        self._init_utility = ufun
+        self._ufun_modified = ufun is not None
+
+    @property
+    def utility_function(self):
+        """The utility function attached to that object"""
+        return self._utility_function
+
+    @utility_function.setter
+    def utility_function(self, value: "UtilityFunction"):
+        """Sets tha utility function."""
+        self._utility_function = value
+        self._ufun_modified = True
+        self.on_ufun_changed()
+
+    ufun = utility_function
+    """An alias to utility_function"""
+
+    @property
+    def has_ufun(self) -> bool:
+        """Does the entity has an associated ufun?"""
+        return self._utility_function is not None
+
+    @property
+    def reserved_value(self) -> float:
+        """Reserved value is what the entity gets if no agreement is reached in the negotiation.
+
+        The reserved value can either be explicity defined for the ufun or it can be the output of the ufun
+        for `None` outcome.
+
+        """
+        if self._utility_function is None:
+            return float("-inf")
+        return self._utility_function.reserved_value
+
+    def on_ufun_changed(self):
+        """
+        Called to inform the entity that its ufun has changed.
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are overriding
+              it.
+        """
+        self._ufun_modified = False

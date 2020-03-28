@@ -102,7 +102,7 @@ from typing import (
 )
 
 from .checkpoints import CheckpointMixin
-from .common import AgentMechanismInterface, MechanismState, NamedObject
+from .common import AgentMechanismInterface, MechanismState, NamedObject, Rational
 from .events import Event, EventSink, EventSource, Notifier
 from .helpers import (
     ConfigReader,
@@ -385,11 +385,10 @@ class RenegotiationRequest:
         implements = ["jnegmas.situated.RenegotiationRequest"]
 
 
-class Entity(NamedObject):
+class Entity:
     """Defines an entity that is a part of the world but does not participate in the simulation"""
 
-    def __init__(self, name: str = None, type_postfix: str = ""):
-        super().__init__(name=name)
+    def __init__(self, type_postfix: str = ""):
         self._initialized = False
         self.__type_postfix = type_postfix
         self.__current_step = 0
@@ -444,7 +443,7 @@ class Entity(NamedObject):
         """Override this method to modify stepping logic"""
 
 
-class BulletinBoard(Entity, EventSource, ConfigReader):
+class BulletinBoard(EventSource, ConfigReader):
     """The bulletin-board which carries all public information. It consists of sections each with a dictionary of records.
 
     """
@@ -456,14 +455,14 @@ class BulletinBoard(Entity, EventSource, ConfigReader):
     #     name, self._data = state
     #     super().__init__(name=name)
 
-    def __init__(self, name: str = None):
+    def __init__(self):
         """
         Constructor
 
         Args:
             name: BulletinBoard name
         """
-        super().__init__(name=name)
+        super().__init__()
         self._data: Dict[str, Dict[str, Any]] = {}
 
     def add_section(self, name: str) -> None:
@@ -1398,7 +1397,7 @@ NegotiationRequestInfo = namedtuple(
 """Keeps track to negotiation requests that an agent sent"""
 
 
-class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
+class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
     """Base class for all agents that can run within a `World` and engage in situated negotiations"""
 
     # def __getstate__(self):
@@ -1410,7 +1409,8 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, ABC):
     #     self._awi = awi
 
     def __init__(self, name: str = None, type_postfix: str = ""):
-        super().__init__(name=name, type_postfix=type_postfix)
+        super().__init__(type_postfix=type_postfix)
+        Rational.__init__(self, name=name)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
         self._accepted_requests: Dict[str, NegotiationRequestInfo] = {}

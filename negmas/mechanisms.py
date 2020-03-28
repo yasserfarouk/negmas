@@ -755,9 +755,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self._agreement, self._broken, self._timedout = None, False, False
                 self._history.append(self.state4history)
                 return self.state
-            if self._enable_callbacks:
-                for a in self.negotiators:
-                    a.on_negotiation_start(state=self.state)
+            for a in self.negotiators:
+                a.on_negotiation_start(state=self.state)
             self.announce(Event(type="negotiation_start", data=None))
         else:
             remaining_steps, remaining_time = self.remaining_steps, self.remaining_time
@@ -902,7 +901,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def on_negotiation_end(self) -> None:
         """
-        Called at the end of each negotiation
+        Called at the end of each negotiation.
 
         Remarks:
             - When overriding this function you **MUST** call the base class version

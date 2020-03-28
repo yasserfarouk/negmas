@@ -21,6 +21,7 @@ from typing import (
 )
 
 from negmas.common import *
+from negmas.common import Rational
 from negmas.events import Notifiable, Notification
 from negmas.helpers import get_class
 from negmas.outcomes import Issue
@@ -51,7 +52,7 @@ __all__ = [
 ]
 
 
-class Negotiator(NamedObject, Notifiable, ABC):
+class Negotiator(Rational, Notifiable, ABC):
     r"""Abstract negotiation agent. Base class for all negotiators
 
      Args:
@@ -72,16 +73,13 @@ class Negotiator(NamedObject, Notifiable, ABC):
         parent: "Controller" = None,
         owner: "Agent" = None,
     ) -> None:
-        super().__init__(name=name)
+        super().__init__(name=name, ufun=ufun)
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None
         self._ami = None
         self._initial_state = None
-        self._utility_function = ufun
-        self._init_utility = ufun
         self._role = None
-        self._ufun_modified = ufun is not None
         self.__owner = owner
 
     @property
@@ -98,21 +96,19 @@ class Negotiator(NamedObject, Notifiable, ABC):
         """Sets the owner"""
         self.__owner = owner
 
-    @property
-    def utility_function(self):
-        return self._utility_function
-
-    @utility_function.setter
-    def utility_function(self, utility_function):
-        self._utility_function = utility_function
-        self._ufun_modified = True
+    @Rational.utility_function.setter
+    def utility_function(self, value: "UtilityFunction"):
+        """Sets tha utility function."""
         if self._ami is not None and self._ami.state.started:
             warnings.warn(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
-
-    ufun = utility_function
+        if self._ami is not None:
+            Rational.utility_function.fset(self, value)
+        else:
+            self._utility_function = value
+            self._ufun_modified = True
 
     @property
     def parent(self) -> "Controller":
@@ -138,11 +134,6 @@ class Negotiator(NamedObject, Notifiable, ABC):
         """
         return self._utility_function(outcome) >= self.reserved_value
 
-    @property
-    def has_ufun(self):
-        """Does the negotiator has an associated ufun?"""
-        return self._utility_function is not None
-
     def isin(self, negotiation_id: Optional[str]) -> bool:
         """Is that agent participating in the given negotiation?
         Tests if the agent is participating in the given negotiation.
@@ -158,13 +149,6 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
         """
         return self._mechanism_id == negotiation_id
-
-    @property
-    def reserved_value(self):
-        """Reserved value is what the agent gets if no agreement is reached in the negotiation."""
-        if self._utility_function is None:
-            return float("-inf")
-        return self._utility_function.reserved_value
 
     @property
     def capabilities(self) -> Dict[str, Any]:
@@ -220,10 +204,11 @@ class Negotiator(NamedObject, Notifiable, ABC):
         self._ami = ami
         self._initial_state = state
         if ufun is not None:
-            self._utility_function = ufun
-            self.on_ufun_changed()
+            self.utility_function = ufun
         if self._utility_function:
             self._utility_function.ami = ami
+            if self._ufun_modified:
+                self.on_ufun_changed()
         return True
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -238,6 +223,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
 
             - You MUST call the super() version of this function either before or after your code when you are
               overriding it.
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
 
         """
         if self._ufun_modified:
@@ -306,6 +292,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
         Remarks:
             - The default behavior is to do nothing.
             - Override this to hook some action
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
 
         """
 
@@ -360,7 +347,7 @@ class Negotiator(NamedObject, Notifiable, ABC):
                     f"UFun uses outcome type {self._utility_function.outcome_type}, but the mechanism uses "
                     f"{self._ami.outcome_type}"
                 )
-        self._ufun_modified = False
+        super().on_ufun_changed()
 
     def __str__(self):
         return f"{self.name}"
@@ -383,7 +370,14 @@ class PassThroughNegotiator(Negotiator):
     """
 
     def __getattribute__(self, item):
-        if item in ("id", "name") or item.startswith("_"):
+        if item in (
+            "id",
+            "name",
+            "on_ufun_changed",
+            "has_ufun",
+            "utility_function",
+            "reserved_value",
+        ) or item.startswith("_"):
             return super().__getattribute__(item)
         parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
         if parent is None:
@@ -401,7 +395,7 @@ class PassThroughNegotiator(Negotiator):
         return super().__getattribute__(item)
 
 
-class Controller(NamedObject):
+class Controller(Rational):
     """Controls the behavior of multiple negotiators in multiple negotiations
 
     The controller class MUST implement any methods of the negotiator class it is controlling with one added
@@ -707,24 +701,6 @@ class Controller(NamedObject):
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         return self.call(negotiator, "on_leave", state=state)
-
-    def on_ufun_changed(self, negotiator_id: str):
-        """
-        Called to inform the agent that its ufun has changed.
-
-        Args:
-
-            negotiator_id: The negotiator ID
-
-        Remarks:
-
-            - You MUST call the super() version of this function either before or after your code when you are overriding
-              it.
-        """
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if negotiator is None:
-            raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(negotiator, "on_ufun_changed")
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         """

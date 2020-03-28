@@ -484,6 +484,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         )
         self.__last_offer_util, self.__last_offer = float("inf"), None
         self.n_outcomes_to_force_presort = 10000
+        self.n_trials = 1
 
     def on_ufun_changed(self):
         super().on_ufun_changed()
