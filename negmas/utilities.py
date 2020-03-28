@@ -2544,24 +2544,16 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
             weights = [1.0] * len(self.ufuns)
         self.weights = list(weights)
 
-    @property
-    def outcome_type(self):
-        return super().outcome_type
-
-    @outcome_type.setter
+    @UtilityFunction.outcome_type.setter
     def outcome_type(self, value: Type):
-        super().outcome_type = value
+        UtilityFunction.outcome_type.fset(self, value)
         for ufun in self.ufuns:
-            if hasattr(ufun, "ami"):
+            if isinstance(ufun, UtilityFunction):
                 ufun.outcome_type = value
 
-    @property
-    def ami(self):
-        return super().ami
-
-    @ami.setter
+    @UtilityFunction.ami.setter
     def ami(self, value):
-        super().ami = value
+        UtilityFunction.ami.fset(self, value)
         for ufun in self.ufuns:
             if hasattr(ufun, "ami"):
                 ufun.ami = value
@@ -2627,24 +2619,16 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
-    @property
-    def outcome_type(self):
-        return super().outcome_type
-
-    @outcome_type.setter
+    @UtilityFunction.outcome_type.setter
     def outcome_type(self, value: Type):
-        super().outcome_type = value
+        UtilityFunction.outcome_type.fset(self, value)
         for ufun in self.ufuns:
             if hasattr(ufun, "ami"):
                 ufun.outcome_type = value
 
-    @property
-    def ami(self):
-        return super().ami
-
-    @ami.setter
+    @UtilityFunction.ami.setter
     def ami(self, value):
-        super().ami = value
+        UtilityFunction.ami.fset(self, value)
         for ufun in self.ufuns:
             if hasattr(ufun, "ami"):
                 ufun.ami = value
