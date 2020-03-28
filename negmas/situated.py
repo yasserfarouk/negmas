@@ -60,6 +60,8 @@ negotiation-request-rejected         caller: `Agent` , partners: `List` [ `Agent
                                      , rejectors: `List` [ `Agent` ] , annotation: `Dict` [ `str`, `Any` ]
 negotiation-request-accepted         caller: `Agent` , partners: `List` [ `Agent` ] , req_id: `str`
                                      , mechanism: `Mechanism` , annotation: `Dict` [ `str`, `Any` ]
+zero-outcomes-negotiation            caller: `Agent`, partners: `List[Agent]`
+                                     , annotation: `Dict` [ `str`, `Any` ]
 =================================   ===============================================================================
 
 """
@@ -3226,6 +3228,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if self._n_negs_per_agent_per_step[caller.id] >= self.neg_quota_step:
             return None, None, None
         if self._n_negs_per_agent[caller.id] >= self.neg_quota_simulation:
+            return None, None, None
+        n_outcomes_ = Issue.num_outcomes(issues)
+        if n_outcomes_ is None or n_outcomes_ < 1:
+            self.logwarning(
+                f"A negotiation with no outcomes is requested by {caller.name}",
+                event=Event(
+                    "zero-outcomes-negotiation",
+                    dict(caller=caller, partners=partners, annotation=annotation),
+                ),
+            )
             return None, None, None
         factory = MechanismFactory(
             world=self,
