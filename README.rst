@@ -59,14 +59,16 @@ Overview
       NegMAS is a python library for developing autonomous negotiation agents embedded in simulation environments.
       The name ``negmas`` stands for either NEGotiation MultiAgent System or NEGotiations Managed by Agent Simulations
       (your pick). The main goal of NegMAS is to advance the state of the art in situated simultaneous negotiations.
-      Nevertheless, it can; and was used; in modeling simpler bilateral and multi-lateral negotiations, preference elicitation
+      Nevertheless, it can; and is being used; for modeling simpler bilateral and multi-lateral negotiations, preference elicitation
       , etc.
 
-.. note:: A YouTube playlist to help you use NegMAS for ANAC2019_ SCM_ league can be found here_
+.. note::
 
-    .. _ANAC2019: http://web.tuat.ac.jp/~katfuji/ANAC2019
-    .. _SCM: http://web.tuat.ac.jp/~katfuji/ANAC2019/#scm
-    .. _here: https://www.youtube.com/playlist?list=PLqvs51K2Mb8LlUQk2DHLGnWdGqhXMNOM-
+    * A YouTube playlist to help you use NegMAS for ANAC2020_ SCM_ league can be found here_
+
+    .. _ANAC2020: http://web.tuat.ac.jp/~katfuji/ANAC2020
+    .. _SCM: http://web.tuat.ac.jp/~katfuji/ANAC2020/#scm
+    .. _here: https://www.youtube.com/playlist?list=PLqvs51K2Mb8IJe5Yz5jmYrRAwvIpGU2nF
 
 Introduction
 ============
@@ -94,9 +96,9 @@ This platform was designed with both flexibility and scalability in mind. The ke
    protocols.
 #. Supports agents engaging in multiple concurrent negotiations.
 #. Provides support for inter-negotiation synchronization either through coupled utility functions or through central
-   *control* agents.
-#. The package provides sample negotiators that can be used as templates for more complex negotiators.
-#. The package supports both mediated and unmediated negotiations.
+   *controllers*.
+#. Provides sample negotiators that can be used as templates for more complex negotiators.
+#. Supports both mediated and unmediated negotiations.
 #. Supports both bilateral and multilateral negotiations.
 #. Novel negotiation protocols and simulated *worlds* can be added to the package as easily as adding novel negotiators.
 #. Allows for non-traditional negotiation scenarios including dynamic entry/exit from the negotiation.
@@ -124,13 +126,11 @@ Using the package for negotiation can be as simple as the following code snippet
 .. code-block:: python
 
     import random
-    random.seed(0)
     from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
     session = SAOMechanism(outcomes=10, n_steps=100)
     negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
     for negotiator in negotiators:
         session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
-
     session.run()
 
 In this snippet, we created a mechanism session with an outcome-space of *10* discrete outcomes that would run for *10*
@@ -147,22 +147,12 @@ Developing a novel negotiator slightly more difficult by is still doable in few 
 .. code-block:: python
 
     from negmas.sao import SAONegotiator
-    from negmas import ResponseType
     class MyAwsomeNegotiator(SAONegotiator):
-        def __init__(self):
-            # initialize the parents
-            super().__init__(self)
-
-        def respond(self, offer, state):
-            # decide what to do when receiving an offer
-            return ResponseType.ACCEPT_OFFER
-
         def propose(self, state):
-            # proposed the required number of proposals (or less)
-            pass
+            """Your code to create a proposal goes here"""
 
-By just implementing `respond()` and `propose()`. This negotiator is now capable of engaging in alternating offers
-negotiations. See the documentation of `Negotiator` for a full description of available functionality out of the box.
+By just implementing `propose()`, this negotiator is now capable of engaging in alternating offers
+negotiations. See the documentation of `Negotiator` and `SAONegotiator` for a full description of available functionality out of the box.
 
 Developing a negotiation protocol
 =================================
@@ -174,16 +164,12 @@ Developing a novel negotiation protocol is actually even simpler:
     from negmas.mechanisms import Mechanism
 
     class MyNovelProtocol(Mechanism):
-        def __init__(self):
-            super().__init__()
-
         def round(self):
-            # one step of the protocol
-            pass
+            """One round of the protocol"""
 
 By implementing the single `round()` function, a new protocol is created. New negotiators can be added to the
 negotiation using `add()` and removed using `remove()`. See the documentation for a full description of
-`Mechanism` available functionality out of the box [Alternatively you can use `Protocol` instead of `Mechanism`].
+`Mechanism` available functionality out of the box.
 
 
 Running a world simulation
