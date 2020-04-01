@@ -1408,9 +1408,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
     #     super().__init__(name=name)
     #     self._awi = awi
 
-    def __init__(self, name: str = None, type_postfix: str = ""):
+    def __init__(
+        self, name: str = None, type_postfix: str = "", ufun: "UtilityFunction" = None
+    ):
         super().__init__(type_postfix=type_postfix)
-        Rational.__init__(self, name=name)
+        Rational.__init__(self, name=name, ufun=ufun)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
         self._accepted_requests: Dict[str, NegotiationRequestInfo] = {}

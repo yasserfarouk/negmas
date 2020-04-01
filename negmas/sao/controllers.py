@@ -48,12 +48,14 @@ class SAOController(Controller):
         default_negotiator_params=None,
         auto_kill=False,
         name=None,
+        ufun=None,
     ):
         super().__init__(
             default_negotiator_type=default_negotiator_type,
             default_negotiator_params=default_negotiator_params,
             auto_kill=auto_kill,
             name=name,
+            ufun=ufun,
         )
 
     def before_join(
@@ -720,14 +722,12 @@ class SAOSingleAgreementAspirationController(
     def __init__(
         self,
         *args,
-        ufun: UtilityFunction,
         max_aspiration: float = 1.0,
         aspiration_type: Union[str, int, float] = "boulware",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         AspirationMixin.aspiration_init(self, max_aspiration, aspiration_type)
-        self.ufun = ufun
 
     def after_join(self, negotiator_id, ami, state, *, ufun=None, role="agent"):
         if self.ufun is not None:
