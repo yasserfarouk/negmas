@@ -430,8 +430,9 @@ class Controller(Rational):
         parent: Union["Controller", "Agent"] = None,
         auto_kill: bool = False,
         name: str = None,
+        ufun: "UtilityFunction" = None,
     ):
-        super().__init__(name=name)
+        super().__init__(name=name, ufun=ufun)
         self._negotiators: Dict[str, Tuple["PassThroughNegotiator", Any]] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
