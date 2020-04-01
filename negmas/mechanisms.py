@@ -809,7 +809,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @classmethod
     def runall(
-        cls, mechanisms: List["Mechanism"], keep_order=True
+        cls, mechanisms: List["Mechanism"], keep_order=True, method="serial"
     ) -> List[MechanismState]:
         """
         Runs all mechanisms
@@ -817,7 +817,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         Args:
             mechanisms: List of mechanisms
             keep_order: if True, the mechanisms will be run in order every step otherwise the order will be randomized
-                        at every step
+                        at every step. This is only allowed if the method is serial
+            method: the method to use for running all the sessions.  Acceptable options are: serial, threads, processes
 
         Returns:
             - List of states of all mechanisms after completion
@@ -825,21 +826,30 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         completed = [_ is None for _ in mechanisms]
         states = [None] * len(mechanisms)
-        while not all(completed):
-            lst = zip(completed, mechanisms)
-            if not keep_order:
-                lst = list(lst)
-                random.shuffle(lst)
-            for i, (done, mechanism) in enumerate(lst):
-                if done:
-                    continue
-                result = mechanism.step()
-                if result.running:
-                    continue
-                completed[i] = True
-                states[i] = mechanism.state
-                if all(completed):
-                    break
+        if method == "serial":
+            while not all(completed):
+                lst = zip(completed, mechanisms)
+                if not keep_order:
+                    lst = list(lst)
+                    random.shuffle(lst)
+                for i, (done, mechanism) in enumerate(lst):
+                    if done:
+                        continue
+                    result = mechanism.step()
+                    if result.running:
+                        continue
+                    completed[i] = True
+                    states[i] = mechanism.state
+                    if all(completed):
+                        break
+        elif method == "threads":
+            raise NotImplementedError()
+        elif method == "processes":
+            raise NotImplementedError()
+        else:
+            raise ValueError(
+                f"method {method} is unknown. Acceptable options are serial, threads, processes"
+            )
         return states
 
     @classmethod
