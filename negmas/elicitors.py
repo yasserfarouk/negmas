@@ -2259,7 +2259,7 @@ class VOIElicitor(BaseVOIElicitor):
                     except:
                         break
             except FloatingPointError:
-                result[0] = 0.0
+                result = 0.0
         return round(float(result), 6)
 
     def init_optimal_policy(self) -> None:
@@ -2324,7 +2324,7 @@ class VOIElicitor(BaseVOIElicitor):
 
 
 class VOIFastElicitor(BaseVOIElicitor):
-    """FastVOI algorithm proposed by Mohammad in PRIMA 2014.
+    """FastVOI algorithm proposed by Mohammad in PRIMA 2018.
     """
 
     def init_optimal_policy(self) -> None:
@@ -2481,7 +2481,7 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
 
 
 class VOIOptimalElicitor(BaseElicitor):
-    """Base class for all VOI elicitation algorithms
+    """Optimal VOI elicitor proposed by Mohammad in AAMAS 2019
     """
 
     def __init__(
@@ -2837,7 +2837,7 @@ def current_aspiration(
 
 
 def create_negotiator(
-    negotiator_type, ufun, can_propose, outcomes, dynamic_ufun, toughness, **kwargs
+    negotiator_type, ufun, can_propose, outcomes, toughness, **kwargs
 ):
     if negotiator_type == "limited_outcomes":
         if can_propose:
@@ -2855,10 +2855,9 @@ def create_negotiator(
     elif negotiator_type == "random":
         negotiator = RandomNegotiator(can_propose=can_propose,)
     elif negotiator_type == "tough":
-        negotiator = ToughNegotiator(dynamic_ufun=dynamic_ufun, can_propose=can_propose)
+        negotiator = ToughNegotiator( can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):
         negotiator = OnlyBestNegotiator(
-            dynamic_ufun=dynamic_ufun,
             min_utility=None,
             top_fraction=1.0 - toughness,
             best_first=False,
@@ -2884,7 +2883,6 @@ def create_negotiator(
             asp_kind = toughness
         negotiator = AspirationNegotiator(
             aspiration_type=asp_kind,
-            dynamic_ufun=dynamic_ufun,
             can_propose=can_propose,
             **kwargs,
         )
@@ -3018,7 +3016,6 @@ class SAOElicitingMechanism(SAOMechanism):
             can_propose=opponent_proposes,
             ufun=opp_utility,
             outcomes=outcomes,
-            dynamic_ufun=False,
             toughness=opponent_toughness,
         )
         opponent_model = UncertainOpponentModel(
@@ -3107,7 +3104,6 @@ class SAOElicitingMechanism(SAOMechanism):
                 ufun=None,
                 can_propose=True,
                 outcomes=outcomes,
-                dynamic_ufun=True,
                 toughness=toughness,
             )
             if type_ == "full":
