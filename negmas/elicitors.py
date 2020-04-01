@@ -2013,7 +2013,7 @@ class BaseVOIElicitor(BaseElicitor):
             base_negotiator=base_negotiator,
         )
         # todo confirm that I need this. aspiration mixin. I think I do not.
-        self.aspiration_init(max_aspiration=1.0, aspiration_type="boulware")
+        # self.aspiration_init(max_aspiration=1.0, aspiration_type="boulware")
         self.eu_policy = None
         self.eeu_query = None
         self.query_index_of_outcome = None
@@ -2515,7 +2515,7 @@ class VOIOptimalElicitor(BaseElicitor):
             base_negotiator=base_negotiator,
         )
         # todo confirm that I need this. aspiration mixin. I think I do not.
-        self.aspiration_init(max_aspiration=1.0, aspiration_type="boulware")
+        # self.aspiration_init(max_aspiration=1.0, aspiration_type="boulware")
         self.eu_policy = None
         self.eeu_query = None
         self.query_index_of_outcome = None
@@ -2855,7 +2855,7 @@ def create_negotiator(
     elif negotiator_type == "random":
         negotiator = RandomNegotiator(can_propose=can_propose,)
     elif negotiator_type == "tough":
-        negotiator = ToughNegotiator( can_propose=can_propose)
+        negotiator = ToughNegotiator(can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):
         negotiator = OnlyBestNegotiator(
             min_utility=None,
@@ -2882,9 +2882,7 @@ def create_negotiator(
                 toughness = 1 - 0.9 * toughness
             asp_kind = toughness
         negotiator = AspirationNegotiator(
-            aspiration_type=asp_kind,
-            can_propose=can_propose,
-            **kwargs,
+            aspiration_type=asp_kind, can_propose=can_propose, **kwargs,
         )
     elif negotiator_type.startswith("genius"):
         class_name = negotiator_type[len("genius") :]
