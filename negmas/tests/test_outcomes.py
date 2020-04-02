@@ -2,9 +2,19 @@ import random
 
 import pytest
 
-from negmas import Issues, outcome_in_range, outcome_is_valid
+from negmas import Issues, Issue, outcome_in_range, outcome_is_valid
 
-from .fixtures import *
+from .fixtures import (
+    issues,
+    valid_outcome_dict,
+    invalid_outcome_dict,
+    valid_outcome_list,
+    invalid_outcome_list,
+    int_issues,
+    cissue,
+    dissue,
+    sissue,
+)
 
 
 def test_dict_outcomes(issues, valid_outcome_dict, invalid_outcome_dict):

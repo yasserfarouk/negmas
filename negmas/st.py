@@ -4,7 +4,6 @@ import random
 import time
 from copy import deepcopy
 from dataclasses import dataclass
-
 from typing import List, Optional, Tuple, Union
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState

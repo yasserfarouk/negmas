@@ -1,11 +1,11 @@
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Dict
 
 import hypothesis.strategies as st
 from hypothesis import example, given, settings
 from pytest import mark
-from typing import Dict
 
 from negmas import (
     AspirationNegotiator,

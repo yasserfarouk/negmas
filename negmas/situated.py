@@ -81,12 +81,6 @@ from collections import defaultdict, namedtuple
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import yaml
-from matplotlib.axis import Axis
 from typing import (
     Any,
     Callable,
@@ -100,6 +94,12 @@ from typing import (
     Tuple,
     Union,
 )
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import yaml
+from matplotlib.axis import Axis
 
 from .checkpoints import CheckpointMixin
 from .common import AgentMechanismInterface, MechanismState, NamedObject, Rational

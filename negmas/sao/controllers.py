@@ -3,30 +3,16 @@ Implements controllers for the SAO mechanism.
 """
 import itertools
 import random
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Dict, List, Optional, Tuple, Union
 
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
-
-from .common import SAOState, SAOResponse
-from .negotiators import PassThroughSAONegotiator, SAONegotiator
-from ..common import *
+from .common import SAOResponse, SAOState
+from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
+from ..common import AgentMechanismInterface, MechanismState
 from ..negotiators import AspirationMixin, Controller
-from ..outcomes import (
-    Outcome,
-    ResponseType,
-    outcome_is_valid,
-)
-from ..utilities import (
-    UtilityFunction,
-    utility_range,
-)
+from ..outcomes import Outcome, ResponseType, outcome_is_valid
+from ..utilities import UtilityFunction, utility_range
 
 __all__ = [
     "SAOController",
@@ -40,7 +26,17 @@ __all__ = [
 
 
 class SAOController(Controller):
-    """A controller that can manage multiple negotiators taking full or partial control from them."""
+    """
+    A controller that can manage multiple negotiators taking full or partial control from them.
+
+    Args:
+         default_negotiator_type: Default type to use when creating negotiators using this controller. The default type is
+                                  `PassThroughSAONegotiator` which passes *full control* to the controller.
+         default_negotiator_params: Default paramters to pass to the default controller.
+         auto_kill: Automatically kill the negotiator once its negotiation session is ended.
+         name: Controller name
+         ufun: The ufun of the controller.
+    """
 
     def __init__(
         self,
@@ -126,11 +122,17 @@ class SAOController(Controller):
 
 
 class SAORandomController(SAOController):
-    """A controller that returns random offers"""
+    """
+    A controller that returns random offers.
 
-    def __init__(self, *args, acceptanbe_prob: float = 0.1, **kwargs):
+    Args:
+        p_acceptance: The probability of accepting an offer.
+
+    """
+
+    def __init__(self, *args, p_acceptance: float = 0.1, **kwargs):
         super().__init__(*args, **kwargs)
-        self._acceptance_prob = acceptanbe_prob
+        self._p_acceptance = p_acceptance
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
 
@@ -147,13 +149,23 @@ class SAORandomController(SAOController):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        if random.random() > self._acceptance_prob:
+        if random.random() > self._p_acceptance:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
 
 class SAOSyncController(SAOController):
-    """A controller that can manage multiple negotiators synchronously"""
+    """
+    A controller that can manage multiple negotiators synchronously.
+
+    Remarks:
+        - The controller waits for an offer from each one of its negotiators before deciding what to do.
+        - Loops may happen if multiple controllers of this type negotiate with each other. For example controller A
+          is negotiating with B, C, while B is also negotiating with C. These loops are broken by the `SAOMechanism`
+          by **forcing** some controllers to respond before they have all of the offers. In this case, `counter_all`
+          will receive offers from one or more negotiators but not all of them.
+
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -269,7 +281,20 @@ class SAOSyncController(SAOController):
 
 
 class SAORandomSyncController(SAOSyncController):
-    """A sync controller that returns random offers"""
+    """
+    A sync controller that returns random offers. (See `SAOSyncController` ).
+
+    Args:
+        p_acceptance: The probability that an offer will be accepted
+        p_rejection: The probability that an offer will be rejected
+        p_ending: The probability of ending the negotiation at any negotiation round.
+
+    Remarks:
+        - If probability of acceptance, rejection and ending sum to less than 1.0, the agent will return NO_RESPONSE
+          with the remaining probability. Depending on the settings of the `SAOMechanism` this may be treated as
+          ending the negotiation.
+
+    """
 
     def __init__(
         self, *args, p_acceptance=0.15, p_rejection=0.85, p_ending=0.0, **kwargs
@@ -637,7 +662,7 @@ class SAOMetaNegotiatorController(SAOController):
     Controls multiple negotiations using a single `meta` negotiator.
 
     Args:
-        - meta_negotiator: The negotiator used for controlling all negotiations
+        - meta_negotiator: The negotiator used for controlling all negotiations.
 
     Remarks:
 
@@ -680,6 +705,14 @@ class SAOMetaNegotiatorController(SAOController):
 
 
 class SAOSingleAgreementRandomController(SAOSingleAgreementController):
+    """
+    A single agreement controller that uses a random negotiation strategy.
+
+    Args:
+        p_acceptance: The probability that an offer is accepted
+
+    """
+
     def is_acceptable(self, offer: "Outcome", source: str, state: SAOState) -> bool:
         return random.random() > self.p_acceptance
 

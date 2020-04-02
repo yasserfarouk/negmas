@@ -3,7 +3,15 @@ import random
 import pytest
 from pytest import mark
 
-from negmas import *
+from negmas.outcomes import Issue, outcome_as_tuple
+from negmas.utilities import (
+    HyperRectangleUtilityFunction,
+    LinearUtilityAggregationFunction,
+    LinearUtilityFunction,
+    MappingUtilityFunction,
+    pareto_frontier,
+    utility_range,
+)
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])

@@ -2,14 +2,10 @@
 Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
 from dataclasses import dataclass, field
-
 from typing import List, Optional, Tuple
 
-from negmas.common import *
-from negmas.outcomes import (
-    Outcome,
-    ResponseType,
-)
+from negmas.common import AgentMechanismInterface, MechanismState
+from negmas.outcomes import Outcome, ResponseType
 
 __all__ = [
     "SAOResponse",

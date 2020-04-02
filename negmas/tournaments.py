@@ -16,11 +16,6 @@ from dataclasses import dataclass, field
 from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
-import yaml
-from scipy.stats import ks_2samp, ttest_ind
 from typing import (
     Any,
     Callable,
@@ -33,6 +28,11 @@ from typing import (
     Type,
     Union,
 )
+
+import numpy as np
+import pandas as pd
+import yaml
+from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas.helpers import (
@@ -45,6 +45,7 @@ from negmas.helpers import (
     load,
     unique_name,
 )
+
 from .situated import Agent, World, save_stats
 
 __all__ = [

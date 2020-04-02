@@ -17,6 +17,7 @@ import random
 import re
 import string
 import sys
+from collections import defaultdict
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -25,9 +26,7 @@ from typing import (
     Dict,
     Iterable,
     List,
-    Mapping,
     Optional,
-    Sequence,
     Tuple,
     Type,
     Union,
@@ -42,7 +41,7 @@ import stringcase
 import yaml
 
 from negmas.config import NEGMAS_CONFIG
-from negmas.generics import *
+from negmas.generics import GenericMapping, IterableMapping, gmap, ikeys
 
 if TYPE_CHECKING:
     pass

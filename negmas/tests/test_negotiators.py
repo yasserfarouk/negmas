@@ -1,8 +1,8 @@
 import random
+from typing import List
 
 import numpy as np
 import pytest
-from typing import List
 
 from negmas import (
     AspirationNegotiator,

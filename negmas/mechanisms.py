@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-
 from typing import (
     Any,
     Collection,
@@ -30,7 +29,7 @@ from negmas.common import (
     NamedObject,
     NegotiatorInfo,
 )
-from negmas.events import *
+from negmas.events import Event, EventSource
 from negmas.generics import ikeys
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
