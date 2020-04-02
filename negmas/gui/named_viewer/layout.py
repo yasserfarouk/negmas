@@ -8,7 +8,7 @@ import dash_table as tbl
 from dash.dependencies import Input, Output, State
 
 from negmas.common import NamedObject
-from negmas.visualizers import *
+from negmas.visualizers import visualizer_type
 
 
 def layout(object_type: Type[NamedObject]):

@@ -26,9 +26,6 @@ import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import reduce
 from operator import mul
-
-import numpy as np
-import pkg_resources
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,13 +36,16 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    NewType,
     Optional,
     Sequence,
     Tuple,
     Type,
     Union,
-    NewType,
 )
+
+import numpy as np
+import pkg_resources
 
 from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
@@ -55,13 +55,13 @@ from negmas.outcomes import (
     Issue,
     Outcome,
     OutcomeRange,
+    outcome_as,
     outcome_as_dict,
     outcome_as_tuple,
+    outcome_for,
     outcome_in_range,
     outcome_is_valid,
     sample_outcomes,
-    outcome_as,
-    outcome_for,
 )
 
 if TYPE_CHECKING:

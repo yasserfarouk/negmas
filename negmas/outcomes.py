@@ -35,9 +35,8 @@ from dataclasses import dataclass, fields
 from enum import Enum
 from functools import reduce
 from operator import mul
-
-import numpy as np
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
@@ -46,18 +45,23 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    NewType,
     Optional,
     Sequence,
     Tuple,
     Type,
     Union,
-    NewType,
 )
 
+import numpy as np
+
 from .common import NamedObject
-from .generics import *
+from .generics import ienumerate, iget, ikeys, ivalues
 from .helpers import unique_name
 from .java import PYTHON_CLASS_IDENTIFIER
+
+if TYPE_CHECKING:
+    from negmas import Mechanism
 
 LARGE_NUMBER = 100
 __all__ = [

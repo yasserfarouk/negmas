@@ -2,7 +2,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
-
 from typing import Dict, List, Optional
 
 from ..common import AgentMechanismInterface

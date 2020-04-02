@@ -7,6 +7,7 @@ import socket
 import subprocess
 import time
 from contextlib import contextmanager
+from typing import Any, Dict, Iterable, Optional, Union
 
 import numpy as np
 import pkg_resources
@@ -23,7 +24,6 @@ from py4j.java_gateway import (
 # @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
 #  somewhere
 from py4j.protocol import Py4JNetworkError
-from typing import Any, Dict, Iterable, Optional, Union
 
 from .helpers import camel_case, get_class, snake_case
 

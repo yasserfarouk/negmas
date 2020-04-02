@@ -10,7 +10,6 @@ import dash_table as tbl
 from dash.dependencies import Input, Output, State
 
 from negmas.common import NamedObject
-from negmas.visualizers import *
 
 # 'https://codepen.io/chriddyp/pen/bWLwgP.css',
 external_style_sheets = [dbc.themes.CERULEAN]

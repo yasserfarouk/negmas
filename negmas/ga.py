@@ -3,7 +3,6 @@
 import copy
 import random
 from dataclasses import dataclass
-
 from typing import List, Optional
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState

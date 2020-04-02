@@ -8,9 +8,9 @@ import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import dill
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 from typing_extensions import Protocol, runtime
 
 from .helpers import dump, get_full_type_name, load, unique_name

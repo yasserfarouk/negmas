@@ -1,14 +1,25 @@
 import os
+from typing import Union
 
 import numpy as np
 import pkg_resources
 import pytest
-from typing import Union
 
-from negmas import *
-from negmas.elicitors import *
-from negmas.elicitors import SAOElicitingMechanism, User
-from negmas.helpers import Distribution as U
+from negmas import load_genius_domain_from_folder
+from negmas.elicitors import (
+    BalancedElicitor,
+    DummyElicitor,
+    EStrategy,
+    FullKnowledgeElicitor,
+    PandoraElicitor,
+    SAOElicitingMechanism,
+    User,
+    next_query,
+    possible_queries,
+)
+from negmas.helpers import Distribution as U, instantiate
+from negmas.sao import AspirationNegotiator, LimitedOutcomesNegotiator, SAOMechanism
+from negmas.utilities import IPUtilityFunction, MappingUtilityFunction, pareto_frontier
 
 n_outcomes = 5
 cost = 0.02
@@ -438,7 +449,8 @@ class TestCountableOutcomesElicitor(object):
         )
         strategy.on_enter(ami=neg.ami)
         if isinstance(elicitor, str):
-            elicitor = eval(elicitor)(strategy=strategy, user=user, **kwargs)
+            elicitor = f"negmas.elicitors.{elicitor}"
+            elicitor = instantiate(elicitor, strategy=strategy, user=user, **kwargs)
         neg.add(opponent)
         neg.add(elicitor)
         assert elicitor.elicitation_cost == 0.0

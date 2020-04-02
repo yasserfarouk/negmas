@@ -11,17 +11,17 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from heapq import *
+from heapq import heapify, heappop, heappush
 from math import sqrt
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import scipy.optimize as opt
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
-from .common import *
+from .common import AgentMechanismInterface, MechanismState
 from .genius import GeniusNegotiator
-from .helpers import create_loggers
+from .helpers import create_loggers, instantiate
 from .inout import load_genius_domain_from_folder
 from .modeling import (
     AdaptiveDiscreteAcceptanceModel,
@@ -30,8 +30,17 @@ from .modeling import (
 )
 from .negotiators import AspirationMixin
 from .outcomes import Outcome, ResponseType, outcome_as_tuple
-from .sao import *
-from .sao import AspirationNegotiator, SAONegotiator
+from .sao import (
+    AspirationNegotiator,
+    LimitedOutcomesAcceptor,
+    OnlyBestNegotiator,
+    RandomNegotiator,
+    SAONegotiator,
+    SAOState,
+    ToughNegotiator,
+    SAOMechanism,
+    LimitedOutcomesNegotiator,
+)
 from .utilities import (
     IPUtilityFunction,
     MappingUtilityFunction,
@@ -3143,7 +3152,8 @@ class SAOElicitingMechanism(SAOMechanism):
                 "mean",
             ):
                 type_ = type_.title() + "Elicitor"
-                return eval(type_)(
+                return instantiate(
+                    f"negmas.elicitors.{type_}",
                     strategy=strategy,
                     user=user,
                     base_negotiator=base_negotiator,

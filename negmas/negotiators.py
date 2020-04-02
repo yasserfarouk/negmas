@@ -6,8 +6,6 @@ import math
 import warnings
 from abc import ABC
 from random import sample
-
-import numpy as np
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,8 +18,9 @@ from typing import (
     Union,
 )
 
-from negmas.common import *
-from negmas.common import Rational
+import numpy as np
+
+from negmas.common import AgentMechanismInterface, MechanismState, Rational
 from negmas.events import Notifiable, Notification
 from negmas.helpers import get_class
 from negmas.outcomes import Issue
@@ -29,6 +28,7 @@ from negmas.outcomes import Issue
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
     from negmas.utilities import UtilityValue, UtilityFunction
+    from negmas.situated import Agent
 
 __all__ = [
     "Negotiator",

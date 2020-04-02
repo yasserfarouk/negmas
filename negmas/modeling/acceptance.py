@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Collection, List, Union
 
 import numpy as np
 
-from negmas.common import *
+from negmas.common import AgentMechanismInterface
 from negmas.outcomes import Outcome, ResponseType
 
 if TYPE_CHECKING:

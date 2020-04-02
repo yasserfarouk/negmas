@@ -6,10 +6,10 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 from os import listdir
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pkg_resources
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from .generics import ivalues
 from .negotiators import Negotiator

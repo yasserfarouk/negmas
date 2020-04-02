@@ -3,22 +3,11 @@ Implements basic components that can be used by `SAONegotiator` s.
 """
 import random
 from collections import defaultdict
+from typing import Iterable, List, Optional, Tuple, Union
 
-from typing import (
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
-
-from ..common import *
+from ..common import MechanismState
 from ..negotiators import Negotiator
-from ..outcomes import (
-    Outcome,
-    ResponseType,
-    outcome_as_tuple,
-)
+from ..outcomes import Outcome, ResponseType, outcome_as_tuple
 from ..utilities import MappingUtilityFunction
 
 __all__ = [
