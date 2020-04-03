@@ -1055,13 +1055,13 @@ class UtilityFunction(ABC, NamedObject):
         return self.type
 
     def eu(self, offer: "Outcome") -> Optional[float]:
-        """Calculate the expected utility_function value.
+        """Calculate the expected utility value.
 
             Args:
                 offer: The offer to be evaluated.
 
             Returns:
-                float: The expected utility_function for utility_priors and just utility_function for real-valued utilities.
+                float: The expected utility value for UFuns that return a distribution and just utility value for real-valued utilities.
 
         """
         v = self(offer)
