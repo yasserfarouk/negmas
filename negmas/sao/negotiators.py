@@ -61,6 +61,25 @@ __all__ = [
 
 
 class SAONegotiator(Negotiator):
+    """
+    Base class for all SAO negotiators.
+
+    Args:
+         name: Negotiator name
+         parent: Parent controller if any
+         ufun: The ufun of the negotiator
+         assume_normalized: If true, the negotiator can assume that the ufun is normalized between zreo and one.
+         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
+                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
+         owner: The `Agent` that owns the negotiator.
+
+    Remarks:
+        - The only method that **must** be implemented by any SAONegotiator is `propose`.
+        - The default `respond` method, accepts offers with a utility value no less than whatever `propose` returns
+          with the same mechanism state.
+
+    """
+
     def __init__(
         self,
         assume_normalized=True,
@@ -79,10 +98,35 @@ class SAONegotiator(Negotiator):
         self.add_capabilities({"respond": True, "propose": True, "max-proposals": 1})
 
     def on_notification(self, notification: Notification, notifier: str):
+        """
+        Called whenever a notification is received
+
+        Args:
+            notification: The notification
+            notifier: The notifier entity
+
+        Remarks:
+            - The default implementation only responds to end_negotiation by ending the negotiation
+        """
         if notification.type == "end_negotiation":
             self.__end_negotiation = True
 
     def propose_(self, state: MechanismState) -> Optional["Outcome"]:
+        """
+        The method directly called by the mechanism (through `counter` ) to ask for a proposal
+
+        Args:
+            state: The mechanism state
+
+        Returns:
+            An outcome to offer or None to refuse to offer
+
+        Remarks:
+            - Depending on the `SAOMechanism` settings, refusing to offer may be interpreted as ending the negotiation
+            - The negotiator will only receive this call if it has the 'propose' capability.
+            - Rational proposal is implemented in this method.
+
+        """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         if self._ufun_modified:
@@ -104,14 +148,23 @@ class SAONegotiator(Negotiator):
         return proposal
 
     def respond_(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        """Respond to an offer.
+        """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
-            state: `MechanismState` giving current state of the negotiation.
-            offer (Outcome): offer being tested
+            state: a `MechanismState` giving current state of the negotiation.
+            offer: the offer being responded to.
 
         Returns:
-            ResponseType: The response to the offer
+            ResponseType: The response to the offer. Possible values are:
+
+                - NO_RESPONSE: refuse to offer. Depending on the mechanism settings this may be interpreted as ending
+                               the negotiation.
+                - ACCEPT_OFFER: Accepting the offer.
+                - REJECT_OFFER: Rejecting the offer. The negotiator will be given the chance to counter this
+                                offer through a call of `propose_` later if this was not the last offer to be evaluated
+                                by the mechanism.
+                - END_NEGOTIATION: End the negotiation
+                - WAIT: Instructs the mechanism to wait for this negotiator more. It may lead to cycles so use with care.
 
         Remarks:
             - The default implementation never ends the negotiation except if an earler end_negotiation notification is
@@ -130,7 +183,7 @@ class SAONegotiator(Negotiator):
         self, state: MechanismState, offer: Optional["Outcome"]
     ) -> "SAOResponse":
         """
-        Called to counter an offer
+        Called by the mechanism to counter the offer. It just calls `respond_` and `propose_` as needed.
 
         Args:
             state: `MechanismState` giving current state of the negotiation.
@@ -150,11 +203,11 @@ class SAONegotiator(Negotiator):
         return SAOResponse(response, self.propose_(state=state))
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        """Respond to an offer.
+        """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
-            state: `MechanismState` giving current state of the negotiation.
-            offer (Outcome): offer being tested
+            state: a `MechanismState` giving current state of the negotiation.
+            offer: offer being tested
 
         Returns:
             ResponseType: The response to the offer
@@ -194,9 +247,8 @@ class SAONegotiator(Negotiator):
             agent_id: The ID of the agent who proposed
             offer: The proposal.
 
-        Returns:
-            None
-
+        Remarks:
+            - Will only be called if `enable_callbacks` is set for the mechanism
         """
 
     def on_partner_refused_to_propose(
@@ -209,9 +261,8 @@ class SAONegotiator(Negotiator):
             state: `MechanismState` giving the state of the negotiation when the partner refused to offer.
             agent_id: The ID of the agent who refused to propose
 
-        Returns:
-            None
-
+        Remarks:
+            - Will only be called if `enable_callbacks` is set for the mechanism
         """
 
     def on_partner_response(
@@ -230,14 +281,13 @@ class SAONegotiator(Negotiator):
             outcome: The proposal being responded to.
             response: The response
 
-        Returns:
-            None
-
+        Remarks:
+            - Will only be called if `enable_callbacks` is set for the mechanism
         """
 
     @abstractmethod
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
-        """Propose a set of offers
+        """Propose an offer or None to refuse.
 
         Args:
             state: `MechanismState` giving current state of the negotiation.
@@ -267,6 +317,7 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
 
     Remarks:
         - If p_acceptance + p_rejection + p_ending < 1, the rest is the probability of no-response.
+        - This negotiator ignores the `rational_proposal` parameter.
     """
 
     def propose_(self, state: MechanismState) -> Optional["Outcome"]:
@@ -298,6 +349,15 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
         ufun: Optional["UtilityFunction"] = None,
         role: str = "agent",
     ) -> bool:
+        """
+        Will create a random utility function to be used by the negotiator.
+
+        Args:
+            ami: The AMI
+            state: The current mechanism state
+            ufun: IGNORED.
+            role: IGNORED.
+        """
         result = super().join(ami, state, ufun=ufun, role=role)
         if not result:
             return False
@@ -314,8 +374,19 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
 
 
 class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
-    """A negotiation agent that uses a fixed set of outcomes in a single
+    """
+    A negotiation agent that uses a fixed set of outcomes in a single
     negotiation.
+
+    Args:
+        acceptable_outcomes: the set of acceptable outcomes. If None then it is assumed to be all the outcomes of
+                             the negotiation.
+        acceptance_probabilities: probability of accepting each acceptable outcome. If None then it is assumed to
+                                  be unity.
+        proposable_outcomes: the set of outcomes from which the agent is allowed to propose. If None, then it is
+                             the same as acceptable outcomes with nonzero probability
+        p_no_response: probability of refusing to respond to offers
+        p_ending: probability of ending negotiation
 
     Remarks:
         - The ufun inputs to the constructor and join are ignored. A ufun will be generated that gives a utility equal to
@@ -325,15 +396,13 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
 
     def __init__(
         self,
-        name: str = None,
-        parent: Controller = None,
         acceptable_outcomes: Optional[List["Outcome"]] = None,
         acceptance_probabilities: Optional[Union[float, List[float]]] = None,
         p_ending=0.0,
         p_no_response=0.0,
-        ufun=None,
+        **kwargs,
     ) -> None:
-        super().__init__(name=name, parent=parent)
+        super().__init__(**kwargs)
         self.init_limited_outcomes(
             p_ending=p_ending,
             p_no_response=p_no_response,
@@ -358,15 +427,14 @@ class LimitedOutcomesAcceptor(LimitedOutcomesAcceptorMixin, SAONegotiator):
 
     def __init__(
         self,
-        name: str = None,
-        parent: Controller = None,
         acceptable_outcomes: Optional[List["Outcome"]] = None,
         acceptance_probabilities: Optional[List[float]] = None,
         p_ending=0.0,
         p_no_response=0.0,
         ufun=None,
+        **kwargs,
     ) -> None:
-        SAONegotiator.__init__(self, name=name, parent=parent)
+        super().__init__(self, **kwargs)
         self.init_limited_outcomes_acceptor(
             p_ending=p_ending,
             p_no_response=p_no_response,
@@ -376,6 +444,7 @@ class LimitedOutcomesAcceptor(LimitedOutcomesAcceptorMixin, SAONegotiator):
         self.add_capabilities({"propose": False})
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        """Always refuses to propose"""
         return None
 
 
@@ -386,7 +455,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
     Args:
         name: The agent name
         ufun:  The utility function to attache with the agent
-        parent: The parent which should be an ``SAOController``
         max_aspiration: The aspiration level to use for the first offer (or first acceptance decision).
         aspiration_type: The polynomial aspiration curve type. Here you can pass the exponent as a real value or
                          pass a string giving one of the predefined types: linear, conceder, boulware.
@@ -406,14 +474,16 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                  very large (i.e. > 10000) and discrete, presort will be forced to be True. You can check if
                  presorting is active in realtime by checking the "presorted" attribute.
         tolerance: A tolerance used for sampling of outcomes when `presort` is set to False
+        assume_normalized: If true, the negotiator can assume that the ufun is normalized.
+        rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
+                        reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
+        owner: The `Agent` that owns the negotiator.
+        parent: The parent which should be an `SAOController`
 
     """
 
     def __init__(
         self,
-        name=None,
-        ufun=None,
-        parent: Controller = None,
         max_aspiration=1.0,
         aspiration_type="boulware",
         dynamic_ufun=True,
@@ -425,6 +495,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         ufun_min=None,
         presort: bool = True,
         tolerance: float = 0.01,
+        **kwargs,
     ):
         self.ordered_outcomes = []
         self.ufun_max = ufun_max
@@ -434,7 +505,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if assume_normalized:
             self.ufun_max, self.ufun_min = 1.0, 0.0
         super().__init__(
-            name=name, assume_normalized=assume_normalized, parent=parent, ufun=ufun
+            assume_normalized=assume_normalized, **kwargs,
         )
         self.aspiration_init(
             max_aspiration=max_aspiration, aspiration_type=aspiration_type
@@ -477,7 +548,9 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 key=lambda x: float(x[0]) if x[0] is not None else float("-inf"),
                 reverse=True,
             )
-            if not self.assume_normalized:
+            if self.assume_normalized:
+                self.ufun_min, self.ufun_max = 0.0, 1.0
+            else:
                 if self.ufun_max is None:
                     self.ufun_max = self.ordered_outcomes[0][0]
 
@@ -583,6 +656,20 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
 
 class NiceNegotiator(SAONegotiator, RandomProposalMixin):
+    """
+    Offers and accepts anything.
+
+    Args:
+         name: Negotiator name
+         parent: Parent controller if any
+         ufun: The ufun of the negotiator
+         assume_normalized: If true, the negotiator can assume that the ufun is normalized.
+         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
+                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
+         owner: The `Agent` that owns the negotiator.
+
+    """
+
     def __init__(self, *args, **kwargs):
         SAONegotiator.__init__(self, *args, **kwargs)
         self.init_random_proposal()
@@ -597,6 +684,24 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
 
 
 class ToughNegotiator(SAONegotiator):
+    """
+    Accepts and proposes only the top offer (i.e. the one with highest utility).
+
+    Args:
+         name: Negotiator name
+         parent: Parent controller if any
+         dynamic_ufun: If `True`, assumes a dynamic ufun that can change during the negotiation
+         can_propose: If `False` the negotiator will never propose but can only accept
+         ufun: The ufun of the negotiator
+         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
+                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
+         owner: The `Agent` that owns the negotiator.
+
+    Remarks:
+        - If there are multiple outcome with the same maximum utility, only one of them will be used.
+
+    """
+
     def __init__(
         self,
         name=None,
@@ -604,8 +709,9 @@ class ToughNegotiator(SAONegotiator):
         dynamic_ufun=True,
         can_propose=True,
         ufun=None,
+        **kwargs,
     ):
-        super().__init__(name=name, parent=parent, ufun=ufun)
+        super().__init__(name=name, parent=parent, ufun=ufun, **kwargs)
         self.best_outcome = None
         self._offerable_outcomes = None
         if not dynamic_ufun:
@@ -641,6 +747,24 @@ class ToughNegotiator(SAONegotiator):
 
 
 class OnlyBestNegotiator(SAONegotiator):
+    """
+    Offers and accepts only one of the top outcomes for the negotiator.
+
+    Args:
+         name: Negotiator name
+         parent: Parent controller if any
+         dynamic_ufun: If `True`, assumes a dynamic ufun that can change during the negotiation
+         can_propose: If `False` the negotiator will never propose but can only accept
+         ufun: The ufun of the negotiator
+         min_utility: The minimum utility to offer or accept
+         top_fraction: The fraction of the outcomes (ordered decreasingly by utility) to offer or accept
+         best_first: Guarantee offering will non-increasing in terms of utility value
+         probabilistic_offering: Offer randomly from the outcomes selected based on `top_fraction` and `min_utility`
+         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
+                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
+         owner: The `Agent` that owns the negotiator.
+    """
+
     def __init__(
         self,
         name=None,
@@ -649,9 +773,10 @@ class OnlyBestNegotiator(SAONegotiator):
         min_utility=0.95,
         top_fraction=0.05,
         best_first=False,
-        probabilisic_offering=True,
+        probabilistic_offering=True,
         can_propose=True,
         ufun=None,
+        **kwargs,
     ):
         self._offerable_outcomes = None
         self.best_outcome = []
@@ -659,7 +784,7 @@ class OnlyBestNegotiator(SAONegotiator):
         self.acceptable_outcomes = []
         self.wheel = np.array([])
         self.offered = set([])
-        super().__init__(name=name, parent=parent, ufun=ufun)
+        super().__init__(name=name, parent=parent, ufun=ufun, **kwargs)
         if not dynamic_ufun:
             warnings.warn(
                 "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
@@ -667,7 +792,7 @@ class OnlyBestNegotiator(SAONegotiator):
         self.top_fraction = top_fraction
         self.min_utility = min_utility
         self.best_first = best_first
-        self.probabilisic_offering = probabilisic_offering
+        self.probabilistic_offering = probabilistic_offering
         self.add_capabilities(
             {
                 "respond": True,
@@ -698,9 +823,7 @@ class OnlyBestNegotiator(SAONegotiator):
                 else:
                     break
         if self.top_fraction is not None:
-            frac_limit = max(
-                1, int(round(self.top_fraction * len(self.ordered_outcomes)))
-            )
+            frac_limit = max(1, round(self.top_fraction * len(self.ordered_outcomes)))
         else:
             frac_limit = len(outcomes)
 
@@ -743,7 +866,7 @@ class OnlyBestNegotiator(SAONegotiator):
                     self.offered.add(o)
                     return o
         if len(self.acceptable_outcomes) > 0:
-            if self.probabilisic_offering:
+            if self.probabilistic_offering:
                 r = random.random()
                 for o, w in zip(self.acceptable_outcomes, self.wheel):
                     if w > r:
@@ -754,7 +877,27 @@ class OnlyBestNegotiator(SAONegotiator):
 
 
 class NaiveTitForTatNegotiator(SAONegotiator):
-    """Implements a generalized tit-for-tat strategy"""
+    """
+    Implements a naive tit-for-tat strategy that does not depend on the availability of an opponent model.
+
+    Args:
+        name: Negotiator name
+        ufun: negotiator ufun
+        parent: A controller
+        kindness: How 'kind' is the agent. A value of zero is standard tit-for-tat. Positive values makes the negotiator
+                  concede faster and negative values slower.
+        randomize_offer: If `True`, the offers will be randomized above the level determined by the current concession
+                        which in turn reflects the opponent's concession.
+        always_concede: If `True` the agent will never use a negative concession rate
+        initial_concession: How much should the agent concede in the beginning in terms of utility. Should be a number
+                            or the special string value 'min' for minimum concession
+
+    Remarks:
+        - This negotiator does not keep an opponent model. It thinks only in terms of changes in its own utility.
+          If the opponent's last offer was better for the negotiator compared with the one before it, it considers
+          that the opponent has conceded by the difference. This means that it implicitly assumes a zero-sum
+          situation.
+    """
 
     def __init__(
         self,
@@ -765,13 +908,14 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         randomize_offer=False,
         always_concede=True,
         initial_concession: Union[float, str] = "min",
+        **kwargs,
     ):
         self.received_utilities = []
         self.proposed_utility = None
         self.ordered_outcomes = None
         self.sent_offer_index = None
         self.n_sent = 0
-        super().__init__(name=name, ufun=ufun, parent=parent)
+        super().__init__(name=name, ufun=ufun, parent=parent, **kwargs)
         self.kindness = kindness
         self.initial_concession = initial_concession
         self.randomize_offer = randomize_offer
@@ -848,19 +992,37 @@ class NaiveTitForTatNegotiator(SAONegotiator):
 
 
 class PassThroughSAONegotiator(SAONegotiator):
-    """A negotiator that acts as an end point to a parent Controller
+    """
+    A negotiator that acts as an end point to a parent Controller.
+
+    This negotiator simply calls its controler for everything.
     """
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        """Calls parent controller"""
         return self._Negotiator__parent.propose(self.id, state)
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
+        """Calls parent controller"""
         return self._Negotiator__parent.respond(self.id, state, offer)
 
+    def on_negotiation_start(self, state: MechanismState) -> None:
+        """Calls parent controller"""
+        return self._Negotiator__parent.on_negotiation_start(self.id, state)
+
     def on_negotiation_end(self, state: MechanismState) -> None:
+        """Calls parent controller"""
         return self._Negotiator__parent.on_negotiation_end(self.id, state)
 
     def join(self, ami, state, *, ufun=None, role="agent",) -> bool:
+        """
+        Joins a negotiation.
+
+        Remarks:
+            This method first gets permission from the parent controller by calling `before_join` on it and confirming
+            the result is `True`, it then joins the negotiation and calls `after_join` of the controller to inform it
+            that joining is completed if joining was successful.
+        """
         permission = (
             self._Negotiator__parent is None
             or self._Negotiator__parent.before_join(
@@ -904,6 +1066,20 @@ def _from_java_response(response: int) -> ResponseType:
 
 
 class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
+    """
+    Represents a negotiator running on JNegMAS (depricated)
+
+
+    Args:
+        java_object: The Java object if known
+        java_class_name: Name of the java negotiator class
+        auto_load_java: If true, jnemgas will be loaded if not running.
+        outcome_type: Type of outcome to use
+
+    Remarks:
+        - You cannot pass a ufun here.
+    """
+
     def __init__(
         self,
         java_object,
