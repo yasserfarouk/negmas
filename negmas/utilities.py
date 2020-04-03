@@ -880,6 +880,22 @@ class UtilityFunction(ABC, NamedObject):
         """
         raise NotImplementedError("Could not calculate the utility value.")
 
+    def eval_all(self, outcomes: List["Outcome"]) -> Iterable[UtilityValue]:
+        """
+        Calculates the utility value of a list of outcomes and returns their utility values
+
+        Args:
+            outcomes: A list of offers
+
+        Returns:
+            An iterable with the utility values of the given outcomes in order
+
+        Remarks:
+            - The default implementation just iterates over the outcomes calling the ufun for each of them. In a
+              distributed environment, it is possible to do this in parallel using a thread-pool for example.
+        """
+        return [self(_) for _ in outcomes]
+
     @classmethod
     def approximate(
         cls,
