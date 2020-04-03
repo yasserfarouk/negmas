@@ -20,21 +20,26 @@ __all__ = [
 
 
 class RandomResponseMixin:
+    """
+    A mixin that adds the ability to respond randomly to offers
+
+    Remarks:
+        - Call `init_random_response` to initialize the mixin.
+    """
+
     def init_random_response(
         self,
         p_acceptance: float = 0.15,
         p_rejection: float = 0.25,
         p_ending: float = 0.1,
     ) -> None:
-        """Constructor
+        """
+        Initializes the mixin.
 
         Args:
-            p_acceptance (float): probability of accepting offers
-            p_rejection (float): probability of rejecting offers
-            p_ending (float): probability of ending negotiation
-
-        Returns:
-            None
+            p_acceptance: probability of accepting offers
+            p_rejection: probability of rejecting offers
+            p_ending: probability of ending negotiation
 
         Remarks:
             - If the summation of acceptance, rejection and ending probabilities
@@ -72,12 +77,15 @@ class RandomResponseMixin:
 
 
 class RandomProposalMixin:
-    """The simplest possible agent.
+    """
+    A mixin that adds the ability to propose random offers
 
-    It just generates random offers and respond randomly to offers.
+    Remarks:
+        - call `init_random_proposal` to initialize the mixin
     """
 
     def init_random_proposal(self: Negotiator):
+        """Initializes the mixin"""
         self.add_capabilities(
             {
                 "propose": True,
@@ -87,6 +95,18 @@ class RandomProposalMixin:
         )
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        """
+        Proposes a random offer
+
+        Args:
+            state: The mechanism state
+
+        Returns:
+            A proposed outcome or None to refuse to offer.
+
+        Remarks:
+            - Does not use the state.
+        """
         if (
             hasattr(self, "_offerable_outcomes")
             and self._offerable_outcomes is not None
@@ -96,9 +116,8 @@ class RandomProposalMixin:
 
 
 class LimitedOutcomesAcceptorMixin:
-    """An agent the accepts a limited set of outcomes.
-
-    The agent accepts any of the given outcomes with the given probabilities.
+    """
+    A mixin that adds the ability to accept random offers
     """
 
     def __init__(self, *args, **kwargs):
@@ -114,21 +133,17 @@ class LimitedOutcomesAcceptorMixin:
         p_ending: float = 0.05,
         p_no_response: float = 0.0,
     ) -> None:
-        """Constructor
+        """Initializes the mixin
 
         Args:
-            acceptable_outcomes: the set of acceptable
-                outcomes. If None then it is assumed to be all the outcomes of
-                the negotiation.
-            acceptance_probabilities: probability of accepting
-                each acceptable outcome. If None then it is assumed to be unity.
+            acceptable_outcomes: the set of acceptable outcomes. If None then it is assumed to be all the outcomes of the negotiation.
+            acceptance_probabilities: probability of accepting each acceptable outcome. If None then it is assumed to be unity.
             time_factor: If given, the acceptance probability will go up with time by this factor
             p_no_response: probability of refusing to respond to offers
             p_ending: probability of ending negotiation
 
         Returns:
             None
-
         """
         self.add_capabilities({"respond": True})
         self.acceptable_outcomes, self.acceptance_probabilities = (
@@ -193,21 +208,20 @@ class LimitedOutcomesAcceptorMixin:
 
 
 class LimitedOutcomesProposerMixin:
-    """An agent the accepts a limited set of outcomes.
-
-    The agent proposes randomly from the given set of outcomes.
-
-    Args:
-        proposable_outcomes (Optional[Outcomes]): the set of prooposable
-            outcomes. If None then it is assumed to be all the outcomes of
-            the negotiation
-
-
+    """
+    A mixin that adds the ability to propose an outcome from a set of outcomes randomly.
     """
 
     def init_limited_outcomes_proposer(
         self: Negotiator, proposable_outcomes: Optional[List["Outcome"]] = None
     ) -> None:
+        """
+        Initializes the mixin
+
+        Args:
+            proposable_outcomes: the set of prooposable outcomes. If None then it is assumed to be all the outcomes of the negotiation
+
+        """
         self.add_capabilities(
             {
                 "propose": True,
@@ -220,6 +234,7 @@ class LimitedOutcomesProposerMixin:
             self._offerable_outcomes = list(proposable_outcomes)
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
+        """Proposes one of the proposable_outcomes"""
         if self._offerable_outcomes is None:
             return self._ami.random_outcomes(1)[0]
         else:
@@ -227,9 +242,8 @@ class LimitedOutcomesProposerMixin:
 
 
 class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposerMixin):
-    """An agent the accepts a limited set of outcomes.
-
-    The agent accepts any of the given outcomes with the given probabilities.
+    """
+    A mixin that adds the ability to propose and respond a limited set of outcomes.
     """
 
     def init_limited_outcomes(
@@ -240,22 +254,17 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
         p_ending=0.0,
         p_no_response=0.0,
     ) -> None:
-        """Constructor
+        """Initializes the mixin.
 
         Args:
-            acceptable_outcomes (Optional[Outcomes]): the set of acceptable
-                outcomes. If None then it is assumed to be all the outcomes of
-                the negotiation.
-            acceptance_probabilities (Sequence[Float]): probability of accepting
-                each acceptable outcome. If None then it is assumed to be unity.
-            proposable_outcomes (Optional[Outcomes]): the set of outcomes from which the agent is allowed
-                to propose. If None, then it is the same as acceptable outcomes with nonzero probability
-            p_no_response (float): probability of refusing to respond to offers
-            p_ending (float): probability of ending negotiation
-
-        Returns:
-            None
-
+            acceptable_outcomes: the set of acceptable outcomes. If None then it is assumed to be all the outcomes of
+                                 the negotiation.
+            acceptance_probabilities: probability of accepting each acceptable outcome. If None then it is assumed to
+                                      be unity.
+            proposable_outcomes: the set of outcomes from which the agent is allowed to propose. If None, then it is
+                                 the same as acceptable outcomes with nonzero probability
+            p_no_response: probability of refusing to respond to offers
+            p_ending: probability of ending negotiation
         """
         self.init_limited_outcomes_acceptor(
             acceptable_outcomes=acceptable_outcomes,

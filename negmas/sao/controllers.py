@@ -22,6 +22,7 @@ __all__ = [
     "SAOSingleAgreementController",
     "SAOSingleAgreementRandomController",
     "SAOSingleAgreementAspirationController",
+    "SAOMetaNegotiatorController",
 ]
 
 
@@ -119,6 +120,9 @@ class SAOController(Controller):
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         if self._auto_kill:
             self.kill_negotiator(negotiator_id, True)
+
+    def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
+        pass
 
 
 class SAORandomController(SAOController):
