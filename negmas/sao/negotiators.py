@@ -183,23 +183,6 @@ class SAONegotiator(Negotiator):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    @property
-    def eu(self) -> Callable[["Outcome"], Optional["UtilityValue"]]:
-        """
-        The utility function in the given negotiation taking opponent model into account.
-
-        Remarks:
-            - If no utility_function is internally stored, `eu` still returns a valid callable that returns None for
-              everything.
-        """
-        if hasattr(self, "opponent_model"):
-            return lambda x: self._utility_function(
-                x
-            ) * self.opponent_model.probability_of_acceptance(x)
-        else:
-            return self._utility_function
-
-    # CALLBACK
     def on_partner_proposal(
         self, state: MechanismState, agent_id: str, offer: "Outcome"
     ) -> None:
@@ -488,8 +471,9 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             presort = True
         if presort:
             outcomes = self._ami.discrete_outcomes()
+            uvals = self.utility_function.eval_all(outcomes)
             self.ordered_outcomes = sorted(
-                [(self._utility_function(outcome), outcome) for outcome in outcomes],
+                zip(uvals, outcomes),
                 key=lambda x: float(x[0]) if x[0] is not None else float("-inf"),
                 reverse=True,
             )
@@ -700,7 +684,7 @@ class OnlyBestNegotiator(SAONegotiator):
             if self._offerable_outcomes is None
             else self._offerable_outcomes
         )
-        eu_outcome = [(self.eu(outcome), outcome) for outcome in outcomes]
+        eu_outcome = list(zip(self.utility_function.eval_all(outcomes), outcomes))
         self.ordered_outcomes = sorted(eu_outcome, key=lambda x: x[0], reverse=True)
         if self.min_utility is None:
             selected, selected_utils = [], []
