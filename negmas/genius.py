@@ -659,12 +659,12 @@ class GeniusNegotiator(SAONegotiator):
         return "/".join(name[:-1]) + f"/{self.java_class_name}/" + name[-1]
 
     def on_partner_proposal(
-        self, state: MechanismState, agent_id: str, offer: "Outcome"
+        self, state: MechanismState, partner_id: str, offer: "Outcome"
     ):
-        if agent_id is self.id:
+        if partner_id is self.id:
             return
         agent_info = [
-            _ for _ in self._ami.participants if _.id != self.id and _.id == agent_id
+            _ for _ in self._ami.participants if _.id != self.id and _.id == partner_id
         ]
         if len(agent_info) == 0:
             return
@@ -672,20 +672,20 @@ class GeniusNegotiator(SAONegotiator):
         # if agent_info.type == 'genius_negotiator':
         #    return
         self.java.receive_message(
-            self.java_uuid, agent_id, "Offer", self._outcome2str(offer)
+            self.java_uuid, partner_id, "Offer", self._outcome2str(offer)
         )
 
     def on_partner_response(
         self,
         state: MechanismState,
-        agent_id: str,
+        partner_id: str,
         outcome: "Outcome",
         response: "ResponseType",
     ):
-        if agent_id is self.id:
+        if partner_id is self.id:
             return
         agent_info = [
-            _ for _ in self._ami.participants if _.id != self.id and _.id == agent_id
+            _ for _ in self._ami.participants if _.id != self.id and _.id == partner_id
         ]
         if len(agent_info) == 0:
             return
@@ -703,7 +703,7 @@ class GeniusNegotiator(SAONegotiator):
             resp = "Reject"
         else:
             return
-        self.java.receive_message(self.java_uuid, agent_id, resp, bid)
+        self.java.receive_message(self.java_uuid, partner_id, resp, bid)
 
 
 def genius_bridge_is_running(port: int = None) -> bool:

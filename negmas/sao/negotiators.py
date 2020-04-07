@@ -237,14 +237,14 @@ class SAONegotiator(Negotiator):
         return ResponseType.REJECT_OFFER
 
     def on_partner_proposal(
-        self, state: MechanismState, agent_id: str, offer: "Outcome"
+        self, state: MechanismState, partner_id: str, offer: "Outcome"
     ) -> None:
         """
         A callback called by the mechanism when a partner proposes something
 
         Args:
             state: `MechanismState` giving the state of the negotiation when the offer was porposed.
-            agent_id: The ID of the agent who proposed
+            partner_id: The ID of the agent who proposed
             offer: The proposal.
 
         Remarks:
@@ -268,16 +268,16 @@ class SAONegotiator(Negotiator):
     def on_partner_response(
         self,
         state: MechanismState,
-        agent_id: str,
+        partner_id: str,
         outcome: "Outcome",
-        response: "SAOResponse",
+        response: "ResponseType",
     ) -> None:
         """
         A callback called by the mechanism when a partner responds to some offer
 
         Args:
             state: `MechanismState` giving the state of the negotiation when the partner responded.
-            agent_id: The ID of the agent who responded
+            partner_id: The ID of the agent who responded
             outcome: The proposal being responded to.
             response: The response
 
@@ -1122,9 +1122,9 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         )
 
     def on_partner_proposal(
-        self, state: MechanismState, agent_id: str, offer: "Outcome"
+        self, state: MechanismState, partner_id: str, offer: "Outcome"
     ) -> None:
-        self._java_object.onPartnerProposal(to_java(state), agent_id, to_java(offer))
+        self._java_object.onPartnerProposal(to_java(state), partner_id, to_java(offer))
 
     def on_partner_refused_to_propose(
         self, state: MechanismState, agent_id: str
@@ -1134,12 +1134,15 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
     def on_partner_response(
         self,
         state: MechanismState,
-        agent_id: str,
+        partner_id: str,
         outcome: "Outcome",
-        response: "SAOResponse",
+        response: "ResponseType",
     ) -> None:
         self._java_object.onPartnerResponse(
-            to_java(state), agent_id, to_java(outcome), self._to_java_response(response)
+            to_java(state),
+            partner_id,
+            to_java(outcome),
+            self._to_java_response(response),
         )
 
     def isin(self, negotiation_id: Optional[str]) -> bool:
@@ -1273,7 +1276,7 @@ class _ShadowSAONegotiator:
     def onPartnerProposal(self, state, agent_id, offer):
         return to_java(
             self.shadow.on_partner_proposal(
-                state=from_java(state), agent_id=agent_id, offer=from_java(offer)
+                state=from_java(state), partner_id=agent_id, offer=from_java(offer)
             )
         )
 
@@ -1288,14 +1291,13 @@ class _ShadowSAONegotiator:
         )
 
     def onPartnerResponse(self, state, agent_id, offer, response: int, counter_offer):
+        # TODO check that jnemgas is expecting ResponseType not SAOResponse here.
         return to_java(
             self.shadow.on_partner_response(
                 state=from_java(state),
-                agent_id=agent_id,
+                partner_id=agent_id,
                 outcome=from_java(offer),
-                response=SAOResponse(
-                    response=ResponseType(response), outcome=from_java(counter_offer)
-                ),
+                response=ResponseType(response),
             )
         )
 

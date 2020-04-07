@@ -6,7 +6,7 @@ import pkg_resources
 import pytest
 
 from negmas import load_genius_domain_from_folder
-from negmas.elicitors import (
+from negmas.elicitation import (
     BalancedElicitor,
     DummyElicitor,
     EStrategy,
@@ -16,6 +16,7 @@ from negmas.elicitors import (
     User,
     next_query,
     possible_queries,
+    OptimalIncrementalElicitor,
 )
 from negmas.helpers import Distribution as U, instantiate
 from negmas.sao import AspirationNegotiator, LimitedOutcomesNegotiator, SAOMechanism
@@ -29,6 +30,15 @@ ufun = MappingUtilityFunction(
     dict(zip([(_,) for _ in range(n_outcomes)], [utility] * n_outcomes)),
     reserved_value=0.0,
 )
+
+import negmas.elicitation as elicitation
+
+
+all_countable_queries_elicitor_types = [
+    _
+    for _ in elicitation.__all__
+    if _.endswith("Elicitor") and not _.startswith("Base") and not "VOIOptimal" in _
+]
 
 
 @pytest.fixture
@@ -438,7 +448,8 @@ class TestCountableOutcomesElicitor(object):
         # assert len(set([_[0] for _ in elicitor.offers])) > 1 or len(elicitor.offers) < 2
         assert elicitor.elicitation_cost == 0.0
 
-    def _run_optimal_test(
+    @pytest.mark.parametrize("elicitor", all_countable_queries_elicitor_types)
+    def test_elicitor_runs(
         self, elicitor: Union[str, "BaseElicitor"], master, true_utilities, **kwargs
     ):
         neg = SAOMechanism(outcomes=n_outcomes, n_steps=10)
@@ -449,7 +460,9 @@ class TestCountableOutcomesElicitor(object):
         )
         strategy.on_enter(ami=neg.ami)
         if isinstance(elicitor, str):
-            elicitor = f"negmas.elicitors.{elicitor}"
+            elicitor = f"negmas.elicitation.{elicitor}"
+            if "VOI" in elicitor:
+                kwargs["dynamic_query_set"] = True
             elicitor = instantiate(elicitor, strategy=strategy, user=user, **kwargs)
         neg.add(opponent)
         neg.add(elicitor)
@@ -466,21 +479,23 @@ class TestCountableOutcomesElicitor(object):
         )
         if neg.agreement is not None:
             assert (
-                elicitor.ufun(neg.agreement)
+                elicitor.user_ufun(neg.agreement)
                 == true_utilities[neg.agreement[0]] - elicitor.elicitation_cost
             )
-        # assert len(set([_[0] for _ in elicitor.offers])) == len(elicitor.offers)
+        if hasattr(elicitor, "each_outcome_once") and elicitor.each_outcome_once:
+            assert len(set([_[0] for _ in elicitor.offers])) == len(elicitor.offers)
         # print(
-        #     f'Got {elicitor.ufun(neg.agreement)} with elicitation cost {elicitor.elicitation_cost} for {elicitor} using {len(queries)} elicited_queries')
-        return neg, elicitor, opponent
+        #     f"Got {elicitor.ufun(neg.agreement)} with elicitation cost {elicitor.elicitation_cost} "
+        #     f"for {elicitor} using {len(queries)} elicited_queries"
+        # )
 
-    def test_pareto_frontier_in_mechanism(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "FullElicitor", master, true_utilities
-        )
-        front, _ = neg.pareto_frontier()
-        # print(front)
-        assert len(front) > 0
+    # def test_pareto_frontier_in_mechanism(self, master, true_utilities):
+    #     neg, elicitor, opponent = self._run_optimal_test(
+    #         "FullElicitor", master, true_utilities
+    #     )
+    #     front, _ = neg.pareto_frontier()
+    #     # print(front)
+    #     assert len(front) > 0
 
     def test_pareto_frontier_2(self):
         n_outcomes = 10
@@ -547,55 +562,6 @@ class TestCountableOutcomesElicitor(object):
         assert len(frontier) == len(f2)
         assert all([_1 == _2] for _1, _2 in zip(frontier, f2))
         assert [_[0] for _ in f2_outcomes] == frontier_locs
-
-    def test_full(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "FullElicitor", master, true_utilities
-        )
-
-    def test_random(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "RandomElicitor", master, true_utilities
-        )
-
-    def test_optimal(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "PandoraElicitor", master, true_utilities
-        )
-
-    def test_fast(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "FastElicitor", master, true_utilities
-        )
-
-    def test_balanced(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "BalancedElicitor", master, true_utilities
-        )
-
-    def test_mean(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "MeanElicitor", master, true_utilities
-        )
-
-    def test_optimistic(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "OptimisticElicitor", master, true_utilities
-        )
-
-    def test_pessimistic(self, master, true_utilities):
-        neg, elicitor, opponent = self._run_optimal_test(
-            "PessimisticElicitor", master, true_utilities
-        )
-
-    def test_incremental(self, master, true_utilities):
-        incremental = BalancedElicitor(strategy=master[1], user=master[0])
-        neg1, e1, o1 = self._run_optimal_test(incremental, master, true_utilities)
-
-    def test_non_incremental(self, master, true_utilities):
-        non_incremental = BalancedElicitor(strategy=master[1], user=master[0])
-        non_incremental.incremental = False
-        neg2, e2, o2 = self._run_optimal_test(non_incremental, master, true_utilities)
 
     def test_loading_laptop(self, data_folder):
         domain, agents_info, issues = load_genius_domain_from_folder(
@@ -817,11 +783,6 @@ def test_alternating_offers_eliciting_mechanism_full_knowledge():
 def test_a_small_elicitation_session():
     import os
 
-    utilities = [
-        U("uniform", loc=0.0, scale=1.0),
-        U("uniform", loc=0.4, scale=0.2),
-        U("uniform", loc=0.8, scale=0.1),
-    ]
     config = SAOElicitingMechanism.generate_config(cost=0.2, n_outcomes=5, n_steps=10)
     p = SAOElicitingMechanism(
         **config,
