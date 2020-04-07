@@ -1,3 +1,7 @@
+"""
+Implements all Value-of-Information based elicitation methods.
+
+"""
 import copy
 import time
 from abc import abstractmethod
@@ -26,18 +30,14 @@ from .common import _scale, argmax
 from .expectors import Expector, MeanExpector
 from .queries import Query, Answer, RangeConstraint
 from .strategy import EStrategy
-from ..common import AgentMechanismInterface, MechanismState
+from ..common import MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
 from ..sao import (
     AspirationNegotiator,
     SAONegotiator,
 )
-from ..utilities import (
-    IPUtilityFunction,
-    UtilityDistribution,
-    UtilityValue,
-)
+from ..utilities import UtilityValue
 
 __all__ = [
     "BaseVOIElicitor",
@@ -45,6 +45,7 @@ __all__ = [
     "VOIFastElicitor",
     "VOINoUncertaintyElicitor",
     "VOIOptimalElicitor",
+    "OQA",
 ]
 
 
@@ -54,7 +55,7 @@ class BaseVOIElicitor(BaseElicitor):
 
     Args:
         strategy: The elicitation strategy. It is only used if `dynamic_query_set`
-                  is not set. In that case, the strategy is used to compile
+                  is set. In that case, the strategy is used to compile
                   the set of all possible queries during construction. If
                   using `dynamic_query_set` pass `None` for the strategy.
         user: The `User` to elicit.
@@ -91,35 +92,15 @@ class BaseVOIElicitor(BaseElicitor):
         strategy: EStrategy,
         user: "User",
         *,
-        base_negotiator: SAONegotiator = AspirationNegotiator(),
         dynamic_query_set=False,
         queries=None,
         adaptive_answer_probabilities=True,
-        expector_factory: Union[Expector, Callable[[], Expector]] = MeanExpector,
-        single_elicitation_per_round=False,
-        continue_eliciting_past_reserved_val=False,
-        epsilon=0.001,
-        true_utility_on_zero_cost=False,
         each_outcome_once=False,
         update_related_queries=True,
-        opponent_model_factory: Optional[
-            Callable[["AgentMechanismInterface"], "DiscreteAcceptanceModel"]
-        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(ami=x),
         **kwargs,
     ) -> None:
         super().__init__(
-            strategy=strategy,
-            user=user,
-            opponent_model_factory=opponent_model_factory,
-            expector_factory=expector_factory,
-            single_elicitation_per_round=single_elicitation_per_round,
-            continue_eliciting_past_reserved_val=continue_eliciting_past_reserved_val,
-            epsilon=epsilon,
-            true_utility_on_zero_cost=true_utility_on_zero_cost,
-            base_negotiator=base_negotiator,
-            **kwargs,
-        )
-        self.eu_policy = None
+            strategy=strategy, user=user, **kwargs,
         self.eeu_query = None
         self.query_index_of_outcome = None
         self.dynamic_query_set = dynamic_query_set
@@ -190,13 +171,22 @@ class BaseVOIElicitor(BaseElicitor):
         self._elicitation_time += time.perf_counter() - strt_time
 
     def best_offer(self, state: MechanismState) -> Tuple[Optional["Outcome"], float]:
-        """Maximum Expected Utility at a given aspiration level (alpha)
+        """
+        The best offer and its corresponding utility
 
         Args:
-            state:
+            state: The mechanism state
+
+        Remarks:
+            - It will return (`None`, reserved-value) if the best outcome has
+              a utility less than the reserved value.
+            - It uses the internal eu_policy heap to find the best outcome.
+            - If each-outcome-once is set, the best outcome is popped from the
+              heap which prevents it from ever being selected again.
+
         """
         if self.each_outcome_once:
-            # todo this needs correction. When I opp from the eu_policy, all eeu_query become wrong
+            # TODO this needs correction. When I opp from the eu_policy, all eeu_query become wrong
             if len(self.eu_policy) < 1:
                 self.init_optimal_policy()
             _, outcome_index = self.eu_policy.pop()
@@ -212,18 +202,32 @@ class BaseVOIElicitor(BaseElicitor):
         )
 
     def can_elicit(self) -> bool:
+        """Always can elicit"""
         return True
 
     def best_offers(self, n: int) -> List[Tuple[Optional["Outcome"], float]]:
-        """Maximum Expected Utility at a given aspiration level (alpha)"""
+        """Returns the best offer repeated n times"""
         return [self.best_offer()] * n
 
     def before_eliciting(self):
+        """Called every round before trying to elicit. Does nothing"""
         pass
 
     def on_opponent_model_updated(
         self, outcomes: List[Outcome], old: List[float], new: List[float]
     ) -> None:
+        """
+        Called whenever the opponent model is updated.
+
+        Args:
+            outcomes: The updated outomes. None means all outcomes
+            old: The old acceptance probabilities
+            new: The new acceptance probabilities
+
+        Remarks:
+            It calls `init_optimal_policy` and `init_query_eeus` if any old
+            value is not equal to a new value.
+        """
         if any(o != n for o, n in zip(old, new)):
             self.init_optimal_policy()
             self.init_query_eeus()
@@ -231,11 +235,44 @@ class BaseVOIElicitor(BaseElicitor):
     def update_optimal_policy(
         self, index: int, outcome: "Outcome", oldu: float, newu: float
     ):
-        """Updates the optimal policy after a change happens to some utility"""
+        """Updates the optimal policy after a change to the utility value
+        of some outcome.
+
+        Args:
+            outcome: The outcome whose utiltiy have changed
+            oldu: The old utility
+            newu: The new utility
+
+        Remarks:
+            It just calls `update_optimal_policy`
+
+        """
         if oldu != newu:
             self.init_optimal_policy()
 
     def elicit_single(self, state: MechanismState):
+        """
+        Called to conduct a single eliciataion act.
+
+        Args:
+            state: The mechanism state
+
+        Remarks:
+            - It returns False ending eliciatation if eeu_query is empty or
+              `can_elicit` returns False
+            - The algorithm outline is as follows:
+
+                1. Pops the top query with its EEU from the heap
+                2. elicitation is stopped if the top query is None, the eeu
+                   is less than the current EEU, or the EEU after asking will
+                   be less than the reserved value.
+                3. If dynamic_query_set, the strategy is invoked to get
+                   the next query, otherwise, the user is asked the top
+                   query and the related queries are updated.
+                4. The expected utility is updated base on the answer received
+                   from the user and `update_optimal_policy` is called followed
+                   by `init_query_eeus`.
+        """
         if self.eeu_query is not None and len(self.eeu_query) < 1:
             return False
         if not self.can_elicit():
@@ -341,22 +378,60 @@ class BaseVOIElicitor(BaseElicitor):
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 
     def add_query(self, qeeu: Tuple[float, int]) -> None:
+        """Adds a query to the heap of queries
+
+            Args:
+                qeeu: A Tuple giving (-EEU, query_index)
+
+            Remarks:
+                - Note that the first member of the tuple is **minus** the EEU
+                - The sedond member of the tuple is an index of the query in
+                  the queries list (not the query itself).
+        """
         heappush(self.eeu_query, qeeu)
 
     @abstractmethod
     def init_optimal_policy(self) -> None:
-        """Gets the optimal policy given Negotiator utility_priors. The optimal plicy should be sorted ascendingly
+        """Gets the optimal policy given Negotiator utility_priors.
+
+        The optimal plicy should be sorted ascendingly
         on -EU or -EU * Acceptance"""
 
     @abstractmethod
     def _query_eeu(
         self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
     ) -> float:
-        """Find the eeu value associated with this query and return it with the query index. Should return - EEU"""
+        """
+        Find the eeu value associated with this query and return it with
+        the query index.
+
+        Args:
+            query: The query object
+            qindex: The index of the query in the queries list
+            outcome: The outcome about which is this query
+            cost: The cost of asking the query
+            outcome_index: The index of the outcome in the outcomes list
+            eu_policy: The expected utility policy
+            eeu: The current EEU
+
+        Remarks:
+            - Should return - EEU
+
+        """
 
 
 class VOIElicitor(BaseVOIElicitor):
-    """OCA algorithm proposed by Baarslag in IJCAI2017
+    """
+    The Optimal Querying Agent (OQA) proposed by [Baarslag and Kaisers]_
+
+
+    .. [Baarslag and Kaisers] Tim Baarslag and Michael Kaisers. 2017. The Value
+       of Information in Automated Negotiation: A Decision Model for Eliciting
+       User Preferences. In Proceedings of the 16th Conference on Autonomous
+       Agents and MultiAgent Systems (AAMAS ’17). International Foundation for
+       Autonomous Agents and Multiagent Systems, Richland, SC, 391–400.
+       (https://dl.acm.org/doi/10.5555/3091125.3091185)
+
     """
 
     def eeu(self, policy: np.ndarray, eus: np.ndarray) -> float:
@@ -443,7 +518,15 @@ class VOIElicitor(BaseVOIElicitor):
 
 
 class VOIFastElicitor(BaseVOIElicitor):
-    """FastVOI algorithm proposed by Mohammad in PRIMA 2018.
+    """
+    FastVOI algorithm proposed by [Mohammad and Nakadai]_
+
+
+    .. [Mohammad and Nakadai] Mohammad, Y., & Nakadai, S. (2018, October).
+       FastVOI: Efficient utility elicitation during negotiations. In
+       International Conference on Principles and Practice of Multi-Agent
+       Systems (pp. 560-567). Springer.
+       (https://link.springer.com/chapter/10.1007/978-3-030-03098-8_42)
     """
 
     def init_optimal_policy(self) -> None:
@@ -546,7 +629,8 @@ class VOIFastElicitor(BaseVOIElicitor):
 
 
 class VOINoUncertaintyElicitor(BaseVOIElicitor):
-    """A dummy VOI Elicitation Agent. It simply assumes no uncertainty in own utility function"""
+    """A dummy VOI Elicitation Agent. It simply assumes no uncertainty in
+    own utility function"""
 
     def eeu(self, policy: np.ndarray, eup: np.ndarray) -> float:
         """Expected Expected Negotiator for following the policy"""
@@ -600,7 +684,21 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
 
 
 class VOIOptimalElicitor(BaseElicitor):
-    """Optimal VOI elicitor proposed by Mohammad in AAMAS 2019
+    """
+    Optimal VOI elicitor proposed by [Mohammad and Nakadai]_
+
+    This algorithm restricts the type of queries that can be asked but does
+    not require the user to set the set of queries apriori and can use
+    unconuntable sets of queries of the form: "Is u(o) > x?"
+
+
+    .. [Mohammad and Nakadai] Yasser Mohammad and Shinji Nakadai. 2019. Optimal
+       Value of Information Based Elicitation During Negotiation. In Proceedings
+       of the 18th International Conference on Autonomous Agents and MultiAgent
+       Systems (AAMAS ’19). International Foundation for Autonomous Agents and
+       Multiagent Systems, Richland, SC, 242–250.
+       (https://dl.acm.org/doi/10.5555/3306127.3331699)
+
     """
 
     def __init__(
@@ -692,10 +790,6 @@ class VOIOptimalElicitor(BaseElicitor):
 
     def can_elicit(self) -> bool:
         return True
-
-    def best_offers(self, n: int) -> List[Tuple[Optional["Outcome"], float]]:
-        """Maximum Expected Utility at a given aspiration level (alpha)"""
-        return [self.best_offer()] * n
 
     def before_eliciting(self):
         pass
@@ -941,3 +1035,7 @@ class VOIOptimalElicitor(BaseElicitor):
         self.outcome_in_policy = {}
         for j, pp in enumerate(self.eu_policy):
             self.outcome_in_policy[pp[1]] = pp
+
+
+OQA = VOIElicitor
+"""An Alias for `VOIElicitor`"""
