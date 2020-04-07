@@ -30,5 +30,5 @@ __all__ = (
     + genius.__all__
     + situated.__all__
     + modeling.__all__
-    + ["generics", "helpers", "events", "tournaments"]
+    + ["generics", "helpers", "events", "tournaments", "elicitation"]
 )

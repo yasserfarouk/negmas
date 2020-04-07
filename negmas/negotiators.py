@@ -1,4 +1,6 @@
-"""This module defines the interfaces to all negotiation agents (negotiators) in the platform.
+"""
+This module defines the interfaces to all negotiation agents (negotiators)
+in negmas.
 
 """
 import functools
@@ -398,27 +400,29 @@ class PassThroughNegotiator(Negotiator):
 class Controller(Rational):
     """Controls the behavior of multiple negotiators in multiple negotiations
 
-    The controller class MUST implement any methods of the negotiator class it is controlling with one added
-    argument negotiator_id (str) which represents ID of the negotiator on which the method is being invoked
-    (passed first).
+    The controller class MUST implement any methods of the negotiator class it
+    is controlling with one added argument negotiator_id (str) which represents
+    ID of the negotiator on which the method is being invoked (passed first).
 
-    Controllers for specific classes should inherit from this class and implement whatever methods they want to override
-    on their `PassThroughNegotiator` objects. For example, the SAO module defines `SAOController` that needs only to
-    implement `propose` and `respond` .
+    Controllers for specific classes should inherit from this class and
+    implement whatever methods they want to override on their
+    `PassThroughNegotiator` objects. For example, the SAO module defines
+    `SAOController` that needs only to implement `propose` and `respond` .
 
     Args:
         default_negotiator_type: The negotiator type to use for adding negotiator
                                  if no type is explicitly given.
-        default_negotiator_params: The parameters to use to construct the default
-                                   negotiator type.
+        default_negotiator_params: The parameters to use to construct the
+                                   default negotiator type.
         parent: The parent which can be an `Agent` or another `Controller`
-        auto_kill: If True, negotiators will be killed once their negotiation finishes.
+        auto_kill: If True, negotiators will be killed once their negotiation
+                   finishes.
         name: The controller name
 
     Remarks:
 
-     - Controllers should always call negotiator methods using the `call` method defined in this class. Direct calls may
-       lead to infinite loops
+     - Controllers should always call negotiator methods using the `call`
+       method defined in this class. Direct calls may lead to infinite loops
 
 
     """

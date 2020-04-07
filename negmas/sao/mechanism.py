@@ -423,10 +423,10 @@ class SAOMechanism(Mechanism):
 
         """
         self._new_offers = []
-        negotiators: List[SAONegotiator] = self.negotiators
+        negotiators: List["SAONegotiator"] = self.negotiators
         n_negotiators = len(negotiators)
 
-        def _safe_counter(negotiator, *args, **kwargs):
+        def _safe_counter(negotiator, *args, **kwargs) -> SAOResponse:
             try:
                 if (
                     negotiator == self._current_proposer
@@ -512,15 +512,6 @@ class SAOMechanism(Mechanism):
                     return MechanismRoundResult(
                         broken=False, timedout=True, agreement=None
                     )
-                if self._enable_callbacks:
-                    for other in self.negotiators:
-                        if other is not neg:
-                            other.on_partner_response(
-                                state=self.state,
-                                agent_id=neg.id,
-                                outcome=None,
-                                response=resp,
-                            )
                 if resp.response == ResponseType.END_NEGOTIATION:
                     return MechanismRoundResult(
                         broken=True, timedout=False, agreement=None
@@ -573,14 +564,15 @@ class SAOMechanism(Mechanism):
             if time.perf_counter() - strt > self.ami.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
             if self._enable_callbacks:
-                for other in self.negotiators:
-                    if other is not neg:
-                        other.on_partner_response(
-                            state=self.state,
-                            agent_id=neg.id,
-                            outcome=self._current_offer,
-                            response=resp,
-                        )
+                if self._current_offer is not None:
+                    for other in self.negotiators:
+                        if other is not neg:
+                            other.on_partner_response(
+                                state=self.state,
+                                partner_id=neg.id,
+                                outcome=self._current_offer,
+                                response=resp.response,
+                            )
             if resp.response == ResponseType.NO_RESPONSE:
                 continue
             if resp.response == ResponseType.WAIT:
@@ -619,7 +611,7 @@ class SAOMechanism(Mechanism):
                             if other is neg:
                                 continue
                             other.on_partner_proposal(
-                                agent_id=neg.id, offer=proposal, state=self.state
+                                partner_id=neg.id, offer=proposal, state=self.state
                             )
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
