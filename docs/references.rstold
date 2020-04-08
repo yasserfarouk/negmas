@@ -56,7 +56,7 @@ Reference
     :include-all-objects:
     :noindex:
 
-.. automodapi:: negmas.elicitors
+.. automodapi:: negmas.elicitation
     :include-all-objects:
     :noindex:
 

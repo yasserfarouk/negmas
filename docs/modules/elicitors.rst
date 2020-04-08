@@ -1,3 +1,3 @@
-.. automodapi:: negmas.elicitors
+.. automodapi:: negmas.elicitation
       :members:
       :show-inheritance:
