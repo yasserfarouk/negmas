@@ -634,11 +634,6 @@ class TestCountableOutcomesElicitor(object):
         domain.add(elicitor)
         front, _ = domain.pareto_frontier()
         domain.run()
-
-        # print(
-        #     f'Got {elicitor.ufun(domain.agreement)} with elicitation cost {elicitor.elicitation_cost} '
-        #     f'for {elicitor}')
-
         assert len(domain.history) > 0
 
     def test_voi_baarslag_example(self):

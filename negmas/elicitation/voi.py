@@ -101,6 +101,7 @@ class BaseVOIElicitor(BaseElicitor):
     ) -> None:
         super().__init__(
             strategy=strategy, user=user, **kwargs,
+        )
         self.eeu_query = None
         self.query_index_of_outcome = None
         self.dynamic_query_set = dynamic_query_set

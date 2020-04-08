@@ -1,6 +1,7 @@
 import logging
 import math
 import random
+from pprint import pformat
 
 import pandas as pd
 from typing import Any, Dict
@@ -316,6 +317,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 dict(zip(self.outcomes, self.U)), reserved_value=elicitor_reserved_value
             ),
             cost=cost,
+            ami=self.ami,
         )
         if resolution is None:
             resolution = max(elicitor_reserved_value / 4, 0.025)
@@ -811,6 +813,12 @@ class SAOElicitingMechanism(SAOMechanism):
         else:
             self.elicitation_state["pareto_distance"] = None
         try:
+            self.elicitation_state["queries"] = [
+                str(_) for _ in self.negotiators[1].user.elicited_queries()
+            ]
+        except:
+            self.elicitation_state["queries"] = None
+        try:
             self.elicitation_state["n_queries"] = len(
                 self.negotiators[1].user.elicited_queries()
             )
@@ -820,3 +828,4 @@ class SAOElicitingMechanism(SAOMechanism):
             self.elicitation_state["total_voi"] = self.negotiators[1].total_voi
         else:
             self.elicitation_state["total_voi"] = None
+
