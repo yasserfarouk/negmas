@@ -520,10 +520,10 @@ class VOIElicitor(BaseVOIElicitor):
 
 class VOIFastElicitor(BaseVOIElicitor):
     """
-    FastVOI algorithm proposed by [Mohammad and Nakadai]_
+    FastVOI algorithm proposed by Mohammad and Nakadai [MN2018]_
 
 
-    .. [Mohammad and Nakadai] Mohammad, Y., & Nakadai, S. (2018, October).
+    .. [MN2018] Mohammad, Y., & Nakadai, S. (2018, October).
        FastVOI: Efficient utility elicitation during negotiations. In
        International Conference on Principles and Practice of Multi-Agent
        Systems (pp. 560-567). Springer.

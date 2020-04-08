@@ -21,25 +21,26 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
     :hidden:
     :maxdepth: 1
 
-   readme
-   installation
-   overview
+    readme
+    installation
+    overview
 
-   tutorials
+    tutorials
 
-   base_modules
-   negotiation_mechanisms
-   advanced_negotiation
-   helper_modules
-   scripts
+    base_modules
+    negotiation_mechanisms
+    advanced_negotiation
+    helper_modules
+    scripts
 
-   contributing
-   authors
-   history
+    contributing
+    authors
+    history
 
-   api
+    api
 
-   indices
+    indices
+
 
 
 

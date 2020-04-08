@@ -7,11 +7,15 @@ from typing import Any, Dict, List, Optional, Type, Union
 from .common import NamedObject
 from .helpers import get_class, get_full_type_name, instantiate
 from .mechanisms import Mechanism
-from .situated import Agent
+from .negotiators import Negotiator
+from .situated import Agent, World
 
 __all__ = [
     "Visualizer",
     "MechanismVisualizer",
+    "AgentVisualizer",
+    "NegotiatorVisualizer",
+    "WorldVisualizer",
     "register_visualizer",
     "visualizer",
     "visualizer_type",
@@ -115,6 +119,7 @@ def register_visualizer(
         type_name: The type for which the visualizer is registered
         visualizer_name: The visualizer type
     """
+    global VISUALIZERS
     VISUALIZERS[get_full_type_name(type_name)] = get_full_type_name(visualizer_name)
 
 
@@ -127,7 +132,7 @@ def visualizer(x: Union[str, Type[NamedObject], NamedObject]) -> Optional[Visual
           try the following in order:
           1. Try to read a class member called "visualizer_type" from the given object/type
           2. Try to add "Visualizer" to the type name and return an object of that type
-          3. Return a vase Visualizer object
+          3. Return a base Visualizer object
     """
     obj = None
     if isinstance(x, NamedObject):
@@ -215,6 +220,37 @@ class MechanismVisualizer(Visualizer):
         return ["negotiators"]
 
 
+class NegotiatorVisualizer(Visualizer):
+    @classmethod
+    def widget_kind(cls, widget_name: str) -> str:
+        if widget_name == "utils":
+            return "graph_data"
+        return super().widget_kind(widget_name)
+
+    @classmethod
+    def widget_names(cls) -> List[str]:
+        return ["utils"] + super().widget_names()
+
+    @classmethod
+    def widget_params(cls, name: str) -> Dict[str, Type]:
+        if name == "utils":
+            return {"name": str}
+        return super().widget_params(name)
+
+    def render_widget(
+        self, name: str, params: Dict[str, Any] = None
+    ) -> Optional[Widget]:
+        raise NotImplementedError()
+
+    @property
+    def children(self) -> Dict[str, List[NamedObject]]:
+        return dict()
+
+    @classmethod
+    def children_categories(cls) -> List[str]:
+        return []
+
+
 class AgentVisualizer(Visualizer):
     """Visualizes an agent"""
 
@@ -280,3 +316,6 @@ class WorldVisualizer(Visualizer):
 
 # register builtin visualizers
 register_visualizer(Mechanism, MechanismVisualizer)
+register_visualizer(Agent, AgentVisualizer)
+register_visualizer(Negotiator, AgentVisualizer)
+register_visualizer(World, WorldVisualizer)
