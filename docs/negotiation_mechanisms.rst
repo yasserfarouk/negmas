@@ -5,6 +5,7 @@ Negotiation Mechanisms
 .. toctree::
     modules/sao
     modules/st
+    modules/mt
     modules/ga
     modules/concurrent
 
