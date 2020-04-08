@@ -1,3 +1,3 @@
 .. automodapi:: negmas.modeling.utility
-          :members:
-          :show-inheritance:
+    :members:
+    :show-inheritance:
