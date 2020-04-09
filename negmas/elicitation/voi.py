@@ -13,7 +13,7 @@ import numpy as np
 try:
     from blist import sortedlist
 except ImportError:
-    raise ImportError(
+    raise ImportWarning(
         "blist is not found. VOI based elicitation methods will not work. You can install"
         " blist by running:"
         ""
