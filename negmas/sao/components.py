@@ -120,11 +120,6 @@ class LimitedOutcomesAcceptorMixin:
     A mixin that adds the ability to accept random offers
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.acceptance_probabilities = self.acceptable_outcomes = None
-        self.p_ending = self.p_no_response = self.time_factor = None
-
     def init_limited_outcomes_acceptor(
         self,
         acceptable_outcomes: Optional[Iterable["Outcome"]] = None,
