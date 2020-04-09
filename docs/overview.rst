@@ -11,23 +11,17 @@ of this document):
 
 .. code:: ipython3
 
-    # This is to make the results reproducible if you are using the Jupyter notebook version.
-    from random import seed
-    seed(0)
     import negmas
 
 Organization
 ------------
 
-The package is organized into a set of modules the combine together
-related functionality. In general there are *base* modules that
-implement the most general abstractions and concepts and then
-*specialized* modules that implement the computational structures needed
-for a specific application or research domain:
+The package is organized into a set of modules/packages that combine
+together related functionality. There are base modules, protocol
+specific modules, advanced and helper modules.
 
--  **Base Modules** These are the most general modules and all other
-   *specialized* modules use the computational resources defined here.
-   The base modules provided in this version are:
+-  **Base Modules** Implements basic automated negotiation
+   functionality:
 
    1. **outcomes** This module represents issues, outcome and responses
       and provides basic functions and methods to operator with and on
@@ -35,9 +29,11 @@ for a specific application or research domain:
    2. **utilities** This modules represents the base type of all
       utilities and different widely used utility function types
       including linear and nonlinear utilities and constraint-based
-      utilities.
+      utilities. This module also implements basic analysis tools like
+      finding the pareto-frontier, sampling outcomes with given
+      utilities from the outcome space, etc.
    3. **negotiators** This module represents basic negotiation agent
-      implementation and provide basic interfaces to be overriden
+      implementation and provides basic interfaces to be overriden
       (implemented) by higher specialized modules
    4. **mechanisms** This module represents the most basic conceptual
       view of a negotiation protocol supporting both mediate and
@@ -45,35 +41,75 @@ for a specific application or research domain:
       the more common ``protocol`` to stress the fact that this
       mechanism need not be a standard negotiation protocol. For example
       auction mechanisms (like second-price auctions) can easily be
-      implemented in this package.
-   5. **opponent_models** This module provides the basic interface for
-      all opponent models.
-   6. **situated** This module implements world simulations within which
-      agents with intrinsic utilty functions can engage in simulataneous
-      connected situated negotiations. It is the most important module
-      for the goals of this library.
-   7. **Helper Modules** These modules provide basic activities that is
-      not directly related to the negotiation but that are relied upon
-      by different base modules. The end user is not expected to
-      interact directly with these modules.
+      implemented as a ``Mechanism`` in negmas.
+   5. **common** Provides datastructures that are used by all modules
+      including mechanism-state, and the agent-mechanism-interface.
+   6. **genius** Implements a specific type negotiator for the stacked
+      alternating offers protocol called ``GeniusNegotiator`` which can
+      run ``NegotiationParty`` based agents from the Java
+      `Genius <http://ii.tudelft.nl/genius/>`__ platform.
 
-      -  **common** Provides common interfaces that are used by all
-         other modules.
-      -  **generics** Provides a set of types and interfaces to increase
-         the representation flexibility of different base modules.
-      -  **helpers** Various helper functions and classes used
-         throughout the library including mixins for logging.
+-  **Mechanism Specific Modules** These modules implement the base
+   mechanism, negotiator type(s), state, and related computational
+   resources specific to a single (or a set of related)
+   negotiation/auction protocols
 
--  **App Modules** This namespace provides the modules needed to run
-   different *apps* that represent worlds within which negotiations take
-   place.
+   1. **sao** Implements that stacked alternating offers protocol for
+      unmediated multiparty multi-issue negotiations. Other than
+      providing the ``SAOMechanism`` class representing the protocol,
+      this package provides a set of simple negotiators including the
+      time-based ``AspirationNegotiator``, a
+      ``SimpleTitForTatNegotiator``, among others.
+   2. **st** Implements two basic single-text mediated negotiation
+      protocols (veto and hill-climbing) and the basic negotiator types
+      to support them.
+   3. **mt** Implements and extension of single text mediated protocols
+      to handle multiple *proposed agreements* in parallel.
+   4. **ga** Implements a Genetic Algorithm based single text mediated
+      negotiation protocol
 
-   1. **scml** The Supply Chain Management App as defined for the SCM
-      leage of ANAC 2019 competition.
+-  **Advanced Negotiation Modules** These modeuls model advanced
+   negotiation problems and techniques
 
-To simplify the use of this library, all classes and functions from all
+   1. **situated** Implements world simulations within which agents with
+      intrinsic utilty functions can engage in simulataneous connected
+      situated negotiations. It is the most important module for the
+      goals of this library. The ``Agent`` and ``World`` classes
+      described in details later belong to this module
+   2. **modeling** This is a set of submodules implementing modeling of
+      opponent utility, opponent strategy, opponent’s future offers and
+      opponent’s probability of accepting offers.
+   3. **elicitation** Implements several preference elicitation during
+      negotiation methods.
+   4. **concurrent** Implements mechanism types, and other computational
+      resources to support concurrent negotiation.
+
+-  **Helper Modules** These modules provide basic activities that is not
+   directly related to the negotiation but that are relied upon by
+   different base modules. The end user is not expected to interact
+   directly with these modules.
+
+   -  **common** Provides common interfaces that are used by all other
+      modules.
+   -  **generics** Provides a set of types and interfaces to increase
+      the representation flexibility of different base modules.
+   -  **helpers** Various helper functions and classes used throughout
+      the library including mixins for logging.
+   -  **inout** Provides functions to load and store XML Genius domains
+      and utility functions.
+   -  **java** [Depricated] Provides an interface to JNegMAS allowing
+      agents and negotiators to be developed in Java.
+   -  **tournaments** Supports creating and running tournaments to
+      compare agents and negotiators.
+   -  **checkpoints** Supports saving and reloading world simulations
+      to/from secondry storage.
+   -  **visualizers** [Under development] Supports visualization of
+      world simulation, negotiation sessions, negotiators, and agents.
+
+To simplify the use of this platform, all classes and functions from all
 base modules are aliased in the root package (except generics and
-helpers). This is an example of importing just ``Outcome``
+helpers). This is an example of importing just ``Outcome`` which is
+defined in the ``outcomes`` package
 
 .. code:: ipython3
 
@@ -91,9 +127,6 @@ As usual you can just import everything in a separate namespace using:
 
     import negmas
 
-Issues, Outcomes, and Responses
--------------------------------
-
 Negotiations are conducted between mutliple agents with the goal of
 achieving an *agreement* (usually called a contract) on one of several
 possible outcomes. Each *outcome* is in general an assignment to some
@@ -103,13 +136,8 @@ of a – probably infinit – set of values from some predefined *domain*.
 The classes and funtions supporting management of issues, outcomes and
 responses are combined in the ``outcomes`` module.
 
-To directly handle issues, outcomes and responses; you need to import
-the ``outcomes`` modules. To simplify the code snippets in this
-overview, we will just import everything in this module but you can of
-course be selective
-
 Issues
-~~~~~~
+------
 
 Issues are represented in ``negmas`` using the issue class. An issue is
 defined by a set of ``values`` and a ``name``. It can be created as
@@ -129,7 +157,7 @@ follows:
 
 .. parsed-literal::
 
-    ujsOSObZD5IZoGjd: ['to be', 'not to be']
+    TVxoHhOQTAWzrEZU: ['to be', 'not to be']
     The Problem: ['to be', 'not to be']
 
 
@@ -194,12 +222,11 @@ discrete or continuous:
 
 
 
-It is possible to check the total cardinality for a set of issues (with
-the usual ``-1`` encoding infinity):
+It is possible to check the total cardinality for a set of issues:
 
 .. code:: ipython3
 
-    [Issue.num_outcomes([issue1, issue2, issue3, issue4]), # expected -1 because of issue4
+    [Issue.num_outcomes([issue1, issue2, issue3, issue4]), # expected inf
      Issue.num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 4
 
 
@@ -217,7 +244,6 @@ You can pick random valid or invalid values for the issue:
 
     [
         [issue1.rand_valid(), issue1.rand_invalid()],
-        [issue2.rand_valid(), issue2.rand_invalid()],
         [issue3.rand_valid(), issue3.rand_invalid()],
         [issue4.rand_valid(), issue4.rand_invalid()],
     ]
@@ -227,39 +253,38 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20191204H150950767460YFBbBciGto be20191204H1509507675026Qo5hsNR'],
-     ['to be',
-      '20191204H150950767526EOD79Q2cnot to be20191204H150950767559yWWU2KHE'],
-     [7, 16],
-     [0.372449262972256, 1.6379287837318206]]
+    [['not to be',
+      '20200409H1735236220345BuDQfJ7to be20200409H173523622071naq3MRdO'],
+     [8, 11],
+     [0.026696794662205203, 1.7349999099114584]]
 
 
 
-You can also list all valid values for an issue using ``all``. Notice
-that this property is a generator so it is memory efficient for the case
-when an issue has many values.
+You can also list all valid values for an issue using ``all`` or sample
+from them using ``alli``. Notice that ``all`` and ``alli`` return
+generators so both are memory efficient.
 
 .. code:: ipython3
 
-    print(list(issue1.all))
-    print(list(issue2.all))
-    print(list(issue3.all))
+    print(tuple(issue1.all))
+    print(tuple(issue2.all))
+    print(tuple(issue3.all))
     try:
-        print(list(issue4.all))
+        print(tuple(issue4.all))
     except ValueError as e:
         print(e)
 
 
 .. parsed-literal::
 
-    ['to be', 'not to be']
-    ['to be', 'not to be']
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ('to be', 'not to be')
+    ('to be', 'not to be')
+    (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
     Cannot return all possibilities of a continuous/uncountable issue
 
 
 Outcomes
-~~~~~~~~
+--------
 
 Now that we know how to define issues, defining outcomes from a
 negotiation is even simpler. An outcome can be any python ``mapping`` or
@@ -288,8 +313,10 @@ examples:
 
 .. code:: ipython3
 
-    [ outcome_is_valid(valid_outcome, [issue2, issue3, issue4])       # valid giving True
-    , outcome_is_valid(invalid_outcome, [issue2, issue3, issue4])]    # invalid giving False
+    [
+        outcome_is_valid(valid_outcome, [issue2, issue3, issue4]),      # valid giving True
+        outcome_is_valid(invalid_outcome, [issue2, issue3, issue4])     # invalid giving False
+    ]
 
 
 
@@ -306,8 +333,9 @@ for the last three issues given above:
 
 .. code:: ipython3
 
-    [ outcome_is_valid({'The Problem': 'to be'}, [issue2, issue3, issue4])
-    , outcome_is_valid({'The Problem': 'to be', 'number of items': 5}, [issue2, issue3, issue4])
+    [
+        outcome_is_valid({'The Problem': 'to be'}, [issue2, issue3, issue4]),
+        outcome_is_valid({'The Problem': 'to be', 'number of items': 5}, [issue2, issue3, issue4])
     ]
 
 
@@ -319,6 +347,25 @@ for the last three issues given above:
 
 
 
+You can check the validity of outcomes defined as tuples or lists the
+same way.
+
+.. code:: ipython3
+
+    [
+        outcome_is_valid(['to be', 4, 0.5], [issue2, issue3, issue4]),
+        outcome_is_valid(('to be', 4, 1.5), [issue2, issue3, issue4])
+    ]
+
+
+
+
+.. parsed-literal::
+
+    [True, False]
+
+
+
 It is also important for some applications to check if an outcome is
 ``complete`` in the sense that it assigns a *valid* value to every issue
 in the given set of issues. This can be done using the
@@ -326,9 +373,10 @@ in the given set of issues. This can be done using the
 
 .. code:: ipython3
 
-    [ outcome_is_complete(valid_outcome, [issue2, issue3, issue4])       # complete -> True
-    , outcome_is_complete(invalid_outcome, [issue2, issue3, issue4])  # invalid -> incomplete -> False
-    , outcome_is_complete({'The Problem': 'to be'}, [issue2, issue3, issue4])  # incomplete -> False  
+    [
+        outcome_is_complete(valid_outcome, [issue2, issue3, issue4]),            # complete -> True
+        outcome_is_complete(invalid_outcome, [issue2, issue3, issue4]),          # invalid -> incomplete -> False
+        outcome_is_complete({'The Problem': 'to be'}, [issue2, issue3, issue4])  # incomplete -> False
     ]
 
 
@@ -358,9 +406,11 @@ Now you can use objects of MyOutcome as normal outcomes
 
 .. code:: ipython3
 
-    issues = [Issue(['to be', 'not to be'], name='problem')
-              , Issue((0.0, 3.0), name='price')
-              , Issue(5, name='quantity')]
+    issues = [
+        Issue(['to be', 'not to be'], name='problem'),
+        Issue((0.0, 3.0), name='price'),
+        Issue(5, name='quantity')
+    ]
 
 .. code:: ipython3
 
@@ -372,11 +422,11 @@ Now you can use objects of MyOutcome as normal outcomes
 
 .. parsed-literal::
 
-    MyOutcome(problem='to be', price=2.994358541523904, quantity=3)
-    MyOutcome(problem='not to be', price=2.702365619666316, quantity=3)
-    MyOutcome(problem='to be', price=1.0535014988939553, quantity=4)
-    MyOutcome(problem='not to be', price=1.693743551392433, quantity=3)
-    MyOutcome(problem='to be', price=1.8237347215154869, quantity=4)
+    MyOutcome(problem='to be', price=1.812399297658087, quantity=4)
+    MyOutcome(problem='not to be', price=2.1342018233171163, quantity=0)
+    MyOutcome(problem='to be', price=1.456736400980284, quantity=2)
+    MyOutcome(problem='to be', price=2.692720164802598, quantity=2)
+    MyOutcome(problem='not to be', price=0.07822549395128475, quantity=2)
 
 
 The *sample* function created objects of type MyOutcome that can be
@@ -391,9 +441,9 @@ accessed using either the dot notation or as a dict
 
 .. parsed-literal::
 
-    2.994358541523904
-    2.994358541523904
-    2.994358541523904
+    1.812399297658087
+    1.812399297658087
+    1.812399297658087
 
 
 OutcomeType is intended to be used as a syntactic sugar around your
@@ -406,9 +456,9 @@ Sometimes, it is important to represent not only a single outcome but a
 range of outcomes. This can be represented using an ``OutcomeRange``.
 Again, an outcome range can be almost any ``mapping`` or ``iterable`` in
 python including dictionaries, lists, tuples, etc with the only
-exception that the values stored in it can be not only ``int``, ``str``,
-``float`` but also ``tuple``\ s of two of any of them representing a
-range. This is easier shown:
+exception that the values stored in it can be not only be ``int``,
+``str``, ``float`` but also ``tuple``\ s of two of any of them
+representing a range or a ``list`` of values. This is easier shown:
 
 .. code:: ipython3
 
@@ -429,9 +479,10 @@ It is easy to check whether a specific outcome is within a given range:
 
     outcome1 = {'The Problem': 'to be', 'number of items': 5, 'cost': 0.15}
     outcome2 = {'The Problem': 'to be', 'number of items': 10, 'cost': 0.15}
-    [ outcome_in_range(outcome1, range1)        # True
-    , outcome_in_range(outcome2, range1)        # False
-    ]       
+    [
+        outcome_in_range(outcome1, range1),       # True
+        outcome_in_range(outcome2, range1)        # False
+    ]
 
 
 
@@ -452,30 +503,6 @@ the constraint:
 -  **list of values** The outcome must be within the list.
 -  **list of tuples** The outcome must fall within one of the ranges
    specified by the tuples.
-
-Responses
-~~~~~~~~~
-
-When negotiations are run, agents are allowed to respond to given offers
-for the final contract. An offer is simple an outcome (either complete
-or incomplete depending on the protocol but it is always valid). Agents
-can then respond with one of the values defined by the ``Response``
-enumeration in the ``outcomes`` module. Currently these are:
-
--  **ACCEPT_OFFER** Accepts the offer.
--  **REJECT_OFFER** Rejects the offer.
--  **END_NEGOTIATION** This implies rejection of the offer and further
-   more indicates that the agent is not willing to continue with the
-   negotiation. The protocol is free to handle this situation. It may
-   just end the negotiation with no agreement, may just remove the agent
-   from the negotiation and keep it running with the remaining agents
-   (if that makes sense) or just gives the agent a second chance by
-   treating it as just a ``REJECT_OFFER`` case. In most case the first
-   response (just end the negotiation) is expected.
--  **NO_RESPONSE** Making no response at all. This is usually not
-   allowed by negotiation protocols and will be considered a protocol
-   violation in most cases. Nevertheless, negotiation protocols are free
-   to handle this response when it arise in any way.
 
 Utilities
 ---------
@@ -553,21 +580,21 @@ which is guaranteed to return a real number (``float``) even if the
 utiliy function itself is returning a utility distribution.
 
 To implement a specific utility function, you need to override the
-single ``__call__`` function provided in the ``UtilityFunction``
-abstract interface. This is a simple example:
+single ``eval`` function provided in the ``UtilityFunction`` abstract
+interface. This is a simple example:
 
 .. code:: ipython3
 
     class ConstUtilityFunction(UtilityFunction):
        def __call__(self, offer):
             try:
-                return 3.0 * offer['cost'] 
+                return 3.0 * offer['cost']
             except KeyError:  # No value was given to the cost
                 return None
-        
+
        def xml(self):
             return '<ufun const=True value=3.0></ufun>'
-    
+
     f = ConstUtilityFunction()
     [f({'The Problem': 'to be'}), f({'cost': 10})]
 
@@ -591,19 +618,19 @@ change or evolution of them during negotiations. For example this
         def __init__(self, mood='good'):
             super().__init__()
             self.mood = mood
-            
+
         def __call__(self, offer):
             return float(offer['cost']) if self.mood == 'good'\
                                 else 0.1 * offer['cost'] if self.mood == 'bad' \
-                                else None 
+                                else None
         def set_mood(self, mood):
             self.mood = mood
-        
+
         def xml(self):
             pass
-    
+
     offer = {'cost': 10.0}
-    
+
     f = MoodyUtilityFunction()
     # I am in a good mode now
     print(f'Utility in good mood of {offer} is {f(offer)}')
@@ -627,6 +654,56 @@ outcome/offer.
 The package provides a set of predefined utility functions representing
 most widely used types. The following subsections describe them briefly:
 
+Comparison Interface to UFuns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases, the preferences that the negotiator is to work with are
+not directly given as a mapping from outcomes to utility values but as
+comparisons between different outcomes.
+
+For example, we may have four outcomes ``A``, ``B``, ``C``, ``D``, and
+we know that each letter is better than the next except ``C`` and ``D``
+that are equivalent. How can we encode this in negmas?
+
+All preferences in negmas are encoded using a ``UtilityFunction`` so we
+must use one. Here is one example:
+
+.. code:: ipython3
+
+    class MyUFun(UtilityFunction):
+        def eval(self, outcome):
+            raise ValueError("This ufun does not implement the direct evaluation interface")
+        def xml(self):
+            raise NotImplementedError('I do not know how to save myself to XML')
+        def is_better(self, a, b):
+            return a < b and not (a=='C' and b == 'D')
+
+We can create a ufun of this type now as usual
+
+.. code:: ipython3
+
+    u = MyUFun()
+
+You can then use the ufun normally. In the future, the ``eval`` method
+will be approximated for those utility functions allowing them to be
+used directly in mechanisms that expect an outcome-value mapping. For
+now, they are only usable in mechanisms that rely on the ``is_better``
+interface (e.g. the single-text mechanism ``STMechanism`` and its
+derivatives).
+
+.. code:: ipython3
+
+    u.is_better('A', 'C')
+
+
+
+
+.. parsed-literal::
+
+    True
+
+
+
 Linear Aggregation Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -634,13 +711,13 @@ The ``LinearAggregationUtilityFunction`` class represents a function
 that linearly aggregate utilities assigned to issues in the given
 outcome which can be defined mathematically as follows:
 
-:raw-latex:`\begin{equation}
-U(o) = \sum_{i=0}^{\left|o\right|}{w_i\times g_i(o_i)}
-\end{equation}`
+.. math:: U(o) = \sum_{i=0}^{\left|o\right|}{w_i\times g_i(o_i)}
 
-where :math:`o` is an outcome, :math:`w` is a real-valued weight vector
-and :math:`g` is a vector of functions each mapping one issue of the
-outcome to some real-valued number (utility of this issue).
+where :math:`o` is an outcome, :math:`w` is a real-valued weight vector,
+:math:`\left|o\right|` is the number of issues, :math:`o_i` if the value
+assigned in outcome :math:`o` to issue :math:`i`, and :math:`g` is a
+vector of functions each mapping one issue of the outcome to some
+real-valued number (utility of this issue).
 
 Notice that despite the name, this type of utiliy functions can
 represent nonlinear relation between issue values and utility values.
@@ -704,9 +781,7 @@ A direct generalization of the linear agggregation utility functions is
 provided by the ``NonLinearAggregationUtilityFunction`` which represents
 the following function:
 
-:raw-latex:`\begin{equation}
-U(o) = f\left(\left\{{g_i(o_i)}\right\}\right)
-\end{equation}`
+.. math:: U(o) = f\left(\left\{{g_i(o_i)}\right\}\right)
 
 where :math:`g` is a vector of functions defined as before and :math:`f`
 is a mapping from a vector of real-values to a single real value.
@@ -756,8 +831,6 @@ We can now evaluate different options similar to the case for the buyer:
     0.7
 
 
-
-
 Hyper Rectangle Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -776,9 +849,13 @@ can be represented as follows:
 
 .. code:: ipython3
 
-    seller_utility =HyperRectangleUtilityFunction(outcome_ranges= [None]
-                               , utilities= [lambda x: 2.0*x['price']/x['number of items'] \
-                                               - 0.5 * int(x['delivery'] == 'delivered')])
+    seller_utility = HyperRectangleUtilityFunction(
+        outcome_ranges= [None],
+        utilities= [
+            lambda x: 2.0*x['price']/x['number of items']
+            - 0.5 * int(x['delivery'] == 'delivered')
+        ]
+    )
     print(seller_utility({'price': 1.0, 'number of items': 3, 'delivery': 'not delivered'}))
     print(seller_utility({'price': 1.0, 'number of items': 3, 'delivery': 'delivered'}))
     print(seller_utility({'price': 1.8, 'number of items': 3, 'delivery': 'delivered'}))
@@ -806,11 +883,17 @@ two different local ones:
 
 .. code:: ipython3
 
-    f = HyperRectangleUtilityFunction(outcome_ranges=[None,
-                                                {0: (1.0, 2.0), 1: (1.0, 2.0)},
-                                                {0: (1.4, 2.0), 2: (2.0, 3.0)}]
-                                           , utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]]
-                                  , weights=[1,0.5,2.5])
+    f = HyperRectangleUtilityFunction(
+        outcome_ranges=[
+            None,
+            {0: (1.0, 2.0), 1: (1.0, 2.0)},
+            {0: (1.4, 2.0), 2: (2.0, 3.0)}
+        ],
+        utilities=[
+            5.0, 2.0, lambda x: 2 * x[2] + x[0]
+        ],
+        weights=[1,0.5,2.5]
+    )
 
 There are three nonlinear functions in this example:
 
@@ -878,12 +961,16 @@ or not. To allow such cases, the initializer of
 
 .. code:: ipython3
 
-    g = HyperRectangleUtilityFunction(outcome_ranges=[None,
-                                                {0: (1.0, 2.0), 1: (1.0, 2.0)},
-                                                {0: (1.4, 2.0), 2: (2.0, 3.0)}]
-                                           , utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]]
-                                   , ignore_failing_range_utilities=True
-                                   , ignore_issues_not_in_input=True)
+    g = HyperRectangleUtilityFunction(
+        outcome_ranges=[
+            None,
+            {0: (1.0, 2.0), 1: (1.0, 2.0)},
+            {0: (1.4, 2.0), 2: (2.0, 3.0)}
+        ],
+        utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]],
+        ignore_failing_range_utilities=True,
+        ignore_issues_not_in_input=True
+    )
     print(g([1.5, 1.5]))
 
 
@@ -918,13 +1005,12 @@ module for more details
 .. code:: ipython3
 
     from pprint import pprint
-    pprint(negmas.utilities.__all__)
+    pprint(list(_ for _ in negmas.utilities.__all__ if _.endswith("n")))
 
 
 .. parsed-literal::
 
     ['UtilityDistribution',
-     'UtilityValue',
      'UtilityFunction',
      'ConstUFun',
      'LinDiscountedUFun',
@@ -938,106 +1024,185 @@ module for more details
      'ComplexNonlinearUtilityFunction',
      'LinearUtilityFunction',
      'IPUtilityFunction',
-     'pareto_frontier',
      'make_discounted_ufun',
-     'normalize',
      'JavaUtilityFunction',
-     'RandomUtilityFunction',
-     'INVALID_UTILITY',
-     'outcome_with_utility',
-     'utility_range']
+     'RandomUtilityFunction']
 
+
+Utility Helpers and Analysis Tools
+----------------------------------
+
+NegMAS provides a set of functions that help with common tasks required
+while developing negotiation agents. These are some examples:
+
+-  **pareto_frontier** Finds the pareto-frontier of a set of utility
+   functions.
+-  **make_discounted_ufun** Takes a utility function and returns one
+   that is discounted (linearly and/or exponentially).
+-  **normalize** Normalizes a utility function within a given range.
+-  **outcome_with_utility** Finds an outcome with a utility within some
+   range.
+-  **utility_range** Finds the range of values of a utility function and
+   outcomes with highest and lowest utilities.
+
+Responses
+---------
+
+When negotiations are run, agents are allowed to respond to given offers
+for the final contract. An offer is simply an outcome (either complete
+or incomplete depending on the protocol but it is always valid).
+Negotiators can then respond with one of the values defined by the
+``Response`` enumeration in the ``outcomes`` module. Currently these
+are:
+
+-  **ACCEPT_OFFER** Accepts the offer.
+-  **REJECT_OFFER** Rejects the offer.
+-  **END_NEGOTIATION** This implies rejection of the offer and further
+   more indicates that the agent is not willing to continue with the
+   negotiation. The protocol is free to handle this situation. It may
+   just end the negotiation with no agreement, may just remove the agent
+   from the negotiation and keep it running with the remaining agents
+   (if that makes sense) or just gives the agent a second chance by
+   treating it as just a ``REJECT_OFFER`` case. In most case the first
+   response (just end the negotiation) is expected.
+-  **NO_RESPONSE** Making no response at all. This is usually not
+   allowed by negotiation protocols and will be considered a protocol
+   violation in most cases. Nevertheless, negotiation protocols are free
+   to handle this response when it arise in any way.
+-  **WAIT** Used to make the negotiation wait for a slow running process
+   in one of the negotiators. This should never be returned from user
+   code. It is used by some builtin controllers in the system to
+   synchronize responses (e.g. ``SAOSyncController`` )
+
+Rational Entities
+-----------------
+
+A ``Rational`` entity in NegMAS is an object that has an associated
+``UtilityFunction``. There are three types of ``Rational`` entities
+defined in the library:
+
+-  **Negotiator** represents a negotiation agent that can interact with
+   ``Mechanism`` objects (representing negotiation protocols) using a
+   dedicated ``AgentMechanismInterface`` the defines public information
+   of the mechanism. A negotiator is tied to a single negotiation.
+-  **Agent** represents a more complex entity than a negotiation agent.
+   It does not interact directly with negotiation protocols (i.e. it
+   does not have an ``AgentMechanismInterface``) and is needed when
+   there is a need to adjust behavior in multiple negotiations and/or
+   when there is a need to interact with a simulation or the real world
+   (represented in negmas by a ``World`` object) through an
+   ``AgentWorldInterface``.
+-  **Controller** A mid-level entity between ``Negotiator`` and
+   ``Agent``. It can *control* multiple negotiator objects at the same
+   time but it cannot interact with mechanisms or worlds directly.
+   Usually controllers are created by agents to manage a set of
+   interrelated negotiations through dedicated negotiators in each of
+   them.
 
 Negotiators
------------
+~~~~~~~~~~~
 
 Negotiations are conducted by negotiators. We reserve the term ``Agent``
 to more complex entities that can interact with a simulation or the real
 world and spawn ``Negotiator`` objects as needed (see the situated
-module documentation). The base ``Negotiator`` are implemented in the
+module documentation). The base ``Negotiator`` is implemented in the
 ``negotiators`` module. The design of this module tried to achieve
 maximum flexibility by relying mostly on Mixins instead of inheretance
 for adding functionality as will be described later.
 
-Classes exposed in this module end with either ``Agent`` or ``Mixin``
-
-.. code:: ipython3
-
-    import negmas; negmas.negotiators.__all__
-
-
-
-
-.. parsed-literal::
-
-    ['Negotiator',
-     'AspirationMixin',
-     'Controller',
-     'PassThroughNegotiator',
-     'EvaluatorMixin',
-     'RealComparatorMixin',
-     'BinaryComparatorMixin',
-     'NLevelsComparatorMixin',
-     'RankerMixin',
-     'RankerWithWeightsMixin',
-     'SorterMixin',
-     'EvaluatorNegotiator',
-     'RealComparatorNegotiator',
-     'BinaryComparatorNegotiator',
-     'NLevelsComparatorNegotiator',
-     'RankerNegotiator',
-     'RankerWithWeightsNegotiator',
-     'SorterNegotiator']
-
-
-
-To build your negotiator, you need to inherit from one class ending with
-``Negotiator``, implement its abstract functions and then add whatever
-mixins you need implementing their abstract functions (if any) in turn.
+To build your negotiator, you need to inherit from a ``Negotiator``
+suitable for the negotiation mechanism your negotiator is compatible
+with, implement its abstract functions.
 
 Negotiators related to a specific negotiation mechanism are implemented
 in that mechanism’s module. For example, negotiators designed for the
 Stacked Alternating Offers Mechanism are found in the ``sao`` module.
 
-Agent (the base class of all negotiation agents)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The Base Negotiator
+^^^^^^^^^^^^^^^^^^^
 
-The base class of all agents is ``Agent`` which has three abstract
-methods that MUST be implemented by any agent you inherit from it:
+The base class of all negotiators is ``Negotiator``. Negotiators define
+callbacks that are called by ``Mechanism``\ s to implement the
+*negotiation protocol*.
 
-.. code:: ipython3
+The base ``Negotiator`` class defines basic functionality including the
+ability to access the ``Mechanism`` settings in the form of an
+``AgentMechanismInterface`` accessible through the ``ami`` attribute of
+the ``Negotiator``.
 
-    import negmas; negmas.sao.__all__
-
-
-
-
-.. parsed-literal::
-
-    ['SAOState',
-     'SAOMechanism',
-     'SAOProtocol',
-     'SAONegotiator',
-     'RandomNegotiator',
-     'LimitedOutcomesNegotiator',
-     'LimitedOutcomesAcceptor',
-     'AspirationNegotiator',
-     'ToughNegotiator',
-     'OnlyBestNegotiator',
-     'NaiveTitForTatNegotiator',
-     'SimpleTitForTatNegotiator',
-     'NiceNegotiator',
-     'SAOController',
-     'JavaSAONegotiator',
-     'PassThroughSAONegotiator',
-     'SAOSyncController']
-
-
+Genius Negotiator
+^^^^^^^^^^^^^^^^^
 
 There is a speical type of negotiators called ``GeniusNegotiator``
 implemented in the ``genius`` module that is capable of interacting with
 negotiation sessions running in the genius platform (JVM). Please refer
-to the documentation of this module for more information.
+to the documentation of ``genius`` module for more information.
+
+Controller
+~~~~~~~~~~
+
+A ``Controller`` is an object that can control multiple negotiators
+either by taking full or partial control from the ``Negotiator``\ s. By
+default, controllers will just resend all requests received to the
+corresponding negotiator. This means that if you do not override any
+methods in the controller, all negotiation related actions will still be
+handled by the ``Negotiator``. To allow controllers to actually manage
+negotiations, a subclass of ``Controller`` needs to implement these
+actions without calling the baseclass’s implementation.
+
+A special kind of negotaitor called ``PassThroughNegotiator`` is
+designed to work with controllers that take full responsibility of the
+negotiation. These negotiators act just as a relay station passing all
+requests from the mechanism object to the controller and all responses
+back.
+
+Agents
+~~~~~~
+
+Self interested entities in NegMAS can be represented by either
+``Negotiator``\ s or ``Agent``\ s. Use negotiators when a single
+negotiation session is involved, otherwise use an agent. Agents can own
+both negotiators and controllers (that manage negotiators) and can act
+in the ``World`` (simulated or real).
+
+Putting Everything together
+---------------------------
+
+Other than ``Rational`` objects, NegMAS defines two types of entities
+that orchestrate the interacitons between ``Rational`` objects:
+
+-  **Mechanisms** represent interaction protocols which can be
+   negotiation protocols or auctions. A ``Mechanism`` object connects a
+   set of ``Negotiator``\ s and implements the interaction protocol.
+-  **Worlds** represent either the real world or (usually) a simulation
+   that connects ``Agent``\ s together. ``Agent``\ s can find each other
+   using the world’s ``BulletinBoard`` (or other mechanisms defined by
+   the world simulation), they can act in the world, receive state from
+   it and – most importantly for our current purposes – request/run
+   negotiations involving other agents (through dedicated ``Controller``
+   and/or ``Negotiator`` objects).
+
+A picture is worth a thousand words. The following figure shows how all
+the classes we mentioned so far fit together
+
+.. image:: overview.png
+  :width: 600
+
+The most important points to notice about this figure are the following:
+
+-  Almost all entities are ``NamedObject``\ s which means they have a
+   *user assigne* name used for debugging, printing, and logging, and a
+   *system assigned* id used when prgramatically accessing the object.
+   For example, agents request negotaitions with other agents from the
+   world using the partner’s *id* not *name*.
+-  ``Controller`` objects can access neither worlds nor mechanisms
+   directly and they depend on agents to create them and on negotiators
+   to negotiate for them.
+-  A ``UtilityFunction`` in negmas is an active entity, it is not just a
+   methematical function but it can have state, access the mechanism
+   state or settings (through its own ``AgentMechanismInterface``) and
+   can change its returned value for the same output during the
+   negotiation. Ufuns need not be dyanmic in this sense but they can be.
 
 Mechanisms (Negotiations)
 -------------------------
@@ -1073,10 +1238,8 @@ provided protocols. This is an example of a full negotiation session:
 .. code:: ipython3
 
     p = SAOMechanism(outcomes = 6, n_steps = 10)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]
-                                       , outcomes=p.outcomes))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]
-                                       , outcomes=p.outcomes))
+    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     p.state.agreement
 
@@ -1085,62 +1248,68 @@ provided protocols. This is an example of a full negotiation session:
 
 .. parsed-literal::
 
-    (3,)
+    (1,)
 
 
 
 You can create a new protocol by overriding a single function in the
-``Protocol`` class. This is for example the full code of the
-``AlternatingOffersProtcol`` for the multi-issue case.
+``Protocol`` class.
+
+The builtin ``SAOMechanism`` calls negotiators sequentially. Let’s
+implement a simplified similar protocol that asks *all* negotiators to
+respond to every offer in parallel.
 
 .. code:: ipython3
 
-    class MyAlternatingOffersProtocol(Mechanism):
-        def __init__(self, issues=None, outcomes=None, n_steps=None, time_limit=None):
-            super().__init__(issues=issues, outcomes=outcomes, n_steps=n_steps, time_limit=time_limit)
+    from concurrent.futures import ThreadPoolExecutor
+    class ParallelResponseMechanism(Mechanism):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             self.current_offer = None
-            self.current_offerer = None
-            self.n_accepting_agents = 0
-    
-        def round(self):
-            end_negotiation = False
-            n_agents = len(self.negotiators)
-            accepted = False
-            for i, agent in enumerate(self.negotiators):
-                if self.current_offer is None:
-                    response = ResponseType.NO_RESPONSE
-                else:
-                    response = agent.respond(state=self.state, offer=self.current_offer)
-                if response == ResponseType.END_NEGOTIATION:
-                    end_negotiation = True
-                    self.current_offer = None
-                else:
-                    if response != ResponseType.ACCEPT_OFFER:
-                        self.current_offer = agent.propose(state=self.state)
-                        self.current_offerer = i
-                        self.n_accepting_agents = 1
-                    else:
-                        self.n_accepting_agents += 1
-                        if self.n_accepting_agents == n_agents:
-                            accepted = True
-                            break
-                if end_negotiation:
-                    break
-            return MechanismRoundResult(broken=response == ResponseType.END_NEGOTIATION
-                                        , timedout=False
-                                        , agreement=self.current_offer if accepted else None)
+            self.current_offerer = -1
 
+        def round(self):
+            n_agents = len(self.negotiators)
+            self.current_offer = self.negotiators[
+                (self.current_offerer + 1) % n_agents].propose(self.state)
+
+            def get_response(negotiator, offer=self.current_offer, state=self.state):
+                return negotiator.respond(state, offer)
+
+            with ThreadPoolExecutor(4) as executor:
+                responses = executor.map(get_response, self.negotiators)
+            self.current_offerer = (self.current_offerer + 1) % n_agents
+            if all(_==ResponseType.ACCEPT_OFFER for _ in responses):
+                return MechanismRoundResult(agreement=self.current_offer)
+            if any(_==ResponseType.END_NEGOTIATION for _ in responses):
+                return MechanismRoundResult(broken=True)
+            return MechanismRoundResult()
+
+
+We needed only to override the ``round`` method which defines one round
+of the negotiation. The protocol goes as follows:
+
+1. Ask the next negotiator to propose.
+2. Get the response of all negotiators (using the thread-pool)
+3. If all negotiators accept the current offer, return it as the
+   agreement
+4. Otherwise, if any negotiators responded with END_NEGOTIATION, break
+   the negotiation
+5. Otherwise, change the next negotiator and return.
+
+Note that we did not need to take care of timeouts because they are
+handled by the base ``Mechanism`` class. Nor did we need to handle
+adding agents to the negotiation, removing them (for dynamic protocols),
+checking for errors, etc.
 
 Agents can now engage in interactions with this protocol as easily as
 any built-in protocol:
 
 .. code:: ipython3
 
-    p = MyAlternatingOffersProtocol(outcomes = 6, n_steps = 10)
-    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]
-                                       , outcomes=p.outcomes))
-    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]
-                                       , outcomes=p.outcomes))
+    p = ParallelResponseMechanism(outcomes = 6, n_steps = 10)
+    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     p.state.agreement
 
@@ -1154,4 +1323,492 @@ any built-in protocol:
 
 
 The negotiation ran with the expected results
+
+Our mechanism keeps a history in the form of a list of
+``MechanismState`` objects (on per round). Let’s check it:
+
+.. code:: ipython3
+
+    import pandas as pd
+    pd.DataFrame([vars(_) for _ in p.history])
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>running</th>
+          <th>waiting</th>
+          <th>started</th>
+          <th>step</th>
+          <th>time</th>
+          <th>relative_time</th>
+          <th>broken</th>
+          <th>timedout</th>
+          <th>agreement</th>
+          <th>results</th>
+          <th>n_negotiators</th>
+          <th>has_error</th>
+          <th>error_details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>0</td>
+          <td>0.001805</td>
+          <td>0.1</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>2</td>
+          <td>False</td>
+          <td></td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>1</td>
+          <td>0.003420</td>
+          <td>0.2</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>2</td>
+          <td>False</td>
+          <td></td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>2</td>
+          <td>0.005308</td>
+          <td>0.3</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>2</td>
+          <td>False</td>
+          <td></td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>True</td>
+          <td>False</td>
+          <td>True</td>
+          <td>3</td>
+          <td>0.006302</td>
+          <td>0.4</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>2</td>
+          <td>False</td>
+          <td></td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>False</td>
+          <td>False</td>
+          <td>True</td>
+          <td>4</td>
+          <td>0.007068</td>
+          <td>0.5</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(3,)</td>
+          <td>None</td>
+          <td>2</td>
+          <td>False</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+We can see that the negotiation did not time-out, and that the final
+agreement was ``(3,)`` but that is hardly useful. It will be much better
+if we can also the offers exchanged and who offered them.
+
+To do that we need to *augment* the mechanism state. NegMAS defines an
+easy way to do that by defining a new ``MechanismState`` type and
+filling it in the mechanism:
+
+.. code:: ipython3
+
+    from dataclasses import dataclass
+
+    @dataclass
+    class MyState(MechanismState):
+        current_offer: Outcome = None
+        current_offerer: str = "none"
+
+    class NewParallelResponseMechanism(ParallelResponseMechanism):
+
+        def __init__(self, *args, **kwargs):
+            kwargs['state_factory'] = MyState
+            super().__init__(*args, **kwargs)
+
+        def extra_state(self):
+            if self.current_offerer >= 0:
+                current = self.negotiators[self.current_offerer].name
+            else:
+                current = "none"
+            return MyState(
+                current_offer = self.current_offer,
+                current_offerer = current
+            )
+
+
+That is all. We just needed to define our new state type, set the
+state_factory of the mechanism to it and define how to fill it in the
+``extra_state`` method. Now it is possible to use thie mechanism as we
+did previously
+
+.. code:: ipython3
+
+    p = NewParallelResponseMechanism(outcomes = 6, n_steps = 10)
+    p.add(LimitedOutcomesNegotiator(name='seller',
+                                    acceptable_outcomes=[(2,), (3,), (5,)],
+                                    proposable_outcomes=[(2,), (3,), (5,)]
+                                   )
+         )
+    p.add(LimitedOutcomesNegotiator(name='buyer',
+                                    acceptable_outcomes=[(1,), (4,), (3,)],
+                                    proposable_outcomes=[(1,), (4,), (3,)]
+                                   )
+         )
+    state = p.run()
+    p.state.agreement
+
+
+
+
+.. parsed-literal::
+
+    (3,)
+
+
+
+We can now check the history again (showing few of the attributes only)
+to confirm that the current offer and its source are stored.
+
+.. code:: ipython3
+
+    pd.DataFrame(
+        [
+            dict(
+                step=_.step,
+                agreement=_.agreement,
+                relative_time=_.relative_time,
+                timedout=_.timedout,
+                broken=_.broken,
+                current_offer=_.current_offer,
+                current_offerer=_.current_offerer
+            )
+            for _ in p.history
+        ]
+    )
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>step</th>
+          <th>agreement</th>
+          <th>relative_time</th>
+          <th>timedout</th>
+          <th>broken</th>
+          <th>current_offer</th>
+          <th>current_offerer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>None</td>
+          <td>0.166667</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.333333</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.500000</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.666667</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(3,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.833333</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>1.000000</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>6</th>
+          <td>6</td>
+          <td>None</td>
+          <td>1.166667</td>
+          <td>True</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+Let’s see what happens if agreement is impossible (no intersection of
+acceptable outcomes in our case):
+
+.. code:: ipython3
+
+    p = NewParallelResponseMechanism(outcomes = 6, n_steps = 6)
+    p.add(LimitedOutcomesNegotiator(name='seller',
+                                    acceptable_outcomes=[(2,), (0,), (5,)],
+                                    proposable_outcomes=[(2,), (0,), (5,)]
+                                   )
+         )
+    p.add(LimitedOutcomesNegotiator(name='buyer',
+                                    acceptable_outcomes=[(1,), (4,), (3,)],
+                                    proposable_outcomes=[(1,), (4,), (3,)]
+                                   )
+         )
+    state = p.run()
+    pd.DataFrame(
+        [
+            dict(
+                step=_.step,
+                agreement=_.agreement,
+                relative_time=_.relative_time,
+                timedout=_.timedout,
+                broken=_.broken,
+                current_offer=_.current_offer,
+                current_offerer=_.current_offerer
+            )
+            for _ in p.history
+        ]
+    )
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>step</th>
+          <th>agreement</th>
+          <th>relative_time</th>
+          <th>timedout</th>
+          <th>broken</th>
+          <th>current_offer</th>
+          <th>current_offerer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>None</td>
+          <td>0.166667</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.333333</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.500000</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.666667</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(3,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.833333</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>1.000000</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>6</th>
+          <td>6</td>
+          <td>None</td>
+          <td>1.166667</td>
+          <td>True</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+As expected, the negotiation timed out.
+
+Worlds (Simulations)
+--------------------
+
+A world in NegMAS is what connects all agents together. It has a
+``simulation_step`` that is used to run a simulation (or update the
+state from the real world) and manages creation and distruciton of
+``AgentWorldInterface``\ s (AWI) and connecting them to ``Agent``\ s.
+
+``Agent``\ s can join and leave worlds using the ``join`` and ``leave``
+methods and can interact with it through their AWI.
+
+To create a new world type, you need to override a single method
+(``simulation_step``) in the base ``World`` class to define your
+simulation. Most likely you will also need to define a base ``Agent``
+inherited class that is capable of interacting with this world and a
+corresponding ``AgentWorldInterface``.
+
+You can see examples in the tutorials section.
 

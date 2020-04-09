@@ -22,7 +22,7 @@ except ImportError:
         "or "
         ""
         ">> pip install negmas[elicitation]",
-        ImportWarning
+        ImportWarning,
     )
 from typing import Callable, List, Optional, Tuple, Union
 
