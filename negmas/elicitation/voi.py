@@ -7,13 +7,13 @@ import time
 from abc import abstractmethod
 from collections import defaultdict
 from heapq import heapify, heappop, heappush
-
+from warnings import warn
 import numpy as np
 
 try:
     from blist import sortedlist
 except ImportError:
-    raise ImportWarning(
+    warn(
         "blist is not found. VOI based elicitation methods will not work. You can install"
         " blist by running:"
         ""
@@ -21,7 +21,8 @@ except ImportError:
         ""
         "or "
         ""
-        ">> pip install negmas[elicitation]"
+        ">> pip install negmas[elicitation]",
+        ImportWarning
     )
 from typing import Callable, List, Optional, Tuple, Union
 
