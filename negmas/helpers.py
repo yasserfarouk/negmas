@@ -592,6 +592,12 @@ class Distribution(object):
     def scale(self):
         return self.dist.kwds.get("scale", 0.0)
 
+    def min(self):
+        return self.loc - self.scale
+
+    def max(self):
+        return self.loc + self.scale
+
     def __str__(self):
         if self.dtype == "uniform":
             return f"U({self.loc}, {self.loc+self.scale})"

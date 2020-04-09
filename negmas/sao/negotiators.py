@@ -398,6 +398,7 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
         self,
         acceptable_outcomes: Optional[List["Outcome"]] = None,
         acceptance_probabilities: Optional[Union[float, List[float]]] = None,
+        proposable_outcomes: Optional[List["Outcome"]] = None,
         p_ending=0.0,
         p_no_response=0.0,
         **kwargs,
@@ -408,6 +409,7 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
             p_no_response=p_no_response,
             acceptable_outcomes=acceptable_outcomes,
             acceptance_probabilities=acceptance_probabilities,
+            proposable_outcomes=proposable_outcomes,
         )
 
 
