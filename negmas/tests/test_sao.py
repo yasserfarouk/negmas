@@ -17,6 +17,7 @@ from negmas import (
     SAOMechanism,
     SAOState,
     SAOSyncController,
+    LimitedOutcomesNegotiator,
 )
 from negmas.helpers import unique_name
 from negmas.sao import SAOResponse
@@ -545,3 +546,15 @@ def test_can_run_all_negotiators(asdict):
                 m.add(n2)
                 m.run()
                 assert not m.running
+
+
+def test_acceptable_outcomes():
+    p = SAOMechanism(outcomes=6, n_steps=10)
+    p.add(
+        LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)])
+    )
+    p.add(
+        LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)])
+    )
+    state = p.run()
+    assert state.agreement == (3,)

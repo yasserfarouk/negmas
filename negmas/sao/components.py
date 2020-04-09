@@ -272,8 +272,9 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
             p_ending=p_ending,
             p_no_response=p_no_response,
         )
+
         if proposable_outcomes is None and self.acceptable_outcomes is not None:
-            if not isinstance(self.acceptance_probabilities, float):
+            if isinstance(self.acceptance_probabilities, Iterable):
                 proposable_outcomes = [
                     _
                     for _, p in zip(

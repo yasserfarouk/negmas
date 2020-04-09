@@ -137,34 +137,61 @@ probabilistic modeling of utility functions."""
 class UtilityFunction(ABC, NamedObject):
     """The abstract base class for all utility functions.
 
-    A utility function encapsulates a mapping from outcomes to UtilityValue(s). This is a generalization of standard
-    utility functions that are expected to always return a real-value. This generalization is useful for modeling cases
+    A utility function encapsulates a mapping from outcomes to UtilityValue(s).
+    This is a generalization of standard
+    utility functions that are expected to always return a real-value.
+    This generalization is useful for modeling cases
     in which only partial knowledge of the utility function is available.
 
-    Args:
+    To define a new utility function, you have to override one of the following
+    methods:
 
-        name (str): Name of the utility function. If None, a random name will be given.
-        reserved_value(float): The value to return if the input offer to `__call__` is None
-        outcome_type: The type to use when evauating utilities. It can be tuple, dict, or any `OutcomeType`
+        - `eval` to define a standard ufun mapping outcomes to utility values.
+        - `is_better` to define prferences by a partial ordering over outcomes
+          implemented through bilateral comparisons
+        - `rank` to define the preferences by partial ordering defined by
+          a ranking of outcomes.
+
+    Args:
+        name: Name of the utility function. If None, a random name will
+              be given.
+        reserved_value: The value to return if the input offer to
+                        `__call__` is None
+        outcome_type: The type to use when evauating utilities.
+                      It can be tuple, dict, or any `OutcomeType`
         issue_names: The names of issues. Only needed if outcome_type is not tuple
+        issues: The list of issues for which the ufun is defined (optional)
+        ami: The `AgentMechanismInterface` for a mechanism for which the ufun
+             is defined (optinoal)
+
+    Remarks:
+        - If ami is given, it overrides outcome_type, issues and issue_names
+        - If issues is given, it overrides issue_names
+        - One of `eval`, `is_better`, `rank` **MUST** be overriden, otherwise
+          calling any of them will lead to an infinite loop which is very hard
+          to debug.
 
     """
 
     def __init__(
         self,
         name: Optional[str] = None,
-        ami: AgentMechanismInterface = None,
         reserved_value: UtilityValue = float("-inf"),
         outcome_type: Optional[Type] = None,
         issue_names: Optional[List[str]] = None,
+        issues: List["Issue"] = None,
+        ami: AgentMechanismInterface = None,
     ) -> None:
         super().__init__(name=name)
         self.reserved_value = reserved_value
         self._ami = ami
-        self._outcome_type = outcome_type
-        self.issue_names = issue_names
-        if outcome_type is not None and (
-            not issubclass(outcome_type, tuple) and issue_names is None
+        self._issues = issues if ami is None or ami.issues is None else ami.issues
+        self._outcome_type = outcome_type if ami is None else ami.outcome_type
+        self.issue_names = (
+            issue_names if self._issues is None else [_.name for _ in self._issues]
+        )
+        if self._outcome_type is not None and (
+            not issubclass(self._outcome_type, tuple) and self.issue_names is None
         ):
             raise ValueError(
                 "You must specify issue_names because you are using a non-tuple outcome type"
@@ -177,6 +204,14 @@ class UtilityFunction(ABC, NamedObject):
     @ami.setter
     def ami(self, value: AgentMechanismInterface):
         self._ami = value
+
+    @property
+    def issues(self):
+        return self._issues
+
+    @issues.setter
+    def issues(self, value: List["Issue"]):
+        self._issues = value
 
     @property
     def outcome_type(self):
@@ -867,22 +902,32 @@ class UtilityFunction(ABC, NamedObject):
         Args:
             offer: The offer to be evaluated.
 
-        Remarks:
-
-            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
-            - Return A UtilityValue not a float for real-valued utilities for the benefit of inspection code.
-            - Return the reserved value if the offer was None
-
         Returns:
-            UtilityValue: The utility_function value which may be a distribution. If `None` it means the
-                          utility_function value cannot be calculated.
+            UtilityValue: The utility_function value which may be a distribution.
+                          If `None` it means the utility_function value cannot
+                          be calculated.
+
+        Remarks:
+            - You cannot return None from overriden eval() functions but
+              raise an exception (ValueError) if it was
+              not possible to calculate the UtilityValue.
+            - Typehint the return type as a `UtilityValue` instead of a float
+              for the benefit of inspection code.
+            - Return the reserved value if the offer was None
+            - *NEVER* call the baseclass using super() when overriding this
+              method. Calling super will lead to an infinite loop.
+            - The default implementation assumes that `is_better` is defined
+              and uses it to do the evaluation. Note that the default
+              implementation of `is_better` does assume that `eval` is defined
+              and uses it. This means that failing to define both leads to
+              an infinite loop.
         """
         raise NotImplementedError("Could not calculate the utility value.")
 
     def eval_all(self, outcomes: List["Outcome"]) -> Iterable[UtilityValue]:
         """
-        Calculates the utility value of a list of outcomes and returns their utility values
+        Calculates the utility value of a list of outcomes and returns their
+        utility values
 
         Args:
             outcomes: A list of offers
@@ -891,8 +936,9 @@ class UtilityFunction(ABC, NamedObject):
             An iterable with the utility values of the given outcomes in order
 
         Remarks:
-            - The default implementation just iterates over the outcomes calling the ufun for each of them. In a
-              distributed environment, it is possible to do this in parallel using a thread-pool for example.
+            - The default implementation just iterates over the outcomes
+              calling the ufun for each of them. In a distributed environment,
+              it is possible to do this in parallel using a thread-pool for example.
         """
         return [self(_) for _ in outcomes]
 
@@ -948,11 +994,45 @@ class UtilityFunction(ABC, NamedObject):
 
         return utils, output_outcomes, output_issues
 
-    def compare_real(self, o1: "Outcome", o2: "Outcome") -> float:
-        """Compares the two outcomes and returns a measure of the difference between their utilities"""
+    def compare_real(self, o1: "Outcome", o2: "Outcome", method="mean") -> float:
+        """
+        Compares the two outcomes and returns a measure of the difference
+        between their utilities.
+
+        Args:
+            o1: First outcome
+            o2: Second outcome
+            method: The comparison method if one of the two outcomes result in
+                    a distribution. Acceptable values are:
+
+                        - mean: Compares the means of the two distributions
+                        - min: Compares minimum values with nonzero probability
+                        - max: Compares maximum values with nonzero probability
+                        - int: Calculates :math:`\int (u_1-u_2) du_1du_2`.
+                        - Callable: The callable is given u(o1), u(o2) and
+                                    should return the comparison.
+
+        """
         u1, u2 = self(o1), self(o2)
         if isinstance(u1, float) and isinstance(u2, float):
             return u1 - u2
+        if isinstance(method, Callable):
+            return method(u1, u2)
+        if isinstance(u1, float):
+            u1 = UtilityDistribution(dtype="uniform", loc=u1, scale=1e-10)
+        if isinstance(u2, float):
+            u2 = UtilityDistribution(dtype="uniform", loc=u2, scale=1e-10)
+        if method == "mean":
+            return u1.mean() - u2.mean()
+        if method == "min":
+            return u1.min() - u2.min()
+        if method == "max":
+            return u1.max() - u2.max()
+        if method == "int":
+            if u1.scale <= 1e-9:
+                return u1 - u2.mean()
+            if u2.scale <= 1e-9:
+                return u1.mean() - u2
         raise NotImplementedError(
             "Should calculate the integration [(u1-u2) du1 du2] but not implemented yet."
         )
@@ -977,8 +1057,8 @@ class UtilityFunction(ABC, NamedObject):
         )
 
     def argsort(self, outcomes: List[Optional[Outcome]], descending=True) -> List[int]:
-        """Ranks the given list of outcomes. None stands for the null outcome"""
-        return [_[0] for _ in self.rank_with_weight(outcomes, descending=descending)]
+        """Finds the rank of each outcome as an integer"""
+        return [_[0] for _ in self.rank_with_weights(outcomes, descending=descending)]
 
     def sort(
         self, outcomes: List[Optional[Outcome]], descending=True
@@ -1080,9 +1160,10 @@ class UtilityFunction(ABC, NamedObject):
         Args:
 
             n_outcomes (int): number of outcomes to use
-            conflict_level: How conflicting are the two ufuns to generate. 1.0 means maximum conflict.
+            conflict_level: How conflicting are the two ufuns to generate.
+                            1.0 means maximum conflict.
             conflict_delta: How variable is the conflict at different outcomes.
-            zero_summness: How zero-sum like are the two ufuns.
+            win_win: How much are their opportunities for win-win situations.
 
         Examples:
 
@@ -1202,14 +1283,16 @@ class UtilityFunction(ABC, NamedObject):
         Finds the conflict level in these two ufuns
 
         Args:
-            u1:
-            u2:
+            u1: first utility function
+            u2: second utility function
 
         Examples:
             - A nonlinear strictly zero sum case
             >>> outcomes = [(_,) for _ in range(10)]
-            >>> u1 = MappingUtilityFunction(dict(zip(outcomes, np.random.random(len(outcomes)))))
-            >>> u2 = MappingUtilityFunction(dict(zip(outcomes, 1.0 - np.array(list(u1.mapping.values())))))
+            >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+            ... np.random.random(len(outcomes)))))
+            >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
+            ... 1.0 - np.array(list(u1.mapping.values())))))
             >>> print(UtilityFunction.conflict_level(u1=u1, u2=u2, outcomes=outcomes))
             1.0
 
@@ -1219,8 +1302,10 @@ class UtilityFunction(ABC, NamedObject):
 
             - A linear strictly zero sum case
             >>> outcomes = [(_,) for _ in range(10)]
-            >>> u1 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
-            >>> u2 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+            >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+            ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
+            >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
+            ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
             >>> print(UtilityFunction.conflict_level(u1=u1, u2=u2, outcomes=outcomes))
             1.0
         """
@@ -1258,21 +1343,24 @@ class UtilityFunction(ABC, NamedObject):
         max_tests: int = 10000,
     ) -> float:
         """
-        Finds the conflict level in these two ufuns
+        Finds the win-win level in these two ufuns
 
         Args:
-            u1:
-            u2:
+            u1: first utility function
+            u2: second utility function
 
         Examples:
             - A nonlinear same ufun case
             >>> outcomes = [(_,) for _ in range(10)]
-            >>> u1 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+            >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+            ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
 
             - A linear strictly zero sum case
             >>> outcomes = [(_,) for _ in range(10)]
-            >>> u1 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
-            >>> u2 = MappingUtilityFunction(dict(zip(outcomes, np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+            >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+            ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
+            >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
+            ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
 
 
         """
@@ -1282,7 +1370,7 @@ class UtilityFunction(ABC, NamedObject):
         points = np.array([[u1(o), u2(o)] for o in outcomes])
         order = np.random.permutation(np.array(range(n_outcomes)))
         p1, p2 = points[order, 0], points[order, 1]
-        signs = []
+        signed_diffs = []
         for trial, (i, j) in enumerate(
             zip(range(n_outcomes - 1), range(1, n_outcomes))
         ):
@@ -1305,11 +1393,11 @@ class UtilityFunction(ABC, NamedObject):
                     win = o11 - o12
                 else:
                     win = (o11 - o12) + (o22 - o21)
-            signs.append(win)
-        signs = np.array(signs)
-        if len(signs) == 0:
+            signed_diffs.append(win)
+        signed_diffs = np.array(signed_diffs)
+        if len(signed_diffs) == 0:
             return None
-        return signs.mean()
+        return signed_diffs.mean()
 
     def outcome_with_utility(
         self,
