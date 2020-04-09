@@ -391,6 +391,7 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
     Remarks:
         - The ufun inputs to the constructor and join are ignored. A ufun will be generated that gives a utility equal to
           the probability of choosing a given outcome.
+        - If `proposable_outcomes` is passed as None, it is considered the same as `acceptable_outcomes`
 
     """
 
@@ -404,6 +405,8 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        if proposable_outcomes is None:
+            proposable_outcomes = acceptable_outcomes
         self.init_limited_outcomes(
             p_ending=p_ending,
             p_no_response=p_no_response,
