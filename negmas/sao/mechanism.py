@@ -169,7 +169,7 @@ class SAOMechanism(Mechanism):
                 new_offerer_agents.append(agent.id)
             else:
                 new_offerer_agents.append(None)
-        return SAOState(
+        return dict(
             current_offer=self._current_offer,
             new_offers=self._new_offers,
             current_proposer=self._current_proposer.id
@@ -594,7 +594,7 @@ class SAOMechanism(Mechanism):
                 proposal = resp.outcome
                 if proposal is None:
                     if (
-                        neg.capabilities.get("propose", False)
+                        neg.capabilities.get("propose", True)
                         and self.end_negotiation_on_refusal_to_propose
                     ):
                         return MechanismRoundResult(

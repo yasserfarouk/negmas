@@ -44,7 +44,7 @@ class GAMechanism(Mechanism):
         self.ranks = {}
 
     def extra_state(self):
-        return GAState(dominant_outcomes=self.dominant_outcomes)
+        return dict(dominant_outcomes=self.dominant_outcomes)
 
     def generate(self, n: int) -> List[Outcome]:
         return self.random_outcomes(n)

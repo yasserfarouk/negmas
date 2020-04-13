@@ -71,7 +71,7 @@ class VetoMTMechanism(Mechanism):
         self.epsilon = epsilon
 
     def extra_state(self):
-        return MTState(current_offers=deepcopy(self.current_offers),)
+        return dict(current_offers=deepcopy(self.current_offers),)
 
     def next_outcome(self, outcome: Optional["Outcome"]) -> Optional["Outcome"]:
         """Generate the next outcome given some outcome.
