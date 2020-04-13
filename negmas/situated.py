@@ -120,6 +120,8 @@ from .negotiators import Negotiator
 from .outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
 from .utilities import UtilityFunction
 
+from warnings import warn
+
 try:
     import networkx as nx
 except ImportError:
@@ -1930,23 +1932,90 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     A world maintains its own session.
 
+    Args:
+
+        * General *
+
+        name: World Name
+        bulletin_board: A bulletin board object to use. If not given one will be created
+        awi_type: The type used for agent world interfaces (must descend from or behave like `AgentWorldInterface` )
+        info: A dictionary of key-value pairs that is kept within the world but never used. It is useful for storing
+              contextual information. For example, when running tournaments.
+
+        * Simulation parameters *
+
+        n_steps: Total simulation time in steps
+        time_limit: Real-time limit on the simulation
+        operations: A list of `Operations` to run in order during every simulation step
+
+        * Negotiation Parameters *
+
+        negotiation_speed: The number of negotiation steps per simulation step. None means infinite
+        neg_n_steps: Maximum number of steps allowed for a negotiation.
+        neg_step_time_limit: Time limit for single step of the negotiation protocol.
+        neg_time_limit: Real-time limit on each single negotiation
+        negotiation_quota_per_step: Number of negotiations an agent is allowed to start per step
+        negotiation_quota_per_simulation: Number of negotiations an agent is allowed to start in the simulation
+        start_negotiations_immediately: If true negotiations start immediately when registered rather than waiting
+                                        for the next step
+        mechanisms: The mechanism types allowed in this world associated with each keyward arguments to be passed
+                    to it.
+
+        * Signing parameters *
+
+        default_signing_delay: The default number of steps between contract conclusion and signing it. Only takes
+                               effect if `force_signing` is `False`
+        force_signing: If true, agents are not asked to sign contracts. They are forced to do so. In this
+                       case, `default_singing_delay` is not effective and signature is immediate
+        batch_signing: If true, contracts are signed in batches not individually
+
+
+        * Breach Processing *
+
+        breach_processing: How to handle breaches. Can be any of `BreachProcessing` values
+
+        * Logging *
+
+        log_folder: Folder to save all logs
+        log_to_file: If true, will log to a file
+        log_file_name: Name of the log file
+        log_file_level: The log-level to save to file (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
+        log_ufuns: Log utility functions
+        log_negotiations: Log all negotiation events
+        log_to_screen: Whether to log to screen
+        log_screen_level: The log-level to show on screen (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
+        no_logs: If True, All logging will be disabled no matter what other options are given.
+        log_stats_every: If nonzero and positive, the period of saving stats
+        construct_graphs: If true, information needed to draw graphs using `draw` method are kept.
+
+        * What to save *
+
+        save_signed_contracts: Save all signed contracts
+        save_cancelled_contracts: Save all cancelled contracts
+        save_negotiations: Save all negotiation records
+        save_resolved_breaches: Save all resolved breaches
+        save_unresolved_breaches: Save all unresolved breaches
+
+        * Exception Handling *
+
+        ignore_agent_exceptions: Ignore agent exceptions and keep running
+        ignore_mechanism_exceptions: If true, all mechanism exceptions are ignored and the mechanism is aborted
+        ignore_simulation_exceptions: Ignore simulation exceptions and keep running
+        ignore_contract_execution_exceptions: Ignore contract execution exceptions and keep running
+        safe_stats_monitoring: Never throw an exception for a failure to save stats or because of a Stats Monitor
+                               object
+
+        * Checkpoints *
+
+        checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
+        checkpoint_folder: The folder to save checkpoints into. Set to None to disable
+        checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
+                             step number).
+        single_checkpoint: If true, only the most recent checkpoint will be saved.
+        extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
+                               a dictionary with string keys
+        exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
     """
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        if "logger" in state.keys():
-            state.pop("logger", None)
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-        self.logger = create_loggers(
-            file_name=self.log_file_name,
-            module_name=None,
-            screen_level=self.log_screen_level if self.log_to_screen else None,
-            file_level=self.log_file_level,
-            app_wide_log_file=True,
-        )
 
     def __init__(
         self,
@@ -2008,89 +2077,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     ):
         """
 
-        Args:
-
-            * General *
-
-            name: World Name
-            bulletin_board: A bulletin board object to use. If not given one will be created
-            awi_type: The type used for agent world interfaces (must descend from or behave like `AgentWorldInterface` )
-            info: A dictionary of key-value pairs that is kept within the world but never used. It is useful for storing
-                  contextual information. For example, when running tournaments.
-
-            * Simulation parameters *
-
-            n_steps: Total simulation time in steps
-            time_limit: Real-time limit on the simulation
-            operations: A list of `Operations` to run in order during every simulation step
-
-            * Negotiation Parameters *
-
-            negotiation_speed: The number of negotiation steps per simulation step. None means infinite
-            neg_n_steps: Maximum number of steps allowed for a negotiation.
-            neg_step_time_limit: Time limit for single step of the negotiation protocol.
-            neg_time_limit: Real-time limit on each single negotiation
-            negotiation_quota_per_step: Number of negotiations an agent is allowed to start per step
-            negotiation_quota_per_simulation: Number of negotiations an agent is allowed to start in the simulation
-            start_negotiations_immediately: If true negotiations start immediately when registered rather than waiting
-                                            for the next step
-            mechanisms: The mechanism types allowed in this world associated with each keyward arguments to be passed
-                        to it.
-
-            * Signing parameters *
-
-            default_signing_delay: The default number of steps between contract conclusion and signing it. Only takes
-                                   effect if `force_signing` is `False`
-            force_signing: If true, agents are not asked to sign contracts. They are forced to do so. In this
-                           case, `default_singing_delay` is not effective and signature is immediate
-            batch_signing: If true, contracts are signed in batches not individually
-
-
-            * Breach Processing *
-
-            breach_processing: How to handle breaches. Can be any of `BreachProcessing` values
-
-            * Logging *
-
-            log_folder: Folder to save all logs
-            log_to_file: If true, will log to a file
-            log_file_name: Name of the log file
-            log_file_level: The log-level to save to file (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
-            log_ufuns: Log utility functions
-            log_negotiations: Log all negotiation events
-            log_to_screen: Whether to log to screen
-            log_screen_level: The log-level to show on screen (WARNING, ERROR, INFO, DEBUG, CRITICAL, ...)
-            no_logs: If True, All logging will be disabled no matter what other options are given.
-            log_stats_every: If nonzero and positive, the period of saving stats
-            construct_graphs: If true, information needed to draw graphs using `draw` method are kept.
-
-            * What to save *
-
-            save_signed_contracts: Save all signed contracts
-            save_cancelled_contracts: Save all cancelled contracts
-            save_negotiations: Save all negotiation records
-            save_resolved_breaches: Save all resolved breaches
-            save_unresolved_breaches: Save all unresolved breaches
-
-            * Exception Handling *
-
-            ignore_agent_exceptions: Ignore agent exceptions and keep running
-            ignore_mechanism_exceptions: If true, all mechanism exceptions are ignored and the mechanism is aborted
-            ignore_simulation_exceptions: Ignore simulation exceptions and keep running
-            ignore_contract_execution_exceptions: Ignore contract execution exceptions and keep running
-            safe_stats_monitoring: Never throw an exception for a failure to save stats or because of a Stats Monitor
-                                   object
-
-            * Checkpoints *
-
-            checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
-            checkpoint_folder: The folder to save checkpoints into. Set to None to disable
-            checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
-                                 step number).
-            single_checkpoint: If true, only the most recent checkpoint will be saved.
-            extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
-                                   a dictionary with string keys
-            exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
         """
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
         self.ignore_negotiation_exceptions = ignore_negotiation_exceptions
@@ -2282,6 +2268,22 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             or s.startswith("n_contracts")
             or s.startswith("n_negotiation")
             or s.startswith("n_registered_negotiations")
+        )
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if "logger" in state.keys():
+            state.pop("logger", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.logger = create_loggers(
+            file_name=self.log_file_name,
+            module_name=None,
+            screen_level=self.log_screen_level if self.log_to_screen else None,
+            file_level=self.log_file_level,
+            app_wide_log_file=True,
         )
 
     @property
@@ -4215,7 +4217,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             Generates a graph showing some aspect of the simulation
 
             Args:
-
                 steps: The step/steps to generate the graphs for. If a tuple is given all edges within the given range
                        (inclusive beginning, exclusive end) will be accomulated
                 what: The edges to have on the graph. Options are: negotiations, concluded, signed, executed
@@ -4263,7 +4264,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             graph = graphs[0] if not together else graphs
             graphs = [graphs] if together else graphs
             if where is None:
-                pos = None
+                pos = nx.spring_layout(graph, iterations=200)
             else:
                 pos = [where(a) for a in graph.nodes]
                 if not isinstance(pos[0], tuple):
@@ -4368,7 +4369,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             # create frames
             frames = []
-            for s in range(self.n_steps):
+            for s in range(draw_every, self.n_steps):
                 if s % draw_every != 0:
                     continue
                 frames.append(plot_frame(s))
@@ -4378,6 +4379,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return frames
         except Exception as e:
             self.logwarning(f"GIF generation failed with exception {str(e)}")
+            warn(
+                "GIF generation failed. Make suer you have gif installed\n\nyou can install it using >> pip install gif",
+                ImportWarning,
+            )
             return []
 
     @property
