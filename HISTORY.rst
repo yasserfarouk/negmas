@@ -1,6 +1,30 @@
 History
 =======
 
+Release 0.6.11
+--------------
+
+* [base] removing a warning caused by passing dynamic_ufun
+* [base] correctly passing ufun to all rational types
+* [base] placeholder to support parallel runall in mechanism
+* [base] LimitedOutcomesNegotiator does not offer what it will not accept
+* [base] Bug fixes in Utilities and LimitedOutcomesNegotiator
+* [performance] Caching first offers in SyncController.
+* [performance] Reducing memory consumption of AspirationNegotiator
+* [performance] Speeding up Mechanism.state
+* [performance] Adding eval_all to UtilitityFunction to speedup multiple evaluations
+* [docs] Improving the overview part of the documentation
+* [docs] Documentation update
+* [elicitation] Fixing documentation after renaming elicitors -> elicitation
+* [elicitation] Adding AMI to elicitaition.User to know the step
+* [elicitation] restructuring elicitors module and renaming it to elicitation
+* [elicitation] correcting a bug in base elicitor
+* [installation] Resolving an issue when blist is not installed
+* [installation] Adding gif to requirements
+* [installation] warn if gif generation failed
+* reformatting and import optimization
+* Removing eu from SAONegotiator because we have no opponent_models yet
+
 Release 0.6.10
 --------------
 
