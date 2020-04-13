@@ -5,6 +5,8 @@ import itertools
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from functools import lru_cache
+
 from typing import Dict, List, Optional, Tuple, Union
 
 from .common import SAOResponse, SAOState
@@ -192,6 +194,8 @@ class SAOSyncController(SAOController):
         # if some proposal was there, delete it to force the controller to get a new one
         if proposal is not None:
             self.proposals[negotiator_id] = None
+        # if the proposal that was there was None, just offer the best offer
+        proposal = self.first_offer(negotiator_id)
         return proposal
 
     def respond(
@@ -253,6 +257,7 @@ class SAOSyncController(SAOController):
             )
         )
 
+    @lru_cache(maxsize=100)
     def first_offer(self, negotiator_id: str) -> Optional["Outcome"]:
         """
         Finds the first offer for this given negotiator. By default it will be the best offer
@@ -273,14 +278,16 @@ class SAOSyncController(SAOController):
         if negotiator.ami is None:
             return None
         # if the controller has a ufun, use it otherwise use the negotiator ufun
-        if hasattr(self, "ufun"):
+        if self.ufun is not None:
             _, _, _, best = utility_range(
                 self.ufun, issues=negotiator.ami.issues, return_outcomes=True
             )
-        else:
+        elif negotiator.ufun is not None:
             _, _, _, best = utility_range(
                 negotiator.ufun, issues=negotiator.ami.issues, return_outcomes=True
             )
+        else:
+            best = None
         return best
 
 
