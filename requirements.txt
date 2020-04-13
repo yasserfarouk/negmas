@@ -70,3 +70,4 @@ nose
 pytest-sugar
 networkx
 pyqt5
+gif

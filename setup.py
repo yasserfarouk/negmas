@@ -98,6 +98,7 @@ setup(
         "cython",
         "networkx",
         "pyqt5",
+        "gif",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
