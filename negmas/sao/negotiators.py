@@ -548,20 +548,27 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if presort:
             outcomes = self._ami.discrete_outcomes()
             uvals = self.utility_function.eval_all(outcomes)
+            uvals_outcomes = [
+                (u, o)
+                for u, o in zip(uvals, outcomes)
+                if u >= self.utility_function.reserved_value
+            ]
             self.ordered_outcomes = sorted(
-                zip(uvals, outcomes),
+                uvals_outcomes,
                 key=lambda x: float(x[0]) if x[0] is not None else float("-inf"),
                 reverse=True,
             )
             if self.assume_normalized:
                 self.ufun_min, self.ufun_max = 0.0, 1.0
+            elif len(self.ordered_outcomes) < 1:
+                self.ufun_max = self.ufun_min = self.utility_function.reserved_value
             else:
                 if self.ufun_max is None:
                     self.ufun_max = self.ordered_outcomes[0][0]
 
                 if self.ufun_min is None:
                     # we set the minimum utility to the minimum finite value above both reserved_value
-                    for j in range(len(outcomes) - 1, -1, -1):
+                    for j in range(len(self.ordered_outcomes) - 1, -1, -1):
                         self.ufun_min = self.ordered_outcomes[j][0]
                         if self.ufun_min is not None and self.ufun_min > float("-inf"):
                             break
@@ -585,6 +592,11 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 if self.ufun_max is None:
                     self.ufun_max = mx
 
+        if self.ufun_min < self.reserved_value:
+            self.ufun_min = self.reserved_value
+        if self.ufun_max < self.ufun_min:
+            self.ufun_max = self.ufun_min
+
         self.presorted = presort
         self.n_trials = 10
 
@@ -594,7 +606,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if self._utility_function is None:
             return ResponseType.REJECT_OFFER
         u = self._utility_function(offer)
-        if u is None:
+        if u is None or u < self.reserved_value:
             return ResponseType.REJECT_OFFER
         asp = (
             self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
@@ -609,6 +621,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         if self.ufun_max is None or self.ufun_min is None:
             self.on_ufun_changed()
+        if self.ufun_max < self.reserved_value:
+            return None
         asp = (
             self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
             + self.ufun_min
@@ -616,6 +630,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if asp < self.reserved_value:
             return None
         if self.presorted:
+            if len(self.ordered_outcomes) < 1:
+                return None
             for i, (u, o) in enumerate(self.ordered_outcomes):
                 if u is None:
                     continue
