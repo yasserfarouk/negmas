@@ -43,6 +43,8 @@ Overview
     :target: https://github.com/ambv/black
     :alt: Coding style black
 
+.. image:: https://mybinder.org/badge_logo.svg
+    :target: https://mybinder.org/v2/gh/yasserfarouk/negmas/master
 
 .. end-badges
 
