@@ -66,7 +66,7 @@ class VetoSTMechanism(Mechanism):
         """The new offer generated in this step"""
 
     def extra_state(self):
-        return STState(
+        return dict(
             current_offer=deepcopy(self.current_offer),
             new_offer=deepcopy(self.new_offer),
         )
