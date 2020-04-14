@@ -694,7 +694,9 @@ class SAOMetaNegotiatorController(SAOController):
     def __init__(self, *args, meta_negotiator: SAONegotiator = None, **kwargs):
         super().__init__(*args, **kwargs)
         if meta_negotiator is None:
-            meta_negotiator = AspirationNegotiator(name=f"{self.name}-negotiator")
+            meta_negotiator = AspirationNegotiator(
+                name=f"{self.name}-negotiator", ufun=kwargs.get("ufun", None)
+            )
         self.meta_negotiator = meta_negotiator
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
