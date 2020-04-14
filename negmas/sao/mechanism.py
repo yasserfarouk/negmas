@@ -97,6 +97,7 @@ class SAOMechanism(Mechanism):
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         name: Optional[str] = None,
+        max_wait: int = 5,
         **kwargs,
     ):
         """
@@ -134,6 +135,8 @@ class SAOMechanism(Mechanism):
         self._no_responses = 0
         self._new_offers = []
         self._offering_is_accepting = offering_is_accepting
+        self._n_waits = 10
+        self._n_max_waits = max_wait
 
     def join(
         self,
@@ -563,6 +566,8 @@ class SAOMechanism(Mechanism):
             resp = _safe_counter(neg, state=self.state, offer=self._current_offer)
             if time.perf_counter() - strt > self.ami.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
+            if resp.response != ResponseType.WAIT:
+                self._n_waits = 0
             if self._enable_callbacks:
                 if self._current_offer is not None:
                     for other in self.negotiators:
@@ -576,6 +581,12 @@ class SAOMechanism(Mechanism):
             if resp.response == ResponseType.NO_RESPONSE:
                 continue
             if resp.response == ResponseType.WAIT:
+                self._n_waits += 1
+                if self._n_waits > self._n_max_waits:
+                    self._n_waits = 0
+                    return MechanismRoundResult(
+                        broken=False, timedout=True, agreement=None, waiting=False
+                    )
                 self._last_checked_negotiator = neg_indx - 1
                 if neg_indx < 0:
                     self._last_checked_negotiator = n_negotiators - 1
