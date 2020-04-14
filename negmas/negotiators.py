@@ -432,7 +432,7 @@ class Controller(Rational):
         default_negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
         default_negotiator_params: Dict[str, Any] = None,
         parent: Union["Controller", "Agent"] = None,
-        auto_kill: bool = False,
+        auto_kill: bool = True,
         name: str = None,
         ufun: "UtilityFunction" = None,
     ):

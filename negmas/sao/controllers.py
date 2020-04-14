@@ -45,7 +45,7 @@ class SAOController(Controller):
         self,
         default_negotiator_type=PassThroughSAONegotiator,
         default_negotiator_params=None,
-        auto_kill=False,
+        auto_kill=True,
         name=None,
         ufun=None,
     ):
@@ -212,11 +212,12 @@ class SAOSyncController(SAOController):
         # set the saved offer for this negotiator
         self.offers[negotiator_id] = offer
         self.offer_states[negotiator_id] = state
-
+        n_negotiators = len(self.active_negotiators)
         # if we got all the offers or waited long enough, counter all the offers so-far
-        if len(self.offers) == len(self.negotiators) or self.n_waits[
-            negotiator_id
-        ] >= len(self.negotiators):
+        if (
+            len(self.offers) == n_negotiators
+            or self.n_waits[negotiator_id] >= n_negotiators
+        ):
             responses = self.counter_all(offers=self.offers, states=self.offer_states)
             for nid in responses.keys():
                 # register the responses for next time for all other negotiators
