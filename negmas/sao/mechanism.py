@@ -137,7 +137,7 @@ class SAOMechanism(Mechanism):
         self._new_offers = []
         self._offering_is_accepting = offering_is_accepting
         self._n_waits = 10
-        self._n_max_waits = max_wait
+        self._n_max_waits = max_wait if max_wait is not None else float("inf")
 
     def join(
         self,
