@@ -553,6 +553,7 @@ class Controller(Rational):
             return
         response = negotiator.before_death(cntxt=cntxt)
         if response or force:
+            negotiator._Negotiator__parent = None
             self._negotiators.pop(negotiator_id, None)
 
     def before_join(
