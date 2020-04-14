@@ -4,6 +4,7 @@ Implements Stacked Alternating Offers (SAO) mechanism.
 import itertools
 import math
 import random
+import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -97,7 +98,7 @@ class SAOMechanism(Mechanism):
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         name: Optional[str] = None,
-        max_wait: int = 5,
+        max_wait: int = sys.maxsize,
         **kwargs,
     ):
         """
