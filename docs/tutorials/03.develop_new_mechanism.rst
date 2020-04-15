@@ -1,7 +1,7 @@
 Develop a new mechanism (protocol)
 ----------------------------------
 
-Developing a new mechanism for negmas is as easy as overriding a single
+Developing a new mechanism for NegMAS is as easy as overriding a single
 method. In most cases though, a base class for negotiators compatible
 with this protocol needs to be created.
 
@@ -12,7 +12,7 @@ The algorithm for creating a new mechanism in ``NegMAS`` is simple:
    ``__init__`` function to provide a constructor to initialize your
    mechanism. Define any ``requirements`` of your mechanism that must be
    satisfied by negotiators using ``add_requirements()`` during
-   consturciton (i.e. in the ``__init__`` method).
+   construction (i.e. in the ``__init__`` method).
 2. Create a new ``Negotiator`` class that has ``abstractmethod(s)`` for
    any methods called by your custom mechanism class (usually in the
    ``round()`` method). This will be the base class of all negotiators
@@ -176,7 +176,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.4999984748241864, 0.5000000039839807)
+    Agreement: (0.5000000028846202, 0.4999999969319606)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -386,7 +386,7 @@ modifications:
    type ``RubinsteinMechanismState`` .
 5. Each round all negotiators propose outcomes and the negotiation
    terminates with success only if both proposals are feasible (sum to
-   no more than 1.0) and equal (appraximately)
+   no more than 1.0) and equal (approximately)
 
 We can now develop the base negotiator type for this mechanism:
 
@@ -457,7 +457,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.2024096797135117, 0.7975903202864882) after 227 steps
+    Agreed to: (0.9201484771096927, 0.07985152289030728) after 569 steps
 
 
 

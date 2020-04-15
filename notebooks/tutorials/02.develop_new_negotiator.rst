@@ -1,4 +1,0 @@
-Develop a new negotiator
-------------------------
-
-TBD
