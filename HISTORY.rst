@@ -1,6 +1,17 @@
 History
 =======
 
+Release 0.2.12
+--------------
+
+* [docs] more tutorials and overview revampment
+* [sao] Allowing max_wait to be passed as None defaulting to inf
+* [sao] Passing the ufun to the meta-negotiator in SAOMetaNegotiatorController
+* [base] unsetting the controller when killing a negotiator
+* [base] setting default max_waits to infinity
+* [base] defaulting to auto-kill negotiators in all controllers.py
+* [base] Adding max_wait to void infinite loops with sync controllers
+
 Release 0.6.11
 --------------
 
