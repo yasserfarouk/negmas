@@ -42,7 +42,7 @@ specific modules, advanced and helper modules.
       mechanism need not be a standard negotiation protocol. For example
       auction mechanisms (like second-price auctions) can easily be
       implemented as a ``Mechanism`` in negmas.
-   5. **common** Provides datastructures that are used by all modules
+   5. **common** Provides data structures that are used by all modules
       including mechanism-state, and the agent-mechanism-interface.
    6. **genius** Implements a specific type negotiator for the stacked
       alternating offers protocol called ``GeniusNegotiator`` which can
@@ -68,14 +68,14 @@ specific modules, advanced and helper modules.
    4. **ga** Implements a Genetic Algorithm based single text mediated
       negotiation protocol
 
--  **Advanced Negotiation Modules** These modeuls model advanced
+-  **Advanced Negotiation Modules** These modules model advanced
    negotiation problems and techniques
 
    1. **situated** Implements world simulations within which agents with
-      intrinsic utilty functions can engage in simulataneous connected
-      situated negotiations. It is the most important module for the
-      goals of this library. The ``Agent`` and ``World`` classes
-      described in details later belong to this module
+      intrinsic utility functions can engage in simultaneous
+      interconnected situated negotiations. It is the most important
+      module for the goals of this library. The ``Agent`` and ``World``
+      classes described in details later belong to this module
    2. **modeling** This is a set of submodules implementing modeling of
       opponent utility, opponent strategy, opponent’s future offers and
       opponent’s probability of accepting offers.
@@ -102,7 +102,7 @@ specific modules, advanced and helper modules.
    -  **tournaments** Supports creating and running tournaments to
       compare agents and negotiators.
    -  **checkpoints** Supports saving and reloading world simulations
-      to/from secondry storage.
+      to/from secondary storage.
    -  **visualizers** [Under development] Supports visualization of
       world simulation, negotiation sessions, negotiators, and agents.
 
@@ -127,13 +127,13 @@ As usual you can just import everything in a separate namespace using:
 
     import negmas
 
-Negotiations are conducted between mutliple agents with the goal of
+Negotiations are conducted between multiple agents with the goal of
 achieving an *agreement* (usually called a contract) on one of several
 possible outcomes. Each *outcome* is in general an assignment to some
 value to a set of issues. Each *issue* is a variable that can take one
-of a – probably infinit – set of values from some predefined *domain*.
+of a – probably infinite – set of values from some predefined *domain*.
 
-The classes and funtions supporting management of issues, outcomes and
+The classes and functions supporting management of issues, outcomes and
 responses are combined in the ``outcomes`` module.
 
 Issues
@@ -254,7 +254,7 @@ You can pick random valid or invalid values for the issue:
 .. parsed-literal::
 
     [['not to be',
-      '20200409H1735236220345BuDQfJ7to be20200409H173523622071naq3MRdO'],
+      '20200413H1041143627155BuDQfJ7to be20200413H104114362765naq3MRdO'],
      [8, 11],
      [0.026696794662205203, 1.7349999099114584]]
 
@@ -303,7 +303,7 @@ Notice that the ``invalid_outcome`` is assigning a value of ``10`` to
 the ``number of items`` issue which is not an acceptable value (``cost``
 ranges between ``0`` and ``9``).
 
-Because ``outcomes`` can be represented with many builtin collection
+Because ``outcomes`` can be represented with many built-in collection
 classes, the only common ancestor of all outcome objects is the
 ``object`` class. Nevertheless, the ``outcomes`` module provide a
 type-alias ``Outcome`` that can be used for static type checking if
@@ -388,8 +388,8 @@ in the given set of issues. This can be done using the
 
 
 
-It is sometimes tedius to keep track of issue names in dictionaries. For
-this reason, the library provides a type called *OutcomeType*.
+It is sometimes difficult to keep track of issue names in dictionaries.
+For this reason, the library provides a type called *OutcomeType*.
 Inheriting your dataclass from an OutcomeType will allow it to act both
 as a dict and a normal dot accessible object:
 
@@ -422,11 +422,11 @@ Now you can use objects of MyOutcome as normal outcomes
 
 .. parsed-literal::
 
-    MyOutcome(problem='to be', price=1.812399297658087, quantity=4)
-    MyOutcome(problem='not to be', price=2.1342018233171163, quantity=0)
-    MyOutcome(problem='to be', price=1.456736400980284, quantity=2)
-    MyOutcome(problem='to be', price=2.692720164802598, quantity=2)
-    MyOutcome(problem='not to be', price=0.07822549395128475, quantity=2)
+    MyOutcome(problem='to be', price=2.3761791955005656, quantity=2)
+    MyOutcome(problem='to be', price=1.8765643046251141, quantity=1)
+    MyOutcome(problem='not to be', price=0.15617720538632418, quantity=4)
+    MyOutcome(problem='not to be', price=1.4136582108727556, quantity=2)
+    MyOutcome(problem='to be', price=2.8022528037179724, quantity=3)
 
 
 The *sample* function created objects of type MyOutcome that can be
@@ -441,9 +441,9 @@ accessed using either the dot notation or as a dict
 
 .. parsed-literal::
 
-    1.812399297658087
-    1.812399297658087
-    1.812399297658087
+    2.3761791955005656
+    2.3761791955005656
+    2.3761791955005656
 
 
 OutcomeType is intended to be used as a syntactic sugar around your
@@ -797,7 +797,7 @@ For example, a seller’s utility can be defined as:
                        , f=lambda x: x['price']/x['number of items'] - 0.5 * x['delivery'])
 
 This utility will go up with the ``price`` and down with the
-``number of items`` as expected but not in a linear fassion.
+``number of items`` as expected but not linearly.
 
 We can now evaluate different options similar to the case for the buyer:
 
@@ -838,9 +838,9 @@ In many cases, it is not possible to define a utility mapping for every
 issue independently. We provide the utility function
 ``HyperVolumeUtilityFunction`` to handle this situation by allowing for
 representation of a set of nonlinear functions defined on arbitrary
-hypervolumes of the space of outcomes.
+hyper-volumes of the space of outcomes.
 
-The simplext example is a nonlinear-function that is defined over the
+The simplest example is a nonlinear-function that is defined over the
 whole space but that nonlinearly combines several issues to calculate
 the utility.
 
@@ -870,7 +870,7 @@ can be represented as follows:
 
 This function recovered exactly the same values as the
 ``NonlinearUtilityFuction`` defined earlier by defining a single
-hypervolume with the special value of ``None`` which applies the
+hyper-volume with the special value of ``None`` which applies the
 function to the whole space and then defining a single nonlinear
 function over the whole space to implement the required utiltiy mapping.
 
@@ -996,7 +996,7 @@ The relation between ``NoneLinearHyperVolumeUtilityFunction`` and
 Other utility function types
 ----------------------------
 
-There are several other builtin utility function types in the utilities
+There are several other built-in utility function types in the utilities
 module. Operations for utility function serialization to and from xml as
 sell as normalization, finding pareto-frontier, generation of ufuns, etc
 are also available. Please check the documentation of the utilities
@@ -1107,7 +1107,7 @@ to more complex entities that can interact with a simulation or the real
 world and spawn ``Negotiator`` objects as needed (see the situated
 module documentation). The base ``Negotiator`` is implemented in the
 ``negotiators`` module. The design of this module tried to achieve
-maximum flexibility by relying mostly on Mixins instead of inheretance
+maximum flexibility by relying mostly on Mixins instead of inheritance
 for adding functionality as will be described later.
 
 To build your negotiator, you need to inherit from a ``Negotiator``
@@ -1133,7 +1133,7 @@ the ``Negotiator``.
 Genius Negotiator
 ^^^^^^^^^^^^^^^^^
 
-There is a speical type of negotiators called ``GeniusNegotiator``
+There is a special type of negotiators called ``GeniusNegotiator``
 implemented in the ``genius`` module that is capable of interacting with
 negotiation sessions running in the genius platform (JVM). Please refer
 to the documentation of ``genius`` module for more information.
@@ -1148,9 +1148,9 @@ corresponding negotiator. This means that if you do not override any
 methods in the controller, all negotiation related actions will still be
 handled by the ``Negotiator``. To allow controllers to actually manage
 negotiations, a subclass of ``Controller`` needs to implement these
-actions without calling the baseclass’s implementation.
+actions without calling the base class’s implementation.
 
-A special kind of negotaitor called ``PassThroughNegotiator`` is
+A special kind of negotiator called ``PassThroughNegotiator`` is
 designed to work with controllers that take full responsibility of the
 negotiation. These negotiators act just as a relay station passing all
 requests from the mechanism object to the controller and all responses
@@ -1169,7 +1169,7 @@ Putting Everything together
 ---------------------------
 
 Other than ``Rational`` objects, NegMAS defines two types of entities
-that orchestrate the interacitons between ``Rational`` objects:
+that orchestrate the interactions between ``Rational`` objects:
 
 -  **Mechanisms** represent interaction protocols which can be
    negotiation protocols or auctions. A ``Mechanism`` object connects a
@@ -1186,20 +1186,19 @@ A picture is worth a thousand words. The following figure shows how all
 the classes we mentioned so far fit together
 
 .. image:: overview.png
-  :width: 600
 
 The most important points to notice about this figure are the following:
 
 -  Almost all entities are ``NamedObject``\ s which means they have a
-   *user assigne* name used for debugging, printing, and logging, and a
-   *system assigned* id used when prgramatically accessing the object.
-   For example, agents request negotaitions with other agents from the
+   *user assigned* name used for debugging, printing, and logging, and a
+   *system assigned* id used when programatically accessing the object.
+   For example, agents request negotiations with other agents from the
    world using the partner’s *id* not *name*.
 -  ``Controller`` objects can access neither worlds nor mechanisms
    directly and they depend on agents to create them and on negotiators
    to negotiate for them.
 -  A ``UtilityFunction`` in negmas is an active entity, it is not just a
-   methematical function but it can have state, access the mechanism
+   mathematical function but it can have state, access the mechanism
    state or settings (through its own ``AgentMechanismInterface``) and
    can change its returned value for the same output during the
    negotiation. Ufuns need not be dyanmic in this sense but they can be.
@@ -1222,7 +1221,7 @@ provide the following basic functionalities:
    negotiated, may allow only a predefined maximum and minimum number of
    agents to engage in the negotiation. All of this is controlled
    through parameters to the protocol initializer.
--  provide the basic flow of protcols so that new protcols can be
+-  provide the basic flow of protocols so that new protocols can be
    implemented by just overriding a single ``round()`` function.
 -  provide basic callbacks that can be extended by new protocols.
 
@@ -1248,14 +1247,14 @@ provided protocols. This is an example of a full negotiation session:
 
 .. parsed-literal::
 
-    (1,)
+    (3,)
 
 
 
 You can create a new protocol by overriding a single function in the
 ``Protocol`` class.
 
-The builtin ``SAOMechanism`` calls negotiators sequentially. Let’s
+The built-in ``SAOMechanism`` calls negotiators sequentially. Let’s
 implement a simplified similar protocol that asks *all* negotiators to
 respond to every offer in parallel.
 
@@ -1377,7 +1376,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.001805</td>
+          <td>0.000921</td>
           <td>0.1</td>
           <td>False</td>
           <td>False</td>
@@ -1393,7 +1392,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.003420</td>
+          <td>0.001676</td>
           <td>0.2</td>
           <td>False</td>
           <td>False</td>
@@ -1405,44 +1404,12 @@ Our mechanism keeps a history in the form of a list of
         </tr>
         <tr>
           <th>2</th>
-          <td>True</td>
+          <td>False</td>
           <td>False</td>
           <td>True</td>
           <td>2</td>
-          <td>0.005308</td>
+          <td>0.002162</td>
           <td>0.3</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>2</td>
-          <td>False</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>3</td>
-          <td>0.006302</td>
-          <td>0.4</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>2</td>
-          <td>False</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>False</td>
-          <td>False</td>
-          <td>True</td>
-          <td>4</td>
-          <td>0.007068</td>
-          <td>0.5</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1493,22 +1460,14 @@ filling it in the mechanism:
 
 That is all. We just needed to define our new state type, set the
 state_factory of the mechanism to it and define how to fill it in the
-``extra_state`` method. Now it is possible to use thie mechanism as we
+``extra_state`` method. Now it is possible to use this mechanism as we
 did previously
 
 .. code:: ipython3
 
     p = NewParallelResponseMechanism(outcomes = 6, n_steps = 10)
-    p.add(LimitedOutcomesNegotiator(name='seller',
-                                    acceptable_outcomes=[(2,), (3,), (5,)],
-                                    proposable_outcomes=[(2,), (3,), (5,)]
-                                   )
-         )
-    p.add(LimitedOutcomesNegotiator(name='buyer',
-                                    acceptable_outcomes=[(1,), (4,), (3,)],
-                                    proposable_outcomes=[(1,), (4,), (3,)]
-                                   )
-         )
+    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     p.state.agreement
 
@@ -1526,8 +1485,9 @@ to confirm that the current offer and its source are stored.
 
 .. code:: ipython3
 
-    pd.DataFrame(
-        [
+    def show_history(p):
+        """Returns a Pandas Dataframe with the negotiation history"""
+        return pd.DataFrame([
             dict(
                 step=_.step,
                 agreement=_.agreement,
@@ -1537,9 +1497,9 @@ to confirm that the current offer and its source are stored.
                 current_offer=_.current_offer,
                 current_offerer=_.current_offerer
             )
-            for _ in p.history
-        ]
-    )
+            for _ in p.history])
+
+    show_history(p)
 
 
 
@@ -1578,17 +1538,17 @@ to confirm that the current offer and its source are stored.
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.166667</td>
+          <td>0.1</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
           <td>None</td>
-          <td>0.333333</td>
+          <td>0.2</td>
           <td>False</td>
           <td>False</td>
           <td>(1,)</td>
@@ -1598,50 +1558,20 @@ to confirm that the current offer and its source are stored.
           <th>2</th>
           <td>2</td>
           <td>None</td>
-          <td>0.500000</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(2,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
-          <td>None</td>
-          <td>0.666667</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>4</td>
-          <td>None</td>
-          <td>0.833333</td>
+          <td>0.3</td>
           <td>False</td>
           <td>False</td>
           <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
-          <th>5</th>
-          <td>5</td>
-          <td>None</td>
-          <td>1.000000</td>
+          <th>3</th>
+          <td>3</td>
+          <td>(3,)</td>
+          <td>0.4</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>6</th>
-          <td>6</td>
-          <td>None</td>
-          <td>1.166667</td>
-          <td>True</td>
-          <td>False</td>
-          <td>(1,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
       </tbody>
@@ -1656,31 +1586,10 @@ acceptable outcomes in our case):
 .. code:: ipython3
 
     p = NewParallelResponseMechanism(outcomes = 6, n_steps = 6)
-    p.add(LimitedOutcomesNegotiator(name='seller',
-                                    acceptable_outcomes=[(2,), (0,), (5,)],
-                                    proposable_outcomes=[(2,), (0,), (5,)]
-                                   )
-         )
-    p.add(LimitedOutcomesNegotiator(name='buyer',
-                                    acceptable_outcomes=[(1,), (4,), (3,)],
-                                    proposable_outcomes=[(1,), (4,), (3,)]
-                                   )
-         )
-    state = p.run()
-    pd.DataFrame(
-        [
-            dict(
-                step=_.step,
-                agreement=_.agreement,
-                relative_time=_.relative_time,
-                timedout=_.timedout,
-                broken=_.broken,
-                current_offer=_.current_offer,
-                current_offerer=_.current_offerer
-            )
-            for _ in p.history
-        ]
-    )
+    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (0,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p.run()
+    show_history(p)
 
 
 
@@ -1722,7 +1631,7 @@ acceptable outcomes in our case):
           <td>0.166667</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1732,7 +1641,7 @@ acceptable outcomes in our case):
           <td>0.333333</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
+          <td>(4,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1752,7 +1661,7 @@ acceptable outcomes in our case):
           <td>0.666667</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(1,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1762,7 +1671,7 @@ acceptable outcomes in our case):
           <td>0.833333</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(0,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1772,7 +1681,7 @@ acceptable outcomes in our case):
           <td>1.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1782,7 +1691,7 @@ acceptable outcomes in our case):
           <td>1.166667</td>
           <td>True</td>
           <td>False</td>
-          <td>(1,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
       </tbody>
@@ -1798,7 +1707,7 @@ Worlds (Simulations)
 
 A world in NegMAS is what connects all agents together. It has a
 ``simulation_step`` that is used to run a simulation (or update the
-state from the real world) and manages creation and distruciton of
+state from the real world) and manages creation and destruction of
 ``AgentWorldInterface``\ s (AWI) and connecting them to ``Agent``\ s.
 
 ``Agent``\ s can join and leave worlds using the ``join`` and ``leave``
@@ -1810,5 +1719,5 @@ simulation. Most likely you will also need to define a base ``Agent``
 inherited class that is capable of interacting with this world and a
 corresponding ``AgentWorldInterface``.
 
-You can see examples in the tutorials section.
+You can see an example of a world simulation in the tutorials.
 
