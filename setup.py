@@ -82,7 +82,6 @@ setup(
         "scipy (>=1.2)",
         "numpy (>=1.16)",
         "stringcase",
-        "py4j",
         "colorlog",
         "inflect",
         "matplotlib",
@@ -94,15 +93,14 @@ setup(
         "dill",
         "seaborn",
         "sklearn",
-        "nose",
-        "cython",
         "networkx",
-        "pyqt5",
         "gif",
+        "py4j",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
-        "visualizer": ["flask", "dash", "dash-daq", "dash-bootstrap-components"],
+        "visualization": ["flask", "dash", "dash-daq", "dash-bootstrap-components"],
+        "gui": ["pyqt5"],
     },
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional
