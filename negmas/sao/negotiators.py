@@ -1021,19 +1021,24 @@ class PassThroughSAONegotiator(SAONegotiator):
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         """Calls parent controller"""
-        return self._Negotiator__parent.propose(self.id, state)
+        if self._Negotiator__parent:
+            return self._Negotiator__parent.propose(self.id, state)
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         """Calls parent controller"""
-        return self._Negotiator__parent.respond(self.id, state, offer)
+        if self._Negotiator__parent:
+            return self._Negotiator__parent.respond(self.id, state, offer)
+        return ResponseType.REJECT_OFFER
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Calls parent controller"""
-        return self._Negotiator__parent.on_negotiation_start(self.id, state)
+        if self._Negotiator__parent:
+            return self._Negotiator__parent.on_negotiation_start(self.id, state)
 
     def on_negotiation_end(self, state: MechanismState) -> None:
         """Calls parent controller"""
-        return self._Negotiator__parent.on_negotiation_end(self.id, state)
+        if self._Negotiator__parent:
+            return self._Negotiator__parent.on_negotiation_end(self.id, state)
 
     def join(self, ami, state, *, ufun=None, role="agent",) -> bool:
         """
@@ -1053,9 +1058,10 @@ class PassThroughSAONegotiator(SAONegotiator):
         if not permission:
             return False
         if super().join(ami, state, ufun=ufun, role=role):
-            self._Negotiator__parent is None or self._Negotiator__parent.after_join(
-                self.id, ami, state, ufun=ufun, role=role
-            )
+            if self._Negotiator__parent:
+                self._Negotiator__parent.after_join(
+                    self.id, ami, state, ufun=ufun, role=role
+                )
             return True
         return False
 
