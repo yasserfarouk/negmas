@@ -588,8 +588,8 @@ def _run_dask(
                     tournament_name=name,
                     save_world_stats=save_world_stats,
                 ),
-                add_records(world_stats_file, [vars(world_stats_)]),
             )
+            add_records(world_stats_file, [vars(world_stats_)])
             if verbose:
                 _duration = time.perf_counter() - _strt
                 print(
@@ -1046,6 +1046,7 @@ def run_tournament(
                     True,
                 )
             )
+        result_received = set()
         if verbose:
             print(
                 f"Submitted all processes ({len(future_results)} of {len(assigned)})",
@@ -1072,8 +1073,9 @@ def run_tournament(
                         tournament_name=name,
                         save_world_stats=not compact,
                     ),
-                    add_records(world_stats_file, [vars(world_stats_)]),
                 )
+                add_records(world_stats_file, [vars(world_stats_)]),
+                result_received.add(run_id)
                 if verbose:
                     _duration = time.perf_counter() - _strt
                     print(
@@ -1147,14 +1149,14 @@ def create_tournament(
     name: str = None,
     verbose: bool = False,
     compact: bool = False,
-    save_video_fraction: float = 0.001,
-    forced_logs_fraction: float = 0.001,
+    save_video_fraction: float = 0.0,
+    forced_logs_fraction: float = 0.0,
     video_params=None,
     video_saver=None,
     **kwargs,
 ) -> PathLike:
     """
-    Runs a tournament
+    Creates a tournament
 
     Args:
 
@@ -1421,7 +1423,7 @@ def create_tournament(
             config["world_params"].update(
                 {"log_file_name": str("log.txt"), "log_folder": str(dir_name)}
             )
-    if forced_logs_fraction > 0.0:
+    if forced_logs_fraction > 1e-5:
         n_logged = max(1, int(len(assigned) * forced_logs_fraction))
         for cs in assigned[:n_logged]:
             for _ in cs:
@@ -1439,7 +1441,7 @@ def create_tournament(
                         }
                     )
 
-    if save_video_fraction > 0.0:
+    if save_video_fraction > 1e-5:
         n_videos = max(1, int(len(assigned) * forced_logs_fraction))
         for cs in assigned[:n_videos]:
             for _ in cs:
