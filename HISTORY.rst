@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.2.13
+--------------
+
+* [tournaments] defaulting to no logs or videos in tournaments.
+* [base] bugfix: avoid calling parent in passthrough negotiator when it does not exist.
+* [base] making PyQT optional
+
 Release 0.2.12
 --------------
 
