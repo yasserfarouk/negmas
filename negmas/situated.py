@@ -2146,13 +2146,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.ignore_contract_execution_exceptions = ignore_contract_execution_exceptions
         self.ignore_agent_exception = ignore_agent_exceptions
         self.n_agent_exceptions = 0
+        self.n_agent_exceptions_details = defaultdict(int)
         self.n_simulation_exceptions = 0
         self.n_negotiation_exceptions = 0
+        self.n_negotiation_exceptions_details = defaultdict(int)
         self.n_contract_exceptions = 0
         self.bulletin_board: BulletinBoard = bulletin_board
         self._negotiations: Dict[str, NegotiationInfo] = {}
-        self._agent_exceptions = defaultdict(int)
-        self._agent_negotiator_exceptions = defaultdict(int)
         self.unsigned_contracts: Dict[int, Set[Contract]] = defaultdict(set)
         self.breach_processing = breach_processing
         self.n_steps = n_steps
@@ -2275,7 +2275,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if "logger" in state.keys():
             state.pop("logger", None)
         return state
-
     def __setstate__(self, state):
         self.__dict__ = state
         self.logger = create_loggers(
@@ -2299,7 +2298,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             agent = negotiator.owner
             if not agent:
                 return
-            self.n_agent_exceptions[agent.id] += 1
+            # self.n_agent_exceptions[agent.id] += 1
             self.logdebug_agent(
                 agent.id,
                 f"Negotiator {negotiator.name} raised: "
@@ -2626,7 +2625,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         Returns:
 
-            the agreement or NOne and whether the negotaition is still urnning
+            The agreement or None and whether the negotiation is still running
         """
         contract = None
         try:
@@ -2634,6 +2633,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         except Exception as e:
             result = mechanism.abort()
             self.n_negotiation_exceptions += 1
+            for agent__ in (neg.owner for neg in mechanism.negotiators):
+                self.n_negotiation_exceptions_details[agent__.id if agent__ else "unknown"] += 1
             if not self.ignore_negotiation_exceptions:
                 raise e
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -2737,8 +2738,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         try:
             return method(*args, **kwargs)
         except Exception as e:
-            self._agent_exceptions[agent.id] += 1
             self.n_agent_exceptions += 1
+            self.n_agent_exceptions_details[agent.id] += 1
             self.on_exception(agent, e)
             if not self.ignore_agent_exception:
                 raise e
@@ -3858,8 +3859,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             try:
                 return self.call(p, p.sign_all_contracts, [c])[0]
             except Exception as e:
-                self._agent_exceptions[p.id] += 1
                 self.n_agent_exceptions += 1
+                self.n_agent_exceptions_details[p.id] += 1
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
                     f"Signature exception @ {p.name}: {traceback.format_tb(exc_traceback)}",
