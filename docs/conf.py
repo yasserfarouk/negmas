@@ -20,6 +20,7 @@
 #
 from __future__ import annotations
 import typing
+
 typing.get_type_hints = lambda obj, *unused: obj
 
 import os
@@ -189,9 +190,10 @@ latex_documents = [
 
 # -- Options for graphviz used in inheritence diagrams -----------------
 
-graphviz_output_format = "png"
-# inheritance_node_attrs = dict(shape='rectangle', fontsize=16 #, height=0.75,
-#                               color='white') # , style='filled') # dodgerblue1
+graphviz_output_format = "svg"
+inheritance_graph_attrs = dict(
+    randkir="TB", fontsize=11, size='""'
+)  # , size='"16.0, 20.0"')
 
 # -- Options for manual page output ------------------------------------
 
@@ -227,5 +229,5 @@ html_domain_indices = True
 
 automodsumm_inherited_members = False
 
-autodoc_typehints = 'description'
+autodoc_typehints = "description"
 # mathjax_path =
