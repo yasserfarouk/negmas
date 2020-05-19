@@ -1,5 +1,6 @@
 """This module defines the base classes for worlds within which multiple agents engage in situated negotiations
 
+
 The `Agent` class encapsulates the managing entity that creates negotiators to engage in negotiations within a world
 `Simulation` in order to maximize its own total utility.
 
@@ -95,6 +96,7 @@ from typing import (
     Union,
 )
 
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -113,6 +115,7 @@ from .helpers import (
     humanize_time,
     instantiate,
     unique_name,
+    exception2str,
 )
 from .java import to_dict, to_flat_dict
 from .mechanisms import Mechanism
@@ -830,7 +833,9 @@ class MechanismFactory:
         try:
             mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
         except Exception as e:
-            self.world.n_negotiation_exceptions += 1
+            s_ = exception2str()
+            self.world.mechanism_exceptions[self._current_step].append(s_)
+            self.world.agent_exceptions[caller.id].append((self._current_step, s_))
             mechanism = None
             self.world.logerror(
                 f"Failed to create {mechanism_name} with params {mechanism_params}",
@@ -2145,13 +2150,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         self.ignore_contract_execution_exceptions = ignore_contract_execution_exceptions
         self.ignore_agent_exception = ignore_agent_exceptions
-        self.n_agent_exceptions = 0
-        self.n_agent_exceptions_details = defaultdict(int)
-        self.n_simulation_exceptions = 0
-        self.n_negotiation_exceptions = 0
-        self.n_negotiation_exceptions_details = defaultdict(int)
-        self.n_contract_exceptions = 0
-        self.bulletin_board: BulletinBoard = bulletin_board
+        self.times: Dict[str, float] = defaultdict(float)
+        self.simulation_exceptions: Dict[int, List[str]] = defaultdict(list)
+        self.mechanism_exceptions: Dict[int, List[str]] = defaultdict(list)
+        self.contract_exceptions: Dict[int, List[str]] = defaultdict(list)
+        self.agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+        self.negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+        self.bulletin_board = bulletin_board
         self._negotiations: Dict[str, NegotiationInfo] = {}
         self.unsigned_contracts: Dict[int, Set[Contract]] = defaultdict(set)
         self.breach_processing = breach_processing
@@ -2298,7 +2303,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             agent = negotiator.owner
             if not agent:
                 return
-            # self.n_agent_exceptions[agent.id] += 1
             self.logdebug_agent(
                 agent.id,
                 f"Negotiator {negotiator.name} raised: "
@@ -2617,6 +2621,82 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         data = pd.DataFrame([to_flat_dict(_) for _ in mechanism.history])
         data.to_csv(os.path.join(negs_folder, f"{mechanism.id}.csv"), index=False)
 
+    @property
+    def n_simulation_exceptions(self) -> Dict[int, int]:
+        """
+        Returns a mapping from agent ID to the total number of exceptions it and its negotiators have raised
+        """
+        result = defaultdict(int)
+        for k, v in self.simulation_exceptions.items():
+            result[k] += len(v)
+        return result
+
+    @property
+    def n_contract_exceptions(self) -> Dict[int, int]:
+        """
+        Returns a mapping from agent ID to the total number of exceptions it and its negotiators have raised
+        """
+        result = defaultdict(int)
+        for k, v in self.contract_exceptions.items():
+            result[k] += len(v)
+        return result
+
+    @property
+    def n_mechanism_exceptions(self) -> Dict[int, int]:
+        """
+        Returns a mapping from agent ID to the total number of exceptions it and its negotiators have raised
+        """
+        result = defaultdict(int)
+        for k, v in self.mechanism_exceptions.items():
+            result[k] += len(v)
+        return result
+
+    @property
+    def n_total_simulation_exceptions(self) -> Dict[int, int]:
+        """
+        Returns the total number of exceptions per step that are not directly raised by agents or their negotiators.
+
+        Remarks:
+            - This property sums the totals of `n_simulation_exceptions`, `n_contract_exceptions`, and `n_mechanism_exceptions`
+        """
+        result = defaultdict(int)
+        for d in (self.n_mechanism_exceptions, self.n_contract_exceptions, self.n_simulation_exceptions):
+            for k, v in d.items():
+                result[k] += v
+        return result
+
+    @property
+    def n_agent_exceptions(self) -> Dict[str, int]:
+        """
+        Returns a mapping from agent ID to the total number of exceptions it and its negotiators have raised
+        """
+        result = dict()
+        for k, v in self.agent_exceptions.items():
+            result[k] = len(v)
+        return result
+
+    @property
+    def n_total_agent_exceptions(self) -> Dict[str, int]:
+        """
+        Returns a mapping from agent ID to the total number of exceptions it and its negotiators have raised
+        """
+        result: Dict[str, int] = defaultdict(int)
+        for k, v in self.agent_exceptions.items():
+            result[k] += len(v)
+        for k, v in self.negotiator_exceptions.items():
+            result[k] += len(v)
+        return result
+
+    @property
+    def n_negotiator_exceptions(self) -> Dict[str, int]:
+        """
+        Returns a mapping from agent ID to the total number of exceptions its negotiators have raised
+        """
+        result = dict()
+        for k, v in self.negotiator_exceptions.items():
+            result[k] = len(v)
+        return result
+
     def _step_a_mechanism(
         self, mechanism, force_immediate_signing
     ) -> Tuple[Optional[Contract], bool]:
@@ -2632,9 +2712,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             result = mechanism.step()
         except Exception as e:
             result = mechanism.abort()
-            self.n_negotiation_exceptions += 1
-            for agent__ in (neg.owner for neg in mechanism.negotiators):
-                self.n_negotiation_exceptions_details[agent__.id if agent__ else "unknown"] += 1
             if not self.ignore_negotiation_exceptions:
                 raise e
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -2642,6 +2719,19 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 f"Mechanism exception: " f"{traceback.format_tb(exc_traceback)}",
                 Event("entity-exception", dict(exception=e)),
             )
+        finally:
+            namap = dict()
+            for neg in mechanism.negotiators:
+                namap[neg.id] = neg.owner
+
+            if mechanism.stats["times"]:
+                for nid, t in mechanism.stats["times"].items():
+                    self.times[namap[nid].id if namap[nid] else "Unknown"] += t
+
+            if mechanism.stats["exceptions"]:
+                for nid, exceptions in mechanism.stats["exceptions"].items():
+                    self.negotiator_exceptions[namap[nid].id if namap[nid] else "Unknown"].append(list(zip(itertools.repeat(self._current_step), exceptions)))
+
         agreement, is_running = result.agreement, result.running
         if agreement is not None or not is_running:
             negotiation = self._negotiations.get(mechanism.id, None)
@@ -2736,10 +2826,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             whatever method returns
         """
         try:
-            return method(*args, **kwargs)
+            _strt = time.perf_counter()
+            result = method(*args, **kwargs)
+            self.times[agent.id] = time.perf_counter() - _strt
+            return result
         except Exception as e:
-            self.n_agent_exceptions += 1
-            self.n_agent_exceptions_details[agent.id] += 1
+            self.agent_exceptions[agent.id].append((self._current_step, exception2str()))
             self.on_exception(agent, e)
             if not self.ignore_agent_exception:
                 raise e
@@ -2848,7 +2940,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             try:
                 self.simulation_step(stage)
             except Exception as e:
-                self.n_simulation_exceptions += 1
+                self.simulation_exceptions[self._current_step].append( exception2str())
                 if not self.ignore_simulation_exceptions:
                     raise (e)
             stage += 1
@@ -2873,7 +2965,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     try:
                         contract_breaches = self.start_contract_execution(contract)
                     except Exception as e:
-                        self.n_contract_exceptions += 1
+                        self.contract_exceptions[self._current_step].append(exception2str())
                         contract.executed_at = self.current_step
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["executed_at"] = -1
@@ -3859,8 +3951,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             try:
                 return self.call(p, p.sign_all_contracts, [c])[0]
             except Exception as e:
-                self.n_agent_exceptions += 1
-                self.n_agent_exceptions_details[p.id] += 1
+                self.agent_exceptions[p.id].append((self._current_step, str(e)))
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 self.logerror(
                     f"Signature exception @ {p.name}: {traceback.format_tb(exc_traceback)}",

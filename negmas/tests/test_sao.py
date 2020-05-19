@@ -21,6 +21,78 @@ from negmas import (
 )
 from negmas.helpers import unique_name
 from negmas.sao import SAOResponse
+import time
+
+
+exception_str = "Custom Exception"
+
+
+class MyRaisingNegotiator(AspirationNegotiator):
+    def propose(self, state):
+        raise ValueError(exception_str)
+
+
+def test_exceptions_are_saved():
+    n_outcomes, n_negotiators = 10, 2
+    mechanism = SAOMechanism(
+        outcomes=n_outcomes, n_steps=n_outcomes, ignore_negotiator_exceptions=True
+    )
+    ufuns = MappingUtilityFunction.generate_random(
+        n_negotiators, outcomes=mechanism.outcomes
+    )
+    mechanism.add(AspirationNegotiator(name=f"agent{0}"), ufun=ufuns[0])
+    mechanism.add(MyRaisingNegotiator(name=f"agent{1}"), ufun=ufuns[1])
+    assert mechanism.state.step == 0
+    mechanism.step()
+    mechanism.step()
+    mechanism.step()
+    assert mechanism.state.step == 1
+    assert mechanism._current_offer is not None
+    assert len(mechanism.stats) == 3
+    stats = mechanism.stats
+    assert "times" in stats.keys()
+    assert "exceptions" in stats.keys()
+    assert stats["exceptions"] is not None
+    assert len(stats["exceptions"]) == 1
+    print(stats["exceptions"][mechanism.negotiators[1].id])
+    assert len(stats["exceptions"][mechanism.negotiators[1].id]) == 1
+    assert exception_str in stats["exceptions"][mechanism.negotiators[1].id][0]
+    assert len(stats["exceptions"][mechanism.negotiators[0].id]) == 0
+
+
+@given(
+    n_outcomes=st.integers(5, 10),
+    n_negotiators=st.integers(2, 4),
+    n_steps=st.integers(1, 4),
+)
+def test_times_are_calculated(n_outcomes, n_negotiators, n_steps):
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=8)
+    ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
+    for i in range(n_negotiators):
+        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+    assert mechanism.state.step == 0
+    _strt = time.perf_counter()
+    for _ in range(n_steps):
+        print(f"Stepping: {_}")
+        mechanism.step()
+    time.sleep(0.01)
+    duration = time.perf_counter() - _strt
+    # assert mechanism.current_step == n_steps
+    assert mechanism._current_offer is not None
+    assert len(mechanism.stats) == 3
+    stats = mechanism.stats
+    assert "round_times" in stats.keys()
+    assert 0 < sum(stats["round_times"]) < duration
+    assert "times" in stats.keys()
+    assert "exceptions" in stats.keys()
+    assert stats["times"] is not None
+    assert stats["exceptions"] is not None
+    assert len(stats["times"]) == n_negotiators
+    assert len(stats["exceptions"]) == 0
+    for i in range(n_negotiators):
+        assert 0 < stats["times"][mechanism.negotiators[i].id] < duration
+        assert len(stats["exceptions"][mechanism.negotiators[i].id]) == 0
+    assert 0 < sum(stats["times"].values()) < duration
 
 
 def test_on_negotiation_start():
@@ -225,7 +297,7 @@ def test_sync_controller(n_negotiations, n_negotiators, oia):
 
 
 def test_pickling_mechanism(tmp_path):
-    import pickle
+    import dill as pickle
 
     file = tmp_path / "mechanism.pck"
     n_outcomes, n_negotiators = 5, 3

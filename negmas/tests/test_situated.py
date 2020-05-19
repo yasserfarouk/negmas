@@ -183,6 +183,130 @@ class DummyAgent(Agent):
         results.append(f"{self.name}: step {self.__current_step}")
 
 
+class ExceptionAgent(Agent):
+    def init(self):
+        pass
+
+    def _respond_to_negotiation_request(
+        self,
+        initiator: str,
+        partners: List[str],
+        issues: List[Issue],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        role: Optional[str],
+        req_id: Optional[str],
+    ) -> Optional[Negotiator]:
+        negotiator = AspirationNegotiator(
+            ufun=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
+        )
+        return negotiator
+
+    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+        pass
+
+    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        pass
+
+    def on_negotiation_failure(
+        self,
+        partners: List[str],
+        annotation: Dict[str, Any],
+        mechanism: AgentMechanismInterface,
+        state: MechanismState,
+    ) -> None:
+        pass
+
+    def on_negotiation_success(
+        self, contract: Contract, mechanism: AgentMechanismInterface
+    ) -> None:
+        pass
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+        pass
+
+    def sign_contract(self, contract: Contract) -> Optional[str]:
+        return self.id
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        pass
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+    ) -> None:
+        pass
+
+    def set_renegotiation_agenda(
+        self, contract: Contract, breaches: List[Breach]
+    ) -> Optional[RenegotiationRequest]:
+        return None
+
+    def respond_to_renegotiation_request(
+        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+    ) -> Optional[Negotiator]:
+        return None
+
+    def __init__(self, name=None):
+        super().__init__(name=name)
+        self.id = name
+        self.__current_step = 0
+
+    def step(self):
+        global results
+        if self.awi is None:
+            return
+        self.__current_step = self.awi.current_step
+        if (self.__current_step == 2 and self.name.endswith("1")) or (
+            self.__current_step == 4 and self.name.endswith("2")
+        ):
+            issues = [Issue(10, name="i1")]
+            partners = self.awi.state["partners"]
+            self._request_negotiation(
+                partners=[_.name for _ in partners] + [self.name], issues=issues
+            )
+            results.append(f"{self.name} started negotiation with {partners[0].name}")
+        raise ValueError("error")
+        results.append(f"{self.name}: step {self.__current_step}")
+
+
+def test_world_has_times(capsys):
+    import time
+
+    world = DummyWorld(n_steps=10)
+    world.join(DummyAgent("A1"))
+    world.join(DummyAgent("A2"))
+    _strt = time.perf_counter()
+    world.run()
+    t = time.perf_counter() - _strt
+    for aid in world.agents.keys():
+        assert 0.0 < world.times[aid] < t
+    assert 0.0 < sum(world.times.values()) < t
+
+
+def test_world_records_exceptions(capsys):
+    import time
+
+    world = DummyWorld(n_steps=10, ignore_agent_exceptions=True)
+    world.join(ExceptionAgent("A1"))
+    world.join(ExceptionAgent("A2"))
+    world.run()
+    assert len(world.simulation_exceptions) == 0
+    assert len(world.contract_exceptions) == 0
+    assert len(world.mechanism_exceptions) == 0
+    for aid in world.agents.keys():
+        assert len(world.negotiator_exceptions[aid]) == 0.0
+        assert len(world.agent_exceptions[aid]) == 10
+        assert sum(world.n_negotiator_exceptions.values()) == 0
+        assert sum(world.n_agent_exceptions.values()) == 20
+        a = list(world.n_agent_exceptions.values())
+        assert a[0] == a[1] == 10
+        assert sum(world.n_total_simulation_exceptions.values()) == 0
+        assert sum(world.n_total_agent_exceptions.values()) == 20
+
+
 def test_world_runs_with_some_negs(capsys):
     global results
     results = []
@@ -224,7 +348,7 @@ def test_config_reader_with_a_world_with_enum():
 
 
 def test_world_picklable(tmp_path):
-    import pickle
+    import dill as pickle
 
     world = DummyWorld()
     world.step()
