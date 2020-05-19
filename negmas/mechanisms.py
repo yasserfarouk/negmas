@@ -58,8 +58,12 @@ class MechanismRoundResult:
     error_details: str = ""
     """Error message"""
     waiting: bool = False
-    """whether to consider that the round is still running and call the the round method again without increasing
+    """whether to consider that the round is still running and call the round method again without increasing
     the step number"""
+    exceptions: Optional[Dict[str, List[str]]] = None
+    """A mapping from negotiator ID to a list of exceptions raised by that negotiator in this round"""
+    times: Optional[Dict[str, float]] = None
+    """A mapping from negotiator ID to the time it consumed during this round"""
 
 
 # noinspection PyAttributeOutsideInit
@@ -230,7 +234,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         self.ami._mechanism = self
 
-        self._history = []
+        self._history: List[MechanismState] = []
+        self._stats: Dict[str, Any] = dict()
+        self._stats["round_times"] = list()
+        self._stats["times"] = defaultdict(float)
+        self._stats["exceptions"] = defaultdict(list)
         # if self.ami.issues is not None:
         #     self.ami.issues = tuple(self.ami.issues)
         # if self.ami.outcomes is not None:
@@ -449,6 +457,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self.agents_of_role[role].append(negotiator)
             return True
         return None
+
+    def get_negotiator(self, nid: str) -> Optional["SAONegotiator"]:
+        """Returns the negotiator with the given ID if present in the negotiation"""
+        return self._negotiator_map.get(nid, None)
 
     def remove(self, negotiator: "Negotiator", **kwargs) -> Optional[bool]:
         """Remove the agent from the negotiation.
@@ -780,6 +792,15 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         step_start = time.perf_counter()
         result = self.round()
         step_time = time.perf_counter() - step_start
+        self._stats["round_times"].append(step_time)
+        if result.times:
+            for k, v in result.times.items():
+                if v is not None:
+                    self._stats["times"][k] += v
+        if result.exceptions:
+            for k, v in result.exceptions.items():
+                if v:
+                    self._stats["exceptions"][k] += v
         state = self.state
         self._error, self._error_details, self._waiting = (
             result.error,
@@ -943,6 +964,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @property
     def history(self):
         return self._history
+
+    @property
+    def stats(self):
+        return self._stats
 
     @property
     def current_step(self):

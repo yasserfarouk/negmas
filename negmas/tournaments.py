@@ -12,6 +12,7 @@ import random
 import time
 import traceback
 import warnings
+from collections import defaultdict
 from dataclasses import dataclass, field
 from multiprocessing import cpu_count
 from os import PathLike
@@ -36,6 +37,7 @@ from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas.helpers import (
+    exception2str,
     add_records,
     dump,
     get_class,
@@ -71,7 +73,7 @@ except:
     pass
 
 
-def _hash(*args):
+def _hash(*args) -> str:
     """Generates a unique ID given any inputs"""
     return hashlib.sha1(
         ("h" + "".join([str(_) for _ in args])).encode("utf-8")
@@ -189,14 +191,24 @@ class WorldSetRunStats:
     """Actually executed number of steps for each world"""
     execution_time: int
     """Total execution time of each world"""
-    n_agent_exceptions: int = 0
-    """Exceptions in agent code"""
-    n_negotiation_exceptions: int = 0
-    """Exceptions in negotiations"""
-    n_other_exceptions: int = 0
-    """Exceptions when running the tournament"""
-    n_simulation_exceptions: int = 0
-    """Exceptions when running the tournament"""
+    simulation_exceptions: Dict[int, List[str]] = field(default_factory=dict)
+    """Exceptions thrown by the simulator (not including mechanism creation and contract exceptions)"""
+    contract_exceptions: Dict[int, List[str]] = field(default_factory=dict)
+    """Exceptions thrown by the simulator during contract execution"""
+    mechanism_exceptions: Dict[int, List[str]] = field(default_factory=dict)
+    """Exceptions thrown by the simulator during mechanism creation or execution"""
+    other_exceptions: List[str] = field(default_factory=list)
+    """Exceptions raised by tournament running code itself not any world"""
+    agent_exceptions: Dict[str, List[Tuple[int, str]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    """All exceptions thrown per agent (not including negotiator exceptions)"""
+    negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    """All exceptions thown by negotiators of an agent"""
+    agent_times: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
+    """Total execution time per agent"""
 
 
 @dataclass
@@ -222,7 +234,7 @@ class TournamentResults:
     path: str = None
     """Path at which tournament results are stored"""
     world_stats: pd.DataFrame = None
-    """Some satistics about each world run"""
+    """Some statistics about each world run"""
     params: Dict[str, Any] = None
     """Parameters of the tournament"""
 
@@ -242,7 +254,7 @@ class TournamentResults:
 
 def run_world(
     world_params: dict, dry_run: bool = False, save_world_stats: bool = True
-) -> Tuple[str, WorldRunResults, WorldSetRunStats]:
+) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -296,7 +308,7 @@ def run_world(
 
 def run_worlds(
     worlds_params: List[dict], dry_run: bool = False, save_world_stats: bool = True
-) -> Tuple[str, WorldRunResults, WorldSetRunStats]:
+) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -320,7 +332,9 @@ def run_worlds(
     if len(worlds_params) < 1:
         return (
             _hash(worlds_params),
-            WorldRunResults(world_names=[""], log_file_names=[""]),
+            # WorldRunResults(world_names=[""], log_file_names=[""]),
+            None,
+            None,
         )
     world_generator, score_calculator = None, None
     for world_params in worlds_params:
@@ -364,7 +378,7 @@ def _run_worlds(
     world_progress_callback: Callable[[Optional[World]], None] = None,
     dry_run: bool = False,
     save_world_stats: bool = True,
-) -> Tuple[str, WorldRunResults, WorldSetRunStats]:
+) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
     Args:
@@ -397,6 +411,7 @@ def _run_worlds(
     scoring_context = {}
     run_id = _hash(worlds_params)
     video_savers, video_saver_params_list, save_videos = [], [], []
+    scores: Optional[WorldRunResults] = None
     for world_params in worlds_params:
         world_params = world_params.copy()
         dir_name = world_params["__dir_name"]
@@ -441,15 +456,51 @@ def _run_worlds(
                 video_saver(world, **video_saver_params)
 
         scores = score_calculator(worlds, scoring_context, dry_run)
+        agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+        for w in worlds:
+            for aid, v in w.agent_exceptions.items():
+                if v:
+                    agent_exceptions[w.agents[aid].type_name] += v
+        negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+        for w in worlds:
+            for aid, v in w.negotiator_exceptions.items():
+                if v:
+                    negotiator_exceptions[w.agents[aid].type_name] += v
+
+        simulation_exceptions: Dict[int, List[str]] = defaultdict(list)
+        for w in worlds:
+            for k, l in w.simulation_exceptions.items():
+                if l:
+                    simulation_exceptions[k] += l
+        mechanism_exceptions: Dict[int, List[str]] = defaultdict(list)
+        for w in worlds:
+            for k, l in w.mechanism_exceptions.items():
+                if l:
+                    mechanism_exceptions[k] += l
+        contract_exceptions: Dict[int, List[str]] = defaultdict(list)
+        for w in worlds:
+            for k, l in w.contract_exceptions.items():
+                if l:
+                    contract_exceptions[k] += l
+
+        agent_times: Dict[str, float] = defaultdict(float)
+        for w in worlds:
+            for aid, _ in w.times.items():
+                if _:
+                    agent_times[w.agents[aid].type_name] += _
+
         world_stats = WorldSetRunStats(
             name=";".join(_.name for _ in worlds),
             planned_n_steps=sum(_.n_steps for _ in worlds),
             executed_n_steps=sum(_.current_step for _ in worlds),
             execution_time=sum(_.frozen_time for _ in worlds),
-            n_negotiation_exceptions=sum(_.n_negotiation_exceptions for _ in worlds),
-            n_simulation_exceptions=sum(_.n_simulation_exceptions for _ in worlds),
-            n_other_exceptions=0,
-            n_agent_exceptions=sum(_.n_agent_exceptions for _ in worlds),
+            agent_exceptions=agent_exceptions,
+            negotiator_exceptions=negotiator_exceptions,
+            simulation_exceptions=simulation_exceptions,
+            contract_exceptions=contract_exceptions,
+            mechanism_exceptions=mechanism_exceptions,
+            agent_times=agent_times,
+            other_exceptions=[],
         )
     except Exception as e:
         scores = None
@@ -460,19 +511,17 @@ def _run_worlds(
             planned_n_steps=sum(_.n_steps for _ in worlds),
             executed_n_steps=sum(_.current_step for _ in worlds),
             execution_time=sum(_.frozen_time for _ in worlds),
-            n_negotiation_exceptions=sum(_.n_negotiation_exceptions for _ in worlds),
-            n_simulation_exceptions=sum(_.n_simulation_exceptions for _ in worlds),
-            n_other_exceptions=1,
-            n_agent_exceptions=sum(_.n_agent_exceptions for _ in worlds),
+            other_exceptions=[exception2str()],
         )
     return run_id, scores, world_stats
 
 
 def process_world_run(
     run_id: str,
-    results: WorldRunResults,
+    results: Optional[WorldRunResults],
     tournament_name: str,
-    save_world_stats: bool = True,
+    world_stats: Optional[WorldSetRunStats],
+    # save_world_stats: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     Generates a data-frame with the results of this world run
@@ -481,7 +530,6 @@ def process_world_run(
         run_id: The ID of this run (should be unique per tournament)
         results: Results of the world run
         tournament_name: tournament name
-        save_world_stats: It True, it will be assumed that world stats are saved
 
     Returns:
 
@@ -493,8 +541,8 @@ def process_world_run(
     log_files, world_names_ = results.log_file_names, results.world_names
     for world_name_, log_file in zip(world_names_, log_files):
         if (
-            save_world_stats
-            and log_file is not None
+            # save_world_stats
+            log_file is not None
             and pathlib.Path(log_file).exists()
         ):
             with open(log_file, "a") as f:
@@ -508,6 +556,9 @@ def process_world_run(
         for log_file_name in log_files
     )
     base_folder = str(pathlib.Path(log_files[0]).parent) if log_files[0] else ""
+    total_time = sum(world_stats.agent_times.values())
+    if total_time < 1e-6:
+        total_time = 1
     for name_, type_, score in zip(results.names, results.types, results.scores):
         d = {
             "agent_name": name_,
@@ -518,6 +569,11 @@ def process_world_run(
             "stats_folders": stat_folders,
             "base_stats_folder": base_folder,
             "run_id": run_id,
+            "time": world_stats.agent_times.get(type_, 0) / total_time,
+            "exceptions": sum(world_stats.agent_exceptions.get(type_, []), []),
+            "negotiator_exceptions": sum(
+                world_stats.negotiator_exceptions.get(type_, []), []
+            ),
         }
         scores.append(d)
     return scores
@@ -586,7 +642,8 @@ def _run_dask(
                     run_id,
                     score_,
                     tournament_name=name,
-                    save_world_stats=save_world_stats,
+                    world_stats=world_stats_,
+                    # save_world_stats=save_world_stats,
                 ),
             )
             add_records(world_stats_file, [vars(world_stats_)])
@@ -1002,7 +1059,7 @@ def run_tournament(
                 add_records(
                     scores_file,
                     process_world_run(
-                        run_id, score_, tournament_name=name, save_world_stats=True
+                        run_id, score_, tournament_name=name, world_stats=world_stats_,
                     ),
                 )
                 add_records(world_stats_file, [vars(world_stats_)])
@@ -1071,7 +1128,8 @@ def run_tournament(
                         run_id,
                         score_,
                         tournament_name=name,
-                        save_world_stats=not compact,
+                        world_stats=world_stats_,
+                        # save_world_stats=not compact,
                     ),
                 )
                 add_records(world_stats_file, [vars(world_stats_)]),

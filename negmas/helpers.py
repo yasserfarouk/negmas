@@ -12,13 +12,14 @@ import logging
 import math
 import os
 import pathlib
-import pickle
+import dill as pickle
 import random
 import re
 import string
 import sys
 from collections import defaultdict
 from enum import Enum
+import traceback
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -70,6 +71,7 @@ __all__ = [
     "dump",
     "add_records",
     "load",
+    "exception2str",
 ]
 # conveniently named classes
 
@@ -1021,7 +1023,9 @@ class NpEncoder(json.JSONEncoder):
             return super(NpEncoder, self).default(obj)
 
 
-def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
+def dump(
+    d: Any, file_name: Union[str, os.PathLike, pathlib.Path], sort_keys=True
+) -> None:
     """
     Saves an object depending on the extension of the file given. If the filename given has no extension,
     `DEFAULT_DUMP_EXTENSION` will be used
@@ -1029,6 +1033,7 @@ def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
     Args:
         d: Object to save
         file_name: file name
+        sort_keys: If true, the keys will be sorted before saving for JSON
 
     Remarks:
 
@@ -1046,7 +1051,7 @@ def dump(d: Any, file_name: Union[str, os.PathLike, pathlib.Path]) -> None:
             pass
     if file_name.suffix == ".json":
         with open(file_name, "w") as f:
-            json.dump(d, f, sort_keys=True, indent=2, cls=NpEncoder)
+            json.dump(d, f, sort_keys=sort_keys, indent=2, cls=NpEncoder)
     elif file_name.suffix == ".yaml":
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
@@ -1114,8 +1119,19 @@ def add_records(
 
         None
 
+    Remarks:
+
+        - If col_names are not given, the function will try to normalize the input data if it
+          was a dict or a list of dicts
+
     """
-    data = pd.DataFrame(data=data, columns=col_names)
+    if col_names is None and (
+        isinstance(data, dict)
+        or (isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict))
+    ):
+        data = pd.json_normalize(data)
+    else:
+        data = pd.DataFrame(data=data, columns=col_names)
     if len(data) < 1:
         return
     file_name = pathlib.Path(file_name)
@@ -1136,7 +1152,7 @@ def add_records(
             try:
                 old_data = pd.read_csv(file_name, index_col=None)
                 data = pd.concat((old_data, data), axis=0, ignore_index=True)
-            except Exception as e:
+            except Exception:
                 print(
                     f"Failed to read data from file {str(file_name)} will override it"
                 )
@@ -1145,3 +1161,7 @@ def add_records(
             new_file = True
 
     data.to_csv(str(file_name), index=False, index_label="", mode=mode, header=new_file)
+
+
+def exception2str(limit=None, chain=True) -> str:
+    return traceback.format_exc(limit=limit, chain=chain)
