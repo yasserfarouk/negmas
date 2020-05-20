@@ -4,7 +4,6 @@ Tournament generation and management.
 """
 import concurrent.futures as futures
 import copy
-import json
 import hashlib
 import itertools
 import math
@@ -372,13 +371,6 @@ def run_worlds(
     )
 
 
-def world_hash(world_params: List[Dict[str, Any]]):
-    s = ""
-    for d in world_params:
-        s += json.dumps(d)
-    return s
-
-
 def _run_worlds(
     worlds_params: List[Dict[str, Any]],
     world_generator: WorldGenerator,
@@ -386,6 +378,7 @@ def _run_worlds(
     world_progress_callback: Callable[[Optional[World]], None] = None,
     dry_run: bool = False,
     save_world_stats: bool = True,
+    override_ran_worlds: bool = False,
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
@@ -396,6 +389,7 @@ def _run_worlds(
         world_progress_callback: world progress callback
         dry_run: If true, the world is not run. Its config is saved instead.
         save_world_stats: If true, saves individual world stats
+        override_ran_worlds: If true, run the worlds even if they are already ran before.
 
     Returns:
         A tuple with the following components in order:
@@ -414,6 +408,9 @@ def _run_worlds(
             - __dir_name: directory to store the world stats
             - others: values of all other keys are passed to the world generator as kwargs
 
+        - The system knows that a world is already ran using `is_already_run` which checks that
+          the folder to store the results of the world exists and contains a file called stats.json
+
     """
     worlds, dir_names = [], []
     scoring_context = {}
@@ -421,6 +418,8 @@ def _run_worlds(
     video_savers, video_saver_params_list, save_videos = [], [], []
     scores: Optional[WorldRunResults] = None
     for world_params in worlds_params:
+        if is_already_run(world_params):
+            continue
         world_params = world_params.copy()
         dir_name = world_params["__dir_name"]
         dir_names.append(dir_name)
@@ -603,6 +602,7 @@ def _run_dask(
     world_stats_file,
     run_ids,
     print_exceptions,
+    override_already_ran=False,
 ) -> None:
     """Runs the tournament on dask"""
 
@@ -633,6 +633,7 @@ def _run_dask(
                 None,
                 dry_run,
                 save_world_stats,
+                override_already_ran,
             )
         )
     print(f"Submitted all processes to DASK ({len(future_results)})")
@@ -944,6 +945,15 @@ def _path(path: Union[str, PathLike]) -> Path:
     return pathlib.Path(path).absolute()
 
 
+def is_already_run(world_params) -> bool:
+    dir_name = pathlib.Path(world_params["__dir_name"])
+    if not dir_name.exists():
+        return False
+    if (dir_name / "stats.json").exists():
+        return True
+    return False
+
+
 def run_tournament(
     tournament_path: Union[str, PathLike],
     world_generator: WorldGenerator = None,
@@ -951,7 +961,6 @@ def run_tournament(
         [List[World], Dict[str, Any], bool], WorldRunResults
     ] = None,
     total_timeout: Optional[int] = None,
-    world_timeout: Optional[int] = None,
     parallelism="parallel",
     scheduler_ip: Optional[str] = None,
     scheduler_port: Optional[str] = None,
@@ -962,8 +971,7 @@ def run_tournament(
     verbose: bool = False,
     compact: bool = None,
     print_exceptions: bool = True,
-    n_trials_on_broken=3,
-    n_trials_on_exception=3,
+    override_ran_worlds: bool = False,
 ) -> None:
     """
     Runs a tournament
@@ -978,7 +986,6 @@ def run_tournament(
                           The third parameter is a boolean specifying whether this is a dry_run. For dry runs, scores
                           are not expected but names and types should exist in the returned `WorldRunResults`.
         total_timeout: Total timeout for the complete process
-        world_timeout: Timeout per world simulation (enforced only for parallel and distributed execution)
         parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
                      distributed! For parallel, you can add the fraction of CPUs to use after a colon (e.g. parallel:0.5
                      to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
@@ -991,8 +998,8 @@ def run_tournament(
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         print_exceptions: If true, exceptions encountered during world simulation will be printed to stdout
-        n_trials_on_broken: Number of times to retry running failed simulations on broken pipes
-        n_trials_on_exception: Number of times to retry running failed simulations on exceptions
+        override_ran_worlds: If true worlds that are already ran will be ran again
+
     """
     tournament_path = _path(tournament_path)
     params = load(tournament_path / "params")
@@ -1042,7 +1049,6 @@ def run_tournament(
         f"Cannot use {parallelism} with a " f"world callback"
     )
 
-    retries = defaultdict(int)
     if parallelism in serial_options:
         strt = time.perf_counter()
         for i, worlds_params in enumerate(assigned):
@@ -1067,17 +1073,8 @@ def run_tournament(
                     score_calculator=score_calculator,
                     dry_run=False,
                     save_world_stats=True,
+                    override_already_ran=override_ran_worlds,
                 )
-            except Exception as e:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if print_exceptions:
-                    print(traceback.format_exc())
-                    print(e)
-                if retries[world_hash(worlds_params)] <= n_trials_on_exception:
-                    retries[world_hash(worlds_params)] += 1
-                    assigned.append(worlds_params)
-            else:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
                 add_records(
@@ -1095,7 +1092,12 @@ def run_tournament(
                         f"in {humanize_time(_duration)}"
                         f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
                     )
-
+            except Exception as e:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_world_configs)
+                if print_exceptions:
+                    print(traceback.format_exc())
+                    print(e)
     elif any(parallelism.startswith(_) for _ in multiprocessing_options):
         fraction = None
         parallelism = parallelism.split(":")
@@ -1120,6 +1122,7 @@ def run_tournament(
                     world_progress_callback,
                     False,
                     True,
+                    override_ran_worlds,
                 )
             )
         result_received = set()
@@ -1138,25 +1141,7 @@ def run_tournament(
             futures.as_completed(future_results, timeout=total_timeout)
         ):
             try:
-                run_id, score_, world_stats_ = future.result(timeout=world_timeout)
-            except futures.TimeoutError:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if verbose:
-                    print("Tournament timed-out")
-                break
-            except futures.process.BrokenProcessPool as e:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if print_exceptions:
-                    print(e)
-            except Exception as e:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if print_exceptions:
-                    print(traceback.format_exc())
-                    print(e)
-            else:
+                run_id, score_, world_stats_ = future.result()
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
                 add_records(
@@ -1179,7 +1164,23 @@ def run_tournament(
                         f"{humanize_time(_duration)}"
                         f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
                     )
-
+            except futures.TimeoutError:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_world_configs)
+                if verbose:
+                    print("Tournament timed-out")
+                break
+            except futures.process.BrokenProcessPool as e:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_world_configs)
+                if print_exceptions:
+                    print(e)
+            except Exception as e:
+                if tournament_progress_callback is not None:
+                    tournament_progress_callback(None, i, n_world_configs)
+                if print_exceptions:
+                    print(traceback.format_exc())
+                    print(e)
     elif parallelism in dask_options:
         _run_dask(
             scheduler_ip,
@@ -1197,6 +1198,7 @@ def run_tournament(
             world_stats_file,
             run_ids,
             print_exceptions,
+            override_ran_worlds,
         )
     if verbose:
         print(f"Tournament completed successfully")
@@ -1420,20 +1422,20 @@ def create_tournament(
                 c["world_params"]["name"] += "_" + "-".join(
                     _hash(_)[:4] for _ in effective_competitors
                 )
-        assignment__ = [
-            config_assigner(
-                config=c,
-                max_n_worlds=max_worlds_per_config,
-                n_agents_per_competitor=n_agents_per_competitor,
-                competitors=effective_competitors,
-                params=effective_params,
+        this_assigned = list(
+            itertools.chain(
+                *[
+                    config_assigner(
+                        config=c,
+                        max_n_worlds=max_worlds_per_config,
+                        n_agents_per_competitor=n_agents_per_competitor,
+                        competitors=effective_competitors,
+                        params=effective_params,
+                    )
+                    for c in myconfigs
+                ]
             )
-            for c in myconfigs
-        ]
-
-        random.shuffle(assignment__)
-        this_assigned = list(itertools.chain(*assignment__))
-        random.shuffle(this_assigned)
+        )
         assigned += this_assigned
 
     for config in assigned:

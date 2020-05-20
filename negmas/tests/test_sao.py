@@ -12,7 +12,6 @@ from negmas import (
     Issue,
     LinearUtilityFunction,
     MappingUtilityFunction,
-    Outcome,
     ResponseType,
     SAOMechanism,
     SAOState,
