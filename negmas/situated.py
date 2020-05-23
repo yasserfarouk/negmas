@@ -2280,6 +2280,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if "logger" in state.keys():
             state.pop("logger", None)
         return state
+
     def __setstate__(self, state):
         self.__dict__ = state
         self.logger = create_loggers(
@@ -2565,6 +2566,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self.agents[agent_id].sign_all_contracts,
                         contracts,
                     )
+                    if slist is None:
+                        slist = [False] * len(contracts)
+                    elif not isinstance(slist, Iterable):
+                        slist = [slist] * len(contracts)
                     for contract, signature in zip(contracts, slist):
                         if signature is not None:
                             contract_signatures[contract.id] += 1
@@ -2660,7 +2665,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             - This property sums the totals of `n_simulation_exceptions`, `n_contract_exceptions`, and `n_mechanism_exceptions`
         """
         result = defaultdict(int)
-        for d in (self.n_mechanism_exceptions, self.n_contract_exceptions, self.n_simulation_exceptions):
+        for d in (
+            self.n_mechanism_exceptions,
+            self.n_contract_exceptions,
+            self.n_simulation_exceptions,
+        ):
             for k, v in d.items():
                 result[k] += v
         return result
@@ -2730,7 +2739,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             if mechanism.stats["exceptions"]:
                 for nid, exceptions in mechanism.stats["exceptions"].items():
-                    self.negotiator_exceptions[namap[nid].id if namap[nid] else "Unknown"].append(list(zip(itertools.repeat(self._current_step), exceptions)))
+                    self.negotiator_exceptions[
+                        namap[nid].id if namap[nid] else "Unknown"
+                    ].append(
+                        list(zip(itertools.repeat(self._current_step), exceptions))
+                    )
 
         agreement, is_running = result.agreement, result.running
         if agreement is not None or not is_running:
@@ -2831,7 +2844,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.times[agent.id] = time.perf_counter() - _strt
             return result
         except Exception as e:
-            self.agent_exceptions[agent.id].append((self._current_step, exception2str()))
+            self.agent_exceptions[agent.id].append(
+                (self._current_step, exception2str())
+            )
             self.on_exception(agent, e)
             if not self.ignore_agent_exception:
                 raise e
@@ -2940,7 +2955,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             try:
                 self.simulation_step(stage)
             except Exception as e:
-                self.simulation_exceptions[self._current_step].append( exception2str())
+                self.simulation_exceptions[self._current_step].append(exception2str())
                 if not self.ignore_simulation_exceptions:
                     raise (e)
             stage += 1
@@ -2965,7 +2980,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     try:
                         contract_breaches = self.start_contract_execution(contract)
                     except Exception as e:
-                        self.contract_exceptions[self._current_step].append(exception2str())
+                        self.contract_exceptions[self._current_step].append(
+                            exception2str()
+                        )
                         contract.executed_at = self.current_step
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["executed_at"] = -1
