@@ -4228,7 +4228,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         )
                         break
         elif self.breach_processing == BreachProcessing.META_NEGOTIATION:
-            raise NotImplemented(
+            raise NotImplementedError(
                 "Meta negotiation is not yet implemented. Agents should negotiate about the "
                 "agend then a negotiation should be conducted as usual"
             )
