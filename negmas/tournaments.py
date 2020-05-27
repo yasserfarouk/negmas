@@ -47,6 +47,7 @@ from negmas.helpers import (
     load,
     unique_name,
 )
+from negmas.java import to_flat_dict
 
 from .situated import Agent, World, save_stats
 
@@ -379,6 +380,7 @@ def _run_worlds(
     dry_run: bool = False,
     save_world_stats: bool = True,
     override_ran_worlds: bool = False,
+    save_progress_every: int = 1,
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
@@ -390,6 +392,7 @@ def _run_worlds(
         dry_run: If true, the world is not run. Its config is saved instead.
         save_world_stats: If true, saves individual world stats
         override_ran_worlds: If true, run the worlds even if they are already ran before.
+        save_progress_every: If true, progress will be saved every this number of steps.
 
     Returns:
         A tuple with the following components in order:
@@ -417,9 +420,8 @@ def _run_worlds(
     run_id = _hash(worlds_params)
     video_savers, video_saver_params_list, save_videos = [], [], []
     scores: Optional[WorldRunResults] = None
+
     for world_params in worlds_params:
-        if is_already_run(world_params):
-            continue
         world_params = world_params.copy()
         dir_name = world_params["__dir_name"]
         dir_names.append(dir_name)
@@ -437,10 +439,22 @@ def _run_worlds(
             world.save_config(dir_name)
             continue
     try:
-        for world, dir_name, save_video, video_saver, video_saver_params in zip(
-            worlds, dir_names, save_videos, video_savers, video_saver_params_list
+        for (
+            world,
+            world_params_,
+            dir_name,
+            save_video,
+            video_saver,
+            video_saver_params,
+        ) in zip(
+            worlds,
+            world_params,
+            dir_names,
+            save_videos,
+            video_savers,
+            video_saver_params_list,
         ):
-            if world_progress_callback is None:
+            if world_progress_callback is None and save_progress_every < 1:
                 world.run()
             else:
                 _start_time = time.monotonic()
@@ -452,7 +466,25 @@ def _run_worlds(
                         break
                     if not world.step():
                         break
-                    world_progress_callback(world)
+                    if _ % save_progress_every == 0:
+                        save_stats(world, world.log_folder, params=world_params_)
+                        # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
+                        if not dry_run:
+                            scores_ = to_flat_dict(
+                                score_calculator(worlds, scoring_context, False)
+                            )
+                            scores_["n_steps"] = world.n_steps
+                            scores_["step"] = world.current_step
+                            scores_["relative_time"] = world.relative_time
+                            scores_["time_limit"] = world.time_limit
+                            scores_["time"] = world.time
+                            dump(
+                                to_flat_dict(scores_),
+                                Path(world.log_folder) / "_current_scores.json",
+                                sort_keys=True,
+                            )
+                    if world_progress_callback:
+                        world_progress_callback(world)
             if save_world_stats:
                 save_stats(world=world, log_dir=dir_name)
             if save_video:
@@ -948,12 +980,13 @@ def _path(path: Union[str, PathLike]) -> Path:
 
 
 def is_already_run(world_params) -> bool:
-    dir_name = pathlib.Path(world_params["__dir_name"])
-    if not dir_name.exists():
-        return False
-    if (dir_name / "stats.json").exists():
-        return True
     return False
+    # dir_name = pathlib.Path(world_params["__dir_name"])
+    # if not dir_name.exists():
+    #     return False
+    # if (dir_name / "stats.json").exists():
+    #     return True
+    # return False
 
 
 def run_tournament(
@@ -1022,6 +1055,7 @@ def run_tournament(
         compact = params.get("compact", False)
 
     assigned = load(tournament_path / "assigned_configs.pickle")
+    random.shuffle(assigned)
     n_world_configs = len(assigned)
 
     if verbose:

@@ -2509,9 +2509,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if self.time_limit is None and self.n_steps is None:
             return 0.0
         relative_step = (
-            (self.current_step + 1) / self.n_steps
-            if self.n_steps is not None
-            else np.nan
+            self.current_step / self.n_steps if self.n_steps is not None else np.nan
         )
         relative_time = (
             self.time / self.time_limit if self.time_limit is not None else np.nan

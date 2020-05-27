@@ -385,9 +385,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return None
 
         relative_step = (
-            (self._step + 1) / self.ami.n_steps
-            if self.ami.n_steps is not None
-            else -1.0
+            self._step / self.ami.n_steps if self.ami.n_steps is not None else -1.0
         )
         relative_time = (
             self.time / self.ami.time_limit if self.ami.time_limit is not None else -1.0
