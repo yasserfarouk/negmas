@@ -1109,7 +1109,7 @@ def run_tournament(
                     score_calculator=score_calculator,
                     dry_run=False,
                     save_world_stats=True,
-                    override_already_ran=override_ran_worlds,
+                    override_ran_worlds=override_ran_worlds,
                 )
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
