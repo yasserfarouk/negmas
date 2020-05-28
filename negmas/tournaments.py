@@ -609,12 +609,8 @@ def process_world_run(
             "base_stats_folder": base_folder,
             "run_id": run_id,
             "time": world_stats.agent_times.get(type_, 0) / total_time,
-            "exceptions": sum(
-                list(_ for _ in world_stats.agent_exceptions.get(type_, [])), []
-            ),
-            "negotiator_exceptions": sum(
-                list(_ for _ in world_stats.negotiator_exceptions.get(type_, [])), []
-            ),
+            "exceptions": world_stats.agent_exceptions.get(type_, []),
+            "negotiator_exceptions": world_stats.negotiator_exceptions.get(type_, []),
         }
         scores.append(d)
     return scores
