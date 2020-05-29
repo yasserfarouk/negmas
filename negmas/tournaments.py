@@ -1848,23 +1848,14 @@ def combine_tournament_stats(
         for filename in src.glob("**/stats.json"):
             # try:
             p = load(filename)
-            # removing default factory managers from the dict because the balances/storages are mixed
-            # @todo unmix balances/scores of default fms.
-            # p = dict(
-            #     zip(
-            #         [c for c in p.keys() if "_df_" not in c],
-            #         [p[c] for c in p.keys() if "_df_" not in c],
-            #     )
-            # )
+            if p is None or len(p) == 0:
+                continue
             p = pd.DataFrame.from_dict(p)
             p = p.loc[:, [c for c in p.columns if World.is_basic_stat(c)]]
             p["step"] = list(range(len(p)))
             p["world"] = filename.parent.name
             p["path"] = filename.parent.parent
             stats.append(p)
-            # if verbose:
-            #    print(f"Read: {str(filename)}")
-            #        print(f"FAILED {str(filename)}")
     if len(stats) < 1:
         if verbose:
             print("No stats found")
