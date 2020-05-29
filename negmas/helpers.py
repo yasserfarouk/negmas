@@ -1087,7 +1087,7 @@ def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
     if file_name.suffix == "":
         file_name = pathlib.Path(str(file_name) + "." + DEFAULT_DUMP_EXTENSION)
     d = {}
-    if not file_name.exists() or os.stats(file_name).st_size < 2:
+    if not file_name.exists() or os.stat(file_name).st_size < 2:
         return d
 
     if file_name.suffix == ".json":
