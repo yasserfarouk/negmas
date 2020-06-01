@@ -359,8 +359,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
 
     @property
-    def time(self) -> Optional[float]:
-        """Elapsed time since mechanism started in seconds. None if the mechanism did not start running"""
+    def time(self) -> float:
+        """Elapsed time since mechanism started in seconds. 0.0 if the mechanism did not start running"""
         if self._start_time is None:
             return 0.0
 
@@ -736,6 +736,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - There is another function (`run()`) that runs the whole mechanism in blocking mode
 
         """
+        if self._start_time is None or self._start_time < 0:
+            self._start_time = time.monotonic()
         self.checkpoint_on_step_started()
         state = self.state
         state4history = self.state4history

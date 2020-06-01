@@ -2181,7 +2181,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.force_signing = force_signing
         self.neg_quota_step = negotiation_quota_per_step
         self.neg_quota_simulation = negotiation_quota_per_simulation
-        self._start_time = -1
+        self._start_time = None
         self._log_ufuns = log_ufuns
         self._log_negs = log_negotiations
         self.safe_stats_monitoring = safe_stats_monitoring
@@ -2489,7 +2489,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def time(self) -> Optional[float]:
         """Elapsed time since mechanism started in seconds. None if the mechanism did not start running"""
         if self._start_time is None:
-            return None
+            return 0.0
         return time.monotonic() - self._start_time
 
     @property
@@ -2857,6 +2857,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def step(self) -> bool:
         """A single simulation step"""
+        if self._start_time is None or self._start_time < 0:
+            self._start_time = time.monotonic()
         self._n_negs_per_agent_per_step = defaultdict(int)
         if self.current_step >= self.n_steps:
             return False
