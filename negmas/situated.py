@@ -2490,14 +2490,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Elapsed time since mechanism started in seconds. None if the mechanism did not start running"""
         if self._start_time is None:
             return 0.0
-        return time.monotonic() - self._start_time
+        return time.perf_counter() - self._start_time
 
     @property
     def remaining_time(self) -> Optional[float]:
         """Returns remaining time in seconds. None if no time limit is given."""
         if self.time_limit is None:
             return None
-        limit = self.time_limit - (time.monotonic() - self._start_time)
+        limit = self.time_limit - (time.perf_counter() - self._start_time)
         if limit < 0.0:
             return 0.0
 
@@ -2858,7 +2858,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def step(self) -> bool:
         """A single simulation step"""
         if self._start_time is None or self._start_time < 0:
-            self._start_time = time.monotonic()
+            self._start_time = time.perf_counter()
         self._n_negs_per_agent_per_step = defaultdict(int)
         if self.current_step >= self.n_steps:
             return False
@@ -3194,11 +3194,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def run(self):
         """Runs the simulation until it ends"""
-        self._start_time = time.monotonic()
+        self._start_time = time.perf_counter()
         for _ in range(self.n_steps):
             if (
                 self.time_limit is not None
-                and (time.monotonic() - self._start_time) >= self.time_limit
+                and (time.perf_counter() - self._start_time) >= self.time_limit
             ):
                 break
             if not self.step():
@@ -3208,11 +3208,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Runs the simulation showing progress, with optional callback"""
         from tqdm import tqdm
 
-        self._start_time = time.monotonic()
+        self._start_time = time.perf_counter()
         for _ in tqdm(range(self.n_steps)):
             if (
                 self.time_limit is not None
-                and (time.monotonic() - self._start_time) >= self.time_limit
+                and (time.perf_counter() - self._start_time) >= self.time_limit
             ):
                 break
             if not self.step():
