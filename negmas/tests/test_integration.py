@@ -9,13 +9,13 @@ from negmas import (
     SAOMechanism,
 )
 
-start = time.monotonic()
+start = time.perf_counter()
 
-print(f"Import took {time.monotonic()-start}")
+print(f"Import took {time.perf_counter()-start}")
 
 
 def test_a_session():
-    start = time.monotonic()
+    start = time.perf_counter()
     p = SAOMechanism(outcomes=50, n_steps=50)
     for _ in range(4):
         p.add(
@@ -25,7 +25,7 @@ def test_a_session():
     p.run()
     # print(f'{len(p.negotiators)} negotiators')
     assert len(p.history) > 0
-    # print(f'Took {time.monotonic()-start}')
+    # print(f'Took {time.perf_counter()-start}')
 
 
 if __name__ == "__main__":

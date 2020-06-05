@@ -364,7 +364,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self._start_time is None:
             return 0.0
 
-        return time.monotonic() - self._start_time
+        return time.perf_counter() - self._start_time
 
     @property
     def remaining_time(self) -> Optional[float]:
@@ -372,7 +372,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.ami.time_limit == float("+inf"):
             return None
 
-        limit = self.ami.time_limit - (time.monotonic() - self._start_time)
+        limit = self.ami.time_limit - (time.perf_counter() - self._start_time)
         if limit < 0.0:
             return 0.0
 
@@ -737,7 +737,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         """
         if self._start_time is None or self._start_time < 0:
-            self._start_time = time.monotonic()
+            self._start_time = time.perf_counter()
         self.checkpoint_on_step_started()
         state = self.state
         state4history = self.state4history
@@ -764,7 +764,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not self._running:
             self._running = True
             self._step = 0
-            self._start_time = time.monotonic()
+            self._start_time = time.perf_counter()
             self._started = True
             if self.on_negotiation_start() is False:
                 self._agreement, self._broken, self._timedout = None, False, False

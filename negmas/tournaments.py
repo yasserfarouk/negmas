@@ -454,35 +454,32 @@ def _run_worlds(
             video_savers,
             video_saver_params_list,
         ):
-            if world_progress_callback is None and save_progress_every < 1:
-                world.run()
-            else:
-                _start_time = time.monotonic()
-                for _ in range(world.n_steps):
-                    if (
-                        world.time_limit is not None
-                        and (time.monotonic() - _start_time) >= world.time_limit
-                    ):
-                        break
-                    if not world.step():
-                        break
-                    if _ % save_progress_every == 0:
-                        save_stats(world, world.log_folder, params=world_params_)
-                        # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
-                        if not dry_run:
-                            scores_ = to_flat_dict(
-                                score_calculator(worlds, scoring_context, False)
-                            )
-                            scores_["n_steps"] = world.n_steps
-                            scores_["step"] = world.current_step
-                            scores_["relative_time"] = world.relative_time
-                            scores_["time_limit"] = world.time_limit
-                            scores_["time"] = world.time
-                            dump(
-                                to_flat_dict(scores_),
-                                Path(world.log_folder) / "_current_scores.json",
-                                sort_keys=True,
-                            )
+            _start_time = time.perf_counter()
+            for _ in range(world.n_steps):
+                if (
+                    world.time_limit is not None
+                    and (time.perf_counter() - _start_time) >= world.time_limit
+                ):
+                    break
+                if not world.step():
+                    break
+                if _ % save_progress_every == 0:
+                    save_stats(world, world.log_folder, params=world_params_)
+                    # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
+                    if not dry_run:
+                        scores_ = to_flat_dict(
+                            score_calculator(worlds, scoring_context, False)
+                        )
+                        scores_["n_steps"] = world.n_steps
+                        scores_["step"] = world.current_step
+                        scores_["relative_time"] = world.relative_time
+                        scores_["time_limit"] = world.time_limit
+                        scores_["time"] = world.time
+                        dump(
+                            to_flat_dict(scores_),
+                            Path(world.log_folder) / "_current_scores.json",
+                            sort_keys=True,
+                        )
                     if world_progress_callback:
                         world_progress_callback(world)
             if save_world_stats:
