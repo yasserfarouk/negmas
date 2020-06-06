@@ -456,11 +456,6 @@ def _run_worlds(
         ):
             _start_time = time.perf_counter()
             for _ in range(world.n_steps):
-                if (
-                    world.time_limit is not None
-                    and (time.perf_counter() - _start_time) >= world.time_limit
-                ):
-                    break
                 if not world.step():
                     break
                 if _ % save_progress_every == 0:
@@ -482,6 +477,8 @@ def _run_worlds(
                         )
                     if world_progress_callback:
                         world_progress_callback(world)
+                if world.time >= world.time_limit:
+                    break
             if save_world_stats:
                 save_stats(world=world, log_dir=dir_name)
             if save_video:
@@ -1169,6 +1166,8 @@ def run_tournament(
         for i, future in enumerate(
             futures.as_completed(future_results, timeout=total_timeout)
         ):
+            if total_timeout is not None and time.perf_counter() - strt > total_timeout:
+                break
             try:
                 run_id, score_, world_stats_ = future.result()
                 if tournament_progress_callback is not None:
