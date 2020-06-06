@@ -2026,7 +2026,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         bulletin_board: BulletinBoard = None,
         n_steps=10000,
-        time_limit=60 * 60,
+        time_limit=60*60,
         negotiation_speed=None,
         neg_n_steps=100,
         neg_time_limit=3 * 60,
@@ -2171,7 +2171,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._current_step = 0
         self.negotiation_speed = negotiation_speed
         self.default_signing_delay = default_signing_delay
-        self.time_limit = time_limit
+        self.time_limit = time_limit if time_limit is not None else float("inf")
         self.neg_n_steps = neg_n_steps
         self.neg_time_limit = neg_time_limit
         self.neg_step_time_limit = neg_step_time_limit
@@ -2487,16 +2487,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @property
     def time(self) -> Optional[float]:
-        """Elapsed time since mechanism started in seconds. None if the mechanism did not start running"""
+        """Elapsed time since world started in seconds. 0.0 if the world did not start running"""
         if self._start_time is None:
             return 0.0
+        if self.n_steps is not None and self.step >= self.n_steps and self.frozen_time > 0.0:
+            return self.frozen_time
         return time.perf_counter() - self._start_time
 
     @property
     def remaining_time(self) -> Optional[float]:
         """Returns remaining time in seconds. None if no time limit is given."""
-        if self.time_limit is None:
-            return None
         limit = self.time_limit - (time.perf_counter() - self._start_time)
         if limit < 0.0:
             return 0.0
@@ -2506,14 +2506,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @property
     def relative_time(self) -> float:
         """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
-        if self.time_limit is None and self.n_steps is None:
+
+        if self.time_limit == float("inf") and self.n_steps is None:
             return 0.0
+
         relative_step = (
             self.current_step / self.n_steps if self.n_steps is not None else np.nan
         )
-        relative_time = (
-            self.time / self.time_limit if self.time_limit is not None else np.nan
-        )
+        relative_time = self.time / self.time_limit
         return max([relative_step, relative_time])
 
     @property
@@ -2564,6 +2564,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self.agents[agent_id].sign_all_contracts,
                         contracts,
                     )
+                    if self.time >= self.time_limit:
+                        break
                     if slist is None:
                         slist = [False] * len(contracts)
                     elif not isinstance(slist, Iterable):
@@ -2599,6 +2601,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         clist,
                         rejectors,
                     )
+                    if self.time >= self.time_limit:
+                        break
             else:
                 for contract in unsigned:
                     rejectors = self._sign_contract(contract)
@@ -2781,6 +2785,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             for i in indices:
                 if not running[i]:
                     continue
+                if self.time >= self.time_limit:
+                    break
                 mechanism = mechanisms[i]
                 contract, r = self._step_a_mechanism(mechanism, force_immediate_signing)
                 contracts[i] = contract
@@ -2804,6 +2810,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         )
             current_step += 1
             if current_step >= n_steps:
+                break
+            if self.time >= self.time_limit:
                 break
         return (
             contracts,
@@ -2839,7 +2847,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         try:
             _strt = time.perf_counter()
             result = method(*args, **kwargs)
-            self.times[agent.id] = time.perf_counter() - _strt
+            _end = time.perf_counter()
+            self.times[agent.id] = _end - _strt
             return result
         except Exception as e:
             self.agent_exceptions[agent.id].append(
@@ -2859,6 +2868,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """A single simulation step"""
         if self._start_time is None or self._start_time < 0:
             self._start_time = time.perf_counter()
+        if self.time >= self.time_limit:
+            return False
         self._n_negs_per_agent_per_step = defaultdict(int)
         if self.current_step >= self.n_steps:
             return False
@@ -2869,6 +2880,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             for priority in sorted(self._entities.keys()):
                 for agent in self._entities[priority]:
                     self.call(agent, agent.init_)
+                    if self.time >= self.time_limit:
+                        return False
             # update monitors
             for monitor in self.stats_monitors:
                 if self.safe_stats_monitoring:
@@ -2885,6 +2898,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         for agent in self.agents.values():
             self.call(agent, agent.on_simulation_step_started)
+            if self.time >= self.time_limit:
+                return False
 
         self.loginfo(
             f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
@@ -2923,6 +2938,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             ) = self._step_negotiations(
                 [_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms]
             )
+            if self.time >= self.time_limit:
+                return
             n_total_broken = n_broken + n_broken_
             if n_total_broken > 0:
                 n_steps_broken = (
@@ -2946,6 +2963,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             for task in tasks:
                 self.call(task, task.step_)
+                if self.time >= self.time_limit:
+                    break
 
         def _sign_contracts():
             self._process_unsigned()
@@ -2954,6 +2973,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             nonlocal stage
             try:
                 self.simulation_step(stage)
+                if self.time >= self.time_limit:
+                    return
             except Exception as e:
                 self.simulation_exceptions[self._current_step].append(exception2str())
                 if not self.ignore_simulation_exceptions:
@@ -2975,6 +2996,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
 
                 for contract in current_contracts:
+                    if self.time >= self.time_limit:
+                        break
                     if contract.signed_at < 0:
                         continue
                     try:
@@ -3047,6 +3070,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                 self.agents[partner].on_contract_executed,
                                 contract,
                             )
+                            if self.time >= self.time_limit:
+                                break
                     else:
                         self._saved_contracts[contract.id]["executed_at"] = -1
                         self._saved_contracts[contract.id]["nullified_at"] = -1
@@ -3089,6 +3114,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                 list(contract_breaches),
                                 resolution,
                             )
+                            if self.time >= self.time_limit:
+                                break
                     contract.executed_at = self.current_step
             dropped = self.get_dropped_contracts()
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
@@ -3112,6 +3139,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         for operation in self.operations:
             operation_map[operation]()
+            if self.time >= self.time_limit:
+                return False
 
         # remove all negotiations that are completed
         # ------------------------------------------
@@ -3152,6 +3181,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.append_stats()
         for agent in self.agents.values():
             self.call(agent, agent.on_simulation_step_ended)
+            if self.time >= self.time_limit:
+                return False
 
         for monitor in self.stats_monitors:
             if self.safe_stats_monitoring:
@@ -3196,10 +3227,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Runs the simulation until it ends"""
         self._start_time = time.perf_counter()
         for _ in range(self.n_steps):
-            if (
-                self.time_limit is not None
-                and (time.perf_counter() - self._start_time) >= self.time_limit
-            ):
+            if self.time >= self.time_limit:
                 break
             if not self.step():
                 break
@@ -3210,10 +3238,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         self._start_time = time.perf_counter()
         for _ in tqdm(range(self.n_steps)):
-            if (
-                self.time_limit is not None
-                and (time.perf_counter() - self._start_time) >= self.time_limit
-            ):
+            if self.time >= self.time_limit:
                 break
             if not self.step():
                 break
@@ -3884,6 +3909,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 contract=contract,
                 mechanism=mechanism,
             )
+            if self.time >= self.time_limit:
+                break
         if self.batch_signing:
             if to_be_signed_at != self.current_step:
                 sign_status = f"to be signed at {contract.to_be_signed_at}"
@@ -3946,6 +3973,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 mechanism=mechanism,
                 state=mechanism_state,
             )
+            if self.time >= self.time_limit:
+                break
 
         self.logdebug(
             f"Negotiation failure between {[_.name for _ in partners]}"
@@ -3966,7 +3995,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 return s_
 
             try:
-                return self.call(p, p.sign_all_contracts, [c])[0]
+                result = self.call(p, p.sign_all_contracts, [c])[0]
+                if self.time >= self.time_limit:
+                    result = None
+                return result
             except Exception as e:
                 self.agent_exceptions[p.id].append((self._current_step, str(e)))
                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -3991,6 +4023,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             contract.signed_at = self.current_step
             for partner in partners:
                 self.call(partner, partner.on_contract_signed_, contract=contract)
+                if self.time >= self.time_limit:
+                    break
         else:
             for partner in partners:
                 self.call(
@@ -3999,6 +4033,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     contract=contract,
                     rejectors=[_.id for _ in rejectors],
                 )
+                if self.time >= self.time_limit:
+                    break
         return [_.id for _ in rejectors]
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -4207,6 +4243,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         breaches=breaches,
                         agenda=agenda,
                     )
+                    if self.time >= self.time_limit:
+                        negotiator = None
                     if negotiator is None:
                         break
                     negotiators.append(negotiator)
