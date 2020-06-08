@@ -2918,6 +2918,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         stats_stage = 0
         blevel = 0.0
 
+        _n_contracts_dropped = 0
         _n_registered_negotiations_before = len(self._negotiations)
 
         def _run_negotiations(n_steps: Optional[int] = None):
