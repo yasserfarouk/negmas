@@ -1843,15 +1843,24 @@ def combine_tournament_stats(
         src = _path(src)
         for filename in src.glob("**/stats.json"):
             # try:
-            p = load(filename)
-            if p is None or len(p) == 0:
+            data = load(filename)
+            if data is None or len(data) == 0:
                 continue
-            p = pd.DataFrame.from_dict(p)
-            p = p.loc[:, [c for c in p.columns if World.is_basic_stat(c)]]
-            p["step"] = list(range(len(p)))
-            p["world"] = filename.parent.name
-            p["path"] = filename.parent.parent
-            stats.append(p)
+            try:
+                data = pd.DataFrame.from_dict(data)
+            except:
+                # adjust lengths. Some columns are longer than others
+                min_len = min(len(_) for_ in data.values())
+                for k, v in data.values():
+                    if len(v) == min_len:
+                        continue
+                    data[k] = data[k][:min_len]
+                data = pd.DataFrame.from_dict(data)
+            data = data.loc[:, [c for c in data.columns if World.is_basic_stat(c)]]
+            data["step"] = list(range(len(data)))
+            data["world"] = filename.parent.name
+            data["path"] = filename.parent.parent
+            stats.append(data)
     if len(stats) < 1:
         if verbose:
             print("No stats found")
