@@ -2918,7 +2918,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         stats_stage = 0
         blevel = 0.0
 
-        self._stats["n_registered_negotiations_before"].append(len(self._negotiations))
+        _n_registered_negotiations_before = len(self._negotiations)
 
         def _run_negotiations(n_steps: Optional[int] = None):
             """ Runs all bending negotiations """
@@ -3121,7 +3121,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
             for c in dropped:
                 self._saved_contracts[c.id]["dropped_at"] = self._current_step
-            self._stats["n_contracts_dropped"].append(len(dropped))
+            _n_contracts_dropped = len(dropped)
 
         def _stats_update():
             nonlocal stats_stage
@@ -3154,6 +3154,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # update stats
         # ------------
+        self._stats["n_contracts_dropped"].append(_n_contracts_dropped)
+        self._stats["n_registered_negotiations_before"].append(_n_registered_negotiations_before)
         self._stats["n_contracts_executed"].append(n_new_contract_executions)
         self._stats["n_contracts_erred"].append(n_new_contract_errors)
         self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
