@@ -1850,8 +1850,8 @@ def combine_tournament_stats(
                 data = pd.DataFrame.from_dict(data)
             except:
                 # adjust lengths. Some columns are longer than others
-                min_len = min(len(_) for_ in data.values())
-                for k, v in data.values():
+                min_len = min(len(_) for _ in data.values())
+                for k, v in data.items():
                     if len(v) == min_len:
                         continue
                     data[k] = data[k][:min_len]
