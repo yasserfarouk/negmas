@@ -251,6 +251,24 @@ class NegLoader{
         return "";
     }
 
+	public String destroy_agent(String agent_uuid){
+		this.infos.remove(agent_uuid);
+		this.ids.remove(agent_uuid);
+		this.util_spaces.remove(agent_uuid);
+		this.domains.remove(agent_uuid);
+		this.timelines.remove(agent_uuid);
+		this.first_actions.remove(agent_uuid);
+		this.string2values.remove(agent_uuid);
+		this.string2issues.remove(agent_uuid);
+		this.issues_all.remove(agent_uuid);
+		if(is_party.get(agent_uuid)){
+			this.parties.remove(agent_uuid);
+		}else{
+			this.agents.remove(agent_uuid);
+		}
+		return "";
+	}
+
     public String actionToString(Action action){
         String id = action.getAgent().getName();
         Bid bid = null;

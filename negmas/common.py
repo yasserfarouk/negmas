@@ -16,6 +16,9 @@ from typing_extensions import Protocol, runtime
 from .helpers import dump, get_full_type_name, load, unique_name
 from .java import to_dict, to_java
 
+
+from .actors.thread_actors import ThreadProxy
+
 if TYPE_CHECKING:
     from .outcomes import Outcome
 
@@ -344,6 +347,74 @@ class NamedObject(object):
     def create(cls, *args, **kwargs):
         """Creates an object and returns a proxy to it."""
         return cls(*args, **kwargs)
+
+    @classmethod
+    def spawn_object(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
+
+    @classmethod
+    def spawn_thread(cls, *args, **kwargs):
+        return ThreadProxy(cls, *args, **kwargs)
+
+    # @classmethod
+    # def spawn_gevent(cls, *args, **kwargs):
+    #     return GeventProxy(cls, *args, **kwargs)
+    #
+    # @classmethod
+    # def spawn_eventlet(cls, *args, **kwargs):
+    #     return EventletProxy(cls, *args, **kwargs)
+    #
+    @classmethod
+    def spawn_process(cls, *args, **kwargs):
+        raise NotImplementedError("Process objects are not yet supported")
+
+    @classmethod
+    def spawn_remote_tcp(
+        cls,
+        remote_tcp_address: str = "localhost",
+        remote_tcp_port: Optional[int] = None,
+        *args,
+        **kwargs,
+    ):
+        raise NotImplementedError("TCP objects are not yet supported")
+
+    @classmethod
+    def spawn_remote_http(
+        cls,
+        remote_http_address: str = "localhost",
+        remote_http_port: Optional[int] = None,
+        *args,
+        **kwargs,
+    ):
+        raise NotImplementedError("HTTP objects are not yet supported")
+
+    @classmethod
+    def spawn(
+        cls,
+        spawn_as="object",
+        spawn_params: Optional[Dict[str, Any]] = None,
+        *args,
+        **kwargs,
+    ):
+        if spawn_as == "object":
+            return cls.spawn_object(*args, **kwargs)
+        if spawn_as == "thread":
+            return cls.spawn_thread(*args, **kwargs)
+        # if spawn_as == "gevent" or spawn_as == "green-thread":
+        #     return cls.spawn_gevent(*args, **kwargs)
+        # if spawn_as == "eventlet":
+        #     return cls.spawn_eventlet(*args, **kwargs)
+        if spawn_as == "process":
+            return cls.spawn_process(*args, **kwargs)
+        if spawn_params is None:
+            spawn_params = dict()
+        if spawn_as == "tcp":
+            return cls.spawn_remote_tcp(
+                spawn_params.get("address", "localhost"),
+                spawn_params.get("port", None),
+                *args,
+                **kwargs,
+            )
 
     @property
     def name(self):
