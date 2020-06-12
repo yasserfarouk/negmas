@@ -1,8 +1,4 @@
-import os
-import pathlib
-
 import hypothesis.strategies as st
-import numpy as np
 import pkg_resources
 import pytest
 from hypothesis import given, settings
@@ -16,54 +12,31 @@ from negmas import (
     load_genius_domain_from_folder,
 )
 
-dom_folder = pathlib.Path(
-    pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/scenarios/anac/y2010/Travel"
-    )
-)
-dom = dom_folder / "travel_domain.xml"
-# noinspection SpellCheckingInspection
-util1 = dom_folder / "travel_chox.xml"
-util2 = dom_folder / "travel_fanny.xml"
 
-
-@pytest.fixture(scope="module")
-def init_genius():
-    try:
-        # init_genius_bridge(pkg_resources.resource_filename('negmas', resource_name='external/genius-8.0.4.jar'))
-        pass
-    except:
-        pass
-
-
-def test_init_genius(init_genius):
-    pass
+# def test_init_genius_bridge():
+#     if not genius_bridge_is_running():
+#         init_genius_bridge()
+#     assert genius_bridge_is_running()
 
 
 @pytest.mark.skipif(
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-@settings(max_examples=100)
+@settings(max_examples=10)
 @given(
-    agent_name1=st.sampled_from(GeniusNegotiator.negotiators()),
-    agent_name2=st.sampled_from(GeniusNegotiator.negotiators()),
-    utils=st.tuples(st.integers(1, 2), st.integers(1, 2)),
+    agent_name1=st.sampled_from(GeniusNegotiator.robust_negotiators()),
+    agent_name2=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     single_issue=st.booleans(),
     keep_issue_names=st.booleans(),
     keep_value_names=st.booleans(),
 )
 def test_genius_agents_run_using_hypothesis(
-    init_genius,
-    agent_name1,
-    agent_name2,
-    utils,
-    single_issue,
-    keep_issue_names,
-    keep_value_names,
+    agent_name1, agent_name2, single_issue, keep_issue_names, keep_value_names,
 ):
     from negmas import convert_genius_domain_from_folder
 
+    utils = (1, 2)
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     dst = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/LaptopConv1D"
@@ -83,27 +56,72 @@ def test_genius_agents_run_using_hypothesis(
         base_folder,
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
+        time_limit=5,
     )
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")
-    atlas = GeniusNegotiator(
+    a1 = GeniusNegotiator(
         java_class_name=agent_name1,
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
         utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
     )
-    agentx = GeniusNegotiator(
+    a2 = GeniusNegotiator(
         java_class_name=agent_name2,
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
         utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
     )
-    neg.add(atlas)
-    neg.add(agentx)
+    neg._enable_callbacks = True
+    neg.add(a1)
+    neg.add(a2)
+    neg.run()
     # print(f'{agent_name1} <-> {agent_name2}', end = '')
     # print(f': {neg.run(timeout=1)}')
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_genius_agents_run_example():
+    from random import randint
+
+    agents = ["agents.anac.y2015.Atlas3.Atlas3", "agents.anac.y2015.AgentX.AgentX"]
+    for _ in range(5):
+        agent_name1 = agents[randint(0, 1)]
+        agent_name2 = agents[randint(0, 1)]
+        print("{agent_name1} - {agent_name2}")
+        utils = (1, 2)
+
+        base_folder = pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Laptop"
+        )
+        neg, agent_info, issues = load_genius_domain_from_folder(
+            base_folder, keep_issue_names=True, keep_value_names=True,
+        )
+        if neg is None:
+            raise ValueError(f"Failed to lead domain from {base_folder}")
+        atlas = GeniusNegotiator(
+            java_class_name=agent_name1,
+            domain_file_name=base_folder + "/Laptop-C-domain.xml",
+            utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
+            keep_issue_names=True,
+            keep_value_names=True,
+        )
+        agentx = GeniusNegotiator(
+            java_class_name=agent_name2,
+            domain_file_name=base_folder + "/Laptop-C-domain.xml",
+            utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
+            keep_issue_names=True,
+            keep_value_names=True,
+        )
+        neg._enable_callbacks = True
+        neg.add(atlas)
+        neg.add(agentx)
+        neg.run()
 
 
 if __name__ == "__main__":

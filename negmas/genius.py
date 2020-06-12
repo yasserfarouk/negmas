@@ -21,7 +21,7 @@ from .config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from .inout import get_domain_issues
 from .negotiators import Controller
 from .outcomes import Issue, ResponseType
-from .sao import SAONegotiator
+from .sao import SAONegotiator, SAOState, SAOResponse
 from .utilities import UtilityFunction, make_discounted_ufun
 
 DEFAULT_JAVA_PORT = 25337
@@ -272,6 +272,14 @@ party_based_negotiators = [
     "agents.anac.y2016.myagent.MyAgent",
 ]
 
+tested_negotiators = [
+    "agents.anac.y2015.Atlas3.Atlas3",
+    "agents.anac.y2015.AgentX.AgentX",
+    "agents.anac.y2016.pars2.ParsAgent2",
+    "agents.anac.y2016.yxagent.YXAgent",
+    "agents.anac.y2016.parscat.ParsCat",
+]
+
 
 def init_genius_bridge(path: str = None, port: int = 0, force: bool = False) -> bool:
     """Initializes a genius connection
@@ -350,6 +358,7 @@ class GeniusNegotiator(SAONegotiator):
         name: str = None,
     ):
         super().__init__(name=name)
+        self.__destroyed = False
         self.capabilities["propose"] = can_propose
         self.add_capabilities({"genius": True})
         self.java = None
@@ -384,6 +393,13 @@ class GeniusNegotiator(SAONegotiator):
         self.base_utility = self._utility_function
         self.__ufun_received = ufun
         pass
+
+    @classmethod
+    def robust_negotiators(cls) -> List[str]:
+        """
+        Returns a list of genius agents that were tested and seem to be robustly working with negmas
+        """
+        return tested_negotiators
 
     @classmethod
     def negotiators(cls, agent_based=False, party_based=True) -> List[str]:
@@ -556,6 +572,13 @@ class GeniusNegotiator(SAONegotiator):
     def test(self) -> str:
         return self.java.test(self.java_class_name)
 
+    def on_negotiation_end(self, state: MechanismState) -> None:
+        """called when a negotiation is ended"""
+        super().on_negotiation_end(state)
+        if not self.__destroyed:
+            self.java.destroy_agent(self.java_uuid)
+            self.__destroyed = True
+
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM.
         """
@@ -587,29 +610,24 @@ class GeniusNegotiator(SAONegotiator):
             self.utility_file_name,  # Negotiator file
         )
 
-    def propose(self, state: MechanismState) -> "Outcome":
-        if not self.capabilities["propose"]:
-            return None
-        if self._my_last_offer is None:  # never responded before
-            response, outcome = self.parse(self.java.choose_action(self.java_uuid))
-            if outcome is None:
-                return None
-            self._my_last_offer = outcome
-            return outcome
+    def counter(self, state: MechanismState, offer: Optional["Outcome"]):
+        if offer is not None:
+            self.java.receive_message(
+                self.java_uuid,
+                state.current_proposer,
+                "Offer",
+                self._outcome2str(offer),
+            )
+        response, outcome = self.parse(self.java.choose_action(self.java_uuid))
+        self._my_last_offer = outcome
+        return SAOResponse(response, outcome)
 
-        # we offered something before
-        tmp = self._my_last_offer
-        self._my_last_offer = None
-        return tmp
-
-    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        action = self.java.choose_action(self.java_uuid)
-        response, self._my_last_offer = self.parse(action)
-        return response
+    def propose(self, state):
+        raise ValueError(f"propose should never be called directly on GeniusNegotiator")
 
     def parse(self, action: str) -> Tuple[Optional[ResponseType], Optional["Outcome"]]:
         """
-        Parses an action into and a ResponseType and an Outcome (if one is included)
+        Parses an action into a ResponseType and an Outcome (if one is included)
         Args:
             action:
 
@@ -657,53 +675,6 @@ class GeniusNegotiator(SAONegotiator):
     def __str__(self):
         name = super().__str__().split("/")
         return "/".join(name[:-1]) + f"/{self.java_class_name}/" + name[-1]
-
-    def on_partner_proposal(
-        self, state: MechanismState, partner_id: str, offer: "Outcome"
-    ):
-        if partner_id is self.id:
-            return
-        agent_info = [
-            _ for _ in self._ami.participants if _.id != self.id and _.id == partner_id
-        ]
-        if len(agent_info) == 0:
-            return
-        agent_info = agent_info[0]
-        # if agent_info.type == 'genius_negotiator':
-        #    return
-        self.java.receive_message(
-            self.java_uuid, partner_id, "Offer", self._outcome2str(offer)
-        )
-
-    def on_partner_response(
-        self,
-        state: MechanismState,
-        partner_id: str,
-        outcome: "Outcome",
-        response: "ResponseType",
-    ):
-        if partner_id is self.id:
-            return
-        agent_info = [
-            _ for _ in self._ami.participants if _.id != self.id and _.id == partner_id
-        ]
-        if len(agent_info) == 0:
-            return
-        if outcome is None:
-            return
-        agent_info = agent_info[0]
-        # if agent_info.type == 'genius_negotiator':
-        #    return
-        bid = self._outcome2str(outcome)
-        if response == ResponseType.END_NEGOTIATION:
-            resp = "EndNegotiation"
-        elif response == ResponseType.ACCEPT_OFFER:
-            resp = "Accept"
-        elif response == ResponseType.REJECT_OFFER:
-            resp = "Reject"
-        else:
-            return
-        self.java.receive_message(self.java_uuid, partner_id, resp, bid)
 
 
 def genius_bridge_is_running(port: int = None) -> bool:

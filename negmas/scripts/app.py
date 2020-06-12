@@ -44,7 +44,7 @@ n_completed = 0
 n_total = 0
 
 JNEGMAS_JAR_NAME = "jnegmas-0.2.6-all.jar"
-GENIUS_JAR_NAME = "genius-8.0.4-bridge.jar"
+GENIUS_JAR_NAME = "geniusbridge.jar"
 
 DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 
@@ -914,11 +914,11 @@ def combine(path, dest, metric):
     "--path",
     "-p",
     default="auto",
-    help='Path to genius-8.0.4.jar with embedded NegLoader. Use "auto" to '
+    help='Path to geniusbridge.jar with embedded NegLoader. Use "auto" to '
     "read the path from ~/negmas/config.json"
     "\n\tConfig key is genius_bridge_jar"
     "\nYou can download this jar from: "
-    "http://www.yasserm.com/scml/genius-8.0.4-bridge.jar",
+    "http://www.yasserm.com/scml/geniusbridge.jar",
 )
 @click.option(
     "--port",
@@ -1002,7 +1002,7 @@ def jnegmas_setup():
 def genius_setup():
     url = f"http://www.yasserm.com/scml/{GENIUS_JAR_NAME}"
     print(f"Downloading: {url}", end="", flush=True)
-    download_and_set(key="genius_bridge_jar", url=url, file_name="genius.jar")
+    download_and_set(key="genius_bridge_jar", url=url, file_name=GENIUS_JAR_NAME)
     print(" done successfully")
 
 
