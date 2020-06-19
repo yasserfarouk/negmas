@@ -72,4 +72,3 @@ networkx
 pyqt5
 gif
 pytest-repeat
-pykka
