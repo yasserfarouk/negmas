@@ -17,7 +17,7 @@ from .helpers import dump, get_full_type_name, load, unique_name
 from .java import to_dict, to_java
 
 
-from .actors.thread_actors import ThreadProxy
+# from .actors.thread_actors import ThreadProxy
 
 if TYPE_CHECKING:
     from .outcomes import Outcome
@@ -354,16 +354,8 @@ class NamedObject(object):
 
     @classmethod
     def spawn_thread(cls, *args, **kwargs):
-        return ThreadProxy(cls, *args, **kwargs)
+        raise NotImplementedError("Thread objects are not yet supported")
 
-    # @classmethod
-    # def spawn_gevent(cls, *args, **kwargs):
-    #     return GeventProxy(cls, *args, **kwargs)
-    #
-    # @classmethod
-    # def spawn_eventlet(cls, *args, **kwargs):
-    #     return EventletProxy(cls, *args, **kwargs)
-    #
     @classmethod
     def spawn_process(cls, *args, **kwargs):
         raise NotImplementedError("Process objects are not yet supported")
