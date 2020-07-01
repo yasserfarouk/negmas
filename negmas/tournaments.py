@@ -160,6 +160,7 @@ class ConfigAssigner(Protocol):
         params: Sequence[Dict[str, Any]] = (),
         dynamic_non_competitors: Sequence[Union[str, Type[Agent]]] = None,
         dynamic_non_competitor_params: Sequence[Dict[str, Any]] = None,
+        exclude_comptitors_from_reassignment: bool = True,
     ) -> List[List[Dict[str, Any]]]:
         ...
 
@@ -749,6 +750,7 @@ def tournament(
     non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
     dynamic_non_competitors: Optional[Tuple[Union[str, Any]]] = None,
     dynamic_non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    exclude_comptitors_from_reassignment: bool = True,
     name: str = None,
     verbose: bool = False,
     configs_only: bool = False,
@@ -819,6 +821,7 @@ def tournament(
         dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
                                  the creation of the final assignment instead when the configuration is created
         dynamic_non_competitor_params: paramters of dynamic non competitor agents
+        exclude_comptitors_from_reassignment: If true, competitors are excluded from the dyanamic non-competitors
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
@@ -892,6 +895,7 @@ def tournament(
             non_competitor_params=non_competitor_params,
             dynamic_non_competitors=dynamic_non_competitors,
             dynamic_non_competitor_params=dynamic_non_competitor_params,
+            exclude_comptitors_from_reassignment=exclude_comptitors_from_reassignment,
             name=stage_name,
             verbose=verbose,
             compact=compact,
@@ -1265,6 +1269,7 @@ def create_tournament(
     non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
     dynamic_non_competitors: Optional[Tuple[Union[str, Any]]] = None,
     dynamic_non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    exclude_comptitors_from_reassignment: bool = True,
     name: str = None,
     verbose: bool = False,
     compact: bool = False,
@@ -1326,6 +1331,8 @@ def create_tournament(
         dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
                                  the creation of the final assignment instead when the configuration is created
         dynamic_non_competitor_params: paramters of dynamic non competitor agents
+        exclude_comptitors_from_reassignment: If true, copmetitors are not included in the reassignment even
+                                                          if they exist in `dynamic_non_competitors`
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         save_video_fraction: The fraction of simulations for which to save videos
@@ -1473,6 +1480,7 @@ def create_tournament(
                         params=effective_params,
                         dynamic_non_competitors=dynamic_non_competitors,
                         dynamic_non_competitor_params=dynamic_non_competitor_params,
+                        exclude_comptitors_from_reassignment=exclude_comptitors_from_reassignment,
                     )
                     for c in myconfigs
                 ]
