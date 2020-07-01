@@ -1890,11 +1890,30 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         only after they are signed."""
         return self.id
 
-    def sign_all_contracts(self, contracts: List[Contract]) -> List[Optional[str]]:
+    def sign_all_contracts(
+        self, contracts: List[Contract]
+    ) -> Union[None, str, Dict[str, Optional[str]], List[Optional[str]]]:
         """Called to sign all contracts concluded in a single step by this agent
 
+        Args:
+            contracts: A list of contracts to sign/ refuse to sign
+
+        Return:
+            You can return any of the following:
+
+            - `None` to indicate refusing to sign all contracts.
+            - `str` (specifically, the agent ID) to indicate signing ALL contracts.
+            - `List[Optional[str]]` A list with a value for each input contract where `None` means refusal to sign that
+              contract and a string (agent ID) indicates acceptance to sign it. Note that in this case, the number of
+              values in the returned list must match that of the contacts (and they should obviously correspond to the
+              contracts).
+            - `Dict[str, Optional[str]]` A mapping from contract ID to either a `None` for rejection to sign or a string
+              (for acceptance to sign). Contracts with IDs not in the keys will assumed not to be signed.
+
         Remarks:
-            default implementation calls `sign_contract` for each contract returning the results
+
+            - default implementation calls `sign_contract` for each contract returning the results
+
         """
         return [self.sign_contract(contract) for contract in contracts]
 
@@ -2026,7 +2045,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self,
         bulletin_board: BulletinBoard = None,
         n_steps=10000,
-        time_limit=60*60,
+        time_limit=60 * 60,
         negotiation_speed=None,
         neg_n_steps=100,
         neg_time_limit=3 * 60,
@@ -2490,7 +2509,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Elapsed time since world started in seconds. 0.0 if the world did not start running"""
         if self._start_time is None:
             return 0.0
-        if self.n_steps is not None and self.current_step >= self.n_steps and self.frozen_time > 0.0:
+        if (
+            self.n_steps is not None
+            and self.current_step >= self.n_steps
+            and self.frozen_time > 0.0
+        ):
             return self.frozen_time
         return time.perf_counter() - self._start_time
 
@@ -2568,8 +2591,17 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         break
                     if slist is None:
                         slist = [False] * len(contracts)
-                    elif not isinstance(slist, Iterable):
+                    elif isinstance(slist, str):
                         slist = [slist] * len(contracts)
+                    elif isinstance(slist, dict):
+                        slist = [slist.get(c.id, None) for c in contracts]
+                    elif isinstance(slist, Iterable):
+                        slist = list(slist)
+                        missing = len(contracts) - len(slist)
+                        if missing > 0:
+                            slist += [None] * missing
+                        elif missing < 0:
+                            slist = slist[: len(contracts)]
                     for contract, signature in zip(contracts, slist):
                         if signature is not None:
                             contract_signatures[contract.id] += 1
@@ -3156,7 +3188,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         # update stats
         # ------------
         self._stats["n_contracts_dropped"].append(_n_contracts_dropped)
-        self._stats["n_registered_negotiations_before"].append(_n_registered_negotiations_before)
+        self._stats["n_registered_negotiations_before"].append(
+            _n_registered_negotiations_before
+        )
         self._stats["n_contracts_executed"].append(n_new_contract_executions)
         self._stats["n_contracts_erred"].append(n_new_contract_errors)
         self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
