@@ -158,6 +158,8 @@ class ConfigAssigner(Protocol):
         fair: bool = True,
         competitors: Sequence[Union[str, Type[Agent]]] = (),
         params: Sequence[Dict[str, Any]] = (),
+        dynamic_non_competitors: Sequence[Union[str, Type[Agent]]] = None,
+        dynamic_non_competitor_params: Sequence[Dict[str, Any]] = None,
     ) -> List[List[Dict[str, Any]]]:
         ...
 
@@ -745,6 +747,8 @@ def tournament(
     world_progress_callback: Callable[[Optional[World]], None] = None,
     non_competitors: Optional[Tuple[Union[str, Any]]] = None,
     non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    dynamic_non_competitors: Optional[Tuple[Union[str, Any]]] = None,
+    dynamic_non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
     name: str = None,
     verbose: bool = False,
     configs_only: bool = False,
@@ -810,9 +814,11 @@ def tournament(
                                  and parallel evaluation and should be used with cautious).
         tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
                                       processing
-        non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
-                         in the world
+        non_competitors: A list of agent types that will not be competing but will still exist in the world.
         non_competitor_params: paramters of non competitor agents
+        dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
+                                 the creation of the final assignment instead when the configuration is created
+        dynamic_non_competitor_params: paramters of dynamic non competitor agents
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
@@ -884,6 +890,8 @@ def tournament(
             scheduler_port=scheduler_port,
             non_competitors=non_competitors,
             non_competitor_params=non_competitor_params,
+            dynamic_non_competitors=dynamic_non_competitors,
+            dynamic_non_competitor_params=dynamic_non_competitor_params,
             name=stage_name,
             verbose=verbose,
             compact=compact,
@@ -1255,6 +1263,8 @@ def create_tournament(
     scheduler_port: Optional[str] = None,
     non_competitors: Optional[Tuple[Union[str, Any]]] = None,
     non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    dynamic_non_competitors: Optional[Tuple[Union[str, Any]]] = None,
+    dynamic_non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
     name: str = None,
     verbose: bool = False,
     compact: bool = False,
@@ -1311,9 +1321,11 @@ def create_tournament(
                      to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
-        non_competitors: A list of agent types that will not be competing in the sabotage competition but will exist
-                         in the world
+        non_competitors: A list of agent types that will not be competing but will still exist in the world.
         non_competitor_params: paramters of non competitor agents
+        dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
+                                 the creation of the final assignment instead when the configuration is created
+        dynamic_non_competitor_params: paramters of dynamic non competitor agents
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         save_video_fraction: The fraction of simulations for which to save videos
@@ -1459,6 +1471,8 @@ def create_tournament(
                         n_agents_per_competitor=n_agents_per_competitor,
                         competitors=effective_competitors,
                         params=effective_params,
+                        dynamic_non_competitors=dynamic_non_competitors,
+                        dynamic_non_competitor_params=dynamic_non_competitor_params,
                     )
                     for c in myconfigs
                 ]
