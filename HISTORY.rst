@@ -1,14 +1,45 @@
 History
 =======
 
-Release 0.2.13
+Release 0.6.14
+--------------
+
+* [tournaments] Possible exclusion of competitors from dyn. non-comp.
+* [tournaments] Adding dynamic non_competitors
+* [situated] Allowing more return types from sign_all_contacts
+* [tournaments] Avoid different stat lengths
+* [situated, tournaments] Early break if time-limit is exceeded.
+* [situated, tournaments] Early break if time-limit is exceeded.
+* [situated, mechanisms, tournaments] Using perf_counter consistently to measure time.
+* [situated,mechanisms] more robust relative time
+* [setup] Removing installation of visualizer components in CI
+* [tournaments] Avoid failure for empty stat files when combining tournaments
+* [helpers] avoid trying to load empty files
+* [tournament][bugfix] Error in concatenating multiple exceptions.
+* [tournament][bugfix] Serial run was failing
+* [situated] Avoiding relative_time > 1
+* [mechanisms] Avoiding relative_time > 1
+* [tournament] Saving temporary scores in tournaments by default
+* [tournaments][bugfix] Tuples were causing exceptions when combining agent exceptions
+* [bugfix] correcting NotImplementedError exception
+* [situated] Avoid failure when returning non-iterable from sign_all_contracts
+* [tournaments] better handling of continuation
+* [tournament] Randomizing assigned config runs
+* [tournament] adding extra exception and timing information to tournaments
+* [docs] Documentation update
+* [situated] Keeping details of who committed exceptions.
+* [situated] For negotiation exceptions, the exception is registered for the agents
+  owning all negotiators as it is not possible in World to know the
+  negotiator from whom the exception originated.
+
+Release 0.6.13
 --------------
 
 * [tournaments] defaulting to no logs or videos in tournaments.
 * [base] bugfix: avoid calling parent in passthrough negotiator when it does not exist.
 * [base] making PyQT optional
 
-Release 0.2.12
+Release 0.6.12
 --------------
 
 * [docs] more tutorials and overview revampment
