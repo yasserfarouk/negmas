@@ -757,8 +757,8 @@ def tournament(
     compact: bool = False,
     print_exceptions: bool = True,
     metric="median",
-    save_video_fraction: float = 0.001,
-    forced_logs_fraction: float = 0.001,
+    save_video_fraction: float = 0.0,
+    forced_logs_fraction: float = 0.0,
     video_params=None,
     video_saver=None,
     **kwargs,
@@ -1078,6 +1078,7 @@ def run_tournament(
     dask_options = ("dist", "distributed", "dask", "d")
     multiprocessing_options = ("local", "parallel", "par", "p")
     serial_options = ("none", "serial", "s")
+    serial_timeout_options = ("serial-timeout", "serial_timeout", "t")
     if parallelism is None:
         parallelism = "serial"
     assert (
