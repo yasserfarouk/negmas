@@ -1,6 +1,19 @@
 History
 =======
 
+Release 0.6.15
+--------------
+
+* [tournaments] Default to faster tournaments
+* [testing] Avoid failure on PyQT not installed
+* [situated] agreement and contract validation:
+  Agreement validation (is_valid_agreement) and contract validation
+  (is_valis_valid_contract) are added to the World class. Using them
+  a world designer can decide that an agreement (before signing) or
+  a contract (after signing) is invalid and drop it so it is never
+  executed. These contracts appear as 'dropped_contracts' in stats.
+* [tournaments] Adding max_attempts parameter when running worlds.
+
 Release 0.6.14
 --------------
 
