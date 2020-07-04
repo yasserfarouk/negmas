@@ -3,6 +3,7 @@ Tournament generation and management.
 
 """
 import concurrent.futures as futures
+import os
 import copy
 import hashlib
 import itertools
@@ -257,7 +258,10 @@ class TournamentResults:
 
 
 def run_world(
-    world_params: dict, dry_run: bool = False, save_world_stats: bool = True
+    world_params: dict,
+    dry_run: bool = False,
+    save_world_stats: bool = True,
+    attempts_path=None,
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
@@ -265,6 +269,7 @@ def run_world(
         world_params: World info dict. See remarks for its parameters
         dry_run: If true, the world will not be run. Only configs will be saved
         save_world_stats: If true, saves individual world stats
+        attempts_path: The folder containing attempts information
 
     Remarks:
 
@@ -307,11 +312,15 @@ def run_world(
         score_calculator=score_calculator,
         dry_run=dry_run,
         save_world_stats=save_world_stats,
+        attempts_path=attempts_path,
     )
 
 
 def run_worlds(
-    worlds_params: List[dict], dry_run: bool = False, save_world_stats: bool = True
+    worlds_params: List[dict],
+    dry_run: bool = False,
+    save_world_stats: bool = True,
+    attempts_path=None,
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
 
@@ -319,6 +328,7 @@ def run_worlds(
         worlds_params: list of World info dicts. See remarks for its parameters
         dry_run: If true, the world will not be run. Only configs will be saved
         save_world_stats: If true, saves individual world stats
+        attempts_path: The path containing attempts information
 
     Remarks:
 
@@ -372,6 +382,7 @@ def run_worlds(
         score_calculator=score_calculator,
         dry_run=dry_run,
         save_world_stats=save_world_stats,
+        attempts_path=attempts_path,
     )
 
 
@@ -384,6 +395,7 @@ def _run_worlds(
     save_world_stats: bool = True,
     override_ran_worlds: bool = False,
     save_progress_every: int = 1,
+    attempts_path=None,
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
@@ -396,6 +408,7 @@ def _run_worlds(
         save_world_stats: If true, saves individual world stats
         override_ran_worlds: If true, run the worlds even if they are already ran before.
         save_progress_every: If true, progress will be saved every this number of steps.
+        attempts_path: The path to store attempts information.
 
     Returns:
         A tuple with the following components in order:
@@ -421,6 +434,20 @@ def _run_worlds(
     worlds, dir_names = [], []
     scoring_context = {}
     run_id = _hash(worlds_params)
+    if attempts_path:
+        attempts_file = attempts_path / run_id
+        # this should be protected and atomic but who cares. If it completely broke down we will just
+        # retry unnecessarily to run some worlds.
+        n_attempts = 0
+        if attempts_file.exists():
+            with open(attempts_file, "r") as afile:
+                try:
+                    n_attempts = int(afile.read())
+                except:
+                    n_attempts = 0
+        n_attempts += 1
+        with open(attempts_file, "w") as afile:
+            afile.write(str(n_attempts))
     video_savers, video_saver_params_list, save_videos = [], [], []
     scores: Optional[WorldRunResults] = None
 
@@ -630,6 +657,7 @@ def _run_dask(
     run_ids,
     print_exceptions,
     override_already_ran=False,
+    attempts_path=None,
 ) -> None:
     """Runs the tournament on dask"""
 
@@ -661,6 +689,7 @@ def _run_dask(
                 dry_run,
                 save_world_stats,
                 override_already_ran,
+                attempts_path,
             )
         )
     print(f"Submitted all processes to DASK ({len(future_results)})")
@@ -689,6 +718,9 @@ def _run_dask(
                     f"{i + 1:003} of {n_worlds:003} [{100 * (i + 1) / n_worlds:0.3}%] completed in "
                     f"{humanize_time(_duration)} [ETA {humanize_time(_duration * n_worlds / (i + 1))}]"
                 )
+            if attempts_path:
+                if (attempts_path / run_id).exists():
+                    os.remove(attempts_path / run_id)
         except Exception as e:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_worlds)
@@ -1009,6 +1041,7 @@ def run_tournament(
     compact: bool = None,
     print_exceptions: bool = True,
     override_ran_worlds: bool = False,
+    max_attempts: int = float("inf"),
 ) -> None:
     """
     Runs a tournament
@@ -1036,6 +1069,7 @@ def run_tournament(
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         print_exceptions: If true, exceptions encountered during world simulation will be printed to stdout
         override_ran_worlds: If true worlds that are already ran will be ran again
+        max_attempts: The maximum number of attempts to run each simulation. Default is infinite
 
     """
     tournament_path = _path(tournament_path)
@@ -1073,6 +1107,25 @@ def run_tournament(
         tmp_ = pd.read_csv(scores_file)
         if "run_id" in tmp_.columns:
             run_ids = set(tmp_["run_id"].values)
+
+    # save and check attempts
+    attempts_path = tournament_path / "attempts"
+    attempts_path.mkdir(exist_ok=True, parents=True)
+    attempts = defaultdict(int)
+    for afile in attempts_path.glob("*"):
+        if afile.is_dir():
+            continue
+        fname = afile.name
+        if fname in run_ids:
+            continue
+        with open(afile, "r") as f:
+            try:
+                n_attempts = int(f.read())
+            except Exception as e:
+                n_attempts = 0
+        attempts[fname] = n_attempts
+        if n_attempts > max_attempts:
+            run_ids.add(fname)
 
     scores_file = str(scores_file)
     dask_options = ("dist", "distributed", "dask", "d")
@@ -1113,6 +1166,7 @@ def run_tournament(
                     dry_run=False,
                     save_world_stats=True,
                     override_ran_worlds=override_ran_worlds,
+                    attempts_path=attempts_path,
                 )
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
@@ -1162,6 +1216,7 @@ def run_tournament(
                     False,
                     True,
                     override_ran_worlds,
+                    attempts_path=attempts_path,
                 )
             )
         result_received = set()
@@ -1240,6 +1295,7 @@ def run_tournament(
             run_ids,
             print_exceptions,
             override_ran_worlds,
+            attempts_path,
         )
     if verbose:
         print(f"Tournament completed successfully")
