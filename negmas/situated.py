@@ -3964,8 +3964,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._saved_negotiations[mechanism.id] = _stats
         if mechanism.state.agreement is None or negotiation is None:
             return None
-        if not self.is_valid_agreement(negotiation, mechanism.state.agreement):
-            return None
+        if not self.is_valid_agreement(negotiation, mechanism.state.agreement, mechanism):
+            return
         agreement = mechanism.state.agreement
         agreement = outcome_as_dict(
             agreement, issue_names=[_.name for _ in mechanism.issues]
