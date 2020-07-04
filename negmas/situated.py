@@ -2216,6 +2216,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
         self.__n_contracts_cancelled = 0
+        self.__n_contracts_dropped = 0
         self._saved_contracts: Dict[str, Dict[str, Any]] = {}
         self._saved_negotiations: Dict[str, Dict[str, Any]] = {}
         self._saved_breaches: Dict[str, Dict[str, Any]] = {}
@@ -2950,7 +2951,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         stats_stage = 0
         blevel = 0.0
 
-        _n_contracts_dropped = 0
         _n_registered_negotiations_before = len(self._negotiations)
 
         def _run_negotiations(n_steps: Optional[int] = None):
@@ -3154,7 +3154,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
             for c in dropped:
                 self._saved_contracts[c.id]["dropped_at"] = self._current_step
-            _n_contracts_dropped = len(dropped)
+            self.__n_contracts_dropped += len(dropped)
 
         def _stats_update():
             nonlocal stats_stage
@@ -3187,7 +3187,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # update stats
         # ------------
-        self._stats["n_contracts_dropped"].append(_n_contracts_dropped)
         self._stats["n_registered_negotiations_before"].append(
             _n_registered_negotiations_before
         )
@@ -3195,6 +3194,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._stats["n_contracts_erred"].append(n_new_contract_errors)
         self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
         self._stats["n_contracts_cancelled"].append(self.__n_contracts_cancelled)
+        self._stats["n_contracts_dropped"].append(self.__n_contracts_dropped)
         self._stats["n_breaches"].append(n_new_breaches)
         self._stats["breach_level"].append(blevel)
         self._stats["n_contracts_signed"].append(self.__n_contracts_signed)
@@ -3214,6 +3214,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.__n_contracts_signed = 0
         self.__n_contracts_concluded = 0
         self.__n_contracts_cancelled = 0
+        self.__n_contracts_dropped = 0
 
         self.append_stats()
         for agent in self.agents.values():
@@ -3912,6 +3913,48 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         record.update(mechanism.state.__dict__)
         return record
 
+    def is_valid_agreement(
+        self, negotiation: NegotiationInfo, agreement: Outcome, mechanism: Mechanism
+    ) -> bool:
+        """
+        Confirms that the agreement is valid given the world rules.
+
+        Args:
+            negotiation: The `NegotiationInfo` that led to the agreement
+
+            agreement: The agreement
+            mechanism: The mechanism that led to the agreement
+
+        Return:
+
+            Returns True for valid agreements and False for invalid agreements
+
+        Remarks:
+
+            - This test is conducted before the agents are asked to sign the corresponding contract
+            - Invalid agreements will be treated as never happened and agents will not be asked to sign it
+        """
+        return True
+
+    def is_valid_contract(self, contract: Contract) -> bool:
+        """
+        Confirms that the agreement is valid given the world rules.
+
+        Args:
+            contract: The contract being tested
+
+        Return:
+            Returns True for valid contracts and False for invalid contracts
+
+        Remarks:
+
+            - This test will be conducted after agents are asked to sign the contract
+              and only for signed contracts.
+            - If False is returned, the contract will considered unsigned and will be
+              recorded as a concluded but not signed contract with no rejectors
+        """
+        return True
+
     def _register_contract(
         self, mechanism, negotiation, to_be_signed_at
     ) -> Optional[Contract]:
@@ -3920,6 +3963,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             _stats = self._make_negotiation_record(negotiation)
             self._saved_negotiations[mechanism.id] = _stats
         if mechanism.state.agreement is None or negotiation is None:
+            return None
+        if not self.is_valid_agreement(negotiation, mechanism.state.agreement):
             return None
         agreement = mechanism.state.agreement
         agreement = outcome_as_dict(
@@ -3958,11 +4003,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 rejectors = self._sign_contract(contract)
                 signed = rejectors is not None and len(rejectors) == 0
                 if signed:
-                    self.on_contract_signed(contract)
+                    signed = self.on_contract_signed(contract)
                 sign_status = (
                     "signed"
                     if signed
-                    else f"cancelled by {rejectors if rejectors is not None else 'error!!'}"
+                    else f"cancelled by {rejectors if rejectors else 'being invalid!!'}"
                 )
             else:
                 sign_status = f"to be signed at {contract.to_be_signed_at}"
@@ -4074,12 +4119,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     break
         return [_.id for _ in rejectors]
 
-    def on_contract_signed(self, contract: Contract) -> None:
+    def on_contract_signed(self, contract: Contract) -> bool:
         """Called to add a contract to the existing set of contract after it is signed
 
         Args:
 
             contract: The contract to add
+
+        Returns:
+
+            True if everything went OK and False otherwise
 
         Remarks:
 
@@ -4087,6 +4136,20 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             - You should ALWAYS call this function when overriding it.
 
         """
+        if not self.is_valid_contract(contract):
+            # TODO check adding an edge of type dropped
+            record = self._contract_record(contract)
+            record["signed_at"] = self.current_step
+            record["executed_at"] = -1
+            record["breaches"] = ""
+            record["nullified_at"] = -1
+            record["dropped_at"] = self.current_step
+            record["erred_at"] = -1
+            self._saved_contracts[contract.id] = record
+            self.__n_contracts_dropped += 1
+            self.on_contract_processed(contract)
+            return False
+
         self._add_edges(
             contract.partners[0],
             contract.partners,
@@ -4110,6 +4173,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._saved_contracts[contract.id] = record
         else:
             self._saved_contracts.pop(contract.id, None)
+        return True
 
     def on_contract_processed(self, contract):
         """
@@ -4162,20 +4226,30 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.__n_contracts_cancelled += 1
         self.on_contract_processed(contract)
 
-    def ignore_contract(self, contract):
-        """Ignores the contract as if it was never agreed upon
+    def ignore_contract(self, contract, as_dropped=False):
+        """
+        Ignores the contract as if it was never agreed upon or as if was dropped
 
-            Args:
+        Args:
 
-                contract: The contract to add
+            contract: The contract to ignore
+            as_dropped: If true, the contract is treated as a dropped invalid
+                        contract, otherwise it is treated as if it never
+                        happened.
 
         """
-        if contract.agreement is not None:
-            self.__n_contracts_concluded -= 1
-        if contract.id in self._saved_contracts.keys():
-            if self._saved_contracts[contract.id]["signed_at"] >= 0:
-                self.__n_contracts_signed -= 1
-            del self._saved_contracts[contract.id]
+        if as_dropped:
+            if contract.agreement is not None:
+                self.__n_contracts_dropped += 1
+            if contract.id in self._saved_contracts.keys():
+                self._saved_contracts[contract.id]["dropped_at"] = self.current_step
+        else:
+            if contract.agreement is not None:
+                self.__n_contracts_concluded -= 1
+            if contract.id in self._saved_contracts.keys():
+                if self._saved_contracts[contract.id]["signed_at"] >= 0:
+                    self.__n_contracts_signed -= 1
+                del self._saved_contracts[contract.id]
         self.on_contract_processed(contract)
 
     @property
@@ -4854,10 +4928,12 @@ class TimeInAgreementMixin:
         self.contracts_per_step: Dict[int, List[Contract]] = defaultdict(list)
 
     def on_contract_signed(self: World, contract: Contract):
-        super().on_contract_signed(contract=contract)
-        self.contracts_per_step[contract.agreement[self._time_field_name]].append(
-            contract
-        )
+        result = super().on_contract_signed(contract=contract)
+        if result:
+            self.contracts_per_step[contract.agreement[self._time_field_name]].append(
+                contract
+            )
+        return result
 
     def executable_contracts(self: World) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
@@ -5057,8 +5133,8 @@ class NoResponsesMixin:
     ) -> None:
         pass
 
-    def on_contract_signed(self, contract: Contract) -> None:
-        pass
+    def on_contract_signed(self, contract: Contract) -> bool:
+        return True
 
     def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
         pass
