@@ -96,6 +96,7 @@ setup(
         "networkx",
         "gif",
         "py4j",
+        "dask",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
