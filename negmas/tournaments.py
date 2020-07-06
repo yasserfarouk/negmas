@@ -13,6 +13,8 @@ import random
 import time
 import traceback
 import warnings
+import distributed
+from functools import partial
 from collections import defaultdict
 from dataclasses import dataclass, field
 from multiprocessing import cpu_count
@@ -640,94 +642,181 @@ def process_world_run(
     return scores
 
 
-def _run_dask(
+def _get_executor(
+    method, verbose, scheduler_ip=None, scheduler_port=None, total_timeout=None
+):
+    """Returns an exeuctor object which has a submit method to submit calls to run worlds"""
+    if method == "dask":
+
+        # breakpoint()
+        if scheduler_ip is None and scheduler_port is None:
+            address = None
+        else:
+            if scheduler_ip is None:
+                scheduler_ip = "127.0.0.1"
+            if scheduler_port is None:
+                scheduler_port = "8786"
+            address = f"{scheduler_ip}:{scheduler_port}"
+        if verbose:
+            print(f"Will use DASK on {address}")
+        print(f"Will use DASK on {address}")
+        return (
+            distributed.Client(address=address),
+            partial(distributed.as_completed, raise_errors=True, with_results=False),
+        )
+
+    fraction = None
+    parallelism = method.split(":")
+    if len(parallelism) != 1:
+        fraction = float(parallelism[-1])
+    parallelism = parallelism[0]
+    max_workers = fraction if fraction is None else max(1, int(fraction * cpu_count()))
+    executor = futures.ProcessPoolExecutor(max_workers=max_workers)
+
+    return executor, partial(futures.as_completed)
+
+
+def _submit_all(
+    executor,
+    assigned,
+    run_ids,
+    world_generator,
+    score_calculator,
+    world_progress_callback,
+    override_ran_worlds,
+    attempts_path,
+    verbose,
+):
+    """Submits all processes to be executed by the executor"""
+    future_results = []
+    for i, worlds_params in enumerate(assigned):
+        run_id = _hash(worlds_params)
+        if run_id in run_ids:
+            continue
+        future_results.append(
+            executor.submit(
+                _run_worlds,
+                worlds_params,
+                world_generator,
+                score_calculator,
+                world_progress_callback,
+                False,
+                True,
+                override_ran_worlds,
+                1,
+                attempts_path,
+            )
+        )
+    if verbose:
+        print(
+            f"Submitted all processes ", end="",
+        )
+        if len(assigned) > 0:
+            print(f"{len(future_results)/len(assigned):5.2%}")
+        else:
+            print("")
+    return future_results
+
+
+def _run_parallel(
+    parallelism,
     scheduler_ip,
     scheduler_port,
     verbose,
-    world_infos,
+    assigned,
     world_generator,
     tournament_progress_callback,
+    world_progress_callback,
     n_worlds,
     name,
     score_calculator,
-    dry_run,
     save_world_stats,
     scores_file,
     world_stats_file,
     run_ids,
     print_exceptions,
-    override_already_ran=False,
+    override_ran_worlds=False,
     attempts_path=None,
+    total_timeout=None,
 ) -> None:
-    """Runs the tournament on dask"""
-
-    import distributed
-
-    if scheduler_ip is None and scheduler_port is None:
-        address = None
-    else:
-        if scheduler_ip is None:
-            scheduler_ip = "127.0.0.1"
-        if scheduler_port is None:
-            scheduler_port = "8786"
-        address = f"{scheduler_ip}:{scheduler_port}"
-    if verbose:
-        print(f"Will use DASK on {address}")
-    client = distributed.Client(address=address, set_as_default=True)
-    future_results = []
-    for world_params in world_infos:
-        run_id = _hash(world_params)
-        if run_id in run_ids:
-            continue
-        future_results.append(
-            client.submit(
-                _run_worlds,
-                world_params,
-                world_generator,
-                score_calculator,
-                None,
-                dry_run,
-                save_world_stats,
-                override_already_ran,
-                attempts_path,
-            )
-        )
-    print(f"Submitted all processes to DASK ({len(future_results)})")
+    """Runs the tournament in parallel"""
+    strt = time.perf_counter()
+    executor, as_completed = _get_executor(
+        parallelism,
+        verbose,
+        total_timeout=total_timeout,
+        scheduler_ip=scheduler_ip,
+        scheduler_port=scheduler_port,
+    )
+    future_results = _submit_all(
+        executor,
+        assigned,
+        run_ids,
+        world_generator,
+        score_calculator,
+        world_progress_callback,
+        override_ran_worlds,
+        attempts_path,
+        verbose,
+    )
+    n_world_configs = len(future_results)
     _strt = time.perf_counter()
-    for i, future in enumerate(
-        distributed.as_completed(future_results, with_results=True, raise_errors=False)
-    ):
+    for i, future in enumerate(as_completed(future_results)):
+        if total_timeout is not None and time.perf_counter() - strt > total_timeout:
+            break
         try:
             run_id, score_, world_stats_ = future.result()
             if tournament_progress_callback is not None:
-                tournament_progress_callback(score_, i, n_worlds)
+                tournament_progress_callback(score_, i, n_world_configs)
             add_records(
                 scores_file,
                 process_world_run(
-                    run_id,
-                    score_,
-                    tournament_name=name,
-                    world_stats=world_stats_,
-                    # save_world_stats=save_world_stats,
+                    run_id, score_, tournament_name=name, world_stats=world_stats_,
                 ),
             )
             add_records(world_stats_file, [vars(world_stats_)])
             if verbose:
                 _duration = time.perf_counter() - _strt
                 print(
-                    f"{i + 1:003} of {n_worlds:003} [{100 * (i + 1) / n_worlds:0.3}%] completed in "
-                    f"{humanize_time(_duration)} [ETA {humanize_time(_duration * n_worlds / (i + 1))}]"
+                    f"{i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] "
+                    f'{"completed"} in '
+                    f"{humanize_time(_duration)}"
+                    f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
                 )
             if attempts_path:
                 if (attempts_path / run_id).exists():
-                    os.remove(attempts_path / run_id)
+                    try:
+                        if (attempts_path / run_id).exists():
+                            os.remove(attempts_path / run_id)
+                    except Exception as e:
+                        print(
+                            f"Failed to remove an attempt file after completion: {e} "
+                        )
+        except futures.TimeoutError:
+            if tournament_progress_callback is not None:
+                tournament_progress_callback(None, i, n_world_configs)
+            if verbose:
+                print("Tournament timed-out")
+            break
+        except distributed.TimeoutError:
+            if tournament_progress_callback is not None:
+                tournament_progress_callback(None, i, n_world_configs)
+            if verbose:
+                print("Tournament timed-out")
+            break
+        except futures.process.BrokenProcessPool as e:
+            if tournament_progress_callback is not None:
+                tournament_progress_callback(None, i, n_world_configs)
+            if print_exceptions:
+                print(e)
         except Exception as e:
             if tournament_progress_callback is not None:
-                tournament_progress_callback(None, i, n_worlds)
+                tournament_progress_callback(None, i, n_world_configs)
             if print_exceptions:
                 print(traceback.format_exc())
                 print(e)
-    client.shutdown()
+    if parallelism.startswith("parallel"):
+        executor.shutdown()
 
 
 def _divide_into_sets(competitors, n_competitors_per_world):
@@ -793,6 +882,7 @@ def tournament(
     forced_logs_fraction: float = 0.0,
     video_params=None,
     video_saver=None,
+    max_attempts: int = float("inf"),
     **kwargs,
 ) -> Union[TournamentResults, PathLike]:
     """
@@ -864,6 +954,7 @@ def tournament(
                               effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
         video_params: The parameters to pass to the video saving function
         video_saver: The parameters to pass to the video saving function after the world
+        max_attempts: The maximum number of times to retry running simulations
         kwargs: Arguments to pass to the `config_generator` function
 
     Returns:
@@ -952,6 +1043,7 @@ def tournament(
             verbose=verbose,
             compact=compact,
             print_exceptions=print_exceptions,
+            max_attempts=max_attempts,
         )
         return evaluate_tournament(
             tournament_path=final_tournament_path,
@@ -1166,6 +1258,7 @@ def run_tournament(
                     dry_run=False,
                     save_world_stats=True,
                     override_ran_worlds=override_ran_worlds,
+                    save_progress_every=1,
                     attempts_path=attempts_path,
                 )
                 if tournament_progress_callback is not None:
@@ -1191,104 +1284,21 @@ def run_tournament(
                 if print_exceptions:
                     print(traceback.format_exc())
                     print(e)
-    elif any(parallelism.startswith(_) for _ in multiprocessing_options):
-        fraction = None
-        parallelism = parallelism.split(":")
-        if len(parallelism) != 1:
-            fraction = float(parallelism[-1])
-        parallelism = parallelism[0]
-        max_workers = (
-            fraction if fraction is None else max(1, int(fraction * cpu_count()))
-        )
-        executor = futures.ProcessPoolExecutor(max_workers=max_workers)
-        future_results = []
-        for i, worlds_params in enumerate(assigned):
-            run_id = _hash(worlds_params)
-            if run_id in run_ids:
-                continue
-            future_results.append(
-                executor.submit(
-                    _run_worlds,
-                    worlds_params,
-                    world_generator,
-                    score_calculator,
-                    world_progress_callback,
-                    False,
-                    True,
-                    override_ran_worlds,
-                    attempts_path=attempts_path,
-                )
-            )
-        result_received = set()
-        if verbose:
-            print(
-                f"Submitted all processes ({len(future_results)} of {len(assigned)})",
-                end="",
-            )
-            if len(assigned) > 0:
-                print(f"{len(future_results)/len(assigned):5.2%}")
-            else:
-                print("")
-        n_world_configs = len(future_results)
-        _strt = time.perf_counter()
-        for i, future in enumerate(
-            futures.as_completed(future_results, timeout=total_timeout)
-        ):
-            if total_timeout is not None and time.perf_counter() - strt > total_timeout:
-                break
-            try:
-                run_id, score_, world_stats_ = future.result()
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(score_, i, n_world_configs)
-                add_records(
-                    scores_file,
-                    process_world_run(
-                        run_id,
-                        score_,
-                        tournament_name=name,
-                        world_stats=world_stats_,
-                        # save_world_stats=not compact,
-                    ),
-                )
-                add_records(world_stats_file, [vars(world_stats_)]),
-                result_received.add(run_id)
-                if verbose:
-                    _duration = time.perf_counter() - _strt
-                    print(
-                        f"{i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] "
-                        f'{"completed"} in '
-                        f"{humanize_time(_duration)}"
-                        f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
-                    )
-            except futures.TimeoutError:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if verbose:
-                    print("Tournament timed-out")
-                break
-            except futures.process.BrokenProcessPool as e:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if print_exceptions:
-                    print(e)
-            except Exception as e:
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(None, i, n_world_configs)
-                if print_exceptions:
-                    print(traceback.format_exc())
-                    print(e)
-    elif parallelism in dask_options:
-        _run_dask(
+    elif any(parallelism.startswith(_) for _ in multiprocessing_options) or (
+        parallelism in dask_options
+    ):
+        _run_parallel(
+            parallelism,
             scheduler_ip,
             scheduler_port,
             verbose,
             assigned,
             world_generator,
             tournament_progress_callback,
+            world_progress_callback,
             n_world_configs,
             name,
             score_calculator,
-            False,
             True,
             scores_file,
             world_stats_file,
@@ -1296,6 +1306,7 @@ def run_tournament(
             print_exceptions,
             override_ran_worlds,
             attempts_path,
+            total_timeout,
         )
     if verbose:
         print(f"Tournament completed successfully")
