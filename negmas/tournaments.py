@@ -3,7 +3,6 @@ Tournament generation and management.
 
 """
 import concurrent.futures as futures
-from tenacity import retry
 import os
 import copy
 import hashlib
@@ -14,6 +13,8 @@ import random
 import time
 import traceback
 import warnings
+from multiprocessing import current_process
+from socket import gethostname
 
 try:
     import distributed
@@ -271,6 +272,7 @@ def run_world(
     dry_run: bool = False,
     save_world_stats: bool = True,
     attempts_path=None,
+    max_attempts=float("inf"),
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
@@ -279,6 +281,7 @@ def run_world(
         dry_run: If true, the world will not be run. Only configs will be saved
         save_world_stats: If true, saves individual world stats
         attempts_path: The folder containing attempts information
+        max_attempts: The maximum number of trials to run a world simulation
 
     Remarks:
 
@@ -322,6 +325,7 @@ def run_world(
         dry_run=dry_run,
         save_world_stats=save_world_stats,
         attempts_path=attempts_path,
+        max_attempts=max_attempts,
     )
 
 
@@ -330,6 +334,7 @@ def run_worlds(
     dry_run: bool = False,
     save_world_stats: bool = True,
     attempts_path=None,
+    max_attempts=float("inf"),
 ) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
     """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
 
@@ -338,6 +343,7 @@ def run_worlds(
         dry_run: If true, the world will not be run. Only configs will be saved
         save_world_stats: If true, saves individual world stats
         attempts_path: The path containing attempts information
+        max_attempts: Maximum number of trials to run a simulation
 
     Remarks:
 
@@ -392,10 +398,10 @@ def run_worlds(
         dry_run=dry_run,
         save_world_stats=save_world_stats,
         attempts_path=attempts_path,
+        max_attempts=max_attempts,
     )
 
 
-@retry
 def _run_worlds(
     worlds_params: List[Dict[str, Any]],
     world_generator: WorldGenerator,
@@ -406,7 +412,8 @@ def _run_worlds(
     override_ran_worlds: bool = False,
     save_progress_every: int = 1,
     attempts_path=None,
-) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
+    max_attempts=float("inf"),
+) -> Tuple[str, Optional[WorldRunResults], Optional[WorldSetRunStats]]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
     Args:
@@ -444,7 +451,14 @@ def _run_worlds(
     worlds, dir_names = [], []
     scoring_context = {}
     run_id = _hash(worlds_params)
-    if attempts_path:
+    if attempts_path and not dry_run:
+        running_folder = attempts_path / "_running"
+        running_folder.mkdir(parents=True, exist_ok=True)
+        running_file = attempts_path / "_running" / run_id
+        if running_file.exists():
+            return run_id, None, None
+        with open(running_file, "w") as rf:
+            rf.write(f"{gethostname()}:{current_process()}")
         attempts_file = attempts_path / run_id
         # this should be protected and atomic but who cares. If it completely broke down we will just
         # retry unnecessarily to run some worlds.
@@ -455,6 +469,9 @@ def _run_worlds(
                     n_attempts = int(afile.read())
                 except:
                     n_attempts = 0
+        if n_attempts >= max_attempts:
+            os.remove(str(running_file))
+            return run_id, None, None
         n_attempts += 1
         with open(attempts_file, "w") as afile:
             afile.write(str(n_attempts))
@@ -586,6 +603,8 @@ def _run_worlds(
             execution_time=sum(_.frozen_time for _ in worlds),
             other_exceptions=[exception2str()],
         )
+    if attempts_path:
+        os.remove(running_file)
     return run_id, scores, world_stats
 
 
@@ -698,6 +717,7 @@ def _submit_all(
     override_ran_worlds,
     attempts_path,
     verbose,
+    max_attempts,
 ):
     """Submits all processes to be executed by the executor"""
     future_results = []
@@ -717,6 +737,7 @@ def _submit_all(
                 override_ran_worlds,
                 1,
                 attempts_path,
+                max_attempts,
             )
         )
     if verbose:
@@ -750,6 +771,7 @@ def _run_parallel(
     override_ran_worlds=False,
     attempts_path=None,
     total_timeout=None,
+    max_attempts=float("inf"),
 ) -> None:
     """Runs the tournament in parallel"""
     strt = time.perf_counter()
@@ -770,6 +792,7 @@ def _run_parallel(
         override_ran_worlds,
         attempts_path,
         verbose,
+        max_attempts,
     )
     n_world_configs = len(future_results)
     _strt = time.perf_counter()
@@ -780,6 +803,8 @@ def _run_parallel(
             run_id, score_, world_stats_ = future.result()
             if tournament_progress_callback is not None:
                 tournament_progress_callback(score_, i, n_world_configs)
+            if score_ is None or world_stats_ is None:
+                continue
             add_records(
                 scores_file,
                 process_world_run(
@@ -1274,9 +1299,12 @@ def run_tournament(
                     override_ran_worlds=override_ran_worlds,
                     save_progress_every=1,
                     attempts_path=attempts_path,
+                    max_attempts=max_attempts,
                 )
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(score_, i, n_world_configs)
+                if score_ is None or world_stats_ is None:
+                    continue
                 add_records(
                     scores_file,
                     process_world_run(
@@ -1321,6 +1349,7 @@ def run_tournament(
             override_ran_worlds,
             attempts_path,
             total_timeout,
+            max_attempts,
         )
     if verbose:
         print(f"Tournament completed successfully")
