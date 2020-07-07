@@ -1243,14 +1243,27 @@ def run_tournament(
         if fname in run_ids:
             files_to_remove.append(afile)
             continue
-        with open(afile, "r") as f:
-            try:
-                n_attempts = int(f.read())
-            except Exception as e:
+        try:
+            with open(afile, "r") as f:
+                try:
+                    n_attempts = int(f.read())
+                except Exception as e:
+                    n_attempts = 0
+        except:
+            # This means that the file was there then was removed
+            # This happens when another process runs this world. I should
+            # just ignore this file and update the run_ids
+            run_ids = set()
+            if scores_file.exists():
+                tmp_ = pd.read_csv(scores_file)
+                if "run_id" in tmp_.columns:
+                    run_ids = set(tmp_["run_id"].values)
+            if fname not in run_ids:
                 n_attempts = 0
-        attempts[fname] = n_attempts
-        if n_attempts > max_attempts:
-            run_ids.add(fname)
+        else:
+            attempts[fname] = n_attempts
+            if n_attempts > max_attempts:
+                run_ids.add(fname)
 
     for afile in files_to_remove:
         try:
