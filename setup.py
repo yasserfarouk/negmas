@@ -97,6 +97,7 @@ setup(
         "gif",
         "py4j",
         "dask",
+        "tenacity",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],

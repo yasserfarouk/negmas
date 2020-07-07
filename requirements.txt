@@ -44,3 +44,4 @@ pyqt5
 gif
 pytest-repeat
 dask
+tenacity

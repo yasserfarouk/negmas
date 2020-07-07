@@ -3,6 +3,7 @@ Tournament generation and management.
 
 """
 import concurrent.futures as futures
+from tenacity import retry
 import os
 import copy
 import hashlib
@@ -388,6 +389,7 @@ def run_worlds(
     )
 
 
+@retry
 def _run_worlds(
     worlds_params: List[Dict[str, Any]],
     world_generator: WorldGenerator,
@@ -1204,11 +1206,13 @@ def run_tournament(
     attempts_path = tournament_path / "attempts"
     attempts_path.mkdir(exist_ok=True, parents=True)
     attempts = defaultdict(int)
+    files_to_remove = []
     for afile in attempts_path.glob("*"):
         if afile.is_dir():
             continue
         fname = afile.name
         if fname in run_ids:
+            files_to_remove.append(afile)
             continue
         with open(afile, "r") as f:
             try:
@@ -1219,6 +1223,12 @@ def run_tournament(
         if n_attempts > max_attempts:
             run_ids.add(fname)
 
+    for afile in files_to_remove:
+        try:
+            os.remove(afile)
+        except:
+            print(f"Failed to remove {str(afile)}")
+            pass
     scores_file = str(scores_file)
     dask_options = ("dist", "distributed", "dask", "d")
     multiprocessing_options = ("local", "parallel", "par", "p")
