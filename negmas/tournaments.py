@@ -14,7 +14,13 @@ import random
 import time
 import traceback
 import warnings
-import distributed
+
+try:
+    import distributed
+except:
+    ENABLE_DASK = False
+else:
+    ENABLE_DASK = True
 from functools import partial
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -649,7 +655,11 @@ def _get_executor(
 ):
     """Returns an exeuctor object which has a submit method to submit calls to run worlds"""
     if method == "dask":
-
+        if not ENABLE_DASK:
+            raise RuntimeError(
+                f"The library 'dask' is not installed. You can use parallel/serial tournaments but not "
+                f"dask/distributed. To enable dask/distribued tournaments run:\n\t>> pip install dask[complete]"
+            )
         # breakpoint()
         if scheduler_ip is None and scheduler_port is None:
             address = None
@@ -795,12 +805,6 @@ def _run_parallel(
                             f"Failed to remove an attempt file after completion: {e} "
                         )
         except futures.TimeoutError:
-            if tournament_progress_callback is not None:
-                tournament_progress_callback(None, i, n_world_configs)
-            if verbose:
-                print("Tournament timed-out")
-            break
-        except distributed.TimeoutError:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
             if verbose:
