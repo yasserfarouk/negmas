@@ -43,5 +43,5 @@ networkx
 pyqt5
 gif
 pytest-repeat
-dask
+dask[complete]
 tenacity

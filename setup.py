@@ -96,7 +96,7 @@ setup(
         "networkx",
         "gif",
         "py4j",
-        "dask",
+        "dask[complete]",
         "tenacity",
     ],  # Optional
     extras_require={
