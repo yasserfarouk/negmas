@@ -224,6 +224,48 @@ class WorldSetRunStats:
     """All exceptions thown by negotiators of an agent"""
     agent_times: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
     """Total execution time per agent"""
+    neg_requests_sent: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiation Requests Sent"""
+    neg_requests_received: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    """Negotiation Requests Received"""
+    neg_requests_rejected: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    """Negotiation requests rejected"""
+    negs_registered: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations registered"""
+    negs_succeeded: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations succeeded"""
+    negs_failed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations failed"""
+    negs_timedout: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations timedout"""
+    negs_initiated: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations initiated"""
+    contracts_concluded: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    """Contracts concluded"""
+    contracts_signed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts signed"""
+    contracts_dropped: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts dropped"""
+    breaches_received: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """breaches received"""
+    breaches_committed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """breaches committed"""
+    contracts_erred: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts erred"""
+    contracts_nullified: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    """Contracts nullified"""
+    contracts_breached: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts breached"""
+    contracts_executed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts executed"""
 
 
 @dataclass
@@ -495,6 +537,28 @@ def _run_worlds(
         if dry_run:
             world.save_config(dir_name)
             continue
+    simulation_exceptions: Dict[int, List[str]] = defaultdict(list)
+    mechanism_exceptions: Dict[int, List[str]] = defaultdict(list)
+    contract_exceptions: Dict[int, List[str]] = defaultdict(list)
+    agent_times: Dict[str, float] = defaultdict(float)
+    agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+    neg_requests_sent: Dict[str, int] = defaultdict(int)
+    neg_requests_received: Dict[str, int] = defaultdict(int)
+    negs_registered: Dict[str, int] = defaultdict(int)
+    negs_succeeded: Dict[str, int] = defaultdict(int)
+    negs_failed: Dict[str, int] = defaultdict(int)
+    negs_timedout: Dict[str, int] = defaultdict(int)
+    negs_initiated: Dict[str, int] = defaultdict(int)
+    contracts_concluded: Dict[str, int] = defaultdict(int)
+    contracts_signed: Dict[str, int] = defaultdict(int)
+    neg_requests_rejected: Dict[str, int] = defaultdict(int)
+    contracts_dropped: Dict[str, int] = defaultdict(int)
+    breaches_received: Dict[str, int] = defaultdict(int)
+    breaches_committed: Dict[str, int] = defaultdict(int)
+    contracts_erred: Dict[str, int] = defaultdict(int)
+    contracts_nullified: Dict[str, int] = defaultdict(int)
+    contracts_executed: Dict[str, int] = defaultdict(int)
+    contracts_breached: Dict[str, int] = defaultdict(int)
     try:
         for (
             world,
@@ -546,7 +610,27 @@ def _run_worlds(
                 video_saver(world, **video_saver_params)
 
         scores = score_calculator(worlds, scoring_context, dry_run)
-        agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+        for w in worlds:
+            for aid, agent in w.agents.items():
+                atype = agent.type_name
+                neg_requests_sent[atype] += w.neg_requests_sent[aid]
+                neg_requests_received[atype] += w.neg_requests_received[aid]
+                negs_registered[atype] += w.negs_registered[aid]
+                negs_succeeded[atype] += w.negs_succeeded[aid]
+                negs_failed[atype] += w.negs_failed[aid]
+                negs_timedout[atype] += w.negs_timedout[aid]
+                negs_initiated[atype] += w.negs_initiated[aid]
+                contracts_concluded[atype] += w.contracts_concluded[aid]
+                contracts_signed[atype] += w.contracts_signed[aid]
+                neg_requests_rejected[atype] += w.neg_requests_rejected[aid]
+                contracts_dropped[atype] += w.contracts_dropped[aid]
+                breaches_received[atype] += w.breaches_received[aid]
+                breaches_committed[atype] += w.breaches_committed[aid]
+                contracts_erred[atype] += w.contracts_erred[aid]
+                contracts_nullified[atype] += w.contracts_nullified[aid]
+                contracts_executed[atype] += w.contracts_executed[aid]
+                contracts_breached[atype] += w.contracts_breached[aid]
+
         for w in worlds:
             for aid, v in w.agent_exceptions.items():
                 if v:
@@ -557,28 +641,31 @@ def _run_worlds(
                 if v:
                     negotiator_exceptions[w.agents[aid].type_name] += v
 
-        simulation_exceptions: Dict[int, List[str]] = defaultdict(list)
         for w in worlds:
             for k, l in w.simulation_exceptions.items():
                 if l:
                     simulation_exceptions[k] += l
-        mechanism_exceptions: Dict[int, List[str]] = defaultdict(list)
         for w in worlds:
             for k, l in w.mechanism_exceptions.items():
                 if l:
                     mechanism_exceptions[k] += l
-        contract_exceptions: Dict[int, List[str]] = defaultdict(list)
         for w in worlds:
             for k, l in w.contract_exceptions.items():
                 if l:
                     contract_exceptions[k] += l
 
-        agent_times: Dict[str, float] = defaultdict(float)
         for w in worlds:
             for aid, _ in w.times.items():
                 if _:
                     agent_times[w.agents[aid].type_name] += _
 
+        other_exceptions = []
+    except Exception as e:
+        scores = None
+        print(traceback.format_exc())
+        print(e)
+        other_exceptions = [exception2str()]
+    finally:
         world_stats = WorldSetRunStats(
             name=";".join(_.name for _ in worlds),
             planned_n_steps=sum(_.n_steps for _ in worlds),
@@ -590,18 +677,24 @@ def _run_worlds(
             contract_exceptions=contract_exceptions,
             mechanism_exceptions=mechanism_exceptions,
             agent_times=agent_times,
-            other_exceptions=[],
-        )
-    except Exception as e:
-        scores = None
-        print(traceback.format_exc())
-        print(e)
-        world_stats = WorldSetRunStats(
-            name=";".join(_.name for _ in worlds),
-            planned_n_steps=sum(_.n_steps for _ in worlds),
-            executed_n_steps=sum(_.current_step for _ in worlds),
-            execution_time=sum(_.frozen_time for _ in worlds),
-            other_exceptions=[exception2str()],
+            other_exceptions=other_exceptions,
+            neg_requests_sent=neg_requests_sent,
+            neg_requests_received=neg_requests_received,
+            negs_registered=negs_registered,
+            negs_succeeded=negs_succeeded,
+            negs_failed=negs_failed,
+            negs_timedout=negs_timedout,
+            negs_initiated=negs_initiated,
+            contracts_concluded=contracts_concluded,
+            contracts_signed=contracts_signed,
+            neg_requests_rejected=neg_requests_rejected,
+            contracts_dropped=contracts_dropped,
+            breaches_received=breaches_received,
+            breaches_committed=breaches_committed,
+            contracts_erred=contracts_erred,
+            contracts_nullified=contracts_nullified,
+            contracts_executed=contracts_executed,
+            contracts_breached=contracts_breached,
         )
     if attempts_path:
         os.remove(running_file)
@@ -651,9 +744,12 @@ def process_world_run(
     total_time = sum(world_stats.agent_times.values())
     if total_time < 1e-6:
         total_time = 1
-    for name_, type_, score in zip(results.names, results.types, results.scores):
+    for id_, name_, type_, score in zip(
+        results.ids, results.names, results.types, results.scores
+    ):
         d = {
             "agent_name": name_,
+            "agent_id": id_,
             "agent_type": type_,
             "score": score,
             "log_file": ";".join(log_files),
