@@ -195,34 +195,16 @@ class WorldRunResults:
 
 
 @dataclass
-class WorldSetRunStats:
-    """Statistics kept in the tournament about the set of worlds"""
-
-    name: str
-    """Names of the world set separated by ;"""
-    planned_n_steps: int
-    """Planned number of steps for each world"""
-    executed_n_steps: int
-    """Actually executed number of steps for each world"""
-    execution_time: int
-    """Total execution time of each world"""
-    simulation_exceptions: Dict[int, List[str]] = field(default_factory=dict)
-    """Exceptions thrown by the simulator (not including mechanism creation and contract exceptions)"""
-    contract_exceptions: Dict[int, List[str]] = field(default_factory=dict)
-    """Exceptions thrown by the simulator during contract execution"""
-    mechanism_exceptions: Dict[int, List[str]] = field(default_factory=dict)
-    """Exceptions thrown by the simulator during mechanism creation or execution"""
-    other_exceptions: List[str] = field(default_factory=list)
-    """Exceptions raised by tournament running code itself not any world"""
-    agent_exceptions: Dict[str, List[Tuple[int, str]]] = field(
+class AgentStats:
+    exceptions: Dict[str, List[Tuple[int, str]]] = field(
         default_factory=lambda: defaultdict(list)
     )
     """All exceptions thrown per agent (not including negotiator exceptions)"""
     negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = field(
         default_factory=lambda: defaultdict(list)
     )
-    """All exceptions thown by negotiators of an agent"""
-    agent_times: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
+    """All exceptions thrown by negotiators of an agent"""
+    times: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
     """Total execution time per agent"""
     neg_requests_sent: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiation Requests Sent"""
@@ -267,6 +249,48 @@ class WorldSetRunStats:
     contracts_executed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts executed"""
 
+    def to_record(self, world, label="name"):
+        """Converts AgentStats to a record in the form of a dict"""
+        x = vars(self)
+        cols = set(_ for _ in x.keys())
+        rows = set()
+        for d in cols:
+            rows |= set(_ for _ in x[d].keys())
+        cols = list(cols)
+        rows = list(rows)
+        results = [dict() for _ in rows]
+        for i, row in enumerate(rows):
+            results[i]["world"] = world
+            results[i][label] = row
+            for col in cols:
+                results[i][col] = x[col][row]
+        return results
+
+
+@dataclass
+class WorldSetRunStats:
+    """Statistics kept in the tournament about the set of worlds"""
+
+    name: str
+    """Names of the world set separated by ;"""
+    planned_n_steps: int
+    """Planned number of steps for each world"""
+    executed_n_steps: int
+    """Actually executed number of steps for each world"""
+    execution_time: int
+    """Total execution time of each world"""
+    simulation_exceptions: List[Tuple[int, str]] = field(default_factory=list)
+    """Exceptions thrown by the simulator (not including mechanism creation and contract exceptions)"""
+    contract_exceptions: List[Tuple[int, str]] = field(default_factory=list)
+    """Exceptions thrown by the simulator during contract execution"""
+    mechanism_exceptions: List[Tuple[int, str]] = field(default_factory=list)
+    """Exceptions thrown by the simulator during mechanism creation or execution"""
+    other_exceptions: List[str] = field(default_factory=list)
+    """Exceptions raised by tournament running code itself not any world"""
+
+    def to_record(self, world):
+        return [vars(self)]
+
 
 @dataclass
 class TournamentResults:
@@ -292,6 +316,10 @@ class TournamentResults:
     """Path at which tournament results are stored"""
     world_stats: pd.DataFrame = None
     """Some statistics about each world run"""
+    type_stats: pd.DataFrame = None
+    """Some statistics about each type"""
+    agent_stats: pd.DataFrame = None
+    """Some statistics about each agent"""
     params: Dict[str, Any] = None
     """Parameters of the tournament"""
 
@@ -306,7 +334,6 @@ class TournamentResults:
         elif self.ttest is not None:
             results += tabulate.tabulate(self.ttest)
         results += f"\n See stats at {self.path}"
-        return results
 
 
 def run_world(
@@ -315,7 +342,13 @@ def run_world(
     save_world_stats: bool = True,
     attempts_path=None,
     max_attempts=float("inf"),
-) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
+) -> Tuple[
+    str,
+    Optional[WorldRunResults],
+    Optional[WorldSetRunStats],
+    Optional[AgentStats],
+    Optional[AgentStats],
+]:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -377,7 +410,13 @@ def run_worlds(
     save_world_stats: bool = True,
     attempts_path=None,
     max_attempts=float("inf"),
-) -> Tuple[str, Optional[WorldRunResults], WorldSetRunStats]:
+) -> Tuple[
+    str,
+    Optional[WorldRunResults],
+    Optional[WorldSetRunStats],
+    Optional[AgentStats],
+    Optional[AgentStats],
+]:
     """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -455,7 +494,13 @@ def _run_worlds(
     save_progress_every: int = 1,
     attempts_path=None,
     max_attempts=float("inf"),
-) -> Tuple[str, Optional[WorldRunResults], Optional[WorldSetRunStats]]:
+) -> Tuple[
+    str,
+    Optional[WorldRunResults],
+    Optional[WorldSetRunStats],
+    Optional[AgentStats],
+    Optional[AgentStats],
+]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
     Args:
@@ -475,6 +520,8 @@ def _run_worlds(
             - The run ID for this world-set
             - The results (scores) for this world set (will be None in case of exception)
             - The stats for this world set (will not be None even in case of exception)
+            - The stats for agent types
+            - The stats for specific agents
 
 
     Remarks:
@@ -498,7 +545,7 @@ def _run_worlds(
         running_folder.mkdir(parents=True, exist_ok=True)
         running_file = attempts_path / "_running" / run_id
         if running_file.exists():
-            return run_id, None, None
+            return run_id, None, None, None, None
         with open(running_file, "w") as rf:
             rf.write(f"{gethostname()}:{current_process()}")
         attempts_file = attempts_path / run_id
@@ -513,7 +560,7 @@ def _run_worlds(
                     n_attempts = 0
         if n_attempts >= max_attempts:
             os.remove(str(running_file))
-            return run_id, None, None
+            return run_id, None, None, None, None
         n_attempts += 1
         with open(attempts_file, "w") as afile:
             afile.write(str(n_attempts))
@@ -537,9 +584,11 @@ def _run_worlds(
         if dry_run:
             world.save_config(dir_name)
             continue
-    simulation_exceptions: Dict[int, List[str]] = defaultdict(list)
-    mechanism_exceptions: Dict[int, List[str]] = defaultdict(list)
-    contract_exceptions: Dict[int, List[str]] = defaultdict(list)
+    simulation_exceptions = []
+    mechanism_exceptions = []
+    contract_exceptions = []
+    other_exceptions = []
+    negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
     agent_times: Dict[str, float] = defaultdict(float)
     agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
     neg_requests_sent: Dict[str, int] = defaultdict(int)
@@ -559,6 +608,26 @@ def _run_worlds(
     contracts_nullified: Dict[str, int] = defaultdict(int)
     contracts_executed: Dict[str, int] = defaultdict(int)
     contracts_breached: Dict[str, int] = defaultdict(int)
+    type_negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+    type_agent_times: Dict[str, float] = defaultdict(float)
+    type_agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+    type_neg_requests_sent: Dict[str, int] = defaultdict(int)
+    type_neg_requests_received: Dict[str, int] = defaultdict(int)
+    type_negs_registered: Dict[str, int] = defaultdict(int)
+    type_negs_succeeded: Dict[str, int] = defaultdict(int)
+    type_negs_failed: Dict[str, int] = defaultdict(int)
+    type_negs_timedout: Dict[str, int] = defaultdict(int)
+    type_negs_initiated: Dict[str, int] = defaultdict(int)
+    type_contracts_concluded: Dict[str, int] = defaultdict(int)
+    type_contracts_signed: Dict[str, int] = defaultdict(int)
+    type_neg_requests_rejected: Dict[str, int] = defaultdict(int)
+    type_contracts_dropped: Dict[str, int] = defaultdict(int)
+    type_breaches_received: Dict[str, int] = defaultdict(int)
+    type_breaches_committed: Dict[str, int] = defaultdict(int)
+    type_contracts_erred: Dict[str, int] = defaultdict(int)
+    type_contracts_nullified: Dict[str, int] = defaultdict(int)
+    type_contracts_executed: Dict[str, int] = defaultdict(int)
+    type_contracts_breached: Dict[str, int] = defaultdict(int)
     try:
         for (
             world,
@@ -613,53 +682,71 @@ def _run_worlds(
         for w in worlds:
             for aid, agent in w.agents.items():
                 atype = agent.type_name
-                neg_requests_sent[atype] += w.neg_requests_sent[aid]
-                neg_requests_received[atype] += w.neg_requests_received[aid]
-                negs_registered[atype] += w.negs_registered[aid]
-                negs_succeeded[atype] += w.negs_succeeded[aid]
-                negs_failed[atype] += w.negs_failed[aid]
-                negs_timedout[atype] += w.negs_timedout[aid]
-                negs_initiated[atype] += w.negs_initiated[aid]
-                contracts_concluded[atype] += w.contracts_concluded[aid]
-                contracts_signed[atype] += w.contracts_signed[aid]
-                neg_requests_rejected[atype] += w.neg_requests_rejected[aid]
-                contracts_dropped[atype] += w.contracts_dropped[aid]
-                breaches_received[atype] += w.breaches_received[aid]
-                breaches_committed[atype] += w.breaches_committed[aid]
-                contracts_erred[atype] += w.contracts_erred[aid]
-                contracts_nullified[atype] += w.contracts_nullified[aid]
-                contracts_executed[atype] += w.contracts_executed[aid]
-                contracts_breached[atype] += w.contracts_breached[aid]
+                neg_requests_sent[aid] += w.neg_requests_sent[aid]
+                neg_requests_received[aid] += w.neg_requests_received[aid]
+                negs_registered[aid] += w.negs_registered[aid]
+                negs_succeeded[aid] += w.negs_succeeded[aid]
+                negs_failed[aid] += w.negs_failed[aid]
+                negs_timedout[aid] += w.negs_timedout[aid]
+                negs_initiated[aid] += w.negs_initiated[aid]
+                contracts_concluded[aid] += w.contracts_concluded[aid]
+                contracts_signed[aid] += w.contracts_signed[aid]
+                neg_requests_rejected[aid] += w.neg_requests_rejected[aid]
+                contracts_dropped[aid] += w.contracts_dropped[aid]
+                breaches_received[aid] += w.breaches_received[aid]
+                breaches_committed[aid] += w.breaches_committed[aid]
+                contracts_erred[aid] += w.contracts_erred[aid]
+                contracts_nullified[aid] += w.contracts_nullified[aid]
+                contracts_executed[aid] += w.contracts_executed[aid]
+                contracts_breached[aid] += w.contracts_breached[aid]
+                type_neg_requests_sent[atype] += w.neg_requests_sent[aid]
+                type_neg_requests_received[atype] += w.neg_requests_received[aid]
+                type_negs_registered[atype] += w.negs_registered[aid]
+                type_negs_succeeded[atype] += w.negs_succeeded[aid]
+                type_negs_failed[atype] += w.negs_failed[aid]
+                type_negs_timedout[atype] += w.negs_timedout[aid]
+                type_negs_initiated[atype] += w.negs_initiated[aid]
+                type_contracts_concluded[atype] += w.contracts_concluded[aid]
+                type_contracts_signed[atype] += w.contracts_signed[aid]
+                type_neg_requests_rejected[atype] += w.neg_requests_rejected[aid]
+                type_contracts_dropped[atype] += w.contracts_dropped[aid]
+                type_breaches_received[atype] += w.breaches_received[aid]
+                type_breaches_committed[atype] += w.breaches_committed[aid]
+                type_contracts_erred[atype] += w.contracts_erred[aid]
+                type_contracts_nullified[atype] += w.contracts_nullified[aid]
+                type_contracts_executed[atype] += w.contracts_executed[aid]
+                type_contracts_breached[atype] += w.contracts_breached[aid]
 
         for w in worlds:
             for aid, v in w.agent_exceptions.items():
                 if v:
-                    agent_exceptions[w.agents[aid].type_name] += v
-        negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+                    agent_exceptions[aid] += v
+                    type_agent_exceptions[w.agents[aid].type_name] += v
         for w in worlds:
             for aid, v in w.negotiator_exceptions.items():
                 if v:
-                    negotiator_exceptions[w.agents[aid].type_name] += v
+                    negotiator_exceptions[aid] += v
+                    type_negotiator_exceptions[w.agents[aid].type_name] += v
 
         for w in worlds:
             for k, l in w.simulation_exceptions.items():
                 if l:
-                    simulation_exceptions[k] += l
+                    simulation_exceptions.append((k, l))
         for w in worlds:
             for k, l in w.mechanism_exceptions.items():
                 if l:
-                    mechanism_exceptions[k] += l
+                    mechanism_exceptions.append((k, l))
         for w in worlds:
             for k, l in w.contract_exceptions.items():
                 if l:
-                    contract_exceptions[k] += l
+                    contract_exceptions.append((k, l))
 
         for w in worlds:
             for aid, _ in w.times.items():
                 if _:
-                    agent_times[w.agents[aid].type_name] += _
+                    agent_times[aid] += _
+                    type_agent_times[w.agents[aid].type_name] += _
 
-        other_exceptions = []
     except Exception as e:
         scores = None
         print(traceback.format_exc())
@@ -671,13 +758,15 @@ def _run_worlds(
             planned_n_steps=sum(_.n_steps for _ in worlds),
             executed_n_steps=sum(_.current_step for _ in worlds),
             execution_time=sum(_.frozen_time for _ in worlds),
-            agent_exceptions=agent_exceptions,
-            negotiator_exceptions=negotiator_exceptions,
             simulation_exceptions=simulation_exceptions,
             contract_exceptions=contract_exceptions,
             mechanism_exceptions=mechanism_exceptions,
-            agent_times=agent_times,
             other_exceptions=other_exceptions,
+        )
+        agent_stats = AgentStats(
+            exceptions=agent_exceptions,
+            negotiator_exceptions=negotiator_exceptions,
+            times=agent_times,
             neg_requests_sent=neg_requests_sent,
             neg_requests_received=neg_requests_received,
             negs_registered=negs_registered,
@@ -696,17 +785,35 @@ def _run_worlds(
             contracts_executed=contracts_executed,
             contracts_breached=contracts_breached,
         )
+        type_stats = AgentStats(
+            exceptions=type_agent_exceptions,
+            negotiator_exceptions=type_negotiator_exceptions,
+            times=type_agent_times,
+            neg_requests_sent=type_neg_requests_sent,
+            neg_requests_received=type_neg_requests_received,
+            negs_registered=type_negs_registered,
+            negs_succeeded=type_negs_succeeded,
+            negs_failed=type_negs_failed,
+            negs_timedout=type_negs_timedout,
+            negs_initiated=type_negs_initiated,
+            contracts_concluded=type_contracts_concluded,
+            contracts_signed=type_contracts_signed,
+            neg_requests_rejected=type_neg_requests_rejected,
+            contracts_dropped=type_contracts_dropped,
+            breaches_received=type_breaches_received,
+            breaches_committed=type_breaches_committed,
+            contracts_erred=type_contracts_erred,
+            contracts_nullified=type_contracts_nullified,
+            contracts_executed=type_contracts_executed,
+            contracts_breached=type_contracts_breached,
+        )
     if attempts_path:
         os.remove(running_file)
-    return run_id, scores, world_stats
+    return run_id, scores, world_stats, type_stats, agent_stats
 
 
 def process_world_run(
-    run_id: str,
-    results: Optional[WorldRunResults],
-    tournament_name: str,
-    world_stats: Optional[WorldSetRunStats],
-    # save_world_stats: bool = True,
+    run_id: str, results: Optional[WorldRunResults], tournament_name: str,
 ) -> List[Dict[str, Any]]:
     """
     Generates a data-frame with the results of this world run
@@ -725,11 +832,7 @@ def process_world_run(
         return []
     log_files, world_names_ = results.log_file_names, results.world_names
     for world_name_, log_file in zip(world_names_, log_files):
-        if (
-            # save_world_stats
-            log_file is not None
-            and pathlib.Path(log_file).exists()
-        ):
+        if log_file is not None and pathlib.Path(log_file).exists():
             with open(log_file, "a") as f:
                 f.write(
                     f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n"
@@ -741,9 +844,6 @@ def process_world_run(
         for log_file_name in log_files
     )
     base_folder = str(pathlib.Path(log_files[0]).parent) if log_files[0] else ""
-    total_time = sum(world_stats.agent_times.values())
-    if total_time < 1e-6:
-        total_time = 1
     for id_, name_, type_, score in zip(
         results.ids, results.names, results.types, results.scores
     ):
@@ -757,9 +857,6 @@ def process_world_run(
             "stats_folders": stat_folders,
             "base_stats_folder": base_folder,
             "run_id": run_id,
-            "time": world_stats.agent_times.get(type_, 0) / total_time,
-            "exceptions": world_stats.agent_exceptions.get(type_, []),
-            "negotiator_exceptions": world_stats.negotiator_exceptions.get(type_, []),
         }
         scores.append(d)
     return scores
@@ -775,7 +872,6 @@ def _get_executor(
                 f"The library 'dask' is not installed. You can use parallel/serial tournaments but not "
                 f"dask/distributed. To enable dask/distribued tournaments run:\n\t>> pip install dask[complete]"
             )
-        # breakpoint()
         if scheduler_ip is None and scheduler_port is None:
             address = None
         else:
@@ -847,6 +943,51 @@ def _submit_all(
     return future_results
 
 
+def save_run_ressults(
+    run_id,
+    score_,
+    world_stats_,
+    type_stats_,
+    agent_stats_,
+    tournament_progress_callback,
+    scores_file,
+    world_stats_file,
+    type_stats_file,
+    agent_stats_file,
+    name,
+    verbose,
+    _strt,
+    attempts_path,
+    n_world_configs,
+    i,
+):
+    if tournament_progress_callback is not None:
+        tournament_progress_callback(score_, i, n_world_configs)
+    if score_ is None:
+        return
+    add_records(
+        scores_file, process_world_run(run_id, score_, tournament_name=name),
+    )
+    add_records(type_stats_file, type_stats_.to_record(run_id, "type"))
+    add_records(agent_stats_file, agent_stats_.to_record(run_id, "agent"))
+    add_records(world_stats_file, world_stats_.to_record(run_id))
+    if verbose:
+        _duration = time.perf_counter() - _strt
+        print(
+            f"{i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] "
+            f'{"completed"} in '
+            f"{humanize_time(_duration)}"
+            f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
+        )
+    if attempts_path:
+        if (attempts_path / run_id).exists():
+            try:
+                if (attempts_path / run_id).exists():
+                    os.remove(attempts_path / run_id)
+            except Exception as e:
+                print(f"Failed to remove an attempt file after completion: {e} ")
+
+
 def _run_parallel(
     parallelism,
     scheduler_ip,
@@ -862,6 +1003,8 @@ def _run_parallel(
     save_world_stats,
     scores_file,
     world_stats_file,
+    type_stats_file,
+    agent_stats_file,
     run_ids,
     print_exceptions,
     override_ran_worlds=False,
@@ -896,35 +1039,25 @@ def _run_parallel(
         if total_timeout is not None and time.perf_counter() - strt > total_timeout:
             break
         try:
-            run_id, score_, world_stats_ = future.result()
-            if tournament_progress_callback is not None:
-                tournament_progress_callback(score_, i, n_world_configs)
-            if score_ is None or world_stats_ is None:
-                continue
-            add_records(
+            run_id, score_, world_stats_, type_stats_, agent_stats_ = future.result()
+            save_run_ressults(
+                run_id,
+                score_,
+                world_stats_,
+                type_stats_,
+                agent_stats_,
+                tournament_progress_callback,
                 scores_file,
-                process_world_run(
-                    run_id, score_, tournament_name=name, world_stats=world_stats_,
-                ),
+                world_stats_file,
+                type_stats_file,
+                agent_stats_file,
+                name,
+                verbose,
+                _strt,
+                attempts_path,
+                n_world_configs,
+                i,
             )
-            add_records(world_stats_file, [vars(world_stats_)])
-            if verbose:
-                _duration = time.perf_counter() - _strt
-                print(
-                    f"{i + 1:003} of {n_world_configs:003} [{100 * (i + 1) / n_world_configs:0.3}%] "
-                    f'{"completed"} in '
-                    f"{humanize_time(_duration)}"
-                    f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
-                )
-            if attempts_path:
-                if (attempts_path / run_id).exists():
-                    try:
-                        if (attempts_path / run_id).exists():
-                            os.remove(attempts_path / run_id)
-                    except Exception as e:
-                        print(
-                            f"Failed to remove an attempt file after completion: {e} "
-                        )
         except futures.TimeoutError:
             if tournament_progress_callback is not None:
                 tournament_progress_callback(None, i, n_world_configs)
@@ -1321,6 +1454,8 @@ def run_tournament(
 
     scores_file = tournament_path / "scores.csv"
     world_stats_file = tournament_path / "world_stats.csv"
+    type_stats_file = tournament_path / "type_stats.csv"
+    agent_stats_file = tournament_path / "agent_stats.csv"
     run_ids = set()
     if scores_file.exists():
         tmp_ = pd.read_csv(scores_file)
@@ -1398,7 +1533,7 @@ def run_tournament(
                     )
                 continue
             try:
-                run_id, score_, world_stats_ = _run_worlds(
+                run_id, score_, world_stats_, type_stats_, agent_stats_ = _run_worlds(
                     worlds_params=worlds_params,
                     world_generator=world_generator,
                     world_progress_callback=world_progress_callback,
@@ -1410,25 +1545,24 @@ def run_tournament(
                     attempts_path=attempts_path,
                     max_attempts=max_attempts,
                 )
-                if tournament_progress_callback is not None:
-                    tournament_progress_callback(score_, i, n_world_configs)
-                if score_ is None or world_stats_ is None:
-                    continue
-                add_records(
+                save_run_ressults(
+                    run_id,
+                    score_,
+                    world_stats_,
+                    type_stats_,
+                    agent_stats_,
+                    tournament_progress_callback,
                     scores_file,
-                    process_world_run(
-                        run_id, score_, tournament_name=name, world_stats=world_stats_,
-                    ),
+                    world_stats_file,
+                    type_stats_file,
+                    agent_stats_file,
+                    name,
+                    verbose,
+                    strt,
+                    attempts_path,
+                    n_world_configs,
+                    i,
                 )
-                add_records(world_stats_file, [vars(world_stats_)])
-                if verbose:
-                    _duration = time.perf_counter() - strt
-                    print(
-                        f"{i + 1:003} of {n_world_configs:003} [{(i + 1) / n_world_configs:.02%}] "
-                        f'{"completed"} '
-                        f"in {humanize_time(_duration)}"
-                        f" [ETA {humanize_time(_duration * n_world_configs / (i + 1))}]"
-                    )
             except Exception as e:
                 if tournament_progress_callback is not None:
                     tournament_progress_callback(None, i, n_world_configs)
@@ -1453,6 +1587,8 @@ def run_tournament(
             True,
             scores_file,
             world_stats_file,
+            type_stats_file,
+            agent_stats_file,
             run_ids,
             print_exceptions,
             override_ran_worlds,
@@ -1835,6 +1971,8 @@ def evaluate_tournament(
     scores: Optional[pd.DataFrame] = None,
     stats: Optional[pd.DataFrame] = None,
     world_stats: Optional[pd.DataFrame] = None,
+    type_stats: Optional[pd.DataFrame] = None,
+    agent_stats: Optional[pd.DataFrame] = None,
     metric: Union[str, Callable[[pd.DataFrame], float]] = "mean",
     verbose: bool = False,
     recursive: bool = True,
@@ -1850,6 +1988,8 @@ def evaluate_tournament(
         stats: Optionally the stats of all world runs. If not given they will be read from the file
                stats.csv in `tournament_path`
         world_stats: Optionally the aggregate stats collected in `WorldSetRunStats` for each world set
+        type_stats: Optionally the aggregate stats collected in `AgentStats` for each agent type
+        agent_stats: Optionally the aggregate stats collected in `AgentStats` for each agent instance
         metric: The metric used for evaluation. Possibilities are: mean, median, std, var, sum or a callable that
                 receives a pandas data-frame and returns a float.
         verbose: If true, the winners will be printed
@@ -1867,9 +2007,15 @@ def evaluate_tournament(
         tournament_path.mkdir(parents=True, exist_ok=True)
         scores_file = str(tournament_path / "scores.csv")
         world_stats_file = tournament_path / "world_stats.csv"
+        type_stats_file = tournament_path / "type_stats.csv"
+        agent_stats_file = tournament_path / "agent_stats.csv"
         params_file = tournament_path / "params.json"
         if world_stats is None and world_stats_file.exists():
             world_stats = pd.read_csv(world_stats_file, index_col=None)
+        if type_stats is None and type_stats_file.exists():
+            type_stats = pd.read_csv(type_stats_file, index_col=None)
+        if agent_stats is None and agent_stats_file.exists():
+            agent_stats = pd.read_csv(agent_stats_file, index_col=None)
         if params_file.exists():
             params = load(str(params_file))
         if scores is None:
@@ -1902,6 +2048,8 @@ def evaluate_tournament(
             path=str(tournament_path) if tournament_path is not None else None,
             params=params,
             world_stats=world_stats,
+            type_stats=type_stats,
+            agent_stats=agent_stats,
         )
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
@@ -2042,6 +2190,8 @@ def evaluate_tournament(
         path=str(tournament_path) if tournament_path is not None else None,
         params=params,
         world_stats=world_stats,
+        agent_stats=agent_stats,
+        type_stats=type_stats,
     )
 
 
