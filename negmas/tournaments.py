@@ -556,7 +556,7 @@ def _run_worlds(
         running_folder.mkdir(parents=True, exist_ok=True)
         running_file = attempts_path / "_running" / run_id
         if running_file.exists():
-            return run_id, None, None, None, None
+            return run_id, dir_names, None, None, None, None
         with open(running_file, "w") as rf:
             rf.write(f"{gethostname()}:{current_process()}")
         attempts_file = attempts_path / run_id
@@ -571,7 +571,7 @@ def _run_worlds(
                     n_attempts = 0
         if n_attempts >= max_attempts:
             os.remove(str(running_file))
-            return run_id, None, None, None, None
+            return run_id, None, None, None, None, None
         n_attempts += 1
         with open(attempts_file, "w") as afile:
             afile.write(str(n_attempts))
