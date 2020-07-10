@@ -2,7 +2,6 @@
 Tournament generation and management.
 
 """
-from build.lib.negmas import tournaments
 import concurrent.futures as futures
 import os
 import copy
