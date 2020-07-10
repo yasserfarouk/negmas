@@ -1,0 +1,15 @@
+neg_requests_sent
+neg_requests_received
+negs_ran
+negs_initiated_ran
+contracts_concluded
+contracts_signed
+contracts_unsigned
+contracts_rejected
+contracts_dropped
+breaches_received
+breaches_committed
+contracts_erred
+contracts_nullified
+contracts_executed
+contracts_breached
