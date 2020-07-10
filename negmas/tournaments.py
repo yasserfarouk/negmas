@@ -523,9 +523,9 @@ def _run_worlds(
         A tuple with the following components in order:
 
             - The run ID for this world-set
-            - The paths to world folders to store results in. Note that there can be 
+            - The paths to world folders to store results in. Note that there can be
               multiple forlders because a single score may be collected from multiple
-              world simulations. Results should be duplicated in all those folders 
+              world simulations. Results should be duplicated in all those folders
               in such case. The run_id is unique per set of such worlds while
               world_name is unique per world.
             - The results (scores) for this world set (will be None in case of exception)
@@ -550,6 +550,7 @@ def _run_worlds(
     worlds, dir_names = [], []
     scoring_context = {}
     run_id = _hash(worlds_params)
+    attempts_file = None
     running_file = None
     if attempts_path and not dry_run:
         running_folder = attempts_path / "_running"
@@ -645,7 +646,7 @@ def _run_worlds(
                 world_stats = results.world_stats
                 type_stats = results.type_stats
                 agent_stats = results.agent_stats
-                break 
+                break
             except:
                 world = world_generator(**world_params)
         else:
@@ -837,6 +838,8 @@ def _run_worlds(
     if attempts_path:
         if running_file:
             os.remove(running_file)
+        if attempts_file:
+            os.remove(attempts_file)
     return run_id, dir_names, scores, world_stats, type_stats, agent_stats
 
 
@@ -2034,15 +2037,9 @@ def compile_results(path: Union[str, PathLike, Path],):
         type_stats += results["type_stats"]
         agent_stats += results["agent_stats"]
     pd.DataFrame.from_records(scores).to_csv(path / "scores.csv", index=False)
-    pd.DataFrame.from_records(world_stats).to_csv(
-        path / "world_stats.csv", index=False
-    )
-    pd.DataFrame.from_records(agent_stats).to_csv(
-        path / "agent_stats.csv", index=False
-    )
-    pd.DataFrame.from_records(type_stats).to_csv(
-        path / "type_stats.csv", index=False
-    )
+    pd.DataFrame.from_records(world_stats).to_csv(path / "world_stats.csv", index=False)
+    pd.DataFrame.from_records(agent_stats).to_csv(path / "agent_stats.csv", index=False)
+    pd.DataFrame.from_records(type_stats).to_csv(path / "type_stats.csv", index=False)
 
 
 def evaluate_tournament(
