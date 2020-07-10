@@ -2,6 +2,7 @@
 Tournament generation and management.
 
 """
+from build.lib.negmas import tournaments
 import concurrent.futures as futures
 import os
 import copy
@@ -15,6 +16,8 @@ import traceback
 import warnings
 from multiprocessing import current_process
 from socket import gethostname
+
+from scipy.stats.stats import RepeatedResults
 
 try:
     import distributed
@@ -344,6 +347,7 @@ def run_world(
     max_attempts=float("inf"),
 ) -> Tuple[
     str,
+    List[str],
     Optional[WorldRunResults],
     Optional[WorldSetRunStats],
     Optional[AgentStats],
@@ -412,6 +416,7 @@ def run_worlds(
     max_attempts=float("inf"),
 ) -> Tuple[
     str,
+    List[str],
     Optional[WorldRunResults],
     Optional[WorldSetRunStats],
     Optional[AgentStats],
@@ -496,6 +501,7 @@ def _run_worlds(
     max_attempts=float("inf"),
 ) -> Tuple[
     str,
+    List[str],
     Optional[WorldRunResults],
     Optional[WorldSetRunStats],
     Optional[AgentStats],
@@ -518,6 +524,11 @@ def _run_worlds(
         A tuple with the following components in order:
 
             - The run ID for this world-set
+            - The paths to world folders to store results in. Note that there can be 
+              multiple forlders because a single score may be collected from multiple
+              world simulations. Results should be duplicated in all those folders 
+              in such case. The run_id is unique per set of such worlds while
+              world_name is unique per world.
             - The results (scores) for this world set (will be None in case of exception)
             - The stats for this world set (will not be None even in case of exception)
             - The stats for agent types
@@ -540,6 +551,7 @@ def _run_worlds(
     worlds, dir_names = [], []
     scoring_context = {}
     run_id = _hash(worlds_params)
+    running_file = None
     if attempts_path and not dry_run:
         running_folder = attempts_path / "_running"
         running_folder.mkdir(parents=True, exist_ok=True)
@@ -566,24 +578,8 @@ def _run_worlds(
             afile.write(str(n_attempts))
     video_savers, video_saver_params_list, save_videos = [], [], []
     scores: Optional[WorldRunResults] = None
+    world_stats, type_stats, agent_stats = None, None, None
 
-    for world_params in worlds_params:
-        world_params = world_params.copy()
-        dir_name = world_params["__dir_name"]
-        dir_names.append(dir_name)
-        world_params.pop("__dir_name", None)
-        video_savers.append(world_params.get("__video_saver", None))
-        video_saver_params_list.append(world_params.get("__video_saver_params", dict()))
-        save_videos.append(world_params.get("__save_video", False))
-        scoring_context.update(world_params.get("scoring_context", {}))
-        world_params.pop("__video_saver", None)
-        world_params.pop("__video_saver_params", None)
-        world_params.pop("__save_video", None)
-        world = world_generator(**world_params)
-        worlds.append(world)
-        if dry_run:
-            world.save_config(dir_name)
-            continue
     simulation_exceptions = []
     mechanism_exceptions = []
     contract_exceptions = []
@@ -628,6 +624,39 @@ def _run_worlds(
     type_contracts_nullified: Dict[str, int] = defaultdict(int)
     type_contracts_executed: Dict[str, int] = defaultdict(int)
     type_contracts_breached: Dict[str, int] = defaultdict(int)
+    already_done, results_path = False, None
+    for world_params in worlds_params:
+        world_params = world_params.copy()
+        dir_name = world_params["__dir_name"]
+        dir_names.append(dir_name)
+        world_params.pop("__dir_name", None)
+        video_savers.append(world_params.get("__video_saver", None))
+        video_saver_params_list.append(world_params.get("__video_saver_params", dict()))
+        save_videos.append(world_params.get("__save_video", False))
+        scoring_context.update(world_params.get("scoring_context", {}))
+        world_params.pop("__video_saver", None)
+        world_params.pop("__video_saver_params", None)
+        world_params.pop("__save_video", None)
+        results_path = _path(dir_name) / "results.json"
+        if results_path.exists():
+            already_done = True
+            try:
+                results = load(results_path)
+                scores = results.scores
+                world_stats = results.world_stats
+                type_stats = results.type_stats
+                agent_stats = results.agent_stats
+                break 
+            except:
+                world = world_generator(**world_params)
+        else:
+            world = world_generator(**world_params)
+        worlds.append(world)
+        if dry_run:
+            world.save_config(dir_name)
+            continue
+    if already_done:
+        return run_id, dir_names, scores, world_stats, type_stats, agent_stats
     try:
         for (
             world,
@@ -638,13 +667,12 @@ def _run_worlds(
             video_saver_params,
         ) in zip(
             worlds,
-            world_params,
+            worlds_params,
             dir_names,
             save_videos,
             video_savers,
             video_saver_params_list,
         ):
-            _start_time = time.perf_counter()
             for _ in range(world.n_steps):
                 if not world.step():
                     break
@@ -808,8 +836,9 @@ def _run_worlds(
             contracts_breached=type_contracts_breached,
         )
     if attempts_path:
-        os.remove(running_file)
-    return run_id, scores, world_stats, type_stats, agent_stats
+        if running_file:
+            os.remove(running_file)
+    return run_id, dir_names, scores, world_stats, type_stats, agent_stats
 
 
 def process_world_run(
@@ -943,17 +972,14 @@ def _submit_all(
     return future_results
 
 
-def save_run_ressults(
+def save_run_results(
     run_id,
     score_,
     world_stats_,
     type_stats_,
     agent_stats_,
     tournament_progress_callback,
-    scores_file,
-    world_stats_file,
-    type_stats_file,
-    agent_stats_file,
+    world_paths,
     name,
     verbose,
     _strt,
@@ -965,12 +991,25 @@ def save_run_ressults(
         tournament_progress_callback(score_, i, n_world_configs)
     if score_ is None:
         return
-    add_records(
-        scores_file, process_world_run(run_id, score_, tournament_name=name),
-    )
-    add_records(type_stats_file, type_stats_.to_record(run_id, "type"))
-    add_records(agent_stats_file, agent_stats_.to_record(run_id, "agent"))
-    add_records(world_stats_file, world_stats_.to_record(run_id))
+    scores = process_world_run(run_id, score_, tournament_name=name)
+    type_stats = type_stats_.to_record(run_id, "type")
+    agent_stats = agent_stats_.to_record(run_id, "agent")
+    world_stats = world_stats_.to_record(run_id)
+    for world_path in world_paths:
+        world_path = _path(world_path)
+        results_file = world_path / "results.json"
+        dump(
+            dict(
+                run_id=run_id,
+                name=name,
+                world_paths=";".join(world_paths),
+                scores=scores,
+                type_stats=type_stats,
+                agent_stats=agent_stats,
+                world_stats=world_stats,
+            ),
+            results_file,
+        )
     if verbose:
         _duration = time.perf_counter() - _strt
         print(
@@ -1039,18 +1078,22 @@ def _run_parallel(
         if total_timeout is not None and time.perf_counter() - strt > total_timeout:
             break
         try:
-            run_id, score_, world_stats_, type_stats_, agent_stats_ = future.result()
-            save_run_ressults(
+            (
+                run_id,
+                world_paths,
+                score_,
+                world_stats_,
+                type_stats_,
+                agent_stats_,
+            ) = future.result()
+            save_run_results(
                 run_id,
                 score_,
                 world_stats_,
                 type_stats_,
                 agent_stats_,
                 tournament_progress_callback,
-                scores_file,
-                world_stats_file,
-                type_stats_file,
-                agent_stats_file,
+                world_paths,
                 name,
                 verbose,
                 _strt,
@@ -1533,7 +1576,14 @@ def run_tournament(
                     )
                 continue
             try:
-                run_id, score_, world_stats_, type_stats_, agent_stats_ = _run_worlds(
+                (
+                    run_id,
+                    world_paths,
+                    score_,
+                    world_stats_,
+                    type_stats_,
+                    agent_stats_,
+                ) = _run_worlds(
                     worlds_params=worlds_params,
                     world_generator=world_generator,
                     world_progress_callback=world_progress_callback,
@@ -1545,17 +1595,14 @@ def run_tournament(
                     attempts_path=attempts_path,
                     max_attempts=max_attempts,
                 )
-                save_run_ressults(
+                save_run_results(
                     run_id,
                     score_,
                     world_stats_,
                     type_stats_,
                     agent_stats_,
                     tournament_progress_callback,
-                    scores_file,
-                    world_stats_file,
-                    type_stats_file,
-                    agent_stats_file,
+                    world_paths,
                     name,
                     verbose,
                     strt,
@@ -1966,6 +2013,39 @@ def create_tournament(
     return tournament_path
 
 
+def compile_results(path: Union[str, PathLike, Path],):
+    path = _path(path)
+    if not path.exists():
+        return
+    scores, world_stats, agent_stats, type_stats = [], [], [], []
+    for d in path.glob("*"):
+        if not d.is_dir():
+            continue
+        if d.name in ("configs", "attempts"):
+            continue
+        results_path = d / "results.json"
+        if not results_path.exists():
+            continue
+        try:
+            results = load(results_path)
+        except:
+            continue
+        scores += results["scores"]
+        world_stats += results["world_stats"]
+        type_stats += results["type_stats"]
+        agent_stats += results["agent_stats"]
+    pd.DataFrame.from_records(scores).to_csv(path / "scores.csv", index=False)
+    pd.DataFrame.from_records(world_stats).to_csv(
+        path / "world_stats.csv", index=False
+    )
+    pd.DataFrame.from_records(agent_stats).to_csv(
+        path / "agent_stats.csv", index=False
+    )
+    pd.DataFrame.from_records(type_stats).to_csv(
+        path / "type_stats.csv", index=False
+    )
+
+
 def evaluate_tournament(
     tournament_path: Optional[Union[str, PathLike, Path]],
     scores: Optional[pd.DataFrame] = None,
@@ -2005,6 +2085,7 @@ def evaluate_tournament(
         tournament_path = _path(tournament_path)
         tournament_path = tournament_path.absolute()
         tournament_path.mkdir(parents=True, exist_ok=True)
+        compile_results(tournament_path)
         scores_file = str(tournament_path / "scores.csv")
         world_stats_file = tournament_path / "world_stats.csv"
         type_stats_file = tournament_path / "type_stats.csv"
