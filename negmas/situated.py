@@ -867,6 +867,8 @@ class MechanismFactory:
         if not all(responses):
             rejectors = [p for p, response in zip(partners, responses) if not response]
             rej = [_.id for _ in rejectors]
+            for r in rej:
+                self.world.neg_requests_rejected[r] += 1
             self.world.call(
                 caller, caller.on_neg_request_rejected_, req_id=req_id, by=rej
             )
@@ -4163,8 +4165,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 )
                 if self.time >= self.time_limit:
                     break
-            for r in rejectors:
-                self.neg_requests_rejected[r.id] += 1
         return [_.id for _ in rejectors]
 
     def on_contract_signed(self, contract: Contract) -> bool:
