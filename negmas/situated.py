@@ -3360,7 +3360,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.attribs[x.id] = kwargs
         x.awi = self.awi_type(self, x)
         if self._started and not x.initialized:
-            x.init_()
+            self.call(
+                x, x.init_
+            )
         self.loginfo(f"{x.name} joined", Event("agent-joined", dict(agent=x)))
 
     def _add_edges(
