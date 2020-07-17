@@ -724,6 +724,10 @@ def _run_worlds(
             world.save_config(dir_name)
             continue
     if already_done:
+        if running_file:
+            os.remove(running_file)
+        if attempts_file:
+            os.remove(attempts_file)
         return run_id, dir_names, scores, world_stats, type_stats, agent_stats
     try:
         for (
