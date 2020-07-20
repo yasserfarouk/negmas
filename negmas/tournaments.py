@@ -2152,7 +2152,15 @@ def compile_results(path: Union[str, PathLike, Path],):
         return
     scores, world_stats, agent_stats, type_stats = [], [], [], []
     extra_scores = defaultdict(list)
-    for d in path.glob("*"):
+    paths = set(path.glob("*"))
+    try:
+        assignements = load(path / "assigned_configs.json")
+        for a in assignements:
+            for w in a:
+                paths.add(_path(w["__dir_name"]))
+    except:
+        pass
+    for d in paths:
         if not d.is_dir():
             continue
         if d.name in ("configs", "attempts"):
@@ -2388,7 +2396,7 @@ def evaluate_tournament(
         ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
         ks_results = pd.DataFrame(data=ks_results)
         ks_results.to_csv(str(tournament_path / "kstest.csv"), index_label="index")
-        if stats is not None:
+        if stats is not None and len(stats) > 0:
             stats.to_csv(str(tournament_path / "stats.csv"), index=False)
             agg_stats = _combine_stats(stats)
             agg_stats.to_csv(str(tournament_path / "agg_stats.csv"), index=False)
@@ -2412,6 +2420,7 @@ def evaluate_tournament(
         agent_stats=agent_stats,
         type_stats=type_stats,
     )
+
 
 def combine_tournaments(
     sources: Iterable[Union[str, PathLike]],
@@ -2443,9 +2452,9 @@ def combine_tournaments(
                 configs += c
                 if verbose:
                     print(f"=> {len(c)} base, {len(a)} assigned configs.")
-    if len(configs)  == 0:
+    if len(configs) == 0:
         return len(configs), len(assignments)
-    dest = _path(dest)    
+    dest = _path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     dump(configs, dest / "base_configs.json")
     dump(assignments, dest / "assigned_configs.pickle")
@@ -2453,7 +2462,7 @@ def combine_tournaments(
     if verbose:
         print(f"=> {len(configs)} base, {len(assignments)} assigned configs.")
     return len(configs), len(assignments)
-    
+
 
 def combine_tournament_results(
     sources: Iterable[Union[str, PathLike]],
