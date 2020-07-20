@@ -21,6 +21,7 @@ from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 from negmas.tournaments import (
     combine_tournament_stats,
     combine_tournaments,
+    combine_tournament_results,
     create_tournament,
     evaluate_tournament,
     run_tournament,
@@ -882,7 +883,31 @@ def display_results(results, metric):
     print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
 
 
-@tournament.command(help="Finds winners of an arbitrary set of tournaments")
+@tournament.command(help="Combine multiple tournaments at the given base path(s)")
+@click.argument(
+    "path", 
+    type=click.Path(dir_okay=True, file_okay=False), 
+    nargs=-1, 
+)
+@click.option(
+    "--dest",
+    "-d",
+    type=click.Path(dir_okay=True, file_okay=False),
+    help="The location to save the results",
+    default=None,
+)
+@click_config_file.configuration_option()
+def combine(path, dest):
+    if dest is None:
+        print("Must specify the destination using --dest/-d option")
+        return
+    tpath = [_path(_) for _ in path]
+
+    if len(tpath) < 1:
+        print("No paths are given to combine")
+    combine_tournaments(sources=tpath, dest=dest, verbose=True)
+
+@tournament.command(help="Combine results from multiple tournaments")
 @click.argument("path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1)
 @click.option(
     "--dest",
@@ -898,12 +923,12 @@ def display_results(results, metric):
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
 @click_config_file.configuration_option()
-def combine(path, dest, metric):
+def combine_results(path, dest, metric):
     tpath = [_path(_) for _ in path]
 
     if len(tpath) < 1:
         print("No paths are given to combine")
-    scores = combine_tournaments(sources=tpath, dest=None, verbose=True)
+    scores = combine_tournament_results(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, stats, verbose=True, metric=metric)
     display_results(results, metric)

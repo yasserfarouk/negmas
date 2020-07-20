@@ -72,6 +72,7 @@ __all__ = [
     "run_world",
     "process_world_run",
     "evaluate_tournament",
+    "combine_tournament_results",
     "combine_tournaments",
     "combine_tournament_stats",
     "create_tournament",
@@ -2238,7 +2239,7 @@ def evaluate_tournament(
             params = load(str(params_file))
         if scores is None:
             if recursive:
-                scores = combine_tournaments(
+                scores = combine_tournament_results(
                     sources=[tournament_path], dest=None, verbose=verbose
                 )
             else:
@@ -2412,8 +2413,49 @@ def evaluate_tournament(
         type_stats=type_stats,
     )
 
-
 def combine_tournaments(
+    sources: Iterable[Union[str, PathLike]],
+    dest: Union[str, PathLike] = None,
+    verbose=False,
+) -> Tuple[int, int]:
+    """
+    Combines contents of several tournament runs in the destination path
+    allowing for continuation of the tournament
+
+    Returns:
+        Tuple[int, int] The number of base configs and assigned configs combined
+    """
+    assignments = []
+    configs = []
+    for src in sources:
+        src = _path(src)
+        for filename in src.glob("**/assigned_configs.pickle"):
+            try:
+                if verbose:
+                    print(f"{filename.parent} ", end="")
+                a, c = load(filename), load(filename.parent / "base_configs.json")
+            except:
+                if verbose:
+                    print("FAILED.")
+                continue
+            else:
+                assignments += a
+                configs += c
+                if verbose:
+                    print(f"=> {len(c)} base, {len(a)} assigned configs.")
+    if len(configs)  == 0:
+        return len(configs), len(assignments)
+    dest = _path(dest)    
+    dest.mkdir(parents=True, exist_ok=True)
+    dump(configs, dest / "base_configs.json")
+    dump(assignments, dest / "assigned_configs.pickle")
+    dump(assignments, dest / "assigned_configs.json")
+    if verbose:
+        print(f"=> {len(configs)} base, {len(assignments)} assigned configs.")
+    return len(configs), len(assignments)
+    
+
+def combine_tournament_results(
     sources: Iterable[Union[str, PathLike]],
     dest: Union[str, PathLike] = None,
     verbose=False,
