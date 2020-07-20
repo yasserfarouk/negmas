@@ -784,6 +784,23 @@ def run(
     print(f"Finished in {end_time}")
 
 
+@tournament.command(help="Evaluates a tournament and returns the results")
+@click.argument(
+    "path", type=click.Path(dir_okay=True, file_okay=False),
+)
+@click.option(
+    "--metric",
+    default="median",
+    type=str,
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+)
+@click_config_file.configuration_option()
+@click.pass_context
+def eval(ctx, path, metric):
+    results = evaluate_tournament(tournament_path=path, metric=metric)
+    display_results(results, metric)
+
+
 @tournament.command(
     help="Finds winners of a tournament or a set of tournaments sharing a root"
 )
@@ -869,25 +886,26 @@ def display_results(results, metric):
     else:
         print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
 
-    agg_stats = results.agg_stats.loc[
-        :,
-        [
-            "n_negotiations_sum",
-            "n_contracts_concluded_sum",
-            "n_contracts_signed_sum",
-            "n_contracts_executed_sum",
-            "activity_level_sum",
-        ],
-    ]
-    agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
-    print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
+    try:
+        agg_stats = results.agg_stats.loc[
+            :,
+            [
+                "n_negotiations_sum",
+                "n_contracts_concluded_sum",
+                "n_contracts_signed_sum",
+                "n_contracts_executed_sum",
+                "activity_level_sum",
+            ],
+        ]
+        agg_stats.columns = ["negotiated", "concluded", "signed", "executed", "business"]
+        print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
+    except:
+        pass
 
 
 @tournament.command(help="Combine multiple tournaments at the given base path(s)")
 @click.argument(
-    "path", 
-    type=click.Path(dir_okay=True, file_okay=False), 
-    nargs=-1, 
+    "path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1,
 )
 @click.option(
     "--dest",
@@ -906,6 +924,7 @@ def combine(path, dest):
     if len(tpath) < 1:
         print("No paths are given to combine")
     combine_tournaments(sources=tpath, dest=dest, verbose=True)
+
 
 @tournament.command(help="Combine results from multiple tournaments")
 @click.argument("path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1)
