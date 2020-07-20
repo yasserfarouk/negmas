@@ -742,10 +742,26 @@ def create(
     type=str,
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
+@click.option(
+    "--significance/--no-significance",
+    default=False,
+    help="Whether to show significance table",
+)
 @click_config_file.configuration_option()
 @click.pass_context
 def run(
-    ctx, name, verbosity, parallel, distributed, ip, port, compact, path, log, metric
+    ctx,
+    name,
+    verbosity,
+    parallel,
+    distributed,
+    ip,
+    port,
+    compact,
+    path,
+    log,
+    metric,
+    significance,
 ):
     if len(name) == 0:
         name = ctx.obj.get("tournament_name", "")
@@ -780,7 +796,7 @@ def run(
     results = evaluate_tournament(
         tournament_path=tpath, verbose=verbosity > 0, metric=metric
     )
-    display_results(results, metric)
+    display_results(results, metric, significance)
     print(f"Finished in {end_time}")
 
 
@@ -794,11 +810,16 @@ def run(
     type=str,
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
+@click.option(
+    "--significance/--no-significance",
+    default=False,
+    help="Whether to show significance table",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def eval(ctx, path, metric):
+def eval(ctx, path, metric, significance):
     results = evaluate_tournament(tournament_path=path, metric=metric)
-    display_results(results, metric)
+    display_results(results, metric, significance)
 
 
 @tournament.command(
@@ -828,9 +849,14 @@ def eval(ctx, path, metric):
     type=str,
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
+@click.option(
+    "--significance/--no-significance",
+    default=False,
+    help="Whether to show significance table",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def winners(ctx, name, log, recursive, metric):
+def winners(ctx, name, log, recursive, metric, significance):
     if len(name) == 0:
         if not recursive:
             name = ctx.obj.get("tournament_name", "")
@@ -854,7 +880,7 @@ def winners(ctx, name, log, recursive, metric):
     results = evaluate_tournament(
         tournament_path=tpath, verbose=True, recursive=recursive, metric=metric
     )
-    display_results(results, metric)
+    display_results(results, metric, significance)
 
 
 def _path(path) -> Path:
@@ -871,7 +897,7 @@ def _path(path) -> Path:
     return Path(path).absolute()
 
 
-def display_results(results, metric):
+def display_results(results, metric, significance):
     viewmetric = ["50%" if metric == "median" else metric]
     print(
         tabulate(
@@ -881,10 +907,11 @@ def display_results(results, metric):
         )
     )
 
-    if metric in ("mean", "sum"):
-        print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
-    else:
-        print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
+    if significance:
+        if metric in ("mean", "sum"):
+            print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
+        else:
+            print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
 
     try:
         agg_stats = results.agg_stats.loc[
@@ -947,8 +974,13 @@ def combine(path, dest):
     type=str,
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
+@click.option(
+    "--significance/--no-significance",
+    default=False,
+    help="Whether to show significance table",
+)
 @click_config_file.configuration_option()
-def combine_results(path, dest, metric):
+def combine_results(path, dest, metric, significance):
     tpath = [_path(_) for _ in path]
 
     if len(tpath) < 1:
@@ -956,7 +988,7 @@ def combine_results(path, dest, metric):
     scores = combine_tournament_results(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
     results = evaluate_tournament(dest, scores, stats, verbose=True, metric=metric)
-    display_results(results, metric)
+    display_results(results, metric, significance)
 
 
 @cli.command(help="Start the bridge to genius (to use GeniusNegotiator)")
