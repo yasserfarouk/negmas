@@ -619,7 +619,10 @@ def _run_worlds(
                 except:
                     n_attempts = 0
         if n_attempts >= max_attempts:
-            os.remove(str(running_file))
+            try:
+                os.remove(str(running_file))
+            except FileNotFoundError:
+                pass
             return run_id, None, None, None, None, None
         n_attempts += 1
         with open(attempts_file, "w") as afile:
@@ -726,9 +729,15 @@ def _run_worlds(
             continue
     if already_done:
         if running_file:
-            os.remove(running_file)
+            try:
+                os.remove(running_file)
+            except FileNotFoundError:
+                pass
         if attempts_file:
-            os.remove(attempts_file)
+            try:
+                os.remove(attempts_file)
+            except FileNotFoundError:
+                pass
         return run_id, dir_names, scores, world_stats, type_stats, agent_stats
     try:
         for (
@@ -951,9 +960,15 @@ def _run_worlds(
         )
     if attempts_path:
         if running_file:
-            os.remove(running_file)
+            try:
+                os.remove(running_file)
+            except FileNotFoundError:
+                pass
         if attempts_file:
-            os.remove(attempts_file)
+            try:
+                os.remove(attempts_file)
+            except FileNotFoundError:
+                pass
     return run_id, dir_names, scores, world_stats, type_stats, agent_stats
 
 
