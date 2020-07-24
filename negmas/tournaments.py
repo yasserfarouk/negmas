@@ -1649,9 +1649,12 @@ def run_tournament(
     agent_stats_file = tournament_path / "agent_stats.csv"
     run_ids = set()
     if scores_file.exists():
-        tmp_ = pd.read_csv(scores_file)
-        if "run_id" in tmp_.columns:
-            run_ids = set(tmp_["run_id"].values)
+        try:
+            tmp_ = pd.read_csv(scores_file)
+            if "run_id" in tmp_.columns:
+                run_ids = set(tmp_["run_id"].values)
+        except:
+            pass
 
     # save and check attempts
     attempts_path = tournament_path / "attempts"
