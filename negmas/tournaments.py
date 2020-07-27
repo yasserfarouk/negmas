@@ -80,6 +80,28 @@ __all__ = [
 ]
 
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
+# files created before running worlds
+PARAMS_FILE = "params.json"
+ASSIGNED_CONFIGS_PICKLE_FILE = "assigned_configs.pickle"
+ASSIGNED_CONFIGS_JSON_FILE = "assigned_configs.json"
+
+# File keeping final results for a single world
+RESULTS_FILE = "results.json"
+
+# files keeping track of scores and stats calculated during eval_tournament()
+SCORES_FILE = "scores.csv"
+STATS_FILE = "stats.csv"
+TYPE_STATS_FILE = "type_stats.csv"
+AGENT_STATS_FILE = "agent_stats.csv"
+WORLD_STATS_FILE = "world_stats.csv"
+
+# files containing aggregate results calculated during eval_tournament()
+AGGREGATE_STATS_FILE = "agg_stats.csv"
+K_STATS_FILE = "kstats.csv"
+T_STATS_FILE = "tstats.csv"
+SCORES_STATS_FILE = "score_stats.csv"
+TOTAL_SCORES_FILE = "total_scores.csv"
+WINNERS_FILE = "winners.csv"
 
 try:
     # disable a warning in yaml 1b1 version
@@ -709,7 +731,7 @@ def _run_worlds(
         world_params.pop("__video_saver", None)
         world_params.pop("__video_saver_params", None)
         world_params.pop("__save_video", None)
-        results_path = _path(dir_name) / "results.json"
+        results_path = _path(dir_name) / RESULTS_FILE
         if results_path.exists():
             already_done = True
             try:
@@ -757,6 +779,7 @@ def _run_worlds(
         ):
             for _ in range(world.n_steps):
                 if not world.step():
+                    save_stats(world, world.log_folder, params=world_params_)
                     break
                 if _ % save_progress_every == 0:
                     save_stats(world, world.log_folder, params=world_params_)
@@ -779,8 +802,8 @@ def _run_worlds(
                         world_progress_callback(world)
                 if world.time >= world.time_limit:
                     break
-            if save_world_stats:
-                save_stats(world=world, log_dir=dir_name)
+            # if save_world_stats:
+            save_stats(world=world, log_dir=dir_name)
             if save_video:
                 if video_saver is None:
                     video_saver = World.save_gif
@@ -1143,7 +1166,7 @@ def save_run_results(
     world_stats = world_stats_.to_record(run_id)
     for world_path in world_paths:
         world_path = _path(world_path)
-        results_file = world_path / "results.json"
+        results_file = world_path / RESULTS_FILE
         all_results = dict(
             run_id=run_id,
             name=name,
@@ -1616,7 +1639,7 @@ def run_tournament(
 
     """
     tournament_path = _path(tournament_path)
-    params = load(tournament_path / "params")
+    params = load(tournament_path / PARAMS_FILE)
     name = params.get("name", tournament_path.name)
     if world_generator is None:
         world_generator = import_by_name(params.get("world_generator_name", None))
@@ -1633,28 +1656,32 @@ def run_tournament(
     if compact is None:
         compact = params.get("compact", False)
 
-    assigned = load(tournament_path / "assigned_configs.pickle")
+    assigned = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
     random.shuffle(assigned)
-    n_world_configs = len(assigned)
 
-    if verbose:
-        print(
-            f"Will run {n_world_configs}  total world simulations ({parallelism})",
-            flush=True,
-        )
-
-    scores_file = tournament_path / "scores.csv"
-    world_stats_file = tournament_path / "world_stats.csv"
-    type_stats_file = tournament_path / "type_stats.csv"
-    agent_stats_file = tournament_path / "agent_stats.csv"
+    scores_file = tournament_path / SCORES_FILE
+    world_stats_file = tournament_path / WORLD_STATS_FILE
+    type_stats_file = tournament_path / TYPE_STATS_FILE
+    agent_stats_file = tournament_path / AGENT_STATS_FILE
     run_ids = set()
-    if scores_file.exists():
+    # if scores_file.exists():
+    #     try:
+    #         tmp_ = pd.read_csv(scores_file)
+    #         if "run_id" in tmp_.columns:
+    #             run_ids = set(tmp_["run_id"].values)
+    #     except:
+    #         pass
+    world_paths_ = get_world_paths(assignments=assigned)
+    for dir_name_ in world_paths_:
+        if not dir_name_:
+            continue
+        if not (dir_name_ / RESULTS_FILE).exists():
+            continue
         try:
-            tmp_ = pd.read_csv(scores_file)
-            if "run_id" in tmp_.columns:
-                run_ids = set(tmp_["run_id"].values)
+            results_ = load(dir_name_ / RESULTS_FILE)
+            run_ids.add(results_["run_id"])
         except:
-            pass
+            continue
 
     # save and check attempts
     attempts_path = tournament_path / "attempts"
@@ -1678,15 +1705,20 @@ def run_tournament(
             # This means that the file was there then was removed
             # This happens when another process runs this world. I should
             # just ignore this file and update the run_ids
-            run_ids = set()
-            if scores_file.exists():
-                tmp_ = pd.read_csv(scores_file)
-                if "run_id" in tmp_.columns:
-                    run_ids = set(tmp_["run_id"].values)
-            if fname not in run_ids:
-                n_attempts = 0
-        else:
-            attempts[fname] = n_attempts
+            for dir_name_ in world_paths_:
+                if not dir_name_:
+                    continue
+                if not (dir_name_ / RESULTS_FILE).exists():
+                    continue
+                try:
+                    results_ = load(dir_name_ / RESULTS_FILE)
+                    run_ids.add(results_["run_id"])
+                except:
+                    continue
+                    if fname not in run_ids:
+                        n_attempts = 0
+                else:
+                    attempts[fname] = n_attempts
             if n_attempts > max_attempts:
                 run_ids.add(fname)
 
@@ -1710,6 +1742,16 @@ def run_tournament(
         f"Cannot use {parallelism} with a " f"world callback"
     )
 
+    n_world_configs = len(assigned)
+    n_already_done = len(run_ids)
+
+    if verbose:
+        print(
+            f"Will run {n_world_configs - n_already_done} of {n_world_configs} "
+            f" ({(n_world_configs - n_already_done) / n_world_configs if n_world_configs else 0.0})"
+            f" simulations ({parallelism})",
+            flush=True,
+        )
     if parallelism in serial_options:
         strt = time.perf_counter()
         for i, worlds_params in enumerate(assigned):
@@ -1978,7 +2020,7 @@ def create_tournament(
         n_competitors_per_world=n_competitors_per_world,
     )
     params.update(kwargs)
-    dump(params, tournament_path / "params")
+    dump(params, tournament_path / PARAMS_FILE)
 
     assigned = []
     configs = [
@@ -2070,8 +2112,7 @@ def create_tournament(
     params["world_generator_name"] = world_generator_name
     params["score_calculator_name"] = score_calculator_name
 
-    dump(params, tournament_path / "params")
-    dump(assigned, tournament_path / "assigned_configs")
+    dump(params, tournament_path / PARAMS_FILE)
 
     if verbose:
         print(
@@ -2088,6 +2129,8 @@ def create_tournament(
                 for w_ in a_:
                     cpy = copy.deepcopy(w_)
                     cpy["world_params"]["name"] += f".{r+1:05}"
+                    if cpy["world_params"]["log_folder"]:
+                        cpy["world_params"]["log_folder"] += f".{r+1:05}"
                     all_assigned[-1].append(cpy)
         del assigned
         assigned = all_assigned
@@ -2159,7 +2202,8 @@ def create_tournament(
         f_name = config_path / f"{i:06}"
         dump(conf, f_name)
 
-    dump(assigned, tournament_path / "assigned_configs.pickle")
+    dump(assigned, tournament_path / "assigned_configs")
+    dump(assigned, tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
 
     return tournament_path
 
@@ -2170,20 +2214,13 @@ def compile_results(path: Union[str, PathLike, Path],):
         return
     scores, world_stats, agent_stats, type_stats = [], [], [], []
     extra_scores = defaultdict(list)
-    paths = set(path.glob("*"))
-    try:
-        assignements = load(path / "assigned_configs.json")
-        for a in assignements:
-            for w in a:
-                paths.add(_path(w["__dir_name"]))
-    except:
-        pass
+    paths = set(get_world_paths(tournament_path=path))
     for d in paths:
         if not d.is_dir():
             continue
         if d.name in ("configs", "attempts"):
             continue
-        results_path = d / "results.json"
+        results_path = d / RESULTS_FILE
         if not results_path.exists():
             continue
         try:
@@ -2196,12 +2233,36 @@ def compile_results(path: Union[str, PathLike, Path],):
         agent_stats += results["agent_stats"]
         for k, v in results["extra_scores"].items():
             extra_scores[k] += v
-    pd.DataFrame.from_records(scores).to_csv(path / "scores.csv", index=False)
-    pd.DataFrame.from_records(world_stats).to_csv(path / "world_stats.csv", index=False)
-    pd.DataFrame.from_records(agent_stats).to_csv(path / "agent_stats.csv", index=False)
-    pd.DataFrame.from_records(type_stats).to_csv(path / "type_stats.csv", index=False)
+    combine_tournament_stats(paths, path)
+    pd.DataFrame.from_records(scores).to_csv(path / SCORES_FILE, index=False)
+    pd.DataFrame.from_records(world_stats).to_csv(path / WORLD_STATS_FILE, index=False)
+    pd.DataFrame.from_records(agent_stats).to_csv(path / AGENT_STATS_FILE, index=False)
+    pd.DataFrame.from_records(type_stats).to_csv(path / TYPE_STATS_FILE, index=False)
     for k, v in extra_scores.items():
         pd.DataFrame.from_records(v).to_csv(path / f"{k}.csv", index=False)
+
+
+def get_world_paths(*, assignments=None, tournament_path=None):
+    """Gets all world paths from a tournament path
+
+    Args:
+        assignments: A list of list of world configs
+        tournament_path: A path from which to get the assignments.
+
+    Remarks:
+
+        - You must pass assignments xor tournament_path.
+
+    """
+    world_paths = set()
+    if assignments is None:
+        assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
+    for a in assignments:
+        for w in a:
+            # dir_name = w["world_params"]["log_folder"]
+            dir_name = w["__dir_name"]
+            world_paths.add(_path(dir_name))
+    return world_paths
 
 
 def evaluate_tournament(
@@ -2247,14 +2308,14 @@ def evaluate_tournament(
         tournament_path.mkdir(parents=True, exist_ok=True)
         compile_results(tournament_path)
         scores_file = str(
-            tournament_path / "scores.csv"
+            tournament_path / SCORES_FILE
             if extra_scores_to_use is None
             else f"{extra_scores_to_use}.csv"
         )
-        world_stats_file = tournament_path / "world_stats.csv"
-        type_stats_file = tournament_path / "type_stats.csv"
-        agent_stats_file = tournament_path / "agent_stats.csv"
-        params_file = tournament_path / "params.json"
+        world_stats_file = tournament_path / WORLD_STATS_FILE
+        type_stats_file = tournament_path / TYPE_STATS_FILE
+        agent_stats_file = tournament_path / AGENT_STATS_FILE
+        params_file = tournament_path / PARAMS_FILE
         if world_stats is None and world_stats_file.exists():
             world_stats = pd.read_csv(world_stats_file, index_col=None)
         if type_stats is None and type_stats_file.exists():
@@ -2404,20 +2465,20 @@ def evaluate_tournament(
     agg_stats = pd.DataFrame()
     if tournament_path is not None:
         tournament_path = pathlib.Path(tournament_path)
-        scores.to_csv(str(tournament_path / "scores.csv"), index_label="index")
+        scores.to_csv(str(tournament_path / SCORES_FILE), index_label="index")
         total_scores.to_csv(
-            str(tournament_path / "total_scores.csv"), index_label="index"
+            str(tournament_path / TOTAL_SCORES_FILE), index_label="index"
         )
-        winner_table.to_csv(str(tournament_path / "winners.csv"), index_label="index")
-        score_stats.to_csv(str(tournament_path / "score_stats.csv"), index=False)
+        winner_table.to_csv(str(tournament_path / WINNERS_FILE), index_label="index")
+        score_stats.to_csv(str(tournament_path / SCORES_STATS_FILE), index=False)
         ttest_results = pd.DataFrame(data=ttest_results)
-        ttest_results.to_csv(str(tournament_path / "ttest.csv"), index_label="index")
+        ttest_results.to_csv(str(tournament_path / T_STATS_FILE), index_label="index")
         ks_results = pd.DataFrame(data=ks_results)
-        ks_results.to_csv(str(tournament_path / "kstest.csv"), index_label="index")
+        ks_results.to_csv(str(tournament_path / K_STATS_FILE), index_label="index")
         if stats is not None and len(stats) > 0:
-            stats.to_csv(str(tournament_path / "stats.csv"), index=False)
+            stats.to_csv(str(tournament_path / STATS_FILE), index=False)
             agg_stats = _combine_stats(stats)
-            agg_stats.to_csv(str(tournament_path / "agg_stats.csv"), index=False)
+            agg_stats.to_csv(str(tournament_path / AGGREGATE_STATS_FILE), index=False)
 
     if verbose:
         print(f"N. scores = {len(scores)}\tN. Worlds = {len(scores.world.unique())}")
@@ -2475,8 +2536,8 @@ def combine_tournaments(
     dest = _path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     dump(configs, dest / "base_configs.json")
-    dump(assignments, dest / "assigned_configs.pickle")
-    dump(assignments, dest / "assigned_configs.json")
+    dump(assignments, dest / ASSIGNED_CONFIGS_PICKLE_FILE)
+    dump(assignments, dest / ASSIGNED_CONFIGS_JSON_FILE)
     if verbose:
         print(f"=> {len(configs)} base, {len(assignments)} assigned configs.")
     return len(configs), len(assignments)
@@ -2506,8 +2567,30 @@ def combine_tournament_results(
         return pd.DataFrame()
     scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
     if dest is not None:
-        scores.to_csv(str(_path(dest) / "scores.csv"), index=False)
+        scores.to_csv(str(_path(dest) / SCORES_FILE), index=False)
     return scores
+
+
+def extract_basic_stats(filename):
+    """Adjusts world statistics collected during world execution"""
+    data = load(filename)
+    if data is None or len(data) == 0:
+        return None
+    try:
+        data = pd.DataFrame.from_dict(data)
+    except:
+        # adjust lengths. Some columns are longer than others
+        min_len = min(len(_) for _ in data.values())
+        for k, v in data.items():
+            if len(v) == min_len:
+                continue
+            data[k] = data[k][:min_len]
+        data = pd.DataFrame.from_dict(data)
+    data = data.loc[:, [c for c in data.columns if World.is_basic_stat(c)]]
+    data["step"] = list(range(len(data)))
+    data["world"] = filename.parent.name
+    data["path"] = filename.parent.parent
+    return data
 
 
 def combine_tournament_stats(
@@ -2516,29 +2599,14 @@ def combine_tournament_stats(
     verbose=False,
 ) -> pd.DataFrame:
     """Combines statistical results of several tournament runs in the destination path."""
-
     stats = []
     for src in sources:
         src = _path(src)
-        for filename in src.glob("**/stats.json"):
+        for filename in src.glob(f"**/{STATS_FILE}"):
             # try:
-            data = load(filename)
-            if data is None or len(data) == 0:
+            data = extract_basic_stats(filename)
+            if data is None:
                 continue
-            try:
-                data = pd.DataFrame.from_dict(data)
-            except:
-                # adjust lengths. Some columns are longer than others
-                min_len = min(len(_) for _ in data.values())
-                for k, v in data.items():
-                    if len(v) == min_len:
-                        continue
-                    data[k] = data[k][:min_len]
-                data = pd.DataFrame.from_dict(data)
-            data = data.loc[:, [c for c in data.columns if World.is_basic_stat(c)]]
-            data["step"] = list(range(len(data)))
-            data["world"] = filename.parent.name
-            data["path"] = filename.parent.parent
             stats.append(data)
     if len(stats) < 1:
         if verbose:
@@ -2546,9 +2614,9 @@ def combine_tournament_stats(
         return pd.DataFrame()
     stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True, sort=True)
     if dest is not None:
-        stats.to_csv(str(_path(dest) / "stats.csv"), index=False)
+        stats.to_csv(str(_path(dest) / STATS_FILE), index=False)
         combined = _combine_stats(stats)
-        combined.to_csv(str(_path(dest) / "agg_stats"), index=False)
+        combined.to_csv(str(_path(dest) / AGGREGATE_STATS_FILE), index=False)
     return stats
 
 
