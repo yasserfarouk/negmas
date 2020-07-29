@@ -633,10 +633,15 @@ def run(
     default=True,
     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 )
+@click.option(
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def eval(ctx, path, metric, significance, compile):
-    results = evaluate_tournament(tournament_path=path, metric=metric, compile=compile)
+def eval(ctx, path, metric, significance, compile, verbose):
+    results = evaluate_tournament(tournament_path=path, metric=metric, compile=compile, verbose=verbose)
     display_results(results, metric, significance)
 
 

@@ -2378,6 +2378,8 @@ def evaluate_tournament(
         tournament_path = tournament_path.absolute()
         tournament_path.mkdir(parents=True, exist_ok=True)
         if compile:
+            if verbose:
+                print("Compiling results from individual world runs")
             compile_results(tournament_path)
         scores_file = str(
             tournament_path / SCORES_FILE
@@ -2429,6 +2431,8 @@ def evaluate_tournament(
             type_stats=type_stats,
             agent_stats=agent_stats,
         )
+    if verbose:
+        print("Calculating Scores")
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
     if not isinstance(metric, str):
@@ -2485,6 +2489,8 @@ def evaluate_tournament(
     winner_scores = winner_table["score"].values
     types = list(scores["agent_type"].unique())
 
+    if verbose:
+        print("Running statistical tests")
     ttest_results = []
     ks_results = []
     for i, t1 in enumerate(types):
@@ -2533,6 +2539,7 @@ def evaluate_tournament(
                 )
     if verbose:
         print(f"Winners: {list(zip(winners, winner_scores))}")
+        print(f"Saving results")
 
     agg_stats = pd.DataFrame()
     if tournament_path is not None:
