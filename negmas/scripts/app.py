@@ -553,6 +553,11 @@ def create(
     default=False,
     help="Whether to show significance table",
 )
+@click.option(
+    "--eval/--no-eval",
+    default=False,
+    help="Whether evaluate and show results after the tournament is run",
+)
 @click_config_file.configuration_option()
 @click.pass_context
 def run(
@@ -568,6 +573,7 @@ def run(
     log,
     metric,
     significance,
+    eval,
 ):
     if len(name) == 0:
         name = ctx.obj.get("tournament_name", "")
@@ -599,10 +605,11 @@ def run(
         print_exceptions=verbosity > 1,
     )
     end_time = humanize_time(perf_counter() - start)
-    results = evaluate_tournament(
-        tournament_path=tpath, verbose=verbosity > 0, metric=metric
-    )
-    display_results(results, metric, significance)
+    if eval:
+        results = evaluate_tournament(
+            tournament_path=tpath, verbose=verbosity > 0, metric=metric, compile=True
+        )
+        display_results(results, metric, significance)
     print(f"Finished in {end_time}")
 
 
@@ -621,10 +628,15 @@ def run(
     default=False,
     help="Whether to show significance table",
 )
+@click.option(
+    "--compile/--show",
+    default=True,
+    help="Whether to recompile results from individual world runs or just show the already-compiled results",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def eval(ctx, path, metric, significance):
-    results = evaluate_tournament(tournament_path=path, metric=metric)
+def eval(ctx, path, metric, significance, compile):
+    results = evaluate_tournament(tournament_path=path, metric=metric, compile=compile)
     display_results(results, metric, significance)
 
 
@@ -660,9 +672,14 @@ def eval(ctx, path, metric, significance):
     default=False,
     help="Whether to show significance table",
 )
+@click.option(
+    "--compile/--show",
+    default=True,
+    help="Whether to recompile results from individual world runs or just show the already-compiled results",
+)
 @click_config_file.configuration_option()
 @click.pass_context
-def winners(ctx, name, log, recursive, metric, significance):
+def winners(ctx, name, log, recursive, metric, significance, compile):
     if len(name) == 0:
         if not recursive:
             name = ctx.obj.get("tournament_name", "")
@@ -684,7 +701,11 @@ def winners(ctx, name, log, recursive, metric, significance):
     else:
         tpath = str(pathlib.Path(log))
     results = evaluate_tournament(
-        tournament_path=tpath, verbose=True, recursive=recursive, metric=metric
+        tournament_path=tpath,
+        verbose=True,
+        recursive=recursive,
+        metric=metric,
+        compile=compile,
     )
     display_results(results, metric, significance)
 
@@ -785,15 +806,22 @@ def combine(path, dest):
     default=False,
     help="Whether to show significance table",
 )
+@click.option(
+    "--compile/--show",
+    default=True,
+    help="Whether to recompile results from individual world runs or just show the already-compiled results",
+)
 @click_config_file.configuration_option()
-def combine_results(path, dest, metric, significance):
+def combine_results(path, dest, metric, significance, compile):
     tpath = [_path(_) for _ in path]
 
     if len(tpath) < 1:
         print("No paths are given to combine")
     scores = combine_tournament_results(sources=tpath, dest=None, verbose=True)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
-    results = evaluate_tournament(dest, scores, stats, verbose=True, metric=metric)
+    results = evaluate_tournament(
+        dest, scores, stats, verbose=True, metric=metric, compile=compile
+    )
     display_results(results, metric, significance)
 
 

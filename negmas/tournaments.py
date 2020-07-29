@@ -59,8 +59,9 @@ from negmas.helpers import (
     import_by_name,
     load,
     unique_name,
+    shortest_unique_names,
 )
-from negmas.java import to_flat_dict
+from negmas.java import to_flat_dict, to_dict
 
 from .situated import Agent, World, save_stats
 
@@ -408,6 +409,38 @@ class TournamentResults:
         results += f"\n See stats at {self.path}"
 
 
+def combine_partially_run_worlds(
+    tournament_path: Union[str, Path],
+    min_time_fraction: float = 0.0,
+    min_real_time: float = 0.0,
+    min_n_steps: int = 0,
+    min_n_attempts: int = 0,
+    dry_run: bool = False,
+) -> List[Path]:
+    """
+    Combines partially run worlds by saving their last-saved results as final.
+
+    Args:
+        tournament_path: The path from which to read world information.
+        min_time_fraction: The minimum fraction of the total world simulation time (as
+                           determined by world.relative_time) for a world to be considered
+                           completed.
+        min_real_time: The minimum real-time spent executing a world to be considered complete.
+        min_n_steps: The minimum number of steps that must be executed for a world to be
+                     considered complete.
+        min_n_attempts: The minimum number of attempts tried for this world to be considered
+                        completed.
+        dry_run: If true, the paths of the worlds to be considered complete will be returned
+                 but the worlds will not actually be considered completed.
+
+    Returns:
+        A list of paths to the worlds that were completed (or to be completed for dry runs).
+
+    Remarks:
+        All conditions must be met for a world to be considered completed
+    """
+
+
 def run_world(
     world_params: dict,
     dry_run: bool = False,
@@ -460,7 +493,7 @@ def run_world(
         Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
     ).absolute()
     world_params["log_file_name"] = world_params.get("log_file_name", str("log.txt"))
-    world_params["log_folder"] = str(default_dir)
+    world_params["log_folder"] = world_params.get("__dir_name", str(default_dir))
     world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
     # delete the parameters not used by _run_worlds
     for k in ("__world_generator", "__tournament_name", "__score_calculator"):
@@ -619,36 +652,7 @@ def _run_worlds(
     """
     worlds, dir_names = [], []
     scoring_context = {}
-    run_id = _hash(worlds_params)
-    attempts_file = None
-    running_file = None
-    if attempts_path and not dry_run:
-        running_folder = attempts_path / "_running"
-        running_folder.mkdir(parents=True, exist_ok=True)
-        running_file = attempts_path / "_running" / run_id
-        if running_file.exists():
-            return run_id, dir_names, None, None, None, None
-        with open(running_file, "w") as rf:
-            rf.write(f"{gethostname()}:{current_process()}")
-        attempts_file = attempts_path / run_id
-        # this should be protected and atomic but who cares. If it completely broke down we will just
-        # retry unnecessarily to run some worlds.
-        n_attempts = 0
-        if attempts_file.exists():
-            with open(attempts_file, "r") as afile:
-                try:
-                    n_attempts = int(afile.read())
-                except:
-                    n_attempts = 0
-        if n_attempts >= max_attempts:
-            try:
-                os.remove(str(running_file))
-            except FileNotFoundError:
-                pass
-            return run_id, None, None, None, None, None
-        n_attempts += 1
-        with open(attempts_file, "w") as afile:
-            afile.write(str(n_attempts))
+    run_id = _run_id(worlds_params)
     video_savers, video_saver_params_list, save_videos = [], [], []
     scores: Optional[WorldRunResults] = None
     world_stats, type_stats, agent_stats = None, None, None
@@ -718,280 +722,316 @@ def _run_worlds(
     n_contracts_nullified: int = 0
     n_contracts_executed: int = 0
     n_contracts_breached: int = 0
+
+    attempts_file = None
+    running_file = None
+
+    # breakpoint()
     already_done, results_path = False, None
+    run_path = _path(worlds_params[0]["__dir_name"]).parent
+    results_path = run_path / RESULTS_FILE
+    if results_path.exists():
+        try:
+            results = load(results_path)
+            scores = results.scores
+            world_stats = results.world_stats
+            type_stats = results.type_stats
+            agent_stats = results.agent_stats
+            already_done = True
+        except:
+            already_done = False
+    if already_done:
+        for world_params in worlds_params:
+            dir_name = world_params["__dir_name"]
+            dir_names.append(dir_name)
+        return run_id, dir_names, scores, world_stats, type_stats, agent_stats
+    attempts_path = run_path / "attempts"
+    if attempts_path and not dry_run:
+        running_folder = attempts_path / "_running"
+        running_folder.mkdir(parents=True, exist_ok=True)
+        if len(list(running_folder.glob("run*"))) > 0:
+            return run_id, dir_names, None, None, None, None
+        running_file = running_folder / f"run{gethostname()}.{current_process().pid}"
+        with open(running_file, "w") as rf:
+            rf.write(unique_name(f"{gethostname()}.{current_process().pid}", sep="."))
+        attempts_file = attempts_path / unique_name(
+            f"att_{gethostname()}.{current_process().pid}", sep="."
+        )
+        # this should be protected and atomic but who cares. If it completely broke down we will just
+        # retry unnecessarily to run some worlds.
+        n_attempts = len(list(running_folder.glob("att_*")))
+        if n_attempts >= max_attempts:
+            try:
+                os.remove(str(running_file))
+            except FileNotFoundError:
+                pass
+            return run_id, dir_names, None, None, None, None
+        n_attempts += 1
+        with open(attempts_file, "w") as afile:
+            afile.write(str(n_attempts))
     for world_params in worlds_params:
         world_params = world_params.copy()
         dir_name = world_params["__dir_name"]
         dir_names.append(dir_name)
         world_params.pop("__dir_name", None)
+        save_videos.append(world_params.get("__save_video", None))
         video_savers.append(world_params.get("__video_saver", None))
         video_saver_params_list.append(world_params.get("__video_saver_params", dict()))
-        save_videos.append(world_params.get("__save_video", False))
-        scoring_context.update(world_params.get("scoring_context", {}))
         world_params.pop("__video_saver", None)
         world_params.pop("__video_saver_params", None)
         world_params.pop("__save_video", None)
-        results_path = _path(dir_name) / RESULTS_FILE
-        if results_path.exists():
-            already_done = True
-            try:
-                results = load(results_path)
-                scores = results.scores
-                world_stats = results.world_stats
-                type_stats = results.type_stats
-                agent_stats = results.agent_stats
-                break
-            except:
-                world = world_generator(**world_params)
-        else:
-            world = world_generator(**world_params)
+        # results_path = _path(dir_name) / RESULTS_FILE
+        # if results_path.exists():
+        #     already_done = True
+        #     try:
+        #         results = load(results_path)
+        #         scores = results.scores
+        #         world_stats = results.world_stats
+        #         type_stats = results.type_stats
+        #         agent_stats = results.agent_stats
+        #         break
+        #     except:
+        #         world = world_generator(**world_params)
+        # else:
+        #     world = world_generator(**world_params)
+        world = world_generator(**world_params)
         worlds.append(world)
         if dry_run:
             world.save_config(dir_name)
             continue
-    if already_done:
-        if running_file:
-            try:
-                os.remove(running_file)
-            except FileNotFoundError:
-                pass
-        if attempts_file:
-            try:
-                os.remove(attempts_file)
-            except FileNotFoundError:
-                pass
-        return run_id, dir_names, scores, world_stats, type_stats, agent_stats
-    try:
-        for (
-            world,
-            world_params_,
-            dir_name,
-            save_video,
-            video_saver,
-            video_saver_params,
-        ) in zip(
-            worlds,
-            worlds_params,
-            dir_names,
-            save_videos,
-            video_savers,
-            video_saver_params_list,
-        ):
-            for _ in range(world.n_steps):
-                if not world.step():
-                    save_stats(world, world.log_folder, params=world_params_)
-                    break
-                if _ % save_progress_every == 0:
-                    save_stats(world, world.log_folder, params=world_params_)
-                    # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
-                    if not dry_run:
-                        scores_ = to_flat_dict(
-                            score_calculator(worlds, scoring_context, False)
-                        )
-                        scores_["n_steps"] = world.n_steps
-                        scores_["step"] = world.current_step
-                        scores_["relative_time"] = world.relative_time
-                        scores_["time_limit"] = world.time_limit
-                        scores_["time"] = world.time
-                        dump(
-                            to_flat_dict(scores_),
-                            Path(world.log_folder) / "_current_scores.json",
-                            sort_keys=True,
-                        )
-                    if world_progress_callback:
-                        world_progress_callback(world)
-                if world.time >= world.time_limit:
-                    break
-            # if save_world_stats:
-            save_stats(world=world, log_dir=dir_name)
-            if save_video:
-                if video_saver is None:
-                    video_saver = World.save_gif
-                if video_saver_params is None:
-                    video_saver_params = {}
-                video_saver(world, **video_saver_params)
-
-        scores = score_calculator(worlds, scoring_context, dry_run)
-        for w in worlds:
-            for aid, agent in w.agents.items():
-                atype = agent.type_name
-                neg_requests_sent[aid] += w.neg_requests_sent[aid]
-                neg_requests_received[aid] += w.neg_requests_received[aid]
-                negs_registered[aid] += w.negs_registered[aid]
-                negs_succeeded[aid] += w.negs_succeeded[aid]
-                negs_failed[aid] += w.negs_failed[aid]
-                negs_timedout[aid] += w.negs_timedout[aid]
-                negs_initiated[aid] += w.negs_initiated[aid]
-                contracts_concluded[aid] += w.contracts_concluded[aid]
-                contracts_signed[aid] += w.contracts_signed[aid]
-                neg_requests_rejected[aid] += w.neg_requests_rejected[aid]
-                contracts_dropped[aid] += w.contracts_dropped[aid]
-                breaches_received[aid] += w.breaches_received[aid]
-                breaches_committed[aid] += w.breaches_committed[aid]
-                contracts_erred[aid] += w.contracts_erred[aid]
-                contracts_nullified[aid] += w.contracts_nullified[aid]
-                contracts_executed[aid] += w.contracts_executed[aid]
-                contracts_breached[aid] += w.contracts_breached[aid]
-                type_neg_requests_sent[atype] += w.neg_requests_sent[aid]
-                type_neg_requests_received[atype] += w.neg_requests_received[aid]
-                type_negs_registered[atype] += w.negs_registered[aid]
-                type_negs_succeeded[atype] += w.negs_succeeded[aid]
-                type_negs_failed[atype] += w.negs_failed[aid]
-                type_negs_timedout[atype] += w.negs_timedout[aid]
-                type_negs_initiated[atype] += w.negs_initiated[aid]
-                type_contracts_concluded[atype] += w.contracts_concluded[aid]
-                type_contracts_signed[atype] += w.contracts_signed[aid]
-                type_neg_requests_rejected[atype] += w.neg_requests_rejected[aid]
-                type_contracts_dropped[atype] += w.contracts_dropped[aid]
-                type_breaches_received[atype] += w.breaches_received[aid]
-                type_breaches_committed[atype] += w.breaches_committed[aid]
-                type_contracts_erred[atype] += w.contracts_erred[aid]
-                type_contracts_nullified[atype] += w.contracts_nullified[aid]
-                type_contracts_executed[atype] += w.contracts_executed[aid]
-                type_contracts_breached[atype] += w.contracts_breached[aid]
-                n_neg_requests_sent += w.neg_requests_sent[aid]
-                n_neg_requests_received += w.neg_requests_received[aid]
-                n_negs_registered += w.negs_registered[aid]
-                n_negs_succeeded += w.negs_succeeded[aid]
-                n_negs_failed += w.negs_failed[aid]
-                n_negs_timedout += w.negs_timedout[aid]
-                n_negs_initiated += w.negs_initiated[aid]
-                n_contracts_concluded += w.contracts_concluded[aid]
-                n_contracts_signed += w.contracts_signed[aid]
-                n_neg_requests_rejected += w.neg_requests_rejected[aid]
-                n_contracts_dropped += w.contracts_dropped[aid]
-                n_breaches_received += w.breaches_received[aid]
-                n_breaches_committed += w.breaches_committed[aid]
-                n_contracts_erred += w.contracts_erred[aid]
-                n_contracts_nullified += w.contracts_nullified[aid]
-                n_contracts_executed += w.contracts_executed[aid]
-                n_contracts_breached += w.contracts_breached[aid]
-
-        for w in worlds:
-            for aid, v in w.agent_exceptions.items():
-                if v:
-                    agent_exceptions[aid] += v
-                    type_agent_exceptions[w.agents[aid].type_name] += v
-                    n_agent_exceptions += len(v)
-        for w in worlds:
-            for aid, v in w.negotiator_exceptions.items():
-                if v:
-                    negotiator_exceptions[aid] += v
-                    type_negotiator_exceptions[w.agents[aid].type_name] += v
-                    n_negotiator_exceptions += len(v)
-
-        for w in worlds:
-            for k, l in w.simulation_exceptions.items():
-                if l:
-                    simulation_exceptions.append((k, l))
-        for w in worlds:
-            for k, l in w.mechanism_exceptions.items():
-                if l:
-                    mechanism_exceptions.append((k, l))
-        for w in worlds:
-            for k, l in w.contract_exceptions.items():
-                if l:
-                    contract_exceptions.append((k, l))
-        for w in worlds:
-            for aid, _ in w.times.items():
-                if _:
-                    agent_times[aid] += _
-                    type_agent_times[w.agents[aid].type_name] += _
-                    mean_agent_time = (mean_agent_time * n_agents_timed + _) / (
-                        n_agents_timed + 1
+    # try:
+    for (
+        world,
+        world_params_,
+        dir_name,
+        save_video,
+        video_saver,
+        video_saver_params,
+    ) in zip(
+        worlds,
+        worlds_params,
+        dir_names,
+        save_videos,
+        video_savers,
+        video_saver_params_list,
+    ):
+        for _ in range(world.n_steps):
+            if not world.step():
+                save_stats(world, world.log_folder, params=world_params_)
+                break
+            if _ % save_progress_every == 0:
+                save_stats(world, world.log_folder, params=world_params_)
+                # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
+                if not dry_run:
+                    scores_ = to_dict(
+                        score_calculator(worlds, scoring_context, False),
+                        camel=False,
+                        add_type_field=False,
                     )
-                    n_agents_timed += 1
-    except Exception as e:
-        scores = None
-        print(traceback.format_exc())
-        print(e)
-        other_exceptions = [exception2str()]
-    finally:
-        world_stats = WorldSetRunStats(
-            name=";".join(_.name for _ in worlds),
-            planned_n_steps=sum(_.n_steps for _ in worlds),
-            executed_n_steps=sum(_.current_step for _ in worlds),
-            execution_time=sum(_.frozen_time for _ in worlds),
-            simulation_exceptions=simulation_exceptions,
-            contract_exceptions=contract_exceptions,
-            mechanism_exceptions=mechanism_exceptions,
-            other_exceptions=other_exceptions,
-            n_agent_exceptions=n_agent_exceptions,
-            n_negotiator_exceptions=n_negotiator_exceptions,
-            mean_agent_time=mean_agent_time,
-            n_neg_requests_sent=n_neg_requests_sent,
-            n_neg_requests_received=n_neg_requests_received,
-            n_neg_requests_rejected=n_neg_requests_rejected,
-            n_negs_registered=n_negs_registered,
-            n_negs_succeeded=n_negs_succeeded,
-            n_negs_failed=n_negs_failed,
-            n_negs_timedout=n_negs_timedout,
-            n_negs_initiated=n_negs_initiated,
-            n_contracts_concluded=n_contracts_concluded,
-            n_contracts_signed=n_contracts_signed,
-            n_contracts_dropped=n_contracts_dropped,
-            n_breaches_received=n_breaches_received,
-            n_breaches_committed=n_breaches_committed,
-            n_contracts_erred=n_contracts_erred,
-            n_contracts_nullified=n_contracts_nullified,
-            n_contracts_breached=n_contracts_breached,
-            n_contracts_executed=n_contracts_executed,
-        )
-        agent_stats = AgentStats(
-            exceptions=agent_exceptions,
-            negotiator_exceptions=negotiator_exceptions,
-            times=agent_times,
-            neg_requests_sent=neg_requests_sent,
-            neg_requests_received=neg_requests_received,
-            negs_registered=negs_registered,
-            negs_succeeded=negs_succeeded,
-            negs_failed=negs_failed,
-            negs_timedout=negs_timedout,
-            negs_initiated=negs_initiated,
-            contracts_concluded=contracts_concluded,
-            contracts_signed=contracts_signed,
-            neg_requests_rejected=neg_requests_rejected,
-            contracts_dropped=contracts_dropped,
-            breaches_received=breaches_received,
-            breaches_committed=breaches_committed,
-            contracts_erred=contracts_erred,
-            contracts_nullified=contracts_nullified,
-            contracts_executed=contracts_executed,
-            contracts_breached=contracts_breached,
-        )
-        type_stats = AgentStats(
-            exceptions=type_agent_exceptions,
-            negotiator_exceptions=type_negotiator_exceptions,
-            times=type_agent_times,
-            neg_requests_sent=type_neg_requests_sent,
-            neg_requests_received=type_neg_requests_received,
-            negs_registered=type_negs_registered,
-            negs_succeeded=type_negs_succeeded,
-            negs_failed=type_negs_failed,
-            negs_timedout=type_negs_timedout,
-            negs_initiated=type_negs_initiated,
-            contracts_concluded=type_contracts_concluded,
-            contracts_signed=type_contracts_signed,
-            neg_requests_rejected=type_neg_requests_rejected,
-            contracts_dropped=type_contracts_dropped,
-            breaches_received=type_breaches_received,
-            breaches_committed=type_breaches_committed,
-            contracts_erred=type_contracts_erred,
-            contracts_nullified=type_contracts_nullified,
-            contracts_executed=type_contracts_executed,
-            contracts_breached=type_contracts_breached,
-        )
+                    scores_["n_steps"] = world.n_steps
+                    scores_["step"] = world.current_step
+                    scores_["relative_time"] = world.relative_time
+                    scores_["time_limit"] = world.time_limit
+                    scores_["time"] = world.time
+                    dump(
+                        to_flat_dict(scores_, camel=False),
+                        Path(world.log_folder) / "_current_scores.json",
+                        sort_keys=True,
+                    )
+                if world_progress_callback:
+                    world_progress_callback(world)
+            if world.time >= world.time_limit:
+                break
+        # if save_world_stats:
+        save_stats(world=world, log_dir=dir_name)
+        if save_video:
+            if video_saver is None:
+                video_saver = World.save_gif
+            if video_saver_params is None:
+                video_saver_params = {}
+            video_saver(world, **video_saver_params)
+
+    scores = score_calculator(worlds, scoring_context, dry_run)
+    for w in worlds:
+        for aid, agent in w.agents.items():
+            atype = agent.type_name
+            neg_requests_sent[aid] += w.neg_requests_sent[aid]
+            neg_requests_received[aid] += w.neg_requests_received[aid]
+            negs_registered[aid] += w.negs_registered[aid]
+            negs_succeeded[aid] += w.negs_succeeded[aid]
+            negs_failed[aid] += w.negs_failed[aid]
+            negs_timedout[aid] += w.negs_timedout[aid]
+            negs_initiated[aid] += w.negs_initiated[aid]
+            contracts_concluded[aid] += w.contracts_concluded[aid]
+            contracts_signed[aid] += w.contracts_signed[aid]
+            neg_requests_rejected[aid] += w.neg_requests_rejected[aid]
+            contracts_dropped[aid] += w.contracts_dropped[aid]
+            breaches_received[aid] += w.breaches_received[aid]
+            breaches_committed[aid] += w.breaches_committed[aid]
+            contracts_erred[aid] += w.contracts_erred[aid]
+            contracts_nullified[aid] += w.contracts_nullified[aid]
+            contracts_executed[aid] += w.contracts_executed[aid]
+            contracts_breached[aid] += w.contracts_breached[aid]
+            type_neg_requests_sent[atype] += w.neg_requests_sent[aid]
+            type_neg_requests_received[atype] += w.neg_requests_received[aid]
+            type_negs_registered[atype] += w.negs_registered[aid]
+            type_negs_succeeded[atype] += w.negs_succeeded[aid]
+            type_negs_failed[atype] += w.negs_failed[aid]
+            type_negs_timedout[atype] += w.negs_timedout[aid]
+            type_negs_initiated[atype] += w.negs_initiated[aid]
+            type_contracts_concluded[atype] += w.contracts_concluded[aid]
+            type_contracts_signed[atype] += w.contracts_signed[aid]
+            type_neg_requests_rejected[atype] += w.neg_requests_rejected[aid]
+            type_contracts_dropped[atype] += w.contracts_dropped[aid]
+            type_breaches_received[atype] += w.breaches_received[aid]
+            type_breaches_committed[atype] += w.breaches_committed[aid]
+            type_contracts_erred[atype] += w.contracts_erred[aid]
+            type_contracts_nullified[atype] += w.contracts_nullified[aid]
+            type_contracts_executed[atype] += w.contracts_executed[aid]
+            type_contracts_breached[atype] += w.contracts_breached[aid]
+            n_neg_requests_sent += w.neg_requests_sent[aid]
+            n_neg_requests_received += w.neg_requests_received[aid]
+            n_negs_registered += w.negs_registered[aid]
+            n_negs_succeeded += w.negs_succeeded[aid]
+            n_negs_failed += w.negs_failed[aid]
+            n_negs_timedout += w.negs_timedout[aid]
+            n_negs_initiated += w.negs_initiated[aid]
+            n_contracts_concluded += w.contracts_concluded[aid]
+            n_contracts_signed += w.contracts_signed[aid]
+            n_neg_requests_rejected += w.neg_requests_rejected[aid]
+            n_contracts_dropped += w.contracts_dropped[aid]
+            n_breaches_received += w.breaches_received[aid]
+            n_breaches_committed += w.breaches_committed[aid]
+            n_contracts_erred += w.contracts_erred[aid]
+            n_contracts_nullified += w.contracts_nullified[aid]
+            n_contracts_executed += w.contracts_executed[aid]
+            n_contracts_breached += w.contracts_breached[aid]
+
+    for w in worlds:
+        for aid, v in w.agent_exceptions.items():
+            if v:
+                agent_exceptions[aid] += v
+                type_agent_exceptions[w.agents[aid].type_name] += v
+                n_agent_exceptions += len(v)
+    for w in worlds:
+        for aid, v in w.negotiator_exceptions.items():
+            if v:
+                negotiator_exceptions[aid] += v
+                type_negotiator_exceptions[w.agents[aid].type_name] += v
+                n_negotiator_exceptions += len(v)
+
+    for w in worlds:
+        for k, l in w.simulation_exceptions.items():
+            if l:
+                simulation_exceptions.append((k, l))
+    for w in worlds:
+        for k, l in w.mechanism_exceptions.items():
+            if l:
+                mechanism_exceptions.append((k, l))
+    for w in worlds:
+        for k, l in w.contract_exceptions.items():
+            if l:
+                contract_exceptions.append((k, l))
+    for w in worlds:
+        for aid, _ in w.times.items():
+            if _:
+                agent_times[aid] += _
+                type_agent_times[w.agents[aid].type_name] += _
+                mean_agent_time = (mean_agent_time * n_agents_timed + _) / (
+                    n_agents_timed + 1
+                )
+                n_agents_timed += 1
+    # except Exception as e:
+    #     scores = None
+    #     print(traceback.format_exc())
+    #     print(e)
+    #     other_exceptions = [exception2str()]
+    # finally:
+    world_stats = WorldSetRunStats(
+        name=";".join(_.name for _ in worlds),
+        planned_n_steps=sum(_.n_steps for _ in worlds),
+        executed_n_steps=sum(_.current_step for _ in worlds),
+        execution_time=sum(_.frozen_time for _ in worlds),
+        simulation_exceptions=simulation_exceptions,
+        contract_exceptions=contract_exceptions,
+        mechanism_exceptions=mechanism_exceptions,
+        other_exceptions=other_exceptions,
+        n_agent_exceptions=n_agent_exceptions,
+        n_negotiator_exceptions=n_negotiator_exceptions,
+        mean_agent_time=mean_agent_time,
+        n_neg_requests_sent=n_neg_requests_sent,
+        n_neg_requests_received=n_neg_requests_received,
+        n_neg_requests_rejected=n_neg_requests_rejected,
+        n_negs_registered=n_negs_registered,
+        n_negs_succeeded=n_negs_succeeded,
+        n_negs_failed=n_negs_failed,
+        n_negs_timedout=n_negs_timedout,
+        n_negs_initiated=n_negs_initiated,
+        n_contracts_concluded=n_contracts_concluded,
+        n_contracts_signed=n_contracts_signed,
+        n_contracts_dropped=n_contracts_dropped,
+        n_breaches_received=n_breaches_received,
+        n_breaches_committed=n_breaches_committed,
+        n_contracts_erred=n_contracts_erred,
+        n_contracts_nullified=n_contracts_nullified,
+        n_contracts_breached=n_contracts_breached,
+        n_contracts_executed=n_contracts_executed,
+    )
+    agent_stats = AgentStats(
+        exceptions=agent_exceptions,
+        negotiator_exceptions=negotiator_exceptions,
+        times=agent_times,
+        neg_requests_sent=neg_requests_sent,
+        neg_requests_received=neg_requests_received,
+        negs_registered=negs_registered,
+        negs_succeeded=negs_succeeded,
+        negs_failed=negs_failed,
+        negs_timedout=negs_timedout,
+        negs_initiated=negs_initiated,
+        contracts_concluded=contracts_concluded,
+        contracts_signed=contracts_signed,
+        neg_requests_rejected=neg_requests_rejected,
+        contracts_dropped=contracts_dropped,
+        breaches_received=breaches_received,
+        breaches_committed=breaches_committed,
+        contracts_erred=contracts_erred,
+        contracts_nullified=contracts_nullified,
+        contracts_executed=contracts_executed,
+        contracts_breached=contracts_breached,
+    )
+    type_stats = AgentStats(
+        exceptions=type_agent_exceptions,
+        negotiator_exceptions=type_negotiator_exceptions,
+        times=type_agent_times,
+        neg_requests_sent=type_neg_requests_sent,
+        neg_requests_received=type_neg_requests_received,
+        negs_registered=type_negs_registered,
+        negs_succeeded=type_negs_succeeded,
+        negs_failed=type_negs_failed,
+        negs_timedout=type_negs_timedout,
+        negs_initiated=type_negs_initiated,
+        contracts_concluded=type_contracts_concluded,
+        contracts_signed=type_contracts_signed,
+        neg_requests_rejected=type_neg_requests_rejected,
+        contracts_dropped=type_contracts_dropped,
+        breaches_received=type_breaches_received,
+        breaches_committed=type_breaches_committed,
+        contracts_erred=type_contracts_erred,
+        contracts_nullified=type_contracts_nullified,
+        contracts_executed=type_contracts_executed,
+        contracts_breached=type_contracts_breached,
+    )
     if attempts_path:
         if running_file:
             try:
                 os.remove(running_file)
             except FileNotFoundError:
                 pass
-        if attempts_file:
-            try:
-                os.remove(attempts_file)
-            except FileNotFoundError:
-                pass
+        # if attempts_file:
+        #     try:
+        #         os.remove(attempts_file)
+        #     except FileNotFoundError:
+        #         pass
     return run_id, dir_names, scores, world_stats, type_stats, agent_stats
 
 
@@ -1164,9 +1204,10 @@ def save_run_results(
     type_stats = type_stats_.to_record(run_id, "type")
     agent_stats = agent_stats_.to_record(run_id, "agent")
     world_stats = world_stats_.to_record(run_id)
+    run_path = _path(world_paths[0]).parent
     for world_path in world_paths:
         world_path = _path(world_path)
-        results_file = world_path / RESULTS_FILE
+        results_file = run_path / RESULTS_FILE
         all_results = dict(
             run_id=run_id,
             name=name,
@@ -1675,10 +1716,10 @@ def run_tournament(
     for dir_name_ in world_paths_:
         if not dir_name_:
             continue
-        if not (dir_name_ / RESULTS_FILE).exists():
+        if not (dir_name_.parent / RESULTS_FILE).exists():
             continue
         try:
-            results_ = load(dir_name_ / RESULTS_FILE)
+            results_ = load(dir_name_.parent / RESULTS_FILE)
             run_ids.add(results_["run_id"])
         except:
             continue
@@ -1708,10 +1749,10 @@ def run_tournament(
             for dir_name_ in world_paths_:
                 if not dir_name_:
                     continue
-                if not (dir_name_ / RESULTS_FILE).exists():
+                if not (dir_name_.parent / RESULTS_FILE).exists():
                     continue
                 try:
-                    results_ = load(dir_name_ / RESULTS_FILE)
+                    results_ = load(dir_name_.parent / RESULTS_FILE)
                     run_ids.add(results_["run_id"])
                 except:
                     continue
@@ -1838,6 +1879,13 @@ def run_tournament(
         )
     if verbose:
         print(f"Tournament completed successfully")
+
+
+def _run_id(config_set):
+    names = [c["world_params"]["name"] for c in config_set]
+    if len(names) == 1:
+        return names[0] + _hash(config_set)[:6]
+    return names[0] + _hash(names[1:])[:8] + _hash(config_set)[:6]
 
 
 def create_tournament(
@@ -2035,6 +2083,12 @@ def create_tournament(
         )
         for _ in range(n_configs)
     ]
+    for i, cs in enumerate(configs):
+        for c in cs:
+            c["config_id"] = f"{i:04d}" + unique_name(
+                "", add_time=False, sep="", rand_digits=2
+            )
+            c["world_params"]["name"] = c["config_id"]
     dump(configs, tournament_path / "base_configs")
     if verbose:
         print(
@@ -2056,14 +2110,21 @@ def create_tournament(
     for effective_competitor_infos in competitor_sets:
         effective_competitors = [_[0] for _ in effective_competitor_infos]
         effective_params = [_[1] for _ in effective_competitor_infos]
+        effective_names = [
+            a + _hash(b)[:4] if b else a for a, b in effective_competitor_infos
+        ]
+        effective_names = shortest_unique_names(effective_names, max_compression=True)
         if verbose:
-            print(f"Running {'|'.join(effective_competitors)} together")
-        effective_competitors = list(effective_competitors)
+            print(
+                f"Running {'|'.join(effective_competitors)} together ({'|'.join(effective_names)})"
+            )
         myconfigs = copy.deepcopy(configs)
         for conf in myconfigs:
             for c in conf:
-                c["world_params"]["name"] += "_" + "-".join(
-                    _hash(_)[:4] for _ in effective_competitors
+                c["world_params"]["name"] += (
+                    "_"
+                    + "-".join(effective_names)
+                    + unique_name("", add_time=False, rand_digits=4, sep="")
                 )
         this_assigned = list(
             itertools.chain(
@@ -2082,15 +2143,19 @@ def create_tournament(
                 ]
             )
         )
+        for i, config_set in enumerate(this_assigned):
+            for c in config_set:
+                c["world_params"]["name"] += f".{i:02d}"
         assigned += this_assigned
 
-    for config in assigned:
-        for c in config:
+    for config_set in assigned:
+        run_id = _run_id(config_set)
+        for c in config_set:
             c["world_params"].update(
                 {
                     "log_folder": str(
                         (
-                            tournament_path / c["world_params"].get("name", ".")
+                            tournament_path / run_id / c["world_params"]["name"]
                         ).absolute()
                     ),
                     "log_to_file": not compact,
@@ -2128,9 +2193,9 @@ def create_tournament(
                 all_assigned.append([])
                 for w_ in a_:
                     cpy = copy.deepcopy(w_)
-                    cpy["world_params"]["name"] += f".{r+1:05}"
+                    cpy["world_params"]["name"] += f"_{r+1}"
                     if cpy["world_params"]["log_folder"]:
-                        cpy["world_params"]["log_folder"] += f".{r+1:05}"
+                        cpy["world_params"]["log_folder"] += f"_{r+1}"
                     all_assigned[-1].append(cpy)
         del assigned
         assigned = all_assigned
@@ -2140,8 +2205,9 @@ def create_tournament(
         )
 
     for config_set in assigned:
+        run_id = _run_id(config_set)
         for config in config_set:
-            dir_name = tournament_path / config["world_params"]["name"]
+            dir_name = tournament_path / run_id / config["world_params"]["name"]
             config.update(
                 {
                     "log_file_name": str(dir_name / "log.txt"),
@@ -2154,13 +2220,14 @@ def create_tournament(
     if forced_logs_fraction > 1e-5:
         n_logged = max(1, int(len(assigned) * forced_logs_fraction))
         for cs in assigned[:n_logged]:
+            run_id = _run_id(cs)
             for _ in cs:
                 if _["world_params"].get("log_folder", None) is None:
                     _["world_params"].update(
                         {
                             "log_folder": str(
                                 (
-                                    tournament_path / _["world_params"].get("name", ".")
+                                    tournament_path / run_id / _["world_params"]["name"]
                                 ).absolute()
                             ),
                             "log_to_file": True,
@@ -2220,7 +2287,7 @@ def compile_results(path: Union[str, PathLike, Path],):
             continue
         if d.name in ("configs", "attempts"):
             continue
-        results_path = d / RESULTS_FILE
+        results_path = d.parent / RESULTS_FILE
         if not results_path.exists():
             continue
         try:
@@ -2276,6 +2343,7 @@ def evaluate_tournament(
     verbose: bool = False,
     recursive: bool = True,
     extra_scores_to_use: Optional[str] = None,
+    compile: bool = True,
 ) -> TournamentResults:
     """
     Evaluates the results of a tournament
@@ -2296,6 +2364,9 @@ def evaluate_tournament(
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
                    will be combined
         extra_scores_to_use: The type of extra-scores to use. If None normal scores will be used. Only effective if scores is None.
+        compile: Takes effect only if `tournament_path` is not None. If true, the results will be recompiled 
+                         from individual world results. This is accurate but slow. If false, it will be assumed that 
+                         all results are already compiled.
         # independent_test: True if you want an independent t-test
 
     Returns:
@@ -2306,7 +2377,8 @@ def evaluate_tournament(
         tournament_path = _path(tournament_path)
         tournament_path = tournament_path.absolute()
         tournament_path.mkdir(parents=True, exist_ok=True)
-        compile_results(tournament_path)
+        if compile:
+            compile_results(tournament_path)
         scores_file = str(
             tournament_path / SCORES_FILE
             if extra_scores_to_use is None
