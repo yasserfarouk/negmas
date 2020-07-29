@@ -5,6 +5,7 @@ This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
 import copy
+import itertools
 import datetime
 import importlib
 import json
@@ -103,38 +104,79 @@ class ReturnCause(Enum):
     FAILURE = 2
 
 
-def shortest_unique_names(strs: List[str], sep="."):
+def shortest_unique_names(
+    strs: List[str], sep=".", max_compression=False, guarantee_unique=False
+):
     """
     Finds the shortest unique strings starting from the end of each input
     string based on the separator.
 
     The final strings will only be unique if the inputs are unique.
 
+    Args:
+        strs: A list of strings
+        sep: The separator used to separate fields in each string
+        max_compression: If True, each string will be further compressed
+                         by taking the shortest prefix that keeps the
+                         strings unique (if they were originally unique)
+        guarantee_unique: If given, random characters will be postfixed on
+                         strings to guarantee uniquness
+
     Example:
-        given ["a.b.c", "d.e.f", "a.d.c"] it will generate ["b.c", "f", "d.c"]
+        given ["a.b.cat", "d.e.f", "a.d.cat"] it will generate ["b.c", "f", "d.cat"]
+        if max_compression was false and will generate ["b", "f", "d"] if it was
+        True
     """
+    if len(strs) < 2:
+        return strs
+    if guarantee_unique and len(set(strs)) != len(strs):
+        chars = string.digits + string.ascii_letters
+        for i in range(len(strs) - 1):
+            others = set(strs[:i] + strs[i + 1 :])
+            while strs[i] in others:
+                for a in chars:
+                    if strs[i] + a not in others:
+                        strs[i] = strs[i] + a
+                        break
+                else:
+                    strs[i] = strs[i] + unique_name("", False, 1, "")
+
     lsts = [_.split(sep) for _ in strs]
     names = [_[-1] for _ in lsts]
-    if len(names) == len(set(names)):
-        return names
-    locs = defaultdict(list)
-    for i, s in enumerate(names):
-        locs[s].append(i)
-    mapping = {"": ""}
-    for s, l in locs.items():
-        if len(s) < 1:
-            continue
-        if len(l) == 1:
-            mapping[strs[l[0]]] = s
-            continue
-        strs_new = [sep.join(lsts[_][:-1]) for _ in l]
-        prefixes = shortest_unique_names(strs_new, sep)
-        for loc, prefix in zip(l, prefixes):
-            x = sep.join([prefix, s])
-            if x.startswith(sep):
-                x = x[len(sep) :]
-            mapping[strs[loc]] = x
-    return [mapping[_] for _ in strs]
+    if len(names) != len(set(names)):
+        locs = defaultdict(list)
+        for i, s in enumerate(names):
+            locs[s].append(i)
+        mapping = {"": ""}
+        for s, l in locs.items():
+            if len(s) < 1:
+                continue
+            if len(l) == 1:
+                mapping[strs[l[0]]] = s
+                continue
+            strs_new = [sep.join(lsts[_][:-1]) for _ in l]
+            prefixes = shortest_unique_names(
+                strs_new, sep, max_compression, guarantee_unique
+            )
+            for loc, prefix in zip(l, prefixes):
+                x = sep.join([prefix, s])
+                if x.startswith(sep):
+                    x = x[len(sep) :]
+                mapping[strs[loc]] = x
+        strs = [mapping[_] for _ in strs]
+    else:
+        strs = names
+    if not max_compression:
+        return strs
+    for i, s in enumerate(strs):
+        for j in range(1, len(s)):
+            for k in itertools.chain(range(i), range(i + 1, len(strs))):
+                if strs[k][:j] == s[:j]:
+                    break
+            else:
+                strs[i] = s[:j]
+                break
+    return strs
 
 
 def create_loggers(
