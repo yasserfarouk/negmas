@@ -284,7 +284,7 @@ def java_identifier(s: str):
     return s
 
 
-def to_flat_dict(value, deep=True) -> Dict[str, Any]:
+def to_flat_dict(value, deep=True, camel=True) -> Dict[str, Any]:
     """
     Encodes the given value as a flat dictionary
 
@@ -295,7 +295,7 @@ def to_flat_dict(value, deep=True) -> Dict[str, Any]:
     Returns:
 
     """
-    d = to_dict(value, add_type_field=False, deep=deep)
+    d = to_dict(value, add_type_field=False, camel=camel, deep=deep)
     if d is None:
         return {}
     if not isinstance(d, dict):

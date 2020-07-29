@@ -9,7 +9,28 @@ from negmas.helpers import (
     is_nonzero_file,
     pretty_string,
     unique_name,
+    shortest_unique_names,
 )
+
+
+def test_shortest_names():
+    lst = ["a.b.cat", "d.e.f", "a.d.cat"]
+    assert shortest_unique_names(lst) == ["b.cat", "f", "d.cat"]
+    assert shortest_unique_names(lst, max_compression=True) == ["b", "f", "d"]
+    lst = ["a.b.cat", "a.b.cat", "d.e.f", "a.d.cat"]
+    assert shortest_unique_names(lst) == ["a.b.cat", "a.b.cat", "f", "d.cat"]
+    assert shortest_unique_names(lst, max_compression=True) == [
+        "a.b.cat",
+        "a.b.cat",
+        "f",
+        "d",
+    ]
+    result = shortest_unique_names(lst, guarantee_unique=True)
+    assert len(set(result)) == 4
+    assert result == ["cat0", "b.cat", "f", "d.cat"]
+    result = shortest_unique_names(lst, max_compression=True, guarantee_unique=True)
+    assert len(set(result)) == 4
+    assert result == ["c", "b", "f", "d"]
 
 
 def test_create_loggers_with_default_params(capsys):
