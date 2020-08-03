@@ -777,6 +777,7 @@ def _run_worlds(
         save_videos.append(world_params.get("__save_video", None))
         video_savers.append(world_params.get("__video_saver", None))
         video_saver_params_list.append(world_params.get("__video_saver_params", dict()))
+        scoring_context.update(world_params.get("scoring_context", {}))
         world_params.pop("__video_saver", None)
         world_params.pop("__video_saver_params", None)
         world_params.pop("__save_video", None)
