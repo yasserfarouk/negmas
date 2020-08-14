@@ -7,6 +7,10 @@ import random
 import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
+import uuid
+import pathlib
+import os
+
 
 import pandas as pd
 
@@ -191,6 +195,9 @@ class SAOMechanism(Mechanism):
         plot_utils=True,
         plot_outcomes=False,
         utility_range: Optional[Tuple[float, float]] = None,
+        save_fig: bool=False,
+        path: str=None,
+        fig_name: str=None
     ):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
@@ -417,10 +424,22 @@ class SAOMechanism(Mechanism):
                         label="Agreement",
                     )
 
-        if plot_utils:
-            fig_util.show()
-        if plot_outcomes:
-            fig_outcome.show()
+        if save_fig:
+            if fig_name is None:
+                fig_name = str(uuid.uuid4()) + '.png'
+            if path is None:
+                path = pathlib.Path().absolute()
+            else:
+                pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+            if plot_utils:
+                    fig_util.savefig(os.path.join(path, fig_name))
+            if plot_outcomes:
+                fig_outcome.savefig(os.path.join(path, fig_name))
+        else:
+            if plot_utils:
+                fig_util.show()
+            if plot_outcomes:
+                fig_outcome.show()
 
     def round(self) -> MechanismRoundResult:
         """implements a round of the Stacked Alternating Offers Protocol.
