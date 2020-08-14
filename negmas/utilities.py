@@ -2286,7 +2286,7 @@ class RandomUtilityFunction(MappingUtilityFunction):
         if isinstance(outcomes[0], tuple):
             pass
         else:
-            outcomes = [tuple(o.keys()) for o in outcomes]
+            outcomes = [tuple(o.values()) for o in outcomes]
         super().__init__(
             mapping=dict(zip(outcomes, np.random.rand(len(outcomes)))),
             reserved_value=reserved_value,
