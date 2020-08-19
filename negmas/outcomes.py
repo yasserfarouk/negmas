@@ -655,7 +655,6 @@ class Issue(NamedObject):
             if safe_parsing:
                 raise ValueError(f"No objective child was found in the root")
             utility_space = root
-        weights = {}
         issues = {}
         issue_info = {}
         all_discrete = True
@@ -871,7 +870,7 @@ class Issue(NamedObject):
         for i, issue in enumerate(issues):
             count = 1 if one_each else counts[i]  # type: ignore
 
-            for j in range(count):
+            for _ in range(count):
                 name = str(nxt) if int_names else names[i]  # type: ignore
                 # if count > 1:
                 #    name = name + f' {j}'

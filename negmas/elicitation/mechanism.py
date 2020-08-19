@@ -189,7 +189,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 "Must specify a folder to run from or a number of outcomes"
             )
         if genius_folder is not None:
-            domain, agent_info, issues = load_genius_domain_from_folder(
+            domain, agent_info, _ = load_genius_domain_from_folder(
                 folder_name=genius_folder,
                 force_single_issue=True,
                 keep_issue_names=False,
@@ -399,7 +399,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 elif "optimal" in type_:
                     prune = "prune" in type_ or "fast" in type_
                     if "no" in type_:
-                        no_prune = not prune
+                        prune = not prune
                     return VOIOptimalElicitor(
                         user=user,
                         resolution=resolution,
@@ -562,7 +562,14 @@ class SAOElicitingMechanism(SAOMechanism):
         self.elicitation_state["n_queries"] = 0
         return True
 
-    def plot(self, consider_costs=False):
+    def plot(
+        self,
+        visible_negotiators=(0, 1),
+        plot_utils=True,
+        plot_outcomes=False,
+        utility_range=None,
+        consider_costs=False,
+    ):
         try:
             import matplotlib.pyplot as plt
             import matplotlib.gridspec as gridspec
@@ -578,7 +585,8 @@ class SAOElicitingMechanism(SAOMechanism):
                 history["relative_time"] = [_[0].relative_time for _ in self.history]
                 history["step"] = [_[0].step for _ in self.history]
                 history = history.loc[~history.offer.isnull(), :]
-                ufuns = self._get_ufuns(consider_costs=consider_costs)
+                # ufuns = self._get_ufuns(consider_costs=consider_costs)
+                ufuns = self._get_ufuns()
                 elicitor_dist = self.negotiators[1].utility_function
                 outcomes = self.outcomes
 
@@ -828,4 +836,3 @@ class SAOElicitingMechanism(SAOMechanism):
             self.elicitation_state["total_voi"] = self.negotiators[1].total_voi
         else:
             self.elicitation_state["total_voi"] = None
-

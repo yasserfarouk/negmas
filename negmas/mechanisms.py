@@ -197,7 +197,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                     f", type={type(outcomes[0])})"
                 )
                 if keep_issue_names:
-                    for i, outcome in enumerate(outcomes):
+                    for outcome in outcomes:
                         assert list(outcome.keys()) == issue_names
                 else:
                     for i, outcome in enumerate(outcomes):

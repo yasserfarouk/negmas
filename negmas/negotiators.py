@@ -627,7 +627,7 @@ class Controller(Rational):
             negotiation.
 
         """
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         permission = self.before_join(negotiator, ami, state, ufun=ufun, role=role)
@@ -897,11 +897,9 @@ class NLevelsComparatorMixin:
         """
         if scale is not None:
             if isinstance(scale, str):
-                scale = dict(
-                    linear=lambda x: x,
-                    log=lambda x: math.log(x),
-                    exp=lambda x: math.exp(x),
-                ).get(scale, None)
+                scale = dict(linear=lambda x: x, log=math.log, exp=math.exp,).get(
+                    scale, None
+                )
                 if scale is None:
                     raise ValueError(f"Unknown scale function {scale}")
         thresholds = np.linspace(ufun_min, ufun_max, num=n + 2)[1:-1].tolist()
@@ -935,7 +933,7 @@ class NLevelsComparatorMixin:
             for second in sample(samples[i + 1 :], k=n_diffs):
                 diffs.append(abs(ufun.compare_real(first, second)))
         diffs = np.array(diffs)
-        hist, edges = np.histogram(diffs, bins=n + 1)
+        _, edges = np.histogram(diffs, bins=n + 1)
         return edges[1:-1].tolist()
 
     @property

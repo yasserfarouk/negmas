@@ -632,7 +632,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if self.presorted:
             if len(self.ordered_outcomes) < 1:
                 return None
-            for i, (u, o) in enumerate(self.ordered_outcomes):
+            for i, (u, _) in enumerate(self.ordered_outcomes):
                 if u is None:
                     continue
                 if u < asp:
@@ -961,7 +961,7 @@ class NaiveTitForTatNegotiator(SAONegotiator):
             self.received_utilities[0] = self.received_utilities[1]
             self.received_utilities[-1] = offered_utility
         indx = self._propose(state=state)
-        my_utility, my_offer = self.ordered_outcomes[indx]
+        my_utility, _ = self.ordered_outcomes[indx]
         if offered_utility >= my_utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
@@ -1210,7 +1210,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
 
     @classmethod
     def from_dict(
-        cls, java_object, *args, parent: Controller = None
+        cls, java_object, *args, parent: Controller = None, **kwargs
     ) -> "JavaSAONegotiator":
         """Creates a Java negotiator from an object returned from the JVM implementing PySAONegotiator"""
         ufun = java_object.getUtilityFunction()

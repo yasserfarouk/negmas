@@ -611,13 +611,13 @@ class Distribution(object):
     def __or__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             return float(other)
-        if self.dtype == "uniform":
-            raise NotImplementedError(
-                "Current implementation assumes an overlap otherwise a mixture must be returned"
-            )
-            beg = min(self.loc, other.loc)
-            end = max(self.scale + self.loc, other.loc + other.scale)
-            return Distribution(self.dtype, loc=beg, scale=end - beg)
+        # if self.dtype == "uniform":
+        #     raise NotImplementedError(
+        #         "Current implementation assumes an overlap otherwise a mixture must be returned"
+        #     )
+        # beg = min(self.loc, other.loc)
+        # end = max(self.scale + self.loc, other.loc + other.scale)
+        # return Distribution(self.dtype, loc=beg, scale=end - beg)
         raise NotImplementedError()
 
     def prob(self, val: float) -> float:
