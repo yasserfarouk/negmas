@@ -304,7 +304,7 @@ def load_genius_domain_from_folder(
 
     Returns:
         - mechanism (SAOMechanism): A mechanism for the given issues
-        - agent_info (List[Dict]): All Negotiator functions from the given file
+        - agent_info (List[Dict]): All Negotiator utility functions from the given file
         - issues Union[Issue, Dict[str, Issue], List[Issue]]] : The issues
 
     Examples:

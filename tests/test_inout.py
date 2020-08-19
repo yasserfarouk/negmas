@@ -14,37 +14,32 @@ def scenarios_folder():
     )
 
 
+def test_reading_writing_linear_ufun(tmp_path):
+    from negmas.utilities import LinearUtilityAggregationFunction, UtilityFunction
+    from negmas.outcomes import Issue
+
+    base_folder = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/Laptop"
+    )
+    neg, agent_info, issues = load_genius_domain_from_folder(
+        base_folder, keep_issue_names=True, keep_value_names=True,
+    )
+    ufuns = [_["ufun"] for _ in agent_info]
+    for ufun in ufuns:
+        assert isinstance(ufun, LinearUtilityAggregationFunction)
+        dst = tmp_path / "tmp.xml"
+        print(dst)
+        UtilityFunction.to_genius(ufun, issues, dst)
+        ufun2, _ = UtilityFunction.from_genius(dst)
+        assert isinstance(ufun2, LinearUtilityAggregationFunction)
+        for outcome in Issue.enumerate(issues):
+            assert abs(ufun2(outcome) - ufun(outcome)) < 1e-3
+
+
 def test_importing_file_without_exceptions(scenarios_folder):
     folder_name = scenarios_folder + "/other/S-1NIKFRT-1"
     domain = load_genius_domain_from_folder(folder_name, n_discretization=10)
     # print(domain)
-
-
-def test_convert_dir_keep_names(tmpdir):
-    from negmas import convert_genius_domain_from_folder
-
-    dst = tmpdir.mkdir("sub")
-    src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    dst = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/LaptopConv"
-    )
-    assert convert_genius_domain_from_folder(
-        src_folder_name=src,
-        dst_folder_name=dst,
-        force_single_issue=True,
-        cache_and_discretize_outcomes=True,
-        n_discretization=10,
-        keep_issue_names=True,
-        keep_value_names=True,
-        normalize_utilities=True,
-    )
-    mechanism, agent_info, issues = load_genius_domain_from_folder(dst)
-    assert len(issues) == 1
-    for k, v in enumerate(issues):
-        assert (
-            f"{k}:{v}"
-            == """0:Laptop-Harddisk-External Monitor: ["Dell+60 Gb+19'' LCD", "Dell+60 Gb+20'' LCD", "Dell+60 Gb+23'' LCD", "Dell+80 Gb+19'' LCD", "Dell+80 Gb+20'' LCD", "Dell+80 Gb+23'' LCD", "Dell+120 Gb+19'' LCD", "Dell+120 Gb+20'' LCD", "Dell+120 Gb+23'' LCD", "Macintosh+60 Gb+19'' LCD", "Macintosh+60 Gb+20'' LCD", "Macintosh+60 Gb+23'' LCD", "Macintosh+80 Gb+19'' LCD", "Macintosh+80 Gb+20'' LCD", "Macintosh+80 Gb+23'' LCD", "Macintosh+120 Gb+19'' LCD", "Macintosh+120 Gb+20'' LCD", "Macintosh+120 Gb+23'' LCD", "HP+60 Gb+19'' LCD", "HP+60 Gb+20'' LCD", "HP+60 Gb+23'' LCD", "HP+80 Gb+19'' LCD", "HP+80 Gb+20'' LCD", "HP+80 Gb+23'' LCD", "HP+120 Gb+19'' LCD", "HP+120 Gb+20'' LCD", "HP+120 Gb+23'' LCD"]"""
-        )
 
 
 def test_convert_dir_no_names(tmpdir):
@@ -93,13 +88,6 @@ def test_simple_run_with_aspiration_agents():
     state = mechanism.run()
 
 
-@pytest.fixture
-def scenarios_folder():
-    return pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/scenarios"
-    )
-
-
 def test_importing_all_without_exceptions(capsys, scenarios_folder):
     with capsys.disabled():
         base = scenarios_folder
@@ -129,3 +117,31 @@ def test_importing_all_single_issue_without_exceptions(capsys, scenarios_folder)
             nxt += 1
             success += domain is not None
             # print(f'{success:05}/{nxt:05}: {"Single " if domain is not None else "Multi--"}outcome: {root}', flush=True)
+
+
+def test_convert_dir_keep_names(tmpdir):
+    from negmas import convert_genius_domain_from_folder
+
+    dst = tmpdir.mkdir("sub")
+    src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+    dst = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/LaptopConv"
+    )
+    assert convert_genius_domain_from_folder(
+        src_folder_name=src,
+        dst_folder_name=dst,
+        force_single_issue=True,
+        cache_and_discretize_outcomes=True,
+        n_discretization=10,
+        keep_issue_names=True,
+        keep_value_names=True,
+        normalize_utilities=True,
+    )
+    mechanism, agent_info, issues = load_genius_domain_from_folder(dst)
+    assert len(issues) == 1
+    for k, v in enumerate(issues):
+        assert (
+            f"{k}:{v}"
+            == """0:Laptop-Harddisk-External Monitor: ["Dell+60 Gb+19'' LCD", "Dell+60 Gb+20'' LCD", "Dell+60 Gb+23'' LCD", "Dell+80 Gb+19'' LCD", "Dell+80 Gb+20'' LCD", "Dell+80 Gb+23'' LCD", "Dell+120 Gb+19'' LCD", "Dell+120 Gb+20'' LCD", "Dell+120 Gb+23'' LCD", "Macintosh+60 Gb+19'' LCD", "Macintosh+60 Gb+20'' LCD", "Macintosh+60 Gb+23'' LCD", "Macintosh+80 Gb+19'' LCD", "Macintosh+80 Gb+20'' LCD", "Macintosh+80 Gb+23'' LCD", "Macintosh+120 Gb+19'' LCD", "Macintosh+120 Gb+20'' LCD", "Macintosh+120 Gb+23'' LCD", "HP+60 Gb+19'' LCD", "HP+60 Gb+20'' LCD", "HP+60 Gb+23'' LCD", "HP+80 Gb+19'' LCD", "HP+80 Gb+20'' LCD", "HP+80 Gb+23'' LCD", "HP+120 Gb+19'' LCD", "HP+120 Gb+20'' LCD", "HP+120 Gb+23'' LCD"]"""
+        )
+

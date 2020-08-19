@@ -86,6 +86,43 @@ def test_genius_agents_run_using_hypothesis(
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
+def test_genius_agent_gets_ufun():
+    agents = ["agents.anac.y2015.Atlas3.Atlas3", "agents.anac.y2015.AgentX.AgentX"]
+    base_folder = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/Laptop"
+    )
+    neg, agent_info, issues = load_genius_domain_from_folder(
+        base_folder, keep_issue_names=True, keep_value_names=True,
+    )
+    a1 = GeniusNegotiator(
+        java_class_name="agents.anac.y2015.Atlas3.Atlas3",
+        domain_file_name=base_folder + "/Laptop-C-domain.xml",
+        utility_file_name=base_folder + f"/Laptop-C-prof1.xml",
+        keep_issue_names=True,
+        keep_value_names=True,
+    )
+    assert a1.ufun is not None
+    assert not a1._temp_ufun_file
+    assert not a1._temp_domain_file
+    a2 = GeniusNegotiator(
+        java_class_name="agents.anac.y2015.Atlas3.Atlas3",
+        domain_file_name=base_folder + "/Laptop-C-domain.xml",
+        ufun=agent_info[0]["ufun"],
+        keep_issue_names=True,
+        keep_value_names=True,
+    )
+    neg.add(a1)
+    neg.add(a2)
+    assert a2.ufun is not None
+    assert a2._temp_ufun_file
+    assert not a2._temp_domain_file
+    neg.run()
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 def test_genius_agents_run_example():
     from random import randint
 
@@ -118,7 +155,6 @@ def test_genius_agents_run_example():
             keep_issue_names=True,
             keep_value_names=True,
         )
-        neg._enable_callbacks = True
         neg.add(atlas)
         neg.add(agentx)
         neg.run()
