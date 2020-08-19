@@ -2129,11 +2129,17 @@ class LinearUtilityAggregationFunction(UtilityFunction):
                     f'    <item index="{indx+1}" value="{v_}" evaluation="{u}" />\n'
                 )
             output += "</issue>\n"
-        if isinstance(issues, list):
+        if isinstance(issues, dict):
+            if isinstance(self.weights, dict):
+                weights = self.weights
+            else:
+                weights = {k: v for k, v in zip(ikeys(issues), self.weights)}
+        else:
             if isinstance(self.weights, list):
                 weights = self.weights
             else:
                 weights = list(self.weights.get(i.name, 1.0) for i in issues)
+
         for i, k in enumerate(keys):
             output += f'<weight index="{i+1}" value="{iget(weights, k)}">\n</weight>\n'
         return output
