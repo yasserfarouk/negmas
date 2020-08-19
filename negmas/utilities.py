@@ -1008,7 +1008,7 @@ class UtilityFunction(ABC, NamedObject):
                         - mean: Compares the means of the two distributions
                         - min: Compares minimum values with nonzero probability
                         - max: Compares maximum values with nonzero probability
-                        - int: Calculates :math:`\int (u_1-u_2) du_1du_2`.
+                        - int: Calculates :math:`int (u_1-u_2) du_1du_2`.
                         - Callable: The callable is given u(o1), u(o2) and
                                     should return the comparison.
 
@@ -1953,7 +1953,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         >>> float(f({'quality': 2, 'price': 14.0, 'delivery': 'delivered'})) - (1.0*(2.0*14)+2.0*10)
         0.0
 
-        You can use lists instead of dictionaries for defining outcomes, weights and nonlinearity
+        You can use lists instead of dictionaries for defining outcomes, weights
         but that is less readable
 
         >>> f = LinearUtilityAggregationFunction([lambda x: 2.0*x
@@ -1982,12 +1982,22 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         super().__init__(
             name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
         )
+        if weights is None:
+            weights = (
+                {i: 1.0 for i in ikeys(issue_utilities)}
+                if isinstance(issue_utilities, dict)
+                else [1.0] * len(issue_utilities)
+            )
+        if isinstance(weights, dict) and not isinstance(issue_utilities, dict):
+            raise ValueError(
+                f"Type of weights is {type(weights)} but type of issue_utilities is {type(issue_utilities)}"
+            )
+        if not isinstance(weights, dict) and isinstance(issue_utilities, dict):
+            raise ValueError(
+                f"Type of weights is {type(weights)} but type of issue_utilities is {type(issue_utilities)}"
+            )
         self.issue_utilities = issue_utilities
         self.weights = weights
-        if self.weights is None:
-            self.weights = {}
-            for k in ikeys(self.issue_utilities):
-                self.weights[k] = 1.0
         for k, v in ienumerate(self.issue_utilities):
             self.issue_utilities[k] = (
                 v if isinstance(v, UtilityFunction) else MappingUtilityFunction(v)
@@ -2119,10 +2129,13 @@ class LinearUtilityAggregationFunction(UtilityFunction):
                     f'    <item index="{indx+1}" value="{v_}" evaluation="{u}" />\n'
                 )
             output += "</issue>\n"
+        if isinstance(issues, list):
+            if isinstance(self.weights, list):
+                weights = self.weights
+            else:
+                weights = list(self.weights.get(i.name, 1.0) for i in issues)
         for i, k in enumerate(keys):
-            output += (
-                f'<weight index="{i+1}" value="{iget(self.weights, k)}">\n</weight>\n'
-            )
+            output += f'<weight index="{i+1}" value="{iget(weights, k)}">\n</weight>\n'
         return output
 
     def __str__(self):

@@ -220,7 +220,6 @@ def ikeys(x: IterableMapping) -> Iterable[Any]:
 
     if isinstance(x, Dict):
         return list(x.keys())
-
     else:
         return range(len(x))  # type: ignore
 

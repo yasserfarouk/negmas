@@ -3,6 +3,7 @@ Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
+import os
 import math
 import pathlib
 import random
@@ -370,11 +371,12 @@ class GeniusNegotiator(SAONegotiator):
         self.java_uuid = self._create()
         self.uuid = self.java_uuid
         self.name = self.java_uuid
-        self.domain_file_name = str(domain_file_name)
-        self.utility_file_name = str(utility_file_name)
+        self.domain_file_name = str(domain_file_name) if domain_file_name else None
+        self.utility_file_name = str(utility_file_name) if utility_file_name else None
         self._my_last_offer = None
         self.keep_issue_names = keep_issue_names
         self._utility_function, self.discount = None, None
+        self.issue_names = self.issues = self.issue_index = None
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
@@ -384,15 +386,18 @@ class GeniusNegotiator(SAONegotiator):
             )
             self.issue_names = [_.name for _ in self.issues]
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
+        self.discount = None
         if utility_file_name is not None:
             self._utility_function, self.discount = UtilityFunction.from_genius(
                 utility_file_name,
                 keep_issue_names=keep_issue_names,
                 keep_value_names=keep_value_names,
             )
+        # if ufun is not None:
+        #     self._utility_function = ufun
         self.base_utility = self._utility_function
         self.__ufun_received = ufun
-        pass
+        self._temp_domain_file = self._temp_ufun_file = False
 
     @classmethod
     def robust_negotiators(cls) -> List[str]:
@@ -537,6 +542,8 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def java_name(self):
+        if not self.java:
+            return None
         return self.java.getName(self.java_uuid)
 
     def join(
@@ -550,16 +557,17 @@ class GeniusNegotiator(SAONegotiator):
         if ufun is None:
             ufun = self.__ufun_received
         result = super().join(ami=ami, state=state, ufun=ufun, role=role)
-        if (
-            result
-            and ufun is not None
-            and (self.utility_file_name is None or self.domain_file_name is None)
-        ):
-            domain_file = tempfile.NamedTemporaryFile("w")
+        self.issue_names = [_.name for _ in ami.issues]
+        self.issues = ami.issues
+        self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
+        if result and ami.issues is not None and self.domain_file_name is None:
+            domain_file = tempfile.NamedTemporaryFile("w", delete=False)
             self.domain_file_name = domain_file.name
             domain_file.write(Issue.to_xml_str(ami.issues))
             domain_file.close()
-            utility_file = tempfile.NamedTemporaryFile("w")
+            self._temp_domain_file = True
+        if result and ufun is not None and self.utility_file_name is None:
+            utility_file = tempfile.NamedTemporaryFile("w", delete=False)
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
@@ -567,6 +575,7 @@ class GeniusNegotiator(SAONegotiator):
                 )
             )
             utility_file.close()
+            self._temp_ufun_file = True
         return result
 
     def test(self) -> str:
@@ -576,8 +585,22 @@ class GeniusNegotiator(SAONegotiator):
         """called when a negotiation is ended"""
         super().on_negotiation_end(state)
         if not self.__destroyed:
-            self.java.destroy_agent(self.java_uuid)
+            if self.java is not None:
+                self.java.destroy_agent(self.java_uuid)
             self.__destroyed = True
+        if self._temp_ufun_file:
+            try:
+                os.unlink(self.utility_file_name)
+            except FileNotFoundError:
+                pass
+            self._temp_ufun_file = False
+
+        if self._temp_domain_file:
+            try:
+                os.unlink(self.domain_file_name)
+            except FileNotFoundError:
+                pass
+            self._temp_domain_file = False
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM.
