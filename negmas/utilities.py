@@ -764,7 +764,7 @@ class UtilityFunction(ABC, NamedObject):
                             for issue_key, items in zip(ikeys(issues), ivalues(issues))
                         ]
                     )
-                    utils = list(map(lambda vals: sum(vals), utils))
+                    utils = list(map(sum, utils))
                     umax, umin = max(utils), min(utils)
                     factor = umax - umin
                     if factor > 1e-8:
@@ -1069,7 +1069,7 @@ class UtilityFunction(ABC, NamedObject):
             Returns the input list after being sorted. Notice that the array is sorted in-place
 
         """
-        outcomes.sort(key=lambda x: self(x), reverse=descending)
+        outcomes.sort(key=self, reverse=descending)
         return outcomes
 
     rank = argsort
@@ -2706,7 +2706,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
     def xml(self, issues: List[Issue]) -> str:
         output = ""
         # @todo implement weights. Here I assume they are always 1.0
-        for f, w in zip(self.ufuns, self.weights):
+        for f, _ in zip(self.ufuns, self.weights):
             output += f.xml(issues)
         return output
 

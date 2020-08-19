@@ -130,7 +130,7 @@ class WorldGenerator(Protocol):
     """
 
     def __call__(self, **kwargs) -> World:
-        ...
+        """Generates a world"""
 
 
 class ConfigGenerator(Protocol):
@@ -1065,7 +1065,7 @@ def process_world_run(
     if results is None:
         return []
     log_files, world_names_ = results.log_file_names, results.world_names
-    for world_name_, log_file in zip(world_names_, log_files):
+    for log_file in log_files:
         if log_file is not None and pathlib.Path(log_file).exists():
             with open(log_file, "a") as f:
                 f.write(
@@ -1095,7 +1095,7 @@ def process_world_run(
         scores.append(d)
     if not results.extra_scores:
         return scores, dict()
-    for extra_score_type, records in results.extra_scores.items():
+    for _, records in results.extra_scores.items():
         for record in records:
             record.update({"world": ";".join(world_names_), "run_id": run_id})
     return scores, results.extra_scores
@@ -1741,7 +1741,7 @@ def run_tournament(
             with open(afile, "r") as f:
                 try:
                     n_attempts = int(f.read())
-                except Exception as e:
+                except Exception:
                     n_attempts = 0
         except:
             # This means that the file was there then was removed
@@ -1757,24 +1757,24 @@ def run_tournament(
                     run_ids.add(results_["run_id"])
                 except:
                     continue
-                    if fname not in run_ids:
-                        n_attempts = 0
-                else:
-                    attempts[fname] = n_attempts
-            if n_attempts > max_attempts:
-                run_ids.add(fname)
+            if fname not in run_ids:
+                n_attempts = 0
+            else:
+                attempts[fname] = n_attempts
+        if n_attempts > max_attempts:
+            run_ids.add(fname)
 
     for afile in files_to_remove:
         try:
             os.remove(afile)
         except:
             print(f"Failed to remove {str(afile)}")
-            pass
+
     scores_file = str(scores_file)
     dask_options = ("dist", "distributed", "dask", "d")
     multiprocessing_options = ("local", "parallel", "par", "p")
     serial_options = ("none", "serial", "s")
-    serial_timeout_options = ("serial-timeout", "serial_timeout", "t")
+    # serial_timeout_options = ("serial-timeout", "serial_timeout", "t")
     if parallelism is None:
         parallelism = "serial"
     assert (
@@ -2027,7 +2027,7 @@ def create_tournament(
     if base_tournament_path is None:
         base_tournament_path = str(pathlib.Path.home() / "negmas" / "tournaments")
 
-    original_tournament_path = base_tournament_path
+    # original_tournament_path = base_tournament_path
     base_tournament_path = _path(base_tournament_path)
     tournament_path = (pathlib.Path(base_tournament_path) / name).absolute()
     if tournament_path.exists() and not tournament_path.is_dir():
@@ -2365,8 +2365,8 @@ def evaluate_tournament(
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
                    will be combined
         extra_scores_to_use: The type of extra-scores to use. If None normal scores will be used. Only effective if scores is None.
-        compile: Takes effect only if `tournament_path` is not None. If true, the results will be recompiled 
-                         from individual world results. This is accurate but slow. If false, it will be assumed that 
+        compile: Takes effect only if `tournament_path` is not None. If true, the results will be recompiled
+                         from individual world results. This is accurate but slow. If false, it will be assumed that
                          all results are already compiled.
         # independent_test: True if you want an independent t-test
 

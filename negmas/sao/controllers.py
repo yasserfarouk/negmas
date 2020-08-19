@@ -106,7 +106,7 @@ class SAOController(Controller):
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
 
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         return self.call(negotiator, "propose", state=state)

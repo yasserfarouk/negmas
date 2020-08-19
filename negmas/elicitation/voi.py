@@ -120,6 +120,7 @@ class BaseVOIElicitor(BaseElicitor):
         self,
         ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         queries: Optional[List[Query]] = None,
+        **kwargs,
     ) -> None:
         """
         Initializes the elicitation process once.
@@ -168,7 +169,6 @@ class BaseVOIElicitor(BaseElicitor):
                 for i, (_o, _q, _c) in enumerate(self.queries):
                     queries_of_outcome[_o].append(i)
                 self.queries_of_outcome = queries_of_outcome
-            pass
         self.init_query_eeus()
         self._elicitation_time += time.perf_counter() - strt_time
 
@@ -491,7 +491,7 @@ class VOIElicitor(BaseVOIElicitor):
             if best_index is not None:
                 indices.remove(best_index)
         self.outcome_in_policy = {}
-        for i, (eu, outcome) in enumerate(eu_policy):
+        for i, (_, outcome) in enumerate(eu_policy):
             self.outcome_in_policy[outcome] = i
         heapify(eu_policy)
         self.eu_policy, self.current_eeu = eu_policy, best_eeu
@@ -667,7 +667,8 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
         )
         self.eu_policy = eu_policy
         self.outcome_in_policy = {}
-        for j, (_, indx) in enumerate(eu_policy):
+        # for j, (_, indx) in enumerate(eu_policy):
+        for _, indx in eu_policy:
             self.outcome_in_policy[indx] = (_, indx)
 
     def init_query_eeus(self) -> None:
@@ -823,7 +824,7 @@ class VOIOptimalElicitor(BaseElicitor):
             < self.reserved_value
         ):
             return False
-        outcome, query, cost = self.queries[q]
+        outcome, query, _ = self.queries[q]
         if query is None:
             return False
         self.queries[q] = (None, None, None)
@@ -910,7 +911,7 @@ class VOIOptimalElicitor(BaseElicitor):
                 ):  # ignore cases where it is impossible to go to this large j
                     continue
                 try:
-                    sjm1, sjm = s[jm - 1] if jm > 0 else 0.0, s[jm]
+                    _, sjm = s[jm - 1] if jm > 0 else 0.0, s[jm]
                     if m1 > 1e-6:
                         y = ((sk1 - sk) + m * (sjm - sk1)) / m1
                     else:

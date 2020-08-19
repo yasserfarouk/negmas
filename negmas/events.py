@@ -92,7 +92,7 @@ class Notifiable:
         """
         try:
             return self.__notification_handlers[notification_type]
-        except (ValueError, IndexError, AttributeError) as e:
+        except (ValueError, IndexError, AttributeError):
             return []
 
     def remove_handler(
@@ -133,7 +133,7 @@ class Notifiable:
                 if callback(notification, notifier):
                     break
             return True
-        except (IndexError, ValueError, AttributeError) as e:
+        except (IndexError, ValueError, AttributeError):
             self.on_notification(notification, notifier)
             return False
 

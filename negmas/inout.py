@@ -52,7 +52,7 @@ def get_domain_issues(
         List or Dict of issues
 
     """
-    issues, issues_details, mechanism = None, None, None
+    issues, issues_details = None, None
     if domain_file_name is not None:
         domain_file_name = str(domain_file_name)
         issues_details, _ = Issue.from_genius(

@@ -76,7 +76,7 @@ class EStrategy(object):
 
         """
 
-        lower, upper, outcomes = self.lower, self.upper, self.outcomes
+        lower, upper, _ = self.lower, self.upper, self.outcomes
         index = self.indices[outcome_as_tuple(outcome)]
         lower, upper = lower[index], upper[index]
         epsilon = self.resolution

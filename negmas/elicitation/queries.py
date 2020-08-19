@@ -54,7 +54,9 @@ class Constraint(ABC):
     def is_satisfied(
         self, ufun: UtilityFunction, outcomes: Optional[Iterable[Outcome]] = None
     ) -> bool:
-        ...
+        """
+        Whether or not the constraint is satisfied.
+        """
 
     def __str__(self):
         return pprint.pformat(self.__dict__)

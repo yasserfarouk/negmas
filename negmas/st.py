@@ -118,6 +118,7 @@ class VetoSTMechanism(Mechanism):
         self,
         visible_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
         show_all_offers=False,
+        **kwargs,
     ):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
@@ -140,7 +141,7 @@ class VetoSTMechanism(Mechanism):
                 self.negotiators[visible_negotiators[0]],
                 self.negotiators[visible_negotiators[1]],
             ]
-        indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
+        # indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
         history = []
         for state in self.history:
             offer = state.new_offer if show_all_offers else state.current_offer
@@ -156,7 +157,7 @@ class VetoSTMechanism(Mechanism):
         history = pd.DataFrame(data=history)
         has_history = len(history) > 0
         has_front = 1
-        n_negotiators = len(self.negotiators)
+        # n_negotiators = len(self.negotiators)
         n_agents = len(visible_negotiators)
         ufuns = self._get_ufuns()
         outcomes = self.outcomes
@@ -173,7 +174,7 @@ class VetoSTMechanism(Mechanism):
         ]
         frontier = [frontier[i] for i in frontier_indices]
         frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
-        frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
+        # frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
 
         fig_util = plt.figure()
         gs_util = gridspec.GridSpec(n_agents, has_front + 1)

@@ -502,7 +502,7 @@ class BaseElicitor(SAONegotiator):
         if len(self.offerable_outcomes) == 0:
             return None, self.reserved_value
         best, best_utility, bsf = None, self.reserved_value, self.reserved_value
-        for i, outcome in enumerate(self.offerable_outcomes):
+        for outcome in self.offerable_outcomes:
             if outcome is None:
                 continue
             utilitiy = self.offering_utility(outcome, state=state)
