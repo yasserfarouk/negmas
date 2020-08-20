@@ -13,6 +13,10 @@ from negmas import (
 )
 
 
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 def test_genius_does_not_freeze():
     from negmas.inout import load_genius_domain_from_folder
     from negmas.genius import GeniusNegotiator
