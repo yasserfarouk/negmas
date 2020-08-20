@@ -13,6 +13,33 @@ from negmas import (
 )
 
 
+def test_genius_does_not_freeze():
+    from negmas.inout import load_genius_domain_from_folder
+    from negmas.genius import GeniusNegotiator
+    from pathlib import Path
+
+    folder_name = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/cameradomain"
+    )
+    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, time_limit=1)
+    a1 = GeniusNegotiator(
+        java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
+        domain_file_name=f"{folder_name}/{mechanism.name}-domain.xml",
+        utility_file_name=ufuns[0]["ufun_name"],
+    )
+
+    a2 = GeniusNegotiator(
+        java_class_name="agents.anac.y2016.yxagent.YXAgent",
+        domain_file_name=f"{folder_name}/{mechanism.name}-domain.xml",
+        utility_file_name=ufuns[1]["ufun_name"],
+    )
+
+    mechanism.add(a1)
+    mechanism.add(a2)
+    print(mechanism.run())
+    print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+
+
 # def test_init_genius_bridge():
 #     if not genius_bridge_is_running():
 #         init_genius_bridge()
@@ -23,7 +50,7 @@ from negmas import (
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-@settings(max_examples=10)
+@settings(max_examples=10, deadline=50000)
 @given(
     agent_name1=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     agent_name2=st.sampled_from(GeniusNegotiator.robust_negotiators()),
@@ -56,7 +83,7 @@ def test_genius_agents_run_using_hypothesis(
         base_folder,
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
-        time_limit=5,
+        time_limit=1,
     )
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")
