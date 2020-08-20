@@ -105,8 +105,6 @@ def test_genius_agents_run_using_hypothesis(
     neg.add(a1)
     neg.add(a2)
     neg.run()
-    # print(f'{agent_name1} <-> {agent_name2}', end = '')
-    # print(f': {neg.run(timeout=1)}')
 
 
 @pytest.mark.skipif(
