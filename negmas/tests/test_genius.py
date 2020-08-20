@@ -330,7 +330,7 @@ def test_genius_agent_same_utility(init_genius):
         utility_file_name=util1,
     )
     a2 = GeniusNegotiator(
-        java_class_name="agents.anac.y2015.AgentX.AgentX",
+        java_class_name="agents.anac.y2015.Atlas3.Atlas3",
         domain_file_name=dom,
         utility_file_name=util2,
     )
@@ -352,12 +352,13 @@ def test_genius_agent_same_utility(init_genius):
     ]
     p.add(a1)
     p.add(a2)
-    p.run()
+    final = p.run()
     u1 = np.array([float(a1._utility_function(s.current_offer)) for s in p.history])
     u2 = np.array([float(a2._utility_function(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
     assert len(u1) == 1
-    assert welfare[0] == 2.0
+    u1, u2 = a1.ufun(final.current_offer), a2.ufun(final.current_offer)
+    welfare = u1 + u2
+    assert welfare == 2.0
     assert p.state.agreement is not None
     assert p.state.broken is False
 
@@ -488,7 +489,12 @@ class TestGeniusAgentSessions:
     def test_genius_agents_can_run_on_converted_multiple_issues_no_names(
         self, init_genius
     ):
-        neg = self.prepare(utils=(1, 1), single_issue=False, keep_issue_names=False)
+        neg = self.prepare(
+            utils=(1, 1),
+            single_issue=False,
+            keep_issue_names=False,
+            keep_value_names=False,
+        )
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
         true_frontier = [(1.0, 1.0)]
         assert len(frontier) == len(true_frontier)

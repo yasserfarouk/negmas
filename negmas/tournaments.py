@@ -726,7 +726,6 @@ def _run_worlds(
     attempts_file = None
     running_file = None
 
-    # breakpoint()
     already_done, results_path = False, None
     run_path = _path(worlds_params[0]["__dir_name"]).parent
     results_path = run_path / RESULTS_FILE
