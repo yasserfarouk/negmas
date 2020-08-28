@@ -88,7 +88,7 @@ class SAOMechanism(Mechanism):
         time_limit=None,
         step_time_limit=None,
         max_n_agents=None,
-        dynamic_entry=True,
+        dynamic_entry=False,
         keep_issue_names=None,
         outcome_type=tuple,
         cache_outcomes=True,

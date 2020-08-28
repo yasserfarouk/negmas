@@ -570,6 +570,7 @@ class TestCountableOutcomesElicitor(object):
             keep_issue_names=True,
             keep_value_names=True,
             agent_factories=lambda: AspirationNegotiator(),
+            normalize_utilities=True,
         )
         # [domain.add(LimitedOutcomesNegotiator(outcomes=n_outcomes)
         #            , ufun=_['ufun']) for _ in agents_info]
@@ -588,6 +589,7 @@ class TestCountableOutcomesElicitor(object):
             keep_issue_names=False,
             keep_value_names=False,
             agent_factories=lambda: AspirationNegotiator(),
+            normalize_utilities=True,
         )
         # [domain.add(LimitedOutcomesNegotiator(outcomes=n_outcomes)
         #            , ufun=_['ufun']) for _ in agents_info]
@@ -624,6 +626,7 @@ class TestCountableOutcomesElicitor(object):
             force_single_issue=True,
             keep_issue_names=False,
             keep_value_names=False,
+            normalize_utilities=True,
         )
         domain.add(LimitedOutcomesNegotiator(), ufun=agents_info[0]["ufun"])
         # domain.n_steps = 10

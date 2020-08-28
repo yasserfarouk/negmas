@@ -88,7 +88,11 @@ def test_simple_run_with_aspiration_agents():
     state = mechanism.run()
 
 
-def test_importing_all_without_exceptions(capsys, scenarios_folder):
+def test_encoding_decoding_all(capsys, scenarios_folder):
+    from negmas.genius import AgentX, Atlas3
+
+    # from random import sample
+
     with capsys.disabled():
         base = scenarios_folder
         nxt = 1
@@ -96,7 +100,22 @@ def test_importing_all_without_exceptions(capsys, scenarios_folder):
             if len(files) == 0 or len(dirs) != 0:
                 continue
             # print(f'{nxt:05}: Importing {root}', flush=True)
-            load_genius_domain_from_folder(root)
+            m, ufun_info, _ = load_genius_domain_from_folder(root)
+            assert m is not None
+            for info in ufun_info:
+                n1 = Atlas3(domain_file_name=f"{root}/{m.name}.xml", ufun=info["ufun"],)
+                n2 = AgentX(
+                    domain_file_name=f"{root}/{m.name}.xml",
+                    utility_file_name=info["ufun_name"],
+                )
+                m.add(n1)
+                m.add(n2)
+                u1, u2 = n1.ufun, n2.ufun
+                outcomes = m.discrete_outcomes(n_max=10)
+                for outcome in outcomes:
+                    assert abs(u1(outcome) - u2(outcome)) < 1e-3
+                n1.destroy_java_counterpart()
+                n2.destroy_java_counterpart()
             nxt += 1
 
 
