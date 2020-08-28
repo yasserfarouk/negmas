@@ -288,7 +288,12 @@ def test_genius_agent_step_long_session(init_genius):
         utility_file_name=util2,
     )
     p, _, issues = load_genius_domain(
-        dom, keep_issue_names=True, keep_value_names=True, n_steps=20, time_limit=None
+        dom,
+        keep_issue_names=True,
+        keep_value_names=True,
+        n_steps=20,
+        time_limit=None,
+        normalize_utilities=True,
     )
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
     assert issue_list == [
@@ -335,7 +340,11 @@ def test_genius_agent_same_utility(init_genius):
         utility_file_name=util2,
     )
     p, _, issues = load_genius_domain(
-        dom, keep_issue_names=True, keep_value_names=True, time_limit=30
+        dom,
+        keep_issue_names=True,
+        keep_value_names=True,
+        time_limit=30,
+        normalize_utilities=True,
     )
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
     assert issue_list == [
@@ -358,7 +367,7 @@ def test_genius_agent_same_utility(init_genius):
     assert len(u1) == 1
     u1, u2 = a1.ufun(final.current_offer), a2.ufun(final.current_offer)
     welfare = u1 + u2
-    assert welfare == 2.0
+    assert abs(welfare - 790.30) < 0.01
     assert p.state.agreement is not None
     assert p.state.broken is False
 
@@ -392,7 +401,8 @@ class TestGeniusAgentSessions:
             base_folder = src
         neg, agent_info, issues = load_genius_domain_from_folder(
             base_folder,
-            keep_issue_names=keep_issue_names,
+            normalize_utilities=True,
+            keep_issue_names=keep_value_names,
             keep_value_names=keep_value_names,
         )
         # atlas = GeniusNegotiator.random_negotiator(
@@ -400,7 +410,7 @@ class TestGeniusAgentSessions:
             java_class_name="agents.anac.y2015.Atlas3.Atlas3",
             domain_file_name=base_folder + "/Laptop-C-domain.xml",
             utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
-            keep_issue_names=keep_issue_names,
+            keep_issue_names=keep_value_names,
             keep_value_names=keep_value_names,
         )
         # agentx = GeniusNegotiator.random_negotiator(
@@ -408,7 +418,7 @@ class TestGeniusAgentSessions:
             java_class_name="agents.anac.y2015.AgentX.AgentX",
             domain_file_name=base_folder + "/Laptop-C-domain.xml",
             utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
-            keep_issue_names=keep_issue_names,
+            keep_issue_names=keep_value_names,
             keep_value_names=keep_value_names,
         )
         neg.add(atlas)
@@ -421,7 +431,9 @@ class TestGeniusAgentSessions:
     )
     def test_genius_agents_can_run_on_converted_single_issue_ufun1(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=True)
-        assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(1.0, 1.0)]
+        assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
+            (30.001554125152623, 30.001554125152623)
+        ]
         state = neg.run()
         # pprint(neg.history)
         assert neg.agreement is not None
@@ -455,7 +467,7 @@ class TestGeniusAgentSessions:
             (0.5775524426410947, 1.0),
             (1.0, 0.5136317604069089),
             (0.8059990434329689, 0.6685754732133642),
-        ]
+        ], neg.pareto_frontier(sort_by_welfare=True)[0]
 
         state = neg.run()
         # assert len(neg.history) >= 2
@@ -468,10 +480,10 @@ class TestGeniusAgentSessions:
     def test_genius_agents_can_run_on_converted_multiple_issues(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
-        true_frontier = [(1.0, 1.0)]
+        true_frontier = [(30, 30)]
         assert len(frontier) == len(true_frontier)
         for a, b in zip(frontier, true_frontier):
-            assert abs(a[0] - b[0]) < 1e-5 and abs(a[1] - b[1]) < 1e-5
+            assert abs(a[0] - b[0]) < 1 and abs(a[1] - b[1]) < 1
 
         state = neg.run()
         assert len(neg.history) < 3
@@ -496,15 +508,20 @@ class TestGeniusAgentSessions:
             keep_value_names=False,
         )
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
-        true_frontier = [(1.0, 1.0)]
+        true_frontier = [(30, 30)]
         assert len(frontier) == len(true_frontier)
         for a, b in zip(frontier, true_frontier):
-            assert abs(a[0] - b[0]) < 1e-5 and abs(a[1] - b[1]) < 1e-5
+            assert abs(a[0] - b[0]) < 1 and abs(a[1] - b[1]) < 1
 
         state = neg.run()
-        assert len(neg.history) < 3
+        assert len(neg.history) < 4, len(neg.history)
         assert neg.agreement is not None
-        assert neg.agreement == ("HP", "60 Gb", "19'' LCD")
+        # assert neg.agreement == {
+        #     "External Monitor": "19'' LCD",
+        #     "Harddisk": "60 Gb",
+        #     "Laptop": "HP",
+        # }
+        assert neg.agreement == ("HP", "60 Gb", "19'' LCD"), neg.agreement
 
     @pytest.mark.skipif(
         condition=not genius_bridge_is_running(),

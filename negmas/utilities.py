@@ -340,78 +340,73 @@ class UtilityFunction(ABC, NamedObject):
         keep_issue_names=True,
         keep_value_names=True,
         safe_parsing=True,
-        normalize_utility=True,
+        normalize_utility=False,
+        normalize_max_only=False,
         max_n_outcomes: int = 1e6,
         ignore_discount=False,
         ignore_reserved=False,
     ):
         """Imports a utility function from a GENIUS XML string.
 
-                Args:
+            Args:
 
-                    xml_str (str): The string containing GENIUS style XML utility function definition
-                    domain_issues (List[Issue]): Optional issue space to confirm that the utility function is valid
-                    force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
-                    product of all issues in the input
-                    keep_issue_names (bool): Keep names of issues
-                    keep_value_names (bool): Keep names of values
-                    safe_parsing (bool): Turn on extra checks
-                    normalize_utility (bool): Normalize the output utilities to the range from 0 to 1
-                    max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
+                xml_str (str): The string containing GENIUS style XML utility function definition
+                domain_issues (List[Issue]): Optional issue space to confirm that the utility function is valid
+                force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
+                product of all issues in the input
+                keep_issue_names (bool): Keep names of issues
+                keep_value_names (bool): Keep names of values
+                safe_parsing (bool): Turn on extra checks
+                normalize_utility (bool): Normalize the output utilities to the range from 0 to 1
+                normalize_max_only (bool): If True ensures that max(utility) = 1 but does not ensure that min(utility) = 0. and 
+                                          if false, ensures both max(utility) = 1 and min(utility) = 0
+                max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
 
-                Returns:
+            Returns:
 
-                    A utility function object (depending on the input file)
+                A utility function object (depending on the input file)
 
 
-                Examples:
+            Examples:
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...                                      , 'r').read(), force_single_issue=False
-                    ... , normalize_utility=True, keep_issue_names=False, keep_value_names=True)
-                    >>> assert abs(u(('Dell', '60 Gb', "19'' LCD")) - 0.599329436957658) < 0.1
-                    >>> assert abs(u(('HP', '80 Gb', "20'' LCD")) - 0.6342209804130308) < 0.01
-                    >>> assert abs(u(('HP', '60 Gb', "19'' LCD")) - 1.0) < 0.0001
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...                                      , 'r').read(), force_single_issue=False
+                ...                                     , normalize_utility=True
+                ...                                     , keep_issue_names=False, keep_value_names=True)
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...                                      , 'r').read()
-                    ...                                      , force_single_issue=True, normalize_utility=False)
-                    >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 21.987727736172488) < 0.000001
-                    >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 22.68559475583014) < 0.000001
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...                                      , 'r').read()
+                ...                                      , force_single_issue=True, normalize_utility=False)
+                >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 21.987727736172488) < 0.000001
+                >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 22.68559475583014) < 0.000001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...                                      , 'r').read(), force_single_issue=True
-                    ... , keep_issue_names=False, keep_value_names=False, normalize_utility=False)
-                    >>> assert abs(u((0,)) - 21.987727736172488) < 0.000001
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...                                      , 'r').read(), force_single_issue=True
+                ... , keep_issue_names=False, keep_value_names=False, normalize_utility=False)
+                >>> assert abs(u((0,)) - 21.987727736172488) < 0.000001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...                 , 'r').read(), force_single_issue=False, normalize_utility=False)
-                    >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 21.987727736172488) < 0.000001
-                    >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 22.68559475583014) < 0.000001
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...                 , 'r').read(), force_single_issue=False, normalize_utility=False)
+                >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 21.987727736172488) < 0.000001
+                >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 22.68559475583014) < 0.000001
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...                                      , 'r').read()
-                    ...                                      , force_single_issue=True, normalize_utility=True)
-                    >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 0.599329436957658) < 0.1
-                    >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 0.6342209804130308) < 0.01
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...                                      , 'r').read()
+                ...                                      , force_single_issue=True, normalize_utility=True)
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...                                      , 'r').read(), force_single_issue=True
-                    ... , keep_issue_names=False, keep_value_names=False, normalize_utility=True)
-                    >>> assert abs(u((0,)) - 0.599329436957658) < 0.1
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...                                      , 'r').read(), force_single_issue=True
+                ... , keep_issue_names=False, keep_value_names=False, normalize_utility=True)
 
-                    >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                    ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                    ...         , 'r').read(), force_single_issue=False, normalize_utility=True)
-                    >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 0.599329436957658) < 0.1
-                    >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 0.6342209804130308) < 0.01
-                    >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 1.0) < 0.0001
+                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+                ...         , 'r').read(), force_single_issue=False, normalize_utility=True)
 
         """
         root = ET.fromstring(xml_str)
@@ -474,7 +469,7 @@ class UtilityFunction(ABC, NamedObject):
                     rects.append(ranges)
             else:
                 raise ValueError(f"Unknown ufun type {utype}")
-            total_util = total_util if max_utility is None else max_utility
+            total_util = total_util if not max_utility else max_utility
             if normalize_utility:
                 for i, u in enumerate(rect_utils):
                     rect_utils[i] = u / total_util
@@ -681,11 +676,11 @@ class UtilityFunction(ABC, NamedObject):
                 else:
                     """Here goes the code for real-valued issues"""
 
-        # if not keep_issue_names:
-        #    issues = [issues[_] for _ in issues.keys()]
-        #    real_issues = [real_issues[_] for _ in sorted(real_issues.keys())]
-        #    for i, issue in enumerate(issues):
-        #        issues[i] = [issue[_] for _ in issue.keys()]
+        if not keep_issue_names:
+           issues = [issues[_] for _ in issues.keys()]
+           real_issues = [real_issues[_] for _ in sorted(real_issues.keys())]
+           for i, issue in enumerate(issues):
+               issues[i] = [issue[_] for _ in issue.keys()]
 
         if safe_parsing and (
             len(weights) > 0
@@ -708,15 +703,15 @@ class UtilityFunction(ABC, NamedObject):
         # add utilities specified not as hyper-rectangles
         u = None
         if len(issues) > 0:
-            if len(weights) > 0:
-                for key, issue in zip(ikeys(issues), ivalues(issues)):
-                    try:
-                        w = weights[issue_info[key]["index"]]
-                    except:
-                        w = 1.0
-                    for item_key in ikeys(issue):
-                        issue[item_key] *= w
             if force_single_issue:
+                if len(weights) > 0:
+                    for key, issue in zip(ikeys(issues), ivalues(issues)):
+                        try:
+                            w = weights[issue_info[key]["index"]]
+                        except:
+                            w = 1.0
+                        for item_key in ikeys(issue):
+                            issue[item_key] *= w
                 n_outcomes = None
                 if max_n_outcomes is not None:
                     n_items = [len(_) for _ in ivalues(issues)]
@@ -748,7 +743,7 @@ class UtilityFunction(ABC, NamedObject):
                 utils = map(lambda vals: sum(vals), utils)
                 if normalize_utility:
                     utils = list(utils)
-                    umax, umin = max(utils), min(utils)
+                    umax, umin = max(utils), (0.0 if normalize_max_only else min(utils))
                     if umax != umin:
                         utils = [(_ - umin) / (umax - umin) for _ in utils]
                 if keep_issue_names:
@@ -760,15 +755,30 @@ class UtilityFunction(ABC, NamedObject):
                 if normalize_utility:
                     utils = itertools.product(
                         *[
-                            [item_utility for item_utility in ivalues(items)]
+                            [
+                                item_utility * weights[issue_info[issue_key]["index"]]
+                                for item_utility in ivalues(items)
+                            ]
                             for issue_key, items in zip(ikeys(issues), ivalues(issues))
                         ]
                     )
+                    if len(weights) > 0:
+                        ws = dict()
+                        for key, issue in zip(ikeys(issues), ivalues(issues)):
+                            try:
+                                ws[key] = weights[issue_info[key]["index"]]
+                            except:
+                                ws[key] = 1.0
+                        wsum = sum(weights.values())
+                    else:
+                        ws = [1.0] * len(issues)
+                        wsum = len(issues)
+
                     utils = list(map(sum, utils))
-                    umax, umin = max(utils), min(utils)
+                    umax, umin = max(utils), (0.0 if normalize_max_only else min(utils))
                     factor = umax - umin
                     if factor > 1e-8:
-                        offset = (umin / len(issues)) / factor
+                        offset = umin / (wsum * factor)
                     else:
                         offset = 0.0
                         factor = 1.0
@@ -778,8 +788,29 @@ class UtilityFunction(ABC, NamedObject):
                                 issues[key][item_key] / factor - offset
                             )
                 if len(issues) > 1:
-                    u = LinearUtilityAggregationFunction(issue_utilities=issues)
+                    ws = dict()
+                    if len(weights) > 0:
+                        for key, issue in zip(ikeys(issues), ivalues(issues)):
+                            try:
+                                ws[key] = weights[issue_info[key]["index"]]
+                            except:
+                                ws[key] = 1.0
+
+                    if isinstance(issues, list):
+                        ws = [ws[i] for i in range(len(issues))]
+
+                    u = LinearUtilityAggregationFunction(
+                        issue_utilities=issues, weights=ws
+                    )
                 else:
+                    if len(weights) > 0:
+                        for key, issue in zip(ikeys(issues), ivalues(issues)):
+                            try:
+                                w = weights[issue_info[key]["index"]]
+                            except:
+                                w = 1.0
+                            for item_key in ikeys(issue):
+                                issue[item_key] *= w
                     first_key = list(ikeys(issues))[0]
                     if utils is None:
                         utils = ivalues(issues[first_key])
@@ -817,11 +848,23 @@ class UtilityFunction(ABC, NamedObject):
                         for key, issue in zip(ikeys(real_issues), ivalues(real_issues))
                     ]
                 )
+                if len(weights) > 0:
+                    ws = dict()
+                    for key, issue in zip(ikeys(issues), ivalues(issues)):
+                        try:
+                            ws[key] = weights[issue_info[key]["index"]]
+                        except:
+                            ws[key] = 1.0
+                    wsum = sum(weights.values())
+                else:
+                    ws = [1.0] * len(issues)
+                    wsum = len(issues)
+
                 utils = list(map(lambda vals: sum(vals), utils))
-                umax, umin = max(utils), min(utils)
+                umax, umin = max(utils), (0.0 if normalize_max_only else min(utils))
                 factor = umax - umin
                 if factor > 1e-8:
-                    offset = (umin / len(real_issues)) / factor
+                    offset = (umin / wsum) / factor
                 else:
                     offset = 0.0
                     factor = 1.0
@@ -3178,6 +3221,7 @@ def normalize(
     rng: Tuple[float, float] = (0.0, 1.0),
     epsilon: float = 1e-6,
     infeasible_cutoff: Optional[float] = None,
+    max_only: bool = False,
 ) -> UtilityFunction:
     """Normalizes a utility function to the range [0, 1]
 
@@ -3187,6 +3231,7 @@ def normalize(
         rng: range to normalize to. Default is [0, 1]
         epsilon: A small number specifying the resolution
         infeasible_cutoff: A value under which any utility is considered infeasible and is not used in normalization
+        max_only: If true, normalization is done by dividing by the max otherwise the range will be used.
 
     Returns:
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
@@ -3198,7 +3243,7 @@ def normalize(
         u = [_ for _ in u if _ > infeasible_cutoff]
     if len(u) == 0:
         return ufun
-    mx, mn = max(u), min(u)
+    mx, mn = max(u), (rng[0] if max_only else min(u))
     if abs(mx - 1.0) < epsilon and abs(mn) < epsilon:
         return ufun
     if mx == mn:
@@ -3223,7 +3268,7 @@ def normalize(
                     reserved_value=r,
                     ami=ufun.ami,
                 )
-    scale = (rng[1] - rng[0]) / (mx - mn)
+    scale = (rng[1] - rng[0]) / (mx - mn) if not max_only else (rng[1] / mx)
     r = scale * (ufun.reserved_value - mn)
     if infeasible_cutoff is not None:
         return ComplexNonlinearUtilityFunction(

@@ -99,7 +99,8 @@ def load_genius_domain(
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
-    normalize_utilities=True,
+    normalize_utilities=False,
+    normalize_max_only=False,
     n_steps=None,
     time_limit=3 * 60,  # GENIUS uses 3min time limit by default
     max_n_agents=None,
@@ -122,6 +123,7 @@ def load_genius_domain(
         keep_issue_names:
         keep_value_names:
         normalize_utilities:
+        normalize_max_only:
         n_steps:
         time_limit:
         max_n_agents:
@@ -181,6 +183,7 @@ def load_genius_domain(
             keep_issue_names=keep_issue_names,
             keep_value_names=keep_value_names,
             normalize_utility=normalize_utilities,
+            normalize_max_only=normalize_max_only,
             domain_issues=issues_details,
             safe_parsing=safe_parsing,
             max_n_outcomes=max_n_outcomes,
@@ -222,9 +225,9 @@ def load_genius_domain(
     if domain_file_name is not None:
         mechanism_name = (
             domain_file_name.split("/")[-1][:-4]
-            .replace("-domain", "")
-            .replace("_domain", "")
-            .replace("domain", "")
+            # .replace("-domain", "")
+            # .replace("_domain", "")
+            # .replace("domain", "")
         )
         mechanism = SAOMechanism(
             issues=issues,
@@ -272,7 +275,8 @@ def load_genius_domain_from_folder(
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
-    normalize_utilities=True,
+    normalize_utilities=False,
+    normalize_max_only=False,
     n_steps=None,
     time_limit=60,  # GENIUS uses 3min time limit by default
     max_n_agents=None,
@@ -294,6 +298,7 @@ def load_genius_domain_from_folder(
         keep_issue_names:
         keep_value_names:
         normalize_utilities:
+        normalize_max_only:
         n_steps:
         time_limit:
         max_n_agents:
@@ -385,6 +390,7 @@ def load_genius_domain_from_folder(
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
         normalize_utilities=normalize_utilities,
+        normalize_max_only=normalize_max_only,
         n_steps=n_steps,
         time_limit=time_limit,
         max_n_agents=max_n_agents,
@@ -425,7 +431,8 @@ def convert_genius_domain(
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
-    normalize_utilities=True,
+    normalize_utilities=False,
+    normalize_max_only=False,
     safe_parsing=False,
 ) -> bool:
     if (
@@ -476,6 +483,7 @@ def convert_genius_domain(
             keep_issue_names=keep_issue_names,
             keep_value_names=keep_value_names,
             normalize_utility=normalize_utilities,
+            normalize_max_only=normalize_max_only,
             domain_issues=issues_details,
             safe_parsing=safe_parsing,
             max_n_outcomes=max_n_outcomes,
