@@ -40,6 +40,9 @@ __all__ = [
     "YXAgent",
     "Caduceus",
     "ParsCat",
+    "ParsAgent",
+    "PonPokoAgent",
+    "RandomDance",
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
@@ -282,7 +285,9 @@ tested_negotiators = [
 ]
 
 
-def init_genius_bridge(path: str = None, port: int = 0, force: bool = False) -> bool:
+def init_genius_bridge(
+    path: str = None, port: int = 0, force: bool = False, debug: bool = False
+) -> bool:
     """Initializes a genius connection
 
     Args:
@@ -317,9 +322,14 @@ def init_genius_bridge(path: str = None, port: int = 0, force: bool = False) -> 
         )
         return False
     path = pathlib.Path(path).expanduser().absolute()
+    if debug:
+        params = " --debug"
+    else:
+        params == ""
+
     try:
         subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
-            f"java -jar {path} --die-on-exit {port}", shell=True
+            f"java -jar {path} --die-on-exit {params} {port}", shell=True
         )
     except (OSError, TimeoutError, RuntimeError, ValueError):
         return False
@@ -493,6 +503,7 @@ class GeniusNegotiator(SAONegotiator):
             ... else:
             ...     True
             True
+            >>> a.destroy_java_counterpart()
 
         """
         return self.java.create_agent(self.java_class_name)
@@ -511,6 +522,7 @@ class GeniusNegotiator(SAONegotiator):
             ... else:
             ...     print('ANAC2015-6-Atlas')
             ANAC2015-6-Atlas
+            >>> a.destroy_java_counterpart()
 
             - Testing bilateral agent
             >>> if genius_bridge_is_running():
@@ -519,6 +531,7 @@ class GeniusNegotiator(SAONegotiator):
             ... else:
             ...    print('Agent SimpleAgent')
             Agent SimpleAgent
+            >>> a.destroy_java_counterpart()
 
         """
         if port is None:
@@ -561,13 +574,13 @@ class GeniusNegotiator(SAONegotiator):
         self.issues = ami.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         if result and ami.issues is not None and self.domain_file_name is None:
-            domain_file = tempfile.NamedTemporaryFile("w", delete=False)
+            domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.domain_file_name = domain_file.name
             domain_file.write(Issue.to_xml_str(ami.issues))
             domain_file.close()
             self._temp_domain_file = True
         if result and ufun is not None and self.utility_file_name is None:
-            utility_file = tempfile.NamedTemporaryFile("w", delete=False)
+            utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
@@ -581,26 +594,32 @@ class GeniusNegotiator(SAONegotiator):
     def test(self) -> str:
         return self.java.test(self.java_class_name)
 
-    def on_negotiation_end(self, state: MechanismState) -> None:
-        """called when a negotiation is ended"""
-        super().on_negotiation_end(state)
+    def destroy_java_counterpart(self) -> None:
         if not self.__destroyed:
             if self.java is not None:
                 self.java.destroy_agent(self.java_uuid)
             self.__destroyed = True
+        # print(self.utility_file_name)
+        # print(self.domain_file_name)
+        # return
         if self._temp_ufun_file:
             try:
                 os.unlink(self.utility_file_name)
-            except FileNotFoundError:
+            except (FileNotFoundError, PermissionError):
                 pass
             self._temp_ufun_file = False
 
         if self._temp_domain_file:
             try:
                 os.unlink(self.domain_file_name)
-            except FileNotFoundError:
+            except (FileNotFoundError, PermissionError):
                 pass
             self._temp_domain_file = False
+
+    def on_negotiation_end(self, state: MechanismState) -> None:
+        """called when a negotiation is ended"""
+        super().on_negotiation_end(state)
+        self.destroy_java_counterpart()
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM.
@@ -756,3 +775,21 @@ class ParsCat(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2016.parscat.ParsCat"
         super().__init__(**kwargs)
+
+
+class ParsAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.ParsAgent.ParsAgent"
+        super().__init__(**kwargs)
+
+
+class PonPokoAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2017.ponpokoagent.PonPokoAgent"
+        super().__init__(**kwargs)
+
+
+class RandomDance(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.RandomDance.RandomDance"
+
