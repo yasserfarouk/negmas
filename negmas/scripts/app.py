@@ -673,6 +673,11 @@ def eval(ctx, path, metric, significance, compile, verbose):
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
 @click.option(
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
+)
+@click.option(
     "--significance/--no-significance",
     default=False,
     help="Whether to show significance table",
@@ -684,7 +689,7 @@ def eval(ctx, path, metric, significance, compile, verbose):
 )
 @click_config_file.configuration_option()
 @click.pass_context
-def winners(ctx, name, log, recursive, metric, significance, compile):
+def winners(ctx, name, log, recursive, metric, significance, compile,verbose):
     if len(name) == 0:
         if not recursive:
             name = ctx.obj.get("tournament_name", "")
@@ -707,7 +712,7 @@ def winners(ctx, name, log, recursive, metric, significance, compile):
         tpath = str(pathlib.Path(log))
     results = evaluate_tournament(
         tournament_path=tpath,
-        verbose=True,
+        verbose=verbose,
         recursive=recursive,
         metric=metric,
         compile=compile,
@@ -773,6 +778,11 @@ def display_results(results, metric, significance):
     "path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1,
 )
 @click.option(
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
+)
+@click.option(
     "--dest",
     "-d",
     type=click.Path(dir_okay=True, file_okay=False),
@@ -780,7 +790,7 @@ def display_results(results, metric, significance):
     default=None,
 )
 @click_config_file.configuration_option()
-def combine(path, dest):
+def combine(path, dest, verbose):
     if dest is None:
         print("Must specify the destination using --dest/-d option")
         return
@@ -788,7 +798,7 @@ def combine(path, dest):
 
     if len(tpath) < 1:
         print("No paths are given to combine")
-    combine_tournaments(sources=tpath, dest=dest, verbose=True)
+    combine_tournaments(sources=tpath, dest=dest, verbose=verbose)
 
 
 @tournament.command(help="Combine results from multiple tournaments")
@@ -812,20 +822,25 @@ def combine(path, dest):
     help="Whether to show significance table",
 )
 @click.option(
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
+)
+@click.option(
     "--compile/--show",
     default=True,
     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 )
 @click_config_file.configuration_option()
-def combine_results(path, dest, metric, significance, compile):
+def combine_results(path, dest, metric, significance, compile, verbose):
     tpath = [_path(_) for _ in path]
 
     if len(tpath) < 1:
         print("No paths are given to combine")
-    scores = combine_tournament_results(sources=tpath, dest=None, verbose=True)
-    stats = combine_tournament_stats(sources=tpath, dest=None, verbose=True)
+    scores = combine_tournament_results(sources=tpath, dest=None, verbose=verbose)
+    stats = combine_tournament_stats(sources=tpath, dest=None, verbose=verbose)
     results = evaluate_tournament(
-        dest, scores, stats, verbose=True, metric=metric, compile=compile
+        dest, scores, stats, verbose=verbose, metric=metric, compile=compile
     )
     display_results(results, metric, significance)
 
