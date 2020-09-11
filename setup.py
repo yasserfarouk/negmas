@@ -96,13 +96,12 @@ setup(
         "networkx",
         "gif",
         "py4j",
-        "dask[complete]",
-        "tenacity",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
         "visualization": ["flask", "dash", "dash-daq", "dash-bootstrap-components"],
         "gui": ["pyqt5"],
+        "dask": ["dask[complete]"],
     },
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#dependencies-that-aren-t-in-pypi
     dependency_links=[],  # Optional
