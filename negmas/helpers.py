@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     pass
 
 __all__ = [
+    "PATH",
     "shortest_unique_names",
     "create_loggers",
     # 'MultiIssueUtilityFunctionMapping',
@@ -96,6 +97,8 @@ MODULE_LOG_FILE_NAME: Dict[str, str] = dict()
 LOGS_BASE_DIR = "./logs"
 
 DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get("default_dump_extension", "json")
+
+PATH = Union[pathlib.Path, str]
 
 
 class ReturnCause(Enum):
@@ -221,6 +224,8 @@ def create_loggers(
         if len(logger.handlers) > 0:
             return logger
         logger.setLevel(logging.DEBUG)
+    else:
+        logger = logging.getLogger()
     # create formatter
     if colored and "colorlog" in sys.modules and os.isatty(2):
         date_format = "%Y-%m-%d %H:%M:%S"

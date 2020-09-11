@@ -2025,7 +2025,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         * Exception Handling *
 
         ignore_agent_exceptions: Ignore agent exceptions and keep running
-        ignore_mechanism_exceptions: If true, all mechanism exceptions are ignored and the mechanism is aborted
+        ignore_negotiation_exceptions: If true, all mechanism exceptions are ignored and the mechanism is aborted
         ignore_simulation_exceptions: Ignore simulation exceptions and keep running
         ignore_contract_execution_exceptions: Ignore contract execution exceptions and keep running
         safe_stats_monitoring: Never throw an exception for a failure to save stats or because of a Stats Monitor

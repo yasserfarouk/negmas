@@ -1,20 +1,21 @@
 """Defines import/export functionality
 """
+import pathlib
 import functools
 import operator
 import os
 import shutil
 import xml.etree.ElementTree as ET
 from os import listdir
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union, Sequence
 
 import numpy as np
-import pkg_resources
 
+from .helpers import PATH
 from .generics import ivalues
 from .negotiators import Negotiator
 from .outcomes import Issue, enumerate_outcomes
-from .sao import AspirationNegotiator, SAOMechanism
+from .sao import SAOMechanism
 from .utilities import UtilityFunction, make_discounted_ufun
 
 __all__ = [
@@ -30,7 +31,7 @@ __all__ = [
 def get_domain_issues(
     domain_file_name: str,
     force_single_issue=False,
-    max_n_outcomes: int = 1e6,
+    max_n_outcomes: int = 1_000_000,
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
@@ -87,7 +88,7 @@ def get_domain_issues(
 
 
 def load_genius_domain(
-    domain_file_name: str,
+    domain_file_name: PATH,
     utility_file_names: Optional[List[str]] = None,
     agent_factories: Optional[
         Union[Callable[[], Negotiator], List[Callable[[], Negotiator]]]
@@ -95,7 +96,7 @@ def load_genius_domain(
     force_single_issue=False,
     force_numeric=False,
     cache_and_discretize_outcomes=False,
-    max_n_outcomes: int = 1e6,
+    max_n_outcomes: int = 1_000_000,
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
@@ -271,7 +272,7 @@ def load_genius_domain_from_folder(
     force_single_issue=False,
     force_numeric=False,
     cache_and_discretize_outcomes=False,
-    max_n_outcomes: int = 1e6,
+    max_n_outcomes: int = 1_000_000,
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
@@ -314,6 +315,8 @@ def load_genius_domain_from_folder(
 
     Examples:
 
+        >>> import pkg_resources
+        >>> from negmas import *
         >>> folder_name = pkg_resources.resource_filename('negmas', resource_name='tests/data/10issues')
         >>> mechanism, negotiators, issues = load_genius_domain_from_folder(folder_name
         ...                             , force_single_issue=False, keep_issue_names=False
@@ -378,6 +381,8 @@ def load_genius_domain_from_folder(
             domain_file_name = full_name
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
+    if domain_file_name is None:
+        return None, [], []
     return load_genius_domain(
         domain_file_name=domain_file_name,
         utility_file_names=utility_file_names,
@@ -401,7 +406,7 @@ def load_genius_domain_from_folder(
     )
 
 
-def find_domain_and_utility_files(folder_name) -> Tuple[str, List[str]]:
+def find_domain_and_utility_files(folder_name,) -> Tuple[Optional[PATH], List[PATH]]:
     """Finds the domain and utility_function files in a folder
     """
     files = sorted(listdir(folder_name))
@@ -421,13 +426,13 @@ def find_domain_and_utility_files(folder_name) -> Tuple[str, List[str]]:
 
 
 def convert_genius_domain(
-    src_domain_file_name: str,
-    dst_domain_file_name: str,
-    src_utility_file_names: Optional[List[str]] = None,
-    dst_utility_file_names: Optional[List[str]] = None,
+    src_domain_file_name: Optional[PATH],
+    dst_domain_file_name: Optional[PATH],
+    src_utility_file_names: Sequence[PATH] = tuple(),
+    dst_utility_file_names: Sequence[PATH] = tuple(),
     force_single_issue=False,
     cache_and_discretize_outcomes=False,
-    max_n_outcomes: int = 1e6,
+    max_n_outcomes: int = 1_000_000,
     n_discretization: Optional[int] = None,
     keep_issue_names=True,
     keep_value_names=True,
@@ -435,6 +440,7 @@ def convert_genius_domain(
     normalize_max_only=False,
     safe_parsing=False,
 ) -> bool:
+    assert len(src_utility_file_names) == len(dst_utility_file_names)
     if (
         not force_single_issue
         and not cache_and_discretize_outcomes
@@ -443,12 +449,14 @@ def convert_genius_domain(
         and not normalize_utilities
     ):
         # no need to do anything, just copy
-        shutil.copy(src=src_domain_file_name, dst=dst_domain_file_name)
+        if src_domain_file_name and dst_domain_file_name:
+            shutil.copy(src=src_domain_file_name, dst=dst_domain_file_name)
         for src, dst in zip(src_utility_file_names, dst_utility_file_names):
             shutil.copy(src=src, dst=dst)
         return True
-    issues, issues_details, mechanism = None, None, None
-    if src_domain_file_name is not None:
+    issues, issues_details = None, None
+
+    if src_domain_file_name is not None and dst_domain_file_name is not None:
         issues_details, _ = Issue.from_genius(
             src_domain_file_name,
             force_single_issue=False,
@@ -470,12 +478,14 @@ def convert_genius_domain(
             issues = issues_details
         if issues is None:
             return False
+
         Issue.to_genius(
             issues=issues, file_name=dst_domain_file_name, enumerate_integer=True
         )
 
     if src_utility_file_names is None:
         src_utility_file_names = []
+
     for ufname, dstfname in zip(src_utility_file_names, dst_utility_file_names):
         utility, discount_factor = UtilityFunction.from_genius(
             file_name=ufname,
@@ -501,13 +511,14 @@ def convert_genius_domain(
 
 
 def convert_genius_domain_from_folder(
-    src_folder_name: str, dst_folder_name: str, **kwargs
+    src_folder_name: PATH, dst_folder_name: PATH, **kwargs,
 ) -> bool:
     """Loads a genius domain from a folder. See ``load_genius_domain`` for more details.
 
 
 
     """
+    src_folder_name = pathlib.Path(src_folder_name)
     os.makedirs(dst_folder_name, exist_ok=True)
     files = sorted(listdir(src_folder_name))
     domain_file_name = None
@@ -515,8 +526,8 @@ def convert_genius_domain_from_folder(
     for f in files:
         if not f.endswith(".xml") or f.endswith("pareto.xml"):
             continue
-        full_name = src_folder_name + "/" + f
-        root = ET.parse(full_name).getroot()
+        full_name = src_folder_name / f
+        root = ET.parse(str(full_name)).getroot()
 
         if root.tag == "negotiation_template":
             domain_file_name = full_name
@@ -532,7 +543,7 @@ def convert_genius_domain_from_folder(
             os.path.join(dst_folder_name, os.path.basename(_))
             for _ in utility_file_names
         ],
-        **kwargs
+        **kwargs,
     )
 
     if not success:

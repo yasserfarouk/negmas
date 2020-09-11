@@ -346,6 +346,7 @@ def test_genius_agent_same_utility(init_genius):
         time_limit=30,
         normalize_utilities=True,
     )
+    assert p is not None, "Could not create a mechanism"
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
     assert issue_list == [
         "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)'"
@@ -367,7 +368,7 @@ def test_genius_agent_same_utility(init_genius):
     assert len(u1) == 1
     u1, u2 = a1.ufun(final.current_offer), a2.ufun(final.current_offer)
     welfare = u1 + u2
-    assert abs(welfare - 790.30) < 0.01
+    assert abs(welfare - 790.3045545) < 0.01
     assert p.state.agreement is not None
     assert p.state.broken is False
 
@@ -395,6 +396,9 @@ class TestGeniusAgentSessions:
                 force_single_issue=True,
                 cache_and_discretize_outcomes=True,
                 n_discretization=10,
+                keep_issue_names=keep_issue_names,
+                keep_value_names=keep_value_names,
+                normalize_utilities=True,
             )
             base_folder = dst
         else:
@@ -408,18 +412,12 @@ class TestGeniusAgentSessions:
         # atlas = GeniusNegotiator.random_negotiator(
         atlas = GeniusNegotiator(
             java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-            domain_file_name=base_folder + "/Laptop-C-domain.xml",
-            utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
-            keep_issue_names=keep_value_names,
-            keep_value_names=keep_value_names,
+            ufun=agent_info[utils[0]]["ufun"],
         )
         # agentx = GeniusNegotiator.random_negotiator(
         agentx = GeniusNegotiator(
             java_class_name="agents.anac.y2015.AgentX.AgentX",
-            domain_file_name=base_folder + "/Laptop-C-domain.xml",
-            utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
-            keep_issue_names=keep_value_names,
-            keep_value_names=keep_value_names,
+            ufun=agent_info[utils[1]]["ufun"],
         )
         neg.add(atlas)
         neg.add(agentx)
@@ -432,7 +430,8 @@ class TestGeniusAgentSessions:
     def test_genius_agents_can_run_on_converted_single_issue_ufun1(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
-            (30.001554125152623, 30.001554125152623)
+            # (30.001554125152623, 30.001554125152623)
+            (1.0, 1.0)
         ]
         state = neg.run()
         # pprint(neg.history)
@@ -480,7 +479,7 @@ class TestGeniusAgentSessions:
     def test_genius_agents_can_run_on_converted_multiple_issues(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
-        true_frontier = [(30, 30)]
+        true_frontier = [(1.0, 1.0)]
         assert len(frontier) == len(true_frontier)
         for a, b in zip(frontier, true_frontier):
             assert abs(a[0] - b[0]) < 1 and abs(a[1] - b[1]) < 1
@@ -508,7 +507,7 @@ class TestGeniusAgentSessions:
             keep_value_names=False,
         )
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
-        true_frontier = [(30, 30)]
+        true_frontier = [(1.0, 1.0)]
         assert len(frontier) == len(true_frontier)
         for a, b in zip(frontier, true_frontier):
             assert abs(a[0] - b[0]) < 1 and abs(a[1] - b[1]) < 1

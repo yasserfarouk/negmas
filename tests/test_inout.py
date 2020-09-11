@@ -5,6 +5,7 @@ import pkg_resources
 import pytest
 
 from negmas import AspirationNegotiator, load_genius_domain_from_folder
+from negmas.genius import genius_bridge_is_running
 
 
 @pytest.fixture
@@ -95,28 +96,29 @@ def test_encoding_decoding_all(capsys, scenarios_folder):
 
     with capsys.disabled():
         base = scenarios_folder
-        nxt = 1
         for root, dirs, files in walk(base):
             if len(files) == 0 or len(dirs) != 0:
                 continue
             # print(f'{nxt:05}: Importing {root}', flush=True)
             m, ufun_info, _ = load_genius_domain_from_folder(root)
             assert m is not None
-            for info in ufun_info:
-                n1 = Atlas3(domain_file_name=f"{root}/{m.name}.xml", ufun=info["ufun"],)
-                n2 = AgentX(
-                    domain_file_name=f"{root}/{m.name}.xml",
-                    utility_file_name=info["ufun_name"],
-                )
-                m.add(n1)
-                m.add(n2)
-                u1, u2 = n1.ufun, n2.ufun
-                outcomes = m.discrete_outcomes(n_max=10)
-                for outcome in outcomes:
-                    assert abs(u1(outcome) - u2(outcome)) < 1e-3
-                n1.destroy_java_counterpart()
-                n2.destroy_java_counterpart()
-            nxt += 1
+            if genius_bridge_is_running():
+                for info in ufun_info:
+                    n1 = Atlas3(
+                        domain_file_name=f"{root}/{m.name}.xml", ufun=info["ufun"],
+                    )
+                    n2 = AgentX(
+                        domain_file_name=f"{root}/{m.name}.xml",
+                        utility_file_name=info["ufun_name"],
+                    )
+                    m.add(n1)
+                    m.add(n2)
+                    u1, u2 = n1.ufun, n2.ufun
+                    outcomes = m.discrete_outcomes(n_max=50)
+                    for outcome in outcomes:
+                        assert abs(u1(outcome) - u2(outcome)) < 1e-3
+                    n1.destroy_java_counterpart()
+                    n2.destroy_java_counterpart()
 
 
 def test_importing_all_single_issue_without_exceptions(capsys, scenarios_folder):
@@ -163,4 +165,3 @@ def test_convert_dir_keep_names(tmpdir):
             f"{k}:{v}"
             == """0:Laptop-Harddisk-External Monitor: ["Dell+60 Gb+19'' LCD", "Dell+60 Gb+20'' LCD", "Dell+60 Gb+23'' LCD", "Dell+80 Gb+19'' LCD", "Dell+80 Gb+20'' LCD", "Dell+80 Gb+23'' LCD", "Dell+120 Gb+19'' LCD", "Dell+120 Gb+20'' LCD", "Dell+120 Gb+23'' LCD", "Macintosh+60 Gb+19'' LCD", "Macintosh+60 Gb+20'' LCD", "Macintosh+60 Gb+23'' LCD", "Macintosh+80 Gb+19'' LCD", "Macintosh+80 Gb+20'' LCD", "Macintosh+80 Gb+23'' LCD", "Macintosh+120 Gb+19'' LCD", "Macintosh+120 Gb+20'' LCD", "Macintosh+120 Gb+23'' LCD", "HP+60 Gb+19'' LCD", "HP+60 Gb+20'' LCD", "HP+60 Gb+23'' LCD", "HP+80 Gb+19'' LCD", "HP+80 Gb+20'' LCD", "HP+80 Gb+23'' LCD", "HP+120 Gb+19'' LCD", "HP+120 Gb+20'' LCD", "HP+120 Gb+23'' LCD"]"""
         )
-
