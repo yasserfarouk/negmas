@@ -21,6 +21,7 @@ Notes:
 """
 import itertools
 import pprint
+from math import sqrt
 import random
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
@@ -36,7 +37,6 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
-    NewType,
     Optional,
     Sequence,
     Tuple,
@@ -49,7 +49,7 @@ import pkg_resources
 
 from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
-from negmas.helpers import Distribution, Floats, gmap, ikeys, snake_case
+from negmas.helpers import Distribution, Floats, gmap, ikeys, snake_case, PATH
 from negmas.java import JavaCallerMixin, to_java
 from negmas.outcomes import (
     Issue,
@@ -232,7 +232,7 @@ class UtilityFunction(ABC, NamedObject):
         return self.ami is None
 
     @classmethod
-    def from_genius(cls, file_name: str, **kwargs):
+    def from_genius(cls, file_name: PATH, **kwargs):
         """Imports a utility function from a GENIUS XML file.
 
         Args:
@@ -266,7 +266,7 @@ class UtilityFunction(ABC, NamedObject):
 
     @classmethod
     def to_genius(
-        cls, u: "UtilityFunction", issues: List[Issue], file_name: str, **kwargs
+        cls, u: "UtilityFunction", issues: List[Issue], file_name: PATH, **kwargs
     ):
         """Exports a utility function to a GENIUS XML file.
 
@@ -342,7 +342,7 @@ class UtilityFunction(ABC, NamedObject):
         safe_parsing=True,
         normalize_utility=False,
         normalize_max_only=False,
-        max_n_outcomes: int = 1e6,
+        max_n_outcomes: int = 1_000_000,
         ignore_discount=False,
         ignore_reserved=False,
     ):
@@ -358,7 +358,7 @@ class UtilityFunction(ABC, NamedObject):
                 keep_value_names (bool): Keep names of values
                 safe_parsing (bool): Turn on extra checks
                 normalize_utility (bool): Normalize the output utilities to the range from 0 to 1
-                normalize_max_only (bool): If True ensures that max(utility) = 1 but does not ensure that min(utility) = 0. and 
+                normalize_max_only (bool): If True ensures that max(utility) = 1 but does not ensure that min(utility) = 0. and
                                           if false, ensures both max(utility) = 1 and min(utility) = 0
                 max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
 
@@ -677,10 +677,10 @@ class UtilityFunction(ABC, NamedObject):
                     """Here goes the code for real-valued issues"""
 
         if not keep_issue_names:
-           issues = [issues[_] for _ in issues.keys()]
-           real_issues = [real_issues[_] for _ in sorted(real_issues.keys())]
-           for i, issue in enumerate(issues):
-               issues[i] = [issue[_] for _ in issue.keys()]
+            issues = [issues[_] for _ in issues.keys()]
+            real_issues = [real_issues[_] for _ in sorted(real_issues.keys())]
+            for i, issue in enumerate(issues):
+                issues[i] = [issue[_] for _ in issue.keys()]
 
         if safe_parsing and (
             len(weights) > 0
@@ -1313,6 +1313,65 @@ class UtilityFunction(ABC, NamedObject):
                 u1 /= u1.max()
             ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1))))
         return ufuns
+
+    @classmethod
+    def opposition_level(
+        cls,
+        ufuns=List["UtilityFunction"],
+        max_utils: Union[float, Tuple[float, float]] = 1.0,
+        outcomes: Union[int, List["Outcome"]] = None,
+        issues: List["Issue"] = None,
+        max_tests: int = 10000,
+    ) -> float:
+        """
+        Finds the opposition level of the two ufuns defined as the minimum distance to outcome (1, 1)
+
+        Args:
+            ufuns: A list of utility functions to use.
+            max_utils: A list of maximum utility value for each ufun (or a single number if they are equal).
+            outcomes: A list of outcomes (should be the complete issue space) or an integer giving the number
+                     of outcomes. In the later case, ufuns should expect a tuple of a single integer.
+            issues: The issues (only used if outcomes is None).
+            max_tests: The maximum number of outcomes to use. Only used if issues is given and has more
+                       outcomes than this value.
+
+
+        Examples:
+
+            - Opposition level of the same ufun repeated is always 0
+            >>> u1, u2 = lambda x: x[0], lambda x: x[0]
+            >>> UtilityFunction.opposition_level([u1, u2], outcomes=10, max_utils=9)
+            0.0
+
+            - Opposition level of two ufuns that are zero-sum
+            >>> u1, u2 = MappingUtilityFunction(lambda x: x[0]), MappingUtilityFunction(lambda x: 9 - x[0])
+            >>> UtilityFunction.opposition_level([u1, u2], outcomes=10, max_utils=9)
+            0.7114582486036499
+
+        """
+        if outcomes is None and issues is None:
+            raise ValueError("You must either give outcomes or issues")
+        if outcomes is None:
+            outcomes = Issue.enumerate(issues, max_n_outcomes=max_tests, astype=tuple)
+        if isinstance(outcomes, int):
+            outcomes = [(_,) for _ in range(outcomes)]
+        if not isinstance(max_utils, Iterable):
+            max_utils = [max_utils] * len(ufuns)
+        if len(ufuns) != len(max_utils):
+            raise ValueError(
+                f"Cannot use {len(ufuns)} ufuns with only {len(max_utils)} max. utility values"
+            )
+
+        nearest_val = float("inf")
+
+        for outcome in outcomes:
+            u = sum(
+                (1.0 - u(outcome) / max_util) ** 2
+                for max_util, u in zip(max_utils, ufuns)
+            )
+            if u < nearest_val:
+                nearest_val = u
+        return sqrt(nearest_val)
 
     @classmethod
     def conflict_level(

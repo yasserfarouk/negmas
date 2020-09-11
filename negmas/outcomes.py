@@ -24,6 +24,8 @@ Examples:
 
 """
 
+import sys
+import warnings
 import copy
 import itertools
 import numbers
@@ -57,7 +59,7 @@ import numpy as np
 
 from .common import NamedObject
 from .generics import ienumerate, iget, ikeys, ivalues
-from .helpers import unique_name
+from .helpers import unique_name, PATH
 from .java import PYTHON_CLASS_IDENTIFIER
 
 if TYPE_CHECKING:
@@ -173,8 +175,8 @@ class Issue(NamedObject):
             )
         # if isinstance(values, int) and values <= LARGE_NUMBER:
         #    values = list(range(values))
-        self._value_type: Type = value_type
-        self._n_values: int = float("inf")
+        self._value_type: Optional[Type] = value_type
+        self._n_values: Union[int, float] = float("inf")
         self._is_generator: bool = False
         self._is_range: bool = False
         self._is_int_range: bool = False
@@ -254,9 +256,9 @@ class Issue(NamedObject):
         self._values = values
 
         if isinstance(self._values, tuple):
-            self.min_value, self.max_value = values
+            self.min_value, self.max_value = self._values
         elif isinstance(self._values, list):
-            self.min_value, self.max_value = min(values), max(values)
+            self.min_value, self.max_value = min(self._values), max(self._values)
         else:
             self.min_value, self.max_value = min_value, max_value
 
@@ -459,7 +461,7 @@ class Issue(NamedObject):
 
     @classmethod
     def to_genius(
-        cls, issues: Iterable["Issue"], file_name: str, enumerate_integer: bool = True
+        cls, issues: Iterable["Issue"], file_name: PATH, enumerate_integer: bool = True
     ) -> None:
         """Exports a the domain issues to a GENIUS XML file.
 
@@ -525,8 +527,8 @@ class Issue(NamedObject):
         keep_issue_names=True,
         safe_parsing=True,
         n_discretization: Optional[int] = None,
-        max_n_outcomes: int = 1e6,
-    ):
+        max_n_outcomes: int = 1_000_000,
+    ) -> Tuple[Optional[List["Issue"]], Optional[List[str]]]:
         """Exports a list/dict of issues from a GENIUS XML file.
 
         Args:
@@ -655,15 +657,15 @@ class Issue(NamedObject):
             if safe_parsing:
                 raise ValueError(f"No objective child was found in the root")
             utility_space = root
-        issues = {}
+        issues_dict: Dict[Union[int, str], Any] = {}
         issue_info = {}
         all_discrete = True
 
         for child in utility_space:
             if child.tag == "issue":
                 indx = int(child.attrib["index"]) - 1
-                myname = child.attrib["name"]
-                issue_key = myname if keep_issue_names else indx
+                myname = str(child.attrib["name"])
+                issue_key: Union[int, str] = myname if keep_issue_names else indx
                 issue_info[issue_key] = {"name": myname, "index": indx}
                 info = {"type": "discrete", "etype": "discrete", "vtype": "discrete"}
 
@@ -672,7 +674,7 @@ class Issue(NamedObject):
                 mytype = info["type"]
 
                 if mytype == "discrete":
-                    issues[issue_key] = []
+                    issues_dict[issue_key] = []
 
                     for item in child:
                         if item.tag == "item":
@@ -687,52 +689,71 @@ class Issue(NamedObject):
                             )
 
                             if (
-                                item_key not in issues[issue_key]
+                                item_key not in issues_dict[issue_key]
                             ):  # ignore repeated items
-                                issues[issue_key].append(item_key)
+                                issues_dict[issue_key].append(item_key)
 
                     if not keep_value_names:
-                        issues[issue_key] = len(issues[issue_key])
+                        issues_dict[issue_key] = len(issues_dict[issue_key])
                 elif mytype in ("integer", "real"):
-                    lower, upper = (
+                    lower_, upper_ = (
                         child.attrib.get("lowerbound", None),
                         child.attrib.get("upperbound", None),
                     )
 
                     for rng_child in child:
                         if rng_child.tag == "range":
-                            lower, upper = (
-                                rng_child.attrib.get("lowerbound", lower),
-                                rng_child.attrib.get("upperbound", upper),
+                            lower_, upper_ = (
+                                rng_child.attrib.get("lowerbound", lower_),
+                                rng_child.attrib.get("upperbound", upper_),
                             )
-
+                    if lower_ is None:
+                        if upper_ is not None and float(upper_) < 0:
+                            lower_ = str(
+                                -(sys.maxsize // 2)
+                                if mytype == "integer"
+                                else float("-inf")
+                            )
+                        else:
+                            lower_ = "0"
+                    if upper_ is None:
+                        upper_ = str(
+                            (sys.maxsize // 2) if mytype == "integer" else float("-inf")
+                        )
                     if mytype == "integer":
-                        lower, upper = int(lower), int(upper)
+                        lower, upper = int(lower_), int(upper_)
 
                         if keep_value_names:
-                            issues[issue_key] = list(range(lower, upper + 1))
+                            if (upper + 1 - lower) > 1_000_000:
+                                warnings.warn(
+                                    f"Issue {issue_key} has bounds ({lower}, {upper}) which means "
+                                    f"{upper + 1 - lower} values. Consider NOT using keep_value_names"
+                                    f" to reduce memory consumption"
+                                )
+                            issues_dict[issue_key] = list(range(lower, upper + 1))
                         else:
-                            issues[issue_key] = upper - lower + 1
+                            issues_dict[issue_key] = lower, upper
                     else:
+                        lower, upper = float(lower_), float(upper_)
                         if n_discretization is None:
                             all_discrete = False
-                            issues[issue_key] = (float(lower), float(upper))
+                            issues_dict[issue_key] = lower, upper
                         else:
-                            issues[issue_key] = n_discretization
+                            issues_dict[issue_key] = n_discretization
                 else:
-                    # I should add the real-valued issues code here
+                    # I should add the real-valued issues_dict code here
                     raise ValueError(f"Unknown type: {mytype}")
             else:
                 raise ValueError(f"Unknown child for objective: {child.tag}")
 
-        for key, value in zip(ikeys(issues), ivalues(issues)):
-            issues[key] = Issue(
+        for key, value in zip(ikeys(issues_dict), ivalues(issues_dict)):
+            issues_dict[key] = Issue(
                 values=value,
                 name=issue_info[key]["name"]
                 if keep_issue_names
                 else str(issue_info[key]["index"]),
             )
-        issues = list(issues.values())
+        issues = list(issues_dict.values())
 
         if force_single_issue:
             issue_name_ = (
@@ -778,15 +799,15 @@ class Issue(NamedObject):
     @classmethod
     def from_genius(
         cls,
-        file_name: str,
+        file_name: PATH,
         force_single_issue=False,
         force_numeric=False,
         keep_value_names=True,
         keep_issue_names=True,
         safe_parsing=True,
         n_discretization: Optional[int] = None,
-        max_n_outcomes: int = 1e6,
-    ):
+        max_n_outcomes: int = 1_000_000,
+    ) -> Tuple[Optional[List["Issue"]], Optional[List[str]]]:
         """Imports a the domain issues from a GENIUS XML file.
 
         Args:
@@ -802,7 +823,10 @@ class Issue(NamedObject):
 
         Returns:
 
-            A List[Issue] or Dict[Issue]
+            A two optional lists:
+
+            - List[Issue] containing the issues
+            - List[str] containing agent names (that are sometimes stored in the genius domain)
 
 
         Examples:

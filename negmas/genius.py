@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import time
 import typing
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from py4j.java_gateway import CallbackServerParameters, GatewayParameters, JavaGateway
 from py4j.protocol import Py4JNetworkError
@@ -325,7 +325,7 @@ def init_genius_bridge(
     if debug:
         params = " --debug"
     else:
-        params == ""
+        params = ""
 
     try:
         subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
@@ -359,8 +359,8 @@ class GeniusNegotiator(SAONegotiator):
         rational_proposal=False,
         parent: Controller = None,
         port: int = None,
-        domain_file_name: str = None,
-        utility_file_name: str = None,
+        domain_file_name: Union[str, pathlib.Path] = None,
+        utility_file_name: Union[str, pathlib.Path] = None,
         keep_issue_names: bool = True,
         keep_value_names: bool = True,
         auto_load_java: bool = False,
@@ -503,7 +503,8 @@ class GeniusNegotiator(SAONegotiator):
             ... else:
             ...     True
             True
-            >>> a.destroy_java_counterpart()
+            >>> if genius_bridge_is_running():
+            ...     a.destroy_java_counterpart()
 
         """
         return self.java.create_agent(self.java_class_name)
@@ -522,7 +523,8 @@ class GeniusNegotiator(SAONegotiator):
             ... else:
             ...     print('ANAC2015-6-Atlas')
             ANAC2015-6-Atlas
-            >>> a.destroy_java_counterpart()
+            >>> if genius_bridge_is_running():
+            ...     a.destroy_java_counterpart()
 
             - Testing bilateral agent
             >>> if genius_bridge_is_running():
@@ -531,7 +533,8 @@ class GeniusNegotiator(SAONegotiator):
             ... else:
             ...    print('Agent SimpleAgent')
             Agent SimpleAgent
-            >>> a.destroy_java_counterpart()
+            >>> if genius_bridge_is_running():
+            ...     a.destroy_java_counterpart()
 
         """
         if port is None:
