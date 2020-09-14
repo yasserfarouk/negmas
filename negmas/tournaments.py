@@ -447,6 +447,7 @@ def run_world(
     save_world_stats: bool = True,
     attempts_path=None,
     max_attempts=float("inf"),
+    verbose=False,
 ) -> Tuple[
     str,
     List[str],
@@ -507,6 +508,7 @@ def run_world(
         save_world_stats=save_world_stats,
         attempts_path=attempts_path,
         max_attempts=max_attempts,
+        verbose=verbose,
     )
 
 
@@ -516,6 +518,7 @@ def run_worlds(
     save_world_stats: bool = True,
     attempts_path=None,
     max_attempts=float("inf"),
+    verbose=False,
 ) -> Tuple[
     str,
     List[str],
@@ -587,6 +590,7 @@ def run_worlds(
         save_world_stats=save_world_stats,
         attempts_path=attempts_path,
         max_attempts=max_attempts,
+        verbose=verbose,
     )
 
 
@@ -601,6 +605,7 @@ def _run_worlds(
     save_progress_every: int = 1,
     attempts_path=None,
     max_attempts=float("inf"),
+    verbose=False,
 ) -> Tuple[
     str,
     List[str],
@@ -737,9 +742,20 @@ def _run_worlds(
             type_stats = results.type_stats
             agent_stats = results.agent_stats
             already_done = True
-        except:
+        except Exception as e:
+            if verbose:
+                print(
+                    f"results file found at {str(results_path)} but could not be loaded, will re-run this world."
+                    f"\nException: {str(e)}",
+                    flush=True,
+                )
             already_done = False
     if already_done:
+        if verbose:
+            print(
+                f"results file found at {str(results_path)} and loaded successfully. Will SKIP this world",
+                flush=True,
+            )
         for world_params in worlds_params:
             dir_name = world_params["__dir_name"]
             dir_names.append(dir_name)
@@ -1168,6 +1184,7 @@ def _submit_all(
                 1,
                 attempts_path,
                 max_attempts,
+                verbose,
             )
         )
     if verbose:
@@ -1785,14 +1802,20 @@ def run_tournament(
 
     n_world_configs = len(assigned)
     n_already_done = len(run_ids)
+    n_to_run = n_world_configs - n_already_done
 
     if verbose:
         print(
-            f"Will run {n_world_configs - n_already_done} of {n_world_configs} "
-            f" ({(n_world_configs - n_already_done) / n_world_configs if n_world_configs else 0.0})"
+            f"Will run {n_to_run} of {n_world_configs} "
+            f" ({(n_to_run) / n_world_configs if n_world_configs else 0.0})"
             f" simulations ({parallelism})",
             flush=True,
         )
+    if n_to_run == 0:
+        if verbose:
+            print(f"Nothing to run. Returning!!", flush=True)
+        return
+
     if parallelism in serial_options:
         strt = time.perf_counter()
         for i, worlds_params in enumerate(assigned):
@@ -1828,6 +1851,7 @@ def run_tournament(
                     save_progress_every=1,
                     attempts_path=attempts_path,
                     max_attempts=max_attempts,
+                    verbose=verbose,
                 )
                 save_run_results(
                     run_id,
