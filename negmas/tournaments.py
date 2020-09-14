@@ -168,22 +168,22 @@ class ConfigGenerator(Protocol):
 
 class ConfigAssigner(Protocol):
     """A callback-protocol specifying the signature of a function that can be used to assign competitors to a config
-     generated using a `ConfigGenerator`
+    generated using a `ConfigGenerator`
 
-     Args:
+    Args:
 
-         config: The dict returned from the `ConfigGenerator`
-         max_n_worlds: Maximum allowed number of worlds to generate from this config
-         n_agents_per_competitor: Number of agents to instantiate for each competitor
-         competitors: A list of `Agent` types that can be used to create the competitors
-         fair: If true, each competitor must be assigned to each unique config the same number of times. If max_n_worlds
-               is None, this parameter has no effect, otherwise the nearest number of worlds to max_n_worlds that
-               guarantee fairness will be used which may be > max_n_worlds
-         params: A list of parameters to pass to the agent types
+        config: The dict returned from the `ConfigGenerator`
+        max_n_worlds: Maximum allowed number of worlds to generate from this config
+        n_agents_per_competitor: Number of agents to instantiate for each competitor
+        competitors: A list of `Agent` types that can be used to create the competitors
+        fair: If true, each competitor must be assigned to each unique config the same number of times. If max_n_worlds
+              is None, this parameter has no effect, otherwise the nearest number of worlds to max_n_worlds that
+              guarantee fairness will be used which may be > max_n_worlds
+        params: A list of parameters to pass to the agent types
 
-     See Also:
+    See Also:
 
-         `ConfigGenerator` `tournament`
+        `ConfigGenerator` `tournament`
 
     """
 
@@ -316,6 +316,24 @@ class AgentStats:
                 results[i][col] = x[col][row]
         return results
 
+    @classmethod
+    def from_records(cls, records: List[Dict[str, Any]], label: str):
+        a = cls()
+        if len(records) < 1:
+            return a
+        worlds = ""
+        for record in records:
+            for k, v in record.items():
+                if k == "world":
+                    if len(worlds) > 0:
+                        worlds += f";{v}"
+                    else:
+                        worlds += v
+                if k == label:
+                    continue
+                a.__dict__[k][record[label]] += v
+        return a
+
 
 @dataclass
 class WorldSetRunStats:
@@ -381,6 +399,25 @@ class WorldSetRunStats:
 
     def to_record(self, world):
         return [vars(self)]
+
+    @classmethod
+    def from_records(cls, records: List[Dict[str, Any]]):
+        a = cls(name="", planned_n_steps=0, executed_n_steps=0, execution_time=0.0)
+        if len(records) < 1:
+            return a
+        worlds = ""
+        for record in records:
+            for k, v in record.items():
+                if k == "name":
+                    if len(worlds) > 0:
+                        worlds += f";{v}"
+                    else:
+                        worlds += v
+                if k == label:
+                    continue
+                a.__dict__[k][record[label]] += v
+        a.name = worlds
+        return a
 
 
 @dataclass
@@ -758,12 +795,13 @@ def _run_worlds(
         try:
             results = load(results_path)
             scores = score_adapter(scores_data=results)
-            world_stats = WorldSetRunStats(**results["world_stats"])
-            type_stats = AgentStats(**results["type_stats"])
-            agent_stats = AgentStats(**results["agent_stats"])
+            world_stats = WorldSetRunStats.from_records(results["world_stats"])
+            type_stats = AgentStats.from_records(results["type_stats"], "type")
+            agent_stats = AgentStats.from_records(results["agent_stats"], "agent")
             already_done = True
         except Exception as e:
             if verbose:
+                print(traceback.format_exc())
                 print(
                     f"results file found at {str(results_path)} but could not be loaded, will re-run this world."
                     f"\nException: {str(e)}",
@@ -1072,7 +1110,9 @@ def _run_worlds(
 
 
 def process_world_run(
-    run_id: str, results: Optional[WorldRunResults], tournament_name: str,
+    run_id: str,
+    results: Optional[WorldRunResults],
+    tournament_name: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     """
     Generates a data-frame with the results of this world run
@@ -1209,7 +1249,8 @@ def _submit_all(
         )
     if verbose:
         print(
-            f"Submitted all processes ", end="",
+            f"Submitted all processes ",
+            end="",
         )
         if len(assigned) > 0:
             print(f"{len(future_results)/len(assigned):5.2%}")
@@ -2319,7 +2360,9 @@ def create_tournament(
     return tournament_path
 
 
-def compile_results(path: Union[str, PathLike, Path],):
+def compile_results(
+    path: Union[str, PathLike, Path],
+):
     path = _path(path)
     if not path.exists():
         return
