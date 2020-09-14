@@ -737,10 +737,10 @@ def _run_worlds(
     if results_path.exists():
         try:
             results = load(results_path)
-            scores = results.scores
-            world_stats = results.world_stats
-            type_stats = results.type_stats
-            agent_stats = results.agent_stats
+            scores = WorldRunResults(**results["scores"])
+            world_stats = WorldSetRunStats( **results["world_stats"] )
+            type_stats = AgentStats( **results["type_stats"] )
+            agent_stats = AgentStats(**results["agent_stats"] )
             already_done = True
         except Exception as e:
             if verbose:
