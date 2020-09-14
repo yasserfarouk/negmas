@@ -224,6 +224,26 @@ class WorldRunResults:
     """The extra-scores (i.e. extra evaluation metrics). Each is a list of records"""
 
 
+def score_adapter(scores_data: Dict[str, Any]) -> WorldRunResults:
+    world_names = (
+        [scores_data["name"]]
+        if isinstance(scores_data["name"], str)
+        else scores_data["world_names"]
+    )
+    paths = scores_data["world_paths"]
+    if isinstance(paths, str):
+        paths = paths.split(";")
+    log_file_names = paths
+    r = WorldRunResults(world_names=world_names, log_file_names=log_file_names)
+    scores = scores_data["scores"]
+    r.scores = [_["score"] for _ in scores]
+    r.names = [_["agent_name"] for _ in scores]
+    r.ids = [_["agent_id"] for _ in scores]
+    r.types = [_["agent_type"] for _ in scores]
+    r.extra_scores = scores_data["extra_scores"]
+    return r
+
+
 @dataclass
 class AgentStats:
     exceptions: Dict[str, List[Tuple[int, str]]] = field(
@@ -737,10 +757,10 @@ def _run_worlds(
     if results_path.exists():
         try:
             results = load(results_path)
-            scores = WorldRunResults(**results["scores"])
-            world_stats = WorldSetRunStats( **results["world_stats"] )
-            type_stats = AgentStats( **results["type_stats"] )
-            agent_stats = AgentStats(**results["agent_stats"] )
+            scores = score_adapter(scores_data=results)
+            world_stats = WorldSetRunStats(**results["world_stats"])
+            type_stats = AgentStats(**results["type_stats"])
+            agent_stats = AgentStats(**results["agent_stats"])
             already_done = True
         except Exception as e:
             if verbose:
