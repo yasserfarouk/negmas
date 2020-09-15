@@ -576,6 +576,7 @@ class GeniusNegotiator(SAONegotiator):
         self.issue_names = [_.name for _ in ami.issues]
         self.issues = ami.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
+        self.keep_issue_names = self.keep_value_names = ami.outcome_type == dict
         if result and ami.issues is not None and self.domain_file_name is None:
             domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.domain_file_name = domain_file.name
@@ -625,8 +626,7 @@ class GeniusNegotiator(SAONegotiator):
         self.destroy_java_counterpart()
 
     def on_negotiation_start(self, state: MechanismState) -> None:
-        """Called when the info starts. Connects to the JVM.
-        """
+        """Called when the info starts. Connects to the JVM."""
         super().on_negotiation_start(state=state)
         info = self._ami
         if self.discount is not None and self.discount != 1.0:
@@ -681,21 +681,43 @@ class GeniusNegotiator(SAONegotiator):
         """
         response, outcome = None, None
         id, typ_, bid_str = action.split(FIELD_SEP)
+        issues = self._ami.issues
+
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:
-                if self.keep_issue_names:
+                if self._ami.outcome_type == tuple:
+                    outcome = tuple(
+                        _.split(INTERNAL_SEP)[1] for _ in bid_str.split(ENTRY_SEP)
+                    )
+                    outcome = tuple(
+                        issue.value_type(v)
+                        for i, (issue, v) in enumerate(zip(issues, outcome))
+                    )
+                else:
                     outcome = {
                         _[0]: _[1]
                         for _ in [
                             _.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)
                         ]
                     }
-                else:
-                    outcome = tuple(
-                        _.split(INTERNAL_SEP)[1] for _ in bid_str.split(ENTRY_SEP)
-                    )
-            except:
-                print(f"Failed for bid string: {bid_str} of action {action}")
+                    issue_map = {i.name: i for i in issues}
+                    for k, v in outcome.items():
+                        outcome[k] = issue_map[k].value_type(v)
+                    if self._ami.outcome_type != dict:
+                        outcome = self._ami.outcome_type(
+                            **{
+                                _[0]: _[1]
+                                for _ in [
+                                    _.split(INTERNAL_SEP)
+                                    for _ in bid_str.split(ENTRY_SEP)
+                                ]
+                            }
+                        )
+            except Exception as e:
+                print(
+                    f"Failed for bid string: {bid_str} of action {action} with exception {str(e)}"
+                )
+
         if typ_ == "Offer":
             response = ResponseType.REJECT_OFFER
         elif typ_ == "Accept":
@@ -795,4 +817,4 @@ class PonPokoAgent(GeniusNegotiator):
 class RandomDance(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.RandomDance.RandomDance"
-
+        super().__init__(**kwargs)
