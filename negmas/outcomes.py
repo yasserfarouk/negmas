@@ -263,6 +263,10 @@ class Issue(NamedObject):
             self.min_value, self.max_value = min_value, max_value
 
     @property
+    def value_type(self):
+        return self._value_type
+
+    @property
     def values(self):
         return self._values
 
