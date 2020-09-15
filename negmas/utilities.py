@@ -215,6 +215,8 @@ class UtilityFunction(ABC, NamedObject):
 
     @property
     def outcome_type(self):
+        if not hasattr(self, "_outcome_type"):
+            return None
         return self._outcome_type
 
     @outcome_type.setter
