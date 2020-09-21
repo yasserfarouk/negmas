@@ -140,6 +140,8 @@ class AgentMechanismInterface:
     """The time limit in seconds for this negotiation session. None indicates infinity"""
     step_time_limit: float
     """The time limit in seconds for each step of this negotiation session. None indicates infinity"""
+    negotiator_time_limit: float
+    """The time limit in seconds to wait for negotiator responses of this negotiation session. None indicates infinity"""
     n_steps: int
     """The allowed number of steps for this negotiation. None indicates infinity"""
     dynamic_entry: bool

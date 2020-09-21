@@ -81,6 +81,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         n_steps: int = None,
         time_limit: float = None,
         step_time_limit: float = None,
+        negotiator_time_limit: float = None,
         max_n_agents: int = None,
         dynamic_entry=False,
         cache_outcomes=True,
@@ -138,6 +139,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         time_limit = time_limit if time_limit is not None else float("inf")
         step_time_limit = (
             step_time_limit if step_time_limit is not None else float("inf")
+        )
+        negotiator_time_limit = (
+            negotiator_time_limit if negotiator_time_limit is not None else float("inf")
         )
         if keep_issue_names is not None:
             warnings.warn(
@@ -227,6 +231,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             time_limit=time_limit,
             n_steps=n_steps,
             step_time_limit=step_time_limit,
+            negotiator_time_limit=negotiator_time_limit,
             dynamic_entry=dynamic_entry,
             max_n_agents=max_n_agents,
             annotation=annotation,
