@@ -7,6 +7,7 @@ least two versions
 import copy
 import itertools
 import datetime
+import socket
 import importlib
 import json
 import logging
@@ -337,7 +338,11 @@ def camel_case(
 
 
 def unique_name(
-    base: Union[pathlib.Path, str], add_time=True, rand_digits=8, sep="/"
+    base: Union[pathlib.Path, str],
+    add_time=True,
+    add_host=False,
+    rand_digits=8,
+    sep="/",
 ) -> str:
     """Return a unique name.
 
@@ -360,13 +365,14 @@ def unique_name(
 
     """
     _time, rand_part = "", ""
+    host_part = socket.gethostname() if add_host else ""
     if rand_digits > 0:
         rand_part = "".join(
             random.choices(string.digits + string.ascii_letters, k=rand_digits)
         )
     if add_time:
         _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S%f")
-    sub = _time + rand_part
+    sub = _time + host_part + rand_part
     if len(sub) == 0:
         return base
     if len(base) == 0:
