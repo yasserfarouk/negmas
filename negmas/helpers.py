@@ -4,24 +4,26 @@
 This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
+import atexit
 import copy
-import itertools
 import datetime
-import socket
 import importlib
+import itertools
 import json
 import logging
 import math
 import os
 import pathlib
-import dill as pickle
 import random
 import re
+import socket
 import string
 import sys
-from collections import defaultdict
-from enum import Enum
 import traceback
+from collections import defaultdict
+from concurrent.futures import TimeoutError
+from concurrent.futures.thread import ThreadPoolExecutor
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -36,6 +38,7 @@ from typing import (
 )
 
 import colorlog
+import dill as pickle
 import inflect
 import numpy as np
 import pandas as pd
@@ -50,6 +53,8 @@ if TYPE_CHECKING:
     pass
 
 __all__ = [
+    "TimeoutError",
+    "TimeoutCaller",
     "PATH",
     "shortest_unique_names",
     "create_loggers",
@@ -1221,3 +1226,27 @@ def add_records(
 
 def exception2str(limit=None, chain=True) -> str:
     return traceback.format_exc(limit=limit, chain=chain)
+
+
+class TimeoutCaller:
+    pool = None
+
+    @classmethod
+    def run(cls, to_run, timeout: float):
+        pool = cls.get_pool()
+        future = pool.submit(to_run)
+        return future.result(timeout)
+
+    @classmethod
+    def get_pool(cls):
+        if cls.pool is None:
+            cls.pool = ThreadPoolExecutor()
+        return cls.pool
+
+    @classmethod
+    def cleanup(cls):
+        if cls.pool is not None:
+            cls.pool.shutdown(wait=False)
+
+
+atexit.register(TimeoutCaller.cleanup)
