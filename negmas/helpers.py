@@ -21,6 +21,7 @@ import string
 import sys
 import traceback
 from collections import defaultdict
+import concurrent
 from concurrent.futures import TimeoutError
 from concurrent.futures.thread import ThreadPoolExecutor
 from enum import Enum
@@ -1235,7 +1236,12 @@ class TimeoutCaller:
     def run(cls, to_run, timeout: float):
         pool = cls.get_pool()
         future = pool.submit(to_run)
-        return future.result(timeout)
+        try:
+            result = future.result(timeout)
+            return result
+        except TimeoutError as s:
+            future.cancel()
+            raise s
 
     @classmethod
     def get_pool(cls):
@@ -1246,7 +1252,16 @@ class TimeoutCaller:
     @classmethod
     def cleanup(cls):
         if cls.pool is not None:
-            cls.pool.shutdown(wait=False)
+            try:
+                cls.pool.shutdown(wait=False)
+                for thread in cls.pool._threads:
+                    del concurrent.futures.thread._threads_queues[thread]
+            except:
+                print(
+                    "NegMAS have finished processing but there are some "
+                    "threads still hanging there!! If your program does "
+                    "not die by itself. Please press Ctrl-c to kill it"
+                )
 
 
 atexit.register(TimeoutCaller.cleanup)
