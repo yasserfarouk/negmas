@@ -233,7 +233,7 @@ def score_adapter(scores_data: Dict[str, Any]) -> WorldRunResults:
     paths = scores_data["world_paths"]
     if isinstance(paths, str):
         paths = paths.split(";")
-    log_file_names = paths
+    log_file_names = [str(pathlib.Path(_) / "log.txt") for _ in paths]
     r = WorldRunResults(world_names=world_names, log_file_names=log_file_names)
     scores = scores_data["scores"]
     r.scores = [_["score"] for _ in scores]
@@ -329,6 +329,7 @@ class AgentStats:
                         worlds += f";{v}"
                     else:
                         worlds += v
+                    continue
                 if k == label:
                     continue
                 a.__dict__[k][record[label]] += v
@@ -413,9 +414,8 @@ class WorldSetRunStats:
                         worlds += f";{v}"
                     else:
                         worlds += v
-                if k == label:
                     continue
-                a.__dict__[k][record[label]] += v
+                a.__dict__[k] += v
         a.name = worlds
         return a
 
@@ -810,10 +810,7 @@ def _run_worlds(
             already_done = False
     if already_done:
         if verbose:
-            print(
-                f"results file found at {str(results_path)} and loaded successfully. Will SKIP this world",
-                flush=True,
-            )
+            print(f"Skipping {str(results_path)}", flush=True)
         for world_params in worlds_params:
             dir_name = world_params["__dir_name"]
             dir_names.append(dir_name)
