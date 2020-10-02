@@ -578,7 +578,9 @@ class GeniusNegotiator(SAONegotiator):
         result = super().join(ami=ami, state=state, ufun=ufun, role=role)
         if self._normalize_utility:
             self._utility_function = normalize(
-                self.ufun, outcomes=ami.discrete_outcomes, max_only=self._normalize_max_only
+                self.ufun,
+                outcomes=ami.discrete_outcomes,
+                max_only=self._normalize_max_only,
             )
         self.issue_names = [_.name for _ in ami.issues]
         self.issues = ami.issues
