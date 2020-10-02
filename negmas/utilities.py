@@ -19,6 +19,7 @@ Notes:
 
 
 """
+import warnings
 import itertools
 import pprint
 from math import sqrt
@@ -1374,10 +1375,7 @@ class UtilityFunction(ABC, NamedObject):
                 for max_util, u in zip(max_utils, ufuns)
             )
             if v == float("inf"):
-                print(f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils")
-                breakpoint()
-                for u in ufuns:
-                    u(outcome)
+                warnings.warn(f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils")
             if v < nearest_val:
                 nearest_val = v
         return sqrt(nearest_val)

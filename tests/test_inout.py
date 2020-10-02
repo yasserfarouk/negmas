@@ -56,13 +56,19 @@ def test_convert_dir_no_names(tmpdir):
         src_folder_name=src,
         dst_folder_name=dst,
         force_single_issue=True,
-        cache_and_discretize_outcomes=True,
-        n_discretization=10,
+        cache_and_discretize_outcomes=False,
+        n_discretization=None,
         keep_issue_names=False,
         keep_value_names=False,
         normalize_utilities=True,
     )
-    mechanism, agent_info, issues = load_genius_domain_from_folder(dst)
+    mechanism, agent_info, issues = load_genius_domain_from_folder(
+        dst,
+        keep_value_names=True,
+        keep_issue_names=True,
+        normalize_utilities=False,
+        force_single_issue=False,
+    )
     assert len(issues) == 1
     for k, v in enumerate(issues):
         assert (
