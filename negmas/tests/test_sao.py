@@ -27,7 +27,7 @@ exception_str = "Custom Exception"
 
 
 class MyRaisingNegotiator(AspirationNegotiator):
-    def propose(self, state):
+    def counter(self, state, offer):
         raise ValueError(exception_str)
 
 

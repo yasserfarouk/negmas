@@ -23,7 +23,7 @@ from .inout import get_domain_issues
 from .negotiators import Controller
 from .outcomes import Issue, ResponseType
 from .sao import SAONegotiator, SAOState, SAOResponse
-from .utilities import UtilityFunction, make_discounted_ufun
+from .utilities import UtilityFunction, make_discounted_ufun, normalize
 
 DEFAULT_JAVA_PORT = 25337
 DEFAULT_PYTHON_PORT = 25338
@@ -219,17 +219,17 @@ all_party_based_agents = [
 
 agent_based_negotiators = []
 party_based_negotiators = [
-    # 'agents.ai2014.group12.Group12',
-    # 'agents.ai2014.group7.Group7',
-    # 'agents.ai2014.group9.Group9',
-    # 'agents.ai2014.group1.Group1',
-    # 'agents.ai2014.group6.Group6',
-    # 'agents.ai2014.group11.Group11',
-    # 'agents.ai2014.group10.Group10',
-    # 'agents.ai2014.group3.Group3',
-    # 'agents.ai2014.group4.Group4',
-    # 'agents.ai2014.group5.Group5',
-    # 'agents.ai2014.group2.Group2',
+    "agents.ai2014.group12.Group12",
+    "agents.ai2014.group7.Group7",
+    "agents.ai2014.group9.Group9",
+    "agents.ai2014.group1.Group1",
+    "agents.ai2014.group6.Group6",
+    "agents.ai2014.group11.Group11",
+    "agents.ai2014.group10.Group10",
+    "agents.ai2014.group3.Group3",
+    "agents.ai2014.group4.Group4",
+    "agents.ai2014.group5.Group5",
+    "agents.ai2014.group2.Group2",
     "agents.anac.y2015.Mercury.Mercury",
     "agents.anac.y2015.RandomDance.RandomDance",
     "agents.anac.y2015.cuhkagent2015.CUHKAgent2015",
@@ -240,7 +240,7 @@ party_based_negotiators = [
     "agents.anac.y2015.pokerface.PokerFace",
     "agents.anac.y2015.agenth.AgentH",
     "agents.anac.y2015.ParsAgent.ParsAgent",
-    # 'agents.anac.y2015.JonnyBlack.JonnyBlack',
+    "agents.anac.y2015.JonnyBlack.JonnyBlack",
     "agents.anac.y2015.AresParty.AresParty",
     "agents.anac.y2015.fairy.kawaii",
     "agents.anac.y2015.Atlas3.Atlas3",
@@ -248,16 +248,17 @@ party_based_negotiators = [
     "agents.anac.y2015.AgentNeo.Groupn",
     "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
     "agents.anac.y2015.AgentX.AgentX",
-    # 'agents.anac.y2015.pnegotiator.BayesLearner',
-    # 'agents.anac.y2015.pnegotiator.PNegotiator',
-    # 'agents.anac.y2015.group2.Group2',
+    "agents.anac.y2015.group2.Group2",
     "agents.anac.y2017.tucagent.TucAgent",
     "agents.anac.y2017.agentf.AgentF",
+    "agents.anac.y2017.farma.Farma17",
+    "agents.anac.y2017.caduceusdc16.CaduceusDC16",
     "agents.anac.y2017.ponpokoagent.PonPokoAgent",
     "agents.anac.y2017.tangxun.taxibox",
     "agents.anac.y2016.terra.Terra",
     "agents.anac.y2016.grandma.GrandmaAgent",
     "agents.anac.y2016.clockworkagent.ClockworkAgent",
+    "agents.anac.y2016.parscat.ParsCat",
     "agents.anac.y2016.caduceus.Caduceus",
     "agents.anac.y2016.caduceus.agents.RandomDance.RandomDance",
     "agents.anac.y2016.caduceus.agents.kawaii.kawaii",
@@ -270,12 +271,10 @@ party_based_negotiators = [
     "agents.anac.y2016.farma.Farma",
     "agents.anac.y2016.syagent.SYAgent",
     "agents.anac.y2016.ngent.Ngent",
-    "agents.anac.y2016.parscat.ParsCat",
     "agents.anac.y2016.atlas3.Atlas32016",
     "agents.anac.y2016.agentsmith.AgentSmith2016",
     "agents.anac.y2016.myagent.MyAgent",
 ]
-
 tested_negotiators = [
     "agents.anac.y2015.Atlas3.Atlas3",
     "agents.anac.y2015.AgentX.AgentX",
@@ -364,6 +363,8 @@ class GeniusNegotiator(SAONegotiator):
         keep_issue_names: bool = True,
         keep_value_names: bool = True,
         auto_load_java: bool = False,
+        normalize_utility: bool = False,
+        normalize_max_only: bool = False,
         can_propose=True,
         genius_bridge_path: str = None,
         name: str = None,
@@ -375,6 +376,8 @@ class GeniusNegotiator(SAONegotiator):
         self.java = None
         self.java_class_name = java_class_name
         self.port = port
+        self._normalize_utility = normalize_utility
+        self._normalize_max_only = normalize_max_only
         self.connected = self._connect(
             path=genius_bridge_path, port=self.port, auto_load_java=auto_load_java
         )
@@ -573,6 +576,10 @@ class GeniusNegotiator(SAONegotiator):
         if ufun is None:
             ufun = self.__ufun_received
         result = super().join(ami=ami, state=state, ufun=ufun, role=role)
+        if self._normalize_utility:
+            self._utility_function = normalize(
+                self.ufun, outcomes=ami.discrete_outcomes, max_only=self._normalize_max_only
+            )
         self.issue_names = [_.name for _ in ami.issues]
         self.issues = ami.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
