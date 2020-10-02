@@ -615,11 +615,13 @@ class UtilityFunction(ABC, NamedObject):
                                     domain_all[0], int
                                 ):
                                     item_name = str(item_name)
+                            # TODO check that this casting is correct
                             if mytype == "integer":
                                 item_key = int(item_key)
-                            issues[issue_key][item_key] = float(
-                                item.attrib.get("evaluation", reserved_value)
-                            )
+                            val = item.attrib.get("evaluation", None)
+                            if val is None:
+                                raise ValueError(f"Item {item_key} of issue {issue_name} has not evaluation attribute!!")
+                            issues[issue_key][item_key] = float(val)
                             found_values = True
                         elif item.tag == "evaluator":
                             if item.attrib["ftype"] == "linear":
@@ -931,7 +933,7 @@ class UtilityFunction(ABC, NamedObject):
         elif issubclass(self.outcome_type, tuple):
             offer = outcome_as_tuple(offer)
         elif issubclass(self.outcome_type, dict):
-            offer = outcome_as_dict(offer)
+            offer = outcome_as_dict(offer, self.issue_names)
         else:
             if isinstance(offer, dict):
                 offer = self.outcome_type(**offer)
@@ -1365,14 +1367,19 @@ class UtilityFunction(ABC, NamedObject):
             )
 
         nearest_val = float("inf")
-
+        assert not any(_< 1e-7 for _ in max_utils), f"max-utils : {max_utils}"
         for outcome in outcomes:
-            u = sum(
+            v = sum(
                 (1.0 - u(outcome) / max_util) ** 2
                 for max_util, u in zip(max_utils, ufuns)
             )
-            if u < nearest_val:
-                nearest_val = u
+            if v == float("inf"):
+                print(f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils")
+                breakpoint()
+                for u in ufuns:
+                    u(outcome)
+            if v < nearest_val:
+                nearest_val = v
         return sqrt(nearest_val)
 
     @classmethod
@@ -1582,8 +1589,8 @@ class UtilityFunction(ABC, NamedObject):
         errors = [i for i, u in enumerate(utils) if u is None]
         if len(errors) > 0:
             raise ValueError(
-                f"UFun returnd None for some outcomes\n"
-                f"outcomes {[outcomes[e] for e in errors]}\n"
+                f"UFun returnd None for {len(errors) / len(utils):03%} outcomes\n"
+                # f"outcomes {[outcomes[e] for e in errors]}\n"
             )
         # if there are no outcomes return zeros for utils
         if len(utils) == 0:
