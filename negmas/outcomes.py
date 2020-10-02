@@ -41,6 +41,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Optional,
     Collection,
     Dict,
     Generator,
@@ -48,7 +49,6 @@ from typing import (
     List,
     Mapping,
     NewType,
-    Optional,
     Sequence,
     Tuple,
     Type,
@@ -1246,6 +1246,8 @@ class Issue(NamedObject):
 
 
         """
+        if astype is None:
+            astype = dict
         n_total = num_outcomes(issues)
 
         if (
@@ -1329,6 +1331,50 @@ class Issue(NamedObject):
         return f"{self.name}: {self._values}"
 
     __repr__ = __str__
+
+    @classmethod
+    def combine(
+        cls,
+        issues: Iterable["Issue"],
+        issue_name="combined",
+        keep_issue_names=True,
+        keep_value_names=True,
+        issue_sep="_",
+        value_sep="-",
+    ) -> Optional["Issue"]:
+        """
+        Combines multiple issues into a single issue
+
+        Args:
+            issues: The issues to be combined
+            issue_name: used only if `keep_issue_names` is False
+            keep_issue_names: If true, the final issue name will be a
+                              concatenation of issue names separated by `issue_sep`
+                              otherwise `issue_name` will be used.
+            keep_value_names: If true, the values for the generated issue
+                              will be a concatenation of values from earlier
+                              issues separated by `value_sep`.
+            issue_sep: Separator for the issue name (used only if `keep_issue_names`)
+            value_sep: Separator for the issue name (used only if `keep_value_names`)
+
+        Remarks:
+
+            - Only works if the issues have finite cardinality
+
+        """
+        n_outcomes = cls.num_outcomes(issues)
+        if n_outcomes == float("inf"):
+            return None
+        if keep_issue_names:
+            issue_name = issue_sep.join([_.name for _ in issues])
+        if keep_value_names:
+            values = [
+                value_sep.join([str(_) for _ in outcome])
+                for outcomes in cls.enumerate(issues, astype=tuple)
+            ]
+        else:
+            values = n_outcomes
+        return Issue(name=issue_name, values=values)
 
     def __hash__(self):
         return hash(str(self))
@@ -2133,7 +2179,7 @@ def outcome_as_dict(outcome: "Outcome", issue_names: List[str] = None):
 
     if issue_names is not None:
         return dict(zip(issue_names, outcome))
-
+    warnings.warn(f"Outcome {outcome} is converted to a dict without issue names!!")
     return dict(zip((str(_) for _ in range(len(outcome))), outcome))
 
 
