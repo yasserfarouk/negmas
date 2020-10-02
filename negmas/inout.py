@@ -405,13 +405,13 @@ def load_genius_domain_from_folder(
         ignore_discount=ignore_discount,
     )
 
-
-def find_domain_and_utility_files(folder_name,) -> Tuple[Optional[PATH], List[PATH]]:
+def find_domain_and_utility_files(folder_name) -> Tuple[Optional[PATH], List[PATH]]:
     """Finds the domain and utility_function files in a folder
     """
     files = sorted(listdir(folder_name))
     domain_file_name = None
     utility_file_names = []
+    folder_name = str(folder_name)
     for f in files:
         if not f.endswith(".xml") or f.endswith("pareto.xml"):
             continue
