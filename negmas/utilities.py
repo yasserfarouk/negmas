@@ -309,10 +309,7 @@ class UtilityFunction(ABC, NamedObject):
     def to_xml_str(
         cls, u: "UtilityFunction", issues: List[Issue], discount_factor=None
     ) -> str:
-        """Exports a utility function to a well formatted string
-
-
-        """
+        """Exports a utility function to a well formatted string"""
         if issues is not None:
             n_issues = len(issues)
         else:
@@ -351,65 +348,65 @@ class UtilityFunction(ABC, NamedObject):
     ):
         """Imports a utility function from a GENIUS XML string.
 
-            Args:
+        Args:
 
-                xml_str (str): The string containing GENIUS style XML utility function definition
-                domain_issues (List[Issue]): Optional issue space to confirm that the utility function is valid
-                force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
-                product of all issues in the input
-                keep_issue_names (bool): Keep names of issues
-                keep_value_names (bool): Keep names of values
-                safe_parsing (bool): Turn on extra checks
-                normalize_utility (bool): Normalize the output utilities to the range from 0 to 1
-                normalize_max_only (bool): If True ensures that max(utility) = 1 but does not ensure that min(utility) = 0. and
-                                          if false, ensures both max(utility) = 1 and min(utility) = 0
-                max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
+            xml_str (str): The string containing GENIUS style XML utility function definition
+            domain_issues (List[Issue]): Optional issue space to confirm that the utility function is valid
+            force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
+            product of all issues in the input
+            keep_issue_names (bool): Keep names of issues
+            keep_value_names (bool): Keep names of values
+            safe_parsing (bool): Turn on extra checks
+            normalize_utility (bool): Normalize the output utilities to the range from 0 to 1
+            normalize_max_only (bool): If True ensures that max(utility) = 1 but does not ensure that min(utility) = 0. and
+                                      if false, ensures both max(utility) = 1 and min(utility) = 0
+            max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
 
-            Returns:
+        Returns:
 
-                A utility function object (depending on the input file)
+            A utility function object (depending on the input file)
 
 
-            Examples:
+        Examples:
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...                                      , 'r').read(), force_single_issue=False
-                ...                                     , normalize_utility=True
-                ...                                     , keep_issue_names=False, keep_value_names=True)
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                      , 'r').read(), force_single_issue=False
+            ...                                     , normalize_utility=True
+            ...                                     , keep_issue_names=False, keep_value_names=True)
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...                                      , 'r').read()
-                ...                                      , force_single_issue=True, normalize_utility=False)
-                >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 21.987727736172488) < 0.000001
-                >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 22.68559475583014) < 0.000001
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                      , 'r').read()
+            ...                                      , force_single_issue=True, normalize_utility=False)
+            >>> assert abs(u(("Dell+60 Gb+19'' LCD",)) - 21.987727736172488) < 0.000001
+            >>> assert abs(u(("HP+80 Gb+20'' LCD",)) - 22.68559475583014) < 0.000001
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...                                      , 'r').read(), force_single_issue=True
-                ... , keep_issue_names=False, keep_value_names=False, normalize_utility=False)
-                >>> assert abs(u((0,)) - 21.987727736172488) < 0.000001
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                      , 'r').read(), force_single_issue=True
+            ... , keep_issue_names=False, keep_value_names=False, normalize_utility=False)
+            >>> assert abs(u((0,)) - 21.987727736172488) < 0.000001
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...                 , 'r').read(), force_single_issue=False, normalize_utility=False)
-                >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 21.987727736172488) < 0.000001
-                >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 22.68559475583014) < 0.000001
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                 , 'r').read(), force_single_issue=False, normalize_utility=False)
+            >>> assert abs(u({'Laptop': 'Dell', 'Harddisk': '60 Gb', 'External Monitor': "19'' LCD"}) - 21.987727736172488) < 0.000001
+            >>> assert abs(u({'Laptop': 'HP', 'Harddisk': '80 Gb', 'External Monitor': "20'' LCD"}) - 22.68559475583014) < 0.000001
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...                                      , 'r').read()
-                ...                                      , force_single_issue=True, normalize_utility=True)
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                      , 'r').read()
+            ...                                      , force_single_issue=True, normalize_utility=True)
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...                                      , 'r').read(), force_single_issue=True
-                ... , keep_issue_names=False, keep_value_names=False, normalize_utility=True)
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                      , 'r').read(), force_single_issue=True
+            ... , keep_issue_names=False, keep_value_names=False, normalize_utility=True)
 
-                >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
-                ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-                ...         , 'r').read(), force_single_issue=False, normalize_utility=True)
+            >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...         , 'r').read(), force_single_issue=False, normalize_utility=True)
 
         """
         root = ET.fromstring(xml_str)
@@ -621,7 +618,9 @@ class UtilityFunction(ABC, NamedObject):
                                 item_key = int(item_key)
                             val = item.attrib.get("evaluation", None)
                             if val is None:
-                                raise ValueError(f"Item {item_key} of issue {issue_name} has not evaluation attribute!!")
+                                raise ValueError(
+                                    f"Item {item_key} of issue {issue_name} has not evaluation attribute!!"
+                                )
                             issues[issue_key][item_key] = float(val)
                             found_values = True
                         elif item.tag == "evaluator":
@@ -1185,11 +1184,11 @@ class UtilityFunction(ABC, NamedObject):
     def eu(self, offer: "Outcome") -> Optional[float]:
         """Calculate the expected utility value.
 
-            Args:
-                offer: The offer to be evaluated.
+        Args:
+            offer: The offer to be evaluated.
 
-            Returns:
-                float: The expected utility value for UFuns that return a distribution and just utility value for real-valued utilities.
+        Returns:
+            float: The expected utility value for UFuns that return a distribution and just utility value for real-valued utilities.
 
         """
         v = self(offer)
@@ -1368,14 +1367,16 @@ class UtilityFunction(ABC, NamedObject):
             )
 
         nearest_val = float("inf")
-        assert not any(_< 1e-7 for _ in max_utils), f"max-utils : {max_utils}"
+        assert not any(abs(_) < 1e-7 for _ in max_utils), f"max-utils : {max_utils}"
         for outcome in outcomes:
             v = sum(
                 (1.0 - u(outcome) / max_util) ** 2
                 for max_util, u in zip(max_utils, ufuns)
             )
             if v == float("inf"):
-                warnings.warn(f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils")
+                warnings.warn(
+                    f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils"
+                )
             if v < nearest_val:
                 nearest_val = v
         return sqrt(nearest_val)
@@ -1556,6 +1557,7 @@ class UtilityFunction(ABC, NamedObject):
         outcomes: Collection[Outcome] = None,
         infeasible_cutoff: Optional[float] = None,
         return_outcomes=False,
+        max_n_outcomes=1000,
     ) -> Union[
         Tuple[UtilityValue, UtilityValue],
         Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
@@ -1568,6 +1570,8 @@ class UtilityFunction(ABC, NamedObject):
             outcomes: A collection of outcomes (optional)
             infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
             return_outcomes: If true, will also return an outcome for min and max utils
+            max_n_outcomes: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
+                            given)
 
         Returns:
             UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
@@ -1577,7 +1581,7 @@ class UtilityFunction(ABC, NamedObject):
         if outcomes is None:
             outcomes = Issue.sample(
                 issues,
-                n_outcomes=len(issues) * 100,
+                n_outcomes=max_n_outcomes,
                 with_replacement=True,
                 fail_if_not_enough=False,
                 astype=self.outcome_type,
@@ -1930,7 +1934,7 @@ class LinearUtilityFunction(UtilityFunction):
         return sum(w * v for w, v in zip(self.weights, offer))
 
     def xml(self, issues: List[Issue]) -> str:
-        """ Generates an XML string representing the utility function
+        """Generates an XML string representing the utility function
 
         Args:
             issues:
@@ -1991,6 +1995,7 @@ class LinearUtilityFunction(UtilityFunction):
         outcomes: Collection[Outcome] = None,
         infeasible_cutoff: Optional[float] = None,
         return_outcomes=False,
+        max_n_outcomes=1000,
     ) -> Union[
         Tuple[UtilityValue, UtilityValue],
         Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
@@ -2020,7 +2025,7 @@ class LinearUtilityFunction(UtilityFunction):
                 )
             return u[0][0], u[-1][0]
         return super().utility_range(
-            issues, outcomes, infeasible_cutoff, return_outcomes
+            issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
         )
 
 
@@ -2143,7 +2148,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         return u
 
     def xml(self, issues: List[Issue]) -> str:
-        """ Generates an XML string representing the utility function
+        """Generates an XML string representing the utility function
 
         Args:
             issues:
@@ -2255,6 +2260,56 @@ class LinearUtilityAggregationFunction(UtilityFunction):
 
     def __str__(self):
         return f"u: {self.issue_utilities}\n w: {self.weights}"
+
+    def utility_range(
+        self,
+        issues: List[Issue] = None,
+        outcomes: Collection[Outcome] = None,
+        infeasible_cutoff: Optional[float] = None,
+        return_outcomes=False,
+        max_n_outcomes=1000,
+    ) -> Union[
+        Tuple[UtilityValue, UtilityValue],
+        Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
+    ]:
+        # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
+
+        # TODO test this method and add other methods for utility operations
+        if issues is not None:
+            uranges, vranges = [], []
+            for issue in issues:
+                u = self.issue_utilities[issue.name]
+                mx, mn = float("-inf"), float("inf")
+                mxv, mnv = None, None
+                for v in issue.alli(n=max_n_outcomes):
+                    uval = u(v)
+                    if uval >= mx:
+                        mx, mxv = uval, v
+                    if uval < mn:
+                        mn, mnv = uval, v
+                vranges.append((mnv, mxv))
+                uranges.append((mn, mx))
+
+            best_outcome, worst_outcome = [], []
+            best_util, worst_util = 0.0, 0.0
+            for w, urng, vrng in zip(self.weights.values(), uranges, vranges):
+                if w > 0:
+                    best_util += w * urng[1]
+                    best_outcome.append(vrng[1])
+                    worst_util += w * urng[0]
+                    worst_outcome.append(vrng[0])
+                else:
+                    best_util += w * urng[0]
+                    best_outcome.append(vrng[0])
+                    worst_util += w * urng[1]
+                    worst_outcome.append(vrng[1])
+
+            if return_outcomes:
+                return (worst_util, best_util, worst_outcome, best_outcome)
+            return worst_util, best_util
+        return super().utility_range(
+            issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
+        )
 
 
 class MappingUtilityFunction(UtilityFunction):
@@ -2707,11 +2762,11 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
     """A utility function defined as a set of outcome_ranges.
 
 
-     Args:
-            hypervolumes: see `HyperRectangleUtilityFunction`
-            mappings: see `HyperRectangleUtilityFunction`
-            f: A nonlinear function to combine the results of `mappings`
-            name: name of the utility function. If None a random name will be generated
+    Args:
+           hypervolumes: see `HyperRectangleUtilityFunction`
+           mappings: see `HyperRectangleUtilityFunction`
+           f: A nonlinear function to combine the results of `mappings`
+           name: name of the utility function. If None a random name will be generated
     """
 
     def xml(self, issues: List[Issue]) -> str:
@@ -2750,14 +2805,14 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
 
 
 class ComplexWeightedUtilityFunction(UtilityFunction):
-    """ A utility function composed of linear aggregation of other utility functions
+    """A utility function composed of linear aggregation of other utility functions
 
-        Args:
-            ufuns: An iterable of utility functions
-            weights: Weights used for combination
-            name: Utility function name
+    Args:
+        ufuns: An iterable of utility functions
+        weights: Weights used for combination
+        name: Utility function name
 
-        """
+    """
 
     def __init__(
         self,
@@ -2827,7 +2882,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
 
 
 class ComplexNonlinearUtilityFunction(UtilityFunction):
-    """ A utility function composed of nonlinear aggregation of other utility functions
+    """A utility function composed of nonlinear aggregation of other utility functions
 
     Args:
         ufuns: An iterable of utility functions
@@ -3406,6 +3461,7 @@ def utility_range(
     outcomes: Collection[Outcome] = None,
     infeasible_cutoff: Optional[float] = None,
     return_outcomes=False,
+    max_n_outcomes=1000,
 ) -> Union[
     Tuple[UtilityValue, UtilityValue],
     Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
@@ -3418,9 +3474,12 @@ def utility_range(
         outcomes: A collection of outcomes (optional)
         infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
         return_outcomes: If true, returns an outcome with the min and another with the max utility
-
+        max_n_outcomes: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
+                        given)
     Returns:
         Minumum utility, maximum utility (and if return_outcomes, an outcome at each)
 
     """
-    return ufun.utility_range(issues, outcomes, infeasible_cutoff, return_outcomes)
+    return ufun.utility_range(
+        issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
+    )
