@@ -223,6 +223,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             )
 
         self.id = str(uuid.uuid4())
+        _imap = dict(zip((_.name for _ in __issues), range(len(__issues))))
+        _imap.update(dict(zip(range(len(__issues)), (_.name for _ in __issues))))
         self.ami = AgentMechanismInterface(
             id=self.id,
             n_outcomes=None if outcomes is None else len(outcomes),
@@ -236,6 +238,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             max_n_agents=max_n_agents,
             annotation=annotation,
             outcome_type=dict if keep_issue_names else tuple,
+            imap=_imap,
         )
         self.ami._mechanism = self
 

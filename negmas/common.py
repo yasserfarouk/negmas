@@ -148,9 +148,10 @@ class AgentMechanismInterface:
     """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
     max_n_agents: int
     """Maximum allowed number of agents in the session. None indicates no limit"""
+    imap: Dict[Union[str, int], Union[str, int]]
+    """A map that translates issue names to indices and issue indices to names"""
     annotation: Dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `Dict[str, Any]` that is always available for all agents"""
-
     _mechanism = None
 
     def random_outcomes(

@@ -1145,7 +1145,9 @@ class Issue(NamedObject):
             )
 
         if max_n_outcomes is not None and n > max_n_outcomes:
-            values = sample_outcomes(issues=issues, n_outcomes=max_n_outcomes, astype=tuple)
+            values = sample_outcomes(
+                issues=issues, n_outcomes=max_n_outcomes, astype=tuple
+            )
         else:
             values = enumerate_outcomes(issues, astype=tuple)
         if issubclass(astype, tuple):
@@ -1857,7 +1859,7 @@ def sample_outcomes(
                 outcomes += outcomes[:n_rem]
 
             return outcomes
-    n_per_issue = 1 + int(n_outcomes ** (1/len(issues)) )
+    n_per_issue = 1 + int(n_outcomes ** (1 / len(issues)))
     vals = []
     n_found = 1
     for issue in issues:
@@ -1870,7 +1872,7 @@ def sample_outcomes(
         vals.append(issue.alli(n=n_per_issue))
         n_found *= n_per_issue
         if n_found > n_outcomes:
-            n_per_issue=1
+            n_per_issue = 1
     outcomes = itertools.product(*vals)
     if issubclass(astype, tuple):
         return list(outcomes)[:n_outcomes]
@@ -1878,7 +1880,7 @@ def sample_outcomes(
     outcomes = list(dict(zip(names, o)) for o in outcomes)[:n_outcomes]
     if issubclass(astype, dict):
         return outcomes
-    return  [astype(*o) for o in outcomes]
+    return [astype(*o) for o in outcomes]
 
 
 def _is_single(x):
