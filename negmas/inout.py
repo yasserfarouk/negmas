@@ -405,6 +405,7 @@ def load_genius_domain_from_folder(
         ignore_discount=ignore_discount,
     )
 
+
 def find_domain_and_utility_files(folder_name) -> Tuple[Optional[PATH], List[PATH]]:
     """Finds the domain and utility_function files in a folder
     """
