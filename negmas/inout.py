@@ -109,6 +109,7 @@ def load_genius_domain(
     safe_parsing=False,
     ignore_reserved=False,
     ignore_discount=False,
+    **kwargs,
 ) -> Tuple[Optional[SAOMechanism], List[dict], Union[Dict[str, Issue], List[Issue]]]:
     """
     Loads a genius domain, creates appropriate negotiators if necessary
@@ -132,6 +133,7 @@ def load_genius_domain(
         safe_parsing:
         ignore_reserved:
         ignore_discount:
+        kwargs: Extra arguments to pass verbatim to SAOMechanism constructor
 
     Returns:
         - mechanism (SAOMechanism): A mechanism for the given issues
@@ -239,7 +241,7 @@ def load_genius_domain(
             dynamic_entry=dynamic_entry,
             name=mechanism_name,
             outcome_type=dict if keep_issue_names else tuple,
-            enable_callbacks=True,
+            **kwargs,
         )
         if agent_info is not None and len(agent_info) > 0:
             for info in agent_info:
@@ -285,6 +287,7 @@ def load_genius_domain_from_folder(
     safe_parsing=False,
     ignore_reserved=False,
     ignore_discount=False,
+    **kwargs,
 ) -> Tuple[Optional[SAOMechanism], List[dict], Union[Dict[str, Issue], List[Issue]]]:
     """
     Loads a genius domain from a folder. See ``load_genius_domain`` for more details.
@@ -307,6 +310,7 @@ def load_genius_domain_from_folder(
         safe_parsing:
         ignore_reserved:
         ignore_discount:
+        kwargs: other arguments to pass to SAOMechanism constructor verbatim
 
     Returns:
         - mechanism (SAOMechanism): A mechanism for the given issues
@@ -403,6 +407,7 @@ def load_genius_domain_from_folder(
         safe_parsing=safe_parsing,
         ignore_reserved=ignore_reserved,
         ignore_discount=ignore_discount,
+        **kwargs
     )
 
 
