@@ -1,4 +1,5 @@
-"""Provides interfaces for defining negotiation mechanisms.
+"""
+Provides interfaces for defining negotiation mechanisms.
 """
 import pprint
 import random
