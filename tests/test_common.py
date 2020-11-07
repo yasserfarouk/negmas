@@ -37,7 +37,6 @@ class MyEntity(NamedObject):
 def test_checkpoint(
     tmp_path, exist_ok, with_name, with_info, single_checkpoint, step_attribs
 ):
-
     x = WithStep()
 
     fname = unique_name("abc", rand_digits=10, add_time=True, sep=".")

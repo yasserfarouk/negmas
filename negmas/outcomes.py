@@ -1,4 +1,5 @@
-"""Defines basic concept related to outcomes
+"""
+Defines basic concepts related to outcomes
 
 Outcomes in this package are always assumed to be multi-issue outcomes where  single-issue outcomes can be implemented
 as the special case with a single issue.
@@ -30,7 +31,6 @@ import copy
 import itertools
 import numbers
 import random
-import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass, fields
@@ -48,7 +48,6 @@ from typing import (
     Iterable,
     List,
     Mapping,
-    NewType,
     Sequence,
     Tuple,
     Type,

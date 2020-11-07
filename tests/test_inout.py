@@ -30,7 +30,7 @@ def test_reading_writing_linear_ufun(tmp_path):
         assert isinstance(ufun, LinearUtilityAggregationFunction)
         dst = tmp_path / "tmp.xml"
         print(dst)
-        UtilityFunction.to_genius(ufun, issues, dst)
+        UtilityFunction.to_genius(ufun, issues=issues, file_name=dst)
         ufun2, _ = UtilityFunction.from_genius(dst)
         assert isinstance(ufun2, LinearUtilityAggregationFunction)
         for outcome in Issue.enumerate(issues):
@@ -39,7 +39,7 @@ def test_reading_writing_linear_ufun(tmp_path):
 
 def test_importing_file_without_exceptions(scenarios_folder):
     folder_name = scenarios_folder + "/other/S-1NIKFRT-1"
-    domain = load_genius_domain_from_folder(folder_name, n_discretization=10)
+    load_genius_domain_from_folder(folder_name, n_discretization=10)
     # print(domain)
 
 
