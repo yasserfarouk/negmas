@@ -407,7 +407,7 @@ def load_genius_domain_from_folder(
         safe_parsing=safe_parsing,
         ignore_reserved=ignore_reserved,
         ignore_discount=ignore_discount,
-        **kwargs
+        **kwargs,
     )
 
 

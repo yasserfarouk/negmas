@@ -19,7 +19,6 @@ from ..common import AgentMechanismInterface, MechanismState
 from ..events import Event
 from ..mechanisms import Mechanism, MechanismRoundResult
 from ..outcomes import Outcome, ResponseType, outcome_is_complete
-from ..utilities import UtilityFunction
 from ..helpers import exception2str, TimeoutCaller, TimeoutError
 
 __all__ = [
@@ -33,10 +32,12 @@ class SAOMechanism(Mechanism):
     Implements Several variants of the Stacked Alternating Offers Protocol
 
     Args:
-        issues: A list of issues defining the outcome-space of the negotiation (See `outcomes`).
-                Only one of `issues` and `outcomes` can be passed (the other must be `None`)
-        outcomes: A list of outcomes defining the outcome-space of the negotiation (See `issues`).
-                  Only one of `issues` and `outcomes` can be passed (the other must be `None`)
+        issues: A list of issues defining the outcome-space of the negotiation
+                (See `outcomes`).  Only one of `issues` and `outcomes` can be
+                passed (the other must be `None`)
+        outcomes: A list of outcomes defining the outcome-space of the negotiation
+                  (See `issues`).  Only one of `issues` and `outcomes` can be
+                  passed (the other must be `None`)
         n_steps: The maximum number of negotiaion rounds (see `time_limit` )
         time_limit: The maximum wall-time allowed for the negotiation (see `n_steps`)
         step_time_limit: The maximum wall-time allowed for a single negotiation round.
@@ -92,7 +93,7 @@ class SAOMechanism(Mechanism):
         keep_issue_names=None,
         outcome_type=tuple,
         cache_outcomes=True,
-        max_n_outcomes: int = 1000000,
+        max_n_outcomes: int = 1_000_000,
         annotation: Optional[Dict[str, Any]] = None,
         end_on_no_response=False,
         publish_proposer=True,
@@ -106,8 +107,6 @@ class SAOMechanism(Mechanism):
         max_wait: int = sys.maxsize,
         **kwargs,
     ):
-        """
-        """
         super().__init__(
             issues=issues,
             outcomes=outcomes,
@@ -218,7 +217,7 @@ class SAOMechanism(Mechanism):
                     if n.id == _:
                         tmp.append(n)
         else:
-            visible_negotiators = [
+            vnegotiators = [
                 self.negotiators[visible_negotiators[0]],
                 self.negotiators[visible_negotiators[1]],
             ]
@@ -233,19 +232,19 @@ class SAOMechanism(Mechanism):
                         "offer_index": self.outcomes.index(o),
                         "relative_time": state.relative_time,
                         "step": state.step,
-                        "u0": visible_negotiators[0].utility_function(o),
-                        "u1": visible_negotiators[1].utility_function(o),
+                        "u0": vnegotiators[0].utility_function(o),
+                        "u1": vnegotiators[1].utility_function(o),
                     }
                 )
         history = pd.DataFrame(data=history)
         has_history = len(history) > 0
         has_front = 1
         # n_negotiators = len(self.negotiators)
-        n_agents = len(visible_negotiators)
+        n_agents = len(vnegotiators)
         ufuns = self._get_ufuns()
         outcomes = self.outcomes
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
-        agent_names = [a.name for a in visible_negotiators]
+        agent_names = [a.name for a in vnegotiators]
         if has_history:
             history["offer_index"] = [outcomes.index(_) for _ in history.current_offer]
         frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
@@ -303,7 +302,7 @@ class SAOMechanism(Mechanism):
                 break
             if has_history:
                 h = history.loc[
-                    history.current_proposer == visible_negotiators[a].id,
+                    history.current_proposer == vnegotiators[a].id,
                     ["relative_time", "offer_index", "current_offer"],
                 ]
                 h["utility"] = h["current_offer"].apply(ufuns[a])
@@ -364,7 +363,7 @@ class SAOMechanism(Mechanism):
             if plot_utils and has_history:
                 for a in range(n_agents):
                     h = history.loc[
-                        history.current_proposer == visible_negotiators[a].id,
+                        history.current_proposer == vnegotiators[a].id,
                         ["relative_time", "offer_index", "current_offer"],
                     ]
                     h["u0"] = h["current_offer"].apply(ufuns[0])
