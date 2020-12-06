@@ -32,10 +32,6 @@ if typing.TYPE_CHECKING:
     from .outcomes import Outcome
 
 __all__ = [
-    "GeniusNegotiator",  # Most abstract kind of agent
-    "init_genius_bridge",
-    "genius_bridge_is_running",
-    "Atlas3",
     "AgentX",
     "YXAgent",
     "Caduceus",
@@ -43,6 +39,49 @@ __all__ = [
     "ParsAgent",
     "PonPokoAgent",
     "RandomDance",
+    "BetaOne",
+    "MengWan",
+    "AgreeableAgent2018",
+    "Rubick",
+    "CaduceusDC16",
+    "Terra",
+    "AgentHP2",
+    "GrandmaAgent",
+    "Ngent",
+    "Atlas32016",
+    "MyAgent",
+    "Farma",
+    "PokerFace",
+    "XianFaAgent",
+    "PhoenixParty",
+    "AgentBuyong",
+    "Kawaii",
+    "Atlas3",
+    "AgentYK",
+    "KGAgent",
+    "E2Agent",
+    "Group2",
+    "WhaleAgent",
+    "DoNA",
+    "AgentM",
+    "TMFAgent",
+    "MetaAgent",
+    "TheNegotiatorReloaded",
+    "OMACagent",
+    "AgentLG",
+    "CUHKAgent",
+    "ValueModelAgent",
+    "NiceTitForTat",
+    "TheNegotiator",
+    "AgentK2",
+    "BRAMAgent",
+    "IAMhaggler2011",
+    "Gahboninho",
+    "HardHeaded",
+    "GeniusNegotiator",  # Most abstract kind of agent
+    "init_genius_bridge",
+    "genius_bridge_is_running",
+    "GENIUS_INFO",
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
@@ -52,6 +91,203 @@ common_port: int = 0
 java_process = None
 python_port: int = 0
 
+GENIUS_INFO = {
+    2011: {
+        "winners": [
+            [("HardHeaded", "agents.anac.y2011.HardHeaded.KLH")],
+            [("Gahboninho", "agents.anac.y2011.Gahboninho.Gahboninho")],
+            [("IAMhaggler2011", "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011")],
+            [("BRAMAgent", "agents.anac.y2011.BramAgent.BRAMAgent")],
+            [("AgentK2", "agents.anac.y2011.AgentK2.Agent_K2")],
+            [("TheNegotiator", "agents.anac.y2011.TheNegotiator.TheNegotiator")],
+            [("NiceTitForTat", "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat")],
+            [("ValueModelAgent", "agents.anac.y2011.ValueModelAgent.ValueModelAgent")],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": False,
+        "discounting": True,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2012: {
+        "winners": [
+            [
+                (
+                    "CUHKAgent",
+                    "agents.anac.y2013.MetaAgent.portfolio.CUHKAgent.CUHKAgent",
+                )
+            ],
+            [("AgentLG", "agents.anac.y2013.MetaAgent.portfolio.AgentLG.AgentLG")],
+            [
+                (
+                    "OMACagent",
+                    "agents.anac.y2013.MetaAgent.portfolio.OMACagent.OMACagent",
+                ),
+                (
+                    "TheNegotiatorReloaded",
+                    "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent",
+                ),
+            ],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": True,
+        "discounting": True,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2013: {
+        "winners": [
+            [("TheFawkes", "agents.anac.y2013.TheFawkes.TheFawkes")],
+            [
+                (
+                    "MetaAgent",
+                    "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent",
+                )
+            ],
+            [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
+        ],
+        "linear": True,
+        "learning": True,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": True,
+        "discounting": True,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2014: {
+        "winners": [
+            [("AgentM", "agents.anac.y2014.AgentM.AgentM")],
+            [("DoNA", "agents.anac.y2014.DoNA.DoNA")],
+            [("WhaleAgent", "agents.anac.y2014.AgentWhale.WhaleAgent")],
+            [("Group2", "agents.ai2014.group2.Group2")],
+            [("E2Agent", "agents.anac.y2014.E2Agent.AnacSampleAgent")],
+            [("KGAgent", "agents.anac.y2014.KGAgent.KGAgent")],
+            [("AgentYK", "agents.anac.y2014.AgentYK.AgentYK")],
+            [("BraveCat", "agents.anac.y2014.BraveCat.necessaryClasses.BOAagent")],
+        ],
+        "linear": False,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2015: {
+        "winners": [
+            [("Atlas3", "agents.anac.y2015.Atlas3.Atlas3")],
+            [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
+            [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
+            [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
+            [
+                (
+                    "AgentBuyong",
+                    "agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong",
+                )
+            ],
+            [("PhoenixParty", "agents.anac.y2015.Phoenix.PhoenixParty")],
+            [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
+            [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": True,
+        "bilateral": False,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2016: {
+        "winners": [
+            [("Caduceus", "agents.anac.y2016.caduceus.Caduceus")],
+            [
+                ("YXAgent", "agents.anac.y2016.yxagent.YXAgent"),
+                ("ParsCat", "agents.anac.y2016.parscat.ParsCat"),
+            ],
+            [("Farma", "agents.anac.y2017.farma.Farma17")],
+            [("MyAgent", "agents.anac.y2016.myagent.MyAgent")],
+            [("Atlas32016", "agents.anac.y2016.atlas3.Atlas32016")],
+            [("Ngent", "agents.anac.y2016.ngent.Ngent")],
+            [("GrandmaAgent", "agents.anac.y2016.grandma.GrandmaAgent")],
+            [("AgentHP2", "agents.anac.y2016.agenthp2.AgentHP2_main")],
+            [("Terra", "agents.anac.y2016.terra.Terra")],
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": True,
+        "bilateral": False,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2017: {
+        "winners": [
+            [("PonPokoAgent", "agents.anac.y2017.ponpokoagent.PonPokoAgent")],
+            [("CaduceusDC16", "agents.anac.y2017.caduceusdc16.CaduceusDC16")],
+            [("Rubick", "agents.anac.y2017.rubick.Rubick")],
+        ],
+        "linear": True,
+        "learning": True,
+        "multilateral": True,
+        "bilateral": False,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2018: {
+        "winners": [
+            [
+                (
+                    "AgreeableAgent2018",
+                    "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
+                )
+            ],
+            [("MengWan", "agents.anac.y2018.meng_wan.Agent36")],
+            [("BetaOne", "agents.anac.y2018.beta_one.Group2")],
+        ],
+        "linear": True,
+        "learning": True,
+        "multilateral": True,
+        "bilateral": False,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": False,
+        "elicitation": False,
+    },
+    2019: {
+        "winners": ["AgentGG", "KakeSoba", "SAGA"],
+        "linear": True,
+        "learning": True,
+        "multilateral": True,
+        "bilateral": False,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": True,
+        "elicitation": False,
+    },
+    2020: {
+        "winners": [],
+        "linear": True,
+        "learning": True,
+        "multilateral": True,
+        "bilateral": False,
+        "reservation": None,
+        "discounting": None,
+        "uncertainty": True,
+        "elicitation": True,
+    },
+}
 
 all_agent_based_agents = [
     "agents.TestingAgent",
@@ -72,6 +308,7 @@ all_agent_based_agents = [
     "agents.FuzzyAgent",
     "agents.TAgent",
     "agents.anac.y2013.AgentKF.AgentKF",
+    "agents.anac.y2013.TheFawkes.TheFawkes",
     "agents.anac.y2013.MetaAgent.portfolio.BRAMAgent2.BRAMAgent2",
     "agents.anac.y2013.MetaAgent.portfolio.IAMhaggler2012.agents2011.SouthamptonAgent",
     "agents.anac.y2013.MetaAgent.portfolio.OMACagent.OMACagent",
@@ -132,7 +369,7 @@ all_agent_based_agents = [
     "agents.anac.y2011.AgentK2.Agent_K2",
     "agents.anac.y2011.BramAgent.BRAMAgent",
     "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
-    "agents.anac.y2011.Nice_Tit_for_Tat.BilateralAgent",
+    "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat",
     "agents.BayesianAgent",
     "agents.ABMPAgent2",
     "agents.QOAgent",
@@ -217,7 +454,92 @@ all_party_based_agents = [
     "agents.anac.y2016.myagent.MyAgent",
 ]
 
-agent_based_negotiators = []
+agent_based_negotiators = [
+    "agents.TestingAgent",
+    "agents.SimpleANAC2013Agent",
+    "agents.UIAgentExtended",
+    "agents.SimilarityAgent",
+    "agents.OptimalBidderU",
+    "agents.TestAgent",
+    "agents.SimpleTFTAgent",
+    "agents.BayesianAgentForAuction",
+    "agents.ABMPAgent",
+    "agents.RandomIncreasingUtilAgent",
+    "agents.OptimalBidder",
+    "agents.SimpleAgentSavingBidHistory",
+    "agents.SimpleAgent",
+    "agents.UIAgent",
+    "agents.DecUtilAgent",
+    "agents.FuzzyAgent",
+    "agents.TAgent",
+    "agents.anac.y2013.AgentKF.AgentKF",
+    "agents.anac.y2013.TheFawkes.TheFawkes",
+    "agents.anac.y2013.MetaAgent.portfolio.BRAMAgent2.BRAMAgent2",
+    "agents.anac.y2013.MetaAgent.portfolio.IAMhaggler2012.agents2011.SouthamptonAgent",
+    "agents.anac.y2013.MetaAgent.portfolio.OMACagent.OMACagent",
+    "agents.anac.y2013.MetaAgent.portfolio.AgentLG.AgentLG",
+    "agents.anac.y2013.MetaAgent.portfolio.AgentMR.AgentMR",
+    "agents.anac.y2013.MetaAgent.portfolio.CUHKAgent.CUHKAgent",
+    "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent",
+    "agents.anac.y2013.MetaAgent.MetaAgent2013",
+    "agents.anac.y2013.GAgent.AgentI",
+    "agents.anac.y2013.SlavaAgent.SlavaAgent",
+    "agents.anac.y2013.TMFAgent.TMFAgent",
+    "agents.anac.y2014.DoNA.DoNA",
+    "agents.anac.y2014.DoNA.ClearDefaultStrategy",
+    "agents.anac.y2014.AgentQuest.AgentQuest",
+    "agents.anac.y2014.BraveCat.necessaryClasses.BOAagent",
+    "agents.anac.y2014.Gangster.Gangster",
+    "agents.anac.y2014.Aster.Aster",
+    "agents.anac.y2014.AgentTRP.AgentTRP",
+    "agents.anac.y2014.E2Agent.AnacSampleAgent",
+    "agents.anac.y2014.Sobut.Sobut",
+    "agents.anac.y2014.AgentYK.AgentYK",
+    "agents.anac.y2014.KGAgent.KGAgent",
+    "agents.anac.y2014.SimpaticoAgent.Simpatico",
+    "agents.anac.y2014.Atlas.Atlas",
+    "agents.anac.y2014.AgentTD.AgentTD",
+    "agents.anac.y2014.ArisawaYaki.ArisawaYaki",
+    "agents.anac.y2014.Flinch.Flinch",
+    "agents.anac.y2014.AgentWhale.WhaleAgent",
+    "agents.anac.y2014.AgentM.AgentM",
+    "agents.anac.y2012.BRAMAgent2.BRAMAgent2",
+    "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
+    "agents.anac.y2012.OMACagent.OMACagent",
+    "agents.anac.y2012.AgentLG.AgentLG",
+    "agents.anac.y2012.MetaAgent.agents.GYRL.GYRL",
+    "agents.anac.y2012.MetaAgent.agents.ShAgent.ShAgent",
+    "agents.anac.y2012.MetaAgent.agents.Chameleon.Chameleon",
+    "agents.anac.y2012.MetaAgent.agents.SimpleAgentNew.SimpleAgentNew",
+    "agents.anac.y2012.MetaAgent.agents.LYY.LYYAgent",
+    "agents.anac.y2012.MetaAgent.agents.WinnerAgent.WinnerAgent2",
+    "agents.anac.y2012.MetaAgent.agents.DNAgent.DNAgent",
+    "agents.anac.y2012.MetaAgent.agents.MrFriendly.MrFriendly",
+    "agents.anac.y2012.MetaAgent.MetaAgent",
+    "agents.anac.y2012.AgentMR.AgentMR",
+    "agents.anac.y2012.CUHKAgent.CUHKAgent",
+    "agents.anac.y2017.geneking.GeneKing",
+    "agents.anac.y2010.AgentFSEGA.AgentFSEGA",
+    "agents.anac.y2010.Yushu.Yushu",
+    "agents.anac.y2010.Nozomi.Nozomi",
+    "agents.anac.y2010.AgentSmith.AgentSmith",
+    "agents.anac.y2010.Southampton.SouthamptonAgentNoExtras",
+    "agents.anac.y2010.Southampton.SouthamptonAgentExtrasInterface",
+    "agents.anac.y2010.Southampton.SouthamptonAgent",
+    "agents.anac.y2010.AgentK.Agent_K",
+    "agents.anac.y2011.TheNegotiator.TheNegotiator",
+    "agents.anac.y2011.ValueModelAgent.ValueModelAgent",
+    "agents.anac.y2011.HardHeaded.KLH",
+    "agents.anac.y2011.Gahboninho.Gahboninho",
+    "agents.anac.y2011.AgentK2.Agent_K2",
+    "agents.anac.y2011.BramAgent.BRAMAgent",
+    "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
+    "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat",
+    "agents.BayesianAgent",
+    "agents.ABMPAgent2",
+    "agents.QOAgent",
+    "agents.SimpleAgt2",
+]
 party_based_negotiators = [
     "agents.ai2014.group12.Group12",
     "agents.ai2014.group7.Group7",
@@ -510,7 +832,10 @@ class GeniusNegotiator(SAONegotiator):
             ...     a.destroy_java_counterpart()
 
         """
-        return self.java.create_agent(self.java_class_name)
+        aid =  self.java.create_agent(self.java_class_name)
+        if not aid:
+            raise ValueError(f"Cannot initialized {self.java_class_name}")
+        return aid
 
     def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
         """
@@ -607,9 +932,16 @@ class GeniusNegotiator(SAONegotiator):
     def test(self) -> str:
         return self.java.test(self.java_class_name)
 
-    def destroy_java_counterpart(self) -> None:
+    def destroy_java_counterpart(self, state = None) -> None:
         if not self.__destroyed:
             if self.java is not None:
+                self.java.on_negotiation_end(
+                    self.java_uuid,
+                    None if state is None else
+                    self._outcome2str(state.agreement)
+                    if state.agreement is not None
+                    else None,
+                )
                 self.java.destroy_agent(self.java_uuid)
             self.__destroyed = True
         # print(self.utility_file_name)
@@ -632,7 +964,7 @@ class GeniusNegotiator(SAONegotiator):
     def on_negotiation_end(self, state: MechanismState) -> None:
         """called when a negotiation is ended"""
         super().on_negotiation_end(state)
-        self.destroy_java_counterpart()
+        self.destroy_java_counterpart(state)
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM."""
@@ -654,25 +986,36 @@ class GeniusNegotiator(SAONegotiator):
         if n_steps * n_seconds > 0:
             # n_seconds take precedence
             n_steps = -1
-        self.java.on_negotiation_start(
-            self.java_uuid,  # java_uuid
-            info.n_negotiators,  # number of agents
-            n_steps,
-            n_seconds,
-            n_seconds > 0,
-            self.domain_file_name,  # domain file
-            self.utility_file_name,  # Negotiator file
-        )
+        try:
+            self.java.on_negotiation_start(
+                self.java_uuid,  # java_uuid
+                info.n_negotiators,  # number of agents
+                n_steps,
+                n_seconds,
+                n_seconds > 0,
+                self.domain_file_name,  # domain file
+                self.utility_file_name,  # Negotiator file
+            )
+        except Exception as e:
+            raise ValueError(f"Cannot start negotiation: {str(e)}")
 
     def counter(self, state: MechanismState, offer: Optional["Outcome"]):
         if offer is not None:
-            self.java.receive_message(
-                self.java_uuid,
-                state.current_proposer,
-                "Offer",
-                self._outcome2str(offer),
-            )
-        response, outcome = self.parse(self.java.choose_action(self.java_uuid))
+            try:
+                self.java.receive_message(
+                    self.java_uuid,
+                    state.current_proposer,
+                    "Offer",
+                    self._outcome2str(offer),
+                )
+            except Exception as e:
+                self.destroy_java_counterpart(self.ami.state)
+                raise e
+        try:
+            response, outcome = self.parse(self.java.choose_action(self.java_uuid))
+        except Exception as e:
+            self.destroy_java_counterpart(self.ami.state)
+            raise e
         self._my_last_offer = outcome
         return SAOResponse(response, outcome)
 
@@ -799,21 +1142,9 @@ class AgentX(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
-class Atlas3(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2015.Atlas3.Atlas3"
-        super().__init__(**kwargs)
-
-
 class ParsCat(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2016.parscat.ParsCat"
-        super().__init__(**kwargs)
-
-
-class ParsAgent(GeniusNegotiator):
-    def __init__(self, **kwargs):
-        kwargs["java_class_name"] = "agents.anac.y2015.ParsAgent.ParsAgent"
         super().__init__(**kwargs)
 
 
@@ -823,7 +1154,269 @@ class PonPokoAgent(GeniusNegotiator):
         super().__init__(**kwargs)
 
 
+class HardHeaded(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.HardHeaded.KLH"
+        super().__init__(**kwargs)
+
+
+class Gahboninho(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.Gahboninho.Gahboninho"
+        super().__init__(**kwargs)
+
+
+class IAMhaggler2011(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011"
+        super().__init__(**kwargs)
+
+
+class BRAMAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.BramAgent.BRAMAgent"
+        super().__init__(**kwargs)
+
+
+class AgentK2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.AgentK2.Agent_K2"
+        super().__init__(**kwargs)
+
+
+class TheNegotiator(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.TheNegotiator.TheNegotiator"
+        super().__init__(**kwargs)
+
+
+class NiceTitForTat(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.Nice_Tit_for_Tat.NiceTitForTat"
+        super().__init__(**kwargs)
+
+
+class ValueModelAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2011.ValueModelAgent.ValueModelAgent"
+        super().__init__(**kwargs)
+
+
+class CUHKAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2013.MetaAgent.portfolio.CUHKAgent.CUHKAgent"
+        super().__init__(**kwargs)
+
+
+class AgentLG(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2013.MetaAgent.portfolio.AgentLG.AgentLG"
+        super().__init__(**kwargs)
+
+
+class OMACagent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2013.MetaAgent.portfolio.OMACagent.OMACagent"
+        super().__init__(**kwargs)
+
+
+class TheNegotiatorReloaded(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent"
+        super().__init__(**kwargs)
+
+
+class MetaAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent"
+        super().__init__(**kwargs)
+
+
+class TMFAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2013.TMFAgent.TMFAgent"
+        super().__init__(**kwargs)
+
+
+class AgentM(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2014.AgentM.AgentM"
+        super().__init__(**kwargs)
+
+
+class DoNA(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2014.DoNA.DoNA"
+        super().__init__(**kwargs)
+
+
+class WhaleAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2014.AgentWhale.WhaleAgent"
+        super().__init__(**kwargs)
+
+
+class Group2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.ai2014.group2.Group2"
+        super().__init__(**kwargs)
+
+
+class E2Agent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2014.E2Agent.AnacSampleAgent"
+        super().__init__(**kwargs)
+
+
+class KGAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2014.KGAgent.KGAgent"
+        super().__init__(**kwargs)
+
+
+class AgentYK(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2014.AgentYK.AgentYK"
+        super().__init__(**kwargs)
+
+
+class BraveCat(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2014.BraveCat.necessaryClasses.BOAagent"
+        super().__init__(**kwargs)
+
+
+class Atlas3(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.Atlas3.Atlas3"
+        super().__init__(**kwargs)
+
+
+class ParsAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.ParsAgent.ParsAgent"
+        super().__init__(**kwargs)
+
+
 class RandomDance(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2015.RandomDance.RandomDance"
+        super().__init__(**kwargs)
+
+
+class Kawaii(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.fairy.kawaii"
+        super().__init__(**kwargs)
+
+
+class AgentBuyong(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong"
+        super().__init__(**kwargs)
+
+
+class PhoenixParty(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.Phoenix.PhoenixParty"
+        super().__init__(**kwargs)
+
+
+class XianFaAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.xianfa.XianFaAgent"
+        super().__init__(**kwargs)
+
+
+class PokerFace(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2015.pokerface.PokerFace"
+        super().__init__(**kwargs)
+
+
+class Farma(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2017.farma.Farma17"
+        super().__init__(**kwargs)
+
+
+class MyAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.myagent.MyAgent"
+        super().__init__(**kwargs)
+
+
+class Atlas32016(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.atlas3.Atlas32016"
+        super().__init__(**kwargs)
+
+
+class Ngent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.ngent.Ngent"
+        super().__init__(**kwargs)
+
+
+class GrandmaAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.grandma.GrandmaAgent"
+        super().__init__(**kwargs)
+
+
+class AgentHP2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.agenthp2.AgentHP2_main"
+        super().__init__(**kwargs)
+
+
+class Terra(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2016.terra.Terra"
+        super().__init__(**kwargs)
+
+
+class CaduceusDC16(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2017.caduceusdc16.CaduceusDC16"
+        super().__init__(**kwargs)
+
+
+class Rubick(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2017.rubick.Rubick"
+        super().__init__(**kwargs)
+
+
+class AgreeableAgent2018(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018"
+        super().__init__(**kwargs)
+
+
+class MengWan(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2018.meng_wan.Agent36"
+        super().__init__(**kwargs)
+
+
+class BetaOne(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2018.beta_one.Group2"
         super().__init__(**kwargs)
