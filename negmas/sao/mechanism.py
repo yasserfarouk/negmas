@@ -470,6 +470,10 @@ class SAOMechanism(Mechanism):
                         response = negotiator.counter(*args, **kwargs)
                 except TimeoutError:
                     response = None
+                    try:
+                        negotiator.cancel()
+                    except:
+                        pass
                 except Exception as ex:
                     exceptions[negotiator.id].append(exception2str())
                     if self.ignore_negotiator_exceptions:
