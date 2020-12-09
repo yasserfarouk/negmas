@@ -351,6 +351,15 @@ class Negotiator(Rational, Notifiable, ABC):
                 )
         super().on_ufun_changed()
 
+    def cancel(self, reason=None) -> None:
+        """
+        A method that may be called by a mechanism to make the negotiator cancel whatever it is currently 
+        processing. 
+
+        Negotiators can just ignore this message (default behavior) but if there is a way to actually cancel
+        work, it should be implemented here to improve the responsiveness of the negotiator.
+        """
+
     def __str__(self):
         return f"{self.name}"
 

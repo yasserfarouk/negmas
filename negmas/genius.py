@@ -999,6 +999,12 @@ class GeniusNegotiator(SAONegotiator):
         except Exception as e:
             raise ValueError(f"Cannot start negotiation: {str(e)}")
 
+    def cancel(self, reason=None) -> None:
+        try:
+            self.java.cancel(self.java_uuid)
+        except:
+            pass
+
     def counter(self, state: MechanismState, offer: Optional["Outcome"]):
         if offer is not None:
             try:
