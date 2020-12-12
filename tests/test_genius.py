@@ -10,6 +10,10 @@ from negmas import (
     init_genius_bridge,
     load_genius_domain,
     load_genius_domain_from_folder,
+    AgentK,
+    Yushu,
+    Nozomi,
+    IAMhaggler,
     AgentX,
     YXAgent,
     Caduceus,
@@ -140,11 +144,7 @@ def test_old_agent():
     keep_value_names=st.booleans(),
 )
 def test_genius_agents_run_using_hypothesis(
-    agent_name1,
-    agent_name2,
-    single_issue,
-    keep_issue_names,
-    keep_value_names,
+    agent_name1, agent_name2, single_issue, keep_issue_names, keep_value_names,
 ):
     from negmas import convert_genius_domain_from_folder
 
@@ -205,9 +205,7 @@ def test_genius_agent_gets_ufun():
         "negmas", resource_name="tests/data/Laptop"
     )
     neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
-        keep_issue_names=True,
-        keep_value_names=True,
+        base_folder, keep_issue_names=True, keep_value_names=True,
     )
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
@@ -252,9 +250,7 @@ def test_genius_agents_run_example():
             "negmas", resource_name="tests/data/Laptop"
         )
         neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder,
-            keep_issue_names=True,
-            keep_value_names=True,
+            base_folder, keep_issue_names=True, keep_value_names=True,
         )
         if neg is None:
             raise ValueError(f"Failed to lead domain from {base_folder}")
@@ -288,10 +284,7 @@ def do_test_genius_agent(AgentClass):
             "negmas", resource_name="tests/data/Laptop"
         )
         neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder,
-            keep_issue_names=True,
-            keep_value_names=True,
-            time_limit=10,
+            base_folder, keep_issue_names=True, keep_value_names=True, time_limit=10,
         )
         if neg is None:
             raise ValueError(f"Failed to lead domain from {base_folder}")
@@ -614,6 +607,38 @@ def test_Gahboninho():
 )
 def test_HardHeaded():
     do_test_genius_agent(HardHeaded)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgentK():
+    do_test_genius_agent(AgentK)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Yushu():
+    do_test_genius_agent(Yushu)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Nozomi():
+    do_test_genius_agent(Nozomi)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_IAMhaggler():
+    do_test_genius_agent(IAMhaggler)
 
 
 # @pytest.mark.skipif(

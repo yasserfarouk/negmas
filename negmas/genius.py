@@ -32,6 +32,10 @@ if typing.TYPE_CHECKING:
     from .outcomes import Outcome
 
 __all__ = [
+    "AgentK",
+    "Yushu",
+    "Nozomi",
+    "IAMhaggler",
     "AgentX",
     "YXAgent",
     "Caduceus",
@@ -92,6 +96,14 @@ java_process = None
 python_port: int = 0
 
 GENIUS_INFO = {
+    2010: {
+        "winners": [
+            [("AgentK", "agents.anac.y2010.AgentK.Agent_K")],
+            [("Yushu", "agents.anac.y2010.Yushu.Yushu")],
+            [("Nozomi", "agents.anac.y2010.Nozomi.Nozomi")],
+            [("IAMhaggler", "agents.anac.y2010.Southampton.IAMhaggler")],
+        ]
+    },
     2011: {
         "winners": [
             [("HardHeaded", "agents.anac.y2011.HardHeaded.KLH")],
@@ -832,7 +844,7 @@ class GeniusNegotiator(SAONegotiator):
             ...     a.destroy_java_counterpart()
 
         """
-        aid =  self.java.create_agent(self.java_class_name)
+        aid = self.java.create_agent(self.java_class_name)
         if not aid:
             raise ValueError(f"Cannot initialized {self.java_class_name}")
         return aid
@@ -932,13 +944,14 @@ class GeniusNegotiator(SAONegotiator):
     def test(self) -> str:
         return self.java.test(self.java_class_name)
 
-    def destroy_java_counterpart(self, state = None) -> None:
+    def destroy_java_counterpart(self, state=None) -> None:
         if not self.__destroyed:
             if self.java is not None:
                 self.java.on_negotiation_end(
                     self.java_uuid,
-                    None if state is None else
-                    self._outcome2str(state.agreement)
+                    None
+                    if state is None
+                    else self._outcome2str(state.agreement)
                     if state.agreement is not None
                     else None,
                 )
@@ -1425,4 +1438,28 @@ class MengWan(GeniusNegotiator):
 class BetaOne(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2018.beta_one.Group2"
+        super().__init__(**kwargs)
+
+
+class AgentK(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.AgentK.Agent_K"
+        super().__init__(**kwargs)
+
+
+class Yushu(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.Yushu.Yushu"
+        super().__init__(**kwargs)
+
+
+class Nozomi(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.Nozomi.Nozomi"
+        super().__init__(**kwargs)
+
+
+class IAMhaggler(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.anac.y2010.Southampton.IAMhaggler"
         super().__init__(**kwargs)
