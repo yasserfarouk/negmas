@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import time
 import typing
+import itertools
 from typing import List, Optional, Tuple, Union
 
 from py4j.java_gateway import CallbackServerParameters, GatewayParameters, JavaGateway
@@ -102,7 +103,15 @@ GENIUS_INFO = {
             [("Yushu", "agents.anac.y2010.Yushu.Yushu")],
             [("Nozomi", "agents.anac.y2010.Nozomi.Nozomi")],
             [("IAMhaggler", "agents.anac.y2010.Southampton.IAMhaggler")],
-        ]
+        ],
+        "linear": True,
+        "learning": False,
+        "multilateral": False,
+        "bilateral": True,
+        "reservation": False,
+        "discounting": True,
+        "uncertainty": False,
+        "elicitation": False,
     },
     2011: {
         "winners": [
@@ -609,13 +618,15 @@ party_based_negotiators = [
     "agents.anac.y2016.agentsmith.AgentSmith2016",
     "agents.anac.y2016.myagent.MyAgent",
 ]
-tested_negotiators = [
-    "agents.anac.y2015.Atlas3.Atlas3",
-    "agents.anac.y2015.AgentX.AgentX",
-    "agents.anac.y2016.pars2.ParsAgent2",
-    "agents.anac.y2016.yxagent.YXAgent",
-    "agents.anac.y2016.parscat.ParsCat",
-]
+tested_negotiators = ["agents.anac.y2015.AgentX.AgentX",] + list(
+    itertools.chain(
+        *[
+            list(_[1] for _ in itertools.chain(*v["winners"]))
+            for year, v in GENIUS_INFO.items()
+            if v["multilateral"] and not v["learning"]
+        ]
+    )
+)
 
 
 def init_genius_bridge(
@@ -754,7 +765,7 @@ class GeniusNegotiator(SAONegotiator):
         return tested_negotiators
 
     @classmethod
-    def negotiators(cls, agent_based=False, party_based=True) -> List[str]:
+    def negotiators(cls, agent_based=True, party_based=True) -> List[str]:
         """
         Returns a list of all available agents in genius 8.4.0
 
@@ -1033,7 +1044,7 @@ class GeniusNegotiator(SAONegotiator):
         try:
             response, outcome = self.parse(self.java.choose_action(self.java_uuid))
         except Exception as e:
-            self.destroy_java_counterpart(self.ami.state)
+            # self.destroy_java_counterpart(self.ami.state)
             raise e
         self._my_last_offer = outcome
         return SAOResponse(response, outcome)

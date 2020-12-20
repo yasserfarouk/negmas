@@ -232,6 +232,7 @@ def load_genius_domain(
             # .replace("_domain", "")
             # .replace("domain", "")
         )
+        kwargs["outcome_type"] = dict if keep_issue_names else tuple
         mechanism = SAOMechanism(
             issues=issues,
             outcomes=outcomes,
@@ -240,7 +241,6 @@ def load_genius_domain(
             max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
             name=mechanism_name,
-            outcome_type=dict if keep_issue_names else tuple,
             **kwargs,
         )
         if agent_info is not None and len(agent_info) > 0:

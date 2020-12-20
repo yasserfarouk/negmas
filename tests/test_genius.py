@@ -6,6 +6,7 @@ from py4j.protocol import Py4JNetworkError
 
 from negmas import (
     GeniusNegotiator,
+    AspirationNegotiator,
     genius_bridge_is_running,
     init_genius_bridge,
     load_genius_domain,
@@ -243,7 +244,7 @@ def test_genius_agents_run_example():
     for _ in range(5):
         agent_name1 = agents[randint(0, 1)]
         agent_name2 = agents[randint(0, 1)]
-        print("{agent_name1} - {agent_name2}")
+        print(f"{agent_name1} - {agent_name2}")
         utils = (1, 2)
 
         base_folder = pkg_resources.resource_filename(
@@ -274,35 +275,86 @@ def test_genius_agents_run_example():
 
 
 def do_test_genius_agent(AgentClass):
-    from random import randint
+    print(f"Running {AgentClass.__name__}")
+    base_folder = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/Laptop"
+    )
 
-    for _ in range(2):
-        print(f"Atlas3 - {AgentClass.__name__}")
-        utils = (1, 2)
-
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+    def do_run(
+        opponent_ufun,
+        agent_ufun,
+        agent_starts,
+        opponent_type=AspirationNegotiator,
+        n_steps=10,
+        time_limit=20,
+        outcome_type=dict,
+    ):
         neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder, keep_issue_names=True, keep_value_names=True, time_limit=10,
+            base_folder,
+            keep_issue_names=outcome_type == dict,
+            keep_value_names=outcome_type == dict,
+            time_limit=time_limit,
+            n_steps=n_steps,
+            outcome_type=outcome_type,
         )
         if neg is None:
-            raise ValueError(f"Failed to lead domain from {base_folder}")
-        atlas = Atlas3(
-            domain_file_name=base_folder + "/Laptop-C-domain.xml",
-            utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
-            keep_issue_names=True,
-            keep_value_names=True,
-        )
-        theagent = AgentClass(
-            domain_file_name=base_folder + "/Laptop-C-domain.xml",
-            utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
-            keep_issue_names=True,
-            keep_value_names=True,
-        )
-        neg.add(atlas)
-        neg.add(theagent)
-        neg.run()
+            raise ValueError(f"Failed to load domain from {base_folder}")
+        if isinstance(opponent_type, GeniusNegotiator):
+            opponent = opponent_type(
+                ufun=agent_info[opponent_ufun]["ufun"],
+                keep_issue_names=outcome_type == dict,
+                keep_issue_values=outcome_type == dict,
+            )
+        else:
+            opponent = opponent_type(ufun=agent_info[opponent_ufun]["ufun"])
+        theagent = AgentClass(ufun=agent_info[agent_ufun]["ufun"])
+        if agent_starts:
+            neg.add(theagent)
+            neg.add(opponent)
+        else:
+            neg.add(opponent)
+            neg.add(theagent)
+        return neg.run()
+
+    # check that it will get to an agreement sometimes if the same ufun
+    # is used for both agents
+    n_trials = 5
+    got_agreement = False
+    for starts in (False, True):
+        for _ in range(n_trials):
+            neg = do_run(0, 0, starts)
+            if neg.agreement is not None:
+                got_agreement = True
+                break
+
+    # check that it can run without errors with two different ufuns
+    for outcome_type in (dict, tuple):
+        for opponent_type in (AspirationNegotiator, Atlas3):
+            for starts in (True, False):
+                for n_steps, time_limit in ((10, 10), (10, float("inf")), (None, 10)):
+                    for ufuns in ((0, 1), (1, 0)):
+                        try:
+                            do_run(
+                                ufuns[0],
+                                ufuns[1],
+                                starts,
+                                opponent_type,
+                                n_steps=n_steps,
+                                time_limit=time_limit,
+                                outcome_type=outcome_type,
+                            )
+                        except Exception as e:
+                            print(
+                                f"{AgentClass.__name__} FAILED against {opponent_type.__name__}"
+                                f" going {'first' if starts else 'last'} ({n_steps} steps with "
+                                f"{time_limit} limit taking ufun {ufuns[1]})."
+                            )
+                            raise e
+
+    if not got_agreement:
+        assert (
+            False
+        ), f"{AgentClass.__name__}: failed to get an agreement in {n_trials} trials even using the same ufun"
 
 
 @pytest.mark.skipif(
@@ -641,64 +693,71 @@ def test_IAMhaggler():
     do_test_genius_agent(IAMhaggler)
 
 
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_Rubick():
-#     do_test_genius_agent(Rubick)
-
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_CaduceusDC16():
-#     do_test_genius_agent(CaduceusDC16)
-
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_BetaOne():
-#     do_test_genius_agent(BetaOne)
+#### agents after this line are not very robust
 
 
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_AgreeableAgent2018():
-#     do_test_genius_agent(AgreeableAgent2018)
-
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_Terra():
-#     do_test_genius_agent(Terra)
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Rubick():
+    do_test_genius_agent(Rubick)
 
 
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_AgentHP2():
-#     do_test_genius_agent(AgentHP2)
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_CaduceusDC16():
+    do_test_genius_agent(CaduceusDC16)
 
 
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_KGAgent():
-#     do_test_genius_agent(KGAgent)
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_BetaOne():
+    do_test_genius_agent(BetaOne)
 
-# @pytest.mark.skipif(
-#     condition=not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_MengWan():
-#     do_test_genius_agent(MengWan)
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgreeableAgent2018():
+    do_test_genius_agent(AgreeableAgent2018)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Terra():
+    do_test_genius_agent(Terra)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgentHP2():
+    do_test_genius_agent(AgentHP2)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_KGAgent():
+    do_test_genius_agent(KGAgent)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_MengWan():
+    do_test_genius_agent(MengWan)
 
 
 if __name__ == "__main__":
