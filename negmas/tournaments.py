@@ -1107,9 +1107,7 @@ def _run_worlds(
 
 
 def process_world_run(
-    run_id: str,
-    results: Optional[WorldRunResults],
-    tournament_name: str,
+    run_id: str, results: Optional[WorldRunResults], tournament_name: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     """
     Generates a data-frame with the results of this world run
@@ -1246,8 +1244,7 @@ def _submit_all(
         )
     if verbose:
         print(
-            f"Submitted all processes ",
-            end="",
+            f"Submitted all processes ", end="",
         )
         if len(assigned) > 0:
             print(f"{len(future_results)/len(assigned):5.2%}")
@@ -1772,7 +1769,12 @@ def run_tournament(
     if compact is None:
         compact = params.get("compact", False)
 
-    assigned = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
+    try:
+        assigned = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
+        if assigned is None or len(assigned) == 0:
+            assigned = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+    except:
+        assigned = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     random.shuffle(assigned)
 
     scores_file = tournament_path / SCORES_FILE
@@ -1781,7 +1783,7 @@ def run_tournament(
     agent_stats_file = tournament_path / AGENT_STATS_FILE
     run_ids = set()
     # if scores_file.exists():
-    #     try:
+    #     try
     #         tmp_ = pd.read_csv(scores_file)
     #         if "run_id" in tmp_.columns:
     #             run_ids = set(tmp_["run_id"].values)
@@ -2357,9 +2359,7 @@ def create_tournament(
     return tournament_path
 
 
-def compile_results(
-    path: Union[str, PathLike, Path],
-):
+def compile_results(path: Union[str, PathLike, Path],):
     path = _path(path)
     if not path.exists():
         return
@@ -2407,7 +2407,12 @@ def get_world_paths(*, assignments=None, tournament_path=None):
     """
     world_paths = set()
     if assignments is None:
-        assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
+        try:
+            assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
+            if assignments is None or len(assignments) == 0:
+                assignments = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+        except:
+            assignments = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     for a in assignments:
         for w in a:
             # dir_name = w["world_params"]["log_folder"]

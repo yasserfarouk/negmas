@@ -28,7 +28,7 @@ from .utilities import UtilityFunction, make_discounted_ufun, normalize
 
 DEFAULT_JAVA_PORT = 25337
 DEFAULT_PYTHON_PORT = 25338
-
+DEFAULT_GENIUS_NEGOTIAOR_TIMEOUT = 180
 if typing.TYPE_CHECKING:
     from .outcomes import Outcome
 
@@ -630,7 +630,11 @@ tested_negotiators = ["agents.anac.y2015.AgentX.AgentX",] + list(
 
 
 def init_genius_bridge(
-    path: str = None, port: int = 0, force: bool = False, debug: bool = False
+    path: str = None,
+    port: int = 0,
+    force: bool = False,
+    debug: bool = False,
+    timeout: float = 0,
 ) -> bool:
     """Initializes a genius connection
 
@@ -638,6 +642,10 @@ def init_genius_bridge(
         path: The path to a JAR file that runs negloader
         port: port number to use
         force: Force trial even if an existing bridge is initialized
+        debug: If true, passes --debug to the bridge
+        timeout: If positive and nonzero, passes it as the global timeout for the bridge. Note that
+                 currently, the bridge supports only integer timeout values and the fraction will be
+                 truncated.
 
     Returns:
         True if successful
@@ -670,6 +678,8 @@ def init_genius_bridge(
         params = " --debug"
     else:
         params = ""
+    if timeout >= 0:
+        params += f" --timeout={int(timeout)}"
 
     try:
         subprocess.Popen(  # ['java', '-jar',  path, '--die-on-exit', f'{port}']
@@ -716,6 +726,7 @@ class GeniusNegotiator(SAONegotiator):
     ):
         super().__init__(name=name)
         self.__destroyed = False
+        self.__started = False
         self.capabilities["propose"] = can_propose
         self.add_capabilities({"genius": True})
         self.java = None
@@ -956,7 +967,7 @@ class GeniusNegotiator(SAONegotiator):
         return self.java.test(self.java_class_name)
 
     def destroy_java_counterpart(self, state=None) -> None:
-        if not self.__destroyed:
+        if self.__started and not self.__destroyed:
             if self.java is not None:
                 self.java.on_negotiation_end(
                     self.java_uuid,
@@ -1007,6 +1018,18 @@ class GeniusNegotiator(SAONegotiator):
             if info.time_limit is None or math.isinf(info.time_limit)
             else int(info.time_limit)
         )  # time limit
+        timeout = (
+            info.negotiator_time_limit
+            if info.negotiator_time_limit and not math.isinf(info.negotiator_time_limit)
+            else info.step_time_limit
+            if info.step_time_limit and not math.isinf(info.step_time_limit)
+            else info.time_limit
+            if info.time_limit and not math.isinf(info.time_limit)
+            else DEFAULT_GENIUS_NEGOTIAOR_TIMEOUT
+        )
+        if timeout is None or math.isinf(timeout) or timeout <= 0:
+            timeout = DEFAULT_GENIUS_NEGOTIAOR_TIMEOUT
+
         if n_steps * n_seconds > 0:
             # n_seconds take precedence
             n_steps = -1
@@ -1019,7 +1042,9 @@ class GeniusNegotiator(SAONegotiator):
                 n_seconds > 0,
                 self.domain_file_name,  # domain file
                 self.utility_file_name,  # Negotiator file
+                timeout,
             )
+            self.__started = True
         except Exception as e:
             raise ValueError(f"Cannot start negotiation: {str(e)}")
 
@@ -1062,6 +1087,8 @@ class GeniusNegotiator(SAONegotiator):
 
         """
         response, outcome = None, None
+        if len(action) < 1:
+            return ResponseType.REJECT_OFFER, None
         id, typ_, bid_str = action.split(FIELD_SEP)
         issues = self._ami.issues
 
