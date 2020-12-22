@@ -62,6 +62,15 @@ from negmas import (
     Gahboninho,
     HardHeaded,
 )
+from negmas.genius import GeniusBridge
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_genius_bridge_cleaning():
+    GeniusBridge().clean()
 
 
 @pytest.mark.skipif(
@@ -93,6 +102,7 @@ def test_genius_does_not_freeze():
     mechanism.add(a2)
     print(mechanism.run())
     print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+    GeniusBridge().clean()
 
 
 @pytest.mark.skipif(
@@ -124,6 +134,7 @@ def test_old_agent():
     mechanism.add(a2)
     print(mechanism.run())
     print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+    GeniusBridge().clean()
 
 
 # def test_init_genius_bridge():
@@ -191,6 +202,7 @@ def test_genius_agents_run_using_hypothesis(
     neg.add(a1)
     neg.add(a2)
     neg.run()
+    GeniusBridge().clean()
 
 
 @pytest.mark.skipif(
@@ -228,6 +240,7 @@ def test_genius_agent_gets_ufun():
     assert a2._temp_ufun_file
     assert not a2._temp_domain_file
     neg.run()
+    GeniusBridge().clean()
 
 
 @pytest.mark.skipif(
@@ -269,6 +282,8 @@ def test_genius_agents_run_example():
         neg.add(atlas)
         neg.add(agentx)
         neg.run()
+
+    GeniusBridge().clean()
 
 
 def do_test_genius_agent(AgentClass):
@@ -352,6 +367,8 @@ def do_test_genius_agent(AgentClass):
         assert (
             False
         ), f"{AgentClass.__name__}: failed to get an agreement in {n_trials} trials even using the same ufun"
+
+    GeniusBridge().clean()
 
 
 @pytest.mark.skipif(

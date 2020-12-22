@@ -13,7 +13,7 @@ import tempfile
 import time
 import typing
 import itertools
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict
 
 from py4j.java_gateway import CallbackServerParameters, GatewayParameters, JavaGateway
 from py4j.protocol import Py4JNetworkError
@@ -33,6 +33,7 @@ if typing.TYPE_CHECKING:
     from .outcomes import Outcome
 
 __all__ = [
+    "GeniusBridge",
     "AgentK",
     "Yushu",
     "Nozomi",
@@ -1179,6 +1180,103 @@ def genius_bridge_is_running(port: int = None) -> bool:
         return False
     finally:
         s.close()
+
+
+def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
+    """
+
+    Returns:
+
+    Examples:
+
+        - Testing multilateral agent
+        >>> if genius_bridge_is_running():
+        ...     a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
+        ...     print(a.java_name)
+        ... else:
+        ...     print('ANAC2015-6-Atlas')
+        ANAC2015-6-Atlas
+        >>> if genius_bridge_is_running():
+        ...     a.destroy_java_counterpart()
+
+        - Testing bilateral agent
+        >>> if genius_bridge_is_running():
+        ...    b = GeniusNegotiator(java_class_name="agents.SimpleAgent")
+        ...    print(b.java_name)
+        ... else:
+        ...    print('Agent SimpleAgent')
+        Agent SimpleAgent
+        >>> if genius_bridge_is_running():
+        ...     a.destroy_java_counterpart()
+
+    """
+    if port is None:
+        if auto_load_java:
+            if common_gateway is None:
+                init_genius_bridge(path=path)
+            gateway = common_gateway
+            self.java = gateway.entry_point
+            port = DEFAULT_JAVA_PORT
+            return True
+        else:
+            port = DEFAULT_JAVA_PORT
+    gateway = JavaGateway(
+        gateway_parameters=GatewayParameters(port=port, auto_close=True)
+    )
+    if gateway is None:
+        self.java = None
+        return False
+    self.java = gateway.entry_point
+    return True
+
+class GeniusBridge:
+    bridges: Dict[Tuple[ str, int ], "GeniusBridge"] = dict()
+    def __init__(self, path: str = None, port: int = None, auto_load_java = False):
+        self.java = None
+        bridge = GeniusBridge.bridges.get((path, port), None)
+        if bridge is not None:
+            self.java = GeniusBridge.existing_bridge.java
+            return
+        self._connect(path, port, auto_load_java)
+
+    def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
+        """
+
+        Returns:
+
+        Examples:
+
+            - Testing construction
+            >>> if genius_bridge_is_running():
+            ...     a = GeniusBridge()
+            ... else:
+            ...     pass
+
+        """
+        if port is None:
+            if auto_load_java:
+                if common_gateway is None:
+                    init_genius_bridge(path=path)
+                gateway = common_gateway
+                self.java = gateway.entry_point
+                port = DEFAULT_JAVA_PORT
+                return True
+            else:
+                port = DEFAULT_JAVA_PORT
+        gateway = JavaGateway(
+            gateway_parameters=GatewayParameters(port=port, auto_close=True)
+        )
+        if gateway is None:
+            self.java = None
+            return False
+        self.java = gateway.entry_point
+        return True
+
+    def clean(self):
+        """
+        Removes all agents and runs garbage collection on the bridge
+        """
+        self.java.clean();
 
 
 class Caduceus(GeniusNegotiator):
