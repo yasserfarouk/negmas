@@ -634,14 +634,14 @@ def run(
     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 )
 @click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
+    "--verbose/--silent", default=True, help="Whether to be verbose",
 )
 @click_config_file.configuration_option()
 @click.pass_context
 def eval(ctx, path, metric, significance, compile, verbose):
-    results = evaluate_tournament(tournament_path=path, metric=metric, compile=compile, verbose=verbose)
+    results = evaluate_tournament(
+        tournament_path=path, metric=metric, compile=compile, verbose=verbose
+    )
     display_results(results, metric, significance)
 
 
@@ -673,9 +673,7 @@ def eval(ctx, path, metric, significance, compile, verbose):
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
 @click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
+    "--verbose/--silent", default=True, help="Whether to be verbose",
 )
 @click.option(
     "--significance/--no-significance",
@@ -689,7 +687,7 @@ def eval(ctx, path, metric, significance, compile, verbose):
 )
 @click_config_file.configuration_option()
 @click.pass_context
-def winners(ctx, name, log, recursive, metric, significance, compile,verbose):
+def winners(ctx, name, log, recursive, metric, significance, compile, verbose):
     if len(name) == 0:
         if not recursive:
             name = ctx.obj.get("tournament_name", "")
@@ -778,9 +776,7 @@ def display_results(results, metric, significance):
     "path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1,
 )
 @click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
+    "--verbose/--silent", default=True, help="Whether to be verbose",
 )
 @click.option(
     "--dest",
@@ -822,9 +818,7 @@ def combine(path, dest, verbose):
     help="Whether to show significance table",
 )
 @click.option(
-    "--verbose/--silent",
-    default=True,
-    help="Whether to be verbose",
+    "--verbose/--silent", default=True, help="Whether to be verbose",
 )
 @click.option(
     "--compile/--show",
@@ -867,9 +861,22 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     default=False,
     help="Force trial even if an earlier instance exists",
 )
-def genius(path, port, force):
+@click.option(
+    "--debug", default=False, help="Run the bridge in debug mode",
+)
+@click.option(
+    "--timeout",
+    default=0,
+    type=float,
+    help="The timeout to pass. Zero or negative numbers to disable and use the bridge's global timeout.",
+)
+def genius(path, port, force, debug, timeout):
     negmas.init_genius_bridge(
-        path=path if path != "auto" else None, port=port, force=force
+        path=path if path != "auto" else None,
+        port=port,
+        force=force,
+        debug=debug,
+        timeout=timeout,
     )
 
 

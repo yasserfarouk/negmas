@@ -136,7 +136,7 @@ def test_old_agent():
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-@settings(max_examples=10, deadline=50000)
+@settings(max_examples=20, deadline=50000)
 @given(
     agent_name1=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     agent_name2=st.sampled_from(GeniusNegotiator.robust_negotiators()),
@@ -152,7 +152,6 @@ def test_genius_agents_run_using_hypothesis(
     # TODO remove this limitation.
     if keep_issue_names != keep_value_names:
         return
-    utils = (1, 2)
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     dst = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/LaptopConv1D"
@@ -178,15 +177,13 @@ def test_genius_agents_run_using_hypothesis(
         raise ValueError(f"Failed to lead domain from {base_folder}")
     a1 = GeniusNegotiator(
         java_class_name=agent_name1,
-        domain_file_name=base_folder + "/Laptop-C-domain.xml",
-        utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
+        ufun=agent_info[0]["ufun"],
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
     )
     a2 = GeniusNegotiator(
         java_class_name=agent_name2,
-        domain_file_name=base_folder + "/Laptop-C-domain.xml",
-        utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
+        ufun=agent_info[1]["ufun"],
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
     )
@@ -513,14 +510,6 @@ def test_AgentYK():
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_E2Agent():
-    do_test_genius_agent(E2Agent)
-
-
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
 def test_Group2():
     do_test_genius_agent(Group2)
 
@@ -693,41 +682,6 @@ def test_IAMhaggler():
     do_test_genius_agent(IAMhaggler)
 
 
-#### agents after this line are not very robust
-
-
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_Rubick():
-    do_test_genius_agent(Rubick)
-
-
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_CaduceusDC16():
-    do_test_genius_agent(CaduceusDC16)
-
-
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_BetaOne():
-    do_test_genius_agent(BetaOne)
-
-
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_AgreeableAgent2018():
-    do_test_genius_agent(AgreeableAgent2018)
-
-
 @pytest.mark.skipif(
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
@@ -736,29 +690,69 @@ def test_Terra():
     do_test_genius_agent(Terra)
 
 
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_AgentHP2():
-    do_test_genius_agent(AgentHP2)
+#### agents after this line are not very robust
 
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_Rubick():
+#     do_test_genius_agent(Rubick)
+#
+#
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_CaduceusDC16():
+#     do_test_genius_agent(CaduceusDC16)
+#
+#
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_BetaOne():
+#     do_test_genius_agent(BetaOne)
+#
+#
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_AgreeableAgent2018():
+#     do_test_genius_agent(AgreeableAgent2018)
+#
+#
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_AgentHP2():
+#     do_test_genius_agent(AgentHP2)
+#
+#
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_KGAgent():
+#     do_test_genius_agent(KGAgent)
+#
+#
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_MengWan():
+#     do_test_genius_agent(MengWan)
 
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_KGAgent():
-    do_test_genius_agent(KGAgent)
-
-
-@pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_MengWan():
-    do_test_genius_agent(MengWan)
-
+# @pytest.mark.skipif(
+#     condition=not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_E2Agent():
+#     do_test_genius_agent(E2Agent)
 
 if __name__ == "__main__":
     pytest.main(args=[__file__])
