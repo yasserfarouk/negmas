@@ -939,6 +939,17 @@ class GeniusBridge:
         cls.python_ports.pop(port, None)
 
     @classmethod
+    def close_gateway(cls, port=DEFAULT_JAVA_PORT):
+        if port is None:
+            port = DEFAULT_JAVA_PORT
+        cls._close_gateway(port)
+
+    @classmethod
+    def close_gateways(cls):
+        for p in cls.gateways.keys():
+            cls._close_gateway(p)
+
+    @classmethod
     def shutdown(cls, port: int = DEFAULT_JAVA_PORT, wait: bool = True,) -> bool:
         """Attempts to shutdown the bridge on that port"""
         if port is None:
