@@ -1924,12 +1924,32 @@ class LinearUtilityFunction(UtilityFunction):
     def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
-        offer = outcome_for(offer, self.ami) if self.ami is not None else offer
+        # offer = outcome_for(offer, self.ami) if self.ami is not None else offer
         u = ExactUtilityValue(0.0)
         if isinstance(self.weights, dict):
-            for k, w in self.weights.items():
-                u += w * iget(offer, k, self.missing_value)
-            return u
+            if isinstance(offer, dict):
+                for k, w in self.weights.items():
+                    u += w * iget(offer, k, self.missing_value)
+                return u
+            else:
+                if self.ami is not None:
+                    newoffer = dict()
+                    for i, v in enumerate(offer):
+                        newoffer[self.ami.issues[i].name] = v
+                elif self.issue_names is not None:
+                    newoffer = dict()
+                    for i, v in enumerate(offer):
+                        newoffer[self.issue_names[i]] = v
+                elif self.issues is not None:
+                    newoffer = dict()
+                    for i, v in enumerate(offer):
+                        newoffer[self.issues[i].name] = v
+                else:
+                    raise ValueError(f"Cannot find issue names but weights are given as a dict.")
+                for k, w in self.weights.items():
+                    u += w * iget(offer, k, self.missing_value)
+                return u
+
         offer = outcome_as_tuple(offer)
         return sum(w * v for w, v in zip(self.weights, offer))
 
@@ -1986,8 +2006,8 @@ class LinearUtilityFunction(UtilityFunction):
             else:
                 weights = {k: v for k, v in zip(ikeys(issues), self.weights)}
         else:
-            if isinstance(self.weights, list):
-                weights = self.weights
+            if isinstance(self.weights, list) or isinstance(self.weights, tuple):
+                weights = list(self.weights)
             else:
                 weights = list(self.weights.get(i.name, 1.0) for i in issues)
 
