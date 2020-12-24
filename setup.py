@@ -96,6 +96,7 @@ setup(
         "networkx",
         "gif",
         "py4j",
+        "psutil",
     ],  # Optional
     extras_require={
         "elicitation": ["blist"],
