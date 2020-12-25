@@ -46,7 +46,6 @@ from typing import (
 )
 
 import numpy as np
-import pkg_resources
 
 from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
@@ -55,11 +54,9 @@ from negmas.java import JavaCallerMixin, to_java
 from negmas.outcomes import (
     Issue,
     Outcome,
-    OutcomeRange,
     outcome_as,
     outcome_as_dict,
     outcome_as_tuple,
-    outcome_for,
     outcome_in_range,
     outcome_is_valid,
     sample_outcomes,
@@ -619,7 +616,7 @@ class UtilityFunction(ABC, NamedObject):
                             val = item.attrib.get("evaluation", None)
                             if val is None:
                                 raise ValueError(
-                                    f"Item {item_key} of issue {issue_name} has not evaluation attribute!!"
+                                    f"Item {item_key} of issue {item_name} has not evaluation attribute!!"
                                 )
                             issues[issue_key][item_key] = float(val)
                             found_values = True
@@ -1924,12 +1921,32 @@ class LinearUtilityFunction(UtilityFunction):
     def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
             return self.reserved_value
-        offer = outcome_for(offer, self.ami) if self.ami is not None else offer
+        # offer = outcome_for(offer, self.ami) if self.ami is not None else offer
         u = ExactUtilityValue(0.0)
         if isinstance(self.weights, dict):
-            for k, w in self.weights.items():
-                u += w * iget(offer, k, self.missing_value)
-            return u
+            if isinstance(offer, dict):
+                for k, w in self.weights.items():
+                    u += w * iget(offer, k, self.missing_value)
+                return u
+            else:
+                if self.ami is not None:
+                    newoffer = dict()
+                    for i, v in enumerate(offer):
+                        newoffer[self.ami.issues[i].name] = v
+                elif self.issue_names is not None:
+                    newoffer = dict()
+                    for i, v in enumerate(offer):
+                        newoffer[self.issue_names[i]] = v
+                elif self.issues is not None:
+                    newoffer = dict()
+                    for i, v in enumerate(offer):
+                        newoffer[self.issues[i].name] = v
+                else:
+                    raise ValueError(f"Cannot find issue names but weights are given as a dict.")
+                for k, w in self.weights.items():
+                    u += w * iget(offer, k, self.missing_value)
+                return u
+
         offer = outcome_as_tuple(offer)
         return sum(w * v for w, v in zip(self.weights, offer))
 
@@ -1986,8 +2003,8 @@ class LinearUtilityFunction(UtilityFunction):
             else:
                 weights = {k: v for k, v in zip(ikeys(issues), self.weights)}
         else:
-            if isinstance(self.weights, list):
-                weights = self.weights
+            if isinstance(self.weights, list) or isinstance(self.weights, tuple):
+                weights = list(self.weights)
             else:
                 weights = list(self.weights.get(i.name, 1.0) for i in issues)
 

@@ -3,14 +3,12 @@ Implements GeniusBridge which manages connections to Genius through Py4J.
 """
 import os
 import pathlib
-import random
 import socket
 import subprocess
 import time
 import traceback
-import typing
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional
 
 import psutil
 from py4j.java_gateway import (
@@ -344,7 +342,7 @@ class GeniusBridge:
     @classmethod
     def close_gateways(cls):
         for p in cls.gateways.keys():
-            cls._close_gateway(port)
+            cls._close_gateway(p)
 
     @classmethod
     def shutdown(cls, port: int = DEFAULT_JAVA_PORT, wait: bool = True,) -> bool:
