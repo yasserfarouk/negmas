@@ -54,6 +54,7 @@ from negmas.java import JavaCallerMixin, to_java
 from negmas.outcomes import (
     Issue,
     Outcome,
+    OutcomeRange,
     outcome_as,
     outcome_as_dict,
     outcome_as_tuple,
@@ -61,9 +62,6 @@ from negmas.outcomes import (
     outcome_is_valid,
     sample_outcomes,
 )
-
-if TYPE_CHECKING:
-    from negmas.outcomes import OutcomeRange, Outcome
 
 
 __all__ = [
