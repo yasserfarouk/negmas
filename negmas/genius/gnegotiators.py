@@ -157,7 +157,7 @@ class TheNegotiatorReloaded(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs[
             "java_class_name"
-        ] = "agents.anac.y2013.MetaAgent.portfolio.thenegotiatorreloaded.BOAagent"
+        ] = "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded"
         super().__init__(**kwargs)
 
 
@@ -381,4 +381,3 @@ class TheFawkes(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2013.TheFawkes.TheFawkes"
         super().__init__(**kwargs)
-
