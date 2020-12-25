@@ -20,7 +20,7 @@ from ..negotiators import Controller
 from ..outcomes import Issue, ResponseType
 from ..sao import SAONegotiator, SAOResponse
 from ..utilities import UtilityFunction, make_discounted_ufun, normalize
-from .common import DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT
+from .common import DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT, DEFAULT_JAVA_PORT
 from .ginfo import (
     AGENT_BASED_NEGOTIATORS,
     PARTY_BASED_NEGOTIATORS,
@@ -59,7 +59,7 @@ class GeniusNegotiator(SAONegotiator):
         normalize_utility: bool = False,
         normalize_max_only: bool = False,
         auto_load_java: bool = False,
-        port: int = None,
+        port: int = DEFAULT_JAVA_PORT,
         genius_bridge_path: str = None,
     ):
         super().__init__(
@@ -83,6 +83,7 @@ class GeniusNegotiator(SAONegotiator):
         self.port = port
         self._normalize_utility = normalize_utility
         self._normalize_max_only = normalize_max_only
+        # breakpoint()
         self.connected = self._connect(
             path=genius_bridge_path, port=self.port, auto_load_java=auto_load_java
         )
