@@ -233,6 +233,7 @@ def load_genius_domain(
             # .replace("domain", "")
         )
         kwargs["outcome_type"] = dict if keep_issue_names else tuple
+        kwargs["avoid_ultimatum"] = False
         mechanism = SAOMechanism(
             issues=issues,
             outcomes=outcomes,

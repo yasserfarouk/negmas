@@ -22,17 +22,13 @@ from py4j.protocol import Py4JNetworkError
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..helpers import TimeoutCaller, TimeoutError, unique_name
 
-from .common import DEFAULT_JAVA_PORT
+from .common import DEFAULT_JAVA_PORT, get_free_tcp_port
 
-__all__ = ["GeniusBridge", "init_genius_bridge", "genius_bridge_is_running"]
-
-
-def _get_free_tcp_port():
-    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp.bind(("", 0))
-    addr, port = tcp.getsockname()
-    tcp.close()
-    return port
+__all__ = [
+    "GeniusBridge",
+    "init_genius_bridge",
+    "genius_bridge_is_running",
+]
 
 
 def _kill_process(proc_pid):
@@ -63,7 +59,7 @@ def init_genius_bridge(
 
     """
     if port <= 0:
-        port = _get_free_tcp_port()
+        port = get_free_tcp_port()
     if genius_bridge_is_running(port):
         return True
     # if not force and common_gateway is not None and common_port == port:
@@ -207,7 +203,7 @@ class GeniusBridge:
 
         """
         if port <= 0:
-            port = _get_free_tcp_port()
+            port = get_free_tcp_port()
         if genius_bridge_is_running(port):
             return 0 if cls.gateway(port) is None else port
         path = (

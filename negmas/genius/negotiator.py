@@ -8,29 +8,27 @@ import math
 import pathlib
 import random
 import tempfile
-import traceback
-import warnings
 
-import typing
 from typing import List, Optional, Tuple, Union
 
 from ..common import AgentMechanismInterface, MechanismState
 from ..inout import get_domain_issues
+from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..negotiators import Controller
 from ..outcomes import Issue, ResponseType
 from ..sao import SAONegotiator, SAOResponse
 from ..utilities import UtilityFunction, make_discounted_ufun, normalize
-from .common import DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT, DEFAULT_JAVA_PORT
+from .common import (
+    DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT,
+    DEFAULT_JAVA_PORT,
+    get_free_tcp_port,
+)
 from .ginfo import (
     AGENT_BASED_NEGOTIATORS,
     PARTY_BASED_NEGOTIATORS,
     TESTED_NEGOTIATORS,
 )
 from .bridge import GeniusBridge
-
-if typing.TYPE_CHECKING:
-    from ..outcomes import Outcome
-
 
 __all__ = [
     "GeniusNegotiator",
@@ -58,7 +56,7 @@ class GeniusNegotiator(SAONegotiator):
         can_propose=True,
         normalize_utility: bool = False,
         normalize_max_only: bool = False,
-        auto_load_java: bool = False,
+        auto_load_java: bool = True,
         port: int = DEFAULT_JAVA_PORT,
         genius_bridge_path: str = None,
     ):
@@ -74,28 +72,30 @@ class GeniusNegotiator(SAONegotiator):
         self.__started = False
         self.capabilities["propose"] = can_propose
         self.add_capabilities({"genius": True})
+        self.genius_bridge_path = (
+            genius_bridge_path
+            if genius_bridge_path is not None
+            else NEGMAS_CONFIG.get(
+                CONFIG_KEY_GENIUS_BRIDGE_JAR, "~/negmas/files/geniusbridge.jar"
+            )
+        )
         self.java = None
         self.java_class_name = (
             java_class_name
             if java_class_name is not None
             else GeniusNegotiator.random_negotiator_name()
         )
-        self.port = port
+        self._port = port
         self._normalize_utility = normalize_utility
         self._normalize_max_only = normalize_max_only
         # breakpoint()
-        self.connected = self._connect(
-            path=genius_bridge_path, port=self.port, auto_load_java=auto_load_java
-        )
-        self.java_uuid = self._create()
-        self.uuid = self.java_uuid
-        self.name = self.java_uuid
         self.domain_file_name = str(domain_file_name) if domain_file_name else None
         self.utility_file_name = str(utility_file_name) if utility_file_name else None
         self._my_last_offer = None
         self.keep_issue_names = keep_issue_names
         self._utility_function, self.discount = None, None
         self.issue_names = self.issues = self.issue_index = None
+        self.auto_load_java = auto_load_java
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
@@ -117,6 +117,18 @@ class GeniusNegotiator(SAONegotiator):
         self.base_utility = self._utility_function
         self.__ufun_received = ufun
         self._temp_domain_file = self._temp_ufun_file = False
+        self.connected = False
+
+    @property
+    def port(self):
+        # if a port was not specified then we just set any random empty port to be used
+        if not self.is_connected and self._port <= 0:
+            self._port = get_free_tcp_port()
+        return self._port
+
+    @port.setter
+    def port(self, port):
+        self._port = port
 
     @classmethod
     def robust_negotiators(cls) -> List[str]:
@@ -156,7 +168,7 @@ class GeniusNegotiator(SAONegotiator):
         cls,
         agent_based=True,
         party_based=True,
-        port: int = None,
+        port: int = DEFAULT_JAVA_PORT,
         domain_file_name: str = None,
         utility_file_name: str = None,
         keep_issue_names: bool = True,
@@ -204,26 +216,7 @@ class GeniusNegotiator(SAONegotiator):
         return self.connected and self.java is not None
 
     def _create(self):
-        """
-        Creates the agent
-        Returns:
-
-        Examples:
-            >>> if genius_bridge_is_running():
-            ...     a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
-            ...     a.java_uuid.startswith("agents.anac.y2015.Atlas3.Atlas3")
-            ... else:
-            ...     True
-            True
-            >>> if genius_bridge_is_running():
-            ...     len(a.java_uuid)- len(a.java_class_name) == 36 # length of UUID
-            ... else:
-            ...     True
-            True
-            >>> if genius_bridge_is_running():
-            ...     a.destroy_java_counterpart()
-
-        """
+        """Creates the corresponding java agent"""
         aid = self.java.create_agent(self.java_class_name)
         if not aid:
             raise ValueError(f"Cannot initialized {self.java_class_name}")
@@ -231,37 +224,13 @@ class GeniusNegotiator(SAONegotiator):
 
     def _connect(self, path: str, port: int, auto_load_java: bool = False) -> bool:
         """
-
-        Returns:
-
-        Examples:
-
-            - Testing multilateral agent
-            >>> if genius_bridge_is_running():
-            ...     a = GeniusNegotiator(java_class_name="agents.anac.y2015.Atlas3.Atlas3")
-            ...     print(a.java_name)
-            ... else:
-            ...     print('ANAC2015-6-Atlas')
-            ANAC2015-6-Atlas
-            >>> if genius_bridge_is_running():
-            ...     a.destroy_java_counterpart()
-
-            - Testing bilateral agent
-            >>> if genius_bridge_is_running():
-            ...    b = GeniusNegotiator(java_class_name="agents.SimpleAgent")
-            ...    print(b.java_name)
-            ... else:
-            ...    print('Agent SimpleAgent')
-            Agent SimpleAgent
-            >>> if genius_bridge_is_running():
-            ...     a.destroy_java_counterpart()
-
+        Connects the negotiator to an appropriate genius-bridge running the actual agent
         """
         try:
             gateway = GeniusBridge.gateway(port)
         except:
             gateway = None
-        if gateway == None:
+        if gateway is None:
             if auto_load_java:
                 GeniusBridge.start(port=port, path=path)
             try:
@@ -291,6 +260,22 @@ class GeniusNegotiator(SAONegotiator):
         if ufun is None:
             ufun = self.__ufun_received
         result = super().join(ami=ami, state=state, ufun=ufun, role=role)
+        # only connect to the JVM running genius-bridge if you are going to join a negotiation.
+        if result and not self.is_connected:
+            mechanism_port = ami.params.get("genius_port", 0)
+            if mechanism_port > 0:
+                self.port = mechanism_port
+            self.connected = self._connect(
+                path=self.genius_bridge_path,
+                port=self.port,
+                auto_load_java=self.auto_load_java,
+            )
+            self.java_uuid = self._create()
+            # self.uuid = self.java_uuid
+            # self.name = self.java_uuid
+            if not self.is_connected:
+                return False
+
         if self._normalize_utility:
             self._utility_function = normalize(
                 self.ufun,
