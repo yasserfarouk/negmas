@@ -122,6 +122,12 @@ from .mechanisms import Mechanism
 from .negotiators import Negotiator
 from .outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
 from .utilities import UtilityFunction
+from .genius import (
+    DEFAULT_JAVA_PORT,
+    get_free_tcp_port,
+    ANY_JAVA_PORT,
+    RANDOM_JAVA_PORT,
+)
 
 from warnings import warn
 
@@ -215,7 +221,7 @@ def show_edge_colors():
         colors[t] = EDGE_COLORS[t]
 
     # Sort colors by hue, saturation, value and name.
-    sorted_colors = colors.values()
+    # sorted_colors = colors.values()
     sorted_names = colors.keys()
 
     n = len(sorted_names)
@@ -1180,6 +1186,11 @@ class AgentWorldInterface:
             mechanism_params=mechanism_params,
         )
 
+    @property
+    def params(self) -> Dict[str, Any]:
+        """Returns the basic parameters of the world"""
+        return self._world.params
+
     def loginfo(self, msg: str) -> None:
         """
         Logs an INFO message
@@ -2041,6 +2052,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
                                a dictionary with string keys
         exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
+        genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
     """
 
     def __init__(
@@ -2099,11 +2111,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             Operations.StatsUpdate,
         ),
         info: Optional[Dict[str, Any]] = None,
+        genius_port: int = DEFAULT_JAVA_PORT,
         name=None,
     ):
-        """
-
-        """
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
         self.ignore_negotiation_exceptions = ignore_negotiation_exceptions
         if force_signing:
@@ -2207,6 +2217,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._log_negs = log_negotiations
         self.safe_stats_monitoring = safe_stats_monitoring
         self.info = info if info is not None else dict()
+
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
             mechanisms = dict(zip(mechanisms, [dict()] * len(mechanisms)))
         self.mechanisms: Optional[Dict[str, Dict[str, Any]]] = mechanisms
@@ -2302,6 +2313,35 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._n_negs_per_agent_per_step: Dict[str, int] = defaultdict(int)
         self._n_negs_per_agent: Dict[str, int] = defaultdict(int)
 
+        self.genius_port = (
+            genius_port
+            if genius_port > 0
+            else ANY_JAVA_PORT
+            if genius_port == ANY_JAVA_PORT
+            else get_free_tcp_port()
+        )
+        self.params = dict(
+            negotiation_speed=negotiation_speed,
+            negotiation_can_cross_step_boundaries=not (
+                self.negotiation_speed is None
+                or (
+                    self.neg_n_steps is not None
+                    and self.negotiation_speed is not None
+                    and self.neg_n_steps < self.negotiation_speed
+                )
+            ),
+            default_signing_delay=default_signing_delay,
+            batch_signing=batch_signing,
+            breach_processing=breach_processing,
+            mechanisms=mechanisms,
+            start_negotiations_immediately=start_negotiations_immediately,
+            ignore_agent_exceptions=ignore_agent_exceptions,
+            ignore_negotiation_exceptions=ignore_negotiation_exceptions,
+            ignore_contract_execution_exceptions=ignore_contract_execution_exceptions,
+            ignore_simulation_exceptions=ignore_simulation_exceptions,
+            operations=operations,
+            genius_port=self.genius_port,
+        )
         self.loginfo(f"{self.name}: World Created")
 
     @classmethod
@@ -3360,9 +3400,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.attribs[x.id] = kwargs
         x.awi = self.awi_type(self, x)
         if self._started and not x.initialized:
-            self.call(
-                x, x.init_
-            )
+            self.call(x, x.init_)
         self.loginfo(f"{x.name} joined", Event("agent-joined", dict(agent=x)))
 
     def _add_edges(

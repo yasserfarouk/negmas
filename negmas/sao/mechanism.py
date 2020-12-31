@@ -127,6 +127,14 @@ class SAOMechanism(Mechanism):
             name=name,
             **kwargs,
         )
+        self.params["end_on_no_response"] = end_on_no_response
+        self.params["publish_proposer"] = publish_proposer
+        self.params["publish_n_acceptances"] = publish_n_acceptances
+        self.params["enable_callbacks"] = enable_callbacks
+        self.params["avoid_ultimatum"] = avoid_ultimatum
+        self.params["check_offers"] = check_offers
+        self.params["offering_is_accepting"] = offering_is_accepting
+        self.params["max_wait"] = max_wait
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self._current_offer = None
         self._current_proposer = None

@@ -4,7 +4,6 @@ This module does not import anything from the library except during type checkin
 """
 import datetime
 import uuid
-import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -153,6 +152,11 @@ class AgentMechanismInterface:
     annotation: Dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `Dict[str, Any]` that is always available for all agents"""
     _mechanism = None
+
+    @property
+    def params(self):
+        """Returns the parameters used to initialize the mechanism."""
+        return self._mechanism.params
 
     def random_outcomes(
         self, n: int = 1, astype: Type["Outcome"] = None

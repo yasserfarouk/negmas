@@ -12,7 +12,7 @@ from negmas import (
     load_genius_domain,
     load_genius_domain_from_folder,
 )
-from negmas.genius import AgentX, ParsCat, YXAgent
+from negmas.genius import AgentX, ParsCat, YXAgent, GeniusBridge
 
 dom_folder = pathlib.Path(
     pkg_resources.resource_filename(
@@ -24,13 +24,16 @@ util1 = dom_folder / "travel_chox.xml"
 util2 = dom_folder / "travel_fanny.xml"
 
 
+SKIP_IF_NO_BRIDGE = False
+
+
 @pytest.fixture(scope="module")
 def init_genius():
-    pass
+    GeniusBridge.start(0)
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent(init_genius):
@@ -80,7 +83,7 @@ def test_genius_agent(init_genius):
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_top2016_caduceus_first(init_genius):
@@ -168,7 +171,7 @@ def do_run(first_type, second_type):
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 @pytest.mark.parametrize("first_type, second_type", [(AgentX, YXAgent)])
@@ -177,7 +180,7 @@ def test_genius_agent_top2016_yx_second_classes(init_genius, first_type, second_
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_top2016_yx_second(init_genius):
@@ -227,7 +230,7 @@ def test_genius_agent_top2016_yx_second(init_genius):
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_step_limit(init_genius):
@@ -273,7 +276,7 @@ def test_genius_agent_step_limit(init_genius):
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_step_long_session(init_genius):
@@ -320,7 +323,7 @@ def test_genius_agent_step_long_session(init_genius):
 
 
 @pytest.mark.skipif(
-    condition=not genius_bridge_is_running(),
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_same_utility(init_genius):
@@ -376,7 +379,7 @@ def test_genius_agent_same_utility(init_genius):
 class TestGeniusAgentSessions:
     def prepare(
         self,
-        utils=(1, 1),
+        utils=(0, 0),
         single_issue=True,
         keep_issue_names=True,
         keep_value_names=True,
@@ -424,11 +427,11 @@ class TestGeniusAgentSessions:
         return neg
 
     @pytest.mark.skipif(
-        condition=not genius_bridge_is_running(),
+        condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
     def test_genius_agents_can_run_on_converted_single_issue_ufun1(self, init_genius):
-        neg = self.prepare(utils=(1, 1), single_issue=True)
+        neg = self.prepare(utils=(0, 0), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
             # (30.001554125152623, 30.001554125152623)
             (1.0, 1.0)
@@ -442,11 +445,11 @@ class TestGeniusAgentSessions:
         }
 
     @pytest.mark.skipif(
-        condition=not genius_bridge_is_running(),
+        condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
     def test_genius_agents_can_run_on_converted_single_issue_ufun2(self, init_genius):
-        neg = self.prepare(utils=(2, 2), single_issue=True)
+        neg = self.prepare(utils=(1, 1), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(1.0, 1.0)]
         state = neg.run()
         assert neg.agreement is not None
@@ -456,11 +459,11 @@ class TestGeniusAgentSessions:
         }
 
     @pytest.mark.skipif(
-        condition=not genius_bridge_is_running(),
+        condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
     def test_genius_agents_can_run_on_converted_single_issue(self, init_genius):
-        neg = self.prepare(utils=(1, 2), single_issue=True)
+        neg = self.prepare(utils=(0, 1), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
             (0.7715533992081258, 0.8450562871935449),
             (0.5775524426410947, 1.0),
@@ -473,11 +476,11 @@ class TestGeniusAgentSessions:
         assert neg.agreement is not None
 
     @pytest.mark.skipif(
-        condition=not genius_bridge_is_running(),
+        condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
     def test_genius_agents_can_run_on_converted_multiple_issues(self, init_genius):
-        neg = self.prepare(utils=(1, 1), single_issue=False)
+        neg = self.prepare(utils=(0, 0), single_issue=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
         true_frontier = [(1.0, 1.0)]
         assert len(frontier) == len(true_frontier)
@@ -494,14 +497,14 @@ class TestGeniusAgentSessions:
         }
 
     @pytest.mark.skipif(
-        condition=not genius_bridge_is_running(),
+        condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
     def test_genius_agents_can_run_on_converted_multiple_issues_no_names(
         self, init_genius
     ):
         neg = self.prepare(
-            utils=(1, 1),
+            utils=(0, 0),
             single_issue=False,
             keep_issue_names=False,
             keep_value_names=False,
@@ -523,7 +526,7 @@ class TestGeniusAgentSessions:
         assert neg.agreement == ("HP", "60 Gb", "19'' LCD"), neg.agreement
 
     @pytest.mark.skipif(
-        condition=not genius_bridge_is_running(),
+        condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
     def test_genius_agent_example(self, init_genius):

@@ -42,6 +42,12 @@ from negmas.outcomes import (
     outcome_is_valid,
 )
 from negmas.utilities import MappingUtilityFunction, UtilityFunction, pareto_frontier
+from negmas.genius import (
+    DEFAULT_JAVA_PORT,
+    get_free_tcp_port,
+    ANY_JAVA_PORT,
+    RANDOM_JAVA_PORT,
+)
 
 __all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
 
@@ -99,6 +105,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         exist_ok: bool = True,
         name=None,
         outcome_type=tuple,
+        genius_port: int = DEFAULT_JAVA_PORT,
     ):
         """
 
@@ -125,6 +132,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
             name: Name of the mechanism session. Should be unique. If not given, it will be generated.
             outcome_type: The type used for representing outcomes. Can be tuple, dict or any `OutcomeType`
+            genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
         """
         super().__init__(name=name)
         CheckpointMixin.checkpoint_init(
@@ -144,6 +152,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         negotiator_time_limit = (
             negotiator_time_limit if negotiator_time_limit is not None else float("inf")
         )
+
         if keep_issue_names is not None:
             warnings.warn(
                 "keep_issue_names is depricated. Use outcome_type instead.\n"
@@ -274,6 +283,18 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         self.agents_of_role = defaultdict(list)
         self.role_of_agent = {}
+        # mechanisms do not differentiate between RANDOM_JAVA_PORT and ANY_JAVA_PORT.
+        # if either is given as the genius_port, it will fix a port and all negotiators
+        # that are not explicitly assigned to a port (by passing port>0 to them) will just
+        # use that port.
+        self.genius_port = genius_port if genius_port > 0 else get_free_tcp_port()
+
+        self.params = dict(
+            dynamic_entry=dynamic_entry,
+            genius_port=genius_port,
+            cache_outcomes=cache_outcomes,
+            annotation=annotation,
+        )
 
     def outcome_index(self, outcome) -> Optional[int]:
         """Returns the index of the outcome if that was possible"""

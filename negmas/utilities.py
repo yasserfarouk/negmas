@@ -245,6 +245,7 @@ class UtilityFunction(ABC, NamedObject):
         Examples:
 
             >>> from negmas.utilities import UtilityFunction
+            >>> import pkg_resources
             >>> u, d = UtilityFunction.from_genius(file_name = pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml'))
             >>> u.__class__.__name__
@@ -283,6 +284,7 @@ class UtilityFunction(ABC, NamedObject):
 
             >>> from negmas.utilities import UtilityFunction
             >>> from negmas.inout import load_genius_domain
+            >>> import pkg_resources
             >>> _, _, issues = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
             ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
             ...             , keep_issue_names=False)
@@ -364,6 +366,7 @@ class UtilityFunction(ABC, NamedObject):
 
         Examples:
 
+            >>> import pkg_resources
             >>> u, _ = UtilityFunction.from_xml_str(open(pkg_resources.resource_filename('negmas'
             ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
             ...                                      , 'r').read(), force_single_issue=False
@@ -1940,7 +1943,9 @@ class LinearUtilityFunction(UtilityFunction):
                     for i, v in enumerate(offer):
                         newoffer[self.issues[i].name] = v
                 else:
-                    raise ValueError(f"Cannot find issue names but weights are given as a dict.")
+                    raise ValueError(
+                        f"Cannot find issue names but weights are given as a dict."
+                    )
                 for k, w in self.weights.items():
                     u += w * iget(offer, k, self.missing_value)
                 return u
