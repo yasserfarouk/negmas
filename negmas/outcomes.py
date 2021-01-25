@@ -1162,6 +1162,7 @@ class Issue(NamedObject):
         issues: Collection["Issue"],
         n_discretization: int = 10,
         astype: Type = dict,
+        max_n_outcomes: int = None
     ) -> List["Outcome"]:
         """
         Enumerates the outcomes of a list of issues.
@@ -1180,7 +1181,7 @@ class Issue(NamedObject):
             else Issue(values=_.alli(n_discretization), name=_.name)
             for _ in issues
         ]
-        return cls.enumerate(issues, max_n_outcomes=None, astype=astype)
+        return cls.enumerate(issues, max_n_outcomes=max_n_outcomes, astype=astype)
 
     @classmethod
     def sample(
