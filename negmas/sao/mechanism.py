@@ -103,6 +103,7 @@ class SAOMechanism(Mechanism):
         check_offers=True,
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
+        allow_offering_just_rejected_outcome=True,
         name: Optional[str] = None,
         max_wait: int = sys.maxsize,
         **kwargs,
@@ -134,8 +135,10 @@ class SAOMechanism(Mechanism):
         self.params["avoid_ultimatum"] = avoid_ultimatum
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
+        self.params["allow_offering_just_rejected_outcome"] = allow_offering_just_rejected_outcome
         self.params["max_wait"] = max_wait
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
+        self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
         self._current_offer = None
         self._current_proposer = None
         self._last_checked_negotiator = -1
@@ -750,6 +753,8 @@ class SAOMechanism(Mechanism):
                     )
             if resp.response == ResponseType.REJECT_OFFER:
                 proposal = resp.outcome
+                if not self.allow_offering_just_rejected_outcome and proposal == self._current_offer:
+                    proposal = None
                 if proposal is None:
                     if (
                         neg.capabilities.get("propose", True)
