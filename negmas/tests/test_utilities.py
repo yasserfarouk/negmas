@@ -391,5 +391,31 @@ def test_normalization():
     )
 
 
+@mark.parametrize(["normalize"], [(True,), (False,)])
+def test_inverse_genius_domain(normalize):
+    issues, _ = Issue.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+            ),
+            "r",
+        ).read(),
+    )
+    u, _ = UtilityFunction.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ),
+            "r",
+        ).read(),
+        force_single_issue=False,
+        normalize_utility=normalize,
+    )
+    u.init_inverse(issues=issues)
+    for i in range(100):
+        v = u(u.inverse(i / 100.0, eps=(0.001, 0.1), assume_normalized=normalize))
+        assert v-1e-3 <= v <= v+0.1
+
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])

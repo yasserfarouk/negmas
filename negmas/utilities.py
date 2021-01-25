@@ -783,7 +783,7 @@ class UtilityFunction(ABC, NamedObject):
                         offset = umin / (wsum * factor)
                     else:
                         offset = 0.0
-                        factor = 1.0
+                        factor = umax if umax > 1e-8 else 1.0
                     for key, issue in ienumerate(issues):
                         for item_key in ikeys(issue):
                             issues[key][item_key] = (
@@ -1295,7 +1295,7 @@ class UtilityFunction(ABC, NamedObject):
     def generate_random(
         cls, n: int, outcomes: Union[int, List[Outcome]], normalized: bool = True
     ) -> List["UtilityFunction"]:
-        """Generates a couple of utility functions
+        """Generates N utility functions
 
         Args:
             n: number of utility functions to generate
@@ -1616,6 +1616,102 @@ class UtilityFunction(ABC, NamedObject):
                 outcomes[maxloc],
             )
         return float(np.min(utils)), float(np.max(utils))
+
+    def init_inverse(
+        self,
+        issues: Optional[List["Issue"]] = None,
+        outcomes: Optional[List["Outcome"]] = None,
+        n_trials: int = 10000,
+        max_cache_size: int = 10000,
+    ) -> None:
+        """
+        Initializes the inverse ufun used to map utilities to outcomes.
+
+        Args:
+            issues: The issue space to be searched for inverse. If not given, the issue space of the mechanism may be used.
+            outcomes: The outcomes to consider. This takes precedence over `issues`
+            n_trials: Used for constraining computation if necessary
+            max_cache_size: The maximum allowed number of outcomes to cache
+
+        """
+        if issues is None:
+            issues = self.issues
+        self._min, self._max, self._worst, self._best = self.utility_range(
+            issues, outcomes, return_outcomes=True, max_n_outcomes=n_trials
+        )
+        self._range = self._max - self._min
+        self._offset = self._min / self._range if self._range > 1e-5 else self._min
+        astype = self._outcome_type if self._outcome_type else tuple
+        if self._issues and Issue.num_outcomes(issues) < max_cache_size:
+            outcomes = Issue.enumerate(issues, astype=astype)
+        if not outcomes:
+            outcomes = Issue.discretize_and_enumerate(
+                issues, n_discretization=2, astype=astype, max_n_outcomes=max_cache_size
+            )
+            n = max_cache_size - len(outcomes)
+            if n > 0:
+                outcomes += Issue.sample(
+                    issues,
+                    n,
+                    astype=astype,
+                    with_replacement=False,
+                    fail_if_not_enough=False,
+                )
+        utils = self.eval_all(outcomes)
+        self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
+
+    def inverse(
+        self,
+        u: float,
+        eps: Union[float, Tuple[float, float]] = (1e-3, 0.2),
+        assume_normalized=True,
+        issues: Optional[List["Issue"]] = None,
+        outcomes: Optional[List["Outcome"]] = None,
+        n_trials: int = 10000,
+    ) -> Optional["Outcome"]:
+        """
+        Finds an outcmoe with the given utility value
+
+        Args:
+            u: the utility value to find an outcome for.
+            eps: An approximation error. If a number, it is mapped to (eps, eps)
+            n_trials: the number of time to try (used if random sampling is employed)
+            issues: If given the issue space to search (not recommended)
+            outcomes: If given the outcomes to search (not recommended)
+            assume_normalized: If true, the ufun will be assumed normalized between 0 and 1 (faster)
+
+        Returns:
+            An outcome with utility between u-eps[0] and u+eps[1] if found
+
+        Remarks:
+            - If issues or outcomes are not None, then init_inverse will be called first
+
+        """
+        if not isinstance(eps, Iterable):
+            mn, mx = u - eps, u + eps
+        else:
+            mn, mx = u - eps[0], u + eps[1]
+        if not assume_normalized:
+            if self._range > 1e-5:
+                mn = mn / self._range + self._offset
+                mx = mx / self._range + self._offset
+            else:
+                mn = mn + self._offset
+                mx = mx + self._offset
+        if issues or outcomes:
+            self.init_inverse(issues, outcomes, n_trials, n_trials)
+        # todo use bisection
+        for i, (util, w) in enumerate(self._ordered_outcomes):
+            if util >= mn:
+                continue
+            ubefore, wbefore = self._ordered_outcomes[i - 1 if i > 0 else 0]
+            if ubefore > mx:
+                return None
+            return wbefore
+        ubefore, wbefore = self._ordered_outcomes[-1]
+        if ubefore > mx:
+            return None
+        return wbefore
 
 
 UtilityFunctions = List["UtilityFunction"]
@@ -2057,6 +2153,13 @@ class LinearUtilityFunction(UtilityFunction):
             issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
         )
 
+    @classmethod
+    def random(cls, n_issues: int, reserved_value: Optional[float] = None):
+        r = reserved_value if reserved_value is not None else random.random()
+        s = 0.0
+        weights = [2 * (random.random() - 0.5) for _ in range(n_issues)]
+        return LinearUtilityFunction(weights=weights, reserved_value=r)
+
 
 class LinearUtilityAggregationFunction(UtilityFunction):
     r"""A linear aggregation utility function for multi-issue negotiations.
@@ -2339,6 +2442,30 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         return super().utility_range(
             issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
         )
+
+    # def outcome_with_utility(
+    #     self,
+    #     rng: Tuple[Optional[float], Optional[float]],
+    #     issues: List[Issue] = None,
+    #     outcomes: List[Outcome] = None,
+    #     n_trials: int = 100,
+    # ) -> Optional["Outcome"]:
+    #     """
+    #     Gets one outcome within the given utility range or None on failure
+    #
+    #     Args:
+    #         self: The utility function
+    #         rng: The utility range
+    #         issues: The issues the utility function is defined on
+    #         outcomes: The outcomes to sample from
+    #         n_trials: Not used
+    #
+    #     Returns:
+    #
+    #         - Either issues, or outcomes should be given but not both
+    #
+    #     """
+    #
 
 
 class MappingUtilityFunction(UtilityFunction):
