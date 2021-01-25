@@ -858,11 +858,6 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     help="Port to run the NegLoader on. Pass 0 for the default value",
 )
 @click.option(
-    "--force/--no-force",
-    default=False,
-    help="Force trial even if an earlier instance exists",
-)
-@click.option(
     "--debug", default=False, help="Run the bridge in debug mode",
 )
 @click.option(
@@ -871,11 +866,10 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     type=float,
     help="The timeout to pass. Zero or negative numbers to disable and use the bridge's global timeout.",
 )
-def genius(path, port, force, debug, timeout):
+def genius(path, port, debug, timeout):
     negmas.init_genius_bridge(
         path=path if path != "auto" else None,
         port=port,
-        force=force,
         debug=debug,
         timeout=timeout,
     )
