@@ -100,7 +100,7 @@ class MechanismState:
         return MechanismState(**self.__dict__)
 
     def __deepcopy__(self, memodict={}):
-        d = {k: deepcopy(v) for k, v in self.__dict__.items()}
+        d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
         return MechanismState(**d)
 
     def __getitem__(self, item):
@@ -259,7 +259,9 @@ class AgentMechanismInterface:
         return AgentMechanismInterface(**self.__dict__)
 
     def __deepcopy__(self, memodict={}):
-        d = {k: deepcopy(v) for k, v in self.__dict__.items()}
+        d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
+        if "_mechanism" in d.keys():
+            del d["_mechanism"]
         return AgentMechanismInterface(**d)
 
     def __getitem__(self, item):
