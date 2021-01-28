@@ -62,7 +62,7 @@ from negmas.outcomes import (
     outcome_is_valid,
     sample_outcomes,
 )
-
+from negmas.helpers import get_class
 
 __all__ = [
     "UtilityDistribution",
@@ -181,6 +181,7 @@ class UtilityFunction(ABC, NamedObject):
         super().__init__(name=name)
         self.reserved_value = reserved_value
         self._ami = ami
+        self._inverse_initialzed = False
         self._issues = issues if ami is None or ami.issues is None else ami.issues
         self._outcome_type = outcome_type if ami is None else ami.outcome_type
         self.issue_names = (
@@ -1295,7 +1296,7 @@ class UtilityFunction(ABC, NamedObject):
     def generate_random(
         cls, n: int, outcomes: Union[int, List[Outcome]], normalized: bool = True
     ) -> List["UtilityFunction"]:
-        """Generates N utility functions
+        """Generates N mapping utility functions
 
         Args:
             n: number of utility functions to generate
@@ -1659,6 +1660,7 @@ class UtilityFunction(ABC, NamedObject):
                 )
         utils = self.eval_all(outcomes)
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
+        self._inverse_initialzed = True
 
     def inverse(
         self,
@@ -1698,7 +1700,7 @@ class UtilityFunction(ABC, NamedObject):
             else:
                 mn = mn + self._offset
                 mx = mx + self._offset
-        if issues or outcomes:
+        if (not self._inverse_initialzed) or issues or outcomes:
             self.init_inverse(issues, outcomes, n_trials, n_trials)
         # todo use bisection
         for i, (util, w) in enumerate(self._ordered_outcomes):
@@ -1712,6 +1714,19 @@ class UtilityFunction(ABC, NamedObject):
         if ubefore > mx:
             return None
         return wbefore
+
+    @property
+    def is_inverse_initialized(self):
+        return self._inverse_initialzed
+
+    def uninialize_inverse(self):
+        self._inverse_initialzed = False
+
+    @classmethod
+    def random(
+        cls, issues, reserved_value=(0.0, 0.5), normalized=True, **kwargs
+    ) -> "UtilityFunction":
+        """Generates a random ufun of the given type"""
 
 
 UtilityFunctions = List["UtilityFunction"]
@@ -1746,6 +1761,34 @@ class ExpDiscountedUFun(UtilityFunction):
         self.discount = discount
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
+
+    @classmethod
+    def random(
+        cls,
+        issues,
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+        discount_range=(0.8, 1.0),
+        base_ufun_type: Type[UtilityFunction] = "negmas.LinearUtilityAggregationFunction",
+        **kwargs,
+    ) -> "ExpDiscountedUFun":
+        """Generates a random ufun of the given type"""
+        reserved_value = _make_range(reserved_value)
+        discount_range = _make_range(discount_range)
+        kwargs["discount"] = (
+            random.random() * (discount_range[1] - discount_range[0])
+            + discount_range[0]
+        )
+        kwargs["reserved_value"] = (
+            random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0]
+        )
+        return cls(
+            get_class(base_ufun_type).generate_random(
+                issues, reserved_value=reserved_value, normalized=normalized
+            ),
+            **kwargs,
+        )
 
     def eval(self, offer: "Outcome") -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
@@ -1865,6 +1908,38 @@ class LinDiscountedUFun(UtilityFunction):
     def type(self):
         return self.ufun.type + "_linearly_discounted"
 
+    @classmethod
+    def random(
+        cls,
+        issues,
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+        cost_range=(0.8, 1.0),
+        power_range=(0.0, 1.0),
+        base_ufun_type: Type[UtilityFunction] = "negmas.LinearUtilityAggregationFunction",
+        **kwargs,
+    ) -> "ExpDiscountedUFun":
+        """Generates a random ufun of the given type"""
+        reserved_value = _make_range(reserved_value)
+        cost_range = _make_range(cost_range)
+        power_ranage = _make_range(power_range)
+        kwargs["cost"] = (
+            random.random() * (cost_range[1] - cost_range[0]) + cost_range[0]
+        )
+        kwargs["power"] = (
+            random.random() * (power_range[1] - power_range[0]) + power_range[0]
+        )
+        kwargs["reserved_value"] = (
+            random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0]
+        )
+        return cls(
+            get_class(base_ufun_type).generate_random(
+                issues, reserved_value=kwargs["reserved_value"], normalized=normalized
+            ),
+            **kwargs,
+        )
+
 
 class ConstUFun(UtilityFunction):
     def __init__(
@@ -1890,6 +1965,27 @@ class ConstUFun(UtilityFunction):
 
     def __str__(self):
         return str(self.value)
+
+    @classmethod
+    def random(
+        cls,
+        issues,
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+        value_range=(0.0, 1.0),
+        **kwargs,
+    ) -> "ExpDiscountedUFun":
+        """Generates a random ufun of the given type"""
+        reserved_value = _make_range(reserved_value)
+        value_range = _make_range(value_range)
+        kwargs["value"] = (
+            random.random() * (value_range[1] - value_range[0]) + value_range[0]
+        )
+        kwargs["reserved_value"] = (
+            random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0]
+        )
+        return cls(**kwargs)
 
 
 def make_discounted_ufun(
@@ -2003,6 +2099,7 @@ class LinearUtilityFunction(UtilityFunction):
     def __init__(
         self,
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
+        biases: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
         missing_value: Optional[float] = None,
         name: Optional[str] = None,
         reserved_value: UtilityValue = float("-inf"),
@@ -2013,6 +2110,7 @@ class LinearUtilityFunction(UtilityFunction):
             name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
         )
         self.weights = weights
+        self.biases = biases
         self.missing_value = missing_value
 
     def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
@@ -2023,7 +2121,7 @@ class LinearUtilityFunction(UtilityFunction):
         if isinstance(self.weights, dict):
             if isinstance(offer, dict):
                 for k, w in self.weights.items():
-                    u += w * iget(offer, k, self.missing_value)
+                    u += w * (iget(offer, k, self.missing_value) + self.biases.get(k, 0))
                 return u
             else:
                 if self.ami is not None:
@@ -2043,11 +2141,11 @@ class LinearUtilityFunction(UtilityFunction):
                         f"Cannot find issue names but weights are given as a dict."
                     )
                 for k, w in self.weights.items():
-                    u += w * iget(offer, k, self.missing_value)
+                    u += w * (iget(offer, k, self.missing_value) + self.biases.get(k, 0))
                 return u
 
         offer = outcome_as_tuple(offer)
-        return sum(w * v for w, v in zip(self.weights, offer))
+        return sum(w * (v + b) for w, b, v in zip(self.weights, self.biases, offer))
 
     def xml(self, issues: List[Issue]) -> str:
         """Generates an XML string representing the utility function
@@ -2091,9 +2189,10 @@ class LinearUtilityFunction(UtilityFunction):
             issue_name = iget(issues, k).name
             output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
             vals = iget(issues, k).all
+            bias = iget(self.biases, k, 0.0)
             for indx, u in enumerate(vals):
                 output += (
-                    f'    <item index="{indx+1}" value="{u}" evaluation="{u}" />\n'
+                    f'    <item index="{indx+1}" value="{u+ bias}" evaluation="{u}" />\n'
                 )
             output += "</issue>\n"
         if isinstance(issues, dict):
@@ -2112,7 +2211,7 @@ class LinearUtilityFunction(UtilityFunction):
         return output
 
     def __str__(self):
-        return f"w: {self.weights}"
+        return f"w: {self.weights}, b: {self.biases}"
 
     def utility_range(
         self,
@@ -2154,11 +2253,39 @@ class LinearUtilityFunction(UtilityFunction):
         )
 
     @classmethod
-    def random(cls, n_issues: int, reserved_value: Optional[float] = None):
+    def random(cls, issues: List["Issue"], reserved_value=(0.0, 1.0), normalized=True, **kwargs):
+        reserved_value = _make_range(reserved_value)
+        n_issues = len(issues)
         r = reserved_value if reserved_value is not None else random.random()
         s = 0.0
         weights = [2 * (random.random() - 0.5) for _ in range(n_issues)]
-        return LinearUtilityFunction(weights=weights, reserved_value=r)
+        biases = [2 * (random.random() - 0.5) for _ in range(n_issues)]
+        ufun = cls(
+            weights=weights,
+            biases=biases,
+            reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0],
+        )
+        if normalized:
+            return normalize(ufun, outcomes=Issue.discretize_and_enumerate(issues, n_discretization=10, max_n_outcomes=10000))
+        return ufun
+
+def _get_one_int(i: Union[int, Tuple[int, int]]):
+    if isinstance(i, int):
+        return i
+    return random.randint(*i)
+
+
+def _get_one_float(rng: Union[float, Tuple[float, float]]):
+    if isinstance(rng, float):
+        return rng
+    return random.random() * (rng[1] - rng[0]) + rng[0]
+
+
+def _make_range(x: Union[Any, Tuple[Any, Any]]) -> Tuple[Any, Any]:
+    if isinstance(x, Iterable):
+        return x
+    return (x, x)
 
 
 class LinearUtilityAggregationFunction(UtilityFunction):
@@ -2443,6 +2570,33 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
         )
 
+    @classmethod
+    def random(cls, issues: List["Issue"], reserved_value=(0.0, 1.0), normalized=True, **kwargs):
+        reserved_value = _make_range(reserved_value)
+        def random_mapping(issue: "Issue"):
+            if issubclass(issue.value_type, int) or issubclass(issue.value_type, float):
+                return lambda x: (random.random() - 0.5) * x
+            return zip(
+                issue.values, [random.random() - 0.5 for _ in range(issue.cardinality)]
+            )
+
+        n_issues = len(issues)
+        # r = reserved_value if reserved_value is not None else random.random()
+        s = 0.0
+        weights = dict(zip([_.name for _ in issues],[random.random() for _ in range(n_issues)]))
+        s = sum(_ for _ in weights.values())
+        if s:
+            for k, v in weights.items():
+                weights[k] = v / s
+        issue_utilities = dict(zip([_.name for _ in issues], [random_mapping(issue) for issue in issues]))
+        return cls(
+            weights=weights,
+            issue_utilities=issue_utilities,
+            reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
+            + reserved_value[0],
+            **kwargs,
+        )
+
     # def outcome_with_utility(
     #     self,
     #     rng: Tuple[Optional[float], Optional[float]],
@@ -2609,6 +2763,23 @@ class MappingUtilityFunction(UtilityFunction):
 
     def __str__(self) -> str:
         return f"mapping: {self.mapping}\ndefault: {self.default}"
+
+    @classmethod
+    def random(
+        cls,
+        issues: List["Issue"],
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+        max_n_outcomes: int = 10000,
+    ):
+        outcomes = (
+            Issue.enumerate(issues)
+            if Issue.num_outcomes(issues) <= max_n_outcomes
+            else Issue.sample(
+                issues, max_n_outcomes, with_replacement=False, fail_if_not_enough=False
+            )
+        )
+        return UtilityFunction.generate_random(1, outcomes)[0]
 
 
 class RandomUtilityFunction(MappingUtilityFunction):
@@ -3547,6 +3718,8 @@ def normalize(
                 )
     scale = (rng[1] - rng[0]) / (mx - mn) if not max_only else (rng[1] / mx)
     r = scale * (ufun.reserved_value - mn)
+    if abs(mn - rng[0] / scale) < epsilon:
+        return ufun
     if infeasible_cutoff is not None:
         return ComplexNonlinearUtilityFunction(
             ufuns=[ufun],
