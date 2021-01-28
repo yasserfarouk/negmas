@@ -1,6 +1,7 @@
 """
 Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
@@ -30,6 +31,13 @@ class SAOState(MechanismState):
     n_acceptances: int = 0
     new_offers: List[Tuple[str, "Outcome"]] = field(default_factory=list)
     new_offerer_agents: List[str] = field(default_factory=list)
+
+    def __copy__(self):
+        return SAOState(**self.__dict__)
+
+    def __deepcopy__(self, memodict={}):
+        d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
+        return SAOState(**d)
 
 
 @dataclass
