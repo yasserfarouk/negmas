@@ -126,7 +126,6 @@ from .genius import (
     DEFAULT_JAVA_PORT,
     get_free_tcp_port,
     ANY_JAVA_PORT,
-    RANDOM_JAVA_PORT,
 )
 
 from warnings import warn

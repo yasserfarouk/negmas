@@ -29,7 +29,7 @@ from negmas.outcomes import Issue
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
-    from negmas.utilities import UtilityValue, UtilityFunction
+    from negmas.utilities import UtilityFunction
     from negmas.situated import Agent
 
 __all__ = [

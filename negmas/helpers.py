@@ -54,6 +54,9 @@ if TYPE_CHECKING:
     pass
 
 __all__ = [
+    "get_one_float",
+    "get_one_int",
+    "make_range",
     "TimeoutError",
     "TimeoutCaller",
     "PATH",
@@ -106,6 +109,24 @@ LOGS_BASE_DIR = "./logs"
 DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get("default_dump_extension", "json")
 
 PATH = Union[pathlib.Path, str]
+
+
+def get_one_int(i: Union[int, Tuple[int, int]]):
+    if isinstance(i, int):
+        return i
+    return random.randint(*i)
+
+
+def get_one_float(rng: Union[float, Tuple[float, float]]):
+    if isinstance(rng, float):
+        return rng
+    return random.random() * (rng[1] - rng[0]) + rng[0]
+
+
+def make_range(x: Union[Any, Tuple[Any, Any]]) -> Tuple[Any, Any]:
+    if isinstance(x, Iterable):
+        return x
+    return (x, x)
 
 
 class ReturnCause(Enum):
@@ -533,7 +554,6 @@ class LazyInitializable(object):
               this object.
             - You should **never** call `adjust_params()` directly anywhere.
         """
-        pass
 
 
 class Distribution(object):

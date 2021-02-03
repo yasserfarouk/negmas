@@ -1,8 +1,6 @@
 from pytest import mark
 
 from negmas import (
-    BinaryComparatorNegotiator,
-    Issue,
     MappingUtilityFunction,
     SorterNegotiator,
 )

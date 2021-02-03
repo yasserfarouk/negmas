@@ -1,5 +1,4 @@
 import os
-from os import walk
 
 import pkg_resources
 import pytest

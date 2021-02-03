@@ -14,7 +14,7 @@ from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONego
 from ..common import AgentMechanismInterface, MechanismState
 from ..negotiators import AspirationMixin, Controller
 from ..outcomes import Outcome, ResponseType, outcome_is_valid
-from ..utilities import UtilityFunction, utility_range
+from ..utilities import utility_range
 
 __all__ = [
     "SAOController",

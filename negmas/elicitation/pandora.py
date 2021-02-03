@@ -17,7 +17,7 @@ from .expectors import (
     AspiringExpector,
     BalancedExpector,
 )
-from ..common import AgentMechanismInterface, MechanismState
+from ..common import MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
@@ -25,11 +25,7 @@ from ..sao import (
     AspirationNegotiator,
     SAONegotiator,
 )
-from ..utilities import (
-    IPUtilityFunction,
-    UtilityDistribution,
-    UtilityValue,
-)
+from ..utilities import UtilityValue
 
 __all__ = [
     "BasePandoraElicitor",
@@ -617,7 +613,6 @@ class FastElicitor(PandoraElicitor):
 
     def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
         """We need not do anything here as we will remove the outcome anyway to the known list"""
-        pass
 
     def do_elicit(self, outcome: "Outcome", state: MechanismState):
         return self.expect(super().do_elicit(outcome, state), state=state)

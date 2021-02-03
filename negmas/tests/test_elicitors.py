@@ -7,7 +7,6 @@ import pytest
 
 from negmas import load_genius_domain_from_folder
 from negmas.elicitation import (
-    BalancedElicitor,
     DummyElicitor,
     EStrategy,
     FullKnowledgeElicitor,
@@ -16,9 +15,8 @@ from negmas.elicitation import (
     User,
     next_query,
     possible_queries,
-    OptimalIncrementalElicitor,
 )
-from negmas.helpers import Distribution as U, instantiate
+from negmas.helpers import instantiate
 from negmas.sao import AspirationNegotiator, LimitedOutcomesNegotiator, SAOMechanism
 from negmas.utilities import IPUtilityFunction, MappingUtilityFunction, pareto_frontier
 

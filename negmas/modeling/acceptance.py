@@ -11,7 +11,7 @@ from negmas.common import AgentMechanismInterface
 from negmas.outcomes import Outcome, ResponseType
 
 if TYPE_CHECKING:
-    from negmas.sao import SAONegotiator
+    pass
 
 __all__ = [
     "AcceptanceModelType",

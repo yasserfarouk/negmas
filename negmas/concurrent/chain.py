@@ -94,7 +94,6 @@ class ChainNegotiator(Negotiator, ABC):
         Returns:
             A new offer (possibly to another negotiator)
         """
-        pass
 
     @abstractmethod
     def propose(self, state: MechanismState) -> Offer:
@@ -170,7 +169,6 @@ class MultiChainNegotiator(Negotiator, ABC):
         Returns:
             A new offer (possibly to another negotiator)
         """
-        pass
 
     @abstractmethod
     def propose(self, state: MechanismState) -> Offer:

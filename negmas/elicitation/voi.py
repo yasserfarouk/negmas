@@ -213,7 +213,6 @@ class BaseVOIElicitor(BaseElicitor):
 
     def before_eliciting(self):
         """Called every round before trying to elicit. Does nothing"""
-        pass
 
     def on_opponent_model_updated(
         self, outcomes: List[Outcome], old: List[float], new: List[float]

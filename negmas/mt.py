@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
-from .outcomes import Outcome
 
 __all__ = [
     "VetoMTMechanism",

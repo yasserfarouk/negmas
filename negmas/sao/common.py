@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from negmas.common import AgentMechanismInterface, MechanismState
-from negmas.outcomes import Outcome, ResponseType
+from negmas.outcomes import ResponseType
 
 __all__ = [
     "SAOResponse",
