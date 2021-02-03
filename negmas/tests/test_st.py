@@ -2,9 +2,7 @@ from pytest import mark
 
 from negmas import (
     BinaryComparatorNegotiator,
-    Issue,
     MappingUtilityFunction,
-    RankerNegotiator,
 )
 from negmas.st import HillClimbingSTMechanism, VetoSTMechanism
 

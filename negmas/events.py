@@ -1,9 +1,8 @@
 """Implements Event management"""
-import itertools
 import random
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List
 
 from .common import NamedObject
 
@@ -149,4 +148,3 @@ class Notifiable:
 
             - override this method to provide a catch-all notification handling method.
         """
-        pass

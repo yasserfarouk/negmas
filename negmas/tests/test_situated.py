@@ -287,7 +287,7 @@ def test_world_has_times(capsys):
 
 
 def test_world_records_exceptions(capsys):
-    import time
+    pass
 
     world = DummyWorld(n_steps=10, ignore_agent_exceptions=True)
     world.join(ExceptionAgent("A1"))

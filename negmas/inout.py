@@ -331,7 +331,7 @@ def load_genius_domain_from_folder(
         >>> print(len(negotiators))
         2
         >>> print([type(a['ufun']) for a in negotiators])
-        [<class 'negmas.utilities.HyperRectangleUtilityFunction'>, <class 'negmas.utilities.HyperRectangleUtilityFunction'>]
+        [<class 'negmas.utilities.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.utilities.nonlinear.HyperRectangleUtilityFunction'>]
         >>> print(negotiators[0]['ufun'].outcome_ranges[0])
         {1: (7.0, 9.0), 3: (2.0, 7.0), 5: (0.0, 8.0), 8: (0.0, 7.0)}
         >>> print(negotiators[0]['ufun'].mappings[0])
@@ -360,7 +360,7 @@ def load_genius_domain_from_folder(
         (3, 2)
 
         >>> [type(a['ufun']) for a in negotiators]
-        [<class 'negmas.utilities.LinearUtilityAggregationFunction'>, <class 'negmas.utilities.LinearUtilityAggregationFunction'>]
+        [<class 'negmas.utilities.linear.LinearUtilityAggregationFunction'>, <class 'negmas.utilities.linear.LinearUtilityAggregationFunction'>]
 
         >>> mechanism, negotiators, issues = load_genius_domain_from_folder(
         ...                             pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')
@@ -369,7 +369,7 @@ def load_genius_domain_from_folder(
         >>> len(issues), len(negotiators)
         (1, 2)
         >>> [type(a['ufun']) for a in negotiators]
-        [<class 'negmas.utilities.MappingUtilityFunction'>, <class 'negmas.utilities.MappingUtilityFunction'>]
+        [<class 'negmas.utilities.nonlinear.MappingUtilityFunction'>, <class 'negmas.utilities.nonlinear.MappingUtilityFunction'>]
 
     """
     folder_name = str(folder_name)

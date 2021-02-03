@@ -5,7 +5,7 @@ import math
 import random
 import warnings
 from abc import abstractmethod
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import List, Optional, Type, Union
 
 import numpy as np
 
@@ -38,7 +38,6 @@ from ..utilities import (
     LinearUtilityFunction,
     MappingUtilityFunction,
     UtilityFunction,
-    UtilityValue,
     outcome_with_utility,
     utility_range,
 )

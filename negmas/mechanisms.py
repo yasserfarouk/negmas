@@ -45,8 +45,6 @@ from negmas.utilities import MappingUtilityFunction, UtilityFunction, pareto_fro
 from negmas.genius import (
     DEFAULT_JAVA_PORT,
     get_free_tcp_port,
-    ANY_JAVA_PORT,
-    RANDOM_JAVA_PORT,
 )
 
 __all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]

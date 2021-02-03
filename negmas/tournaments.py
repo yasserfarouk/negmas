@@ -16,7 +16,6 @@ import warnings
 from multiprocessing import current_process
 from socket import gethostname
 
-from scipy.stats.stats import RepeatedResults
 
 try:
     import distributed
@@ -50,8 +49,6 @@ from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas.helpers import (
-    exception2str,
-    add_records,
     dump,
     get_class,
     get_full_type_name,

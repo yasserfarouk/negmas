@@ -18,7 +18,6 @@ from ..utilities import (
     IPUtilityFunction,
     MappingUtilityFunction,
     UtilityDistribution,
-    UtilityFunction,
     UtilityValue,
 )
 
@@ -557,7 +556,6 @@ class BaseElicitor(SAONegotiator):
 
     def before_eliciting(self) -> None:
         """Called by apply just before continuously calling elicit_single"""
-        pass
 
     @abstractmethod
     def can_elicit(self) -> bool:
