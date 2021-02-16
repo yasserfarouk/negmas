@@ -229,5 +229,5 @@ html_domain_indices = True
 
 automodsumm_inherited_members = False
 
-autodoc_typehints = "description"
+autodoc_typehints = "signature"
 # mathjax_path =
