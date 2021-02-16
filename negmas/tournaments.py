@@ -58,7 +58,7 @@ from negmas.helpers import (
     unique_name,
     shortest_unique_names,
 )
-from negmas.java import to_flat_dict, to_dict
+from negmas.serialization import to_flat_dict, serialize
 
 from .situated import Agent, World, save_stats
 
@@ -891,9 +891,8 @@ def _run_worlds(
                 save_stats(world, world.log_folder, params=world_params_)
                 # TODO reorganize the code so that the worlds are run in parallel when there are multiple of them
                 if not dry_run:
-                    scores_ = to_dict(
+                    scores_ = serialize(
                         score_calculator(worlds, scoring_context, False),
-                        camel=False,
                         add_type_field=False,
                     )
                     scores_["n_steps"] = world.n_steps
@@ -902,7 +901,7 @@ def _run_worlds(
                     scores_["time_limit"] = world.time_limit
                     scores_["time"] = world.time
                     dump(
-                        to_flat_dict(scores_, camel=False),
+                        to_flat_dict(scores_),
                         Path(world.log_folder) / "_current_scores.json",
                         sort_keys=True,
                     )
@@ -2149,6 +2148,7 @@ def create_tournament(
         n_competitors_per_world=n_competitors_per_world,
     )
     params.update(kwargs)
+    # breakpoint()
     dump(params, tournament_path / PARAMS_FILE)
 
     assigned = []

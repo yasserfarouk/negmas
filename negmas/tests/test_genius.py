@@ -330,16 +330,8 @@ def test_genius_agent_same_utility(init_genius):
     dom = dom_folder / "travel_domain.xml"
     util1 = dom_folder / "travel_chox.xml"
     util2 = util1
-    a1 = GeniusNegotiator(
-        java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-        domain_file_name=dom,
-        utility_file_name=util1,
-    )
-    a2 = GeniusNegotiator(
-        java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-        domain_file_name=dom,
-        utility_file_name=util2,
-    )
+    a1 = AgentX(domain_file_name=dom, utility_file_name=util1)
+    a2 = AgentX(domain_file_name=dom, utility_file_name=util2)
     p, _, issues = load_genius_domain(
         dom,
         keep_issue_names=True,
@@ -369,7 +361,7 @@ def test_genius_agent_same_utility(init_genius):
     assert len(u1) == 1
     u1, u2 = a1.ufun(final.current_offer), a2.ufun(final.current_offer)
     welfare = u1 + u2
-    assert abs(welfare - 790.3045545) < 0.01
+    assert welfare > 700
     assert p.state.agreement is not None
     assert p.state.broken is False
 

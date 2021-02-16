@@ -340,13 +340,20 @@ class NamedObject(object):
     Args:
         name (str): The given name of the entity. Notice that the class will add this to a  base that depends
                     on the child's class name.
+        id (str): A unique identifier in the whole system. In principle you should let the system create
+                  this identifier by passing None. In special cases like in serialization you may want to
+                  set the id directly
 
     """
 
-    def __init__(self, name: str = None) -> None:
+    def __init__(self, name: str = None, *, id: str = None) -> None:
         if name is not None:
             name = str(name)
-        self.__uuid = (f"{name}-" if name is not None else "") + str(uuid.uuid4())
+        self.__uuid = (
+            (f"{name}-" if name is not None else "") + str(uuid.uuid4())
+            if not id
+            else id
+        )
         if name is None or len(name) == 0:
             name = unique_name("", add_time=False, rand_digits=16)
         self.__name = name
@@ -579,8 +586,8 @@ class Rational(NamedObject):
         ufun: An optional utility function to attach to the object
     """
 
-    def __init__(self, name: str = None, ufun: Optional["UtilityFunction"] = None):
-        super().__init__(name)
+    def __init__(self, name: str = None, ufun: Optional["UtilityFunction"] = None, id: str  = None):
+        super().__init__(name, id=id)
         self._utility_function = ufun
         self._init_utility = ufun
         self._ufun_modified = ufun is not None

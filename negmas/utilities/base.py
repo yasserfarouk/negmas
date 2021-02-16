@@ -18,13 +18,14 @@ from typing import (
     Tuple,
     Type,
     Union,
+    Any,
 )
 
 import numpy as np
 
 from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import ienumerate, ivalues
-from negmas.helpers import Distribution, PATH, ikeys, snake_case
+from negmas.helpers import Distribution, PATH, ikeys, snake_case, get_full_type_name
 from negmas.outcomes import (
     Issue,
     Outcome,
@@ -34,7 +35,7 @@ from negmas.outcomes import (
     outcome_is_valid,
     sample_outcomes,
 )
-
+from negmas.serialization import serialize, deserialize
 
 __all__ = [
     "UtilityDistribution",
@@ -119,6 +120,10 @@ class UtilityFunction(ABC, NamedObject):
         issues: The list of issues for which the ufun is defined (optional)
         ami: The `AgentMechanismInterface` for a mechanism for which the ufun
              is defined (optinoal)
+        id: An optional system-wide unique identifier. You should not change
+            the default value except in special circumstances like during
+            serialization and should always guarantee system-wide uniquness
+            if you set this value explicitly
 
     Remarks:
         - If ami is given, it overrides outcome_type, issues and issue_names
@@ -137,8 +142,9 @@ class UtilityFunction(ABC, NamedObject):
         issue_names: Optional[List[str]] = None,
         issues: List["Issue"] = None,
         ami: AgentMechanismInterface = None,
+        id: str = None,
     ) -> None:
-        super().__init__(name=name)
+        super().__init__(name, id=id)
         self.reserved_value = reserved_value
         self._ami = ami
         self._inverse_initialzed = False
@@ -1728,6 +1734,14 @@ class UtilityFunction(ABC, NamedObject):
         cls, issues, reserved_value=(0.0, 0.5), normalized=True, **kwargs
     ) -> "UtilityFunction":
         """Generates a random ufun of the given type"""
+
+    @classmethod
+    def from_str(cls, s) -> "UtilityFunction":
+        """Creates an object out of a dict."""
+        return deserialize(eval(s))
+
+    def __str__(self):
+        return str(serialize(self))
 
 
 UtilityFunctions = List["UtilityFunction"]

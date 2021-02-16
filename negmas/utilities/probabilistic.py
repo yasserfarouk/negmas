@@ -60,9 +60,10 @@ class IPUtilityFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id = None,
     ):
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami, id=id,
         )
         outcomes, distributions = (
             list(outcomes),

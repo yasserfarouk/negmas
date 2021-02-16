@@ -28,9 +28,14 @@ class ConstUFun(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        **kwargs,
     ):
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name,
+            outcome_type=outcome_type,
+            reserved_value=reserved_value,
+            ami=ami,
+            **kwargs,
         )
         self.value = value
 

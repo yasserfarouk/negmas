@@ -14,6 +14,7 @@ class RandomUtilityFunction(MappingUtilityFunction):
         outcomes: List[Outcome],
         reserved_value=float("-inf"),
         outcome_type: Optional[Type] = None,
+        **kwargs,
     ):
         if len(outcomes) < 1:
             raise ValueError("Cannot create a random utility function without outcomes")
@@ -25,4 +26,5 @@ class RandomUtilityFunction(MappingUtilityFunction):
             mapping=dict(zip(outcomes, np.random.rand(len(outcomes)))),
             reserved_value=reserved_value,
             outcome_type=outcome_type,
+            **kwargs,
         )

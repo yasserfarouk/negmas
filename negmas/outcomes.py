@@ -161,8 +161,9 @@ class Issue(NamedObject):
         min_value: Any = None,
         max_value: Any = None,
         value_type: Optional[Type] = None,
+        id=None,
     ) -> None:
-        super().__init__(name=name)
+        super().__init__(name, id=id)
 
         if (
             value_type is not None
@@ -924,6 +925,15 @@ class Issue(NamedObject):
 
         return "uncountable" if self._is_generator else "discrete"
 
+    def is_numeric(self) -> bool:
+        return self._is_integer_valued or self._is_real_valued
+
+    def is_integer(self) -> bool:
+        return self._is_integer_valued
+
+    def is_float(self) -> bool:
+        return self._is_real_valued
+
     def is_continuous(self) -> bool:
         """Test whether the issue is a continuous issue
 
@@ -1162,7 +1172,7 @@ class Issue(NamedObject):
         issues: Collection["Issue"],
         n_discretization: int = 10,
         astype: Type = dict,
-        max_n_outcomes: int = None
+        max_n_outcomes: int = None,
     ) -> List["Outcome"]:
         """
         Enumerates the outcomes of a list of issues.
