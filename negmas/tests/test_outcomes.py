@@ -1,5 +1,5 @@
 import pytest
-
+from negmas.tests.fixtures import *
 from negmas import Issues, Issue, outcome_in_range, outcome_is_valid
 
 

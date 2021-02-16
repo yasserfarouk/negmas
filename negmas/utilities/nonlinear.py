@@ -103,9 +103,10 @@ class MappingUtilityFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id = None,
     ) -> None:
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami, id=id,
         )
         self.mapping = mapping
         self.default = default
@@ -250,9 +251,10 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id = None,
     ) -> None:
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami, id=id,
         )
         self.issue_utilities = issue_utilities
         self.f = f
@@ -453,9 +455,10 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id = None,
     ) -> None:
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami, id=id,
         )
         self.outcome_ranges = outcome_ranges
         self.mappings = utilities
@@ -524,9 +527,10 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id=None,
     ) -> None:
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami, id=id,
         )
         self.hypervolumes = hypervolumes
         self.mappings = mappings

@@ -25,6 +25,7 @@ from negmas.outcomes import (
 )
 from .base import UtilityFunction, UtilityValue, ExactUtilityValue
 from negmas.helpers import make_range
+from negmas.serialization import serialize
 
 __all__ = [
     "LinearUtilityAggregationFunction",
@@ -81,11 +82,21 @@ class LinearUtilityFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id: str = None,
     ) -> None:
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name,
+            outcome_type=outcome_type,
+            reserved_value=reserved_value,
+            ami=ami,
+            id=id,
         )
         self.weights = weights
+        if biases is None:
+            if isinstance(self.weights, dict):
+                biases = dict(zip(weights.keys(), itertools.repeat(0.0)))
+            else:
+                biases = [0.0] * len(weights)
         self.biases = biases
         self.missing_value = missing_value
 
@@ -138,23 +149,23 @@ class LinearUtilityFunction(UtilityFunction):
             >>> issues = [Issue(values=10, name='i1'), Issue(values=4, name='i2')]
             >>> f = LinearUtilityFunction(weights=[1.0, 4.0])
             >>> print(f.xml(issues))
-            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
-                <item index="1" value="0" evaluation="0" />
-                <item index="2" value="1" evaluation="1" />
-                <item index="3" value="2" evaluation="2" />
-                <item index="4" value="3" evaluation="3" />
-                <item index="5" value="4" evaluation="4" />
-                <item index="6" value="5" evaluation="5" />
-                <item index="7" value="6" evaluation="6" />
-                <item index="8" value="7" evaluation="7" />
-                <item index="9" value="8" evaluation="8" />
-                <item index="10" value="9" evaluation="9" />
+            <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
+            <range lowerbound = "0" upperbound = "9" ></range>    <item index="1" value="0.0" evaluation="0" />
+                <item index="2" value="1.0" evaluation="1" />
+                <item index="3" value="2.0" evaluation="2" />
+                <item index="4" value="3.0" evaluation="3" />
+                <item index="5" value="4.0" evaluation="4" />
+                <item index="6" value="5.0" evaluation="5" />
+                <item index="7" value="6.0" evaluation="6" />
+                <item index="8" value="7.0" evaluation="7" />
+                <item index="9" value="8.0" evaluation="8" />
+                <item index="10" value="9.0" evaluation="9" />
             </issue>
-            <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
-                <item index="1" value="0" evaluation="0" />
-                <item index="2" value="1" evaluation="1" />
-                <item index="3" value="2" evaluation="2" />
-                <item index="4" value="3" evaluation="3" />
+            <issue index="2" etype="integer" type="integer" vtype="integer" name="i2">
+            <range lowerbound = "0" upperbound = "3" ></range>    <item index="1" value="0.0" evaluation="0" />
+                <item index="2" value="1.0" evaluation="1" />
+                <item index="3" value="2.0" evaluation="2" />
+                <item index="4" value="3.0" evaluation="3" />
             </issue>
             <weight index="1" value="1.0">
             </weight>
@@ -166,8 +177,16 @@ class LinearUtilityFunction(UtilityFunction):
         output = ""
         keys = list(ikeys(issues))
         for i, k in enumerate(keys):
-            issue_name = iget(issues, k).name
-            output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
+            issue = iget(issues, k)
+            issue_name = issue.name
+            if issue.is_float():
+                output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
+                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
+            elif issue.is_integer():
+                output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
+                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
+            else:
+                output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
             vals = iget(issues, k).all
             bias = iget(self.biases, k, 0.0)
             for indx, u in enumerate(vals):
@@ -257,6 +276,26 @@ class LinearUtilityFunction(UtilityFunction):
             )
         return ufun
 
+    def to_dict(self):
+        return dict(
+            weights=self.weights,
+            biases=self.biases,
+            missing_value=self.missing_value,
+            name=self.name,
+            id=self.id,
+            reserved_value=self.reserved_value,
+        )
+
+
+def _rand_mapping(x):
+    return (random.random() - 0.5) * x
+
+
+def random_mapping(issue: "Issue"):
+    if issubclass(issue.value_type, int) or issubclass(issue.value_type, float):
+        return _rand_mapping
+    return zip(issue.values, [random.random() - 0.5 for _ in range(issue.cardinality)])
+
 
 class LinearUtilityAggregationFunction(UtilityFunction):
     r"""A linear aggregation utility function for multi-issue negotiations.
@@ -322,11 +361,16 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
+        id: str = None,
     ) -> None:
         from negmas.utilities.nonlinear import MappingUtilityFunction
 
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name,
+            outcome_type=outcome_type,
+            reserved_value=reserved_value,
+            ami=ami,
+            id=id,
         )
         if weights is None:
             weights = (
@@ -419,28 +463,14 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             ...                          , MappingUtilityFunction(lambda x: x-3)]
             ...         , weights=[1.0, 2.0, 4.0])
             >>> print(f.xml(issues))
-            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
-                <item index="1" value="0" evaluation="0.0" />
-                <item index="2" value="1" evaluation="2.0" />
-                <item index="3" value="2" evaluation="4.0" />
-                <item index="4" value="3" evaluation="6.0" />
-                <item index="5" value="4" evaluation="8.0" />
-                <item index="6" value="5" evaluation="10.0" />
-                <item index="7" value="6" evaluation="12.0" />
-                <item index="8" value="7" evaluation="14.0" />
-                <item index="9" value="8" evaluation="16.0" />
-                <item index="10" value="9" evaluation="18.0" />
-            </issue>
+            <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
+            <range lowerbound = "0" upperbound = "9" ></range></issue>
             <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
                 <item index="1" value="delivered" evaluation="10" />
                 <item index="2" value="not delivered" evaluation="-10" />
             </issue>
-            <issue index="3" etype="discrete" type="discrete" vtype="discrete" name="i3">
-                <item index="1" value="0" evaluation="-3" />
-                <item index="2" value="1" evaluation="-2" />
-                <item index="3" value="2" evaluation="-1" />
-                <item index="4" value="3" evaluation="0" />
-            </issue>
+            <issue index="3" etype="integer" type="integer" vtype="integer" name="i3">
+            <range lowerbound = "0" upperbound = "3" ></range></issue>
             <weight index="1" value="1.0">
             </weight>
             <weight index="2" value="2.0">
@@ -449,28 +479,14 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             </weight>
             <BLANKLINE>
             >>> print(f.xml({i:_ for i, _ in enumerate(issues)}))
-            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
-                <item index="1" value="0" evaluation="0.0" />
-                <item index="2" value="1" evaluation="2.0" />
-                <item index="3" value="2" evaluation="4.0" />
-                <item index="4" value="3" evaluation="6.0" />
-                <item index="5" value="4" evaluation="8.0" />
-                <item index="6" value="5" evaluation="10.0" />
-                <item index="7" value="6" evaluation="12.0" />
-                <item index="8" value="7" evaluation="14.0" />
-                <item index="9" value="8" evaluation="16.0" />
-                <item index="10" value="9" evaluation="18.0" />
-            </issue>
+            <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
+            <range lowerbound = "0" upperbound = "9" ></range></issue>
             <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
                 <item index="1" value="delivered" evaluation="10" />
                 <item index="2" value="not delivered" evaluation="-10" />
             </issue>
-            <issue index="3" etype="discrete" type="discrete" vtype="discrete" name="i3">
-                <item index="1" value="0" evaluation="-3" />
-                <item index="2" value="1" evaluation="-2" />
-                <item index="3" value="2" evaluation="-1" />
-                <item index="4" value="3" evaluation="0" />
-            </issue>
+            <issue index="3" etype="integer" type="integer" vtype="integer" name="i3">
+            <range lowerbound = "0" upperbound = "3" ></range></issue>
             <weight index="1" value="1.0">
             </weight>
             <weight index="2" value="2.0">
@@ -483,22 +499,30 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         output = ""
         keys = list(ikeys(issues))
         for i, k in enumerate(keys):
-            issue_name = iget(issues, k).name
-            output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
-            vals = iget(issues, k).all
-            for indx, v in enumerate(vals):
-                try:
-                    u = gmap(iget(self.issue_utilities, issue_name), v)
-                except:
-                    u = gmap(iget(self.issue_utilities, k), v)
-                v_ = (
-                    v
-                    if not (isinstance(v, tuple) or isinstance(v, list))
-                    else "-".join([str(_) for _ in v])
-                )
-                output += (
-                    f'    <item index="{indx+1}" value="{v_}" evaluation="{u}" />\n'
-                )
+            issue = iget(issues, k)
+            issue_name = issue.name
+            if issue.is_float():
+                output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
+                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
+            elif issue.is_integer():
+                output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
+                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
+            else:
+                output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
+                vals = iget(issues, k).all
+                for indx, v in enumerate(vals):
+                    try:
+                        u = gmap(iget(self.issue_utilities, issue_name), v)
+                    except:
+                        u = gmap(iget(self.issue_utilities, k), v)
+                    v_ = (
+                        v
+                        if not (isinstance(v, tuple) or isinstance(v, list))
+                        else "-".join([str(_) for _ in v])
+                    )
+                    output += (
+                        f'    <item index="{indx+1}" value="{v_}" evaluation="{u}" />\n'
+                    )
             output += "</issue>\n"
         if isinstance(issues, dict):
             if isinstance(self.weights, dict):
@@ -517,6 +541,15 @@ class LinearUtilityAggregationFunction(UtilityFunction):
 
     def __str__(self):
         return f"u: {self.issue_utilities}\n w: {self.weights}"
+
+    def to_dict(self):
+        return dict(
+            weights=self.weights,
+            issue_utilities=serialize(self.issue_utilities),
+            name=self.name,
+            id=self.id,
+            reserved_value=self.reserved_value,
+        )
 
     def utility_range(
         self,
@@ -572,14 +605,9 @@ class LinearUtilityAggregationFunction(UtilityFunction):
     def random(
         cls, issues: List["Issue"], reserved_value=(0.0, 1.0), normalized=True, **kwargs
     ):
-        reserved_value = make_range(reserved_value)
+        from negmas.utilities.ops import normalize
 
-        def random_mapping(issue: "Issue"):
-            if issubclass(issue.value_type, int) or issubclass(issue.value_type, float):
-                return lambda x: (random.random() - 0.5) * x
-            return zip(
-                issue.values, [random.random() - 0.5 for _ in range(issue.cardinality)]
-            )
+        reserved_value = make_range(reserved_value)
 
         n_issues = len(issues)
         # r = reserved_value if reserved_value is not None else random.random()
@@ -594,13 +622,19 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         issue_utilities = dict(
             zip([_.name for _ in issues], [random_mapping(issue) for issue in issues])
         )
-        return cls(
+
+        ufun = cls(
             weights=weights,
             issue_utilities=issue_utilities,
             reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
             + reserved_value[0],
             **kwargs,
         )
+        if normalized:
+            return normalize(
+                ufun,
+                outcomes=Issue.discretize_and_enumerate(issues, max_n_outcomes=5000),
+            )
 
     # def outcome_with_utility(
     #     self,

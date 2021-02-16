@@ -44,9 +44,14 @@ class ExpDiscountedUFun(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         dynamic_reservation=True,
         outcome_type: Optional[Type] = None,
+        id=None,
     ):
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name,
+            outcome_type=outcome_type,
+            reserved_value=reserved_value,
+            ami=ami,
+            id=id,
         )
         self.ufun = ufun
         self.discount = discount
@@ -161,9 +166,14 @@ class LinDiscountedUFun(UtilityFunction):
         reserved_value: UtilityValue = float("-inf"),
         dynamic_reservation=True,
         outcome_type: Optional[Type] = None,
+        id=None,
     ):
         super().__init__(
-            name=name, outcome_type=outcome_type, reserved_value=reserved_value, ami=ami
+            name=name,
+            outcome_type=outcome_type,
+            reserved_value=reserved_value,
+            ami=ami,
+            id=id,
         )
         self.ufun = ufun
         self.cost = cost

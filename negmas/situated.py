@@ -117,7 +117,7 @@ from .helpers import (
     unique_name,
     exception2str,
 )
-from .java import to_dict, to_flat_dict
+from .serialization import serialize, to_flat_dict
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
 from .outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
@@ -290,7 +290,7 @@ class Contract(OutcomeType):
 
     partners: List[str] = field(default_factory=list)
     """The partners"""
-    agreement: OutcomeType = None
+    agreement: Outcome = None
     """The actual agreement of the negotiation in the form of an `Outcome` in the `Issue` space defined by `issues`"""
     annotation: Dict[str, Any] = field(default_factory=dict)
     """Misc. information to be kept with the agreement."""
@@ -1439,18 +1439,18 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self._unsigned_contracts: Set[Contract] = set()
         self._awi: AgentWorldInterface = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Converts the agent into  dict for storage purposes.
-
-        The agent need not be recoverable from this representation.
-
-        """
-        try:
-            d = to_dict(self, False, False, False)
-            _ = json.dumps(d)
-            return d
-        except:
-            return {"id": self.id, "name": self.name}
+    # def to_dict(self) -> Dict[str, Any]:
+    #     """Converts the agent into  dict for storage purposes.
+    #
+    #     The agent need not be recoverable from this representation.
+    #
+    #     """
+    #     try:
+    #         d = to_dict(vars(dict), deep=False, keep_private=False, add_type_field=False)
+    #         # _ = json.dumps(d)
+    #         return d
+    #     except:
+    #         return {"id": self.id, "name": self.name}
 
     @property
     def initialized(self) -> bool:
@@ -2111,14 +2111,15 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         ),
         info: Optional[Dict[str, Any]] = None,
         genius_port: int = DEFAULT_JAVA_PORT,
-        name=None,
+        name: str = None,
+        id: str = None,
     ):
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
         self.ignore_negotiation_exceptions = ignore_negotiation_exceptions
         if force_signing:
             batch_signing = False
         super().__init__()
-        NamedObject.__init__(self, name=name)
+        NamedObject.__init__(self, name, id=id)
         CheckpointMixin.checkpoint_init(
             self,
             step_attrib="current_step",
@@ -5128,7 +5129,7 @@ def save_stats(
     log_dir = Path(log_dir)
     os.makedirs(log_dir, exist_ok=True)
     if params is None:
-        d = to_dict(world, add_type_field=False, deep=False)
+        d = serialize(world, add_type_field=False, deep=False)
         to_del = []
         for k, v in d.items():
             if isinstance(v, list) or isinstance(v, tuple):
@@ -5140,7 +5141,7 @@ def save_stats(
         params = d
     if stats_file_name is None:
         stats_file_name = "stats"
-    agents = {k: a.to_dict() for k, a in world.agents.items()}
+    agents = {k: serialize(a) for k, a in world.agents.items()}
     for k, v in agents.items():
         agents[k]["neg_requests_sent"] = world.neg_requests_sent[k]
         agents[k]["neg_requests_received"] = world.neg_requests_received[k]

@@ -77,6 +77,35 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     Base class for all negotiation Mechanisms.
 
     Override the `round` function of this class to implement a round of your mechanism
+
+    Args:
+        issues: List of issues to use (optional as you can pass `outcomes`)
+        outcomes: List of outcomes (optional as you can pass `issues`). If an int then it is the number of outcomes
+        n_steps: Number of rounds allowed (None means infinity)
+        time_limit: Number of real seconds allowed (None means infinity)
+        max_n_agents:  Maximum allowed number of agents
+        dynamic_entry: Allow agents to enter/leave negotiations between rounds
+        cache_outcomes: If true, a list of all possible outcomes will be cached
+        max_n_outcomes: The maximum allowed number of outcomes in the cached set
+        keep_issue_names: DEPRICATED. Use `outcome_type` instead. If True, dicts with issue names will be used for outcomes otherwise tuples
+        annotation: Arbitrary annotation
+        state_factory: A callable that receives an arbitrary set of key-value pairs and return a MechanismState
+                      descendant object
+        checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
+        checkpoint_folder: The folder to save checkpoints into. Set to None to disable
+        checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
+                             step number).
+        single_checkpoint: If true, only the most recent checkpoint will be saved.
+        extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
+                               a dictionary with string keys
+        exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
+        name: Name of the mechanism session. Should be unique. If not given, it will be generated.
+        outcome_type: The type used for representing outcomes. Can be tuple, dict or any `OutcomeType`
+        genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
+        id: An optional system-wide unique identifier. You should not change 
+            the default value except in special circumstances like during 
+            serialization and should always guarantee system-wide uniquness 
+            if you set this value explicitly
     """
 
     def __init__(
@@ -104,35 +133,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         name=None,
         outcome_type=tuple,
         genius_port: int = DEFAULT_JAVA_PORT,
+        id: str = None,
     ):
-        """
-
-        Args:
-            issues: List of issues to use (optional as you can pass `outcomes`)
-            outcomes: List of outcomes (optional as you can pass `issues`). If an int then it is the number of outcomes
-            n_steps: Number of rounds allowed (None means infinity)
-            time_limit: Number of real seconds allowed (None means infinity)
-            max_n_agents:  Maximum allowed number of agents
-            dynamic_entry: Allow agents to enter/leave negotiations between rounds
-            cache_outcomes: If true, a list of all possible outcomes will be cached
-            max_n_outcomes: The maximum allowed number of outcomes in the cached set
-            keep_issue_names: DEPRICATED. Use `outcome_type` instead. If True, dicts with issue names will be used for outcomes otherwise tuples
-            annotation: Arbitrary annotation
-            state_factory: A callable that receives an arbitrary set of key-value pairs and return a MechanismState
-                          descendant object
-            checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
-            checkpoint_folder: The folder to save checkpoints into. Set to None to disable
-            checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
-                                 step number).
-            single_checkpoint: If true, only the most recent checkpoint will be saved.
-            extra_checkpoint_info: Any extra information to save with the checkpoint in the corresponding json file as
-                                   a dictionary with string keys
-            exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
-            name: Name of the mechanism session. Should be unique. If not given, it will be generated.
-            outcome_type: The type used for representing outcomes. Can be tuple, dict or any `OutcomeType`
-            genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
-        """
-        super().__init__(name=name)
+        super().__init__(name, id=id)
         CheckpointMixin.checkpoint_init(
             self,
             step_attrib="_step",

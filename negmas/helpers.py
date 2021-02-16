@@ -4,6 +4,9 @@
 This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
+from pathlib import Path
+import base64
+from types import LambdaType, FunctionType
 import atexit
 import copy
 import datetime
@@ -84,9 +87,14 @@ __all__ = [
     "add_records",
     "load",
     "exception2str",
+    "is_jsonable",
+    "is_lambda_function",
+    "is_non_lambda_function",
 ]
 # conveniently named classes
-
+TYPE_START = "__TYPE__:"
+BYTES_START = "__BYTES__:"
+PATH_START = "__PATH__:"
 """Maps from a single issue to a Negotiator function."""
 # MultiIssueUtilityFunctionMapping = Union[
 #    Callable[['Issues'], 'UtilityFunction'], Mapping['Issues', 'UtilityFunction']]  # type: ignore
@@ -1036,7 +1044,7 @@ def import_by_name(full_name: str) -> Any:
 
 
 def get_class(
-    class_name: Union[str, Type], module_name: str = None, scope: dict = None
+    class_name: Union[str, Type], module_name: str = None, scope: dict = None, allow_nonstandard_names=False,
 ) -> Type:
     """Imports and creates a class object for the given class name"""
     if not isinstance(class_name, str):
@@ -1049,7 +1057,10 @@ def get_class(
         raise ValueError(
             f"Cannot get the class {class_name} in module {module_name}  (modules {modules})"
         )
-    class_name = stringcase.pascalcase(modules[-1])
+    if not class_name.startswith("builtins") or allow_nonstandard_names:
+        class_name = stringcase.pascalcase(modules[-1])
+    else:
+        class_name = modules[-1]
     if len(modules) < 2:
         return eval(class_name, scope)
     module_name = ".".join(modules[:-1])
@@ -1089,6 +1100,12 @@ def humanize_time(secs, align=False, always_show_all_units=False):
                 parts.append("%2d%s%s" % (n, unit, ""))
     return ":".join(parts)
 
+def is_jsonable(x):
+    try:
+        json.dumps(x)
+        return True
+    except:
+        return False
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -1098,12 +1115,34 @@ class NpEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, bytes):
+            encoded =  base64.b64encode(obj)  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+            return BYTES_START + encoded.decode('ascii')            #
+        elif isinstance(obj, Path):
+            return PATH_START + str(obj)
+        elif not is_jsonable(obj):
+            # it may be a type. Always convert types to full names when saving to json
+            try:
+                obj  = TYPE_START + get_full_type_name(obj)
+            except:
+                return obj
+            return obj
         else:
-            return super(NpEncoder, self).default(obj)
+            return super().default(obj)
 
+class NpDecorder(json.JSONDecoder):
+    def default(self, obj):
+        if isinstance(obj, str):
+            if obj.startswith(BYTES_START):
+                return base64.b64decode(obj[BYTES_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+            elif obj.startswith(TYPE_START):
+                return get_class(obj[TYPE_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+            elif obj.startswith(PATH_START):
+                return Path(obj[PATH_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+        return super().default(obj)
 
 def dump(
-    d: Any, file_name: Union[str, os.PathLike, pathlib.Path], sort_keys=True
+    d: Any, file_name: Union[str, os.PathLike, pathlib.Path], sort_keys=True, compact=False
 ) -> None:
     """
     Saves an object depending on the extension of the file given. If the filename given has no extension,
@@ -1112,7 +1151,8 @@ def dump(
     Args:
         d: Object to save
         file_name: file name
-        sort_keys: If true, the keys will be sorted before saving for JSON
+        sort_keys: If true, the keys will be sorted before saving
+        compact: If given, a compact representation will be tried
 
     Remarks:
 
@@ -1130,7 +1170,7 @@ def dump(
             pass
     if file_name.suffix == ".json":
         with open(file_name, "w") as f:
-            json.dump(d, f, sort_keys=sort_keys, indent=2, cls=NpEncoder)
+            json.dump(d, f, sort_keys=sort_keys, indent=2 if not compact else None, cls=NpEncoder)
     elif file_name.suffix == ".yaml":
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
@@ -1184,6 +1224,14 @@ def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
     return d
 
+
+def is_lambda_function(obj):
+    """Checks if the given object is a lambda function"""
+    return isinstance(obj, LambdaType) and obj.__name__ == "<lambda>"
+
+def is_non_lambda_function(obj):
+    """Checks if the given object is a lambda function"""
+    return isinstance(obj, FunctionType) and obj.__name__ != "<lambda>"
 
 def add_records(
     file_name: Union[str, os.PathLike], data: Any, col_names: Optional[List[str]] = None

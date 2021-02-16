@@ -1,5 +1,6 @@
 """
-Implements Java interoperability allowing parts of negmas to work smoothly with their Java counterparts in jnegmas
+Implements Java interoperability allowing parts of negmas to work smoothly
+with their Java counterparts in jnegmas
 
 """
 import os
@@ -11,7 +12,6 @@ from typing import Any, Dict, Iterable, Optional, Union
 
 import numpy as np
 import pkg_resources
-from pandas import json_normalize
 from py4j.clientserver import ClientServer, JavaParameters, PythonParameters
 from py4j.java_collections import JavaList, JavaMap, JavaSet, ListConverter
 from py4j.java_gateway import (
@@ -21,11 +21,10 @@ from py4j.java_gateway import (
     JavaObject,
 )
 
-# @todo use launch_gateway to start the java side. Will need to know the the jar location so jnegmas shoud save that
-#  somewhere
 from py4j.protocol import Py4JNetworkError
 
 from .helpers import camel_case, get_class, snake_case
+from .serialization import serialize
 
 __all__ = [
     "JavaCallerMixin",
@@ -37,9 +36,9 @@ __all__ = [
     "init_jnegmas_bridge",
     "jnegmas_connection",
     "from_java",
-    "java_link",
     "to_dict",
-    "to_flat_dict",
+    "from_dict",
+    "java_link",
     "PYTHON_CLASS_IDENTIFIER",
 ]
 
@@ -284,143 +283,6 @@ def java_identifier(s: str):
     return s
 
 
-def to_flat_dict(value, deep=True, camel=True) -> Dict[str, Any]:
-    """
-    Encodes the given value as a flat dictionary
-
-    Args:
-        value:
-        deep:
-
-    Returns:
-
-    """
-    d = to_dict(value, add_type_field=False, camel=camel, deep=deep)
-    if d is None:
-        return {}
-    if not isinstance(d, dict):
-        raise ValueError(
-            f"value is of type {type(value)} cannot be converted to a flat dict"
-        )
-    for k, v in d.items():
-        if isinstance(v, list) or isinstance(v, tuple):
-            d[k] = str(v)
-    return json_normalize(d, errors="ignore", sep="_").to_dict(orient="records")[0]
-
-
-def to_dict(value, deep=True, add_type_field=True, camel=True):
-    """Encodes the given value as nothing more complex than simple dict of either dicts, lists or builtin numeric
-    or string values
-
-    Args:
-
-        value: Any object
-        deep: Whether we should go deep in the encoding or do a shallow encoding
-        add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
-        giving the type of `value`
-        camel: Convert to camel_case if True
-
-    Remarks:
-
-        - All iterables are converted to lists when `deep` is true.
-        - If the `value` object has a `to_java` member, it will be called to do the conversion, otherwise its `__dict__`
-          or `__slots__` member will be used.
-
-    See Also:
-          `from_java`, `PYTHON_CLASS_IDENTIFIER`
-
-    """
-
-    def _j(s: str) -> str:
-        if camel:
-            return java_identifier(s)
-        return str(s)
-
-    def good_field(k: str):
-        return (
-            not k.startswith("python_")
-            and not k.startswith("java")
-            and not (k != PYTHON_CLASS_IDENTIFIER and k.startswith("_"))
-        )
-
-    if isinstance(value, JavaObject):
-        return value
-    if isinstance(value, dict):
-        if not deep:
-            return {_j(k): v for k, v in value.items()}
-        return {
-            _j(k): to_dict(v, add_type_field=add_type_field, camel=camel)
-            for k, v in value.items()
-            if good_field(k)
-        }
-    if isinstance(value, Iterable) and not deep:
-        return value
-    if isinstance(value, Iterable) and not isinstance(value, str):
-        return [to_dict(_, add_type_field=add_type_field, camel=camel) for _ in value]
-    if hasattr(value, "to_java"):
-        converted = value.to_java()
-        if isinstance(converted, dict):
-            if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
-                converted[PYTHON_CLASS_IDENTIFIER] = (
-                    value.__class__.__module__ + "." + value.__class__.__name__
-                )
-            return {_j(k): v for k, v in converted.items()}
-        else:
-            return converted
-    if hasattr(value, "__dict__"):
-        if deep:
-            d = {
-                _j(k): to_dict(v, add_type_field=add_type_field, camel=camel)
-                for k, v in value.__dict__.items()
-                if good_field(k)
-            }
-        else:
-            d = {_j(k): v for k, v in value.__dict__.items() if good_field(k)}
-        if add_type_field:
-            d[PYTHON_CLASS_IDENTIFIER] = (
-                value.__class__.__module__ + "." + value.__class__.__name__
-            )
-
-        # ugly ugly ugly ugly
-        if "_NamedObject__uuid" in value.__dict__:
-            d["id"] = value.__dict__["_NamedObject__uuid"]
-        if "_NamedObject__name" in value.__dict__:
-            d["name"] = value.__dict__["_NamedObject__name"]
-
-        return d
-    if hasattr(value, "__slots__"):
-        if deep:
-            d = dict(
-                zip(
-                    (_j(k) for k in value.__slots__),
-                    (
-                        to_dict(
-                            getattr(value, _),
-                            add_type_field=add_type_field,
-                            camel=camel,
-                        )
-                        for _ in value.__slots__
-                    ),
-                )
-            )
-        else:
-            d = dict(
-                zip(
-                    (_j(k) for k in value.__slots__),
-                    (getattr(value, _) for _ in value.__slots__),
-                )
-            )
-        if add_type_field:
-            d[PYTHON_CLASS_IDENTIFIER] = (
-                value.__class__.__module__ + "." + value.__class__.__name__
-            )
-        return d
-    # a builtin
-    if isinstance(value, np.int64):
-        return int(value)
-    return value
-
-
 def java_link(obj, map=None):
     """
     Creates a link in java to the object given without copying it.
@@ -449,20 +311,22 @@ def java_link(obj, map=None):
     if map is not None:
         java_obj.fromMap(map)
     else:
-        java_obj.fromMap(to_dict(obj))
+        java_obj.fromMap(serialize(obj))
     return java_obj
 
 
 def to_java(value, add_type_field=True, python_class_name: str = None):
-    """Encodes the given value as nothing not more complex than simple dict of either dicts, lists or builtin numeric
-    or string values
+    """Encodes the given value as nothing not more complex than simple dict
+    of either dicts, lists or builtin numeric or string values
 
     Args:
 
         value: Any object
-        add_type_field: If true, the `PYTHON_CLASS_IDENTIFIER`  will be added with the python class field on it
-        python_class_name: It given it overrides the class name written when `add_type_field` is True otherwise, the
-        class name will be inferred as the __class__ of `value`.
+        add_type_field: If true, the `PYTHON_CLASS_IDENTIFIER`  will be added
+                        with the python class field on it
+        python_class_name: It given it overrides the class name written when
+                           `add_type_field` is True otherwise, the class name
+                           will be inferred as the __class__ of `value`.
 
     Remarks:
 
@@ -476,7 +340,7 @@ def to_java(value, add_type_field=True, python_class_name: str = None):
     """
     if value is None:
         return None
-    value = to_dict(value, deep=True, add_type_field=add_type_field)
+    value = serialize(value, deep=True, add_type_field=add_type_field)
     if isinstance(value, JavaObject):
         return value
     if isinstance(value, np.int64):
@@ -603,6 +467,111 @@ def from_java(
     raise (ValueError(str(d)))
 
 
+def to_dict(value, deep=True, add_type_field=True, camel=True):
+    """Encodes the given value as nothing more complex than simple dict of either dicts, lists or builtin numeric
+    or string values
+    Args:
+        value: Any object
+        deep: Whether we should go deep in the encoding or do a shallow encoding
+        add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
+        giving the type of `value`
+        camel: Convert to camel_case if True
+    Remarks:
+        - All iterables are converted to lists when `deep` is true.
+        - If the `value` object has a `to_java` member, it will be called to do the conversion, otherwise its `__dict__`
+          or `__slots__` member will be used.
+    See Also:
+          `from_java`, `PYTHON_CLASS_IDENTIFIER`
+    """
+
+    def _j(s: str) -> str:
+        if camel:
+            return java_identifier(s)
+        return str(s)
+
+    def good_field(k: str):
+        return (
+            not k.startswith("python_")
+            and not k.startswith("java")
+            and not (k != PYTHON_CLASS_IDENTIFIER and k.startswith("_"))
+        )
+
+    if isinstance(value, JavaObject):
+        return value
+    if isinstance(value, dict):
+        if not deep:
+            return {_j(k): v for k, v in value.items()}
+        return {
+            _j(k): to_dict(v, add_type_field=add_type_field, camel=camel)
+            for k, v in value.items()
+            if good_field(k)
+        }
+    if isinstance(value, Iterable) and not deep:
+        return value
+    if isinstance(value, Iterable) and not isinstance(value, str):
+        return [to_dict(_, add_type_field=add_type_field, camel=camel) for _ in value]
+    if hasattr(value, "to_java"):
+        converted = value.to_java()
+        if isinstance(converted, dict):
+            if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
+                converted[PYTHON_CLASS_IDENTIFIER] = (
+                    value.__class__.__module__ + "." + value.__class__.__name__
+                )
+            return {_j(k): v for k, v in converted.items()}
+        else:
+            return converted
+    if hasattr(value, "__dict__"):
+        if deep:
+            d = {
+                _j(k): to_dict(v, add_type_field=add_type_field, camel=camel)
+                for k, v in value.__dict__.items()
+                if good_field(k)
+            }
+        else:
+            d = {_j(k): v for k, v in value.__dict__.items() if good_field(k)}
+        if add_type_field:
+            d[PYTHON_CLASS_IDENTIFIER] = (
+                value.__class__.__module__ + "." + value.__class__.__name__
+            )
+
+        # ugly ugly ugly ugly
+        if "_NamedObject__uuid" in value.__dict__:
+            d["id"] = value.__dict__["_NamedObject__uuid"]
+        if "_NamedObject__name" in value.__dict__:
+            d["name"] = value.__dict__["_NamedObject__name"]
+
+        return d
+    if hasattr(value, "__slots__"):
+        if deep:
+            d = dict(
+                zip(
+                    (_j(k) for k in value.__slots__),
+                    (
+                        to_dict(
+                            getattr(value, _),
+                            add_type_field=add_type_field,
+                            camel=camel,
+                        )
+                        for _ in value.__slots__
+                    ),
+                )
+            )
+        else:
+            d = dict(
+                zip(
+                    (_j(k) for k in value.__slots__),
+                    (getattr(value, _) for _ in value.__slots__),
+                )
+            )
+        if add_type_field:
+            d[PYTHON_CLASS_IDENTIFIER] = (
+                value.__class__.__module__ + "." + value.__class__.__name__
+            )
+        return d
+    # a builtin
+    if isinstance(value, np.int64):
+        return int(value)
+    return value
 def py_class_name(python_class_name: str) -> str:
     """
     Converts a class name that we got from Java to the corresponding class name in python

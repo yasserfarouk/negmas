@@ -231,6 +231,16 @@ class SAOSyncController(SAOController):
         self.n_waits[negotiator_id] += 1
         return ResponseType.WAIT
 
+    def first_proposals(self) -> Dict[str, "Outcome"]:
+        """Gets a set of proposals to use for initializing the negotiation. To avoid offering anything, just return None
+        for all of them. That is the default"""
+        return dict(
+            zip(
+                self.negotiators.keys(),
+                (self.first_offer(_) for _ in self.negotiators.keys()),
+            )
+        )
+
     @abstractmethod
     def counter_all(
         self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
@@ -247,16 +257,6 @@ class SAOSyncController(SAOController):
               negotiations not all of them.
 
         """
-
-    def first_proposals(self) -> Dict[str, "Outcome"]:
-        """Gets a set of proposals to use for initializing the negotiation. To avoid offering anything, just return None
-        for all of them. That is the default"""
-        return dict(
-            zip(
-                self.negotiators.keys(),
-                (self.first_offer(_) for _ in self.negotiators.keys()),
-            )
-        )
 
     @lru_cache(maxsize=100)
     def first_offer(self, negotiator_id: str) -> Optional["Outcome"]:
