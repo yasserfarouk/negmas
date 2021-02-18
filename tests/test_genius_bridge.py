@@ -5,7 +5,7 @@ import pytest
 from negmas import genius_bridge_is_running
 from negmas.genius import GeniusBridge
 
-SKIP_IF_NO_BRIDGE = False
+SKIP_IF_NO_BRIDGE = True
 
 
 @pytest.fixture(scope="module")

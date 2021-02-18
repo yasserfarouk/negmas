@@ -143,6 +143,7 @@ __all__ = [
     "Breach",  # A breach in executing a contract
     "BreachProcessing",
     "Agent",  # Negotiator capable of engaging in multiple negotiations
+    "Adapter",
     "BulletinBoard",
     "World",
     "Entity",
@@ -403,19 +404,7 @@ class Entity:
         self.__type_postfix = type_postfix
         self.__current_step = 0
 
-    @classmethod
-    def _type_name(cls):
-        return cls.__module__ + "." + cls.__name__
-
-    @property
-    def type_name(self):
-        """Returns the name of the type of this entity"""
-        return self.__class__._type_name() + self.__type_postfix
-
-    @property
-    def short_type_name(self):
-        """Returns a short name of the type of this entity"""
-        long_name = self.type_name
+    def _shorten(self, long_name):
         name = (
             long_name.split(".")[-1]
             .lower()
@@ -432,6 +421,24 @@ class Entity:
             name = f"j-{name}"
         name = name.strip("_")
         return name
+
+    @classmethod
+    def _type_name(cls):
+        return cls.__module__ + "." + cls.__name__
+
+    @property
+    def type_name(self):
+        """Returns the name of the type of this entity"""
+        return self.__class__._type_name() + self.__type_postfix
+
+    @property
+    def short_type_name(self):
+        """Returns a short name of the type of this entity"""
+        return self._shorten(self.type_name)
+
+    @property
+    def type_postfix(self):
+        return self.__type_postfix
 
     def init_(self):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
@@ -1947,6 +1954,84 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
             breaches: All breaches committed (even if they were resolved)
             resolution: The resolution contract if re-negotiation was successful. None if not.
         """
+
+
+class Adapter(Agent):
+    """
+    Represents an adapter agent that makes some included object act as an
+    agent in some world.
+
+    Args:
+
+        obj: The object to be adapted.
+        include_adapter_type_name: Whether to include the adapter type name. If
+                                   None, then it will be included if it does
+                                   not start with and underscore.
+        include_obj_type_name: Whether to include object type name in this
+                               adapter's type name
+        type_postfix: A string to add to the end of the type name
+
+    Remarks:
+
+        - Other than keeping an internal copy of the adapted object under
+          `obj`, this class is used primarily to provide a way to give
+          good type_name and short_type_name properties that combine the name
+          of the adapter and the name of the enclosed object nicely.
+        - The adapted object must be an `Entity`.
+        - The `World` class uses the type names from this adapter whenever
+          it needs to get a type-name (either `type_name` or `short_type_name`)
+    """
+
+    def __init__(
+        self,
+        obj,
+        include_adapter_type_name: Optional[bool] = None,
+        include_obj_type_name=True,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        if include_adapter_type_name is None:
+            include_adapter_type_name = not self.__class__.__name__.startswith("_")
+
+        self._obj = obj
+        self._include_adapter, self._include_obj = (
+            include_adapter_type_name,
+            include_obj_type_name,
+        )
+
+    @property
+    def adapted_object(self) -> Entity:
+        return self._obj
+
+    @adapted_object.setter
+    def adapted_object(self, x: Entity) -> Entity:
+        self._obj = x
+        return x
+
+    @property
+    def short_type_name(self):
+        """Returns a short name of the type of this entity"""
+        base = super().short_type_name if self._include_adapter else ""
+        obj = self._obj.short_type_name if self._include_obj else ""
+        return obj + base
+
+    @property
+    def type_name(self):
+        """Returns a short name of the type of this entity"""
+        base = super().type_name if self._include_adapter else ""
+        obj = self._obj.type_name if self._include_obj else ""
+        return obj + base
+
+    def init(self):
+        """Override this method to modify initialization logic"""
+        self._obj.init()
+
+    def step(self):
+        """Override this method to modify stepping logic"""
+        self._obj.step()
+
+    def __getattr__(self, attr):
+        return getattr(self._obj, attr)
 
 
 def deflistdict():
@@ -5141,7 +5226,10 @@ def save_stats(
         params = d
     if stats_file_name is None:
         stats_file_name = "stats"
-    agents = {k: serialize(a) for k, a in world.agents.items()}
+    agents = {
+        k: dict(id=a.id, name=a.name, type=a.type_name, short_type=a.short_type_name)
+        for k, a in world.agents.items()
+    }
     for k, v in agents.items():
         agents[k]["neg_requests_sent"] = world.neg_requests_sent[k]
         agents[k]["neg_requests_received"] = world.neg_requests_received[k]

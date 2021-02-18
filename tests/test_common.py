@@ -2,7 +2,7 @@ import random
 import time
 
 import hypothesis.strategies as st
-from hypothesis import given
+from hypothesis import given, settings, HealthCheck
 
 from negmas import Entity, NamedObject
 from negmas.helpers import unique_name
