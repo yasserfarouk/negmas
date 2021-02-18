@@ -270,11 +270,11 @@ class GeniusNegotiator(SAONegotiator):
                 port=self.port,
                 auto_load_java=self.auto_load_java,
             )
+            if not self.is_connected:
+                return False
             self.java_uuid = self._create()
             # self.uuid = self.java_uuid
             # self.name = self.java_uuid
-            if not self.is_connected:
-                return False
 
         if self._normalize_utility:
             self._utility_function = normalize(

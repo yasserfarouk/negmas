@@ -2,7 +2,7 @@ from datetime import timedelta
 from pathlib import Path, PosixPath
 
 import hypothesis.strategies as st
-from hypothesis import example, given, settings
+from hypothesis import example, given, settings, HealthCheck
 
 from negmas import AspirationNegotiator, MappingUtilityFunction, SAOMechanism
 from negmas.checkpoints import CheckpointRunner
@@ -13,12 +13,13 @@ def checkpoint_every(args):
     pass
 
 
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(
     single_checkpoint=st.booleans(),
     checkpoint_every=st.integers(1, 4),
     exist_ok=st.booleans(),
 )
-def test_can_run_from_checkpoint(
+def test_can_run_from_checkpoint1(
     tmp_path, single_checkpoint, checkpoint_every, exist_ok
 ):
     import shutil
@@ -107,7 +108,11 @@ def test_can_run_from_checkpoint(
     copy=st.booleans(),
     fork_after_reset=st.booleans(),
 )
-@settings(deadline=20000, max_examples=100)
+@settings(
+    deadline=20000,
+    max_examples=100,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
 def test_can_run_from_checkpoint(
     tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset
 ):
