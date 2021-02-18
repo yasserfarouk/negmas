@@ -5195,21 +5195,21 @@ def save_stats(
             with open(log_dir / "breaches.csv", "w") as f:
                 f.write("")
 
-    if world.save_signed_contracts:
-        if len(world.signed_contracts) > 0:
-            data = pd.DataFrame(world.signed_contracts)
-            data.to_csv(str(log_dir / "signed_contracts.csv"), index_label="index")
-        else:
-            with open(log_dir / "signed_contracts.csv", "w") as f:
-                f.write("")
-
-    if world.save_cancelled_contracts:
-        if len(world.cancelled_contracts) > 0:
-            data = pd.DataFrame(world.cancelled_contracts)
-            data.to_csv(str(log_dir / "cancelled_contracts.csv"), index_label="index")
-        else:
-            with open(log_dir / "cancelled_contracts.csv", "w") as f:
-                f.write("")
+    # if world.save_signed_contracts:
+    #     if len(world.signed_contracts) > 0:
+    #         data = pd.DataFrame(world.signed_contracts)
+    #         data.to_csv(str(log_dir / "signed_contracts.csv"), index_label="index")
+    #     else:
+    #         with open(log_dir / "signed_contracts.csv", "w") as f:
+    #             f.write("")
+    #
+    # if world.save_cancelled_contracts:
+    #     if len(world.cancelled_contracts) > 0:
+    #         data = pd.DataFrame(world.cancelled_contracts)
+    #         data.to_csv(str(log_dir / "cancelled_contracts.csv"), index_label="index")
+    #     else:
+    #         with open(log_dir / "cancelled_contracts.csv", "w") as f:
+    #             f.write("")
 
     if world.save_signed_contracts or world.save_cancelled_contracts:
         if len(world.saved_contracts) > 0:
@@ -5218,15 +5218,10 @@ def save_stats(
                 if col in data.columns:
                     data = data.sort_values(["delivery_time"])
                     break
-            data.to_csv(str(log_dir / "contracts_full_info.csv"), index_label="index")
-            if world.save_signed_contracts and world.save_cancelled_contracts:
-                data.to_csv(str(log_dir / "all_contracts.csv"), index_label="index")
+            data.to_csv(str(log_dir / "contracts.csv"), index_label="index")
         else:
-            with open(log_dir / "contracts_full_info.csv", "w") as f:
+            with open(log_dir / "contracts.csv", "w") as f:
                 f.write("")
-            if world.save_signed_contracts and world.save_cancelled_contracts:
-                with open(log_dir / "all_contracts.csv", "w") as f:
-                    f.write("")
 
 
 class NoResponsesMixin:
