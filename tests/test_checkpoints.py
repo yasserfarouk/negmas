@@ -13,93 +13,94 @@ def checkpoint_every(args):
     pass
 
 
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(
-    single_checkpoint=st.booleans(),
-    checkpoint_every=st.integers(1, 4),
-    exist_ok=st.booleans(),
-)
-def test_can_run_from_checkpoint1(
-    tmp_path, single_checkpoint, checkpoint_every, exist_ok
-):
-    import shutil
-
-    new_folder: Path = tmp_path / unique_name("empty", sep="")
-    second_folder: Path = tmp_path / unique_name("second", sep="")
-    new_folder.mkdir(parents=True, exist_ok=True)
-    shutil.rmtree(new_folder)
-    new_folder.mkdir(parents=True, exist_ok=True)
-    filename = "mechanism"
-    second_folder.mkdir(parents=True, exist_ok=True)
-
-    n_outcomes, n_negotiators = 5, 3
-    n_steps = 50
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes,
-        n_steps=n_steps,
-        offering_is_accepting=True,
-        avoid_ultimatum=False,
-        checkpoint_every=checkpoint_every,
-        checkpoint_folder=new_folder,
-        checkpoint_filename=filename,
-        extra_checkpoint_info=None,
-        exist_ok=exist_ok,
-        single_checkpoint=single_checkpoint,
-    )
-    ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
-    for i in range(n_negotiators):
-        mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
-
-    mechanism.run()
-    files = list(new_folder.glob("*"))
-    if 0 < checkpoint_every <= n_steps:
-        if single_checkpoint:
-            assert len(list(new_folder.glob("*"))) == 2
-        else:
-            assert len(list(new_folder.glob("*"))) >= 2 * (
-                max(1, mechanism.state.step // checkpoint_every)
-            )
-    elif checkpoint_every > n_steps:
-        assert len(list(new_folder.glob("*"))) == 2
-    else:
-        assert len(list(new_folder.glob("*"))) == 0
-
-    runner = CheckpointRunner(folder=new_folder)
-
-    assert len(runner.steps) * 2 == len(files)
-    assert runner.current_step == -1
-    assert runner.loaded_object is None
-
-    runner.step()
-
-    assert runner.current_step == (0 if not single_checkpoint else runner.steps[-1])
-    assert isinstance(runner.loaded_object, SAOMechanism)
-    assert runner.loaded_object.state.step == runner.current_step
-
-    runner.reset()
-    assert len(runner.steps) * 2 == len(files)
-    assert runner.current_step == -1
-    assert runner.loaded_object is None
-
-    runner.goto(runner.last_step, exact=True)
-    assert isinstance(runner.loaded_object, SAOMechanism)
-    assert runner.loaded_object.state.step == runner.current_step
-
-    runner.goto(runner.next_step, exact=True)
-    assert isinstance(runner.loaded_object, SAOMechanism)
-    assert runner.loaded_object.state.step == runner.current_step
-
-    runner.goto(runner.previous_step, exact=True)
-    assert isinstance(runner.loaded_object, SAOMechanism)
-    assert runner.loaded_object.state.step == runner.current_step
-
-    runner.goto(runner.first_step, exact=True)
-    assert isinstance(runner.loaded_object, SAOMechanism)
-    assert runner.loaded_object.state.step == runner.current_step
-
-    runner.reset()
-
-    runner.run()
+# @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+# @given(
+#     single_checkpoint=st.booleans(),
+#     checkpoint_every=st.integers(1, 4),
+#     exist_ok=st.booleans(),
+# )
+# def test_can_run_from_checkpoint1(
+#     tmp_path, single_checkpoint, checkpoint_every, exist_ok
+# ):
+#     import shutil
+#
+#     new_folder: Path = tmp_path / unique_name("empty", sep="")
+#     second_folder: Path = tmp_path / unique_name("second", sep="")
+#     new_folder.mkdir(parents=True, exist_ok=True)
+#     shutil.rmtree(new_folder)
+#     new_folder.mkdir(parents=True, exist_ok=True)
+#     filename = "mechanism"
+#     second_folder.mkdir(parents=True, exist_ok=True)
+#
+#     n_outcomes, n_negotiators = 5, 3
+#     n_steps = 50
+#     mechanism = SAOMechanism(
+#         outcomes=n_outcomes,
+#         n_steps=n_steps,
+#         offering_is_accepting=True,
+#         avoid_ultimatum=False,
+#         checkpoint_every=checkpoint_every,
+#         checkpoint_folder=new_folder,
+#         checkpoint_filename=filename,
+#         extra_checkpoint_info=None,
+#         exist_ok=exist_ok,
+#         single_checkpoint=single_checkpoint,
+#     )
+#     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
+#     for i in range(n_negotiators):
+#         mechanism.add(AspirationNegotiator(name=f"agent{i}"), ufun=ufuns[i])
+#
+#     mechanism.run()
+#     files = list(new_folder.glob("*"))
+#     if 0 < checkpoint_every <= n_steps:
+#         if single_checkpoint:
+#             assert len(list(new_folder.glob("*"))) == 2
+#         else:
+#             assert len(list(new_folder.glob("*"))) >= 2 * (
+#                 max(1, mechanism.state.step // checkpoint_every)
+#             )
+#     elif checkpoint_every > n_steps:
+#         assert len(list(new_folder.glob("*"))) == 2
+#     else:
+#         assert len(list(new_folder.glob("*"))) == 0
+#
+#     runner = CheckpointRunner(folder=new_folder)
+#
+#     assert len(runner.steps) * 2 == len(files)
+#     assert runner.current_step == -1
+#     assert runner.loaded_object is None
+#
+#     runner.step()
+#
+#     assert runner.current_step == (0 if not single_checkpoint else runner.steps[-1])
+#     assert isinstance(runner.loaded_object, SAOMechanism)
+#     assert runner.loaded_object.state.step == runner.current_step
+#
+#     runner.reset()
+#     assert len(runner.steps) * 2 == len(files)
+#     assert runner.current_step == -1
+#     assert runner.loaded_object is None
+#
+#     runner.goto(runner.last_step, exact=True)
+#     assert isinstance(runner.loaded_object, SAOMechanism)
+#     assert runner.loaded_object.state.step == runner.current_step
+#
+#     runner.goto(runner.next_step, exact=True)
+#     assert isinstance(runner.loaded_object, SAOMechanism)
+#     assert runner.loaded_object.state.step == runner.current_step
+#
+#     runner.goto(runner.previous_step, exact=True)
+#     assert isinstance(runner.loaded_object, SAOMechanism)
+#     assert runner.loaded_object.state.step == runner.current_step
+#
+#     runner.goto(runner.first_step, exact=True)
+#     assert isinstance(runner.loaded_object, SAOMechanism)
+#     assert runner.loaded_object.state.step == runner.current_step
+#
+#     runner.reset()
+#
+#     runner.run()
+#
 
 
 @given(
