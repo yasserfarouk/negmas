@@ -3,7 +3,7 @@ from typing import Any, Callable, Collection, Dict, List, Optional, Set
 
 import hypothesis.strategies as st
 import pytest
-from hypothesis import given, settings
+from hypothesis import given, settings, HealthCheck
 
 from negmas import (
     AgentMechanismInterface,
@@ -368,7 +368,7 @@ def test_world_picklable(tmp_path):
     w.run()
 
 
-@settings(deadline=None)
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(
     single_checkpoint=st.booleans(),
     checkpoint_every=st.integers(0, 6),

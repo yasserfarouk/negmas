@@ -37,7 +37,7 @@ __all__ = [
     "jnegmas_connection",
     "from_java",
     "to_dict",
-    "from_dict",
+    # "from_dict",
     "java_link",
     "PYTHON_CLASS_IDENTIFIER",
 ]
@@ -572,6 +572,8 @@ def to_dict(value, deep=True, add_type_field=True, camel=True):
     if isinstance(value, np.int64):
         return int(value)
     return value
+
+
 def py_class_name(python_class_name: str) -> str:
     """
     Converts a class name that we got from Java to the corresponding class name in python

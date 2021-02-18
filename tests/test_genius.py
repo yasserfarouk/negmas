@@ -66,7 +66,7 @@ from negmas import (
 )
 from negmas.genius import GeniusBridge
 
-SKIP_IF_NO_BRIDGE = False
+SKIP_IF_NO_BRIDGE = True
 
 
 @pytest.mark.skipif(
