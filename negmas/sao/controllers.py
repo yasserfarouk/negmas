@@ -173,7 +173,7 @@ class SAOSyncController(SAOController):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, global_ufun=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.offers: Dict[str, "Outcome"] = {}
         """Keeps the last offer received for each negotiation"""
@@ -184,6 +184,7 @@ class SAOSyncController(SAOController):
         self.offer_states: Dict[str, "SAOState"] = {}
         """Keeps the last state received for each negotiation"""
         self.n_waits: Dict[str, int] = defaultdict(int)
+        self.global_ufun = global_ufun
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
@@ -195,7 +196,12 @@ class SAOSyncController(SAOController):
         if proposal is not None:
             self.proposals[negotiator_id] = None
         # if the proposal that was there was None, just offer the best offer
-        proposal = self.first_offer(negotiator_id)
+        if self.global_ufun:
+            self.proposals = self.first_proposals()
+            proposal = self.proposals.get(negotiator_id, None)
+            self.proposals[negotiator_id] = None
+        else:
+            proposal = self.first_offer(negotiator_id)
         return proposal
 
     def respond(
