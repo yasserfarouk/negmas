@@ -135,7 +135,9 @@ class SAOMechanism(Mechanism):
         self.params["avoid_ultimatum"] = avoid_ultimatum
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
-        self.params["allow_offering_just_rejected_outcome"] = allow_offering_just_rejected_outcome
+        self.params[
+            "allow_offering_just_rejected_outcome"
+        ] = allow_offering_just_rejected_outcome
         self.params["max_wait"] = max_wait
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
@@ -753,7 +755,10 @@ class SAOMechanism(Mechanism):
                     )
             if resp.response == ResponseType.REJECT_OFFER:
                 proposal = resp.outcome
-                if not self.allow_offering_just_rejected_outcome and proposal == self._current_offer:
+                if (
+                    not self.allow_offering_just_rejected_outcome
+                    and proposal == self._current_offer
+                ):
                     proposal = None
                 if proposal is None:
                     if (
@@ -792,6 +797,16 @@ class SAOMechanism(Mechanism):
         offers = []
         for state in self._history:
             offers += [o for n, o in state.new_offers if n == negotiator_id]
+        if self.agreement is not None and negotiator_id == state.current_proposer:
+            offers.append(self.agreement)
+        return offers
+
+    def offers(self) -> List[Outcome]:
+        offers = []
+        for state in self._history:
+            offers += [o for n, o in state.new_offers]
+        if self.agreement is not None:
+            offers.append(self.agreement)
         return offers
 
 
