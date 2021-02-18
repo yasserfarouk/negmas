@@ -381,7 +381,11 @@ def test_checkpointing_mechanism(tmp_path):
     checkpoint_every=st.integers(0, 6),
     exist_ok=st.booleans(),
 )
-@settings(deadline=20000, max_examples=100, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(
+    deadline=20000,
+    max_examples=100,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
 def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok):
     import shutil
 
