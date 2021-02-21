@@ -258,7 +258,6 @@ class AgentMechanismInterface:
         """Gets the names of all agents owning all negotiators"""
         return self._mechanism.agent_names
 
-
     def __str__(self):
         return str(self.__dict__)
 
@@ -607,7 +606,9 @@ class Rational(NamedObject):
         ufun: An optional utility function to attach to the object
     """
 
-    def __init__(self, name: str = None, ufun: Optional["UtilityFunction"] = None, id: str  = None):
+    def __init__(
+        self, name: str = None, ufun: Optional["UtilityFunction"] = None, id: str = None
+    ):
         super().__init__(name, id=id)
         self._utility_function = ufun
         self._init_utility = ufun
