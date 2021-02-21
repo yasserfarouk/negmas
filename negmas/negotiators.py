@@ -74,8 +74,9 @@ class Negotiator(Rational, Notifiable, ABC):
         ufun: Optional["UtilityFunction"] = None,
         parent: "Controller" = None,
         owner: "Agent" = None,
+        id: str = None,
     ) -> None:
-        super().__init__(name=name, ufun=ufun)
+        super().__init__(name=name, ufun=ufun, id=id)
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None
@@ -353,8 +354,8 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def cancel(self, reason=None) -> None:
         """
-        A method that may be called by a mechanism to make the negotiator cancel whatever it is currently 
-        processing. 
+        A method that may be called by a mechanism to make the negotiator cancel whatever it is currently
+        processing.
 
         Negotiators can just ignore this message (default behavior) but if there is a way to actually cancel
         work, it should be implemented here to improve the responsiveness of the negotiator.
@@ -520,14 +521,18 @@ class Controller(Rational):
         if kwargs:
             args.update(kwargs)
         new_negotiator = negotiator_type(name=name, parent=self, **args)
+        assert (
+            "id" not in args.keys() or new_negotiator.id == args["id"]
+        ), f"Asked for ID {args['id']} and got {new_negotiator.id}"
         if new_negotiator is not None:
             self._negotiators[new_negotiator.id] = (new_negotiator, cntxt)
         return new_negotiator
 
     def call(self, negotiator: PassThroughNegotiator, method: str, *args, **kwargs):
         """
-        Calls the given method on the given negotiator safely without causing recursion. The controller MUST use this
-        function to access any callable on the negotiator
+        Calls the given method on the given negotiator safely without causing
+        recursion. The controller MUST use this function to access any callable
+        on the negotiator.
 
         Args:
             negotiator:
@@ -564,6 +569,60 @@ class Controller(Rational):
         if response or force:
             negotiator._Negotiator__parent = None
             self._negotiators.pop(negotiator_id, None)
+
+    def partner_negotiator_ids(self, negotiator_id: str) -> Optional[List[str]]:
+        """
+        Finds the negotiator ID negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.ami:
+            return None
+        return [_ for _ in negotiator.ami.negotiator_ids if _ != negotiator_id]
+
+    def partner_negotiator_names(self, negotiator_id: str) -> Optional[List[str]]:
+        """
+        Finds the negotiator names negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.ami:
+            return None
+        return [_ for _ in negotiator.ami.negotiator_names if _ != negotiator_id]
+
+    def partner_agent_ids(self, negotiator_id: str) -> Optional[List[str]]:
+        """
+        Finds the agent ID negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.ami:
+            return None
+        me = negotiator.owner.id if negotiator.owner else ""
+        return [_ for _ in negotiator.ami.agent_ids if _ and _ != me]
+
+    def partner_agent_names(self, negotiator_id: str) -> Optional[List[str]]:
+        """
+        Finds the negotiator names negotiating with one of our negotiators.
+
+        Args:
+
+            negotiator_id: Our negotiator ID
+        """
+        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not negotiator.ami:
+            return None
+        me = negotiator.owner.name if negotiator.owner else ""
+        return [_ for _ in negotiator.ami.agent_names if _ and _ != me]
 
     def before_join(
         self,

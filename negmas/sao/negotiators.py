@@ -87,8 +87,9 @@ class SAONegotiator(Negotiator):
         rational_proposal=True,
         parent: Controller = None,
         owner: "Agent" = None,
+        id: Optional[str] = None,
     ):
-        super().__init__(name=name, ufun=ufun, parent=parent, owner=owner)
+        super().__init__(name=name, ufun=ufun, parent=parent, owner=owner, id=id)
         self.assume_normalized = assume_normalized
         self.__end_negotiation = False
         self.my_last_proposal: Optional["Outcome"] = None
@@ -1044,9 +1045,12 @@ class PassThroughSAONegotiator(SAONegotiator):
         Joins a negotiation.
 
         Remarks:
-            This method first gets permission from the parent controller by calling `before_join` on it and confirming
-            the result is `True`, it then joins the negotiation and calls `after_join` of the controller to inform it
-            that joining is completed if joining was successful.
+
+            This method first gets permission from the parent controller by
+            calling `before_join` on it and confirming the result is `True`,
+            it then joins the negotiation and calls `after_join` of the
+            controller to inform it that joining is completed if joining was
+            successful.
         """
         permission = (
             self._Negotiator__parent is None
