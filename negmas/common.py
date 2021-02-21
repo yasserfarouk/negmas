@@ -238,6 +238,27 @@ class AgentMechanismInterface:
         """Syntactic sugar for state.n_negotiators"""
         return self.state.n_negotiators
 
+    @property
+    def negotiator_ids(self) -> List[str]:
+        """Gets the IDs of all negotiators"""
+        return self._mechanism.negotiator_ids
+
+    @property
+    def negotiator_names(self) -> List[str]:
+        """Gets the namess of all negotiators"""
+        return self._mechanism.negotiator_names
+
+    @property
+    def agent_ids(self) -> List[str]:
+        """Gets the IDs of all agents owning all negotiators"""
+        return self._mechanism.agent_ids
+
+    @property
+    def agent_names(self) -> List[str]:
+        """Gets the names of all agents owning all negotiators"""
+        return self._mechanism.agent_names
+
+
     def __str__(self):
         return str(self.__dict__)
 
