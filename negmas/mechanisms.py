@@ -534,6 +534,22 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self._negotiators
 
     @property
+    def negotiator_ids(self) -> List[str]:
+        return [_.id for _ in self._negotiators]
+
+    @property
+    def agent_ids(self) -> List[str]:
+        return [_.owner.id for _ in self._negotiators if _.owner]
+
+    @property
+    def agent_names(self) -> List[str]:
+        return [_.owner.name for _ in self._negotiators if _.owner]
+
+    @property
+    def negotiator_names(self) -> List[str]:
+        return [_.name for _ in self._negotiators]
+
+    @property
     def requirements(self):
         """A dictionary specifying the requirements that must be in the capabilities of any agent
         to join the mechanism.
