@@ -102,9 +102,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         name: Name of the mechanism session. Should be unique. If not given, it will be generated.
         outcome_type: The type used for representing outcomes. Can be tuple, dict or any `OutcomeType`
         genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
-        id: An optional system-wide unique identifier. You should not change 
-            the default value except in special circumstances like during 
-            serialization and should always guarantee system-wide uniquness 
+        id: An optional system-wide unique identifier. You should not change
+            the default value except in special circumstances like during
+            serialization and should always guarantee system-wide uniquness
             if you set this value explicitly
     """
 
@@ -484,6 +484,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
             self.agents_of_role[role].append(negotiator)
+            if negotiator.ufun is not None:
+                if hasattr(negotiator.ufun, "ami"):
+                    negotiator.ufun.ami = self.ami
             return True
         return None
 
@@ -1073,7 +1076,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @abstractmethod
     def round(self) -> MechanismRoundResult:
-        """ Implements a single step of the mechanism. Override this!
+        """Implements a single step of the mechanism. Override this!
 
         Returns:
             MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.

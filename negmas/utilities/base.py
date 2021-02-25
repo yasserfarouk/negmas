@@ -198,6 +198,8 @@ class UtilityFunction(ABC, NamedObject):
         - If this property is `True`, the ufun may depend on negotiation state
           but it may also not depend on it.
         """
+        # TODO: fix this. Now we always attach ami when the ufun joins a neg. 
+        #       so having no ami is not a good proxy for being dynamic
         return self.ami is None
 
     @classmethod

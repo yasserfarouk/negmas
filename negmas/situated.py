@@ -2013,14 +2013,14 @@ class Adapter(Agent):
         """Returns a short name of the type of this entity"""
         base = super().short_type_name if self._include_adapter else ""
         obj = self._obj.short_type_name if self._include_obj else ""
-        return obj + base
+        return obj + ":" + base
 
     @property
     def type_name(self):
         """Returns a short name of the type of this entity"""
         base = super().type_name if self._include_adapter else ""
         obj = self._obj.type_name if self._include_obj else ""
-        return obj + base
+        return obj + ":" + base
 
     def init(self):
         """Override this method to modify initialization logic"""

@@ -57,14 +57,14 @@ __all__ = [
 class Negotiator(Rational, Notifiable, ABC):
     r"""Abstract negotiation agent. Base class for all negotiators
 
-     Args:
+    Args:
 
-            name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
+           name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
 
-        Returns:
-            bool: True if participating in the given negotiation (or any negotiation if it was None)
+       Returns:
+           bool: True if participating in the given negotiation (or any negotiation if it was None)
 
-        Remarks:
+       Remarks:
 
     """
 
@@ -382,14 +382,18 @@ class PassThroughNegotiator(Negotiator):
     """
 
     def __getattribute__(self, item):
-        if item in (
-            "id",
-            "name",
-            "on_ufun_changed",
-            "has_ufun",
-            "utility_function",
-            "reserved_value",
-        ) or item.startswith("_"):
+        if (
+            item
+            in (
+                "id",
+                "name",
+                "on_ufun_changed",
+                "has_ufun",
+                "utility_function",
+                "reserved_value",
+            )
+            or item.startswith("_")
+        ):
             return super().__getattribute__(item)
         parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
         if parent is None:
@@ -443,10 +447,9 @@ class Controller(Rational):
         default_negotiator_params: Dict[str, Any] = None,
         parent: Union["Controller", "Agent"] = None,
         auto_kill: bool = True,
-        name: str = None,
-        ufun: "UtilityFunction" = None,
+        **kwargs,
     ):
-        super().__init__(name=name, ufun=ufun)
+        super().__init__(**kwargs)
         self._negotiators: Dict[str, Tuple["PassThroughNegotiator", Any]] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
@@ -527,6 +530,24 @@ class Controller(Rational):
         if new_negotiator is not None:
             self._negotiators[new_negotiator.id] = (new_negotiator, cntxt)
         return new_negotiator
+
+    def add_negotiator(
+        self,
+        negotiator: Negotiator,
+        cntxt: Any = None,
+    ) -> None:
+        """
+        Adds a negotiator to the controller
+
+        Args:
+            negotaitor: The negotaitor to add
+            name: negotiator name
+            cntxt: The context to be associated with this negotiator.
+            **kwargs: any key-value pairs to be passed to the negotiator constructor
+
+        """
+        if negotiator is not None:
+            self._negotiators[negotiator.id] = (negotiator, cntxt)
 
     def call(self, negotiator: PassThroughNegotiator, method: str, *args, **kwargs):
         """
@@ -758,7 +779,7 @@ class Controller(Rational):
             negotiator_id: The negotiator ID
             state: `MechanismState` giving current state of the negotiation.
 
-       """
+        """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -965,9 +986,11 @@ class NLevelsComparatorMixin:
         """
         if scale is not None:
             if isinstance(scale, str):
-                scale = dict(linear=lambda x: x, log=math.log, exp=math.exp,).get(
-                    scale, None
-                )
+                scale = dict(
+                    linear=lambda x: x,
+                    log=math.log,
+                    exp=math.exp,
+                ).get(scale, None)
                 if scale is None:
                     raise ValueError(f"Unknown scale function {scale}")
         thresholds = np.linspace(ufun_min, ufun_max, num=n + 2)[1:-1].tolist()
@@ -1129,7 +1152,7 @@ class RankerWithWeightsMixin:
 
 class RankerMixin:
     """Adds the ability to rank outcomes returning the ranks without weights. Outcomes of equal utility are ordered
-     arbitrarily. None stands for the null outcome"""
+    arbitrarily. None stands for the null outcome"""
 
     def init(self):
         self.capabilities["rank"] = True
@@ -1171,7 +1194,7 @@ class RankerMixin:
 
 class SorterMixin:
     """Adds the ability to sort outcomes according to utility. Outcomes of equal utility are ordered
-     arbitrarily. None stands for the null outcome"""
+    arbitrarily. None stands for the null outcome"""
 
     def init(self):
         self.capabilities["sort"] = True
@@ -1250,11 +1273,11 @@ class NLevelsComparatorNegotiator(NLevelsComparatorMixin, Negotiator):
 class RankerWithWeightsNegotiator(RankerWithWeightsMixin, Negotiator):
     """A negotiator that can be asked to rank outcomes returning rank and weight. By default is just consults the ufun.
 
-        To change that behavior, override `rank_with_weights`.
+    To change that behavior, override `rank_with_weights`.
 
-        It has the `rank-weighted` capability.
+    It has the `rank-weighted` capability.
 
-        """
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

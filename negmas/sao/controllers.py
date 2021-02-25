@@ -45,7 +45,7 @@ class SAOController(Controller):
         self,
         default_negotiator_type=PassThroughSAONegotiator,
         default_negotiator_params=None,
-        auto_kill=True,
+        auto_kill=False,
         name=None,
         ufun=None,
     ):
@@ -188,7 +188,7 @@ class SAOSyncController(SAOController):
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
-        if len(self.proposals) == 0:
+        if not self.proposals:
             self.proposals = self.first_proposals()
         # get the saved proposal if it exists and return it
         proposal = self.proposals.get(negotiator_id, None)
@@ -553,10 +553,8 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         return self._best_outcomes[negotiator][0]
 
     def after_join(self, negotiator_id, ami, state, *, ufun=None, role="agent"):
-        result = super().join(negotiator_id, ami, state, ufun=ufun, role=role)
-        if result is not None:
-            self._best_outcomes[negotiator_id] = self.best_outcome(negotiator_id)
-        return result
+        super().after_join(negotiator_id, ami, state, ufun=ufun, role=role)
+        self._best_outcomes[negotiator_id] = self.best_outcome(negotiator_id)
 
     def best_outcome(
         self, negotiator: str, state: Optional[SAOState] = None
@@ -635,7 +633,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
 
     @abstractmethod
     def is_acceptable(self, offer: "Outcome", source: str, state: SAOState) -> bool:
-        """ Should decide if the given offer is acceptable
+        """Should decide if the given offer is acceptable
 
         Args:
             offer: The offer being tested
