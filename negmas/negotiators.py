@@ -339,7 +339,7 @@ class Negotiator(Rational, Notifiable, ABC):
               it.
         """
         if hasattr(self._utility_function, "outcome_type"):
-            if self._utility_function.outcome_type is None:
+            if self._ami and self._utility_function.outcome_type is None:
                 self._utility_function.outcome_type = self._ami.outcome_type
                 self._utility_function.issue_names = [_.name for _ in self._ami.issues]
             elif (
