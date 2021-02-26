@@ -1,6 +1,46 @@
 History
 =======
 
+Release 0.7.3
+-------------
+
+* [core] making the core SAONegotiator robust to missing ufuns.
+* [core] allowing controllers to control the ID of negotiators
+* [core] adding methods to find partner IDs and names
+* [sao] Adding global_ufun to SAOSyncController
+* [core] removing all all_contracts.csv from output keeping only contracts.csv withe full information.
+* [core] Added serialization module for serializing objects in human readable format.
+* [core] Added id as a parameter to all constructors of NamedObjects
+* [core] dividing utilities.py into multiple modules
+* This should not affect any external users.
+* [core] removing an issue when deepcopying utility fucntions.
+* [core] adding inverse_utility support
+* [core] adding inverse ufun support
+* [cli] removing unnecessry force flag
+* [sao] adding allow_offering_just_rejected_offers
+* [core] adding max_n_outcomes to Issue.sample
+* adding parameters to mechanisms and worlds.
+* [genius] improved the information on ANAC competition
+* [genius] restructuring the module into a package
+* [core] bugfix in LinearUtilityFunciton that calculated the weights
+* incorrectly sometimes
+* [genius] Adding close_gateway to GeniusBridge to close all connections
+* [genius] Adding close_gateway to GeniusBridge to close all connections
+* [genius] Added GeniusBridge with methods to control a bridge
+* [genius] Now all GeniusNegotiator classes share the same bridge to avoid too much resource allocation but this may not be safe when running tournaments.
+* [genius] compatible with bridge version 0.5
+* [genius] compatible with bridge v0.3
+* [genius] more exhaustive testing and resolving ending issue
+* [genius] adding the skeleton to cancel unending agents
+* [sao] allowing load_genius_domain to use any kwargs
+* [core] adding imap to all mechanisms
+* [core] Maps between issue name and index and back
+* [core] Speeding issue enumeration
+* [core] Enumerating faster for large outcome spaces.
+* [core] Adding max_n_outcomes to functions that use outcome enumeration more consistently.
+* [core] adding a warning for infinity ufun values
+* [inout] bugfix a failure when reading some genius files
+
 Release 0.6.15
 --------------
 
