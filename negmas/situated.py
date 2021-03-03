@@ -42,27 +42,28 @@ either by announcing them using `announce` or as a side-effect of logging them u
  Event                               Data
 =================================   ===============================================================================
 extra-step                           none
+mechanism-creation-exception         exception: `Exception`
+zero-outcomes-negotiation            caller: `Agent`, partners: `List[Agent]` , annotation: `Dict` [ `str`, `Any` ]
 entity-exception                     exception: `Exception`
-contract-exception                   exception: `Exception`
+contract-exception                   contract: `Contract`, exception: `Exception`
+agent-exception                      method: `str` , exception: `Exception`
 agent-joined                         agent: `Agent`
 negotiation-request                  caller: `Agent` , partners: `List` [ `Agent` ], issues: `List` [ `Issue` ]
                                      , mechanism_name: `str` , annotation: `Dict` [ `str`, `Any` ], req_id: `str`
 negotiation-request-immediate        caller: `Agent` , partners: `List` [ `Agent` ], issues: `List` [ `Issue` ]
                                      , mechanism_name: `str` , annotation: `Dict` [ `str`, `Any` ]
-negotiations-request-immediate       caller: `Agent` , partners: `List` [ `Agent` ], issues: `List` [ `Issue` ]
-                                     , mechanism_name: `str` , annotation: `Dict` [ `str`, `Any` ]
-                                     , all_or_none: bool
-negotiation-success                  mechanism: `Mechanism` , contract: `Contract` , partners: `List` [ `Agent` ]
-negotiation-failure                  mechanism: `Mechanism` , partners: `List` [ `Agent` ]
-agent-exception                      method: `str` , exception: `Exception`
-executing-contract                   contract: `Contract`
-mechanism-not-created                exception: `Exception`
 negotiation-request-rejected         caller: `Agent` , partners: `List` [ `Agent` ] , req_id: `str`
                                      , rejectors: `List` [ `Agent` ] , annotation: `Dict` [ `str`, `Any` ]
 negotiation-request-accepted         caller: `Agent` , partners: `List` [ `Agent` ] , req_id: `str`
                                      , mechanism: `Mechanism` , annotation: `Dict` [ `str`, `Any` ]
-zero-outcomes-negotiation            caller: `Agent`, partners: `List[Agent]`
-                                     , annotation: `Dict` [ `str`, `Any` ]
+negotiation-success                  mechanism: `Mechanism` , contract: `Contract` , partners: `List` [ `Agent` ]
+negotiation-failure                  mechanism: `Mechanism` , partners: `List` [ `Agent` ]
+contract-executing                   contract: `Contract`
+contract-nullified                   contract: `Contract`
+contract-breached                    contract: `Contract`, breach: `Breach`
+breach-resolved                      contract: `Contract`, breaches: `List[Breach]`, resolution
+contract-executed                    contract: `Contract`
+dropped-contract                     contract: `Contract`
 =================================   ===============================================================================
 
 """
@@ -105,7 +106,7 @@ from matplotlib.axis import Axis
 
 from .checkpoints import CheckpointMixin
 from .common import AgentMechanismInterface, MechanismState, NamedObject, Rational
-from .events import Event, EventSink, EventSource, Notifier
+from .events import Event, EventSink, EventSource, Notifier, EventLogger
 from .helpers import (
     ConfigReader,
     add_records,
@@ -851,7 +852,7 @@ class MechanismFactory:
             mechanism = None
             self.world.logerror(
                 f"Failed to create {mechanism_name} with params {mechanism_params}",
-                Event("mechanism-not-created", dict(exception=e)),
+                Event("mechanism-creation-exception", dict(exception=e)),
             )
         self.mechanism = mechanism
         if mechanism is None:
@@ -2108,6 +2109,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         no_logs: If True, All logging will be disabled no matter what other options are given.
         log_stats_every: If nonzero and positive, the period of saving stats
         construct_graphs: If true, information needed to draw graphs using `draw` method are kept.
+        event_file_name: If not None, the file-name to store events into.
+        event_types: Types of events to log
 
         * What to save *
 
@@ -2166,6 +2169,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         log_file_level=logging.DEBUG,
         log_screen_level=logging.ERROR,
         no_logs=False,
+        event_file_name="events.json",
+        event_types=None,
         log_file_name="log.txt",
         save_signed_contracts: bool = True,
         save_cancelled_contracts: bool = True,
@@ -2231,6 +2236,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     self._log_folder /= n
             else:
                 self._log_folder /= self.name
+        if event_file_name:
+            self._event_logger = EventLogger(self._log_folder / event_file_name, types=event_types)
+            self.register_listener(None, self._event_logger)
+        else:
+            self._event_logger = None
         if log_file_name is None:
             log_file_name = "log.txt"
         if len(log_file_name) == 0:
@@ -3209,7 +3219,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self.logerror(
                             f"Contract exception @{str(contract)}: "
                             f"{traceback.format_tb(exc_traceback)}",
-                            Event("contract-exceptin", dict(exception=e)),
+                            Event("contract-exception", dict(contract=contract, exception=e)),
                         )
                         continue
                     if contract_breaches is None:
@@ -3229,6 +3239,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         )
                         self._saved_contracts[contract.id]["erred_at"] = -1
                         n_new_contract_nullifications += 1
+                        self.loginfo(
+                            f"Contract nullified: {str(contract)}",
+                            Event("contract-nullified", dict(contract=contract)),
+                        )
                     elif len(contract_breaches) < 1:
                         for p in contract.partners:
                             self.contracts_executed[p] += 1
@@ -3283,6 +3297,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             )
                         for b in contract_breaches:
                             self._saved_breaches[b.id] = b.as_dict()
+                            self.loginfo(
+                                f"Breach of {str(contract)}: {str(breach)} ",
+                                Event("contract-breached", dict(contract=contract, breach=b)),
+                            )
                         resolution = self._process_breach(
                             contract, list(contract_breaches)
                         )
@@ -3291,8 +3309,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             blevel += sum(_.level for _ in contract_breaches)
                         else:
                             n_new_contract_executions += 1
+                            self.loginfo(
+                                f"Breach resolution cor {str(contract)}: {str(resolution)} ",
+                                Event("breach-resolved", dict(contract=contract, breaches=list(contract_breaches), resolution=resolution)),
+                            )
                         self.complete_contract_execution(
                             contract, list(contract_breaches), resolution
+                        )
+                        self.loginfo(
+                            f"Executed {str(contract)}",
+                            Event("contract-executed", dict(contract=contract)),
                         )
                         for partner in contract.partners:
                             self.call(
@@ -3308,6 +3334,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             dropped = self.get_dropped_contracts()
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
             for c in dropped:
+                self.loginfo(
+                    f"Dropped {str(c)}",
+                    Event("dropped-contract", dict(contract=c)),
+                )
                 self._saved_contracts[c.id]["dropped_at"] = self._current_step
                 for p in c.partners:
                     self.contracts_dropped[p] += 1
