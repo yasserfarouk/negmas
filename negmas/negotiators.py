@@ -3,6 +3,7 @@ This module defines the interfaces to all negotiation agents (negotiators)
 in negmas.
 
 """
+from collections import namedtuple
 import functools
 import math
 import warnings
@@ -36,6 +37,7 @@ __all__ = [
     "Negotiator",
     "AspirationMixin",
     "Controller",
+    "NegotiatorInfo",
     "PassThroughNegotiator",
     "EvaluatorMixin",
     "RealComparatorMixin",
@@ -53,6 +55,8 @@ __all__ = [
     "SorterNegotiator",
 ]
 
+NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
+"""The return type of `negotiators` member of `Controller`."""
 
 class Negotiator(Rational, Notifiable, ABC):
     r"""Abstract negotiation agent. Base class for all negotiators
@@ -450,7 +454,7 @@ class Controller(Rational):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._negotiators: Dict[str, Tuple["PassThroughNegotiator", Any]] = {}
+        self._negotiators: Dict[str, NegotiatorInfo] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
@@ -461,7 +465,7 @@ class Controller(Rational):
         self._auto_kill = auto_kill
 
     @property
-    def negotiators(self) -> Dict[str, Tuple[Negotiator, Any]]:
+    def negotiators(self) -> Dict[str, NegotiatorInfo]:
         """
         Returns a dictionary mapping negotiator ID to the a tuple containing
         the negotiator and its context
@@ -469,7 +473,7 @@ class Controller(Rational):
         return self._negotiators
 
     @property
-    def active_negotiators(self) -> Dict[str, Tuple[Negotiator, Any]]:
+    def active_negotiators(self) -> Dict[str, NegotiatorInfo]:
         """
         Returns the negotiators whose negotiations are running.
         Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
@@ -508,7 +512,31 @@ class Controller(Rational):
 
         Returns:
 
-            PassThroughNegotiator: The negotiator to be controlled
+            The negotiator to be controlled. None for failure
+
+        """
+        new_negotiator = self.make_negotiator(negotiator_type, name, **kwargs)
+        self.add_negotiator(new_negotiator)
+        return new_negotiator
+
+    def make_negotiator(
+        self,
+        negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
+        name: str = None,
+        **kwargs,
+    ) -> PassThroughNegotiator:
+        """
+        Creates a negotiator but does not add it to the controller. Call 
+        `add_negotiator` to add it.
+
+        Args:
+            negotiator_type: Type of the negotiator to be created
+            name: negotiator name
+            **kwargs: any key-value pairs to be passed to the negotiator constructor
+
+        Returns:
+
+            The negotiator to be controlled. None for failure
 
         """
         if negotiator_type is None:
@@ -523,13 +551,7 @@ class Controller(Rational):
         args = self.__default_negotiator_params
         if kwargs:
             args.update(kwargs)
-        new_negotiator = negotiator_type(name=name, parent=self, **args)
-        assert (
-            "id" not in args.keys() or new_negotiator.id == args["id"]
-        ), f"Asked for ID {args['id']} and got {new_negotiator.id}"
-        if new_negotiator is not None:
-            self._negotiators[new_negotiator.id] = (new_negotiator, cntxt)
-        return new_negotiator
+        return negotiator_type(name=name, parent=self, **args)
 
     def add_negotiator(
         self,
@@ -547,7 +569,7 @@ class Controller(Rational):
 
         """
         if negotiator is not None:
-            self._negotiators[negotiator.id] = (negotiator, cntxt)
+            self._negotiators[negotiator.id] = NegotiatorInfo(negotiator, cntxt)
 
     def call(self, negotiator: PassThroughNegotiator, method: str, *args, **kwargs):
         """
