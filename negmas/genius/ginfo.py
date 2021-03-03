@@ -1,13 +1,16 @@
 """
 Keeps information about ANAC competitions and Genius Agents
 """
+from typing import List, Set, Tuple
 import itertools
 
 __all__ = [
     "GENIUS_INFO",
     "AGENT_BASED_NEGOTIATORS",
     "PARTY_BASED_NEGOTIATORS",
+    "ALL_NEGOTIATORS",
     "TESTED_NEGOTIATORS",
+    "get_genius_agents",
 ]
 GENIUS_INFO = {
     2010: {
@@ -71,15 +74,15 @@ GENIUS_INFO = {
             ),
         ],
         "winners_welfare": [
-            (
+            [(
                 "IAMhaggler2012",
                 "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
-            ),
-            (
+            )],
+            [(
                 "TheNegotiatorReloaded",
                 "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
-            ),
-            ("MetaAgent2012", "agents.anac.y2012.MetaAgent.MetaAgent",),
+            )],
+            [("MetaAgent2012", "agents.anac.y2012.MetaAgent.MetaAgent")],
         ],
         "linear": True,
         "learning": False,
@@ -219,28 +222,28 @@ GENIUS_INFO = {
         "uncertainty": False,
         "elicitation": False,
     },
-    2019: {
-        "winners": ["AgentGG", "KakeSoba", "SAGA"],
-        "linear": True,
-        "learning": True,
-        "multilateral": True,
-        "bilateral": False,
-        "reservation": None,
-        "discounting": None,
-        "uncertainty": True,
-        "elicitation": False,
-    },
-    2020: {
-        "winners": [],
-        "linear": True,
-        "learning": True,
-        "multilateral": True,
-        "bilateral": False,
-        "reservation": None,
-        "discounting": None,
-        "uncertainty": True,
-        "elicitation": True,
-    },
+    # 2019: {
+    #     "winners": [["AgentGG"],[ "KakeSoba"],[ "SAGA"]],
+    #     "linear": True,
+    #     "learning": True,
+    #     "multilateral": True,
+    #     "bilateral": False,
+    #     "reservation": None,
+    #     "discounting": None,
+    #     "uncertainty": True,
+    #     "elicitation": False,
+    # },
+    # 2020: {
+    #     "winners": [],
+    #     "linear": True,
+    #     "learning": True,
+    #     "multilateral": True,
+    #     "bilateral": False,
+    #     "reservation": None,
+    #     "discounting": None,
+    #     "uncertainty": True,
+    #     "elicitation": True,
+    # },
 }
 
 
@@ -378,3 +381,88 @@ TESTED_NEGOTIATORS = ["agents.anac.y2015.AgentX.AgentX",] + list(
         ]
     )
 )
+
+ALL_NEGOTIATORS = PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS
+"""All Genius Negotiators accessible from NegMAS"""
+
+
+def get_genius_agents(
+    *,
+    year: int = None,
+    linear: bool = None,
+    learning: bool = None,
+    multilateral: bool = None,
+    bilateral: bool = None,
+    reservation: bool = None,
+    discounting: bool = None,
+    uncertainty: bool = None,
+    elicitation: bool = None,
+    winners_only: bool = False,
+    finalists_only: bool = False,
+) -> List[Tuple[str, str]]:
+    """
+    Get Genius agents matching some given criteria
+
+    Returns:
+        a list of 2-item tuples giving agent name and java class name.
+
+    Remarks:
+        - For all criteria other than winners_only, and finalists_only, passing
+          None means no constraints otherwise the game on the given year must
+          match the criterion value (True or False) to get agents from this year.
+        - This function uses a heuristic and may not be completely accurate. Use
+          with caution.
+    """
+
+    def get_agents(year, d) -> List[Tuple[str, str]]:
+        lst = tuple(
+            d.get("winners", [[]])
+            if winners_only
+            else d.get("finalists", [])
+            if finalists_only
+            else [(_.split(".")[-1], _) for _ in ALL_NEGOTIATORS if str(year) in _]
+        )
+        if winners_only or finalists_only:
+            return set(itertools.chain(*lst))
+        return set(lst)
+
+    agents: Set[Tuple[str, str]] = set()
+    if year is None:
+        for y in GENIUS_INFO.keys():
+            agents = agents.union(
+                get_genius_agents(
+                    year=y,
+                    linear=linear,
+                    learning=learning,
+                    multilateral=multilateral,
+                    bilateral=bilateral,
+                    reservation=reservation,
+                    discounting=discounting,
+                    uncertainty=uncertainty,
+                    elicitation=elicitation,
+                    winners_only=winners_only,
+                    finalists_only=finalists_only,
+                )
+            )
+        return list(agents)
+
+    d = GENIUS_INFO.get(year, None)
+    if not d:
+        return []
+    if linear is None or (linear is not None and d["linear"] == linear):
+        agents = get_agents(year, d)
+    if learning is None or (learning is not None and d["learning"] == learning):
+        agents = agents.intersection(get_agents(year, d))
+    if bilateral is None or (bilateral is not None and d["bilateral"] == bilateral):
+        agents = agents.intersection(get_agents(year, d))
+    if multilateral is None or (multilateral is not None and d["multilateral"] == multilateral):
+        agents = agents.intersection(get_agents(year, d))
+    if discounting is None or (discounting is not None and d["discounting"] == discounting):
+        agents = agents.intersection(get_agents(year, d))
+    if reservation is None or (reservation is not None and d["reservation"] == reservation):
+        agents = agents.intersection(get_agents(year, d))
+    if uncertainty is None or (uncertainty is not None and d["uncertainty"] == uncertainty):
+        agents = agents.intersection(get_agents(year, d))
+    if elicitation is None or (elicitation is not None and d["elicitation"] == elicitation):
+        agents = agents.intersection(get_agents(year, d))
+    return list(agents)
