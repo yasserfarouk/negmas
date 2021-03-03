@@ -263,14 +263,15 @@ def create_loggers(
     else:
         logger = logging.getLogger()
     # create formatter
-    if colored and "colorlog" in sys.modules and os.isatty(2):
+    file_formatter = logging.Formatter(format_str)
+    if colored and "colorlog" in sys.modules and os.isatty(2) and screen_level:
         date_format = "%Y-%m-%d %H:%M:%S"
         cformat = "%(log_color)s" + format_str
-        formatter = colorlog.ColoredFormatter(
+        screen_formatter = colorlog.ColoredFormatter(
             cformat,
             date_format,
             log_colors={
-                "DEBUG": "reset",
+                "DEBUG": "magenta",
                 "INFO": "green",
                 "WARNING": "yellow",
                 "ERROR": "red",
@@ -278,13 +279,13 @@ def create_loggers(
             },
         )
     else:
-        formatter = logging.Formatter(format_str)
+        screen_formatter = logging.Formatter(format_str)
     if screen_level is not None and (module_wide_log_file or app_wide_log_file):
         # create console handler and set level to logdebug
         screen_logger = logging.StreamHandler()
         screen_logger.setLevel(screen_level)
         # add formatter to ch
-        screen_logger.setFormatter(formatter)
+        screen_logger.setFormatter(screen_formatter)
         # add ch to logger
         logger.addHandler(screen_logger)
     if file_name is not None and file_level is not None:
@@ -309,7 +310,7 @@ def create_loggers(
         os.makedirs(os.path.dirname(file_name), exist_ok=True)  # type: ignore
         file_logger = logging.FileHandler(file_name)
         file_logger.setLevel(file_level)
-        file_logger.setFormatter(formatter)
+        file_logger.setFormatter(file_formatter)
         logger.addHandler(file_logger)
     return logger
 
