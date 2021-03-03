@@ -65,8 +65,56 @@ from negmas import (
     HardHeaded,
 )
 from negmas.genius import GeniusBridge
+from negmas.genius import get_genius_agents
 
 SKIP_IF_NO_BRIDGE = True
+
+@given(
+    linear=st.booleans(),
+    learning=st.booleans(),
+    multilateral=st.booleans(),
+    bilateral=st.booleans(),
+    reservation=st.booleans(),
+    discounting=st.booleans(),
+    uncertainty=st.booleans(),
+    elicitation=st.booleans(),
+)
+def test_get_genius_agents_example(
+    linear,
+    learning,
+    multilateral,
+    bilateral,
+    reservation,
+    discounting,
+    uncertainty,
+    elicitation,
+
+):
+    winners = get_genius_agents(bilateral=True, winners_only=True)
+    everyone = get_genius_agents(bilateral=True)
+    finalists = get_genius_agents(bilateral=True, finalists_only=True)
+    # assert len(winners) > 0
+    # assert len(everyone) > 0
+    # assert len(finalists) > 0
+    for x in (winners, finalists, everyone):
+        assert all(list(
+            isinstance(_, tuple)
+            and len(_) == 2
+            and isinstance(_[0], str)
+            and isinstance(_[1], str)
+            and len(_[1]) >= len(_[0])
+            for _ in x
+        )), x
+
+def test_inclusion_of_sets_in_get_agents():
+    from negmas.genius.ginfo import GENIUS_INFO
+    for year in GENIUS_INFO.keys():
+        winners = get_genius_agents(year=year, winners_only=True)
+        finalists = get_genius_agents(year=year, finalists_only=True)
+        everyone = get_genius_agents(year=year)
+        assert not finalists or all(_ in finalists for _ in winners), set(winners).difference(set(finalists))
+        assert not everyone or all(_ in everyone for _ in winners),set(winners).difference(set(everyone))
+        assert not everyone or all(_ in everyone for _ in finalists), set(finalists).difference(set(everyone))
 
 
 @pytest.mark.skipif(
