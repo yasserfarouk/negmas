@@ -1,10 +1,15 @@
 """Implements Event management"""
+from pathlib import Path
+import warnings
 import random
+import json
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union, Optional, Iterable
 
 from .common import NamedObject
+from .serialization import serialize
+from .outcomes import Issue
 
 __all__ = [
     "Event",
@@ -18,6 +23,8 @@ __all__ = [
 
 @dataclass
 class Event:
+    """An event that can be raised and consumed"""
+
     __slots__ = ["type", "data"]
     type: str
     data: Any
@@ -28,24 +35,87 @@ class EventSource:
 
     def __init__(self):
         super().__init__()
-        self.__sinks: Dict[str, list] = defaultdict(list)
+        self.__sinks: Dict[Optional[str], List[EventSink]] = defaultdict(list)
 
     def announce(self, event: Event):
-        """Raises an event and informs all event sinks that are registerd for notifications
+        """Raises an event and informs all event sinks that are registered for notifications
         on this event type"""
 
-        sinks = self.__sinks.get(event.type, [])
+        sinks = self.__sinks.get(event.type, []) + self.__sinks.get(None, [])
         random.shuffle(sinks)
         for sink in sinks:
             sink.on_event(event=event, sender=self)
 
-    def register_listener(self, event_type: str, listener: "EventSink"):
+    def register_listener(self, event_type: Optional[str], listener: "EventSink"):
+        """Registers a listener for the given event_type.
+
+            Args:
+                event_type: The type to register. If None, the listener will
+                            be registered for all types
+                listener: The listening agent (must have an `on_event` method
+                          that receives an event: `Event` and a sender: `EventSource`)
+        """
         self.__sinks[event_type].append(listener)
 
 
 class EventSink:
+    """An object capable of receiving events"""
+
     def on_event(self, event: Event, sender: EventSource):
         pass
+
+
+def myvars(x):
+    if not x:
+        return x
+    return {k: v for k in dir(x) if not k.startswith("_") and not k.endswith("_")}
+
+
+class EventLogger(EventSink):
+    """
+    Logs events to a file
+
+    Args:
+        file_name: Name of the file to save events into
+        types: The types of events to save. If None, all events will be saved
+    """
+
+    def __init__(self, file_name: Union[str, Path], types: List[str] = None):
+        file_name = Path(file_name)
+        file_name.parent.mkdir(parents=True, exist_ok=True)
+        self._file_name = file_name
+        self._types = set(types) if types else None
+
+    def on_event(self, event: Event, sender: EventSource):
+        if not self._file_name:
+            return
+        if self._types is not None and event.type not in self._types:
+            return
+
+        def _simplify(x):
+            if x is None:
+                return None
+            if isinstance(x, (str, int, float)):
+                return x
+            if isinstance(x, Issue):
+                return dict(name=x.name, values=x.values)
+            if isinstance(x, dict):
+                return {k: _simplify(v) for k, v in x.items()}
+            for y in ("id", "name"):
+                if hasattr(x, y):
+                    return getattr(x, y)
+            if isinstance(x, Iterable):
+                return list(_simplify(_) for _ in x)
+            return str(x)
+            # return _simplify(myvars(x))
+
+        try:
+            sid = sender.id if hasattr(sender, "id") else serialize(sender)
+            d = dict(sender=sid, type=event.type, data=_simplify(event.data))
+            with open(self._file_name, "a") as f:
+                f.write(f"{json.dumps(d)},\n")
+        except Exception as e:
+            warnings.warn(f"Failed to log {str(event)}: {str(e)}")
 
 
 @dataclass
@@ -56,11 +126,15 @@ class Notification:
 
 
 class Notifier(NamedObject):
+    """An object that can notify other objects"""
+
     def notify(self, notifiable: "Notifiable", notification: Notification):
         notifiable.on_notification_(notification=notification, notifier=self.id)
 
 
 class Notifiable:
+    """An object that can be notified"""
+
     def add_handler(
         self, notification_type: str, callback: Callable[[Notification, str], bool]
     ):
