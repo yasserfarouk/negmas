@@ -146,6 +146,9 @@ GENIUS_INFO = {
             [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
         ],
         "finalists": [
+            [("Atlas3", "agents.anac.y2015.Atlas3.Atlas3")],
+            [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
+            [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
             [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
             [("AgentBuyong", "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",)],
             [("PhoenixParty", "agents.anac.y2015.Phoenix.PhoenixParty")],
@@ -170,6 +173,9 @@ GENIUS_INFO = {
             ],
         ],
         "finalists": [
+            [("Caduceus", "agents.anac.y2016.caduceus.Caduceus")],
+            [("YXAgent", "agents.anac.y2016.yxagent.YXAgent")],
+            [("ParsCat", "agents.anac.y2016.parscat.ParsCat")],
             [("Farma", "agents.anac.y2017.farma.Farma17")],
             [("MyAgent", "agents.anac.y2016.myagent.MyAgent")],
             [("Atlas32016", "agents.anac.y2016.atlas3.Atlas32016")],
