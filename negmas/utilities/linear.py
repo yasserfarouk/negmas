@@ -463,7 +463,6 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             ...                          , MappingUtilityFunction(lambda x: x-3)]
             ...         , weights=[1.0, 2.0, 4.0])
             >>> print(f.xml(issues))
-<<<<<<< HEAD
             <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
                 <item index="1" value="0" evaluation="0.0" />
                 <item index="2" value="1" evaluation="2.0" />
