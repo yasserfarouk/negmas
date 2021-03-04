@@ -466,6 +466,9 @@ class GeniusNegotiator(SAONegotiator):
             response = ResponseType.ACCEPT_OFFER
         elif typ_ == "EndNegotiation":
             response = ResponseType.END_NEGOTIATION
+        elif typ_ in ("NullOffer","Failure", "NoAction"):
+            response = ResponseType.REJECT_OFFER
+            outcome = None
         else:
             raise ValueError(f"Unknown response: {typ_} in action {action}")
         return response, outcome
@@ -477,6 +480,7 @@ class GeniusNegotiator(SAONegotiator):
         else:
             outcome_dict = outcome
         for i, v in outcome_dict.items():
+            # todo check that the order here will be correct!!
             output += f"{i}{INTERNAL_SEP}{v}{ENTRY_SEP}"
         output = output[: -len(ENTRY_SEP)]
         return output
