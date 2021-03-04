@@ -149,8 +149,8 @@ class LinearUtilityFunction(UtilityFunction):
             >>> issues = [Issue(values=10, name='i1'), Issue(values=4, name='i2')]
             >>> f = LinearUtilityFunction(weights=[1.0, 4.0])
             >>> print(f.xml(issues))
-            <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
-            <range lowerbound = "0" upperbound = "9" ></range>    <item index="1" value="0.0" evaluation="0" />
+            <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
+                <item index="1" value="0.0" evaluation="0" />
                 <item index="2" value="1.0" evaluation="1" />
                 <item index="3" value="2.0" evaluation="2" />
                 <item index="4" value="3.0" evaluation="3" />
@@ -162,7 +162,7 @@ class LinearUtilityFunction(UtilityFunction):
                 <item index="10" value="9.0" evaluation="9" />
             </issue>
             <issue index="2" etype="integer" type="integer" vtype="integer" name="i2">
-            <range lowerbound = "0" upperbound = "3" ></range>    <item index="1" value="0.0" evaluation="0" />
+                <item index="1" value="0.0" evaluation="0" />
                 <item index="2" value="1.0" evaluation="1" />
                 <item index="3" value="2.0" evaluation="2" />
                 <item index="4" value="3.0" evaluation="3" />
@@ -181,10 +181,10 @@ class LinearUtilityFunction(UtilityFunction):
             issue_name = issue.name
             if issue.is_float():
                 output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
-            elif issue.is_integer():
-                output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
+                output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
+            # elif issue.is_integer():
+            #     output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
+            #     output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
             else:
                 output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
             vals = iget(issues, k).all
@@ -464,13 +464,14 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             ...         , weights=[1.0, 2.0, 4.0])
             >>> print(f.xml(issues))
             <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
-            <range lowerbound = "0" upperbound = "9" ></range></issue>
+            <range lowerbound = 0 upperbound = 9 ></range>
+            </issue>
             <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
                 <item index="1" value="delivered" evaluation="10" />
                 <item index="2" value="not delivered" evaluation="-10" />
             </issue>
             <issue index="3" etype="integer" type="integer" vtype="integer" name="i3">
-            <range lowerbound = "0" upperbound = "3" ></range></issue>
+            <range lowerbound = 0 upperbound = 3 ></range></issue>
             <weight index="1" value="1.0">
             </weight>
             <weight index="2" value="2.0">
@@ -480,13 +481,13 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             <BLANKLINE>
             >>> print(f.xml({i:_ for i, _ in enumerate(issues)}))
             <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
-            <range lowerbound = "0" upperbound = "9" ></range></issue>
+            <range lowerbound = 0 upperbound = 9 ></range></issue>
             <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
                 <item index="1" value="delivered" evaluation="10" />
                 <item index="2" value="not delivered" evaluation="-10" />
             </issue>
             <issue index="3" etype="integer" type="integer" vtype="integer" name="i3">
-            <range lowerbound = "0" upperbound = "3" ></range></issue>
+            <range lowerbound = 0 upperbound = 3 ></range></issue>
             <weight index="1" value="1.0">
             </weight>
             <weight index="2" value="2.0">
@@ -503,10 +504,10 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             issue_name = issue.name
             if issue.is_float():
                 output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
-            elif issue.is_integer():
-                output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-                output += f'<range lowerbound = "{issue.min_value}" upperbound = "{issue.max_value}" ></range>'
+                output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
+            # elif issue.is_integer():
+            #     output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
+            #     output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
             else:
                 output += f'<issue index="{i+1}" etype="discrete" type="discrete" vtype="discrete" name="{issue_name}">\n'
                 vals = iget(issues, k).all
