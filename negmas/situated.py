@@ -2014,14 +2014,14 @@ class Adapter(Agent):
         """Returns a short name of the type of this entity"""
         base = super().short_type_name if self._include_adapter else ""
         obj = self._obj.short_type_name if self._include_obj else ""
-        return obj + ":" + base
+        return base + ":" + obj
 
     @property
     def type_name(self):
         """Returns a short name of the type of this entity"""
         base = super().type_name if self._include_adapter else ""
         obj = self._obj.type_name if self._include_obj else ""
-        return obj + ":" + base
+        return base + ":" + obj
 
     def init(self):
         """Override this method to modify initialization logic"""
@@ -3298,7 +3298,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         for b in contract_breaches:
                             self._saved_breaches[b.id] = b.as_dict()
                             self.loginfo(
-                                f"Breach of {str(contract)}: {str(breach)} ",
+                                f"Breach of {str(contract)}: {str(b)} ",
                                 Event("contract-breached", dict(contract=contract, breach=b)),
                             )
                         resolution = self._process_breach(

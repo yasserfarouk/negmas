@@ -1546,6 +1546,7 @@ class UtilityFunction(ABC, NamedObject):
         infeasible_cutoff: Optional[float] = None,
         return_outcomes=False,
         max_n_outcomes=1000,
+        ami: Optional["AgentMechnismInterface"] = None,
     ) -> Union[
         Tuple[UtilityValue, UtilityValue],
         Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
@@ -1560,6 +1561,7 @@ class UtilityFunction(ABC, NamedObject):
             return_outcomes: If true, will also return an outcome for min and max utils
             max_n_outcomes: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                             given)
+            ami: Optional AMI to use
 
         Returns:
             UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
