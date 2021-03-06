@@ -1,5 +1,6 @@
 """Implements Event management"""
 from pathlib import Path
+import time
 import warnings
 import random
 import json
@@ -15,6 +16,7 @@ __all__ = [
     "Event",
     "EventSource",
     "EventSink",
+    "EventLogger",
     "Notification",
     "Notifier",
     "Notifiable",
@@ -85,6 +87,10 @@ class EventLogger(EventSink):
         file_name.parent.mkdir(parents=True, exist_ok=True)
         self._file_name = file_name
         self._types = set(types) if types else None
+        self._start = time.perf_counter_ns()
+
+    def reset_timer(self):
+        self._start = time.perf_counter_ns()
 
     def on_event(self, event: Event, sender: EventSource):
         if not self._file_name:
@@ -111,7 +117,12 @@ class EventLogger(EventSink):
 
         try:
             sid = sender.id if hasattr(sender, "id") else serialize(sender)
-            d = dict(sender=sid, type=event.type, data=_simplify(event.data))
+            d = dict(
+                sender=sid,
+                time=time.perf_counter_ns() - self._start,
+                type=event.type,
+                data=_simplify(event.data),
+            )
             with open(self._file_name, "a") as f:
                 f.write(f"{json.dumps(d)},\n")
         except Exception as e:
