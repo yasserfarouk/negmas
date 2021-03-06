@@ -287,11 +287,17 @@ class SAOSyncController(SAOController):
         # if the controller has a ufun, use it otherwise use the negotiator ufun
         if self.ufun is not None:
             _, _, _, best = utility_range(
-                self.ufun, issues=negotiator.ami.issues, return_outcomes=True
+                self.ufun,
+                issues=negotiator.ami.issues,
+                return_outcomes=True,
+                ami=negotiator.ami,
             )
         elif negotiator.ufun is not None:
             _, _, _, best = utility_range(
-                negotiator.ufun, issues=negotiator.ami.issues, return_outcomes=True
+                negotiator.ufun,
+                issues=negotiator.ami.issues,
+                return_outcomes=True,
+                ami=negotiator.ami,
             )
         else:
             best = None
@@ -590,7 +596,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         if ufun is None:
             return None
         _, _, _, top_outcome = ufun.utility_range(
-            issues=neg.ami.issues, return_outcomes=True
+            issues=neg.ami.issues, return_outcomes=True, ami=neg.ami
         )
         return top_outcome
 

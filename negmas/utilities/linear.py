@@ -217,6 +217,7 @@ class LinearUtilityFunction(UtilityFunction):
         infeasible_cutoff: Optional[float] = None,
         return_outcomes=False,
         max_n_outcomes=1000,
+        ami=None,
     ) -> Union[
         Tuple[UtilityValue, UtilityValue],
         Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
@@ -586,6 +587,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         infeasible_cutoff: Optional[float] = None,
         return_outcomes=False,
         max_n_outcomes=1000,
+        ami=None,
     ) -> Union[
         Tuple[UtilityValue, UtilityValue],
         Tuple[UtilityValue, UtilityValue, Outcome, Outcome],

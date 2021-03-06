@@ -310,6 +310,7 @@ def utility_range(
     infeasible_cutoff: Optional[float] = None,
     return_outcomes=False,
     max_n_outcomes=1000,
+    ami: Optional["AgentMechanismInterface"] = None,
 ) -> Union[
     Tuple[UtilityValue, UtilityValue],
     Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
@@ -324,10 +325,11 @@ def utility_range(
         return_outcomes: If true, returns an outcome with the min and another with the max utility
         max_n_outcomes: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                         given)
+        ami: Optional AMI to use (if not given the internal AMI can be used)
     Returns:
         Minumum utility, maximum utility (and if return_outcomes, an outcome at each)
 
     """
     return ufun.utility_range(
-        issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes
+        issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes, ami
     )
