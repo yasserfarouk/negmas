@@ -67,7 +67,22 @@ from negmas import (
 from negmas.genius import GeniusBridge
 from negmas.genius import get_genius_agents
 
+AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
+    AgentX,
+    Ngent,
+    PokerFace,
+    AgentBuyong,
+    Kawaii,
+    Atlas3,
+    Group2,
+    WhaleAgent,
+    DoNA,
+    ValueModelAgent,
+    TheNegotiator,
+)
+
 SKIP_IF_NO_BRIDGE = True
+
 
 @given(
     linear=st.booleans(),
@@ -88,7 +103,6 @@ def test_get_genius_agents_example(
     discounting,
     uncertainty,
     elicitation,
-
 ):
     winners = get_genius_agents(bilateral=True, winners_only=True)
     everyone = get_genius_agents(bilateral=True)
@@ -97,22 +111,28 @@ def test_get_genius_agents_example(
     # assert len(everyone) > 0
     # assert len(finalists) > 0
     for x in (winners, finalists, everyone):
-        assert all(list(
-            isinstance(_, tuple)
-            and len(_) == 2
-            and isinstance(_[0], str)
-            and isinstance(_[1], str)
-            and len(_[1]) >= len(_[0])
-            for _ in x
-        )), x
+        assert all(
+            list(
+                isinstance(_, tuple)
+                and len(_) == 2
+                and isinstance(_[0], str)
+                and isinstance(_[1], str)
+                and len(_[1]) >= len(_[0])
+                for _ in x
+            )
+        ), x
+
 
 def test_inclusion_of_sets_in_get_agents():
     from negmas.genius.ginfo import GENIUS_INFO
+
     for year in GENIUS_INFO.keys():
         winners = get_genius_agents(year=year, winners_only=True)
         finalists = get_genius_agents(year=year, finalists_only=True)
         everyone = get_genius_agents(year=year)
-        assert not finalists or all([_ in finalists for _ in winners]), set(winners).difference(set(finalists))
+        assert not finalists or all([_ in finalists for _ in winners]), set(
+            winners
+        ).difference(set(finalists))
         # assert not everyone or all([_ in everyone for _ in winners]),set(winners).difference(set(everyone))
         # assert not everyone or all([_ in everyone for _ in finalists]), set(finalists).difference(set(everyone))
 
@@ -144,8 +164,8 @@ def test_genius_does_not_freeze():
 
     mechanism.add(a1)
     mechanism.add(a2)
-    print(mechanism.run())
-    print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+    mechanism.run()
+    # print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
     GeniusBridge.clean()
 
 
@@ -176,8 +196,8 @@ def test_old_agent():
 
     mechanism.add(a1)
     mechanism.add(a2)
-    print(mechanism.run())
-    print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+    mechanism.run()
+    # print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
     GeniusBridge.clean()
 
 
@@ -298,7 +318,7 @@ def test_genius_agents_run_example():
     for _ in range(5):
         agent_name1 = agents[randint(0, 1)]
         agent_name2 = agents[randint(0, 1)]
-        print(f"{agent_name1} - {agent_name2}")
+        # print(f"{agent_name1} - {agent_name2}")
         utils = (1, 2)
 
         base_folder = pkg_resources.resource_filename(
@@ -333,7 +353,7 @@ def test_genius_agents_run_example():
 def do_test_genius_agent(
     AgentClass, must_agree_if_same_ufun=True,
 ):
-    print(f"Running {AgentClass.__name__}")
+    # print(f"Running {AgentClass.__name__}")
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )
@@ -392,11 +412,11 @@ def do_test_genius_agent(
                                 time_limit=time_limit,
                                 outcome_type=outcome_type,
                             )
-                            print(
-                                f"{AgentClass.__name__} SUCCEEDED against {opponent_type.__name__}"
-                                f" going {'first' if starts else 'last'} ({n_steps} steps with "
-                                f"{time_limit} limit taking ufun {ufuns[1]} type {outcome_type}) getting {str(result)}."
-                            )
+                            # print(
+                            #     f"{AgentClass.__name__} SUCCEEDED against {opponent_type.__name__}"
+                            #     f" going {'first' if starts else 'last'} ({n_steps} steps with "
+                            #     f"{time_limit} limit taking ufun {ufuns[1]} type {outcome_type}) getting {str(result)}."
+                            # )
                         except Exception as e:
                             print(
                                 f"{AgentClass.__name__} FAILED against {opponent_type.__name__}"
@@ -405,23 +425,27 @@ def do_test_genius_agent(
                             )
                             raise e
 
-    if not must_agree_if_same_ufun:
+    if (
+        not must_agree_if_same_ufun
+        or AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN
+    ):
         return
 
     # check that it will get to an agreement sometimes if the same ufun
     # is used for both agents
+    from random import randint
+
     n_trials = 3
-    got_agreement = False
     for starts in (False, True):
         for _ in range(n_trials):
-            neg = do_run(0, 0, starts)
+            indx = randint(0, 1)
+            neg = do_run(indx, indx, starts)
             if neg.agreement is not None:
-                got_agreement = True
                 break
-    if not got_agreement:
-        assert (
-            False
-        ), f"{AgentClass.__name__}: failed to get an agreement in {n_trials} trials even using the same ufun"
+        else:
+            assert (
+                False
+            ), f"{AgentClass.__name__}: failed to get an agreement in {n_trials} trials even using the same ufun"
 
     GeniusBridge.clean()
 
@@ -616,7 +640,6 @@ def test_AgentM():
 )
 def test_TMFAgent():
     do_test_genius_agent(TMFAgent)
-
 
 
 @pytest.mark.skipif(
