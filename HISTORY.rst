@@ -1,6 +1,24 @@
 History
 =======
 
+Release 0.7.4
+-------------
+
+* [core] making the core SAONegotiator robust to missing ufuns.
+* [core] allowing controllers to control the ID of negotiators
+* [core] adding reset_timer to EventLogger and logging time
+* [core] passing AMI to utility_range [situated] reversing adapter and adapted
+         names in Adapter to make sure that split(".")[-1] still gets the
+         adapted name not the adapter name.
+* [core] making Controller.negotiators return NegotiatorInfo
+* [genius] bug fix in saving xml utils that broke the bridge
+* [genius] get_genius_agents in genius.ginfo to find genius agents
+* [situated] adding event logging to situated (unstable)
+* [bugfix] removing color codes in log file (log.txt)
+* [situated] adding more events (contracts/breaches)
+* [testing] getting some genius related tests to pass
+* [testing] avoiding failure on genius agents that cannot agree
+
 Release 0.7.3
 -------------
 
