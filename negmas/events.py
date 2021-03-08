@@ -87,10 +87,10 @@ class EventLogger(EventSink):
         file_name.parent.mkdir(parents=True, exist_ok=True)
         self._file_name = file_name
         self._types = set(types) if types else None
-        self._start = time.perf_counter_ns()
+        self._start = time.perf_counter()
 
     def reset_timer(self):
-        self._start = time.perf_counter_ns()
+        self._start = time.perf_counter()
 
     def on_event(self, event: Event, sender: EventSource):
         if not self._file_name:
@@ -119,7 +119,7 @@ class EventLogger(EventSink):
             sid = sender.id if hasattr(sender, "id") else serialize(sender)
             d = dict(
                 sender=sid,
-                time=time.perf_counter_ns() - self._start,
+                time=time.perf_counter() - self._start,
                 type=event.type,
                 data=_simplify(event.data),
             )
