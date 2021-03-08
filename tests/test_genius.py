@@ -79,6 +79,7 @@ AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
     DoNA,
     ValueModelAgent,
     TheNegotiator,
+    TMFAgent,
 )
 
 SKIP_IF_NO_BRIDGE = True
