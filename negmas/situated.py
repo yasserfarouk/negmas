@@ -139,6 +139,7 @@ except ImportError:
 
 __all__ = [
     "Operations",
+    "RunningNegotiationInfo",
     "Action",  # An action that an `Agent` can execute in the `World`.
     "Contract",  # A agreement definition which encapsulates an agreement with partners and extra information
     "Breach",  # A breach in executing a contract
