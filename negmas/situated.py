@@ -140,6 +140,8 @@ except ImportError:
 __all__ = [
     "Operations",
     "RunningNegotiationInfo",
+    "NegotiationInfo",
+    "NegotiationRequestInfo",
     "Action",  # An action that an `Agent` can execute in the `World`.
     "Contract",  # A agreement definition which encapsulates an agreement with partners and extra information
     "Breach",  # A breach in executing a contract
@@ -214,6 +216,18 @@ EDGE_COLORS = {
     "contracts-executed": "black",
 }
 
+
+RunningNegotiationInfo = namedtuple(
+    "RunningNegotiationInfo",
+    ["negotiator", "annotation", "uuid", "extra", "my_request"],
+)
+"""Keeps track of running negotiations for an agent"""
+
+NegotiationRequestInfo = namedtuple(
+    "NegotiationRequestInfo",
+    ["partners", "issues", "annotation", "uuid", "negotiator", "requested", "extra"],
+)
+"""Keeps track to negotiation requests that an agent sent"""
 
 def show_edge_colors():
     """Plots the edge colors used with their meaning"""
@@ -1463,18 +1477,6 @@ class WorldMonitor(Entity):
     def step(self, world: "World"):
         """Called at the END of every simulation step"""
 
-
-RunningNegotiationInfo = namedtuple(
-    "RunningNegotiationInfo",
-    ["negotiator", "annotation", "uuid", "extra", "my_request"],
-)
-"""Keeps track of running negotiations for an agent"""
-
-NegotiationRequestInfo = namedtuple(
-    "NegotiationRequestInfo",
-    ["partners", "issues", "annotation", "uuid", "negotiator", "requested", "extra"],
-)
-"""Keeps track to negotiation requests that an agent sent"""
 
 
 class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
