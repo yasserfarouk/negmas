@@ -1380,6 +1380,58 @@ class AgentWorldInterface:
     def settings(self):
         return self._world.bulletin_board.data.get("settings", dict())
 
+    @property
+    def initialized(self) -> bool:
+        """Was the agent initialized (i.e. was init_() called)"""
+        return self.agent._initialized
+
+    @property
+    def unsigned_contracts(self) -> List[Contract]:
+        """
+        All contracts that are not yet signed.
+        """
+        return list(self.agent._unsigned_contracts)
+
+    @property
+    def requested_negotiations(self) -> List[NegotiationRequestInfo]:
+        """The negotiations currently requested by the agent.
+
+        Returns:
+
+            A list of negotiation request information objects (`NegotiationRequestInfo`)
+        """
+        return list(self.agent._requested_negotiations.values())
+
+    @property
+    def accepted_negotiation_requests(self) -> List[NegotiationInfo]:
+        """A list of negotiation requests sent to this agent that are already accepted by it.
+
+        Remarks:
+            - These negotiations did not start yet as they are still not accepted  by all partners.
+              Once that happens, they will be moved to `running_negotiations`
+        """
+        return list(self.agent._accepted_requests.values())
+
+    @property
+    def negotiation_requests(self) -> List[NegotiationInfo]:
+        """A list of the negotiation requests sent by this agent that are not yet accepted or rejected.
+
+        Remarks:
+            - These negotiations did not start yet as they are still not accepted  by all partners.
+              Once that happens, they will be moved to `running_negotiations`
+        """
+        return list(self.agent._requested_negotiations.values())
+
+    @property
+    def running_negotiations(self) -> List[RunningNegotiationInfo]:
+        """The negotiations currently requested by the agent.
+
+        Returns:
+
+            A list of negotiation information objects (`RunningNegotiationInfo`)
+        """
+        return list(self.agent._running_negotiations.values())
+
     class Java:
         implements = ["jnegmas.situated.AgentWorldInterface"]
 
@@ -2238,7 +2290,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             else:
                 self._log_folder /= self.name
         if event_file_name:
-            self._event_logger = EventLogger(self._log_folder / event_file_name, types=event_types)
+            self._event_logger = EventLogger(
+                self._log_folder / event_file_name, types=event_types
+            )
             self.register_listener(None, self._event_logger)
         else:
             self._event_logger = None
@@ -3220,7 +3274,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self.logerror(
                             f"Contract exception @{str(contract)}: "
                             f"{traceback.format_tb(exc_traceback)}",
-                            Event("contract-exception", dict(contract=contract, exception=e)),
+                            Event(
+                                "contract-exception",
+                                dict(contract=contract, exception=e),
+                            ),
                         )
                         continue
                     if contract_breaches is None:
@@ -3300,7 +3357,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             self._saved_breaches[b.id] = b.as_dict()
                             self.loginfo(
                                 f"Breach of {str(contract)}: {str(b)} ",
-                                Event("contract-breached", dict(contract=contract, breach=b)),
+                                Event(
+                                    "contract-breached",
+                                    dict(contract=contract, breach=b),
+                                ),
                             )
                         resolution = self._process_breach(
                             contract, list(contract_breaches)
@@ -3312,7 +3372,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             n_new_contract_executions += 1
                             self.loginfo(
                                 f"Breach resolution cor {str(contract)}: {str(resolution)} ",
-                                Event("breach-resolved", dict(contract=contract, breaches=list(contract_breaches), resolution=resolution)),
+                                Event(
+                                    "breach-resolved",
+                                    dict(
+                                        contract=contract,
+                                        breaches=list(contract_breaches),
+                                        resolution=resolution,
+                                    ),
+                                ),
                             )
                         self.complete_contract_execution(
                             contract, list(contract_breaches), resolution
@@ -3336,8 +3403,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
             for c in dropped:
                 self.loginfo(
-                    f"Dropped {str(c)}",
-                    Event("dropped-contract", dict(contract=c)),
+                    f"Dropped {str(c)}", Event("dropped-contract", dict(contract=c)),
                 )
                 self._saved_contracts[c.id]["dropped_at"] = self._current_step
                 for p in c.partners:
