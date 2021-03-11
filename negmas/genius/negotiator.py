@@ -383,7 +383,7 @@ class GeniusNegotiator(SAONegotiator):
                 n_seconds > 0,
                 self.domain_file_name,  # domain file
                 self.utility_file_name,  # Negotiator file
-                timeout,
+                int(timeout),
             )
             self.__started = True
         except Exception as e:
