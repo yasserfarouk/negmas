@@ -47,7 +47,7 @@ class GeniusNegotiator(SAONegotiator):
         name: str = None,
         rational_proposal=False,
         parent: Controller = None,
-        owner: "Agent" = None,
+        owner: "Agent" = None, # type: ignore
         java_class_name: str = None,
         domain_file_name: Union[str, pathlib.Path] = None,
         utility_file_name: Union[str, pathlib.Path] = None,
@@ -99,15 +99,15 @@ class GeniusNegotiator(SAONegotiator):
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
-                domain_file_name=domain_file_name,
+                domain_file_name=domain_file_name, # type: ignore
                 keep_issue_names=True,
                 keep_value_names=True,
             )
-            self.issue_names = [_.name for _ in self.issues]
+            self.issue_names = [_.name for _ in self.issues] # type: ignore
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         self.discount = None
         if utility_file_name is not None:
-            self._utility_function, self.discount = UtilityFunction.from_genius(
+            self._utility_function, self.discount = UtilityFunction.from_genius( # type: ignore
                 utility_file_name,
                 keep_issue_names=keep_issue_names,
                 keep_value_names=keep_value_names,
@@ -240,7 +240,7 @@ class GeniusNegotiator(SAONegotiator):
             if gateway == None:
                 self.java = None
                 return False
-        self.java = gateway.entry_point
+        self.java = gateway.entry_point # type: ignore
         return True
 
     @property
@@ -278,8 +278,8 @@ class GeniusNegotiator(SAONegotiator):
 
         if self._normalize_utility:
             self._utility_function = normalize(
-                self.ufun,
-                outcomes=ami.discrete_outcomes,
+                self.ufun, # type: ignore
+                outcomes=ami.discrete_outcomes, # type: ignore
                 max_only=self._normalize_max_only,
             )
         self.issue_names = [_.name for _ in ami.issues]
@@ -325,14 +325,14 @@ class GeniusNegotiator(SAONegotiator):
         # return
         if self._temp_ufun_file:
             try:
-                os.unlink(self.utility_file_name)
+                os.unlink(self.utility_file_name) # type: ignore
             except (FileNotFoundError, PermissionError):
                 pass
             self._temp_ufun_file = False
 
         if self._temp_domain_file:
             try:
-                os.unlink(self.domain_file_name)
+                os.unlink(self.domain_file_name) # type: ignore
             except (FileNotFoundError, PermissionError):
                 pass
             self._temp_domain_file = False
