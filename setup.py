@@ -91,6 +91,7 @@ setup(
         "tqdm (>=4.31.1)",
         "click-config-file",
         "dill",
+        "cloudpickle",
         "seaborn",
         "sklearn",
         "networkx",
