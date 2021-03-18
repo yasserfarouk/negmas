@@ -1,6 +1,15 @@
 History
 =======
 
+Release 0.8.0
+-------------
+
+* [minor] ignoring some intentionally broken type checks
+* [setup] Adding cloudpickle as a requirement for setup
+* [situated] revealing all  methods of Agent in the AWI
+* [genius] bugfix, forcing time_limit to be an int in genius
+* [situated] Adding RunningNegotiationInfo to situated.__all__
+
 Release 0.7.4
 -------------
 
