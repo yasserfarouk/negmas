@@ -3091,13 +3091,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         Returns:
             whatever method returns
         """
+        old_stdout = sys.stdout # backup current stdout
+        sys.stdout = open(os.devnull, "w")
         try:
             _strt = time.perf_counter()
             result = method(*args, **kwargs)
             _end = time.perf_counter()
-            self.times[agent.id] = _end - _strt
+            sys.stdout = old_stdout # reset old stdout           self.times[agent.id] = _end - _strt
             return result
         except Exception as e:
+            sys.stdout = old_stdout # reset old stdout           self.times[agent.id] = _end - _strt
             self.agent_exceptions[agent.id].append(
                 (self._current_step, exception2str())
             )
