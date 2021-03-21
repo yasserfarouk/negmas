@@ -2256,9 +2256,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         ),
         info: Optional[Dict[str, Any]] = None,
         genius_port: int = DEFAULT_JAVA_PORT,
+        disable_agent_printing: bool = True,
         name: str = None,
         id: str = None,
     ):
+        self.disable_agent_printing = disable_agent_printing
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
         self.ignore_negotiation_exceptions = ignore_negotiation_exceptions
         if force_signing:
@@ -3091,16 +3093,21 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         Returns:
             whatever method returns
         """
-        old_stdout = sys.stdout # backup current stdout
-        sys.stdout = open(os.devnull, "w")
+        if self.disable_agent_printing:
+            old_stdout = sys.stdout # backup current stdout
+            sys.stdout = open(os.devnull, "w")
         try:
             _strt = time.perf_counter()
             result = method(*args, **kwargs)
             _end = time.perf_counter()
-            sys.stdout = old_stdout # reset old stdout           self.times[agent.id] = _end - _strt
+            if self.disable_agent_printing:
+                sys.stdout = old_stdout # reset old stdout
+            self.times[agent.id] = _end - _strt
             return result
         except Exception as e:
-            sys.stdout = old_stdout # reset old stdout           self.times[agent.id] = _end - _strt
+            if self.disable_agent_printing:
+                sys.stdout = old_stdout # reset old stdout
+            self.times[agent.id] = _end - _strt
             self.agent_exceptions[agent.id].append(
                 (self._current_step, exception2str())
             )
