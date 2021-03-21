@@ -3105,6 +3105,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.times[agent.id] = _end - _strt
             return result
         except Exception as e:
+            _end = time.perf_counter()
             if self.disable_agent_printing:
                 sys.stdout = old_stdout # reset old stdout
             self.times[agent.id] = _end - _strt
