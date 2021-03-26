@@ -31,7 +31,6 @@ jobs:
           python -m pip install --upgrade  virtualenv
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-elicitation.txt
-          python -m pip install blist
 
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "python -m pytest . || python -m pytest --last-failed ."

@@ -20,6 +20,14 @@ from negmas.helpers import instantiate
 from negmas.sao import AspirationNegotiator, LimitedOutcomesNegotiator, SAOMechanism
 from negmas.utilities import IPUtilityFunction, MappingUtilityFunction, pareto_frontier
 
+try:
+    from blist import sortedlist
+
+    BLIST_AVAILABLE = True
+except ImportError:
+    BLIST_AVAILABLE = False
+    print("blist is not avialable. This is a known issue with python 3.9. Use python 3.8 if you are testing VOI")
+
 n_outcomes = 5
 cost = 0.02
 utility = 0.17682
@@ -37,6 +45,10 @@ all_countable_queries_elicitor_types = [
     for _ in elicitation.__all__
     if _.endswith("Elicitor") and not _.startswith("Base") and not "VOIOptimal" in _
 ]
+if not BLIST_AVAILABLE:
+    all_countable_queries_elicitor_types = [
+        _ for _ in all_countable_queries_elicitor_types if "voi" not in _.lower()
+    ]
 
 
 @pytest.fixture
@@ -641,7 +653,8 @@ class TestCountableOutcomesElicitor(object):
         outcomes = [(0,), (1,)]
         alphas = [0.0, 1.0]
         opponent = LimitedOutcomesNegotiator(
-            acceptable_outcomes=outcomes, acceptance_probabilities=alphas,
+            acceptable_outcomes=outcomes,
+            acceptance_probabilities=alphas,
         )
 
 
@@ -724,6 +737,10 @@ def test_alternating_offers_eliciting_mechanism_voi():
         )
 
 
+@pytest.mark.skipif(
+    condition=not BLIST_AVAILABLE,
+    reason="Blist is not available. Ignoring this test",
+)
 def test_alternating_offers_eliciting_mechanism_voi_optimal():
     config = SAOElicitingMechanism.generate_config(
         cost=0.001,
