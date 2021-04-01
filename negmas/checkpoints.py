@@ -1,4 +1,4 @@
-"""Implements Checkpoint functionality for easy dumping and restoration of any `NamedComponent` in negmas."""
+"""Implements Checkpoint functionality for easy dumping and restoration of any `NamedObject` in negmas."""
 
 import shutil
 from pathlib import Path
@@ -30,7 +30,7 @@ class CheckpointMixin:
             step_attrib: The attribute that defines the current step. If None, there is no step concept
             every: Number of steps per checkpoint. If < 1 no checkpoints will be saved
             folder: The directory to store checkpoints under
-            filename: Name of the file to save the checkpoint under. If None, a unique name will be choosen.
+            filename: Name of the file to save the checkpoint under. If None, a unique name will be chosen.
                                  If `single_checkpoint` was False, then multiple files will be used prefixed with the
                                  step number
             info: Any extra information to save in the json file associated with each checkpoint
