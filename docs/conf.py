@@ -21,7 +21,7 @@
 from __future__ import annotations
 import typing
 
-typing.get_type_hints = lambda obj, *unused: obj
+# typing.get_type_hints = lambda obj, *unused: obj
 
 import os
 
@@ -41,7 +41,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.coverage",
-    "sphinxcontrib.napoleon",
+    "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
     "sphinx.ext.graphviz",
     "sphinx_autodoc_annotation",
@@ -49,11 +49,11 @@ extensions = [
     "sphinx_automodapi.automodapi",
     "sphinx.ext.intersphinx",
     "sphinx_automodapi.smart_resolver",
-    # 'sphinxcontrib.fulltoc',
     "nb2plots",
-    #'nbsphinx',
     "sphinx.ext.mathjax",
-    # "sphinx_autodoc_typehints",
+    "sphinx_autodoc_typehints",
+    # "sphinxcontrib.fulltoc",
+    # "nbsphinx",
 ]
 
 intersphinx_mapping = {
@@ -161,7 +161,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "negotiatedoc"
+htmlhelp_basename = "negmasdoc"
 
 
 # -- Options for LaTeX output ------------------------------------------
@@ -229,5 +229,8 @@ html_domain_indices = True
 
 automodsumm_inherited_members = False
 
-autodoc_typehints = "signature"
+# autodoc_typehints = "signature"
+set_type_checking_flag = True
+
+
 # mathjax_path =

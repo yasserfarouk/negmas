@@ -123,7 +123,6 @@ sphinx-autodoc-typehints
 sphinx-automodapi
 sphinx-rtd-theme
 sphinxcontrib-fulltoc
-sphinxcontrib-napoleon
 sphinxcontrib-websupport
 sphinxtesters
 stringcase
