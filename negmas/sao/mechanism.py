@@ -153,7 +153,7 @@ class SAOMechanism(Mechanism):
         self._no_responses = 0
         self._new_offers = []
         self._offering_is_accepting = offering_is_accepting
-        self._n_waits = 10
+        self._n_waits = 0
         self._n_max_waits = max_wait if max_wait is not None else float("inf")
 
     def join(
@@ -472,8 +472,8 @@ class SAOMechanism(Mechanism):
                 rem = float("inf")
             timeout = min(self.ami.negotiator_time_limit, self.ami.step_time_limit, rem)
             if timeout is None or timeout == float("inf"):
+                __strt = time.perf_counter()
                 try:
-                    __strt = time.perf_counter()
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
@@ -496,15 +496,15 @@ class SAOMechanism(Mechanism):
                                 {"negotiator": negotiator, "exception": ex},
                             )
                         )
+                        times[negotiator.id] += time.perf_counter() - __strt
                         return SAOResponse(ResponseType.END_NEGOTIATION, None)
                     else:
                         raise ex
-                finally:
-                    times[negotiator.id] += time.perf_counter() - __strt
+                times[negotiator.id] += time.perf_counter() - __strt
             else:
                 fun = functools.partial(negotiator.counter, *args, **kwargs)
+                __strt = time.perf_counter()
                 try:
-                    __strt = time.perf_counter()
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
@@ -523,11 +523,11 @@ class SAOMechanism(Mechanism):
                                 {"negotiator": negotiator, "exception": ex},
                             )
                         )
+                        times[negotiator.id] += time.perf_counter() - __strt
                         return SAOResponse(ResponseType.END_NEGOTIATION, None)
                     else:
                         raise ex
-                finally:
-                    times[negotiator.id] += time.perf_counter() - __strt
+                times[negotiator.id] += time.perf_counter() - __strt
             if (
                 self.check_offers
                 and response is not None
@@ -715,12 +715,13 @@ class SAOMechanism(Mechanism):
             if resp.response == ResponseType.WAIT:
                 self._n_waits += 1
                 if self._n_waits > self._n_max_waits:
+                    # breakpoint()
                     self._n_waits = 0
                     return MechanismRoundResult(
                         broken=False,
                         timedout=True,
                         agreement=None,
-                        waiting=False,
+                        waiting=True,
                         times=times,
                         exceptions=exceptions,
                     )
