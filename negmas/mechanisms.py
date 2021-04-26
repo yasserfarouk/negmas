@@ -970,7 +970,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             start_time = time.perf_counter()
             for _ in self:
                 if time.perf_counter() - start_time > timeout:
-                    breakpoint()
                     self._running, self._timedout, self._broken = False, True, False
                     self.on_negotiation_end()
                     break
@@ -1029,7 +1028,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @property
     def state(self):
         """Returns the current state. Override `extra_state` if you want to keep extra state"""
-        return self._state_factory(
+        d = dict(
             running=self._running,
             step=self._step,
             time=self.time,
@@ -1042,7 +1041,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             has_error=self._error,
             error_details=self._error_details,
             waiting=self._waiting,
-            **self.extra_state(),
+        )
+        d2 = self.extra_state()
+        if d2:
+            d.update(d2)
+        return self._state_factory(
+            **d,
         )
 
     def pareto_frontier(
