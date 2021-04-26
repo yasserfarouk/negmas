@@ -235,6 +235,7 @@ class SAOSyncController(SAOController):
             self.n_waits[negotiator_id] = 0
             return responses[negotiator_id].response
         self.n_waits[negotiator_id] += 1
+        # print(f"controller {self.id}: {self.n_waits}")
         return ResponseType.WAIT
 
     def first_proposals(self) -> Dict[str, "Outcome"]:
