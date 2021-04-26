@@ -461,6 +461,7 @@ class TournamentResults:
         elif self.ttest is not None:
             results += tabulate.tabulate(self.ttest)
         results += f"\n See stats at {self.path}"
+        return results
 
 
 def combine_partially_run_worlds(
