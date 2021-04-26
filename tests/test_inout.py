@@ -22,8 +22,10 @@ def test_reading_writing_linear_ufun(tmp_path):
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder, keep_issue_names=True, keep_value_names=True,
+    _, agent_info, issues = load_genius_domain_from_folder(
+        base_folder,
+        keep_issue_names=True,
+        keep_value_names=True,
     )
     ufuns = [_["ufun"] for _ in agent_info]
     for ufun in ufuns:
@@ -111,7 +113,8 @@ def test_encoding_decoding_all(capsys, scenarios_folder):
             if genius_bridge_is_running():
                 for info in ufun_info:
                     n1 = Atlas3(
-                        domain_file_name=f"{root}/{m.name}.xml", ufun=info["ufun"],
+                        domain_file_name=f"{root}/{m.name}.xml",
+                        ufun=info["ufun"],
                     )
                     n2 = AgentX(
                         domain_file_name=f"{root}/{m.name}.xml",
