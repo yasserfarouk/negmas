@@ -4185,7 +4185,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             "caller": negotiation.caller,
         }
         record.update(to_flat_dict(negotiation.annotation))
-        record.update(mechanism.state.__dict__)
+        dd = vars(mechanism.state)
+        dd = {(k if k not in record.keys() else f"{k}_neg"): v for k, v in dd.items()}
+        dd["history"] = [vars(_) for _ in mechanism.history]
+        if hasattr(mechanism, "negotiator_offers"):
+            dd["offers"] = {n.owner.id if n.owner else n.name: [_ for _ in mechanism.negotiator_offers(n.id)] for n in mechanism.negotiators}
+        record.update(dd)
         return record
 
     def is_valid_agreement(
