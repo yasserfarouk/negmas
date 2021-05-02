@@ -620,6 +620,16 @@ class SAOMechanism(Mechanism):
                         error=True,
                         error_details=str(exceptions[neg.id]),
                     )
+                if resp is None:
+                    return MechanismRoundResult(
+                        broken=False,
+                        timedout=True,
+                        agreement=None,
+                        times=times,
+                        exceptions=exceptions,
+                        error=False,
+                        error_details="",
+                    )
                 if resp.response != ResponseType.WAIT:
                     self._waiting_time[neg.id] = 0.0
                     self._waiting_start[neg.id] = float("inf")
@@ -718,6 +728,16 @@ class SAOMechanism(Mechanism):
                     exceptions=exceptions,
                     error=True,
                     error_details=str(exceptions[neg.id]),
+                )
+            if resp is None:
+                return MechanismRoundResult(
+                    broken=False,
+                    timedout=True,
+                    agreement=None,
+                    times=times,
+                    exceptions=exceptions,
+                    error=False,
+                    error_details="",
                 )
             if resp.response == ResponseType.WAIT:
                 self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
