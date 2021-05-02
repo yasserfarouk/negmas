@@ -51,7 +51,7 @@ extensions = [
     "sphinx_automodapi.smart_resolver",
     "nb2plots",
     "sphinx.ext.mathjax",
-    "sphinx_autodoc_typehints",
+    # "sphinx_autodoc_typehints",
     # "sphinxcontrib.fulltoc",
     # "nbsphinx",
 ]
