@@ -188,34 +188,42 @@ class SAOSyncController(SAOController):
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
-        # breakpoint()
         if not self.proposals:
             self.proposals = self.first_proposals()
+            # print(f"{self.name} first proposals {self.proposals}")
         # get the saved proposal if it exists and return it
         proposal = self.proposals.get(negotiator_id, None)
         # if some proposal was there, delete it to force the controller to get a new one
         if proposal is not None:
             self.proposals[negotiator_id] = None
-        # if the proposal that was there was None, just offer the best offer
-        if self.global_ufun:
-            self.proposals = self.first_proposals()
-            proposal = self.proposals.get(negotiator_id, None)
-            self.proposals[negotiator_id] = None
+            # print(f"{self.name} found proposal {proposal} for {negotiator_id}")
         else:
-            proposal = self.first_offer(negotiator_id)
+            # print(f"{self.name} found {None} for {negotiator_id}")
+            # if the proposal that was there was None, just offer the best offer
+            if self.global_ufun:
+                self.proposals = self.first_proposals()
+                proposal = self.proposals.get(negotiator_id, None)
+                self.proposals[negotiator_id] = None
+            else:
+                proposal = self.first_offer(negotiator_id)
+            # print(f"{self.name} generated proposal {proposal} for {negotiator_id}")
+        # print(f"{self.name} sent proposal {proposal} through {negotiator_id}")
         return proposal
 
     def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
     ) -> "ResponseType":
         # get the saved response to this negotiator if any
-        # breakpoint()
+        # print(f"{self.name} received offer {offer} through {negotiator_id}")
         response = self.responses.get(negotiator_id, None)
         if response is not None:
+            # print(f"{self.name} found response {response} for {negotiator_id}")
             # remove the response and return it
             del self.responses[negotiator_id]
             self.n_waits[negotiator_id] = 0
             return response
+
+        # we get here if there was no saved response or if the saved response was None
 
         # set the saved offer for this negotiator
         self.offers[negotiator_id] = offer
@@ -227,15 +235,19 @@ class SAOSyncController(SAOController):
             or self.n_waits[negotiator_id] >= n_negotiators
         ):
             responses = self.counter_all(offers=self.offers, states=self.offer_states)
+            # print(f"{self.name} responded to {self.offers} with {responses}: s: { {k: v.step for k, v in self.offer_states.items()}  }")
             for nid in responses.keys():
                 # register the responses for next time for all other negotiators
                 if nid != negotiator_id:
                     self.responses[nid] = responses[nid].response
+                # register the proposals to be sent to all agents including this one
                 self.proposals[nid] = responses[nid].outcome
             self.offers = dict()
             self.offer_states = dict()
             self.n_waits[negotiator_id] = 0
-            return responses[negotiator_id].response
+            resp =  responses[negotiator_id].response
+            self.responses[negotiator_id] = None
+            return resp
         self.n_waits[negotiator_id] += 1
         # print(f"controller {self.id}: {self.n_waits}")
         return ResponseType.WAIT
@@ -267,7 +279,7 @@ class SAOSyncController(SAOController):
 
         """
 
-    @lru_cache(maxsize=100)
+    # @lru_cache(maxsize=100)
     def first_offer(self, negotiator_id: str) -> Optional["Outcome"]:
         """
         Finds the first offer for this given negotiator. By default it will be the best offer
@@ -283,9 +295,7 @@ class SAOSyncController(SAOController):
             defined for the negotiator. If neither exists, the first offer will be None.
         """
         negotiator, _ = self.negotiators.get(negotiator_id, (None, None))
-        if negotiator is None:
-            return None
-        if negotiator.ami is None:
+        if negotiator is None or negotiator.ami is None:
             return None
         # if the controller has a ufun, use it otherwise use the negotiator ufun
         if self.ufun is not None:

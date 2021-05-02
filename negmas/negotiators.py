@@ -477,11 +477,12 @@ class Controller(Rational):
         """
         Returns the negotiators whose negotiations are running.
         Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
-        and its context"""
+        and its context
+        """
         return {
             k: v
             for k, v in self._negotiators.items()
-            if v[0].ami is not None and v[0].ami.state.running
+            if v[0].ami is not None and (v[0].ami.state.running or not v[0].ami.state.started)
         }
 
     @property
