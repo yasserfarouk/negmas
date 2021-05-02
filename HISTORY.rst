@@ -1,6 +1,22 @@
 History
 =======
 
+Release 0.8.1
+-------------
+
+*  [sao][bugfix] correctly handling unexpected timeouts (Usually Genius)
+*  [minor] using warnings.warn instead or print whne appropriate
+*  [sao] improving synchronous controller handling
+*  [sao] correcting history storage. Avoiding repetition of the last offer sometimes
+*  [core] better handling of extra state in Mechanism
+*  [sao] default waiting is now 0 step and correcting times calculation
+*  [tournament] [bugfix] correcting str conversion for TournamentResults
+*  [sao] [bugfix] correcting storage of history in state
+*  [core] Supporting python 3.9
+*  [situated] bugfix when agents make exceptions (time was ignored)
+*  [situated] forcing all agents not to print anything
+*  [situated] forcing all agents not to print anything
+
 Release 0.8.0
 -------------
 
