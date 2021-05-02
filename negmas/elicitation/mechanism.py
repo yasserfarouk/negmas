@@ -1,6 +1,7 @@
 import logging
 import math
 import random
+import warnings
 
 import pandas as pd
 from typing import Any, Dict
@@ -574,7 +575,7 @@ class SAOElicitingMechanism(SAOMechanism):
             import matplotlib.gridspec as gridspec
 
             if len(self.negotiators) > 2:
-                print("Cannot visualize negotiations with more than 2 negotiators")
+                warnings.warn("Cannot visualize negotiations with more than 2 negotiators")
             else:
                 # has_front = int(len(self.outcomes[0]) <2)
                 has_front = 1

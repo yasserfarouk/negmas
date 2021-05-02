@@ -2149,7 +2149,6 @@ def create_tournament(
         n_competitors_per_world=n_competitors_per_world,
     )
     params.update(kwargs)
-    # breakpoint()
     dump(params, tournament_path / PARAMS_FILE)
 
     assigned = []

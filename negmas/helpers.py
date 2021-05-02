@@ -5,6 +5,7 @@ This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
 from pathlib import Path
+import warnings
 import base64
 from types import LambdaType, FunctionType
 import atexit
@@ -1284,7 +1285,7 @@ def add_records(
                 old_data = pd.read_csv(file_name, index_col=None)
                 data = pd.concat((old_data, data), axis=0, ignore_index=True)
             except Exception:
-                print(
+                warnings.warn(
                     f"Failed to read data from file {str(file_name)} will override it"
                 )
 
@@ -1326,7 +1327,7 @@ class TimeoutCaller:
                 for thread in cls.pool._threads:
                     del concurrent.futures.thread._threads_queues[thread]
             except:
-                print(
+                warnings.warn(
                     "NegMAS have finished processing but there are some "
                     "threads still hanging there!! If your program does "
                     "not die by itself. Please press Ctrl-c to kill it"

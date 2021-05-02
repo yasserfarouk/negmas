@@ -48,8 +48,8 @@ def test_tough_tit_for_tat_negotiator():
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
-    print(a1offers)
-    print(a2offers)
+    # print(a1offers)
+    # print(a2offers)
     assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
         assert len(set(a1offers)) == 1 and a1offers[-1] == (9,)
@@ -90,8 +90,8 @@ def test_tit_for_tat_negotiators():
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
-    print(a1offers)
-    print(a2offers)
+    # print(a1offers)
+    # print(a2offers)
     assert a1offers[0] == (9,)
     assert a2offers[0] == (0,)
     for i, offer in enumerate(_[0] for _ in a1offers):

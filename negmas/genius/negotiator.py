@@ -8,6 +8,7 @@ import math
 import pathlib
 import random
 import tempfile
+import warnings
 
 from typing import List, Optional, Tuple, Union
 
@@ -88,7 +89,6 @@ class GeniusNegotiator(SAONegotiator):
         self._port = port
         self._normalize_utility = normalize_utility
         self._normalize_max_only = normalize_max_only
-        # breakpoint()
         self.domain_file_name = str(domain_file_name) if domain_file_name else None
         self.utility_file_name = str(utility_file_name) if utility_file_name else None
         self._my_last_offer = None
@@ -456,7 +456,7 @@ class GeniusNegotiator(SAONegotiator):
                             }
                         )
             except Exception as e:
-                print(
+                warnings.warn(
                     f"Failed in parsing bid string: {bid_str} of action {action} with exception {str(e)}"
                 )
 

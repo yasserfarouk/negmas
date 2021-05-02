@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import warnings
 
 import numpy as np
 from typing import List, Optional
@@ -90,7 +91,7 @@ class User:
                 return QResponse(
                     answer=reply, indx=i, cost=CostEvaluator(self.cost)(q, reply)
                 )
-        print(f"No response for {q} (ufun={self.ufun})")
+        warnings.warn(f"No response for {q} (ufun={self.ufun})")
         return QResponse(answer=None, indx=-1, cost=q.cost)
 
     def cost_of_asking(
