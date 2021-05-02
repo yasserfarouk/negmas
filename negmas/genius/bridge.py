@@ -100,7 +100,7 @@ def init_genius_bridge(
     if not path:
         path = NEGMAS_CONFIG.get(CONFIG_KEY_GENIUS_BRIDGE_JAR, None)
     if path is None:
-        print(
+        warnings.warn(
             "Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path"
             'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
             " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
@@ -250,7 +250,7 @@ class GeniusBridge:
             else path
         )
         if path is None:
-            print(
+            warnings.warn(
                 "Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path"
                 'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
                 " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
@@ -316,7 +316,7 @@ class GeniusBridge:
                 cwd=path.parent,
             )
         except (OSError, TimeoutError, RuntimeError, ValueError) as e:
-            print(str(e))
+            warnings.warn(str(e))
             return 0
         cls.wait_until_listening(port, timeout=0.1)
         return port if cls.gateway(port, force=True) is not None else 0
@@ -532,7 +532,7 @@ class GeniusBridge:
         try:
             gateway = cls.gateway(port, force=True)
         except Exception as e:
-            print(
+            warnings.warn(
                 f"Failed to kill threads at port {port} with error: {str(e)}\n"
                 f"{traceback.format_exc()}"
             )
@@ -594,7 +594,7 @@ class GeniusBridge:
         try:
             gateway = cls.gateway(port, force=True)
         except Exception as e:
-            print(
+            warnings.warn(
                 f"Failed to kill threads at port {port} with error: {str(e)}\n"
                 f"{traceback.format_exc()}"
             )
@@ -631,7 +631,7 @@ class GeniusBridge:
         try:
             gateway = cls.gateway(port, force=True)
         except Exception as e:
-            print(
+            warnings.warn(
                 f"Failed to kill threads at port {port} with error: {str(e)}\n"
                 f"{traceback.format_exc()}"
             )

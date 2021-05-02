@@ -7,6 +7,7 @@ import os
 import socket
 import subprocess
 import time
+import warnings
 from contextlib import contextmanager
 from typing import Any, Dict, Iterable, Optional, Union
 
@@ -161,7 +162,7 @@ class JNegmasGateway:
                 f"java -jar {path} --doe --client-server --port {java_port}", shell=True
             )
         except FileNotFoundError:
-            print(os.getcwd(), flush=True)
+            warnings.warn(os.getcwd(), flush=True)
             raise FileNotFoundError([os.getcwd(), path])
         except:
             pass
