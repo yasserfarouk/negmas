@@ -188,6 +188,7 @@ class SAOSyncController(SAOController):
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
+        # breakpoint()
         if not self.proposals:
             self.proposals = self.first_proposals()
         # get the saved proposal if it exists and return it
@@ -208,6 +209,7 @@ class SAOSyncController(SAOController):
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
     ) -> "ResponseType":
         # get the saved response to this negotiator if any
+        # breakpoint()
         response = self.responses.get(negotiator_id, None)
         if response is not None:
             # remove the response and return it
