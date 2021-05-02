@@ -157,7 +157,7 @@ follows:
 
 .. parsed-literal::
 
-    TVxoHhOQTAWzrEZU: ['to be', 'not to be']
+    QKqgvpMitAUvhKCf: ['to be', 'not to be']
     The Problem: ['to be', 'not to be']
 
 
@@ -227,7 +227,7 @@ It is possible to check the total cardinality for a set of issues:
 .. code:: ipython3
 
     [Issue.num_outcomes([issue1, issue2, issue3, issue4]), # expected inf
-     Issue.num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 4
+     Issue.num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 10
 
 
 
@@ -253,10 +253,9 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['not to be',
-      '20200413H1041143627155BuDQfJ7to be20200413H104114362765naq3MRdO'],
-     [8, 11],
-     [0.026696794662205203, 1.7349999099114584]]
+    [['to be', '20210405H095721457952jJTGt6qBto be20210405H095721458380XtRgNy0I'],
+     [6, 10],
+     [0.6118970848141451, 1.928063278403899]]
 
 
 
@@ -422,11 +421,11 @@ Now you can use objects of MyOutcome as normal outcomes
 
 .. parsed-literal::
 
-    MyOutcome(problem='to be', price=2.3761791955005656, quantity=2)
-    MyOutcome(problem='to be', price=1.8765643046251141, quantity=1)
-    MyOutcome(problem='not to be', price=0.15617720538632418, quantity=4)
-    MyOutcome(problem='not to be', price=1.4136582108727556, quantity=2)
-    MyOutcome(problem='to be', price=2.8022528037179724, quantity=3)
+    MyOutcome(problem='not to be', price=1.9292429442563561, quantity=0)
+    MyOutcome(problem='not to be', price=1.2168605028020283, quantity=4)
+    MyOutcome(problem='to be', price=0.5504030900242165, quantity=1)
+    MyOutcome(problem='to be', price=0.9922145014554281, quantity=2)
+    MyOutcome(problem='not to be', price=1.4245542660733643, quantity=1)
 
 
 The *sample* function created objects of type MyOutcome that can be
@@ -441,9 +440,9 @@ accessed using either the dot notation or as a dict
 
 .. parsed-literal::
 
-    2.3761791955005656
-    2.3761791955005656
-    2.3761791955005656
+    1.9292429442563561
+    1.9292429442563561
+    1.9292429442563561
 
 
 OutcomeType is intended to be used as a syntactic sugar around your
@@ -586,7 +585,7 @@ interface. This is a simple example:
 .. code:: ipython3
 
     class ConstUtilityFunction(UtilityFunction):
-       def __call__(self, offer):
+       def eval(self, offer):
             try:
                 return 3.0 * offer['cost'] 
             except KeyError:  # No value was given to the cost
@@ -1011,20 +1010,21 @@ module for more details
 .. parsed-literal::
 
     ['UtilityDistribution',
+     'UtilityDistribution',
      'UtilityFunction',
+     'make_discounted_ufun',
      'ConstUFun',
      'LinDiscountedUFun',
      'ExpDiscountedUFun',
-     'MappingUtilityFunction',
      'LinearUtilityAggregationFunction',
+     'LinearUtilityFunction',
+     'MappingUtilityFunction',
      'NonLinearUtilityAggregationFunction',
      'HyperRectangleUtilityFunction',
      'NonlinearHyperRectangleUtilityFunction',
      'ComplexWeightedUtilityFunction',
      'ComplexNonlinearUtilityFunction',
-     'LinearUtilityFunction',
      'IPUtilityFunction',
-     'make_discounted_ufun',
      'JavaUtilityFunction',
      'RandomUtilityFunction']
 
@@ -1267,18 +1267,19 @@ respond to every offer in parallel.
     
         def round(self):
             n_agents = len(self.negotiators)
-            self.current_offer = self.negotiators[
-                (self.current_offerer + 1) % n_agents].propose(self.state)
+            current = self.negotiators[(self.current_offerer + 1) % n_agents]
+            self.current_offer = current.propose(self.state)
             
-            def get_response(negotiator, offer=self.current_offer, state=self.state):
+            def get_response(negotiator, offer=self.current_offer, 
+                             state=self.state):
                 return negotiator.respond(state, offer)
             
             with ThreadPoolExecutor(4) as executor:
                 responses = executor.map(get_response, self.negotiators)
             self.current_offerer = (self.current_offerer + 1) % n_agents
-            if all(_==ResponseType.ACCEPT_OFFER for _ in responses):
+            if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
                 return MechanismRoundResult(agreement=self.current_offer)
-            if any(_==ResponseType.END_NEGOTIATION for _ in responses):
+            if any(_== ResponseType.END_NEGOTIATION for _ in responses):
                 return MechanismRoundResult(broken=True)        
             return MechanismRoundResult()
 
@@ -1374,8 +1375,8 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.000921</td>
-          <td>0.1</td>
+          <td>0.001257</td>
+          <td>0.0</td>
           <td>False</td>
           <td>False</td>
           <td>None</td>
@@ -1390,8 +1391,8 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.001676</td>
-          <td>0.2</td>
+          <td>0.002331</td>
+          <td>0.1</td>
           <td>False</td>
           <td>False</td>
           <td>None</td>
@@ -1406,8 +1407,8 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>2</td>
-          <td>0.002162</td>
-          <td>0.3</td>
+          <td>0.003132</td>
+          <td>0.2</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1424,7 +1425,7 @@ Our mechanism keeps a history in the form of a list of
 
 We can see that the negotiation did not time-out, and that the final
 agreement was ``(3,)`` but that is hardly useful. It will be much better
-if we can also the offers exchanged and who offered them.
+if we can also see the offers exchanged and who offered them.
 
 To do that we need to *augment* the mechanism state. NegMAS defines an
 easy way to do that by defining a new ``MechanismState`` type and
@@ -1450,7 +1451,7 @@ filling it in the mechanism:
                 current = self.negotiators[self.current_offerer].name
             else:
                 current = "none"
-            return MyState(
+            return dict(
                 current_offer = self.current_offer,
                 current_offerer = current
             )
@@ -1466,16 +1467,13 @@ did previously
     p = NewParallelResponseMechanism(outcomes = 6, n_steps = 10)
     p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (3,), (5,)]))
     p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
-    state = p.run()
-    p.state.agreement
-
-
+    p.run()
+    print(f"Agreement: {p.state.agreement}")
 
 
 .. parsed-literal::
 
-    (3,)
-
+    Agreement: (3,)
 
 
 We can now check the history again (showing few of the attributes only)
@@ -1496,7 +1494,6 @@ to confirm that the current offer and its source are stored.
                 current_offerer=_.current_offerer
             ) 
             for _ in p.history])
-    
     show_history(p)
 
 
@@ -1535,42 +1532,12 @@ to confirm that the current offer and its source are stored.
         <tr>
           <th>0</th>
           <td>0</td>
-          <td>None</td>
-          <td>0.1</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(2,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>1</td>
-          <td>None</td>
-          <td>0.2</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
-          <td>None</td>
-          <td>0.3</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
           <td>(3,)</td>
-          <td>0.4</td>
+          <td>0.0</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
-          <td>buyer</td>
+          <td>seller</td>
         </tr>
       </tbody>
     </table>
@@ -1587,7 +1554,13 @@ acceptable outcomes in our case):
     p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(2,), (0,), (5,)]))
     p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
     p.run()
+    print(f"Agreement: {p.state.agreement}")
     show_history(p)
+
+
+.. parsed-literal::
+
+    Agreement: None
 
 
 
@@ -1626,27 +1599,27 @@ acceptable outcomes in our case):
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.166667</td>
+          <td>0.000000</td>
           <td>False</td>
           <td>False</td>
-          <td>(2,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
           <td>None</td>
-          <td>0.333333</td>
+          <td>0.166667</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
         <tr>
           <th>2</th>
           <td>2</td>
           <td>None</td>
-          <td>0.500000</td>
+          <td>0.333333</td>
           <td>False</td>
           <td>False</td>
           <td>(2,)</td>
@@ -1656,7 +1629,7 @@ acceptable outcomes in our case):
           <th>3</th>
           <td>3</td>
           <td>None</td>
-          <td>0.666667</td>
+          <td>0.500000</td>
           <td>False</td>
           <td>False</td>
           <td>(1,)</td>
@@ -1666,7 +1639,7 @@ acceptable outcomes in our case):
           <th>4</th>
           <td>4</td>
           <td>None</td>
-          <td>0.833333</td>
+          <td>0.666667</td>
           <td>False</td>
           <td>False</td>
           <td>(0,)</td>
@@ -1676,18 +1649,115 @@ acceptable outcomes in our case):
           <th>5</th>
           <td>5</td>
           <td>None</td>
-          <td>1.000000</td>
+          <td>0.833333</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(1,)</td>
           <td>buyer</td>
         </tr>
         <tr>
           <th>6</th>
           <td>6</td>
           <td>None</td>
-          <td>1.166667</td>
+          <td>1.000000</td>
           <td>True</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+As expected, the negotiation timed out. Let’s try to make it possible
+for the agents to agree by providing a common outcome that they may
+agree upon:
+
+.. code:: ipython3
+
+    p = NewParallelResponseMechanism(outcomes = 6, n_steps = 6)
+    p.add(LimitedOutcomesNegotiator(name='seller', acceptable_outcomes=[(3,), (0,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name='buyer', acceptable_outcomes=[(1,), (4,), (3,)]))
+    p.run()
+    print(f"Agreement: {p.state.agreement}")
+    show_history(p)
+
+
+.. parsed-literal::
+
+    Agreement: (3,)
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>step</th>
+          <th>agreement</th>
+          <th>relative_time</th>
+          <th>timedout</th>
+          <th>broken</th>
+          <th>current_offer</th>
+          <th>current_offerer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>None</td>
+          <td>0.000000</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.166667</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.333333</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>(3,)</td>
+          <td>0.500000</td>
+          <td>False</td>
           <td>False</td>
           <td>(3,)</td>
           <td>buyer</td>
@@ -1698,7 +1768,7 @@ acceptable outcomes in our case):
 
 
 
-As expected, the negotiation timed out.
+We got an agreement again as expected.
 
 Worlds (Simulations)
 --------------------
