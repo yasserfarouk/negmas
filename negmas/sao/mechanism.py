@@ -108,6 +108,7 @@ class SAOMechanism(Mechanism):
         allow_offering_just_rejected_outcome=True,
         name: Optional[str] = None,
         max_wait: int = sys.maxsize,
+        sync_calls: bool = False,
         **kwargs,
     ):
         super().__init__(
@@ -130,6 +131,7 @@ class SAOMechanism(Mechanism):
             name=name,
             **kwargs,
         )
+        self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
         self.params["publish_proposer"] = publish_proposer
         self.params["publish_n_acceptances"] = publish_n_acceptances
@@ -181,6 +183,9 @@ class SAOMechanism(Mechanism):
             self._n_accepting = 0
             return False
         return True
+
+    def set_sync_call(self, v: bool):
+        self._sync_call = v
 
     def extra_state(self):
         current_proposer_agent = (
@@ -480,7 +485,7 @@ class SAOMechanism(Mechanism):
                 self.ami.step_time_limit,
                 rem,
             )
-            if timeout is None or timeout == float("inf"):
+            if timeout is None or timeout == float("inf") or self._sync_calls:
                 __strt = time.perf_counter()
                 try:
                     if (
@@ -865,6 +870,7 @@ class SAOMechanism(Mechanism):
         )
 
     def negotiator_offers(self, negotiator_id: str) -> List[Outcome]:
+        """Returns the offers given by a negotiator (in order)"""
         offers = []
         for state in self._history:
             offers += [o for n, o in state.new_offers if n == negotiator_id]
@@ -872,7 +878,9 @@ class SAOMechanism(Mechanism):
             offers.append(self.agreement)
         return offers
 
+    @property
     def offers(self) -> List[Outcome]:
+        """Returns the negotiation history as a list of offers"""
         offers = []
         for state in self._history:
             offers += [o for n, o in state.new_offers]
@@ -880,6 +888,15 @@ class SAOMechanism(Mechanism):
             offers.append(self.agreement)
         return offers
 
+    @property
+    def trace(self) -> List[Tuple[str, Outcome]]:
+        """Returns exchanged offers as a list of (negotiator, offer) tuples"""
+        offers = []
+        for state in self._history:
+            offers += [(n, o) for n, o in state.new_offers]
+        if self.agreement is not None:
+            offers.append(self.agreement)
+        return offers
 
 SAOProtocol = SAOMechanism
 """An alias for `SAOMechanism` object"""
