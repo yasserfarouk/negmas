@@ -4734,7 +4734,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 steps = self.current_step
             if isinstance(steps, int):
                 steps = [steps, steps + 1]
-            steps = tuple(min(self.n_steps - 1, max(0, _)) for _ in steps)
+            steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
             if who is None:
                 who = lambda x: True
             agents = [_.id for _ in self.agents.values() if who(_)]
@@ -4802,7 +4802,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 steps = self.current_step
             if isinstance(steps, int):
                 steps = [steps, steps + 1]
-            steps = tuple(min(self.n_steps - 1, max(0, _)) for _ in steps)
+            steps = tuple(min(self.n_steps, max(0, _)) for _ in steps)
             if who is None:
                 who = lambda x: True
             if together:
