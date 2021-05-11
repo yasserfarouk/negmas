@@ -458,6 +458,7 @@ class TestGeniusAgentSessions:
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
+
     def test_genius_agents_can_run_on_converted_multiple_issues(self, init_genius):
         neg = self.prepare(utils=(0, 0), single_issue=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
@@ -465,8 +466,8 @@ class TestGeniusAgentSessions:
         assert len(frontier) == len(true_frontier)
         for a, b in zip(frontier, true_frontier):
             assert abs(a[0] - b[0]) < 1 and abs(a[1] - b[1]) < 1
-
-        state = neg.run()
+        # neg.set_sync_call(True)
+        neg.run()
         assert len(neg.history) < 3
         assert neg.agreement is not None
         assert neg.agreement == {
