@@ -1,6 +1,12 @@
 History
 =======
 
+Releae 0.8.2
+------------
+
+* [sao] adding the ability to use sync-calls in SAOMechanism
+* [situated] fixing not showing last step's conracts in draw
+
 Release 0.8.1
 -------------
 
