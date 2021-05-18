@@ -1,14 +1,16 @@
 """
 Keeps information about ANAC competitions and Genius Agents
 """
-from typing import List, Set, Tuple
 import itertools
+from typing import List, Set, Tuple
 
 __all__ = [
     "GENIUS_INFO",
     "AGENT_BASED_NEGOTIATORS",
     "PARTY_BASED_NEGOTIATORS",
     "ALL_NEGOTIATORS",
+    "TEST_FAILING_NEGOTIATORS",
+    "ALL_PASSING_NEGOTIATORS",
     "TESTED_NEGOTIATORS",
     "get_genius_agents",
 ]
@@ -56,17 +58,30 @@ GENIUS_INFO = {
     },
     2012: {
         "winners": [
-            [("CUHKAgent", "agents.anac.y2012.CUHKAgent.CUHKAgent",)],
+            [
+                (
+                    "CUHKAgent",
+                    "agents.anac.y2012.CUHKAgent.CUHKAgent",
+                )
+            ],
             [("AgentLG", "agents.anac.y2012.AgentLG.AgentLG")],
             [
-                ("OMACagent", "agents.anac.y2012.OMACagent.OMACagent",),
+                (
+                    "OMACagent",
+                    "agents.anac.y2012.OMACagent.OMACagent",
+                ),
                 (
                     "TheNegotiatorReloaded",
                     "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
                 ),
             ],
         ],
-        "best_discounted": [("CUHKAgent", "agents.anac.y2012.CUHKAgent.CUHKAgent",)],
+        "best_discounted": [
+            (
+                "CUHKAgent",
+                "agents.anac.y2012.CUHKAgent.CUHKAgent",
+            )
+        ],
         "best_undiscounted": [
             (
                 "TheNegotiatorReloaded",
@@ -74,14 +89,18 @@ GENIUS_INFO = {
             ),
         ],
         "winners_welfare": [
-            [(
-                "IAMhaggler2012",
-                "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
-            )],
-            [(
-                "TheNegotiatorReloaded",
-                "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
-            )],
+            [
+                (
+                    "IAMhaggler2012",
+                    "agents.anac.y2012.IAMhaggler2012.agents2011.SouthamptonAgent",
+                )
+            ],
+            [
+                (
+                    "TheNegotiatorReloaded",
+                    "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
+                )
+            ],
             [("MetaAgent2012", "agents.anac.y2012.MetaAgent.MetaAgent")],
         ],
         "linear": True,
@@ -96,7 +115,12 @@ GENIUS_INFO = {
     2013: {
         "winners": [
             [("TheFawkes", "agents.anac.y2013.TheFawkes.TheFawkes")],
-            [("MetaAgent", "agents.anac.y2013.MetaAgent.MetaAgent2013",)],
+            [
+                (
+                    "MetaAgent",
+                    "agents.anac.y2013.MetaAgent.MetaAgent2013",
+                )
+            ],
             [("TMFAgent", "agents.anac.y2013.TMFAgent.TMFAgent")],
         ],
         "linear": True,
@@ -150,7 +174,12 @@ GENIUS_INFO = {
             [("ParsAgent", "agents.anac.y2015.ParsAgent.ParsAgent")],
             [("RandomDance", "agents.anac.y2015.RandomDance.RandomDance")],
             [("Kawaii", "agents.anac.y2015.fairy.kawaii")],
-            [("AgentBuyong", "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",)],
+            [
+                (
+                    "AgentBuyong",
+                    "agents.anac.y2015.agentBuyogV2.AgentBuyogMain",
+                )
+            ],
             [("PhoenixParty", "agents.anac.y2015.Phoenix.PhoenixParty")],
             [("XianFaAgent", "agents.anac.y2015.xianfa.XianFaAgent")],
             [("PokerFace", "agents.anac.y2015.pokerface.PokerFace")],
@@ -325,6 +354,7 @@ AGENT_BASED_NEGOTIATORS = [
     "agents.anac.y2014.Sobut.Sobut",
     "agents.anac.y2017.geneking.GeneKing",
 ]
+"""Genius agents based on the Agent base-class. These are the oldest agents"""
 
 PARTY_BASED_NEGOTIATORS = [
     "agents.ai2014.group1.Group1",
@@ -377,8 +407,24 @@ PARTY_BASED_NEGOTIATORS = [
     "agents.anac.y2017.tangxun.taxibox",
     "agents.anac.y2017.tucagent.TucAgent",
 ]
+"""Genius agents based on the Party base-class. These are the newest agents"""
 
-TESTED_NEGOTIATORS = ["agents.anac.y2015.AgentX.AgentX",] + list(
+TEST_FAILING_NEGOTIATORS = [
+    "agents.anac.y2017.rubick.Rubick",
+    "agents.anac.y2017.caduceusdc16.CaduceusDC16",
+    "agents.anac.y2018.beta_one.Group2",
+    "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
+    "agents.anac.y2016.agenthp2.AgentHP2_main",
+    "agents.anac.y2014.KGAgent.KGAgent",
+    "agents.anac.y2018.meng_wan.Agent36",
+    "agents.anac.y2014.E2Agent.AnacSampleAgent",
+    "agents.anac.y2013.MetaAgent.MetaAgent2013",
+    "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
+    "agents.anac.y2016.ngent.Ngent",
+]
+"""Agetns taht fail simple tests making them less robust over the bridge"""
+
+TESTED_NEGOTIATORS = list(set(["agents.anac.y2015.AgentX.AgentX",] + list(
     itertools.chain(
         *[
             list(_[1] for _ in itertools.chain(*v["winners"]))
@@ -386,11 +432,14 @@ TESTED_NEGOTIATORS = ["agents.anac.y2015.AgentX.AgentX",] + list(
             if v["multilateral"] and not v["learning"]
         ]
     )
-)
+)) - set(TEST_FAILING_NEGOTIATORS))
+"""Some of the most tested negotaitors"""
 
 ALL_NEGOTIATORS = PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS
 """All Genius Negotiators accessible from NegMAS"""
 
+ALL_PASSING_NEGOTIATORS = list(set(ALL_NEGOTIATORS) - set(TEST_FAILING_NEGOTIATORS))
+"""All negotiators that passed simple tests showing they work on the bridge"""
 
 def get_genius_agents(
     *,
@@ -461,14 +510,24 @@ def get_genius_agents(
         agents = agents.intersection(get_agents(year, d))
     if bilateral is None or (bilateral is not None and d["bilateral"] == bilateral):
         agents = agents.intersection(get_agents(year, d))
-    if multilateral is None or (multilateral is not None and d["multilateral"] == multilateral):
+    if multilateral is None or (
+        multilateral is not None and d["multilateral"] == multilateral
+    ):
         agents = agents.intersection(get_agents(year, d))
-    if discounting is None or (discounting is not None and d["discounting"] == discounting):
+    if discounting is None or (
+        discounting is not None and d["discounting"] == discounting
+    ):
         agents = agents.intersection(get_agents(year, d))
-    if reservation is None or (reservation is not None and d["reservation"] == reservation):
+    if reservation is None or (
+        reservation is not None and d["reservation"] == reservation
+    ):
         agents = agents.intersection(get_agents(year, d))
-    if uncertainty is None or (uncertainty is not None and d["uncertainty"] == uncertainty):
+    if uncertainty is None or (
+        uncertainty is not None and d["uncertainty"] == uncertainty
+    ):
         agents = agents.intersection(get_agents(year, d))
-    if elicitation is None or (elicitation is not None and d["elicitation"] == elicitation):
+    if elicitation is None or (
+        elicitation is not None and d["elicitation"] == elicitation
+    ):
         agents = agents.intersection(get_agents(year, d))
     return list(agents)

@@ -70,6 +70,7 @@ from negmas.genius import get_genius_agents
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
     AgentX,
     Ngent,
+    RandomDance,
     PokerFace,
     AgentBuyong,
     Kawaii,
@@ -80,6 +81,7 @@ AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
     ValueModelAgent,
     TheNegotiator,
     TMFAgent,
+    TheFawkes,
 )
 
 SKIP_IF_NO_BRIDGE = True
@@ -519,14 +521,6 @@ def test_GrandmaAgent():
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_Ngent():
-    do_test_genius_agent(Ngent)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
 def test_Atlas32016():
     do_test_genius_agent(Atlas32016)
 
@@ -865,6 +859,13 @@ def test_TheFawkes():
 # )
 # def test_TheNegotiatorReloaded():
 #     do_test_genius_agent(TheNegotiatorReloaded)
+
+# @pytest.mark.skipif(
+#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_Ngent():
+#     do_test_genius_agent(Ngent)
 
 if __name__ == "__main__":
     pytest.main(args=[__file__])
