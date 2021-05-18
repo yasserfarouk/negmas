@@ -10,7 +10,7 @@ from negmas import (
     load_genius_domain,
     load_genius_domain_from_folder,
 )
-from negmas.genius import Caduceus, GeniusBridge, YXAgent, AgentX, AgentLG
+from negmas.genius import Caduceus, GeniusBridge, YXAgent, AgentX, Atlas3
 
 dom_folder = pathlib.Path(
     pkg_resources.resource_filename(
@@ -316,14 +316,14 @@ def test_genius_agent_step_long_session(init_genius):
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_genius_agent_same_utility(init_genius):
+def test_genius_agent_same_utility():
     from negmas import load_genius_domain_from_folder
 
     p, ufuns, issues = load_genius_domain_from_folder(
         dom_folder,
         keep_issue_names=True,
         keep_value_names=True,
-        time_limit=30,
+        time_limit=300000,
         normalize_utilities=True,
     )
     assert p is not None, "Could not create a mechanism"
@@ -340,13 +340,13 @@ def test_genius_agent_same_utility(init_genius):
         "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.'"
         ", 'Monuments', 'Special streets', 'Palace', 'Landscape and nature']",
     ]
-    a1 = AgentLG(ufun=ufuns[0]["ufun"])
-    a2 = AgentLG(ufun=ufuns[0]["ufun"])
+    a1 = AgentX(ufun=ufuns[0]["ufun"])
+    a2 = Atlas3(ufun=ufuns[0]["ufun"])
     p.add(a1)
     p.add(a2)
     final = p.run()
-    u1 = [float(a1.utility_function(o)) for o in p.offers()]
-    u2 = [float(a2.utility_function(o)) for o in p.offers()]
+    u1 = [float(a1.utility_function(o)) for o in p.offers]
+    u2 = [float(a2.utility_function(o)) for o in p.offers]
     assert len(u1) >= 1 or len(u2) >= 1
     u1, u2 = a1.ufun(final.agreement), a2.ufun(final.agreement)
     welfare = u1 + u2
