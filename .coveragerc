@@ -8,13 +8,31 @@ omit =
     /tests/*
     */external/*
     */scripts/*
+    */docs/*
     negmas/tests/*
     negmas/external/*
     negmas/scripts/*
     negmas/logs/*
     negmas/gui/*
     notebooks/*
+	docs/*
     logs/*
+    etc/*
+	trash/*
+	venv38/*
+	coverage_html_report/*
+	config/*
+	dist/*
+	notebooks/*
+	scratch/*
+    */etc/*
+	*/trash/*
+	*/venv38/*
+	*/coverage_html_report/*
+	*/config/*
+	*/dist/*
+	*/notebooks/*
+	*/scratch/*
 
 [report]
 # Regexes for lines to exclude from consideration
