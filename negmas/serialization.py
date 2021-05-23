@@ -94,7 +94,6 @@ def serialize(
           `deserialize`, `PYTHON_CLASS_IDENTIFIER`
 
     """
-
     def add_to_mem(x, objmem):
         if not objmem:
             objmem = {id(x)}
@@ -140,7 +139,9 @@ def serialize(
     if isinstance(value, Iterable) and not deep:
         # add_to_mem(value)
         return value
-    if isinstance(value, Iterable) and not isinstance(value, str):
+    # if isinstance(value, np.ndarray):
+    #     return value.tolist()
+    if isinstance(value, (list, tuple)) and not isinstance(value, str):
         objmem = add_to_mem(value, objmem)
         return adjust_dict(
             type(value)(
@@ -289,7 +290,7 @@ def deserialize(
                 python_class = get_class(python_class_name)
             # we resolve sub-objects first from the dict if deep is specified before calling deserialize on the class
             if deep:
-                d = {k: deserialize(v) for k, v in d.items() if good_field(k)}
+                d = {k: deserialize(v, deep=deep) for k, v in d.items() if good_field(k)}
             # deserialize needs to do a shallow conversion from a dict as deep conversion is taken care of already.
             if hasattr(python_class, "from_dict"):
                 return python_class.from_dict({k: v for k, v in d.items()})
@@ -298,18 +299,20 @@ def deserialize(
             else:
                 d = {k: v for k, v in d.items() if good_field(k)}
             return python_class(**d)
-        return d
+        if not deep:
+            return d
+        return {k: deserialize(v, deep=deep) for k, v in d.items() if good_field(k)}
     if not deep:
         return d
     if isinstance(d, str):
         return d
     if isinstance(d, bytes):
         if d.startswith(LAMBDA_START):
-            return cloudpickle.loads(d[LAMBDA_START:])
+            return cloudpickle.loads(d[len(LAMBDA_START):])
         if d.startswith(FUNCTION_START):
-            return cloudpickle.loads(d[FUNCTION_START:])
+            return cloudpickle.loads(d[len(FUNCTION_START):])
         if d.startswith(CLOUDPICKLE_START):
-            return json.loads(d[CLOUDPICKLE_START:])
+            return cloudpickle.loads(d[len(CLOUDPICKLE_START):])
         # if d.startswith(JSON_START):
         #     return json.loads(d[JSON_START:])
         return d
