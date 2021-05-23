@@ -335,7 +335,7 @@ def test_neg_sync_loop(keep_order):
         assert mechanism.state.agreement is None
         assert not mechanism.state.has_error
         assert not mechanism.state.broken
-        assert mechanism.state.timedout, print(f"Did not timeout!!\n{mechanism.state}")
+        assert mechanism.state.timedout
         assert mechanism.state.step == n_steps
         assert not mechanism.state.waiting
         assert len(mechanism.history) == n_steps
