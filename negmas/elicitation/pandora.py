@@ -288,6 +288,8 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
               the outocme with maximum estimated utility and the negative
               of the corresponding estimated utility.
         """
+        if self.unknown is None:
+            self.init_unknowns()
         unknowns = self.unknown
         if len(unknowns) > 0:
             return -unknowns[0][0], unknowns[0][1]
@@ -298,6 +300,8 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         Updates the unknown list (and makes sure it is a heap) given the given utility
         value for the given outcome.
         """
+        if self.unknown is None:
+            self.init_unknowns()
         self.unknown[0] = (
             -weitzman_index_uniform(_loc(u), _scale(u), self.user.cost_of_asking()),
             self.unknown[0][1],
@@ -314,13 +318,17 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         """
         Removes the best offer from the unkonwn list and returns it.
         """
+        if self.unknown is None:
+            self.init_unknowns()
         return heappop(self.unknown)
 
     def can_elicit(self) -> bool:
         """
         Checks whether there are any unknowns in the unknowns list.
         """
-        return len(self.unknown) != 0
+        if self.unknown is None:
+            self.init_unknowns()
+        return self.unknown and len(self.unknown) != 0
 
     def z_index(self, updated_outcomes: Optional[List[Outcome]] = None):
         """
