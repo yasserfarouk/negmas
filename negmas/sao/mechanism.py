@@ -229,7 +229,9 @@ class SAOMechanism(Mechanism):
             plot_outcomes = False
 
         if len(self.negotiators) < 2:
-            warnings.warn("Cannot visualize negotiations with more less than 2 negotiators")
+            warnings.warn(
+                "Cannot visualize negotiations with more less than 2 negotiators"
+            )
             return
         if len(visible_negotiators) > 2:
             warnings.warn("Cannot visualize more than 2 agents")
@@ -746,11 +748,11 @@ class SAOMechanism(Mechanism):
                 )
             if resp.response == ResponseType.WAIT:
                 self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
-                self._waiting_time[neg.id] += (
-                    time.perf_counter() - strt
-                )
+                self._waiting_time[neg.id] += time.perf_counter() - strt
                 if self._frozen_neg_list is None:
-                    self._frozen_neg_list = ordered_indices[self._last_checked_negotiator:]
+                    self._frozen_neg_list = ordered_indices[
+                        self._last_checked_negotiator :
+                    ]
                 self._n_waits += 1
             else:
                 self._waiting_time[neg.id] = 0.0
@@ -897,6 +899,7 @@ class SAOMechanism(Mechanism):
         if self.agreement is not None:
             offers.append(self.agreement)
         return offers
+
 
 SAOProtocol = SAOMechanism
 """An alias for `SAOMechanism` object"""
