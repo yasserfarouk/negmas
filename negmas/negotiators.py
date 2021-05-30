@@ -638,7 +638,7 @@ class Controller(Rational):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if not negotiator or not negotiator.ami:
             return None
-        return [_ for _ in negotiator.ami.negotiator_names if _ != negotiator_id]
+        return [_ for _ in negotiator.ami.negotiator_names if _ != negotiator.name]
 
     def partner_agent_ids(self, negotiator_id: str) -> Optional[List[str]]:
         """
