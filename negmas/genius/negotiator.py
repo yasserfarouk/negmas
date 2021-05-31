@@ -345,6 +345,16 @@ class GeniusNegotiator(SAONegotiator):
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM."""
         super().on_negotiation_start(state=state)
+        if self._utility_function is not None and self.utility_file_name is None:
+            utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
+            self.utility_file_name = utility_file.name
+            utility_file.write(
+                UtilityFunction.to_xml_str(
+                    self._utility_function, issues=self.ami.issues, discount_factor=self.discount
+                )
+            )
+            utility_file.close()
+            self._temp_ufun_file = True
         info = self._ami
         if self.discount is not None and self.discount != 1.0:
             self._utility_function = make_discounted_ufun(
