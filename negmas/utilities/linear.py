@@ -190,7 +190,9 @@ class LinearUtilityFunction(UtilityFunction):
             vals = iget(issues, k).all
             bias = iget(self.biases, k, 0.0)
             for indx, u in enumerate(vals):
-                output += f'    <item index="{indx+1}" value="{u+ bias}" evaluation="{u}" />\n'
+                uu = issue.value_type(u + bias)
+                output += f'    <item index="{indx+1}" value="{uu}" evaluation="{u}" />\n'
+
             output += "</issue>\n"
         if isinstance(issues, dict):
             if isinstance(self.weights, dict):
