@@ -424,7 +424,7 @@ TEST_FAILING_NEGOTIATORS = [
 ]
 """Agetns taht fail simple tests making them less robust over the bridge"""
 
-TESTED_NEGOTIATORS = list(set(["agents.anac.y2015.AgentX.AgentX",] + list(
+TESTED_NEGOTIATORS = list(set(["agents.anac.y2015.AgentX.AgentX"] + list(
     itertools.chain(
         *[
             list(_[1] for _ in itertools.chain(*v["winners"]))
