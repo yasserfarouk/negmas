@@ -150,22 +150,22 @@ class LinearUtilityFunction(UtilityFunction):
             >>> f = LinearUtilityFunction(weights=[1.0, 4.0])
             >>> print(f.xml(issues))
             <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
-                <item index="1" value="0.0" evaluation="0" />
-                <item index="2" value="1.0" evaluation="1" />
-                <item index="3" value="2.0" evaluation="2" />
-                <item index="4" value="3.0" evaluation="3" />
-                <item index="5" value="4.0" evaluation="4" />
-                <item index="6" value="5.0" evaluation="5" />
-                <item index="7" value="6.0" evaluation="6" />
-                <item index="8" value="7.0" evaluation="7" />
-                <item index="9" value="8.0" evaluation="8" />
-                <item index="10" value="9.0" evaluation="9" />
+                <item index="1" value="0" evaluation="0" />
+                <item index="2" value="1" evaluation="1" />
+                <item index="3" value="2" evaluation="2" />
+                <item index="4" value="3" evaluation="3" />
+                <item index="5" value="4" evaluation="4" />
+                <item index="6" value="5" evaluation="5" />
+                <item index="7" value="6" evaluation="6" />
+                <item index="8" value="7" evaluation="7" />
+                <item index="9" value="8" evaluation="8" />
+                <item index="10" value="9" evaluation="9" />
             </issue>
             <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
-                <item index="1" value="0.0" evaluation="0" />
-                <item index="2" value="1.0" evaluation="1" />
-                <item index="3" value="2.0" evaluation="2" />
-                <item index="4" value="3.0" evaluation="3" />
+                <item index="1" value="0" evaluation="0" />
+                <item index="2" value="1" evaluation="1" />
+                <item index="3" value="2" evaluation="2" />
+                <item index="4" value="3" evaluation="3" />
             </issue>
             <weight index="1" value="1.0">
             </weight>
