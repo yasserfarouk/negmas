@@ -1,8 +1,20 @@
 History
 =======
 
-Releae 0.8.2
-------------
+Release 0.8.3
+-------------
+
+* [genius] allowing the ufun of genius agents to be set anytime before negotiation start
+* [core] bugfix. Type of issue value may be incorrect when exporting to xml
+* formatting
+* [bugfix] correcting getting partner agent names in controllers
+* [elicitation] pandora unknowns sometimes were not set
+* [helpers] bugfix in serialization: correctly serializing cloud pickalable objects
+* [bugfix] some SAO mechanisms where timeouting without timeout set
+* [genius] updating the set of tested genius agents
+
+Release 0.8.2
+-------------
 
 * [sao] adding the ability to use sync-calls in SAOMechanism
 * [situated] fixing not showing last step's conracts in draw
