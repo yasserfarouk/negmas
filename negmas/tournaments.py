@@ -3,11 +3,11 @@ Tournament generation and management.
 
 """
 import concurrent.futures as futures
-import os
 import copy
 import hashlib
 import itertools
 import math
+import os
 import pathlib
 import random
 import time
@@ -16,16 +16,15 @@ import warnings
 from multiprocessing import current_process
 from socket import gethostname
 
-
 try:
     import distributed
 except:
     ENABLE_DASK = False
 else:
     ENABLE_DASK = True
-from functools import partial
 from collections import defaultdict
 from dataclasses import dataclass, field
+from functools import partial
 from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
@@ -55,10 +54,10 @@ from negmas.helpers import (
     humanize_time,
     import_by_name,
     load,
-    unique_name,
     shortest_unique_names,
+    unique_name,
 )
-from negmas.serialization import to_flat_dict, serialize
+from negmas.serialization import serialize, to_flat_dict
 
 from .situated import Agent, World, save_stats
 
@@ -1104,7 +1103,9 @@ def _run_worlds(
 
 
 def process_world_run(
-    run_id: str, results: Optional[WorldRunResults], tournament_name: str,
+    run_id: str,
+    results: Optional[WorldRunResults],
+    tournament_name: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     """
     Generates a data-frame with the results of this world run
@@ -1241,7 +1242,8 @@ def _submit_all(
         )
     if verbose:
         print(
-            f"Submitted all processes ", end="",
+            f"Submitted all processes ",
+            end="",
         )
         if len(assigned) > 0:
             print(f"{len(future_results)/len(assigned):5.2%}")
@@ -2314,6 +2316,7 @@ def create_tournament(
                             "log_to_file": True,
                             "compact": False,
                             "no_logs": False,
+                            "log_negotiations": True,
                         }
                     )
 
@@ -2356,7 +2359,9 @@ def create_tournament(
     return tournament_path
 
 
-def compile_results(path: Union[str, PathLike, Path],):
+def compile_results(
+    path: Union[str, PathLike, Path],
+):
     path = _path(path)
     if not path.exists():
         return
