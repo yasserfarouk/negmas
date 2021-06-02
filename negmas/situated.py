@@ -787,9 +787,12 @@ class MechanismFactory:
                     # record[f"negotiator{i}"] = _negotiator.name
                     record[f"reserved{i}"] = _negotiator.reserved_value
                     if hasattr(_negotiator, "utility_function"):
-                        record[f"u{i}"] = _negotiator.utility_function(
-                            record["outcome"]
-                        )
+                        try:
+                            record[f"u{i}"] = _negotiator.utility_function(
+                                record["outcome"]
+                            )
+                        except:
+                            record[f"u{i}"] = None
                     else:
                         record[f"u{i}"] = None
             _negotiator.owner = partner_
