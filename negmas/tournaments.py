@@ -2305,21 +2305,46 @@ def create_tournament(
         for cs in assigned[:n_logged]:
             run_id = _run_id(cs)
             for _ in cs:
-                if _["world_params"].get("log_folder", None) is None:
-                    _["world_params"].update(
-                        {
-                            "log_folder": str(
+                for subkey in ("world_params",):
+                    if subkey not in _.keys():
+                        continue
+                    _[subkey].update(
+                        dict(
+                            compact=False,
+                            log_negotiations=True,
+                            log_to_file=True,
+                            no_logs=False,
+                        )
+                    )
+                    if _[subkey].get("log_folder", None) is None:
+                        _[subkey].update(
+                            dict(
+                                log_folder=str(
+                                    (
+                                        tournament_path / run_id / _[subkey]["name"]
+                                    ).absolute()
+                                ),
+                            )
+                        )
+
+                _.update(
+                    dict(
+                        compact=False,
+                        no_logs=False,
+                        log_negotiations=True,
+                        log_to_file=True,
+                    )
+                )
+                if _.get("log_folder", None) is None:
+                    _.update(
+                        dict(
+                            log_folder=str(
                                 (
                                     tournament_path / run_id / _["world_params"]["name"]
                                 ).absolute()
                             ),
-                            "log_to_file": True,
-                            "compact": False,
-                            "no_logs": False,
-                            "log_negotiations": True,
-                        }
+                        )
                     )
-
     if save_video_fraction > 1e-5:
         n_videos = max(1, int(len(assigned) * forced_logs_fraction))
         for cs in assigned[:n_videos]:
@@ -2328,6 +2353,7 @@ def create_tournament(
                 _["__save_video"] = True
                 _["__video_saver"] = video_saver
                 _["__video_saver_params"] = video_params
+
     saved_configs = []
     for cs in assigned:
         for _ in cs:
@@ -2347,6 +2373,7 @@ def create_tournament(
         d["__score_calculator"] = score_calculator_name
         d["__world_generator"] = world_generator_name
         d["__tournament_name"] = name
+
     config_path = tournament_path / "configs"
     config_path.mkdir(exist_ok=True, parents=True)
     for i, conf in enumerate(saved_configs):
