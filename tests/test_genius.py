@@ -462,6 +462,10 @@ def do_test_genius_agent(
     GeniusBridge.clean()
 
 
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 @pytest.mark.parametrize("negotiator", ALL_NEGOTIATORS)
 def test_all_negotiators(negotiator):
     do_test_genius_agent(None, java_class_name=negotiator)
