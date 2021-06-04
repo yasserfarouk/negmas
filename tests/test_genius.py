@@ -4,12 +4,11 @@ import pytest
 from hypothesis import given, settings
 from py4j.protocol import Py4JNetworkError
 
+from negmas.genius.ginfo import ALL_NEGOTIATORS
 from negmas import (
     GeniusNegotiator,
     AspirationNegotiator,
     genius_bridge_is_running,
-    init_genius_bridge,
-    load_genius_domain,
     load_genius_domain_from_folder,
     TheFawkes,
     Gangster,
@@ -67,22 +66,26 @@ from negmas import (
 from negmas.genius import GeniusBridge
 from negmas.genius import get_genius_agents
 
-AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
-    AgentX,
-    Ngent,
-    RandomDance,
-    PokerFace,
-    AgentBuyong,
-    Kawaii,
-    Atlas3,
-    Group2,
-    WhaleAgent,
-    DoNA,
-    ValueModelAgent,
-    TheNegotiator,
-    TMFAgent,
-    TheFawkes,
-)
+TIMELIMIT = 180
+STEPLIMIT = 120
+
+AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = tuple()
+# AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
+#     AgentX,
+#     Ngent,
+#     RandomDance,
+#     PokerFace,
+#     AgentBuyong,
+#     Kawaii,
+#     Atlas3,
+#     Group2,
+#     WhaleAgent,
+#     DoNA,
+#     ValueModelAgent,
+#     TheNegotiator,
+#     TMFAgent,
+#     TheFawkes,
+# )
 
 SKIP_IF_NO_BRIDGE = True
 
@@ -152,7 +155,7 @@ def test_genius_does_not_freeze():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, time_limit=1)
+    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, n_steps=None, time_limit=TIMELIMIT)
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
         domain_file_name=f"{folder_name}/{mechanism.name}.xml",
@@ -184,7 +187,7 @@ def test_old_agent():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, time_limit=1)
+    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, n_steps=None, time_limit=TIMELIMIT)
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2012.AgentLG.AgentLG",
         domain_file_name=f"{folder_name}/{mechanism.name}.xml",
@@ -249,7 +252,8 @@ def test_genius_agents_run_using_hypothesis(
         base_folder,
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
-        time_limit=1,
+        time_limit=TIMELIMIT,
+        n_steps=None,
     )
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")
@@ -282,7 +286,7 @@ def test_genius_agent_gets_ufun():
         "negmas", resource_name="tests/data/Laptop"
     )
     neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder, keep_issue_names=True, keep_value_names=True,
+        base_folder, keep_issue_names=True, keep_value_names=True, n_steps=None, time_limit=TIMELIMIT
     )
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
@@ -328,7 +332,7 @@ def test_genius_agents_run_example():
             "negmas", resource_name="tests/data/Laptop"
         )
         neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder, keep_issue_names=True, keep_value_names=True,
+            base_folder, keep_issue_names=True, keep_value_names=True, n_steps=None, time_limit=TIMELIMIT
         )
         if neg is None:
             raise ValueError(f"Failed to lead domain from {base_folder}")
@@ -354,8 +358,13 @@ def test_genius_agents_run_example():
 
 
 def do_test_genius_agent(
-    AgentClass, must_agree_if_same_ufun=True,
+    AgentClass, must_agree_if_same_ufun=True, java_class_name = None
 ):
+    if java_class_name is not None:
+        AgentClass = lambda *args, **kwargs: GeniusNegotiator(*args, java_class_name=java_class_name, **kwargs)
+        agent_class_name = java_class_name
+    else:
+        agent_class_name = AgentClass.__name__
     # print(f"Running {AgentClass.__name__}")
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
@@ -366,8 +375,8 @@ def do_test_genius_agent(
         agent_ufun,
         agent_starts,
         opponent_type=AspirationNegotiator,
-        n_steps=5,
-        time_limit=3,
+        n_steps=None,
+        time_limit=TIMELIMIT,
         outcome_type=dict,
         must_agree_if_same_ufun=True,
     ):
@@ -403,7 +412,7 @@ def do_test_genius_agent(
     for outcome_type in (tuple, dict):
         for opponent_type in (AspirationNegotiator, Atlas3):
             for starts in (False, True):
-                for n_steps, time_limit in ((5, 3), (5, float("inf")), (None, 3)):
+                for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT) ):
                     for ufuns in ((1, 0), (0, 1)):
                         try:
                             result = do_run(
@@ -422,7 +431,7 @@ def do_test_genius_agent(
                             # )
                         except Exception as e:
                             print(
-                                f"{AgentClass.__name__} FAILED against {opponent_type.__name__}"
+                                f"{agent_class_name} FAILED against {opponent_type.__name__}"
                                 f" going {'first' if starts else 'last'} ({n_steps} steps with "
                                 f"{time_limit} limit taking ufun {ufuns[1]} type {outcome_type})."
                             )
@@ -430,8 +439,8 @@ def do_test_genius_agent(
 
     if (
         not must_agree_if_same_ufun
-        or AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN
-    ):
+        or (java_class_name is None and AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN
+    )):
         return
 
     # check that it will get to an agreement sometimes if the same ufun
@@ -448,10 +457,14 @@ def do_test_genius_agent(
         else:
             assert (
                 False
-            ), f"{AgentClass.__name__}: failed to get an agreement in {n_trials} trials even using the same ufun"
+            ), f"{agent_class_name}: failed to get an agreement in {n_trials} trials even using the same ufun"
 
     GeniusBridge.clean()
 
+
+@pytest.mark.parametrize("negotiator", ALL_NEGOTIATORS)
+def test_all_negotiators(negotiator):
+    do_test_genius_agent(None, java_class_name=negotiator)
 
 @pytest.mark.skipif(
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
@@ -783,89 +796,89 @@ def test_TheFawkes():
 
 #### agents after this line are not very robust
 
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_Rubick():
-#     do_test_genius_agent(Rubick)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_CaduceusDC16():
-#     do_test_genius_agent(CaduceusDC16)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_BetaOne():
-#     do_test_genius_agent(BetaOne)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_AgreeableAgent2018():
-#     do_test_genius_agent(AgreeableAgent2018)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_AgentHP2():
-#     do_test_genius_agent(AgentHP2)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_KGAgent():
-#     do_test_genius_agent(KGAgent)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_MengWan():
-#     do_test_genius_agent(MengWan)
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_E2Agent():
-#     do_test_genius_agent(E2Agent)
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_MetaAgent():
-#     do_test_genius_agent(MetaAgent)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_TheNegotiatorReloaded():
-#     do_test_genius_agent(TheNegotiatorReloaded)
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Rubick():
+    do_test_genius_agent(Rubick)
 
-# @pytest.mark.skipif(
-#     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_Ngent():
-#     do_test_genius_agent(Ngent)
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_CaduceusDC16():
+    do_test_genius_agent(CaduceusDC16)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_BetaOne():
+    do_test_genius_agent(BetaOne)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgreeableAgent2018():
+    do_test_genius_agent(AgreeableAgent2018)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgentHP2():
+    do_test_genius_agent(AgentHP2)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_KGAgent():
+    do_test_genius_agent(KGAgent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_MengWan():
+    do_test_genius_agent(MengWan)
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_E2Agent():
+    do_test_genius_agent(E2Agent)
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_MetaAgent():
+    do_test_genius_agent(MetaAgent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_TheNegotiatorReloaded():
+    do_test_genius_agent(TheNegotiatorReloaded)
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Ngent():
+    do_test_genius_agent(Ngent)
 
 if __name__ == "__main__":
     pytest.main(args=[__file__])
