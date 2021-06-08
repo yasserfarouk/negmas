@@ -66,8 +66,8 @@ from negmas import (
 from negmas.genius import GeniusBridge
 from negmas.genius import get_genius_agents
 
-TIMELIMIT = 180
-STEPLIMIT = 120
+TIMELIMIT = 30
+STEPLIMIT = 50
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = tuple()
 # AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
