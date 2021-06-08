@@ -871,34 +871,41 @@ class SAOMechanism(Mechanism):
             exceptions=exceptions,
         )
 
-    def negotiator_offers(self, negotiator_id: str) -> List[Outcome]:
-        """Returns the offers given by a negotiator (in order)"""
+    @property
+    def trace(self) -> List[Tuple[str, Outcome]]:
+        """Returns the negotiation history as a list of negotiator/offer tuples"""
         offers = []
         for state in self._history:
-            offers += [o for n, o in state.new_offers if n == negotiator_id]
-        if self.agreement is not None and negotiator_id == state.current_proposer:
-            offers.append(self.agreement)
+            offers += [(n, o) for n, o in state.new_offers]
+
+        def not_equal(a, b):
+            if isinstance(a, dict):
+                a = a.values()
+            if isinstance(b, dict):
+                b = b.values()
+            return any(x != y for x, y in zip(a, b))
+
+        if (
+            self.agreement is not None
+            and offers
+            and not_equal(offers[-1][1], self.agreement)
+        ):
+            offers.append(
+                (
+                    self._history[-1].current_proposer,
+                    self.agreement,
+                )
+            )
         return offers
+
+    def negotiator_offers(self, negotiator_id: str) -> List[Outcome]:
+        """Returns the offers given by a negotiator (in order)"""
+        return [o for n, o in self.trace if n == negotiator_id]
 
     @property
     def offers(self) -> List[Outcome]:
         """Returns the negotiation history as a list of offers"""
-        offers = []
-        for state in self._history:
-            offers += [o for n, o in state.new_offers]
-        if self.agreement is not None:
-            offers.append(self.agreement)
-        return offers
-
-    @property
-    def trace(self) -> List[Tuple[str, Outcome]]:
-        """Returns exchanged offers as a list of (negotiator, offer) tuples"""
-        offers = []
-        for state in self._history:
-            offers += [(n, o) for n, o in state.new_offers]
-        if self.agreement is not None:
-            offers.append(self.agreement)
-        return offers
+        return [o for _, o in self.trace]
 
 
 SAOProtocol = SAOMechanism
