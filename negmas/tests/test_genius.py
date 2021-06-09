@@ -88,8 +88,14 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
     p, _, issues = load_genius_domain_from_folder(
         dom_folder,
         agent_factories=[
-            lambda: Caduceus(domain_file_name=dom, utility_file_name=util1,),
-            lambda: AgentX(domain_file_name=dom, utility_file_name=util2,),
+            lambda: Caduceus(
+                domain_file_name=dom,
+                utility_file_name=util1,
+            ),
+            lambda: AgentX(
+                domain_file_name=dom,
+                utility_file_name=util2,
+            ),
         ],
         keep_issue_names=True,
         keep_value_names=True,
@@ -458,7 +464,6 @@ class TestGeniusAgentSessions:
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
-
     def test_genius_agents_can_run_on_converted_multiple_issues(self, init_genius):
         neg = self.prepare(utils=(0, 0), single_issue=False)
         frontier = neg.pareto_frontier(sort_by_welfare=True)[0]
