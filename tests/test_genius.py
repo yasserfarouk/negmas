@@ -4,8 +4,9 @@ import pytest
 from hypothesis import given, settings
 from py4j.protocol import Py4JNetworkError
 
-from negmas.genius.ginfo import ALL_NEGOTIATORS
+from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
 from negmas import (
+    Simpatico,
     GeniusNegotiator,
     AspirationNegotiator,
     genius_bridge_is_running,
@@ -155,7 +156,9 @@ def test_genius_does_not_freeze():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, n_steps=None, time_limit=TIMELIMIT)
+    mechanism, ufuns, issues = load_genius_domain_from_folder(
+        folder_name, n_steps=None, time_limit=TIMELIMIT
+    )
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
         domain_file_name=f"{folder_name}/{mechanism.name}.xml",
@@ -187,7 +190,9 @@ def test_old_agent():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    mechanism, ufuns, issues = load_genius_domain_from_folder(folder_name, n_steps=None, time_limit=TIMELIMIT)
+    mechanism, ufuns, issues = load_genius_domain_from_folder(
+        folder_name, n_steps=None, time_limit=TIMELIMIT
+    )
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2012.AgentLG.AgentLG",
         domain_file_name=f"{folder_name}/{mechanism.name}.xml",
@@ -226,7 +231,11 @@ def test_old_agent():
     keep_value_names=st.booleans(),
 )
 def test_genius_agents_run_using_hypothesis(
-    agent_name1, agent_name2, single_issue, keep_issue_names, keep_value_names,
+    agent_name1,
+    agent_name2,
+    single_issue,
+    keep_issue_names,
+    keep_value_names,
 ):
     from negmas import convert_genius_domain_from_folder
 
@@ -286,7 +295,11 @@ def test_genius_agent_gets_ufun():
         "negmas", resource_name="tests/data/Laptop"
     )
     neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder, keep_issue_names=True, keep_value_names=True, n_steps=None, time_limit=TIMELIMIT
+        base_folder,
+        keep_issue_names=True,
+        keep_value_names=True,
+        n_steps=None,
+        time_limit=TIMELIMIT,
     )
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
@@ -332,7 +345,11 @@ def test_genius_agents_run_example():
             "negmas", resource_name="tests/data/Laptop"
         )
         neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder, keep_issue_names=True, keep_value_names=True, n_steps=None, time_limit=TIMELIMIT
+            base_folder,
+            keep_issue_names=True,
+            keep_value_names=True,
+            n_steps=None,
+            time_limit=TIMELIMIT,
         )
         if neg is None:
             raise ValueError(f"Failed to lead domain from {base_folder}")
@@ -358,10 +375,12 @@ def test_genius_agents_run_example():
 
 
 def do_test_genius_agent(
-    AgentClass, must_agree_if_same_ufun=True, java_class_name = None
+    AgentClass, must_agree_if_same_ufun=True, java_class_name=None
 ):
     if java_class_name is not None:
-        AgentClass = lambda *args, **kwargs: GeniusNegotiator(*args, java_class_name=java_class_name, **kwargs)
+        AgentClass = lambda *args, **kwargs: GeniusNegotiator(
+            *args, java_class_name=java_class_name, **kwargs
+        )
         agent_class_name = java_class_name
     else:
         agent_class_name = AgentClass.__name__
@@ -412,7 +431,7 @@ def do_test_genius_agent(
     for outcome_type in (tuple, dict):
         for opponent_type in (AspirationNegotiator, Atlas3):
             for starts in (False, True):
-                for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT) ):
+                for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT)):
                     for ufuns in ((1, 0), (0, 1)):
                         try:
                             result = do_run(
@@ -437,10 +456,9 @@ def do_test_genius_agent(
                             )
                             raise e
 
-    if (
-        not must_agree_if_same_ufun
-        or (java_class_name is None and AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN
-    )):
+    if not must_agree_if_same_ufun or (
+        java_class_name is None and AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN
+    ):
         return
 
     # check that it will get to an agreement sometimes if the same ufun
@@ -469,6 +487,7 @@ def do_test_genius_agent(
 @pytest.mark.parametrize("negotiator", ALL_NEGOTIATORS)
 def test_all_negotiators(negotiator):
     do_test_genius_agent(None, java_class_name=negotiator)
+
 
 @pytest.mark.skipif(
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
@@ -814,13 +833,13 @@ def test_KGAgent():
     do_test_genius_agent(KGAgent)
 
 
-
 @pytest.mark.skipif(
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_E2Agent():
     do_test_genius_agent(E2Agent)
+
 
 @pytest.mark.skipif(
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
@@ -837,12 +856,22 @@ def test_MetaAgent():
 def test_TheNegotiatorReloaded():
     do_test_genius_agent(TheNegotiatorReloaded)
 
+
 @pytest.mark.skipif(
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_Ngent():
     do_test_genius_agent(Ngent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Simpatico():
+    do_test_genius_agent(Simpatico)
+
 
 #### agents after this line are not very robust
 

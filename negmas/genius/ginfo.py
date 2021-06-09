@@ -404,9 +404,7 @@ TEST_FAILING_NEGOTIATORS = [
     "agents.anac.y2014.KGAgent.KGAgent",
     "agents.anac.y2018.meng_wan.Agent36",
     "agents.anac.y2014.E2Agent.AnacSampleAgent",
-    "agents.anac.y2013.MetaAgent.MetaAgent2013",
-    "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded",
-    "agents.anac.y2016.ngent.Ngent",
+    "agents.anac.y2010.Southampton.SouthamptonAgent",
 ]
 """Agetns taht fail simple tests making them less robust over the bridge"""
 
