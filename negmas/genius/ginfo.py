@@ -396,6 +396,7 @@ PARTY_BASED_NEGOTIATORS = [
 """Genius agents based on the Party base-class. These are the newest agents"""
 
 TEST_FAILING_NEGOTIATORS = [
+    "agents.anac.y2017.geneking.GeneKing",
     "agents.anac.y2017.rubick.Rubick",
     "agents.anac.y2017.caduceusdc16.CaduceusDC16",
     "agents.anac.y2018.beta_one.Group2",
@@ -405,6 +406,7 @@ TEST_FAILING_NEGOTIATORS = [
     "agents.anac.y2018.meng_wan.Agent36",
     "agents.anac.y2014.E2Agent.AnacSampleAgent",
     "agents.anac.y2010.Southampton.SouthamptonAgent",
+
 ]
 """Agetns taht fail simple tests making them less robust over the bridge"""
 
