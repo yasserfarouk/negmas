@@ -837,3 +837,4 @@ class SAOSingleAgreementAspirationController(
         )
         if outcome is None:
             return self._best_outcomes.get(negotiator, None)
+        return outcome
