@@ -1,6 +1,20 @@
 History
 =======
 
+Release 0.8.4
+-------------
+
+* [tournaments] udpating log_negotiations when forced to save logs
+* [tournaments] saving negotiations
+* [sao] bugfix AsporationController best_outcome
+* [sao] avoiding repetition in trace and offers at the end
+* [genius] disabling AgentTD
+* [genius] disabling GeneKing
+* [genius] testing only confirmed passing negotiators
+* [genius] correcting some genius class names
+* [testing] stronger genius testing
+* [testing] shortening the time allowed for genius negotiators in tests
+
 Release 0.8.3
 -------------
 
