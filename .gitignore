@@ -172,4 +172,5 @@ dist/*
 /.vscode
 trash/utilities.p_
 genius-bridge-log.txt
+.envrc
 /venv*
