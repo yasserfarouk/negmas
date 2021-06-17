@@ -2311,7 +2311,8 @@ def create_tournament(
                     _[subkey].update(
                         dict(
                             compact=False,
-                            log_negotiations=True,
+                            # log_negotiations=True,
+                            save_negotiations=True,
                             log_to_file=True,
                             no_logs=False,
                         )
@@ -2331,7 +2332,8 @@ def create_tournament(
                     dict(
                         compact=False,
                         no_logs=False,
-                        log_negotiations=True,
+                        # log_negotiations=True,
+                        save_negotiations=True,
                         log_to_file=True,
                     )
                 )
