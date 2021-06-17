@@ -413,8 +413,7 @@ def load_genius_domain_from_folder(
 
 
 def find_domain_and_utility_files(folder_name) -> Tuple[Optional[PATH], List[PATH]]:
-    """Finds the domain and utility_function files in a folder
-    """
+    """Finds the domain and utility_function files in a folder"""
     files = sorted(listdir(folder_name))
     domain_file_name = None
     utility_file_names = []
@@ -518,13 +517,11 @@ def convert_genius_domain(
 
 
 def convert_genius_domain_from_folder(
-    src_folder_name: PATH, dst_folder_name: PATH, **kwargs,
+    src_folder_name: PATH,
+    dst_folder_name: PATH,
+    **kwargs,
 ) -> bool:
-    """Loads a genius domain from a folder. See ``load_genius_domain`` for more details.
-
-
-
-    """
+    """Loads a genius domain from a folder. See ``load_genius_domain`` for more details."""
     src_folder_name = pathlib.Path(src_folder_name)
     os.makedirs(dst_folder_name, exist_ok=True)
     files = sorted(listdir(src_folder_name))

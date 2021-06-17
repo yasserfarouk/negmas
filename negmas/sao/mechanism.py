@@ -896,6 +896,7 @@ class SAOMechanism(Mechanism):
                     self.agreement,
                 )
             )
+
         return offers
 
     def negotiator_offers(self, negotiator_id: str) -> List[Outcome]:

@@ -58,6 +58,7 @@ __all__ = [
 NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
 """The return type of `negotiators` member of `Controller`."""
 
+
 class Negotiator(Rational, Notifiable, ABC):
     r"""Abstract negotiation agent. Base class for all negotiators
 
@@ -482,7 +483,8 @@ class Controller(Rational):
         return {
             k: v
             for k, v in self._negotiators.items()
-            if v[0].ami is not None and (v[0].ami.state.running or not v[0].ami.state.started)
+            if v[0].ami is not None
+            and (v[0].ami.state.running or not v[0].ami.state.started)
         }
 
     @property
@@ -527,7 +529,7 @@ class Controller(Rational):
         **kwargs,
     ) -> PassThroughNegotiator:
         """
-        Creates a negotiator but does not add it to the controller. Call 
+        Creates a negotiator but does not add it to the controller. Call
         `add_negotiator` to add it.
 
         Args:

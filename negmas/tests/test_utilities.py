@@ -414,7 +414,7 @@ def test_inverse_genius_domain(normalize):
     u.init_inverse(issues=issues)
     for i in range(100):
         v = u(u.inverse(i / 100.0, eps=(0.001, 0.1), assume_normalized=normalize))
-        assert v-1e-3 <= v <= v+0.1
+        assert v - 1e-3 <= v <= v + 0.1
 
 
 if __name__ == "__main__":

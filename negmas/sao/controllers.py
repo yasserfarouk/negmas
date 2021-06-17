@@ -245,7 +245,7 @@ class SAOSyncController(SAOController):
             self.offers = dict()
             self.offer_states = dict()
             self.n_waits[negotiator_id] = 0
-            resp =  responses[negotiator_id].response
+            resp = responses[negotiator_id].response
             self.responses[negotiator_id] = None
             return resp
         self.n_waits[negotiator_id] += 1

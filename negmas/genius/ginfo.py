@@ -415,19 +415,24 @@ TEST_FAILING_NEGOTIATORS = [
     "agents.anac.y2018.meng_wan.Agent36",
     "agents.anac.y2014.E2Agent.AnacSampleAgent",
     "agents.anac.y2010.Southampton.SouthamptonAgent",
-
 ]
 """Agetns taht fail simple tests making them less robust over the bridge"""
 
-TESTED_NEGOTIATORS = list(set(["agents.anac.y2015.AgentX.AgentX"] + list(
-    itertools.chain(
-        *[
-            list(_[1] for _ in itertools.chain(*v["winners"]))
-            for year, v in GENIUS_INFO.items()
-            if v["multilateral"] and not v["learning"]
-        ]
+TESTED_NEGOTIATORS = list(
+    set(
+        ["agents.anac.y2015.AgentX.AgentX"]
+        + list(
+            itertools.chain(
+                *[
+                    list(_[1] for _ in itertools.chain(*v["winners"]))
+                    for year, v in GENIUS_INFO.items()
+                    if v["multilateral"] and not v["learning"]
+                ]
+            )
+        )
     )
-)) - set(TEST_FAILING_NEGOTIATORS))
+    - set(TEST_FAILING_NEGOTIATORS)
+)
 """Some of the most tested negotaitors"""
 
 ALL_NEGOTIATORS = PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS
@@ -435,6 +440,7 @@ ALL_NEGOTIATORS = PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS
 
 ALL_PASSING_NEGOTIATORS = list(set(ALL_NEGOTIATORS) - set(TEST_FAILING_NEGOTIATORS))
 """All negotiators that passed simple tests showing they work on the bridge"""
+
 
 def get_genius_agents(
     *,

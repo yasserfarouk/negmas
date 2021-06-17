@@ -48,7 +48,7 @@ class GeniusNegotiator(SAONegotiator):
         name: str = None,
         rational_proposal=False,
         parent: Controller = None,
-        owner: "Agent" = None, # type: ignore
+        owner: "Agent" = None,  # type: ignore
         java_class_name: str = None,
         domain_file_name: Union[str, pathlib.Path] = None,
         utility_file_name: Union[str, pathlib.Path] = None,
@@ -99,15 +99,15 @@ class GeniusNegotiator(SAONegotiator):
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
-                domain_file_name=domain_file_name, # type: ignore
+                domain_file_name=domain_file_name,  # type: ignore
                 keep_issue_names=True,
                 keep_value_names=True,
             )
-            self.issue_names = [_.name for _ in self.issues] # type: ignore
+            self.issue_names = [_.name for _ in self.issues]  # type: ignore
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         self.discount = None
         if utility_file_name is not None:
-            self._utility_function, self.discount = UtilityFunction.from_genius( # type: ignore
+            self._utility_function, self.discount = UtilityFunction.from_genius(  # type: ignore
                 utility_file_name,
                 keep_issue_names=keep_issue_names,
                 keep_value_names=keep_value_names,
@@ -158,7 +158,9 @@ class GeniusNegotiator(SAONegotiator):
 
     @classmethod
     def random_negotiator_name(
-        cls, agent_based=True, party_based=True,
+        cls,
+        agent_based=True,
+        party_based=True,
     ):
         agent_names = cls.negotiators(agent_based=agent_based, party_based=party_based)
         return random.choice(agent_names)
@@ -240,7 +242,7 @@ class GeniusNegotiator(SAONegotiator):
             if gateway == None:
                 self.java = None
                 return False
-        self.java = gateway.entry_point # type: ignore
+        self.java = gateway.entry_point  # type: ignore
         return True
 
     @property
@@ -278,8 +280,8 @@ class GeniusNegotiator(SAONegotiator):
 
         if self._normalize_utility:
             self._utility_function = normalize(
-                self.ufun, # type: ignore
-                outcomes=ami.discrete_outcomes, # type: ignore
+                self.ufun,  # type: ignore
+                outcomes=ami.discrete_outcomes,  # type: ignore
                 max_only=self._normalize_max_only,
             )
         self.issue_names = [_.name for _ in ami.issues]
@@ -325,14 +327,14 @@ class GeniusNegotiator(SAONegotiator):
         # return
         if self._temp_ufun_file:
             try:
-                os.unlink(self.utility_file_name) # type: ignore
+                os.unlink(self.utility_file_name)  # type: ignore
             except (FileNotFoundError, PermissionError):
                 pass
             self._temp_ufun_file = False
 
         if self._temp_domain_file:
             try:
-                os.unlink(self.domain_file_name) # type: ignore
+                os.unlink(self.domain_file_name)  # type: ignore
             except (FileNotFoundError, PermissionError):
                 pass
             self._temp_domain_file = False
@@ -350,7 +352,9 @@ class GeniusNegotiator(SAONegotiator):
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
-                    self._utility_function, issues=self.ami.issues, discount_factor=self.discount
+                    self._utility_function,
+                    issues=self.ami.issues,
+                    discount_factor=self.discount,
                 )
             )
             utility_file.close()
@@ -476,7 +480,7 @@ class GeniusNegotiator(SAONegotiator):
             response = ResponseType.ACCEPT_OFFER
         elif typ_ == "EndNegotiation":
             response = ResponseType.END_NEGOTIATION
-        elif typ_ in ("NullOffer","Failure", "NoAction"):
+        elif typ_ in ("NullOffer", "Failure", "NoAction"):
             response = ResponseType.REJECT_OFFER
             outcome = None
         else:

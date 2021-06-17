@@ -111,8 +111,7 @@ class MarginalNeutralConstraint(Constraint):
 
 
 class RankConstraint(MarginalNeutralConstraint):
-    """Constraints the utilities of given outcomes to be in ascending order
-    """
+    """Constraints the utilities of given outcomes to be in ascending order"""
 
     def __init__(
         self,

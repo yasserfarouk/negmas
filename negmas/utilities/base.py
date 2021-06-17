@@ -64,7 +64,8 @@ OutcomeUtilityMappings = List[OutcomeUtilityMapping]
 
 
 IssueUtilityFunctionMapping = Union[
-    Callable[["Issue"], "UtilityFunction"], Mapping["Issue", "UtilityFunction"],
+    Callable[["Issue"], "UtilityFunction"],
+    Mapping["Issue", "UtilityFunction"],
 ]
 """A mapping from issues to utility functions"""
 

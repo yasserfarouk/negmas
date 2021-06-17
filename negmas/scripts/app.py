@@ -150,7 +150,10 @@ def tournament(ctx, ignore_warnings):
     help="Maximum number of steps (only used if --steps was not passed",
 )
 @click.option(
-    "--agents", default=3, type=int, help="Number of agents per competitor",
+    "--agents",
+    default=3,
+    type=int,
+    help="Number of agents per competitor",
 )
 @click.option(
     "--competitors",
@@ -562,7 +565,6 @@ def create(
 @click.pass_context
 def run(
     ctx,
-
     name,
     verbosity,
     parallel,
@@ -616,7 +618,8 @@ def run(
 
 @tournament.command(help="Evaluates a tournament and returns the results")
 @click.argument(
-    "path", type=click.Path(dir_okay=True, file_okay=False),
+    "path",
+    type=click.Path(dir_okay=True, file_okay=False),
 )
 @click.option(
     "--metric",
@@ -635,7 +638,9 @@ def run(
     help="Whether to recompile results from individual world runs or just show the already-compiled results",
 )
 @click.option(
-    "--verbose/--silent", default=True, help="Whether to be verbose",
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
 )
 @click_config_file.configuration_option()
 @click.pass_context
@@ -674,7 +679,9 @@ def eval(ctx, path, metric, significance, compile, verbose):
     help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
 )
 @click.option(
-    "--verbose/--silent", default=True, help="Whether to be verbose",
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
 )
 @click.option(
     "--significance/--no-significance",
@@ -774,10 +781,14 @@ def display_results(results, metric, significance):
 
 @tournament.command(help="Combine multiple tournaments at the given base path(s)")
 @click.argument(
-    "path", type=click.Path(dir_okay=True, file_okay=False), nargs=-1,
+    "path",
+    type=click.Path(dir_okay=True, file_okay=False),
+    nargs=-1,
 )
 @click.option(
-    "--verbose/--silent", default=True, help="Whether to be verbose",
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
 )
 @click.option(
     "--dest",
@@ -819,7 +830,9 @@ def combine(path, dest, verbose):
     help="Whether to show significance table",
 )
 @click.option(
-    "--verbose/--silent", default=True, help="Whether to be verbose",
+    "--verbose/--silent",
+    default=True,
+    help="Whether to be verbose",
 )
 @click.option(
     "--compile/--show",
@@ -858,7 +871,9 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     help="Port to run the NegLoader on. Pass 0 for the default value",
 )
 @click.option(
-    "--debug", default=False, help="Run the bridge in debug mode",
+    "--debug",
+    default=False,
+    help="Run the bridge in debug mode",
 )
 @click.option(
     "--timeout",

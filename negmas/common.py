@@ -300,8 +300,7 @@ class AgentMechanismInterface:
 
 
 class _ShadowAgentMechanismInterface:
-    """Used to represent an AMI to Java.
-    """
+    """Used to represent an AMI to Java."""
 
     def randomOutcomes(self, n: int):
         return to_java(self.shadow.random_outcomes(n))
