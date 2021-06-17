@@ -474,7 +474,7 @@ else:
         return [_OptionLabel(opt.name), value], to_command
 
     def select_type_validator(tp: click.types.ParamType) -> QtGui.QValidator:
-        """ select the right validator for `tp`"""
+        """select the right validator for `tp`"""
 
         if isinstance(tp, click.types.IntParamType):
             return QtGui.QIntValidator()
@@ -484,7 +484,7 @@ else:
         return None
 
     def select_opt_validator(opt):
-        """ select the right validator for `opt`"""
+        """select the right validator for `opt`"""
 
         return select_type_validator(opt.type)
 
@@ -802,7 +802,10 @@ else:
             self.setWindowTitle(self.title)
             # self.setGeometry(self.left, self.top, self.width, self.height)
             self.setGeometry(geometry)
-            self.opt_set = self.initCommandUI(self.func, run_exit,)
+            self.opt_set = self.initCommandUI(
+                self.func,
+                run_exit,
+            )
             self.setLayout(self.opt_set)
             self.show()
 

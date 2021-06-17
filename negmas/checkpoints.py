@@ -11,7 +11,7 @@ from negmas.helpers import load
 
 
 class CheckpointMixin:
-    """Adds the ability to save checkpoints to a `NamedObject` """
+    """Adds the ability to save checkpoints to a `NamedObject`"""
 
     def checkpoint_init(
         self,

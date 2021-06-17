@@ -317,7 +317,7 @@ def create_loggers(
 
 
 def snake_case(s: str) -> str:
-    """ Converts a string from CamelCase to snake_case
+    """Converts a string from CamelCase to snake_case
 
     Example:
 
@@ -340,7 +340,7 @@ def snake_case(s: str) -> str:
 def camel_case(
     s: str, capitalize_first: bool = False, lower_first: bool = False
 ) -> str:
-    """ Converts a string from snake_case to CamelCase
+    """Converts a string from snake_case to CamelCase
 
     Example:
 
@@ -430,18 +430,18 @@ def is_nonzero_file(fpath: str) -> bool:
 def pretty_string(src: Any, tab_size=2, compact=False) -> str:
     """Recursively print nested elements.
 
-        Args:
-            src (Any): The source to be converted to a printable string
-            tab_size (int): Tab size in spaces
-            compact (bool): If true the output is  converted into a single line
+    Args:
+        src (Any): The source to be converted to a printable string
+        tab_size (int): Tab size in spaces
+        compact (bool): If true the output is  converted into a single line
 
-        Returns:
-            str: The pretty version of the input
+    Returns:
+        str: The pretty version of the input
 
-        Remarks:
-            - This function assumes that the patterns `` "`` and ``":`` do not appear anywhere in the input.
-              If they appear, the space, : will be removed.
-        """
+    Remarks:
+        - This function assumes that the patterns `` "`` and ``":`` do not appear anywhere in the input.
+          If they appear, the space, : will be removed.
+    """
     s = _pretty_string(src, dpth=0, current_key="", tab_size=tab_size)
     if compact:
         return s.replace("\n", "")
@@ -668,8 +668,7 @@ class Distribution(object):
         raise NotImplementedError()
 
     def prob(self, val: float) -> float:
-        """Returns the probability for the given value
-        """
+        """Returns the probability for the given value"""
         return self.dist.prob(val)
 
     def sample(self, size: int = 1) -> np.ndarray:
@@ -1046,7 +1045,10 @@ def import_by_name(full_name: str) -> Any:
 
 
 def get_class(
-    class_name: Union[str, Type], module_name: str = None, scope: dict = None, allow_nonstandard_names=False,
+    class_name: Union[str, Type],
+    module_name: str = None,
+    scope: dict = None,
+    allow_nonstandard_names=False,
 ) -> Type:
     """Imports and creates a class object for the given class name"""
     if not isinstance(class_name, str):
@@ -1102,12 +1104,14 @@ def humanize_time(secs, align=False, always_show_all_units=False):
                 parts.append("%2d%s%s" % (n, unit, ""))
     return ":".join(parts)
 
+
 def is_jsonable(x):
     try:
         json.dumps(x)
         return True
     except:
         return False
+
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -1118,33 +1122,46 @@ class NpEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         elif isinstance(obj, bytes):
-            encoded =  base64.b64encode(obj)  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
-            return BYTES_START + encoded.decode('ascii')            #
+            encoded = base64.b64encode(
+                obj
+            )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+            return BYTES_START + encoded.decode("ascii")  #
         elif isinstance(obj, Path):
             return PATH_START + str(obj)
         elif not is_jsonable(obj):
             # it may be a type. Always convert types to full names when saving to json
             try:
-                obj  = TYPE_START + get_full_type_name(obj)
+                obj = TYPE_START + get_full_type_name(obj)
             except:
                 return obj
             return obj
         else:
             return super().default(obj)
 
+
 class NpDecorder(json.JSONDecoder):
     def default(self, obj):
         if isinstance(obj, str):
             if obj.startswith(BYTES_START):
-                return base64.b64decode(obj[BYTES_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+                return base64.b64decode(
+                    obj[BYTES_START:]
+                )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
             elif obj.startswith(TYPE_START):
-                return get_class(obj[TYPE_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+                return get_class(
+                    obj[TYPE_START:]
+                )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
             elif obj.startswith(PATH_START):
-                return Path(obj[PATH_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+                return Path(
+                    obj[PATH_START:]
+                )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
         return super().default(obj)
 
+
 def dump(
-    d: Any, file_name: Union[str, os.PathLike, pathlib.Path], sort_keys=True, compact=False
+    d: Any,
+    file_name: Union[str, os.PathLike, pathlib.Path],
+    sort_keys=True,
+    compact=False,
 ) -> None:
     """
     Saves an object depending on the extension of the file given. If the filename given has no extension,
@@ -1172,7 +1189,13 @@ def dump(
             pass
     if file_name.suffix == ".json":
         with open(file_name, "w") as f:
-            json.dump(d, f, sort_keys=sort_keys, indent=2 if not compact else None, cls=NpEncoder)
+            json.dump(
+                d,
+                f,
+                sort_keys=sort_keys,
+                indent=2 if not compact else None,
+                cls=NpEncoder,
+            )
     elif file_name.suffix == ".yaml":
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
@@ -1231,9 +1254,11 @@ def is_lambda_function(obj):
     """Checks if the given object is a lambda function"""
     return isinstance(obj, LambdaType) and obj.__name__ == "<lambda>"
 
+
 def is_non_lambda_function(obj):
     """Checks if the given object is a lambda function"""
     return isinstance(obj, FunctionType) and obj.__name__ != "<lambda>"
+
 
 def add_records(
     file_name: Union[str, os.PathLike], data: Any, col_names: Optional[List[str]] = None
@@ -1270,7 +1295,8 @@ def add_records(
     file_name.parent.mkdir(parents=True, exist_ok=True)
     new_file = True
     mode = "a"
-    if file_name.exists():
+    # if file_name.exists():
+    if is_nonzero_file(file_name):
         new_file = False
         with open(file_name, "r") as f:
             header = f.readline().strip().strip("\n")
@@ -1284,9 +1310,9 @@ def add_records(
             try:
                 old_data = pd.read_csv(file_name, index_col=None)
                 data = pd.concat((old_data, data), axis=0, ignore_index=True)
-            except Exception:
+            except Exception as e:
                 warnings.warn(
-                    f"Failed to read data from file {str(file_name)} will override it"
+                    f"Failed to read data from file {str(file_name)} will override it\n{e}"
                 )
 
             mode = "w"

@@ -51,11 +51,11 @@ class EventSource:
     def register_listener(self, event_type: Optional[str], listener: "EventSink"):
         """Registers a listener for the given event_type.
 
-            Args:
-                event_type: The type to register. If None, the listener will
-                            be registered for all types
-                listener: The listening agent (must have an `on_event` method
-                          that receives an event: `Event` and a sender: `EventSource`)
+        Args:
+            event_type: The type to register. If None, the listener will
+                        be registered for all types
+            listener: The listening agent (must have an `on_event` method
+                      that receives an event: `Event` and a sender: `EventSource`)
         """
         self.__sinks[event_type].append(listener)
 

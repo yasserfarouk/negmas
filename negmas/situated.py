@@ -136,7 +136,6 @@ try:
 except ImportError:
     nx = None
 
-
 __all__ = [
     "Operations",
     "RunningNegotiationInfo",
@@ -216,7 +215,6 @@ EDGE_COLORS = {
     "contracts-executed": "black",
 }
 
-
 RunningNegotiationInfo = namedtuple(
     "RunningNegotiationInfo",
     ["negotiator", "annotation", "uuid", "extra", "my_request"],
@@ -228,6 +226,7 @@ NegotiationRequestInfo = namedtuple(
     ["partners", "issues", "annotation", "uuid", "negotiator", "requested", "extra"],
 )
 """Keeps track to negotiation requests that an agent sent"""
+
 
 def show_edge_colors():
     """Plots the edge colors used with their meaning"""
@@ -477,9 +476,7 @@ class Entity:
 
 
 class BulletinBoard(EventSource, ConfigReader):
-    """The bulletin-board which carries all public information. It consists of sections each with a dictionary of records.
-
-    """
+    """The bulletin-board which carries all public information. It consists of sections each with a dictionary of records."""
 
     # def __getstate__(self):
     #     return self.name, self._data
@@ -1479,7 +1476,6 @@ class WorldMonitor(Entity):
 
     def step(self, world: "World"):
         """Called at the END of every simulation step"""
-
 
 
 class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
@@ -3022,7 +3018,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         force_immediate_signing,
         partners: List[Agent],
     ) -> Tuple[List[Contract], List[bool], int, int, int, int]:
-        """ Runs all bending negotiations """
+        """Runs all bending negotiations"""
         running = [_ is not None for _ in mechanisms]
         contracts = [None] * len(mechanisms)
         indices = list(range(len(mechanisms)))
@@ -3097,20 +3093,20 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             whatever method returns
         """
         if self.disable_agent_printing:
-            old_stdout = sys.stdout # backup current stdout
+            old_stdout = sys.stdout  # backup current stdout
             sys.stdout = open(os.devnull, "w")
         try:
             _strt = time.perf_counter()
             result = method(*args, **kwargs)
             _end = time.perf_counter()
             if self.disable_agent_printing:
-                sys.stdout = old_stdout # reset old stdout
+                sys.stdout = old_stdout  # reset old stdout
             self.times[agent.id] = _end - _strt
             return result
         except Exception as e:
             _end = time.perf_counter()
             if self.disable_agent_printing:
-                sys.stdout = old_stdout # reset old stdout
+                sys.stdout = old_stdout  # reset old stdout
             self.times[agent.id] = _end - _strt
             self.agent_exceptions[agent.id].append(
                 (self._current_step, exception2str())
@@ -3182,7 +3178,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         _n_registered_negotiations_before = len(self._negotiations)
 
         def _run_negotiations(n_steps: Optional[int] = None):
-            """ Runs all bending negotiations """
+            """Runs all bending negotiations"""
             nonlocal n_steps_broken, n_steps_success, n_broken, n_success
             mechanisms = list(
                 (_.mechanism, _.partners)
@@ -3419,7 +3415,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.delete_executed_contracts()  # note that all contracts even breached ones are to be deleted
             for c in dropped:
                 self.loginfo(
-                    f"Dropped {str(c)}", Event("dropped-contract", dict(contract=c)),
+                    f"Dropped {str(c)}",
+                    Event("dropped-contract", dict(contract=c)),
                 )
                 self._saved_contracts[c.id]["dropped_at"] = self._current_step
                 for p in c.partners:
@@ -4192,7 +4189,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         dd = {(k if k not in record.keys() else f"{k}_neg"): v for k, v in dd.items()}
         dd["history"] = [vars(_) for _ in mechanism.history]
         if hasattr(mechanism, "negotiator_offers"):
-            dd["offers"] = {n.owner.id if n.owner else n.name: [_ for _ in mechanism.negotiator_offers(n.id)] for n in mechanism.negotiators}
+            dd["offers"] = {
+                n.owner.id
+                if n.owner
+                else n.name: [_ for _ in mechanism.negotiator_offers(n.id)]
+                for n in mechanism.negotiators
+            }
         record.update(dd)
         return record
 
@@ -4493,14 +4495,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def on_contract_cancelled(self, contract):
         """Called whenever a concluded contract is not signed (cancelled)
 
-            Args:
+        Args:
 
-                contract: The contract to add
+            contract: The contract to add
 
-            Remarks:
+        Remarks:
 
-                - By default this function just adds the contract to the set of contracts maintaned by the world.
-                - You should ALWAYS call this function when overriding it.
+            - By default this function just adds the contract to the set of contracts maintaned by the world.
+            - You should ALWAYS call this function when overriding it.
 
         """
         self._add_edges(
@@ -5034,7 +5036,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @property
     def breach_level(self) -> float:
-        """The average breach level per contract """
+        """The average breach level per contract"""
         blevel = np.nansum(self.stats["breach_level"])
         n_contracts = sum(self.stats["n_contracts_executed"]) + sum(
             self.stats["n_breaches"]

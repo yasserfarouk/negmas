@@ -181,7 +181,7 @@ class LinearUtilityFunction(UtilityFunction):
             issue_name = issue.name
             if issue.is_float():
                 output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-                output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
+                output += f"<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>"
             # elif issue.is_integer():
             #     output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             #     output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
@@ -191,7 +191,9 @@ class LinearUtilityFunction(UtilityFunction):
             bias = iget(self.biases, k, 0.0)
             for indx, u in enumerate(vals):
                 uu = issue.value_type(u + bias)
-                output += f'    <item index="{indx+1}" value="{uu}" evaluation="{u}" />\n'
+                output += (
+                    f'    <item index="{indx+1}" value="{uu}" evaluation="{u}" />\n'
+                )
 
             output += "</issue>\n"
         if isinstance(issues, dict):
@@ -534,7 +536,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             issue_name = issue.name
             if issue.is_float():
                 output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-                output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'
+                output += f"<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>"
             # elif issue.is_integer():
             #     output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
             #     output += f'<range lowerbound = {issue.min_value} upperbound = {issue.max_value} ></range>'

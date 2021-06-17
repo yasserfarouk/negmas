@@ -101,7 +101,9 @@ class BaseVOIElicitor(BaseElicitor):
         **kwargs,
     ) -> None:
         super().__init__(
-            strategy=strategy, user=user, **kwargs,
+            strategy=strategy,
+            user=user,
+            **kwargs,
         )
         self.eeu_query = None
         self.query_index_of_outcome = None
@@ -381,13 +383,13 @@ class BaseVOIElicitor(BaseElicitor):
     def add_query(self, qeeu: Tuple[float, int]) -> None:
         """Adds a query to the heap of queries
 
-            Args:
-                qeeu: A Tuple giving (-EEU, query_index)
+        Args:
+            qeeu: A Tuple giving (-EEU, query_index)
 
-            Remarks:
-                - Note that the first member of the tuple is **minus** the EEU
-                - The sedond member of the tuple is an index of the query in
-                  the queries list (not the query itself).
+        Remarks:
+            - Note that the first member of the tuple is **minus** the EEU
+            - The sedond member of the tuple is an index of the query in
+              the queries list (not the query itself).
         """
         heappush(self.eeu_query, qeeu)
 

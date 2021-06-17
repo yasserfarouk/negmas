@@ -510,7 +510,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if assume_normalized:
             self.ufun_max, self.ufun_min = 1.0, 0.0
         super().__init__(
-            assume_normalized=assume_normalized, **kwargs,
+            assume_normalized=assume_normalized,
+            **kwargs,
         )
         self.aspiration_init(
             max_aspiration=max_aspiration, aspiration_type=aspiration_type
@@ -673,7 +674,9 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 rng = self.ufun_max - self.ufun_min
                 mx = min(asp + tol * rng, self.__last_offer_util)
                 outcome = outcome_with_utility(
-                    ufun=self._utility_function, rng=(asp, mx), issues=self._ami.issues,
+                    ufun=self._utility_function,
+                    rng=(asp, mx),
+                    issues=self._ami.issues,
                 )
                 if outcome is not None:
                     break
@@ -766,7 +769,9 @@ class ToughNegotiator(SAONegotiator):
         if self._utility_function is None:
             return
         _, _, _, self.best_outcome = utility_range(
-            self.utility_function, issues=self.ami.issues, return_outcomes=True,
+            self.utility_function,
+            issues=self.ami.issues,
+            return_outcomes=True,
         )
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
@@ -1053,7 +1058,14 @@ class PassThroughSAONegotiator(SAONegotiator):
         if self._Negotiator__parent:
             return self._Negotiator__parent.on_negotiation_end(self.id, state)
 
-    def join(self, ami, state, *, ufun=None, role="agent",) -> bool:
+    def join(
+        self,
+        ami,
+        state,
+        *,
+        ufun=None,
+        role="agent",
+    ) -> bool:
         """
         Joins a negotiation.
 

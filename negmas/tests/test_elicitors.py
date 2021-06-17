@@ -26,7 +26,9 @@ try:
     BLIST_AVAILABLE = True
 except ImportError:
     BLIST_AVAILABLE = False
-    print("blist is not avialable. This is a known issue with python 3.9. Use python 3.8 if you are testing VOI")
+    print(
+        "blist is not avialable. This is a known issue with python 3.9. Use python 3.8 if you are testing VOI"
+    )
 
 n_outcomes = 5
 cost = 0.02

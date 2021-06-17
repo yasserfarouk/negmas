@@ -218,9 +218,7 @@ class AgentYK(GeniusNegotiator):
 
 class BraveCat(GeniusNegotiator):
     def __init__(self, **kwargs):
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2014.BraveCat.BraveCat"
+        kwargs["java_class_name"] = "agents.anac.y2014.BraveCat.BraveCat"
         super().__init__(**kwargs)
 
 
@@ -377,10 +375,12 @@ class Gangster(GeniusNegotiator):
         kwargs["java_class_name"] = "agents.anac.y2014.Gangster.Gangster"
         super().__init__(**kwargs)
 
+
 class Simpatico(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2014.SimpaticoAgent.Simpatico"
         super().__init__(**kwargs)
+
 
 class TheFawkes(GeniusNegotiator):
     def __init__(self, **kwargs):

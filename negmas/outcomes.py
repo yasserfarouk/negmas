@@ -1494,7 +1494,7 @@ class Issues(object):
     @property
     def num_outcomes(self) -> Union[int, float]:
         """Returns the total number of outcomes in a set of issues. Infinity is returned for uncountable or continuous
-        outcomes """
+        outcomes"""
         n = 1
 
         for issue in self.issues:
