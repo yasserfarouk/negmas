@@ -2255,7 +2255,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         ),
         info: Optional[Dict[str, Any]] = None,
         genius_port: int = DEFAULT_JAVA_PORT,
-        disable_agent_printing: bool = True,
+        disable_agent_printing: bool = False,
         name: str = None,
         id: str = None,
     ):
