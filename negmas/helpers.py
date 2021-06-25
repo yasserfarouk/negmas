@@ -1325,11 +1325,32 @@ def exception2str(limit=None, chain=True) -> str:
     return traceback.format_exc(limit=limit, chain=chain)
 
 
+SINGLE_THREAD_FORCED = False
+
+
+def force_single_thread(on: bool = True):
+    """
+    Forces negmas to use a single thread for all internal calls.
+
+    Remarks:
+        - This will have the effect of not enforcing time-limits on calls.
+        - Only use this with caution and for debugging.
+    """
+    global SINGLE_THREAD_FORCED
+    SINGLE_THREAD_FORCED = on
+
+
+def is_single_thread() -> bool:
+    return SINGLE_THREAD_FORCED
+
+
 class TimeoutCaller:
     pool = None
 
     @classmethod
     def run(cls, to_run, timeout: float):
+        if is_single_thread():
+            return to_run()
         pool = cls.get_pool()
         future = pool.submit(to_run)
         try:
