@@ -671,6 +671,12 @@ class SAOMechanism(Mechanism):
                     )
                 if resp.response in (ResponseType.NO_RESPONSE, ResponseType.WAIT):
                     continue
+                if (
+                    resp.response == ResponseType.REJECT_OFFER
+                    and resp.outcome is None
+                    and self.end_negotiation_on_refusal_to_propose
+                ):
+                    continue
                 responses.append(resp)
             if len(responses) < 1:
                 if not self.dynamic_entry:
@@ -850,7 +856,10 @@ class SAOMechanism(Mechanism):
                             times=times,
                             exceptions=exceptions,
                         )
-                    continue
+                    self._current_offer = proposal
+                    self._current_proposer = neg
+                    self._new_offers.append((neg.id, proposal))
+                    self._n_accepting = 0
                 else:
                     self._current_offer = proposal
                     self._current_proposer = neg
