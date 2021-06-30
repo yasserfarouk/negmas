@@ -1,6 +1,15 @@
 History
 =======
 
+Release 0.8.5
+-------------
+
+*  [sao] Avoiding an issue with avoid-ultimatum if all agents sent None as their first offer
+*  [situated] bugfix in reporting mechanism exceptions
+*  [helpers] Adding one-thread mode
+*  [situated] enable agent printing by default
+*  [tournament] not setting log_negotiations for forced logs
+
 Release 0.8.4
 -------------
 
