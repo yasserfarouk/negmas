@@ -862,8 +862,8 @@ class MechanismFactory:
             mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
         except Exception as e:
             s_ = exception2str()
-            self.world.mechanism_exceptions[self._current_step].append(s_)
-            self.world.agent_exceptions[caller.id].append((self._current_step, s_))
+            self.world.mechanism_exceptions[self.world.current_step].append(s_)
+            self.world.agent_exceptions[caller.id].append((self.world.current_step, s_))
             mechanism = None
             self.world.logerror(
                 f"Failed to create {mechanism_name} with params {mechanism_params}",
