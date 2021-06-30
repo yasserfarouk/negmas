@@ -91,6 +91,7 @@ __all__ = [
     "is_jsonable",
     "is_lambda_function",
     "is_non_lambda_function",
+    "force_single_thread",
 ]
 # conveniently named classes
 TYPE_START = "__TYPE__:"
