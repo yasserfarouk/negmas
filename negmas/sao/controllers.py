@@ -120,8 +120,7 @@ class SAOController(Controller):
         return self.call(negotiator, "respond", state=state, offer=offer)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
-        if self._auto_kill:
-            self.kill_negotiator(negotiator_id, True)
+        super().on_negotiation_end(negotiator_id, state)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         pass
@@ -164,6 +163,11 @@ class SAOSyncController(SAOController):
     """
     A controller that can manage multiple negotiators synchronously.
 
+    Args:
+
+        global_ufun: If true, the controller assumes that the ufun is only
+                     defined globally for the complete set of negotiations
+
     Remarks:
         - The controller waits for an offer from each one of its negotiators before deciding what to do.
         - Loops may happen if multiple controllers of this type negotiate with each other. For example controller A
@@ -184,21 +188,19 @@ class SAOSyncController(SAOController):
         self.offer_states: Dict[str, "SAOState"] = {}
         """Keeps the last state received for each negotiation"""
         self.n_waits: Dict[str, int] = defaultdict(int)
+        """The number of contiguous waits sent for every partner"""
         self.global_ufun = global_ufun
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
         if not self.proposals:
             self.proposals = self.first_proposals()
-            # print(f"{self.name} first proposals {self.proposals}")
         # get the saved proposal if it exists and return it
         proposal = self.proposals.get(negotiator_id, None)
         # if some proposal was there, delete it to force the controller to get a new one
         if proposal is not None:
             self.proposals[negotiator_id] = None
-            # print(f"{self.name} found proposal {proposal} for {negotiator_id}")
         else:
-            # print(f"{self.name} found {None} for {negotiator_id}")
             # if the proposal that was there was None, just offer the best offer
             if self.global_ufun:
                 self.proposals = self.first_proposals()
@@ -206,18 +208,14 @@ class SAOSyncController(SAOController):
                 self.proposals[negotiator_id] = None
             else:
                 proposal = self.first_offer(negotiator_id)
-            # print(f"{self.name} generated proposal {proposal} for {negotiator_id}")
-        # print(f"{self.name} sent proposal {proposal} through {negotiator_id}")
         return proposal
 
     def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
     ) -> "ResponseType":
         # get the saved response to this negotiator if any
-        # print(f"{self.name} received offer {offer} through {negotiator_id}")
         response = self.responses.get(negotiator_id, None)
         if response is not None:
-            # print(f"{self.name} found response {response} for {negotiator_id}")
             # remove the response and return it
             del self.responses[negotiator_id]
             self.n_waits[negotiator_id] = 0
@@ -235,7 +233,6 @@ class SAOSyncController(SAOController):
             or self.n_waits[negotiator_id] >= n_negotiators
         ):
             responses = self.counter_all(offers=self.offers, states=self.offer_states)
-            # print(f"{self.name} responded to {self.offers} with {responses}: s: { {k: v.step for k, v in self.offer_states.items()}  }")
             for nid in responses.keys():
                 # register the responses for next time for all other negotiators
                 if nid != negotiator_id:
@@ -249,7 +246,6 @@ class SAOSyncController(SAOController):
             self.responses[negotiator_id] = None
             return resp
         self.n_waits[negotiator_id] += 1
-        # print(f"controller {self.id}: {self.n_waits}")
         return ResponseType.WAIT
 
     def first_proposals(self) -> Dict[str, "Outcome"]:
@@ -279,7 +275,6 @@ class SAOSyncController(SAOController):
 
         """
 
-    # @lru_cache(maxsize=100)
     def first_offer(self, negotiator_id: str) -> Optional["Outcome"]:
         """
         Finds the first offer for this given negotiator. By default it will be the best offer
@@ -316,6 +311,18 @@ class SAOSyncController(SAOController):
             best = None
         return best
 
+    def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
+        if negotiator_id in self.offers.keys():
+            del self.offers[negotiator_id]
+        if negotiator_id in self.offer_states.keys():
+            del self.offer_states[negotiator_id]
+        if negotiator_id in self.responses.keys():
+            del self.responses[negotiator_id]
+        if negotiator_id in self.proposals.keys():
+            del self.proposals[negotiator_id]
+        if negotiator_id in self.n_waits.keys():
+            del self.n_waits[negotiator_id]
+        return super().on_negotiation_end(negotiator_id, state)
 
 class SAORandomSyncController(SAOSyncController):
     """
