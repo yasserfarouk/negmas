@@ -2,10 +2,11 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
+import itertools
 
 # from pprint import pprint
 from time import sleep
-from typing import Dict, Sequence
+from typing import Dict, Sequence, List
 
 import hypothesis.strategies as st
 from hypothesis import HealthCheck, example, given, settings
@@ -13,6 +14,7 @@ from pytest import mark
 
 from negmas import Issue, ResponseType
 from negmas.helpers import unique_name
+from negmas.outcomes import Outcome
 from negmas.sao import (
     AspirationNegotiator,
     LimitedOutcomesNegotiator,
@@ -33,17 +35,11 @@ class MyRaisingNegotiator(AspirationNegotiator):
 
 
 class MySyncController(SAOSyncController):
-    #     def respond(self, negotiator_id, state, offer):
-    #         response = super().respond(negotiator_id, state, offer)
-    #         if response != ResponseType.REJECT_OFFER and response != ResponseType.WAIT:
-    #         return response
-    #
-    #     def propose(self, negotiator_id, state):
-    #         offer = super().propose(negotiator_id, state)
-    #         if offer is None:
-    #         return offer
-    #
     def counter_all(self, offers, states):
+        for k, v in offers.items():
+            s = states[k]
+            self.received_offers[s.step][k].append(v)
+
         if self._sleep_seconds:
             if isinstance(self._sleep_seconds, Sequence):
                 s = (
@@ -57,9 +53,6 @@ class MySyncController(SAOSyncController):
         responses = [
             self.negotiators[_][0].ami.random_outcomes(1)[0] for _ in states.keys()
         ]
-        # print(
-        #     f"{self.name} COUNTERED {offers} with {responses} @ { {k: v.step for k, v in states.items()} } : w {self.n_waits}, p {self.proposals}, o {self.offers}"
-        # )
         return dict(
             zip(
                 states.keys(),
@@ -69,22 +62,19 @@ class MySyncController(SAOSyncController):
 
     def respond(self, negotiator_id, state, offer):
         response = super().respond(negotiator_id, state, offer)
-        # print(
-        #     f"{self.name} responded to {offer} from {negotiator_id}  @ {state.step} with {response}: w {self.n_waits}, p {self.proposals}, o {self.offers}"
-        # )
         return response
 
     def propose(self, negotiator_id, state):
         proposal = super().propose(negotiator_id, state)
-        # print(
-        #     f"{self.name} proposed {proposal} through {negotiator_id} @ {state.step}: w {self.n_waits}, p {self.proposals}, o {self.offers}"
-        # )
         return proposal
 
     def __init__(self, *args, sleep_seconds=0.2, **kwargs):
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
         self.n_counter_all_calls = 0
+        self.received_offers: Dict[int, Dict[str, List[Outcome]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
 
 
 class TimeWaster(RandomNegotiator):
@@ -198,15 +188,6 @@ def test_single_mechanism_history_with_waiting(
     first_offers = []
     ignored_offers = []
     for i, n in enumerate(mechanism.negotiators):
-        # print(f"Received, offered, respones for {i} ({n})")
-        # print(
-        #     list(
-        #         zip(
-        #             zip(n.received_offers.keys(), n.received_offers.values()),
-        #             zip(n.my_offers.keys(), n.my_offers.values()),
-        #         )
-        #     )
-        # )
         # all agents asked to offer first if avoid_ultimatum
         if avoid_ultimatum:
             assert n.received_offers[0] is None
@@ -306,6 +287,81 @@ def test_neg_run_no_waiting():
     assert len(mechanism.history) == n_steps
     for _, v in mechanism.stats["times"].items():
         assert v >= waste * n_steps
+
+
+@mark.parametrize(
+    ["keep_order", "n_first", "n_second"],
+    [
+        (True, 2, 2),
+        (False, 2, 2),
+        (True, 2, 3),
+        (False, 2, 3),
+        (True, 3, 2),
+        (False, 3, 2),
+        (True, 2, 6),
+        (False, 2, 6),
+        (True, 4, 6),
+        (False, 4, 6),
+        (True, 4, 6),
+        (False, 4, 6),
+    ],
+)
+def test_neg_sync_loop_receives_all_offers(keep_order, n_first, n_second):
+    # from pprint import pprint
+
+    n_outcomes, n_steps = 10, 10
+    waste_center = 0.1
+    c1s = [
+        MySyncController(sleep_seconds=waste_center, name="c1") for _ in range(n_first)
+    ]
+    c2s = [
+        MySyncController(sleep_seconds=waste_center, name="c2") for _ in range(n_second)
+    ]
+    mechanisms = [
+        SAOMechanism(
+            outcomes=n_outcomes,
+            n_steps=n_steps,
+            ignore_negotiator_exceptions=False,
+            avoid_ultimatum=False,
+            name=f"{i}-{j}",
+        )
+        for i in range(n_first)
+        for j in range(n_second)
+    ]
+    for mechanism in mechanisms:
+        ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
+        i, j = tuple(int(_) for _ in mechanism.name.split("-"))
+        mechanism.add(
+            c1s[i].create_negotiator(ufun=ufuns[0], id=f"0-{i}-{j}", name=f"0-{i}-{j}")
+        )
+        mechanism.add(
+            c2s[j].create_negotiator(ufun=ufuns[1], id=f"1-{i}-{j}", name=f"1-{i}-{j}")
+        )
+
+    SAOMechanism.runall(mechanisms, keep_order=keep_order)
+
+    for mechanism in mechanisms:
+        assert mechanism.state.started
+        assert mechanism.state.agreement is None
+        assert not mechanism.state.has_error
+        assert not mechanism.state.broken
+        # assert mechanism.state.timedout
+        assert mechanism.state.step == n_steps
+        assert not mechanism.state.waiting
+        assert len(mechanism.history) == n_steps
+
+    for c, n_partners in itertools.chain(
+        zip(c1s, itertools.repeat(n_second)), zip(c2s, itertools.repeat(n_first))
+    ):
+        steps = set(range(1, n_steps))
+        received_steps = set(c.received_offers.keys())
+        missing_steps = steps.difference(received_steps)
+        assert len(missing_steps) == 0, f"Missing steps are {missing_steps}"
+        for s in steps:
+            partners = c.received_offers[s]
+            assert (
+                len(partners) == n_partners
+            ), f"Received offers from {len(partners)} only (expected {n_partners}).\n{partners}"
 
 
 @mark.parametrize(["keep_order"], [(True,), (False,)])
