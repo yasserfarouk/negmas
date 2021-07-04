@@ -800,7 +800,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return self.state
         if len(self._negotiators) < 2:
             if self.ami.dynamic_entry:
-                return state
+                return self.state
             else:
                 self._running, self._broken, self._timedout = False, False, False
                 # self._history.append(self.state4history)
@@ -886,7 +886,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._step += 1
         if not self._running:
             self.on_negotiation_end()
-        return state
+        return self.state
 
     @classmethod
     def runall(
@@ -950,9 +950,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         """
         if not keep_order:
-            raise NotImplementedError(
-                "running mechanisms in random order is not yet supported"
-            )
+            random.shuffle(mechanisms)
 
         completed = [_ is None for _ in mechanisms]
         states = [None] * len(mechanisms)
