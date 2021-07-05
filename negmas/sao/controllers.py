@@ -120,7 +120,8 @@ class SAOController(Controller):
         return self.call(negotiator, "respond", state=state, offer=offer)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
-        super().on_negotiation_end(negotiator_id, state)
+        if self._auto_kill:
+            self.kill_negotiator(negotiator_id)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         pass
