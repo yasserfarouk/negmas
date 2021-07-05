@@ -2129,7 +2129,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         negotiation_speed: The number of negotiation steps per simulation step. None means infinite
         neg_n_steps: Maximum number of steps allowed for a negotiation.
         neg_step_time_limit: Time limit for single step of the negotiation protocol.
-        neg_time_limit: Real-time limit on each single negotiation
+        neg_time_limit: Real-time limit on each single negotiation.
+        shuffle_negotiations: Whether negotiations are shuffled everytime when stepped.
         negotiation_quota_per_step: Number of negotiations an agent is allowed to start per step
         negotiation_quota_per_simulation: Number of negotiations an agent is allowed to start in the simulation
         start_negotiations_immediately: If true negotiations start immediately when registered rather than waiting
@@ -2205,6 +2206,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_n_steps=100,
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
+        shuffle_negotiations=True,
         negotiation_quota_per_step=float("inf"),
         negotiation_quota_per_simulation=float("inf"),
         default_signing_delay=1,
@@ -2369,6 +2371,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._log_ufuns = log_ufuns
         self._log_negs = log_negotiations
         self.safe_stats_monitoring = safe_stats_monitoring
+        self.shuffle_negotiations = shuffle_negotiations
         self.info = info if info is not None else dict()
 
         if isinstance(mechanisms, Collection) and not isinstance(mechanisms, dict):
@@ -3029,7 +3032,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             n_steps = float("inf")
 
         while any(running):
-            random.shuffle(indices)
+            if self.shuffle_negotiations:
+                random.shuffle(indices)
             for i in indices:
                 if not running[i]:
                     continue
