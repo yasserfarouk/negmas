@@ -791,71 +791,83 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.checkpoint_on_step_started()
         state = self.state
         state4history = self.state4history
+
+        # end with a timeout if condition is met
         if (self.time > self.time_limit) or (
             self.ami.n_steps and self._step >= self.ami.n_steps
         ):
             self._running, self._broken, self._timedout = False, False, True
-            # self._history.append(self.state4history)
             self.on_negotiation_end()
             return self.state
+
+        # if there is a single negotiator and no other negotiators can be added, 
+        # end without starting
         if len(self._negotiators) < 2:
             if self.ami.dynamic_entry:
                 return self.state
             else:
                 self._running, self._broken, self._timedout = False, False, False
-                # self._history.append(self.state4history)
                 self.on_negotiation_end()
                 return self.state
 
+        # if the mechanism states that it is broken, timedout or ended with 
+        # agreement, report that
         if self._broken or self._timedout or self._agreement is not None:
             self._running = False
-            # self._history.append(self.state4history)
             self.on_negotiation_end()
             return self.state
 
         if not self._running:
+            # if we did not start, just start
             self._running = True
             self._step = 0
             self._start_time = time.perf_counter()
             self._started = True
             state = self.state
+            # if the mechanism indicates that it cannot start, keep trying
             if self.on_negotiation_start() is False:
                 self._agreement, self._broken, self._timedout = None, False, False
-                # self._history.append(self.state4history)
                 return self.state
             for a in self.negotiators:
                 a.on_negotiation_start(state=state)
             self.announce(Event(type="negotiation_start", data=None))
         else:
+            # if no steps are remaining, end with a timeout
             remaining_steps, remaining_time = self.remaining_steps, self.remaining_time
             if (remaining_steps is not None and remaining_steps <= 0) or (
                 remaining_time is not None and remaining_time <= 0.0
             ):
                 self._running = False
                 self._agreement, self._broken, self._timedout = None, False, True
-                # self._history.append(self.state4history)
                 self.on_negotiation_end()
                 return self.state
 
-        if not self._waiting:
-            if self._enable_callbacks:
-                for agent in self._negotiators:
-                    agent.on_round_start(state)
+        # send round start only if the mechanism is not waiting for anyone
+        # TODO check this. 
+        if not self._waiting and self._enable_callbacks:
+            for agent in self._negotiators:
+                agent.on_round_start(state)
+
+        # run a round of the mechanism and get the new state
         step_start = time.perf_counter() if not self._waiting else self._last_start
         self._last_start = step_start
         self._waiting = False
         result = self.round()
         step_time = time.perf_counter() - step_start
         self._stats["round_times"].append(step_time)
+
+        # if negotaitor times are reported, save them
         if result.times:
             for k, v in result.times.items():
                 if v is not None:
                     self._stats["times"][k] += v
+        # if negotaitor exceptions are reported, save them
         if result.exceptions:
             for k, v in result.exceptions.items():
                 if v:
                     self._stats["exceptions"][k] += v
-        state = self.state
+
+        # update current state variables from the result of the round just run
         self._error, self._error_details, self._waiting = (
             result.error,
             result.error_details,
@@ -876,6 +888,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             )
         if (self._agreement is not None) or self._broken or self._timedout:
             self._running = False
+
+        # now switch to the new state
         state = self.state
         if not self._waiting:
             state4history = self.state4history
@@ -883,6 +897,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 for agent in self._negotiators:
                     agent.on_round_end(state)
             self._history.append(state4history)
+            # we only indicate a new step if no one is waiting
             self._step += 1
         if not self._running:
             self.on_negotiation_end()
@@ -907,16 +922,18 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         completed = [_ is None for _ in mechanisms]
         states = [None] * len(mechanisms)
+        indices = list(range(len(list(mechanisms))))
         if method == "serial":
             while not all(completed):
-                lst = zip(completed, mechanisms)
                 if not keep_order:
-                    lst = list(lst)
-                    random.shuffle(lst)
-                for i, (done, mechanism) in enumerate(lst):
+                    random.shuffle(indices)
+                for i in indices:
+                    done, mechanism = completed[i], mechanisms[i]
                     if done:
                         continue
                     result = mechanism.step()
+                    if result.running != mechanism.state.running:
+                        breakpoint()
                     if result.running:
                         continue
                     completed[i] = True
@@ -949,20 +966,20 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - List of states of all mechanisms after completion
 
         """
+        indices = list(range(len(list(mechanisms))))
         if not keep_order:
-            random.shuffle(mechanisms)
+            random.shuffle(indices)
 
         completed = [_ is None for _ in mechanisms]
-        states = [None] * len(mechanisms)
-        for i, (done, mechanism) in enumerate(zip(completed, mechanisms)):
+        for i in indices:
+            done, mechanism = completed[i], mechanisms[i]
             if done:
                 continue
             result = mechanism.step()
             if result.running:
                 continue
             completed[i] = True
-            states[i] = mechanism.state
-        return states
+        return [_.state for _ in mechanisms]
 
     def run(self, timeout=None) -> MechanismState:
         if timeout is None:
