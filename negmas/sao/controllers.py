@@ -247,10 +247,8 @@ class SAOSyncController(SAOController):
             self.__responses[nid] = responses[nid].response
             # register the proposals to be sent to all agents including this one
             self.__proposals[nid] = responses[nid].outcome
-        # register that we are not waiting anymore on any of the offers we received
-        self.__n_waits[negotiator_id] = 0
-        for k in self.__offers.keys():
-            self.__n_waits[k] = 0
+            # register that we are not waiting anymore on any of the offers we received
+            self.__n_waits[nid] = 0
         self.__offers = dict()
         self.__offer_states = dict()
         return self.__responses.pop(negotiator_id)

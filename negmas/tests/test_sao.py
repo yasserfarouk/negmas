@@ -36,7 +36,6 @@ class MyRaisingNegotiator(AspirationNegotiator):
 
 
 class MySyncController(SAOSyncController):
-
     def respond(self, negotiator_id, state, offer):
         response = super().respond(negotiator_id, state, offer)
         self.received_offers[negotiator_id][state.step].append(offer)
@@ -171,7 +170,8 @@ class TimeWaster(RandomNegotiator):
         assert state.step not in self.my_offers
         assert state.step not in self.my_responses
         self.received_offers[state.step] = offer
-        response = super().counter(state, offer)
+        outcome = self.ami.random_outcomes(1)[0]
+        response = SAOResponse(ResponseType.REJECT_OFFER, outcome)
         assert response.outcome is not None
         self.my_offers[state.step] = response.outcome
         self.my_responses[state.step] = response.response
@@ -343,60 +343,85 @@ def test_neg_run_no_waiting():
         assert v >= waste * n_steps
 
 
-
-
-@mark.parametrize(
-    ["keep_order", "n_first", "n_second", "avoid_ultimatum", "end_on_no_response"],
-    [
-        (True, 2, 2, False, False),
-        (False, 2, 2, False, False),
-        (True, 2, 3, False, False),
-        (False, 2, 3, False, False),
-        (True, 3, 2, False, False),
-        (False, 3, 2, False, False),
-        (True, 2, 6, False, False),
-        (False, 2, 6, False, False),
-        (True, 4, 6, False, False),
-        (False, 4, 6, False, False),
-        (False, 2, 2, True, False),
-        (True, 2, 2, True, False),
-        (True, 2, 3, True, False),
-        (False, 2, 3, True, False),
-        (True, 3, 2, True, False),
-        (False, 3, 2, True, False),
-        (True, 2, 6, True, False),
-        (False, 2, 6, True, False),
-        (True, 4, 6, True, False),
-        (False, 4, 6, True, False),
-
-        (True, 2, 2, False, True),
-        (False, 2, 2, False, True),
-        (True, 2, 3, False, True),
-        (False, 2, 3, False, True),
-        (True, 3, 2, False, True),
-        (False, 3, 2, False, True),
-        (True, 2, 6, False, True),
-        (False, 2, 6, False, True),
-        (True, 4, 6, False, True),
-        (False, 4, 6, False, True),
-        (False, 2, 2, True, True),
-        (True, 2, 2, True, True),
-        (True, 2, 3, True, True),
-        (False, 2, 3, True, True),
-        (True, 3, 2, True, True),
-        (False, 3, 2, True, True),
-        (True, 2, 6, True, True),
-        (False, 2, 6, True, True),
-        (True, 4, 6, True, True),
-        (False, 4, 6, True, True),
-    ],
+# @mark.parametrize(
+#     ["keep_order", "n_first", "n_second", "avoid_ultimatum", "end_on_no_response"],
+#     [
+#
+#         (True, 1, 2, True, False),
+#         (False, 1, 2, True, False),
+#         (True, 1, 2, False, False),
+#         (False, 1, 2, False, False),
+#         (True, 1, 2, True, True),
+#         (False, 1, 2, True, True),
+#         (True, 1, 2, False, True),
+#         (False, 1, 2, False, True),
+#
+#         (True, 1, 4, True, False),
+#         (False, 1, 4, True, False),
+#         (True, 1, 4, False, False),
+#         (False, 1, 4, False, False),
+#         (True, 1, 4, True, True),
+#         (False, 1, 4, True, True),
+#         (True, 1, 4, False, True),
+#         (False, 1, 4, False, True),
+#
+#         (True, 2, 2, False, False),
+#         (False, 2, 2, False, False),
+#         (True, 2, 3, False, False),
+#         (False, 2, 3, False, False),
+#         (True, 3, 2, False, False),
+#         (False, 3, 2, False, False),
+#         (True, 2, 6, False, False),
+#         (False, 2, 6, False, False),
+#         (True, 4, 6, False, False),
+#         (False, 4, 6, False, False),
+#         (True, 2, 2, False, True),
+#         (False, 2, 2, False, True),
+#         (True, 2, 3, False, True),
+#         (False, 2, 3, False, True),
+#         (True, 3, 2, False, True),
+#         (False, 3, 2, False, True),
+#         (True, 2, 6, False, True),
+#         (False, 2, 6, False, True),
+#         (True, 4, 6, False, True),
+#         (False, 4, 6, False, True),
+#
+#         (True, 2, 2, True, False),
+#         (False, 2, 2, True, False),
+#         (True, 2, 3, True, False),
+#         (False, 2, 3, True, False),
+#         (True, 3, 2, True, False),
+#         (False, 3, 2, True, False),
+#         (True, 2, 6, True, False),
+#         (False, 2, 6, True, False),
+#         (True, 4, 6, True, False),
+#         (False, 4, 6, True, False),
+#         (True, 2, 2, True, True),
+#         (False, 2, 2, True, True),
+#         (True, 2, 3, True, True),
+#         (False, 2, 3, True, True),
+#         (True, 3, 2, True, True),
+#         (False, 3, 2, True, True),
+#         (True, 2, 6, True, True),
+#         (False, 2, 6, True, True),
+#         (True, 4, 6, True, True),
+#         (False, 4, 6, True, True),
+#     ],
+# )
+@given(
+    keep_order=st.booleans(),
+    n_first=st.integers(1, 6),
+    n_second=st.integers(1, 6),
+    avoid_ultimatum=st.booleans(),
+    end_on_no_response=st.booleans(),
 )
+@settings(deadline=20000)
 def test_neg_sync_loop_receives_all_offers(
     keep_order, n_first, n_second, avoid_ultimatum, end_on_no_response
 ):
     # from pprint import pprint
 
-    n_outcomes, n_steps = 10, 10
+    n_outcomes, n_steps = 100, 10
     waste_center = 0.01
     c1s = [
         MySyncController(sleep_seconds=waste_center, name="c1") for _ in range(n_first)
@@ -411,32 +436,35 @@ def test_neg_sync_loop_receives_all_offers(
             ignore_negotiator_exceptions=False,
             avoid_ultimatum=avoid_ultimatum,
             end_on_no_response=end_on_no_response,
-            name=f"{i}-{j}",
+            name=f"{i}v{j}",
         )
         for i in range(n_first)
         for j in range(n_second)
     ]
     for mechanism in mechanisms:
         ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
-        i, j = tuple(int(_) for _ in mechanism.name.split("-"))
+        i, j = tuple(int(_) for _ in mechanism.name.split("v"))
         mechanism.add(
-            c1s[i].create_negotiator(ufun=ufuns[0], id=f"0-{i}-{j}", name=f"0-{i}-{j}")
+            c1s[i].create_negotiator(ufun=ufuns[0], id=f"l{i}>{j}", name=f"l{i}>{j}")
         )
         mechanism.add(
-            c2s[j].create_negotiator(ufun=ufuns[1], id=f"1-{i}-{j}", name=f"1-{i}-{j}")
+            c2s[j].create_negotiator(ufun=ufuns[1], id=f"r{j}>{i}", name=f"r{j}>{i}")
         )
 
     while True:
         states = SAOMechanism.stepall(mechanisms, keep_order=keep_order)
-        # states = [_.state for _ in mechanisms]
         if all(not _.running for _ in states):
             break
 
     for mechanism in mechanisms:
-        check.greater_equal(len(mechanism.offers), 2 * (n_steps - 1))
+        ls = [len(mechanism.negotiator_offers(n.id)) for n in mechanism.negotiators]
+        check.less_equal(abs(ls[0] - ls[1]), 1, mechanism.trace)
         if avoid_ultimatum:
+            check.greater_equal(len(mechanism.offers), 2 * (n_steps - 1))
+            check.less_equal(len(mechanism.offers), 2 * n_steps)
             for n in mechanism.negotiators:
                 check.greater_equal(len(mechanism.negotiator_offers(n.id)), n_steps - 1)
+            pass
         else:
             check.equal(len(mechanism.offers), 2 * n_steps)
             for n in mechanism.negotiators:
@@ -532,7 +560,7 @@ def test_neg_run_sync(n_negotiators):
     for mechanism in mechanisms:
         assert mechanism.state.started
         assert mechanism.state.agreement is None
-        assert not mechanism.state.has_error
+        assert not mechanism.state.has_error, f"{mechanism.state.error_details}"
         assert not mechanism.state.broken
         assert mechanism.state.timedout, print(f"Did not timeout!!\n{mechanism.state}")
         assert mechanism.state.step == n_steps
