@@ -150,6 +150,7 @@ class SAOMechanism(Mechanism):
         self._frozen_neg_list = None
         self._n_accepting = 0
         self._avoid_ultimatum = n_steps is not None and avoid_ultimatum
+        self._ultimatum_avoided = False
         self.end_negotiation_on_refusal_to_propose = end_on_no_response
         self.publish_proposer = publish_proposer
         self.publish_n_acceptances = publish_n_acceptances
@@ -580,7 +581,13 @@ class SAOMechanism(Mechanism):
                     exceptions=exceptions,
                 )
         # if this is the first step (or no one has offered yet) which means that there is no _current_offer
-        if self._current_offer is None and n_proposers > 1 and self._avoid_ultimatum:
+        if (
+            self._current_offer is None
+            and n_proposers > 1
+            and self.current_step == 0
+            and self._avoid_ultimatum
+            and not self._ultimatum_avoided
+        ):
             if not self.dynamic_entry and not self.state.step == 0:
                 if self.end_negotiation_on_refusal_to_propose:
                     return MechanismRoundResult(
@@ -698,6 +705,7 @@ class SAOMechanism(Mechanism):
                         exceptions=exceptions,
                     )
             # choose a random negotiator and set it as the current negotiator
+            self._ultimatum_avoided = True
             selected = random.randint(0, len(responses) - 1)
             resp = responses[selected]
             neg = proposers[selected]
@@ -716,7 +724,7 @@ class SAOMechanism(Mechanism):
                 exceptions=exceptions,
             )
 
-        # this is not the first round. A round will get n_negotiators steps
+        # this is not the first round. A round will get n_negotiators responses
         if self._frozen_neg_list is not None:
             ordered_indices = self._frozen_neg_list
         else:
@@ -804,7 +812,7 @@ class SAOMechanism(Mechanism):
                         broken=False,
                         timedout=True,
                         agreement=None,
-                        waiting=True,
+                        waiting=False,
                         times=times,
                         exceptions=exceptions,
                     )
