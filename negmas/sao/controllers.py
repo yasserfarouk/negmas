@@ -229,8 +229,6 @@ class SAOSyncController(SAOController):
         # we get here if there was no saved response (WAIT should never be saved)
 
         # set the saved offer for this negotiator
-        assert negotiator_id not in self.__offers
-        assert negotiator_id not in self.__offer_states
         self.__offers[negotiator_id] = offer
         self.__offer_states[negotiator_id] = state
         n_negotiators = len(self.active_negotiators)
