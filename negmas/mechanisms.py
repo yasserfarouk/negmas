@@ -267,6 +267,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._requirements = {}
         self._negotiators = []
         self._negotiator_map: Dict[str, "SAONegotiator"] = dict()
+        self._negotiator_index: Dict[str, int] = dict()
         self._roles = []
         self._start_time = None
         self._started = False
@@ -481,6 +482,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         ):
             self._negotiators.append(negotiator)
             self._negotiator_map[negotiator.id] = negotiator
+            self._negotiator_index[negotiator.id] = len(self._negotiators) - 1
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
             self.agents_of_role[role].append(negotiator)
@@ -512,6 +514,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return False
         self._negotiators.remove(negotiator)
         self._negotiator_map.pop(negotiator.id)
+        self._negotiator_index.pop(negotiator.id)
         if self._enable_callbacks:
             negotiator.on_leave(self.ami, **kwargs)
         return True
@@ -763,7 +766,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self._enable_callbacks:
             for agent in self._negotiators:
                 agent.on_round_end(state)
-        self._history.append(state4history)
+        self._add_to_history(state4history)
         self._step += 1
         self.on_negotiation_end()
         return state
@@ -896,12 +899,22 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             if self._enable_callbacks:
                 for agent in self._negotiators:
                     agent.on_round_end(state)
-            self._history.append(state4history)
+            self._add_to_history(state4history)
             # we only indicate a new step if no one is waiting
             self._step += 1
         if not self._running:
             self.on_negotiation_end()
         return self.state
+    
+    def _add_to_history(self, state4history):
+        if len(self._history) == 0:
+            self._history.append(state4history)
+            return
+        last = self._history[-1]
+        if last["step"] == state4history:
+            self._history[-1] = state4history
+            return
+        self._history.append(state4history)
 
     @classmethod
     def runall(
