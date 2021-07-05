@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 import itertools
+import pytest_check as check
 
 # from pprint import pprint
 from time import sleep
@@ -35,10 +36,25 @@ class MyRaisingNegotiator(AspirationNegotiator):
 
 
 class MySyncController(SAOSyncController):
+
+    def respond(self, negotiator_id, state, offer):
+        response = super().respond(negotiator_id, state, offer)
+        self.received_offers[negotiator_id][state.step].append(offer)
+        if response == ResponseType.WAIT:
+            self.wait_states[negotiator_id][state.step] += 1
+        else:
+            self.sent_responses[negotiator_id][state.step].append(response)
+        return response
+
+    def propose(self, negotiator_id, state):
+        outcome = super().propose(negotiator_id, state)
+        self.sent_offers[negotiator_id][state.step].append(outcome)
+        return outcome
+
     def counter_all(self, offers, states):
         for k, v in offers.items():
             s = states[k]
-            self.received_offers[s.step][k].append(v)
+            self.countered_offers[s.step][k].append(v)
 
         if self._sleep_seconds:
             if isinstance(self._sleep_seconds, Sequence):
@@ -53,28 +69,66 @@ class MySyncController(SAOSyncController):
         responses = [
             self.negotiators[_][0].ami.random_outcomes(1)[0] for _ in states.keys()
         ]
-        return dict(
+        assert all(_ is not None for _ in responses)
+        responses = dict(
             zip(
                 states.keys(),
                 (SAOResponse(ResponseType.REJECT_OFFER, _) for _ in responses),
             )
         )
+        if (
+            self.offer_none_after <= self.end_after
+            and self.offer_none_after <= self.accept_after
+        ):
+            for k in responses.keys():
+                if states[k].step >= self.offer_none_after:
+                    responses[k] = SAOResponse(ResponseType.REJECT_OFFER, None)
+        for k in responses.keys():
+            if self.accept_after < self.end_after:
+                if states[k].step >= self.accept_after:
+                    responses[k] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
+                if states[k].step >= self.end_after:
+                    responses[k] = SAOResponse(ResponseType.END_NEGOTIATION, None)
+            else:
+                if states[k].step >= self.end_after:
+                    responses[k] = SAOResponse(ResponseType.END_NEGOTIATION, None)
+                if states[k].step >= self.accept_after:
+                    responses[k] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
+        return responses
 
-    def respond(self, negotiator_id, state, offer):
-        response = super().respond(negotiator_id, state, offer)
-        return response
+    def first_offer(self, negotiator_id: str):
+        return self.negotiators[negotiator_id][0].ami.random_outcomes(1)[0]
 
-    def propose(self, negotiator_id, state):
-        proposal = super().propose(negotiator_id, state)
-        return proposal
-
-    def __init__(self, *args, sleep_seconds=0.2, **kwargs):
+    def __init__(
+        self,
+        *args,
+        sleep_seconds=0.2,
+        accept_after=float("inf"),
+        end_after=float("inf"),
+        offer_none_after=float("inf"),
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
         self.n_counter_all_calls = 0
-        self.received_offers: Dict[int, Dict[str, List[Outcome]]] = defaultdict(
+        self.countered_offers: Dict[int, Dict[str, List[Outcome]]] = defaultdict(
             lambda: defaultdict(list)
         )
+        self.received_offers: Dict[str, Dict[int, List[Outcome]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.sent_offers: Dict[str, Dict[int, List[Outcome]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.sent_responses: Dict[str, Dict[int, List[ResponseType]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.wait_states: Dict[str, Dict[int, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
+        self.accept_after = accept_after
+        self.end_after = end_after
+        self.offer_none_after = offer_none_after
 
 
 class TimeWaster(RandomNegotiator):
@@ -289,28 +343,69 @@ def test_neg_run_no_waiting():
         assert v >= waste * n_steps
 
 
+
+
 @mark.parametrize(
-    ["keep_order", "n_first", "n_second"],
+    ["keep_order", "n_first", "n_second", "avoid_ultimatum", "end_on_no_response"],
     [
-        (True, 2, 2),
-        (False, 2, 2),
-        (True, 2, 3),
-        (False, 2, 3),
-        (True, 3, 2),
-        (False, 3, 2),
-        (True, 2, 6),
-        (False, 2, 6),
-        (True, 4, 6),
-        (False, 4, 6),
-        (True, 4, 6),
-        (False, 4, 6),
+        (True, 2, 2, False, False),
+        (False, 2, 2, False, False),
+        (True, 2, 3, False, False),
+        (False, 2, 3, False, False),
+        (True, 3, 2, False, False),
+        (False, 3, 2, False, False),
+        (True, 2, 6, False, False),
+        (False, 2, 6, False, False),
+        (True, 4, 6, False, False),
+        (False, 4, 6, False, False),
+        (True, 4, 6, False, False),
+        (False, 4, 6, False, False),
+        (False, 2, 2, True, False),
+        (True, 2, 2, True, False),
+        (True, 2, 3, True, False),
+        (False, 2, 3, True, False),
+        (True, 3, 2, True, False),
+        (False, 3, 2, True, False),
+        (True, 2, 6, True, False),
+        (False, 2, 6, True, False),
+        (True, 4, 6, True, False),
+        (False, 4, 6, True, False),
+        (True, 4, 6, True, False),
+        (False, 4, 6, True, False),
+
+        (True, 2, 2, False, True),
+        (False, 2, 2, False, True),
+        (True, 2, 3, False, True),
+        (False, 2, 3, False, True),
+        (True, 3, 2, False, True),
+        (False, 3, 2, False, True),
+        (True, 2, 6, False, True),
+        (False, 2, 6, False, True),
+        (True, 4, 6, False, True),
+        (False, 4, 6, False, True),
+        (True, 4, 6, False, True),
+        (False, 4, 6, False, True),
+        (False, 2, 2, True, True),
+        (True, 2, 2, True, True),
+        (True, 2, 3, True, True),
+        (False, 2, 3, True, True),
+        (True, 3, 2, True, True),
+        (False, 3, 2, True, True),
+        (True, 2, 6, True, True),
+        (False, 2, 6, True, True),
+        (True, 4, 6, True, True),
+        (False, 4, 6, True, True),
+        (True, 4, 6, True, True),
+        (False, 4, 6, True, True),
     ],
 )
-def test_neg_sync_loop_receives_all_offers(keep_order, n_first, n_second):
+def test_neg_sync_loop_receives_all_offers(
+    keep_order, n_first, n_second, avoid_ultimatum, end_on_no_response
+):
     # from pprint import pprint
 
     n_outcomes, n_steps = 10, 10
-    waste_center = 0.1
+    waste_center = 0.01
     c1s = [
         MySyncController(sleep_seconds=waste_center, name="c1") for _ in range(n_first)
     ]
@@ -322,7 +417,8 @@ def test_neg_sync_loop_receives_all_offers(keep_order, n_first, n_second):
             outcomes=n_outcomes,
             n_steps=n_steps,
             ignore_negotiator_exceptions=False,
-            avoid_ultimatum=False,
+            avoid_ultimatum=avoid_ultimatum,
+            end_on_no_response=end_on_no_response,
             name=f"{i}-{j}",
         )
         for i in range(n_first)
@@ -338,30 +434,47 @@ def test_neg_sync_loop_receives_all_offers(keep_order, n_first, n_second):
             c2s[j].create_negotiator(ufun=ufuns[1], id=f"1-{i}-{j}", name=f"1-{i}-{j}")
         )
 
-    SAOMechanism.runall(mechanisms, keep_order=keep_order)
+    while True:
+        states = SAOMechanism.stepall(mechanisms, keep_order=keep_order)
+        # states = [_.state for _ in mechanisms]
+        if all(not _.running for _ in states):
+            break
 
     for mechanism in mechanisms:
-        assert mechanism.state.started
-        assert mechanism.state.agreement is None
-        assert not mechanism.state.has_error
-        assert not mechanism.state.broken
-        # assert mechanism.state.timedout
-        assert mechanism.state.step == n_steps
-        assert not mechanism.state.waiting
-        assert len(mechanism.history) == n_steps
+        check.greater_equal(len(mechanism.offers), 2 * (n_steps - 1))
+        if avoid_ultimatum:
+            for n in mechanism.negotiators:
+                check.greater_equal(len(mechanism.negotiator_offers(n.id)), n_steps - 1)
+        else:
+            check.equal(len(mechanism.offers), 2 * n_steps)
+            for n in mechanism.negotiators:
+                check.equal(len(mechanism.negotiator_offers(n.id)), n_steps)
 
     for c, n_partners in itertools.chain(
         zip(c1s, itertools.repeat(n_second)), zip(c2s, itertools.repeat(n_first))
     ):
         steps = set(range(1, n_steps))
-        received_steps = set(c.received_offers.keys())
-        missing_steps = steps.difference(received_steps)
-        assert len(missing_steps) == 0, f"Missing steps are {missing_steps}"
-        for s in steps:
-            partners = c.received_offers[s]
-            assert (
-                len(partners) == n_partners
-            ), f"Received offers from {len(partners)} only (expected {n_partners}).\n{partners}"
+        countered_steps = set(c.countered_offers.keys())
+        missing_steps = steps.difference(countered_steps)
+        check.equal(len(missing_steps), 0, f"Missing steps are {missing_steps}")
+        if not avoid_ultimatum:
+            for s in steps:
+                partners = c.countered_offers[s]
+                check.equal(
+                    len(partners),
+                    n_partners,
+                    f"partners {len(partners)} (of {n_partners}) step {s}.\n{partners}",
+                )
+
+    for mechanism in mechanisms:
+        check.is_true(mechanism.state.started)
+        check.is_none(mechanism.state.agreement)
+        check.is_false(mechanism.state.has_error)
+        check.is_false(mechanism.state.broken)
+        check.is_false(mechanism.state.waiting)
+        check.is_true(mechanism.state.timedout)
+        check.equal(mechanism.state.step, n_steps)
+        check.equal(len(mechanism.history), n_steps)
 
 
 @mark.parametrize(["keep_order"], [(True,), (False,)])
