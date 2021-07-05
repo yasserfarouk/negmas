@@ -179,78 +179,86 @@ class SAOSyncController(SAOController):
 
     def __init__(self, *args, global_ufun=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.offers: Dict[str, "Outcome"] = {}
+        self.__offers: Dict[str, "Outcome"] = {}
         """Keeps the last offer received for each negotiation"""
-        self.responses: Dict[str, ResponseType] = {}
+        self.__responses: Dict[str, ResponseType] = {}
         """Keeps the next response type for each negotiation"""
-        self.proposals: Dict[str, "Outcome"] = {}
+        self.__proposals: Dict[str, "Outcome"] = {}
         """Keeps the next proposal for each negotiation"""
-        self.offer_states: Dict[str, "SAOState"] = {}
+        self.__offer_states: Dict[str, "SAOState"] = {}
         """Keeps the last state received for each negotiation"""
-        self.n_waits: Dict[str, int] = defaultdict(int)
+        self.__n_waits: Dict[str, int] = defaultdict(int)
         """The number of contiguous waits sent for every partner"""
-        self.global_ufun = global_ufun
+        self.__global_ufun = global_ufun
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
-        if not self.proposals:
-            self.proposals = self.first_proposals()
+        if not self.__proposals:
+            self.__proposals = self.first_proposals()
         # get the saved proposal if it exists and return it
-        proposal = self.proposals.get(negotiator_id, None)
-        # if some proposal was there, delete it to force the controller to get a new one
-        if proposal is not None:
-            self.proposals[negotiator_id] = None
+        if negotiator_id in self.__proposals.keys():
+            # if some proposal was there, delete it to force the controller to get a new one
+            proposal = self.__proposals.pop(negotiator_id)
         else:
-            # if the proposal that was there was None, just offer the best offer
-            if self.global_ufun:
-                self.proposals = self.first_proposals()
-                proposal = self.proposals.get(negotiator_id, None)
-                self.proposals[negotiator_id] = None
+            # if there was no proposal, get one. Note that `None` is a valid proposal
+            if self.__global_ufun:
+                self.__proposals = self.first_proposals()
+                proposal = self.__proposals.pop(negotiator_id)
             else:
                 proposal = self.first_offer(negotiator_id)
+
+        # report not waiting on this offer because I obviously just sent
+        self.__n_waits[negotiator_id] = 0
+        self.__responses.pop(negotiator_id, None)
+        self.__offers.pop(negotiator_id, None)
+        self.__offer_states.pop(negotiator_id, None)
         return proposal
 
     def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
     ) -> "ResponseType":
         # get the saved response to this negotiator if any
-        response = self.responses.get(negotiator_id, None)
-        if response is not None:
+        response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
+
+        # if there some non-waiting saved respons return and delete it
+        if response != ResponseType.WAIT:
             # remove the response and return it
-            del self.responses[negotiator_id]
-            self.n_waits[negotiator_id] = 0
+            self.__n_waits[negotiator_id] = 0
             return response
 
-        # we get here if there was no saved response or if the saved response was None
+        # we get here if there was no saved response (WAIT should never be saved)
 
         # set the saved offer for this negotiator
-        self.offers[negotiator_id] = offer
-        self.offer_states[negotiator_id] = state
+        assert negotiator_id not in self.__offers
+        assert negotiator_id not in self.__offer_states
+        self.__offers[negotiator_id] = offer
+        self.__offer_states[negotiator_id] = state
         n_negotiators = len(self.active_negotiators)
-        # if we got all the offers or waited long enough, counter all the offers so-far
+        # if we did not get all the offers yet and can still wait, wait
         if (
-            len(self.offers) == n_negotiators
-            or self.n_waits[negotiator_id] >= n_negotiators
+            len(self.__offers) < n_negotiators
+            and self.__n_waits[negotiator_id] >= n_negotiators
         ):
-            responses = self.counter_all(offers=self.offers, states=self.offer_states)
-            for nid in responses.keys():
-                # register the responses for next time for all other negotiators
-                if nid != negotiator_id:
-                    self.responses[nid] = responses[nid].response
-                # register the proposals to be sent to all agents including this one
-                self.proposals[nid] = responses[nid].outcome
-            self.offers = dict()
-            self.offer_states = dict()
-            self.n_waits[negotiator_id] = 0
-            resp = responses[negotiator_id].response
-            self.responses[negotiator_id] = None
-            return resp
-        self.n_waits[negotiator_id] += 1
-        return ResponseType.WAIT
+            self.__n_waits[negotiator_id] += 1
+            return ResponseType.WAIT
+
+        # we arrive here if we already have all the offers to counter
+        responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
+        for nid in responses.keys():
+            # register the responses for next time for all other negotiators
+            self.__responses[nid] = responses[nid].response
+            # register the proposals to be sent to all agents including this one
+            self.__proposals[nid] = responses[nid].outcome
+        # register that we are not waiting anymore on any of the offers we received
+        self.__n_waits[negotiator_id] = 0
+        for k in self.__offers.keys():
+            self.__n_waits[k] = 0
+        self.__offers = dict()
+        self.__offer_states = dict()
+        return self.__responses.pop(negotiator_id)
 
     def first_proposals(self) -> Dict[str, "Outcome"]:
-        """Gets a set of proposals to use for initializing the negotiation. To avoid offering anything, just return None
-        for all of them. That is the default"""
+        """Gets a set of proposals to use for initializing the negotiation."""
         return dict(
             zip(
                 self.negotiators.keys(),
@@ -292,17 +300,11 @@ class SAOSyncController(SAOController):
         negotiator, _ = self.negotiators.get(negotiator_id, (None, None))
         if negotiator is None or negotiator.ami is None:
             return None
-        # if the controller has a ufun, use it otherwise use the negotiator ufun
-        if self.ufun is not None:
+        # if the controller has a ufun, use it otherwise use the negotiator's
+        ufun = self.ufun if self.ufun is not None else negotiator.ufun
+        if ufun is not None:
             _, _, _, best = utility_range(
-                self.ufun,
-                issues=negotiator.ami.issues,
-                return_outcomes=True,
-                ami=negotiator.ami,
-            )
-        elif negotiator.ufun is not None:
-            _, _, _, best = utility_range(
-                negotiator.ufun,
+                ufun,
                 issues=negotiator.ami.issues,
                 return_outcomes=True,
                 ami=negotiator.ami,
@@ -312,16 +314,16 @@ class SAOSyncController(SAOController):
         return best
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
-        if negotiator_id in self.offers.keys():
-            del self.offers[negotiator_id]
-        if negotiator_id in self.offer_states.keys():
-            del self.offer_states[negotiator_id]
-        if negotiator_id in self.responses.keys():
-            del self.responses[negotiator_id]
-        if negotiator_id in self.proposals.keys():
-            del self.proposals[negotiator_id]
-        if negotiator_id in self.n_waits.keys():
-            del self.n_waits[negotiator_id]
+        if negotiator_id in self.__offers.keys():
+            del self.__offers[negotiator_id]
+        if negotiator_id in self.__offer_states.keys():
+            del self.__offer_states[negotiator_id]
+        if negotiator_id in self.__responses.keys():
+            del self.__responses[negotiator_id]
+        if negotiator_id in self.__proposals.keys():
+            del self.__proposals[negotiator_id]
+        if negotiator_id in self.__n_waits.keys():
+            del self.__n_waits[negotiator_id]
         return super().on_negotiation_end(negotiator_id, state)
 
 class SAORandomSyncController(SAOSyncController):
