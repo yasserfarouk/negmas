@@ -31,6 +31,9 @@ __all__ = [
 
 
 def _unwrap_negotiators(types, params):
+    """
+    Removes the agent wrapping the negotiator for each type
+    """
     types = list(types)
     old_types = [_ if issubclass(_, NegAgent) else NegAgent for _ in types]
     n = len(types)
@@ -51,6 +54,9 @@ def _unwrap_negotiators(types, params):
 
 
 def _wrap_in_agents(types, params, agent_types):
+    """
+    wraps each negotiator in `types` with an agent from `agent_types`
+    """
     types = list(types)
     n = len(types)
 
@@ -78,14 +84,25 @@ def _wrap_in_agents(types, params, agent_types):
 
 @dataclass
 class NegDomain:
+    """
+    A representation of a negotiation domain in which a negotiator can be evaluated
+    """
     name: str
+    """Domain name"""
     issues: List[Issue]
+    """The issue space as a list of issues"""
     ufuns: List[UtilityFunction]
+    """The utility functions used by all negotiators in the domain"""
     partner_types: List[Union[str, Negotiator]]
+    """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
     index: int = 0
+    """The index of the negotiator being evaluated in the list of negotiators passed to the mechanism"""
     partner_params: Optional[List[Optional[Dict[str, Any]]]] = None
+    """Any paramters used to construct partners (must be the same length as `partner_types`)"""
     roles: Optional[List[str]] = None
+    """Roles of all negotiators (includng the negotiator being evaluated) in order"""
     annotation: Optional[Dict[str, Any]] = None
+    """Any extra annotation to add to the mechanism."""
 
     def to_dict(self):
         return dict(
@@ -114,6 +131,7 @@ class NegDomain:
 
 
 class NegAgent(Agent):
+    """Wraps a negotiator for evaluaton"""
     def __init__(
         self,
         *args,
@@ -142,6 +160,7 @@ class NegAgent(Agent):
         return cls.__module__ + "." + cls.__name__
 
     def make_negotiator(self, ufun: Optional[UtilityFunction] = None):
+        """Makes a negotiator of the appropriate type passing it an optional ufun"""
         return instantiate(self._negotiator_type, ufun=ufun, **self._negotiator_params)
 
     def _respond_to_negotiation_request(
@@ -154,6 +173,7 @@ class NegAgent(Agent):
         role: Optional[str],
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
+        """Responds to any negotiation request by creating a negotiator"""
         return self.make_negotiator(self.awi.get_ufun(partners.index(self.id)))
 
     def step(self):
@@ -163,14 +183,7 @@ class NegAgent(Agent):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
-        """Called when a requested negotiation is rejected
-
-        Args:
-            req_id: The request ID passed to _request_negotiation
-            by: A list of agents that refused to participate or None if the failure was for another reason
-
-
-        """
+        """Called when a requested negotiation is rejected """
 
     def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
         """Called when a requested negotiation is accepted"""
@@ -198,18 +211,7 @@ class NegAgent(Agent):
     def respond_to_renegotiation_request(
         self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
     ) -> Optional[Negotiator]:
-        """
-        Called to respond to a renegotiation request
-
-        Args:
-
-            agenda:
-            contract:
-            breaches:
-
-        Returns:
-
-        """
+        """ Called to respond to a renegotiation request """
 
     def on_contract_executed(self, contract: Contract) -> None:
         """
@@ -233,15 +235,32 @@ class NegAgent(Agent):
 
 
 class _NegPartner(NegAgent):
+    """A `NegAgent` representing a partner that is not being evaluated"""
     pass
 
 
 class _NegAWI(AgentWorldInterface):
+    """The AWI for the `NegWorld`"""
     def get_ufun(self, uid: int):
+        """Get the agent's ufun"""
         return self._world._domain.ufuns[uid]
 
 
 class NegWorld(NoContractExecutionMixin, World):
+    """
+    A world that runs a list of negotiators in a given domain to evaluate them
+
+    Args:
+        domain: The `NegDomain` specifying all information about the situation
+                in which negotiators are to be evaluated including the partners.
+        types: The negotiator types to be evaluated
+        params: Any parameters needed to create negotiators
+        agent_names_reveal_type: if given the agent name for each negotiator will
+                                 simply be the negotiator's type
+        compact: If given the system will strive to save memory and minimize logging
+        no_logs: disables all logging
+        kwargs: Any extra arguments to be passed to the `World` constructor
+    """
     def __init__(
         self,
         *args,
