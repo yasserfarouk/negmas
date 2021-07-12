@@ -1,4 +1,8 @@
-from itertools import cycle, permutations
+"""
+Negotiation tournaments module.
+"""
+from itertools import cycle, permutations, combinations
+from collections import defaultdict
 from random import randint
 from functools import partial
 from os import PathLike
@@ -9,6 +13,7 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.serialization import deserialize, serialize
 from negmas.situated import Agent
+from negmas.utilities.linear import LinearUtilityFunction
 from negmas.tournaments.tournaments import (
     TournamentResults,
     WorldRunResults,
@@ -36,6 +41,22 @@ def neg_config_generator(
     compact: bool = False,
     **kwargs,
 ) -> List[Dict[str, Any]]:
+    """
+    Used internally to generate the configuration of a world.
+
+    Args:
+        n_competitors: How many competitors will run?
+        domains: A generator used to extract `NegDomain` objects (one config per `NegDomain`)
+        n_agents_per_competitor: Must be 1
+        agent_names_reveal_type: If given, the agent name will be the same as its class name
+        non_competitors: Must be None
+        non_competitor_params: Must be None
+        compact: If given, the system tries to minimize the memory footprint and secondary storage
+        kwargs: Extra arguments passed directly to the world constructor
+
+    Returns:
+        A list containing one world configuration
+    """
     domain = next(domains)
     if non_competitors:
         raise ValueError(
@@ -60,8 +81,8 @@ def neg_config_generator(
         "scoring_context": {},
         "non_competitors": None,
         "non_competitor_params": None,
+        "is_default": [False] * n_competitors + [True] * (len(domain.ufuns) - 1)
     }
-    config.update(kwargs)
     return [config]
 
 
@@ -76,6 +97,14 @@ def neg_config_assigner(
     dynamic_non_competitor_params: Optional[List[Dict[str, Any]]] = None,
     exclude_competitors_from_reassignment: bool = True,
 ) -> List[List[Dict[str, Any]]]:
+    """
+    Assigns agents to the world configuration.
+
+    In negotiation tournaments, a single assignment is generated per configuration in
+    which all agents exist in the world.
+
+    All parameters other than `competitors` and `params` are ignored
+    """
     competitors, params = deepcopy(competitors), deepcopy(params)
     competitors, params = _wrap_in_agents(competitors, params, NegAgent)
     config[0]["world_params"]["types"] = competitors
@@ -84,6 +113,9 @@ def neg_config_assigner(
 
 
 def neg_world_generator(**kwargs):
+    """
+    Generates the world
+    """
     config = kwargs.pop("world_params", dict())
     config["types"], config["params"] = deepcopy(config["types"]), deepcopy(
         config["params"]
@@ -99,8 +131,7 @@ def neg_score_calculator(
     dry_run: bool,
     scoring_method: str = "received_utility",
 ) -> WorldRunResults:
-    """A scoring function that scores factory managers' performance by the final balance only ignoring whatever still
-    in their inventory.
+    """A scoring function that scores agents based on their performance.
 
     Args:
 
@@ -129,7 +160,7 @@ def neg_score_calculator(
     result = WorldRunResults(
         world_names=[world.name], log_file_names=[world.log_file_name]
     )
-    extra = []
+    extra = defaultdict(list)
     for aid, agent in world.competitors.items():
         agent_type = agent.type_name
         result.names.append(agent.name)
@@ -142,10 +173,26 @@ def neg_score_calculator(
         for k, f in fun.items():
             if k == scoring_method:
                 continue
-            extra.append(dict(type=k, score=f(aid)))
+            extra[k].append(dict(type=k, score=f(aid)))
     for k in fun.keys():
-        result.extra_scores[k] = extra
+        result.extra_scores[k] = extra[k]
     return result
+
+
+def _update_kwargs(kwargs, domains, competitors):
+    kwargs["config_generator"] = partial(neg_config_generator, domains=domains)
+    kwargs["config_assigner"] = neg_config_assigner
+    kwargs["world_generator"] = neg_world_generator
+    kwargs["score_calculator"] = neg_score_calculator
+    kwargs["n_competitors_per_world"] = len(competitors)
+    kwargs["n_agents_per_competitor"] = 1
+    kwargs["max_worlds_per_config"] = 1
+    kwargs["non_competitors"] = None
+    kwargs["non_competitor_params"] = None
+    kwargs["dynamic_non_competitors"] = False
+    kwargs["dynamic_non_competitor_params"] = False
+    kwargs["exclude_competitors_from_reassignment"] = False
+    return kwargs
 
 
 def create_neg_tournament(
@@ -162,26 +209,11 @@ def create_neg_tournament(
         domains:A generator that yields `NegDomain` objects specifying negotiation domains upon request
         name: Tournament name
         competitor_params: A list of competitor parameters (used to initialize the competitors).
-        n_competitors_per_world: The number of competitors allowed in every world. It must be >= 1 and
-                                 <= len(competitors) or None.
-
-                                 - If None or len(competitors), then all competitors will exist in every world.
-                                 - If 1, then each world will have one competitor
-
-        round_robin: Only effective if 1 < n_competitors_per_world < len(competitors). if True, all
-                                     combinations will be tried otherwise n_competitors_per_world must divide
-                                     len(competitors) and every competitor appears only in one set.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
-        max_worlds_per_config: The maximum number of worlds to run per config. If None, then all possible assignments
-                             of competitors within each config will be tried (all permutations).
         n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
                           and identical world configuration.
-        max_n_configs: [Depricated] The number of configs to use (it is replaced by separately setting `n_config`
-                       and `max_worlds_per_config` )
-        n_runs_per_config: [Depricated] The number of runs (simulation) for every config. It is replaced by
-                           `n_runs_per_world`
         total_timeout: Total timeout for the complete process
         base_tournament_path: Path at which to store all results. A new folder with the name of the tournament will be
                          created at this path. A scores.csv file will keep the scores and logs folder will keep detailed
@@ -191,13 +223,6 @@ def create_neg_tournament(
                      to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
         scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
         scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
-        non_competitors: A list of agent types that will not be competing but will still exist in the world.
-        non_competitor_params: paramters of non competitor agents
-        dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
-                                 the creation of the final assignment instead when the configuration is created
-        dynamic_non_competitor_params: paramters of dynamic non competitor agents
-        exclude_competitors_from_reassignment: If true, copmetitors are not included in the reassignment even
-                                                          if they exist in `dynamic_non_competitors`
         verbose: Verbosity
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
         save_video_fraction: The fraction of simulations for which to save videos
@@ -211,13 +236,10 @@ def create_neg_tournament(
         The path at which tournament configs are stored
 
     """
-    kwargs["config_generator"] = partial(neg_config_generator, domains=domains)
-    kwargs["config_assigner"] = neg_config_assigner
-    kwargs["world_generator"] = neg_world_generator
-    kwargs["score_calculator"] = neg_score_calculator
-    kwargs["n_agents_per_competitor"] = 1
     return create_tournament(
-        competitors=competitors, competitor_params=competitor_params, **kwargs
+        competitors=competitors,
+        competitor_params=competitor_params,
+        **_update_kwargs(kwargs, domains, competitors),
     )
 
 
@@ -236,28 +258,13 @@ def neg_tournament(
         domains:A generator that yields `NegDomain` objects specifying negotiation domains upon request
         name: Tournament name
         competitor_params: A list of competitor parameters (used to initialize the competitors).
-        n_competitors_per_world: The number of competitors allowed in every world. It must be >= 1 and
-                                 <= len(competitors) or None.
-
-                                 - If None or len(competitors), then all competitors will exist in every world.
-                                 - If 1, then each world will have one competitor
-
-        round_robin: Only effective if 1 < n_competitors_per_world < len(competitors). if True, all
-                                     combinations will be tried otherwise n_competitors_per_world must divide
-                                     len(competitors) and every competitor appears only in one set.
         stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
                                             round_robin, it becomes a single stage competition.
         agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
                                  beginning).
         n_configs: The number of different world configs (up to competitor assignment) to be generated.
-        max_worlds_per_config: The maximum number of worlds to run per config. If None, then all possible assignments
-                             of competitors within each config will be tried (all permutations).
         n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
                           and identical world configuration.
-        max_n_configs: [Depricated] The number of configs to use (it is replaced by separately setting `n_config`
-                       and `max_worlds_per_config` )
-        n_runs_per_config: [Depricated] The number of runs (simulation) for every config. It is replaced by
-                           `n_runs_per_world`
         total_timeout: Total timeout for the complete process
         tournament_path: Path at which to store all results. A new folder with the name of the tournament will be
                          created at this path. A scores.csv file will keep the scores and logs folder will keep detailed
@@ -271,12 +278,6 @@ def neg_tournament(
                                  and parallel evaluation and should be used with cautious).
         tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
                                       processing
-        non_competitors: A list of agent types that will not be competing but will still exist in the world.
-        non_competitor_params: paramters of non competitor agents
-        dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
-                                 the creation of the final assignment instead when the configuration is created
-        dynamic_non_competitor_params: paramters of dynamic non competitor agents
-        exclude_competitors_from_reassignment: If true, competitors are excluded from the dyanamic non-competitors
         verbose: Verbosity
         configs_only: If true, a config file for each
         compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
@@ -295,13 +296,10 @@ def neg_tournament(
         `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
 
     """
-    kwargs["config_generator"] = partial(neg_config_generator, domains=domains)
-    kwargs["config_assigner"] = neg_config_assigner
-    kwargs["world_generator"] = neg_world_generator
-    kwargs["score_calculator"] = neg_score_calculator
-    kwargs["n_agents_per_competitor"] = 1
     return tournament(
-        competitors=competitors, competitor_params=competitor_params, **kwargs
+        competitors=competitors,
+        competitor_params=competitor_params,
+        **_update_kwargs(kwargs, domains, competitors),
     )
 
 
@@ -309,14 +307,41 @@ def random_discrete_domains(
     issues: List[Union[Issue, Union[int, Tuple[int, int]]]],
     partners: List[Negotiator],
     n_negotiators=2,
-    positions: Tuple[int, int] = None,
+    positions: Union[int, Tuple[int, int]] = None,
     normalized=True,
+    ufun_type=LinearUtilityFunction,
+    roles: Optional[List[str]] = None,
+    partner_extraction_method="round-robin",
 ) -> Generator[NegDomain, None, None]:
-    # from negmas.utilities import LinearUtilityAggregationFunction as U
-    from negmas.utilities import LinearUtilityFunction as U
+    """
+    Generates an infinite sequence of random discrete domains
 
+    Args:
+        issues: A list defining the issue space. Each element can be an `Issue`
+                object, an integer (defining the number of outcomes) or a tuple
+                of two integers (defining the minimum and maximum number of outcomes
+                for the issue).
+        partners: A list of `Negotiator` types from which partners are extracted.
+                  The system will extract `n_negotiators` - 1 partners for each
+                  domain.
+        n_negotiators: The number of negotiators in each negotiation.
+        positions: The positions at which the competitors will be added in all
+                   negotiations.
+        normalized: Will the ufuns generated by normalized
+        ufun_type: Type of the utility function to use.
+        roles: The roles of the `n_negotiators` (including the competitor) in negotiations
+        partner_extraction_method: The method used to create partners for negotaitions
+                                   from the given `partners` list:
+
+                                   - round-robin: will extract overalapping `n_negotiators` - 1 sets
+                                   - permutations: Will use all `n_negotaitors` - 1 permutations
+                                   - random: Will sample randm sets of `n_negotiators` - 1 partners
+                                   - compinations: Will use all `n_negotiators` - 1 combinations
+    """
     if positions is None:
         positions = (0, n_negotiators)
+    elif isinstance(positions, int):
+        positions = (positions, positions)
 
     while len(partners) < n_negotiators - 1:
         partners += [_ for _ in partners]
@@ -332,14 +357,29 @@ def random_discrete_domains(
             for i, _ in enumerate(issues)
         ]
         ufuns = [
-            U.random(current_issues, reserved_value=(0.0, 0.2), normalized=normalized)
+            ufun_type.random(
+                current_issues, reserved_value=(0.0, 0.2), normalized=normalized
+            )
             for _ in range(n_negotiators)
         ]
-        n = len(partners) - n_negotiators + 1
+
+        def partners_generator():
+            if partner_extraction_method.startswith("permutation"):
+                yield from permutations(partners, n_negotiators - 1)
+            if partner_extraction_method.startswith("combination"):
+                yield from combinations(partners, n_negotiators - 1)
+            else:
+                is_random = partner_extraction_method.startswith("random")
+                n = len(partners) - n_negotiators + 1
+                for j in range(n):
+                    if is_random:
+                        yield partners[randint(0, n) : j + n_negotiators - 1]
+                    else:
+                        yield partners[j : j + n_negotiators - 1]
+
         for u in permutations(ufuns):
             for index in range(*positions):
-                for j in range(n):
-                    p = partners[j:j + n_negotiators  - 1]
+                for p in partners_generator():
                     assert len(u) == len(p) + 1
                     yield NegDomain(
                         name="d0",
@@ -347,10 +387,14 @@ def random_discrete_domains(
                         issues=current_issues,
                         partner_types=p,
                         index=index,
+                        roles=roles,
                     )
 
 
 def domains_from_list(domains: List[NegDomain]) -> Generator[NegDomain, None, None]:
+    """
+    Creats an appropriate `NegDomain` generator from a list/tuple of domains
+    """
     return cycle(domains)
 
 
@@ -363,11 +407,12 @@ if __name__ == "__main__":
     )
     print(
         neg_tournament(
-            n_configs=4,
+            n_configs=2 * 2 * 2 * 4,
             domains=domains,
             competitors=[AspirationNegotiator, NaiveTitForTatNegotiator],
             n_steps=1,
             neg_n_steps=10,
             neg_time_limit=None,
+            name="neg-tour-test",
         )
     )
