@@ -123,8 +123,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
-        if PYTHON_CLASS_IDENTIFIER in d.keys():
-            d = {k: v for k, v in d.items() if k != PYTHON_CLASS_IDENTIFIER}
+        d.pop(PYTHON_CLASS_IDENTIFIER , None)
         d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
         return cls(**d)
 
@@ -158,6 +157,23 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         )
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ufuns": [serialize(_) for _ in self.ufuns],
+            "combination_function": serialize(self.combination_function),
+            "id": self.id,
+            "name": self.name,
+            "reserved_value": self.reserved_value,
+            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]):
+        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
+        d["combination_function"] = deserialize(d["combination_function"])
+        return cls(**d)
 
     @UtilityFunction.outcome_type.setter
     def outcome_type(self, value: Type):

@@ -14,7 +14,8 @@ from typing import (
     Union,
 )
 
-
+from negmas.helpers import get_full_type_name
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, deserialize
 from negmas.common import AgentMechanismInterface
 from negmas.generics import GenericMapping, ienumerate, iget
 from negmas.helpers import gmap, ikeys
@@ -26,7 +27,6 @@ from negmas.outcomes import (
 )
 from .base import UtilityFunction, UtilityValue, ExactUtilityValue
 from negmas.helpers import make_range
-from negmas.serialization import serialize
 
 __all__ = [
     "LinearUtilityAggregationFunction",
@@ -283,7 +283,9 @@ class LinearUtilityFunction(UtilityFunction):
         return ufun
 
     def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         return dict(
+            **d,
             weights=self.weights,
             biases=self.biases,
             missing_value=self.missing_value,
@@ -292,23 +294,41 @@ class LinearUtilityFunction(UtilityFunction):
             reserved_value=self.reserved_value,
         )
 
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            weights=d.get("weights", None),
+            biases=d.get("biases", None),
+            missing_value=d.get("missing_value", None),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+            ami=d.get("ami", None),
+            outcome_type=d.get("outcome_type", None),
+            id=d.get("id", None),
+        )
+
 
 def _rand_mapping(x):
     return (random.random() - 0.5) * x
 
+
 def _rand_mapping_normalized(x):
     return random.random()
+
 
 def random_mapping(issue: "Issue", normalized=False):
     if issubclass(issue.value_type, float):
         return _rand_mapping_normalized if normalized else _rand_mapping
-    return dict(zip(
-        issue.all,
-        [
-            random.random() - (0.5 if not normalized else 0.0)
-            for _ in range(issue.cardinality)
-        ],
-    ))
+    return dict(
+        zip(
+            issue.all,
+            [
+                random.random() - (0.5 if not normalized else 0.0)
+                for _ in range(issue.cardinality)
+            ],
+        )
+    )
 
 
 class LinearUtilityAggregationFunction(UtilityFunction):
@@ -405,7 +425,9 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         for k, v in ienumerate(self.issue_utilities):
             self.issue_utilities[k] = (
                 # v if isinstance(v, UtilityFunction) else v
-                v if isinstance(v, UtilityFunction) else MappingUtilityFunction(v)
+                v
+                if isinstance(v, UtilityFunction)
+                else MappingUtilityFunction(v)
             )
         if isinstance(issue_utilities, dict):
             self.issue_indices = dict(
@@ -586,12 +608,27 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         return f"u: {self.issue_utilities}\n w: {self.weights}"
 
     def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         return dict(
+            **d,
             weights=self.weights,
             issue_utilities=serialize(self.issue_utilities),
             name=self.name,
             id=self.id,
             reserved_value=self.reserved_value,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            issue_utilities=deserialize(d["issue_utilities"]),
+            weights=d.get("weights", None),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+            ami=d.get("ami", None),
+            outcome_type=d.get("outcome_type", None),
+            id=d.get("id", None),
         )
 
     def utility_range(

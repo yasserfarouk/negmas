@@ -14,6 +14,8 @@ from negmas.outcomes import (
 )
 from .base import UtilityFunction, UtilityValue
 from negmas.helpers import make_range
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER
+from negmas.helpers import get_full_type_name
 
 __all__ = [
     "ConstUFun",
@@ -38,6 +40,26 @@ class ConstUFun(UtilityFunction):
             **kwargs,
         )
         self.value = value
+
+    def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            value=self.value,
+            name=self.name,
+            reserved_value=self.reserved_value,
+            **d,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            value=d.get("value", None),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+            ami=d.get("ami", None),
+            outcome_type=d.get("outcome_type", None),
+        )
 
     def eval(self, offer: "Outcome") -> UtilityValue:
         if offer is None:

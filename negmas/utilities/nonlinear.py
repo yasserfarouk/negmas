@@ -11,6 +11,8 @@ from typing import (
 )
 
 
+from negmas.helpers import get_full_type_name
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, deserialize
 from negmas.common import AgentMechanismInterface
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
 from negmas.helpers import Floats, gmap, ikeys
@@ -115,6 +117,29 @@ class MappingUtilityFunction(UtilityFunction):
         )
         self.mapping = mapping
         self.default = default
+
+    def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            mapping=self.mapping,
+            default=self.default,
+            name=self.name,
+            reserved_value=self.reserved_value,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            mapping=d.get("mapping", None),
+            default=d.get("default", None),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+            ami=d.get("ami", None),
+            outcome_type=d.get("outcome_type", None),
+            id=d.get("id", None),
+        )
 
     def eval(self, offer: Optional[Outcome]) -> Optional[UtilityValue]:
         # noinspection PyBroadException
@@ -267,6 +292,29 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         )
         self.issue_utilities = issue_utilities
         self.f = f
+
+    def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            issue_utilities=self.issue_utilities,
+            f=serialize(self.f),
+            name=self.name,
+            reserved_value=self.reserved_value,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            issue_utilities=d.get("issue_utilities", None),
+            f=deserialize(d.get("f", None)),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+            ami=d.get("ami", None),
+            outcome_type=d.get("outcome_type", None),
+            id=d.get("id", None),
+        )
 
     def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
@@ -480,6 +528,37 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         self.ignore_failing_range_utilities = ignore_failing_range_utilities
         self.adjust_params()
 
+    def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            outcome_ranges=self.outcome_ranges,
+            utilities=self.mappings,
+            weights=self.weights,
+            ignore_issues_not_in_input=self.ignore_issues_not_in_input,
+            ignore_failing_range_utilities=self.ignore_failing_range_utilities,
+            name=self.name,
+            reserved_value=self.reserved_value,
+            ami=self.ami,
+            outcome_type=self.outcome_type,
+            id=self.id,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            outcome_ranges=d.get("outcome_ranges", None),
+            utilities=d.get("utilities", None),
+            weights=d.get("weights", None),
+            ignore_issues_not_in_input=d.get("ignore_issues_not_in_input", None),
+            ignore_failing_range_utilities=d.get(
+                "ignore_failing_range_utilities", None
+            ),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+        )
+
     def adjust_params(self):
         if self.weights is None:
             self.weights = [1.0] * len(self.outcome_ranges)
@@ -552,6 +631,34 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         self.hypervolumes = hypervolumes
         self.mappings = mappings
         self.f = f
+
+    def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            hypervolumes=self.hypervolumes,
+            mappings=self.mappings,
+            f=serialize(self.f),
+            name=self.name,
+            reserved_value=self.reserved_value,
+            ami=self.ami,
+            outcome_type=self.outcome_type,
+            id=self.id,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(
+            hypervolumes=d.get("hypervolumes", None),
+            mappings=d.get("mappings", None),
+            f=deserialize(d.get("f", None)),
+            name=d.get("name", None),
+            reserved_value=d.get("reserved_value", None),
+            ami=d.get("ami", None),
+            outcome_type=d.get("outcome_type", None),
+            id=d.get("id", None),
+        )
 
     def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
         if offer is None:
