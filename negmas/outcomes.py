@@ -1414,6 +1414,27 @@ class Issue(NamedObject):
             f"Unknown issue type: {class_name} with dict {d} received from Java"
         )
 
+    def to_dict(self):
+        return dict(
+            values=self._values,
+            name=self.name,
+            id=self.id,
+            value_type=self._value_type,
+            min_value=self.min_value,
+            max_value=self.max_value,
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(
+            values=d.get("values", None),
+            name=d.get("name", None),
+            id=d.get("id", None),
+            value_type=d.get("value_type", None),
+            min_value=d.get("min_value", None),
+            max_value=d.get("max_value", None),
+        )
+
     def to_java(self):
         if self._values is None:
             return None

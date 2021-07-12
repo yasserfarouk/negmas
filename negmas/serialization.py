@@ -6,6 +6,7 @@ import warnings
 import json
 from typing import Any, Dict, Iterable, Optional
 import cloudpickle
+from pathlib import Path
 
 import numpy as np
 from pandas import json_normalize
@@ -14,10 +15,15 @@ from .helpers import (
     get_class,
     is_lambda_function,
     is_non_lambda_function,
+    is_type,
     is_jsonable,
+    get_class,
+    get_full_type_name,
     dump,
     load,
+    TYPE_START,
 )
+from typing import Type
 
 __all__ = [
     "serialize",
@@ -29,6 +35,7 @@ __all__ = [
 ]
 
 PYTHON_CLASS_IDENTIFIER = "__python_class__"
+PATH_START = "__PATH__:"
 LAMBDA_START = b"__LAMBDAOBJ__:"
 FUNCTION_START = b"__FUNCTION_START__:"
 # JSON_START = b"__JSON_START__:"
@@ -94,7 +101,6 @@ def serialize(
           `deserialize`, `PYTHON_CLASS_IDENTIFIER`
 
     """
-
     def add_to_mem(x, objmem):
         if not objmem:
             objmem = {id(x)}
@@ -140,6 +146,10 @@ def serialize(
     if isinstance(value, Iterable) and not deep:
         # add_to_mem(value)
         return value
+    if isinstance(value, Type):
+        return TYPE_START + get_full_type_name(value)
+    if isinstance(value, Path):
+        return PATH_START + str(value)
     # if isinstance(value, np.ndarray):
     #     return value.tolist()
     if isinstance(value, (list, tuple)) and not isinstance(value, str):
@@ -273,6 +283,7 @@ def deserialize(
 
     """
 
+
     def good_field(k: str):
         return keep_private or not (k != PYTHON_CLASS_IDENTIFIER and k.startswith("_"))
 
@@ -308,6 +319,10 @@ def deserialize(
     if not deep:
         return d
     if isinstance(d, str):
+        if d.startswith(TYPE_START):
+            return get_class(d[len(TYPE_START):])
+        elif d.startswith(PATH_START):
+            return Path(d[len(PATH_START):])
         return d
     if isinstance(d, bytes):
         if d.startswith(LAMBDA_START):

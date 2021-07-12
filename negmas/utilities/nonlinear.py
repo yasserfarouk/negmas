@@ -104,6 +104,7 @@ class MappingUtilityFunction(UtilityFunction):
         ami: AgentMechanismInterface = None,
         outcome_type: Optional[Type] = None,
         id=None,
+        **kwargs,
     ) -> None:
         super().__init__(
             name=name,
