@@ -391,6 +391,16 @@ def test_normalization():
     )
 
 
+@mark.parametrize("utype", (LinearUtilityFunction, LinearUtilityAggregationFunction))
+def test_dict_conversion(utype):
+    issues = [Issue(10)]
+    u = utype.random(issues, normalized=False)
+    d = u.to_dict()
+    u2 = utype.from_dict(d)
+    for o in Issue.enumerate(issues):
+        assert abs(u(o) - u2(o)) < 1e-3
+
+
 @mark.parametrize(["normalize"], [(True,), (False,)])
 def test_inverse_genius_domain(normalize):
     issues, _ = Issue.from_xml_str(

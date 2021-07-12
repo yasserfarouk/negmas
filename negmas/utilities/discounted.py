@@ -5,9 +5,12 @@ from typing import (
     Optional,
     Type,
     Union,
+    Any,
+    Dict,
 )
 
 
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, deserialize
 from negmas.common import AgentMechanismInterface
 from negmas.outcomes import (
     Issue,
@@ -15,7 +18,7 @@ from negmas.outcomes import (
 )
 from negmas.helpers import get_class
 from .base import UtilityValue, UtilityFunction
-from negmas.helpers import make_range
+from negmas.helpers import make_range, get_full_type_name
 
 __all__ = [
     "LinDiscountedUFun",
@@ -57,6 +60,24 @@ class ExpDiscountedUFun(UtilityFunction):
         self.discount = discount
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ufun": serialize(self.ufun),
+            "discount": self.discount,
+            "factor": self.factor,
+            "dynamic_reservation": self.dynamic_reservation,
+            "id": self.id,
+            "name": self.name,
+            "reserved_value": self.reserved_value,
+            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]):
+        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d["ufun"] = deserialize(d["ufun"])
+        return cls(**d)
 
     @UtilityFunction.outcome_type.setter
     def outcome_type(self, value: Type):
@@ -180,6 +201,25 @@ class LinDiscountedUFun(UtilityFunction):
         self.factor = factor
         self.power = power
         self.dynamic_reservation = dynamic_reservation
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ufun": serialize(self.ufun),
+            "cost": self.cost,
+            "power": self.power,
+            "factor": self.factor,
+            "dynamic_reservation": self.dynamic_reservation,
+            "id": self.id,
+            "name": self.name,
+            "reserved_value": self.reserved_value,
+            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]):
+        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d["ufun"] = deserialize(d["ufun"])
+        return cls(**d)
 
     @UtilityFunction.outcome_type.setter
     def outcome_type(self, value: Type):

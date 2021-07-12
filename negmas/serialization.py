@@ -109,6 +109,8 @@ def serialize(
         return objmem
 
     def good_field(k: str, v, objmem):
+        if not isinstance(k, str):
+            return True
         if objmem and id(v) in objmem:
             return False
         if ignore_methods and is_non_lambda_function(v):
@@ -285,6 +287,8 @@ def deserialize(
 
 
     def good_field(k: str):
+        if not isinstance(k, str):
+            return True
         return keep_private or not (k != PYTHON_CLASS_IDENTIFIER and k.startswith("_"))
 
     if d is None or isinstance(d, int) or isinstance(d, float) or isinstance(d, str):
