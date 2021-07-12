@@ -90,8 +90,10 @@ __all__ = [
     "exception2str",
     "is_jsonable",
     "is_lambda_function",
+    "is_type",
     "is_non_lambda_function",
     "force_single_thread",
+    "TYPE_START",
 ]
 # conveniently named classes
 TYPE_START = "__TYPE__:"
@@ -1054,7 +1056,13 @@ def get_class(
     """Imports and creates a class object for the given class name"""
     if not isinstance(class_name, str):
         return class_name
+
+    # remove explicit type annotation in the string. Used when serializing
+    while class_name.startswith(TYPE_START):
+        class_name = class_name[len(TYPE_START):]
+
     modules: List[str] = []
+
     if module_name is not None:
         modules = module_name.split(".")
     modules += class_name.split(".")
@@ -1255,14 +1263,21 @@ def is_lambda_function(obj):
     """Checks if the given object is a lambda function"""
     return isinstance(obj, LambdaType) and obj.__name__ == "<lambda>"
 
+def is_type(obj):
+    """Checks if the given object is a type converted to string"""
+    return isinstance(obj, Type)
+
+def is_not_type(obj):
+    """Checks if the given object is not a type converted to string"""
+    return not is_type(obj)
 
 def is_non_lambda_function(obj):
-    """Checks if the given object is a lambda function"""
+    """Checks if the given object is not a lambda function"""
     return isinstance(obj, FunctionType) and obj.__name__ != "<lambda>"
 
 
 def add_records(
-    file_name: Union[str, os.PathLike], data: Any, col_names: Optional[List[str]] = None
+    file_name: Union[str, os.PathLike], data: Any, col_names: Optional[List[str]] = None, raise_exceptions=False
 ) -> None:
     """
     Adds records to a csv file
@@ -1272,6 +1287,7 @@ def add_records(
         file_name: file name
         data: data to use for creating the record
         col_names: Names in the data.
+        raise_exceptions: If given, exceptions  are raised on failure
 
     Returns:
 
@@ -1312,6 +1328,8 @@ def add_records(
                 old_data = pd.read_csv(file_name, index_col=None)
                 data = pd.concat((old_data, data), axis=0, ignore_index=True)
             except Exception as e:
+                if raise_exceptions:
+                    raise e
                 warnings.warn(
                     f"Failed to read data from file {str(file_name)} will override it\n{e}"
                 )

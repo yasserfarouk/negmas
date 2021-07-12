@@ -57,24 +57,41 @@ from negmas.helpers import (
     shortest_unique_names,
     unique_name,
 )
-from negmas.serialization import serialize, to_flat_dict
+from negmas.serialization import serialize, to_flat_dict, deserialize
 
-from .situated import Agent, World, save_stats
+from negmas.situated import Agent, World, save_stats
 
 __all__ = [
-    "tournament",
     "WorldGenerator",
     "WorldRunResults",
     "TournamentResults",
     "run_world",
     "process_world_run",
-    "evaluate_tournament",
-    "combine_tournament_results",
-    "combine_tournaments",
-    "combine_tournament_stats",
     "create_tournament",
     "run_tournament",
+    "evaluate_tournament",
+    "combine_tournaments",
+    "combine_tournament_results",
+    "combine_tournament_stats",
+    "tournament",
 ]
+
+
+def to_file(x, f):
+    dump(x, f)
+    # with open(f, "w") as file:
+    #     s = serialize(x)
+    #     if isinstance(s, str):
+    #         s = f"'{s}'"
+    #     else:
+    #         s = str(s)
+    #     file.write(s)
+
+def from_file(f):
+    return load(f)
+    # with open(f, "r") as file:
+    #     s = file.read()
+    # return deserialize(eval(s))
 
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 # files created before running worlds
@@ -1561,21 +1578,15 @@ def tournament(
 
     if stage_winners_fraction < 0:
         stage_winners_fraction = 0
-    # if not round_robin and stage_winners_fraction == 0:
-    #     raise ValueError(
-    #         f"elimination tournaments (i.e. ones that are not round_robin), cannot have zero stage winner"
-    #         f"fraction"
-    #     )
 
-    competitor_indx = dict(
-        zip(
-            [
-                get_class(c)._type_name() if not isinstance(c, str) else c
-                for c in competitors
-            ],
-            range(len(competitors)),
-        )
-    )
+    competitor_indx = dict()
+    for i,c in enumerate(competitors):
+        tname = get_full_type_name(c)
+        ctype = get_class(c)
+        if hasattr(ctype, "_type_name"):
+            tname = ctype._type_name()
+        competitor_indx[tname] = i
+
 
     def _run_eval(competitors_, stage_name):
         final_tournament_path = create_tournament(
@@ -1771,9 +1782,9 @@ def run_tournament(
     try:
         assigned = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
         if assigned is None or len(assigned) == 0:
-            assigned = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+            assigned = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     except:
-        assigned = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+        assigned = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     random.shuffle(assigned)
 
     scores_file = tournament_path / SCORES_FILE
@@ -2172,7 +2183,7 @@ def create_tournament(
                 "", add_time=False, sep="", rand_digits=2
             )
             c["world_params"]["name"] = c["config_id"]
-    dump(configs, tournament_path / "base_configs")
+    to_file(configs, tournament_path / "base_configs")
     if verbose:
         print(
             f"Will run {len(configs)}  different base world configurations ({parallelism})",
@@ -2380,9 +2391,9 @@ def create_tournament(
     config_path.mkdir(exist_ok=True, parents=True)
     for i, conf in enumerate(saved_configs):
         f_name = config_path / f"{i:06}"
-        dump(conf, f_name)
+        to_file(conf, f_name)
 
-    dump(assigned, tournament_path / "assigned_configs")
+    to_file(assigned, tournament_path / "assigned_configs")
     dump(assigned, tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
 
     return tournament_path
@@ -2441,9 +2452,9 @@ def get_world_paths(*, assignments=None, tournament_path=None):
         try:
             assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
             if assignments is None or len(assignments) == 0:
-                assignments = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+                assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
         except:
-            assignments = load(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+            assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
     for a in assignments:
         for w in a:
             # dir_name = w["world_params"]["log_folder"]
@@ -2517,7 +2528,7 @@ def evaluate_tournament(
         if agent_stats is None and agent_stats_file.exists():
             agent_stats = pd.read_csv(agent_stats_file, index_col=None)
         if params_file.exists():
-            params = load(str(params_file))
+            params = load(params_file)
         if scores is None:
             if recursive:
                 scores = combine_tournament_results(
@@ -2720,7 +2731,7 @@ def combine_tournaments(
             try:
                 if verbose:
                     print(f"{filename.parent} ", end="")
-                a, c = load(filename), load(filename.parent / "base_configs.json")
+                a, c = load(filename), from_file(filename.parent / "base_configs.json")
             except:
                 if verbose:
                     print("FAILED.")
@@ -2734,9 +2745,9 @@ def combine_tournaments(
         return len(configs), len(assignments)
     dest = _path(dest)
     dest.mkdir(parents=True, exist_ok=True)
-    dump(configs, dest / "base_configs.json")
+    to_file(configs, dest / "base_configs.json")
     dump(assignments, dest / ASSIGNED_CONFIGS_PICKLE_FILE)
-    dump(assignments, dest / ASSIGNED_CONFIGS_JSON_FILE)
+    to_file(assignments, dest / ASSIGNED_CONFIGS_JSON_FILE)
     if verbose:
         print(f"=> {len(configs)} base, {len(assignments)} assigned configs.")
     return len(configs), len(assignments)

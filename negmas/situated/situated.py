@@ -104,10 +104,10 @@ import pandas as pd
 import yaml
 from matplotlib.axis import Axis
 
-from .checkpoints import CheckpointMixin
-from .common import AgentMechanismInterface, MechanismState, NamedObject, Rational
-from .events import Event, EventSink, EventSource, Notifier, EventLogger
-from .helpers import (
+from negmas.checkpoints import CheckpointMixin
+from negmas.common import AgentMechanismInterface, MechanismState, NamedObject, Rational
+from negmas.events import Event, EventSink, EventSource, Notifier, EventLogger
+from negmas.helpers import (
     ConfigReader,
     add_records,
     create_loggers,
@@ -118,12 +118,12 @@ from .helpers import (
     unique_name,
     exception2str,
 )
-from .serialization import serialize, to_flat_dict
-from .mechanisms import Mechanism
-from .negotiators import Negotiator
-from .outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
-from .utilities import UtilityFunction
-from .genius import (
+from negmas.serialization import serialize, to_flat_dict
+from negmas.mechanisms import Mechanism
+from negmas.negotiators import Negotiator
+from negmas.outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
+from negmas.utilities import UtilityFunction
+from negmas.genius import (
     DEFAULT_JAVA_PORT,
     get_free_tcp_port,
     ANY_JAVA_PORT,
@@ -2261,6 +2261,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         name: str = None,
         id: str = None,
     ):
+        self.info = None
         self.disable_agent_printing = disable_agent_printing
         self.ignore_simulation_exceptions = ignore_simulation_exceptions
         self.ignore_negotiation_exceptions = ignore_negotiation_exceptions
@@ -3883,7 +3884,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
         mechanism_params: Dict[str, Any] = None,
-    ) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
+    ) -> Tuple[Optional[Contract], Optional[AgentMechanismInterface]]:
         """
         Runs a negotiation until completion
 
@@ -4188,7 +4189,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             "group": negotiation.group,
             "caller": negotiation.caller,
         }
-        record.update(to_flat_dict(negotiation.annotation))
+        if negotiation.annotation:
+            record.update(to_flat_dict(negotiation.annotation))
         dd = vars(mechanism.state)
         dd = {(k if k not in record.keys() else f"{k}_neg"): v for k, v in dd.items()}
         dd["history"] = [vars(_) for _ in mechanism.history]
@@ -5228,7 +5230,7 @@ class SimpleWorld(World, ABC):
         return to_flat_dict(breach, deep=True)
 
     def contract_size(self, contract: Contract) -> float:
-        return 0.0
+        return 1.0
 
 
 class TimeInAgreementMixin:
@@ -5374,7 +5376,9 @@ def save_stats(
         agents[k]["contracts_breached"] = world.contracts_breached[k]
 
     dump(agents, log_dir / "agents")
-    dump(params, log_dir / "params")
+    with open(log_dir / "params.json", "w") as f_:
+        f_.write(str(serialize(params)))
+
     dump(world.stats, log_dir / stats_file_name)
 
     if world.info is not None:

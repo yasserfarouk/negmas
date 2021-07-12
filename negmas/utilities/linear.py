@@ -293,20 +293,22 @@ class LinearUtilityFunction(UtilityFunction):
         )
 
 
-def _rand_mapping(x, normalized=False):
-    return (random.random() - (0.5 if not normalized else 0.0)) * x
+def _rand_mapping(x):
+    return (random.random() - 0.5) * x
 
+def _rand_mapping_normalized(x):
+    return random.random()
 
 def random_mapping(issue: "Issue", normalized=False):
-    if issubclass(issue.value_type, int) or issubclass(issue.value_type, float):
-        return partial(_rand_mapping, normalized)
-    return zip(
-        issue.values,
+    if issubclass(issue.value_type, float):
+        return _rand_mapping_normalized if normalized else _rand_mapping
+    return dict(zip(
+        issue.all,
         [
             random.random() - (0.5 if not normalized else 0.0)
             for _ in range(issue.cardinality)
         ],
-    )
+    ))
 
 
 class LinearUtilityAggregationFunction(UtilityFunction):
@@ -402,6 +404,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         self.weights = weights
         for k, v in ienumerate(self.issue_utilities):
             self.issue_utilities[k] = (
+                # v if isinstance(v, UtilityFunction) else v
                 v if isinstance(v, UtilityFunction) else MappingUtilityFunction(v)
             )
         if isinstance(issue_utilities, dict):
@@ -673,11 +676,6 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             + reserved_value[0],
             **kwargs,
         )
-        # if normalized:
-        #     return normalize(
-        #         ufun,
-        #         outcomes=Issue.discretize_and_enumerate(issues, max_n_outcomes=5000),
-        #     )
         return ufun
 
     # def outcome_with_utility(

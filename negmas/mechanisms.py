@@ -945,8 +945,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                     if done:
                         continue
                     result = mechanism.step()
-                    if result.running != mechanism.state.running:
-                        breakpoint()
                     if result.running:
                         continue
                     completed[i] = True
