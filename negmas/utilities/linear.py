@@ -1,4 +1,5 @@
 import itertools
+from functools import partial
 import random
 from typing import (
     Any,
@@ -292,14 +293,20 @@ class LinearUtilityFunction(UtilityFunction):
         )
 
 
-def _rand_mapping(x):
-    return (random.random() - 0.5) * x
+def _rand_mapping(x, normalized=False):
+    return (random.random() - (0.5 if not normalized else 0.0)) * x
 
 
-def random_mapping(issue: "Issue"):
+def random_mapping(issue: "Issue", normalized=False):
     if issubclass(issue.value_type, int) or issubclass(issue.value_type, float):
-        return _rand_mapping
-    return zip(issue.values, [random.random() - 0.5 for _ in range(issue.cardinality)])
+        return partial(_rand_mapping, normalized)
+    return zip(
+        issue.values,
+        [
+            random.random() - (0.5 if not normalized else 0.0)
+            for _ in range(issue.cardinality)
+        ],
+    )
 
 
 class LinearUtilityAggregationFunction(UtilityFunction):
@@ -646,15 +653,17 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         n_issues = len(issues)
         # r = reserved_value if reserved_value is not None else random.random()
         s = 0.0
-        weights = dict(
-            zip([_.name for _ in issues], [random.random() for _ in range(n_issues)])
-        )
-        s = sum(_ for _ in weights.values())
-        if s:
-            for k, v in weights.items():
-                weights[k] = v / s
+        rand_weights = [random.random() for _ in range(n_issues)]
+        if normalized:
+            m = max(rand_weights)
+            if m:
+                rand_weights = [_ / m for _ in rand_weights]
+        weights = dict(zip([_.name for _ in issues], rand_weights))
         issue_utilities = dict(
-            zip([_.name for _ in issues], [random_mapping(issue) for issue in issues])
+            zip(
+                [_.name for _ in issues],
+                [random_mapping(issue, normalized) for issue in issues],
+            )
         )
 
         ufun = cls(
@@ -664,11 +673,12 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             + reserved_value[0],
             **kwargs,
         )
-        if normalized:
-            return normalize(
-                ufun,
-                outcomes=Issue.discretize_and_enumerate(issues, max_n_outcomes=5000),
-            )
+        # if normalized:
+        #     return normalize(
+        #         ufun,
+        #         outcomes=Issue.discretize_and_enumerate(issues, max_n_outcomes=5000),
+        #     )
+        return ufun
 
     # def outcome_with_utility(
     #     self,
