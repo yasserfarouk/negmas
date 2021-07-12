@@ -65,32 +65,33 @@ def test_can_run_tournament():
             )
 
     neg_tournament(
-        n_configs=2 * 2,
+        n_configs=len(domains),
         domains=domains_from_list(domains),
         competitors=competitors,
-        n_steps=2,
+        n_steps=1,
         neg_n_steps=10,
         neg_time_limit=None,
+        compact=True,
     )
 
 
-# def test_can_run_tournament_from_generator():
-#     from negmas.tournaments.neg import random_discrete_domains
-# 
-#     n_configs = 1
-#     n_repetitions = 1
-#     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
-#     if genius_bridge_is_running():
-#         competitors += [Atlas3, NiceTitForTat]
-# 
-#     domains = random_discrete_domains(issues=[5, 4, (3, 5)], partners=competitors)
-# 
-#     neg_tournament(
-#         n_configs=len(competitors) * n_configs,
-#         domains=domains,
-#         competitors=competitors,
-#         n_steps=n_repetitions,
-#         neg_n_steps=10,
-#         neg_time_limit=None,
-#         parallelism="serial",
-#     )
+def test_can_run_tournament_from_generator():
+    from negmas.tournaments.neg import random_discrete_domains
+
+    n_configs = 1
+    n_repetitions = 1
+    competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
+    if genius_bridge_is_running():
+        competitors += [Atlas3, NiceTitForTat]
+
+    domains = random_discrete_domains(issues=[5, 4, (3, 5)], partners=competitors)
+
+    neg_tournament(
+        n_configs=len(competitors) * n_configs,
+        domains=domains,
+        competitors=competitors,
+        n_steps=n_repetitions,
+        neg_n_steps=10,
+        neg_time_limit=None,
+        compact=True,
+    )
