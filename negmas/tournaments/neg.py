@@ -22,7 +22,7 @@ __all__ = [
     "create_neg_tournament",
     "neg_tournament",
     "random_discrete_domains",
-    "domains_from_list"
+    "domains_from_list",
 ]
 
 
@@ -312,19 +312,14 @@ def random_discrete_domains(
     positions: Tuple[int, int] = None,
     normalized=True,
 ) -> Generator[NegDomain, None, None]:
-    from negmas.utilities import LinearUtilityAggregationFunction as U
+    # from negmas.utilities import LinearUtilityAggregationFunction as U
+    from negmas.utilities import LinearUtilityFunction as U
+
     if positions is None:
         positions = (0, n_negotiators)
 
-    while len(partners) < n_negotiators:
+    while len(partners) < n_negotiators - 1:
         partners += [_ for _ in partners]
-        if len(partners) > n_negotiators:
-            partners = partners[:n_negotiators]
-
-    def partner_generator():
-        n = len(partners)
-        for i in range(n - n_negotiators):
-            yield partners[i : i + n_negotiators]
 
     def intin(i):
         if isinstance(i, int):
@@ -340,10 +335,12 @@ def random_discrete_domains(
             U.random(current_issues, reserved_value=(0.0, 0.2), normalized=normalized)
             for _ in range(n_negotiators)
         ]
+        n = len(partners) - n_negotiators + 1
         for u in permutations(ufuns):
             for index in range(*positions):
-                for p in partner_generator():
-                    assert len(u) == len(p)
+                for j in range(n):
+                    p = partners[j:j + n_negotiators  - 1]
+                    assert len(u) == len(p) + 1
                     yield NegDomain(
                         name="d0",
                         ufuns=u,
@@ -356,41 +353,21 @@ def random_discrete_domains(
 def domains_from_list(domains: List[NegDomain]) -> Generator[NegDomain, None, None]:
     return cycle(domains)
 
+
 if __name__ == "__main__":
     from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
-    from negmas.utilities import LinearUtilityFunction as U
-    from negmas.genius import genius_bridge_is_running
-    from negmas.genius import Atlas3, NiceTitForTat
 
-    issues = [Issue(10, "quantity"), Issue(5, "price")]
-    competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
-    if genius_bridge_is_running():
-        competitors += [Atlas3, NiceTitForTat]
-
-    domains = []
-    for index in range(2):
-        for partner in competitors:
-            domains.append(
-                NegDomain(
-                    name="d0",
-                    issues=issues,
-                    ufuns=[
-                        U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
-                        U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
-                    ],
-                    partner_types=[partner],
-                    index=index,
-                )
-            )
-
+    domains = random_discrete_domains(
+        issues=[5, 4, (3, 5)],
+        partners=[AspirationNegotiator, NaiveTitForTatNegotiator],
+    )
     print(
         neg_tournament(
-            n_configs=2 * 2,
-            domains=domains_from_list(domains),
-            competitors=competitors,
-            n_steps=2,
+            n_configs=4,
+            domains=domains,
+            competitors=[AspirationNegotiator, NaiveTitForTatNegotiator],
+            n_steps=1,
             neg_n_steps=10,
             neg_time_limit=None,
-            parallelism="serial",
         )
     )
