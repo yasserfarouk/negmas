@@ -471,7 +471,7 @@ class TournamentResults:
 
         results = ""
         results += tabulate.tabulate(self.total_scores)
-        results += f"The winner(s) is: {self.winners}"
+        results += f"\nThe winner(s): {self.winners}\n"
         if self.kstest is not None:
             results += tabulate.tabulate(self.kstest)
         elif self.ttest is not None:

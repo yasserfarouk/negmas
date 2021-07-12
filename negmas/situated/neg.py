@@ -274,6 +274,9 @@ class NegWorld(NoContractExecutionMixin, World):
         if self.info is None:
             self.info = {}
         self.info["domain"] = serialize(domain)
+        self.info["n_steps"] = self.n_steps
+        self.info["n_negotiators"] = len(domain.ufuns)
+
         if domain.annotation is None:
             domain.annotation = dict()
         self._domain = domain
