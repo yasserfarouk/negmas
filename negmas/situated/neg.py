@@ -4,7 +4,18 @@ Defines a world for running negotiations directly
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Callable, Collection, Dict, List, Optional, Set, Type, Union, Iterable
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+    Union,
+    Iterable,
+)
 
 from negmas import AgentMechanismInterface, MechanismState
 from negmas.helpers import get_class, get_full_type_name, instantiate
@@ -21,7 +32,7 @@ from negmas.situated import (
     RenegotiationRequest,
     World,
 )
-from negmas.utilities import UtilityFunction
+from negmas.utilities import UtilityFunction, utility_range
 
 __all__ = [
     "NegWorld",
@@ -87,6 +98,7 @@ class NegDomain:
     """
     A representation of a negotiation domain in which a negotiator can be evaluated
     """
+
     name: str
     """Domain name"""
     issues: List[Issue]
@@ -132,6 +144,7 @@ class NegDomain:
 
 class NegAgent(Agent):
     """Wraps a negotiator for evaluaton"""
+
     def __init__(
         self,
         *args,
@@ -183,7 +196,7 @@ class NegAgent(Agent):
         """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
-        """Called when a requested negotiation is rejected """
+        """Called when a requested negotiation is rejected"""
 
     def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
         """Called when a requested negotiation is accepted"""
@@ -211,7 +224,7 @@ class NegAgent(Agent):
     def respond_to_renegotiation_request(
         self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
     ) -> Optional[Negotiator]:
-        """ Called to respond to a renegotiation request """
+        """Called to respond to a renegotiation request"""
 
     def on_contract_executed(self, contract: Contract) -> None:
         """
@@ -236,11 +249,13 @@ class NegAgent(Agent):
 
 class _NegPartner(NegAgent):
     """A `NegAgent` representing a partner that is not being evaluated"""
+
     pass
 
 
 class _NegAWI(AgentWorldInterface):
     """The AWI for the `NegWorld`"""
+
     def get_ufun(self, uid: int):
         """Get the agent's ufun"""
         return self._world._domain.ufuns[uid]
@@ -261,6 +276,7 @@ class NegWorld(NoContractExecutionMixin, World):
         no_logs: disables all logging
         kwargs: Any extra arguments to be passed to the `World` constructor
     """
+
     def __init__(
         self,
         *args,
@@ -270,6 +286,7 @@ class NegWorld(NoContractExecutionMixin, World):
         agent_names_reveal_type: bool = True,
         compact: bool = False,
         no_logs: bool = False,
+        normalize_scores: bool = False,
         **kwargs,
     ):
         kwargs["log_to_file"] = not no_logs
@@ -306,6 +323,13 @@ class NegWorld(NoContractExecutionMixin, World):
         self._partner_advantage: Dict[str, List[float]] = defaultdict(list)
         self._competitors: Dict[str, NegAgent] = dict()
         self._partners: Dict[str, NegAgent] = dict()
+        self._n_negs_per_copmetitor = defaultdict(int)
+        self._normalize_scores = normalize_scores
+        self._ufun_ranges = None
+        if self._normalize_scores:
+            self._ufun_ranges = [
+                utility_range(u, issues=domain.issues) for u in domain.ufuns
+            ]
         partner_types = domain.partner_types
         partner_params = domain.partner_params
 
@@ -343,8 +367,20 @@ class NegWorld(NoContractExecutionMixin, World):
 
         add_agents(partner_types, partner_params, _NegPartner, self._partners)
 
-
     def simulation_step(self, stage):
+        def unormalize(u, indx):
+            if self._normalize_scores:
+                mn, mx = self._ufun_ranges[indx]
+                if mx > mn:
+                    u = (u - mn) / (mx - mn)
+                else:
+                    u = u / mx
+            return u
+
+        def calcu(ufun, indx, agreement):
+            u = ufun(agreement)
+            return unormalize(u, indx)
+
         for aid, agent in self._competitors.items():
             partners = list(self._partners.keys())
             partners.insert(self._domain.index, aid)
@@ -356,35 +392,45 @@ class NegWorld(NoContractExecutionMixin, World):
                 annotation=self._domain.annotation,
                 negotiator=None,
             )
+            self._n_negs_per_copmetitor[aid] += 1
             agreement = mechanism.state.agreement if mechanism else None
             self._success[aid] = mechanism is not None
             agent = self.agents[aid]
             ufun = self._domain.ufuns[self._domain.index]
-            u = float(ufun(agreement) if agreement else ufun.reserved_value)
-            r = float(ufun.reserved_value)
+            u = float(
+                calcu(ufun, self._domain.index, agreement)
+                if agreement
+                else unormalize(ufun.reserved_value, self._domain.index)
+            )
+            r = unormalize(float(ufun.reserved_value), self._domain.index)
             self._received_utility[aid].append(u)
             self._received_advantage[aid].append(u - r)
             pufuns = [
-                p.awi.get_ufun(partners.index(pid)) for pid, p in self._partners.items()
+                (partners.index(pid), p.awi.get_ufun(partners.index(pid)))
+                for pid, p in self._partners.items()
             ]
-            pu = sum(float(_(agreement)) for _ in pufuns)
-            pa = sum(float(_(agreement)) - float(_.reserved_value) for _ in pufuns)
+            pu = sum(unormalize(float(_(agreement)), i) for i, _ in pufuns)
+            pa = sum(
+                unormalize(float(_(agreement)), i)
+                - unormalize(float(_.reserved_value), i)
+                for i, _ in pufuns
+            )
             self._partner_utility[aid].append(pu)
             self._partner_advantage[aid].append(pa)
             partner_names = [self.agents[_].name for _ in partners]
             self.loginfo(f"{agent.name} : {partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
-        return sum(self._received_utility.get(aid, []))
+        return sum(self._received_utility.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_utility(self, aid: str):
-        return sum(self._partner_utility.get(aid, []))
+        return sum(self._partner_utility.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def received_advantage(self, aid: str):
-        return sum(self._received_advantage.get(aid, []))
+        return sum(self._received_advantage.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_advantage(self, aid: str):
-        return sum(self._partner_advantage.get(aid, []))
+        return sum(self._partner_advantage.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     @property
     def competitors(self):
@@ -481,5 +527,5 @@ if __name__ == "__main__":
     world.run()
     print("World ran", flush=True)
     for aid in world.agents.keys():
-        print(world._received_utility[aid])
+        print(world.received_utility(aid))
     save_stats(world, world.log_folder)
