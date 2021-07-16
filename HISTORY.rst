@@ -1,6 +1,17 @@
 History
 =======
 
+Release 0.8.6
+-------------
+
+* [core] Adding to_dict/from_dict to all ufun types
+* [core] Better random LinearUtilityAggregationFunction
+* [core] better implementation of stepall and runall
+* [core] implementing keep_order=False for stepall()
+* [tournaments] Adding negotiation tournaments.
+* [situated] shuffle_negotiations option in World
+* [bugfix] SAOSyncController never loses offers
+
 Release 0.8.5
 -------------
 
