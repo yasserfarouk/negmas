@@ -20,7 +20,7 @@ from negmas.tournaments.tournaments import (
     create_tournament,
     tournament,
 )
-from negmas.situated.neg import NegDomain, NegWorld, NegAgent, _wrap_in_agents
+from negmas.situated.neg import NegDomain, NegWorld, NegAgent # , _wrap_in_agents
 from copy import deepcopy
 
 __all__ = [
@@ -91,7 +91,7 @@ def neg_config_assigner(
     max_n_worlds: int = 1,
     n_agents_per_competitor: int = 1,
     fair: bool = True,
-    competitors: Sequence[Type[Agent]] = (),
+    competitors: Sequence[Union[Type[Negotiator], Type[Agent]]] = (),
     params: Sequence[Dict[str, Any]] = (),
     dynamic_non_competitors: Optional[List[Type[Agent]]] = None,
     dynamic_non_competitor_params: Optional[List[Dict[str, Any]]] = None,
@@ -106,7 +106,7 @@ def neg_config_assigner(
     All parameters other than `competitors` and `params` are ignored
     """
     competitors, params = deepcopy(competitors), deepcopy(params)
-    competitors, params = _wrap_in_agents(competitors, params, NegAgent)
+    # competitors, params = _wrap_in_agents(competitors, params, NegAgent)
     config[0]["world_params"]["types"] = competitors
     config[0]["world_params"]["params"] = params
     return [config]

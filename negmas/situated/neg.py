@@ -86,9 +86,11 @@ def _wrap_in_agents(types, params, agent_types):
         t = types[i] = get_class(t)
         if issubclass(t, NegAgent):
             continue
-        params[i].update(
-            dict(negotiator_type=t, negotiator_params={k: v for k, v in p.items()})
+        name = p.get("name", None)
+        params[i] = dict(
+            negotiator_type=t, negotiator_params={k: v for k, v in p.items()}
         )
+        params[i]["name"] = name
         types[i] = w
     return types, params
 
@@ -421,16 +423,24 @@ class NegWorld(NoContractExecutionMixin, World):
             self.loginfo(f"{agent.name} : {partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
-        return sum(self._received_utility.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(
+            self._received_utility.get(aid, [0])
+        ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_utility(self, aid: str):
-        return sum(self._partner_utility.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(
+            self._partner_utility.get(aid, [0])
+        ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def received_advantage(self, aid: str):
-        return sum(self._received_advantage.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(
+            self._received_advantage.get(aid, [0])
+        ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_advantage(self, aid: str):
-        return sum(self._partner_advantage.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(
+            self._partner_advantage.get(aid, [0])
+        ) / self._n_negs_per_copmetitor.get(aid, 0)
 
     @property
     def competitors(self):
