@@ -259,27 +259,37 @@ class LinearUtilityFunction(UtilityFunction):
     def random(
         cls, issues: List["Issue"], reserved_value=(0.0, 1.0), normalized=True, **kwargs
     ):
-        from negmas.utilities.ops import normalize
+        # from negmas.utilities.ops import normalize
 
         reserved_value = make_range(reserved_value)
         n_issues = len(issues)
         r = reserved_value if reserved_value is not None else random.random()
         s = 0.0
-        weights = [2 * (random.random() - 0.5) for _ in range(n_issues)]
-        biases = [2 * (random.random() - 0.5) for _ in range(n_issues)]
+
+        if normalized:
+            weights = [random.random() for _ in range(n_issues)]
+            m = sum(weights)
+            if m:
+                weights = [_ / m for _ in weights]
+            for i, issue in enumerate(issues):
+                weights[i] /= issue.max_value
+            biases = [0.0] * n_issues
+        else:
+            weights = [2 * (random.random() - 0.5) for _ in range(n_issues)]
+            biases = [2 * (random.random() - 0.5) for _ in range(n_issues)]
         ufun = cls(
             weights=weights,
             biases=biases,
             reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
             + reserved_value[0],
         )
-        if normalized:
-            return normalize(
-                ufun,
-                outcomes=Issue.discretize_and_enumerate(
-                    issues, n_discretization=10, max_n_outcomes=10000
-                ),
-            )
+        # if normalized:
+        #     return normalize(
+        #         ufun,
+        #         outcomes=Issue.discretize_and_enumerate(
+        #             issues, n_discretization=10, max_n_outcomes=10000
+        #         ),
+        #     )
         return ufun
 
     def to_dict(self):
@@ -686,7 +696,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
     def random(
         cls, issues: List["Issue"], reserved_value=(0.0, 1.0), normalized=True, **kwargs
     ):
-        from negmas.utilities.ops import normalize
+        # from negmas.utilities.ops import normalize
 
         reserved_value = make_range(reserved_value)
 
@@ -695,7 +705,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         s = 0.0
         rand_weights = [random.random() for _ in range(n_issues)]
         if normalized:
-            m = max(rand_weights)
+            m = sum(rand_weights)
             if m:
                 rand_weights = [_ / m for _ in rand_weights]
         weights = dict(zip([_.name for _ in issues], rand_weights))

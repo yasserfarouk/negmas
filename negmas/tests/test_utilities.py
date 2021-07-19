@@ -427,5 +427,19 @@ def test_inverse_genius_domain(normalize):
         assert v - 1e-3 <= v <= v + 0.1
 
 
+def test_random_linear_utils_is_normalized():
+    from negmas.utilities import LinearUtilityAggregationFunction as U1, LinearUtilityFunction as U2
+    eps = 1e-6
+    issues = [Issue(10), Issue(5), Issue(2)]
+
+    for U in (U1, U2):
+        u = U.random(issues=issues, normalized=True)
+        if U == U1:
+            assert 1 - eps <= sum(u.weights.values()) <= 1 + eps
+        else:
+            assert sum(u.weights) <= 1 + eps
+        for w in Issue.enumerate(issues):
+            assert -1e-6 <= u(w) <= 1 + 1e-6, f"{str(u.to_dict())}"
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])
