@@ -265,7 +265,6 @@ class LinearUtilityFunction(UtilityFunction):
         n_issues = len(issues)
         r = reserved_value if reserved_value is not None else random.random()
         s = 0.0
-
         if normalized:
             weights = [random.random() for _ in range(n_issues)]
             m = sum(weights)
