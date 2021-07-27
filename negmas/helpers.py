@@ -8,6 +8,7 @@ from pathlib import Path
 import warnings
 import base64
 from types import LambdaType, FunctionType
+from contextlib import contextmanager
 import atexit
 import copy
 import datetime
@@ -93,6 +94,7 @@ __all__ = [
     "is_type",
     "is_non_lambda_function",
     "force_single_thread",
+    "single_thread",
     "TYPE_START",
 ]
 # conveniently named classes
@@ -1358,6 +1360,11 @@ def force_single_thread(on: bool = True):
     global SINGLE_THREAD_FORCED
     SINGLE_THREAD_FORCED = on
 
+@contextmanager
+def single_thread():
+    force_single_thread(True)
+    yield None
+    force_single_thread(False)
 
 def is_single_thread() -> bool:
     return SINGLE_THREAD_FORCED
