@@ -1,6 +1,13 @@
 History
 =======
 
+Release 0.8.7
+-------------
+
+* [core] better normalization for random Linear*UFun
+* [helpers] single_thread() context manager
+* [bugfix] Partner params incorrectly passed in NegWorld
+
 Release 0.8.6
 -------------
 
