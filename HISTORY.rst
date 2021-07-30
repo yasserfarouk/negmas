@@ -1,6 +1,11 @@
 History
 =======
 
+Release 0.8.8
+-------------
+
+* [sao] Treating `None` as `(REJECT_OFFER, None)` in responses from counter_all()
+
 Release 0.8.7
 -------------
 
