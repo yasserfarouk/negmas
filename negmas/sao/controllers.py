@@ -244,10 +244,16 @@ class SAOSyncController(SAOController):
         # we arrive here if we already have all the offers to counter
         responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
         for nid in responses.keys():
+            saved_response = responses.get(nid, None)
+            if saved_response is None:
+                self.__responses[nid] = ResponseType.REJECT_OFFER
+                self.__proposals[nid] = None
+                continue
+
             # register the responses for next time for all other negotiators
-            self.__responses[nid] = responses[nid].response
+            self.__responses[nid] = saved_response.response
             # register the proposals to be sent to all agents including this one
-            self.__proposals[nid] = responses[nid].outcome
+            self.__proposals[nid] = saved_response.outcome
             # register that we are not waiting anymore on any of the offers we received
             self.__n_waits[nid] = 0
         self.__offers = dict()
