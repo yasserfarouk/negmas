@@ -249,7 +249,6 @@ class SAOSyncController(SAOController):
                 self.__responses[nid] = ResponseType.REJECT_OFFER
                 self.__proposals[nid] = None
                 continue
-
             # register the responses for next time for all other negotiators
             self.__responses[nid] = saved_response.response
             # register the proposals to be sent to all agents including this one
