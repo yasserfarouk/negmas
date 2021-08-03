@@ -56,6 +56,7 @@ from negmas.helpers import (
     load,
     shortest_unique_names,
     unique_name,
+    truncated_mean,
 )
 from negmas.serialization import serialize, to_flat_dict, deserialize
 
@@ -2489,7 +2490,7 @@ def evaluate_tournament(
         world_stats: Optionally the aggregate stats collected in `WorldSetRunStats` for each world set
         type_stats: Optionally the aggregate stats collected in `AgentStats` for each agent type
         agent_stats: Optionally the aggregate stats collected in `AgentStats` for each agent instance
-        metric: The metric used for evaluation. Possibilities are: mean, median, std, var, sum or a callable that
+        metric: The metric used for evaluation. Possibilities are: mean, median, std, var, sum, truncated_mean or a callable that
                 receives a pandas data-frame and returns a float.
         verbose: If true, the winners will be printed
         recursive: If true, ALL scores.csv files in all subdirectories of the given tournament_path
@@ -2570,6 +2571,11 @@ def evaluate_tournament(
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .apply(metric)
+        )
+    elif metric == "truncated_mean":
+        total_scores = (
+            scores.groupby(["agent_type"])["score"]
+            .apply(truncated_mean)
         )
     elif metric == "median":
         total_scores = (
