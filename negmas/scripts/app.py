@@ -16,7 +16,7 @@ import yaml
 from tabulate import tabulate
 
 import negmas
-from negmas.helpers import humanize_time, load, unique_name
+from negmas.helpers import humanize_time, load, unique_name, truncated_mean
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 from negmas.tournaments import (
     combine_tournament_stats,
@@ -547,9 +547,9 @@ def create(
 )
 @click.option(
     "--metric",
-    default="median",
+    default="truncated_mean",
     type=str,
-    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum, truncated_mean",
 )
 @click.option(
     "--significance/--no-significance",
@@ -623,9 +623,9 @@ def run(
 )
 @click.option(
     "--metric",
-    default="median",
+    default="truncated_mean",
     type=str,
-    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum, truncated_mean",
 )
 @click.option(
     "--significance/--no-significance",
@@ -674,9 +674,9 @@ def eval(ctx, path, metric, significance, compile, verbose):
 )
 @click.option(
     "--metric",
-    default="median",
+    default="truncated_mean",
     type=str,
-    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum, truncated_mean",
 )
 @click.option(
     "--verbose/--silent",
@@ -741,17 +741,33 @@ def _path(path) -> Path:
 
 
 def display_results(results, metric, significance):
-    viewmetric = ["50%" if metric == "median" else metric]
-    print(
-        tabulate(
-            results.score_stats.sort_values(by=viewmetric, ascending=False),
-            headers="keys",
-            tablefmt="psql",
+    if metric == "truncated_mean":
+        print(
+            tabulate(
+                results.total_scores.sort_values(by="score", ascending=False),
+                headers="keys",
+                tablefmt="psql",
+            )
         )
-    )
+        print(
+            tabulate(
+                results.score_stats.sort_values(by="median", ascending=False),
+                headers="keys",
+                tablefmt="psql",
+            )
+        )
+    else:
+        viewmetric = ["50%" if metric == "median" else metric]
+        print(
+            tabulate(
+                results.score_stats.sort_values(by=viewmetric, ascending=False),
+                headers="keys",
+                tablefmt="psql",
+            )
+        )
 
     if significance:
-        if metric in ("mean", "sum"):
+        if metric in ("mean", "sum", "tuncated_mean"):
             print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
         else:
             print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
@@ -820,9 +836,9 @@ def combine(path, dest, verbose):
 )
 @click.option(
     "--metric",
-    default="mean",
+    default="truncated_mean",
     type=str,
-    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum",
+    help="The statistical metric used for choosing the winners. Possibilities are mean, median, std, var, sum, truncated_mean",
 )
 @click.option(
     "--significance/--no-significance",

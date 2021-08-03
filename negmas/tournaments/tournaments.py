@@ -2570,48 +2570,37 @@ def evaluate_tournament(
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .apply(metric)
-            .sort_values(ascending=False)
-            .reset_index()
         )
     elif metric == "median":
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .median()
-            .sort_values(ascending=False)
-            .reset_index()
         )
     elif metric == "mean":
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .mean()
-            .sort_values(ascending=False)
-            .reset_index()
         )
     elif metric == "std":
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .std()
-            .sort_values(ascending=False)
-            .reset_index()
         )
     elif metric == "var":
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .var()
-            .sort_values(ascending=False)
-            .reset_index()
         )
     elif metric == "sum":
         total_scores = (
             scores.groupby(["agent_type"])["score"]
             .sum()
-            .sort_values(ascending=False)
-            .reset_index()
         )
     else:
         raise ValueError(
             f"Unknown metric: {metric}. Supported metrics include mean, median, std, var, sum or a callable"
         )
+    total_scores = total_scores.sort_values(ascending=False).reset_index()
     score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
     winner_table = total_scores.loc[
         total_scores["score"] == total_scores["score"].max(), :
