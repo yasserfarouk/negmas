@@ -15,7 +15,7 @@ from pytest import mark
 
 from negmas import Issue, ResponseType
 from negmas.helpers import unique_name
-from negmas.outcomes import Outcome
+from negmas.outcomes import Outcome, outcome_as_tuple
 from negmas.sao import (
     AspirationNegotiator,
     LimitedOutcomesNegotiator,
@@ -24,6 +24,7 @@ from negmas.sao import (
     SAOResponse,
     SAOState,
     SAOSyncController,
+    SAONegotiator,
 )
 from negmas.utilities import LinearUtilityFunction, MappingUtilityFunction
 
@@ -1206,3 +1207,73 @@ def test_acceptable_outcomes():
     )
     state = p.run()
     assert state.agreement == (3,)
+
+
+class MyNegotiator(SAONegotiator):
+    def propose(self, state):
+        return (3.0, 2, 1.0)
+
+    def respond(self, offer, state):
+        if state.step < 5:
+            return ResponseType.REJECT_OFFER
+        return ResponseType.ACCEPT_OFFER
+
+
+def test_cast_offers_tuple():
+    issues = [Issue(10), Issue(5), Issue(3)]
+    m = SAOMechanism(
+        issues,
+        check_offers=True,
+        enforce_issue_types=True,
+        cast_offers=True,
+        outcome_type=tuple,
+        n_steps=10,
+        end_on_no_response=True,
+    )
+    m.add(MyNegotiator())
+    m.add(MyNegotiator())
+    m.run()
+    assert m.agreement is not None
+    assert all(isinstance(_, int) for _ in m.agreement)
+    assert not any(isinstance(_, float) for _ in m.agreement)
+    assert m.agreement == (3, 2, 1)
+
+
+def test_fail_on_incorrect_types_tuple_or_dict():
+    issues = [Issue(10), Issue(5), Issue(3)]
+    for t in (tuple, dict):
+        m = SAOMechanism(
+            issues,
+            check_offers=True,
+            enforce_issue_types=True,
+            cast_offers=False,
+            outcome_type=t,
+            n_steps=10,
+            end_on_no_response=True,
+        )
+        m.add(MyNegotiator())
+        m.add(MyNegotiator())
+        m.run()
+        assert m.agreement is None
+
+
+def test_no_check_offers_tuple():
+    issues = [Issue(10), Issue(5), Issue(3)]
+    for a, b in ((True, False), (False, False), (False, True), (True, True)):
+        m = SAOMechanism(
+            issues,
+            check_offers=False,
+            enforce_issue_types=a,
+            cast_offers=b,
+            outcome_type=tuple,
+            n_steps=10,
+            end_on_no_response=True,
+        )
+        m.add(MyNegotiator())
+        m.add(MyNegotiator())
+        m.run()
+        assert m.agreement is not None
+        assert isinstance(m.agreement[0], float) and not isinstance(m.agreement[0], int)
+        assert not isinstance(m.agreement[1], float) and isinstance(m.agreement[1], int)
+        assert isinstance(m.agreement[2], float) and not isinstance(m.agreement[2], int)
+        assert m.agreement == (3.0, 2, 1.0)

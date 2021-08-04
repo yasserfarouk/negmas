@@ -20,7 +20,13 @@ from .common import SAOResponse, SAOState
 from ..common import AgentMechanismInterface, MechanismState
 from ..events import Event
 from ..mechanisms import Mechanism, MechanismRoundResult
-from ..outcomes import Outcome, ResponseType, outcome_is_complete, outcoe_types_are_ok
+from ..outcomes import (
+    Outcome,
+    ResponseType,
+    outcome_is_complete,
+    outcome_types_are_ok,
+    cast_outcome,
+)
 from ..helpers import exception2str, TimeoutCaller, TimeoutError
 
 __all__ = [
@@ -66,7 +72,7 @@ class SAOMechanism(Mechanism):
                       outcome-space and if not the offer is considered None which is the same as
                       refusing to offer (NO_RESPONSE).
         enforce_issue_types: If True, the type of each issue is enforced depending on the value of `cast_offers`
-        cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only 
+        cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only
                      used if `enforce_issue_types`
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
@@ -564,13 +570,17 @@ class SAOMechanism(Mechanism):
                 self.check_offers
                 and response is not None
                 and response.outcome is not None
-                and (not outcome_is_complete(response.outcome, self.issues))
             ):
-                return SAOResponse(response.response, None), False
-            if  self.check_offers and self._enforce_issue_types:
-                if self._cast_offers:
-                    response = SAOResponse(response.response, cast_outcome(response.outcome, self.issues))
-                else:
+                if not outcome_is_complete(response.outcome, self.issues):
+                    return SAOResponse(response.response, None), False
+                if self._enforce_issue_types:
+                    if outcome_types_are_ok(response.outcome, self.issues):
+                        return response, False
+                    elif self._cast_offers:
+                        return SAOResponse(
+                            response.response,
+                            cast_outcome(response.outcome, self.issues),
+                        ), False
                     return SAOResponse(response.response, None), False
             return response, False
 
@@ -782,10 +792,15 @@ class SAOMechanism(Mechanism):
                 self._waiting_time[neg.id] += time.perf_counter() - strt
                 self._last_checked_negotiator = (neg_indx - 1) % n_negotiators
                 offered = set(self._negotiator_index[_[0]] for _ in self._new_offers)
-                did_not_offer = sorted(list(set(range(n_negotiators)).difference(offered)))
+                did_not_offer = sorted(
+                    list(set(range(n_negotiators)).difference(offered))
+                )
                 assert neg_indx in did_not_offer
                 indx = did_not_offer.index(neg_indx)
-                assert self._frozen_neg_list is None or self._frozen_neg_list[0] == neg_indx
+                assert (
+                    self._frozen_neg_list is None
+                    or self._frozen_neg_list[0] == neg_indx
+                )
                 self._frozen_neg_list = did_not_offer[indx:] + did_not_offer[:indx]
                 self._n_waits += 1
             else:

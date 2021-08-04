@@ -85,6 +85,8 @@ __all__ = [
     "is_outcome",
     "num_outcomes",
     "outcome_for",
+    "outcome_types_are_ok",
+    "cast_outcome",
 ]
 
 
@@ -1972,10 +1974,12 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection[Issue]) -> bool:
 
     return True
 
-def outcoe_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
+def outcome_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
     """
     Checks that the types of all issue values in the outcome are correct
     """
+    if not issues or not outcome:
+        return True
     outcome = outcome_as_tuple(outcome)
     for v, i in zip(outcome, issues):
         if i.value_type is None:
@@ -1989,6 +1993,8 @@ def cast_outcome(outcome: "Outocme", issues: List[Issue]) -> bool:
     """
     Casts the types of values in the outcomes to the value-type of each issue (if given)
     """
+    if not issues or not outcome:
+        return outcome
     is_dict = isinstance(outcome, dict)
     if is_dict:
         keys = outcome.keys()
