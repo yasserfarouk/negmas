@@ -1972,6 +1972,34 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection[Issue]) -> bool:
 
     return True
 
+def outcoe_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
+    """
+    Checks that the types of all issue values in the outcome are correct
+    """
+    outcome = outcome_as_tuple(outcome)
+    for v, i in zip(outcome, issues):
+        if i.value_type is None:
+            continue
+        if not isinstance(v, i.value_type):
+            return False
+    return True
+
+
+def cast_outcome(outcome: "Outocme", issues: List[Issue]) -> bool:
+    """
+    Casts the types of values in the outcomes to the value-type of each issue (if given)
+    """
+    is_dict = isinstance(outcome, dict)
+    if is_dict:
+        keys = outcome.keys()
+        outcome = outcome_as_tuple(outcome)
+    new_outcome = list(outcome)
+    for indx, (v, i) in enumerate(zip(outcome, issues)):
+        if i.value_type is None:
+            continue
+        new_outcome[indx] = i.value_type(v)
+    return dict(zip(keys, new_outcome)) if is_dict else tuple(new_outcome)
+
 
 def outcome_is_complete(outcome: "Outcome", issues: Collection[Issue]) -> bool:
     """Tests that the outcome is valid and complete.
