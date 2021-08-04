@@ -20,7 +20,7 @@ from .common import SAOResponse, SAOState
 from ..common import AgentMechanismInterface, MechanismState
 from ..events import Event
 from ..mechanisms import Mechanism, MechanismRoundResult
-from ..outcomes import Outcome, ResponseType, outcome_is_complete
+from ..outcomes import Outcome, ResponseType, outcome_is_complete, outcoe_types_are_ok
 from ..helpers import exception2str, TimeoutCaller, TimeoutError
 
 __all__ = [
@@ -65,6 +65,9 @@ class SAOMechanism(Mechanism):
         check_offers: If true, offers are checked to see if they are valid for the negotiation
                       outcome-space and if not the offer is considered None which is the same as
                       refusing to offer (NO_RESPONSE).
+        enforce_issue_types: If True, the type of each issue is enforced depending on the value of `cast_offers`
+        cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only 
+                     used if `enforce_issue_types`
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
                                be asked to respond to it after all other agents.
@@ -103,6 +106,8 @@ class SAOMechanism(Mechanism):
         enable_callbacks=False,
         avoid_ultimatum=False,
         check_offers=True,
+        enforce_issue_types=False,
+        cast_offers=False,
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
@@ -139,11 +144,15 @@ class SAOMechanism(Mechanism):
         self.params["avoid_ultimatum"] = avoid_ultimatum
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
+        self.params["enforce_issue_types"] = enforce_issue_types
+        self.params["cast_offers"] = cast_offers
         self.params[
             "allow_offering_just_rejected_outcome"
         ] = allow_offering_just_rejected_outcome
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
+        self._enforce_issue_types = enforce_issue_types
+        self._cast_offers = cast_offers
         self._current_offer = None
         self._current_proposer = None
         self._last_checked_negotiator = -1
@@ -558,6 +567,11 @@ class SAOMechanism(Mechanism):
                 and (not outcome_is_complete(response.outcome, self.issues))
             ):
                 return SAOResponse(response.response, None), False
+            if  self.check_offers and self._enforce_issue_types:
+                if self._cast_offers:
+                    response = SAOResponse(response.response, cast_outcome(response.outcome, self.issues))
+                else:
+                    return SAOResponse(response.response, None), False
             return response, False
 
         proposers, proposer_indices = [], []
