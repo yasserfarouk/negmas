@@ -69,6 +69,7 @@ class GeniusNegotiator(SAONegotiator):
             parent=parent,
             owner=owner,
         )
+        self.__frozen_relative_time = None
         self.__destroyed = False
         self.__started = False
         self.capabilities["propose"] = can_propose
@@ -312,6 +313,7 @@ class GeniusNegotiator(SAONegotiator):
     def destroy_java_counterpart(self, state=None) -> None:
         if self.__started and not self.__destroyed:
             if self.java is not None:
+                self.__frozen_relative_time = self.java.get_time(self.java_uuid)
                 self.java.on_negotiation_end(
                     self.java_uuid,
                     None
@@ -409,6 +411,18 @@ class GeniusNegotiator(SAONegotiator):
         except:
             pass
 
+    @property
+    def relative_time(self) -> Optional[float]:
+        if  self.ami is None or not self.ami.state.started:
+            return 0
+        if self.ami is not None and self.ami.state.ended:
+            return self.__frozen_relative_time
+        t = self.java.get_time(self.java_uuid)
+        print(f"Received {t} from genius")
+        if t < 0:
+            return None
+        return t
+
     def counter(self, state: MechanismState, offer: Optional["Outcome"]):
         if offer is not None:
             self.java.receive_message(
@@ -442,13 +456,16 @@ class GeniusNegotiator(SAONegotiator):
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:
                 if self._ami.outcome_type == tuple:
-                    outcome = tuple(
-                        _.split(INTERNAL_SEP)[1] for _ in bid_str.split(ENTRY_SEP)
-                    )
-                    outcome = tuple(
-                        issue.value_type(v)
-                        for i, (issue, v) in enumerate(zip(issues, outcome))
-                    )
+                    values = {
+                        _[0]: _[1]
+                        for _ in [
+                            _.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)
+                        ]
+                    }
+                    outcome = []
+                    for issue in issues:
+                        outcome.append(issue.value_type(values[issue.name]))
+                    outcome = tuple(outcome)
                 else:
                     outcome = {
                         _[0]: _[1]
