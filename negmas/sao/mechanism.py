@@ -74,6 +74,8 @@ class SAOMechanism(Mechanism):
         enforce_issue_types: If True, the type of each issue is enforced depending on the value of `cast_offers`
         cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only
                      used if `enforce_issue_types`
+        enforce_outcome_type: If True, the outcomes sent by the negotiators are forced to the outcome type of the negotiation. Only 
+                              checker if `check_offers`
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
                                be asked to respond to it after all other agents.
@@ -114,6 +116,7 @@ class SAOMechanism(Mechanism):
         check_offers=True,
         enforce_issue_types=False,
         cast_offers=False,
+        enforce_outcome_type=False,
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
@@ -151,6 +154,7 @@ class SAOMechanism(Mechanism):
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
         self.params["enforce_issue_types"] = enforce_issue_types
+        self.params["enforce_outcome_type"] = enforce_outcome_type
         self.params["cast_offers"] = cast_offers
         self.params[
             "allow_offering_just_rejected_outcome"
@@ -158,6 +162,7 @@ class SAOMechanism(Mechanism):
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
         self._enforce_issue_types = enforce_issue_types
+        self._enforce_outcome_type = enforce_outcome_type
         self._cast_offers = cast_offers
         self._current_offer = None
         self._current_proposer = None
@@ -573,6 +578,8 @@ class SAOMechanism(Mechanism):
             ):
                 if not outcome_is_complete(response.outcome, self.issues):
                     return SAOResponse(response.response, None), False
+                if self._enforce_outcome_type:
+                    response = SAOResponse(response.response, self.cast_outcome(response.outcome))
                 if self._enforce_issue_types:
                     if outcome_types_are_ok(response.outcome, self.issues):
                         return response, False
