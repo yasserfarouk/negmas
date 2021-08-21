@@ -1,3 +1,4 @@
+from pathlib import Path
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
@@ -913,6 +914,77 @@ def test_Simpatico():
 # )
 # def test_MengWan():
 #     do_test_genius_agent(MengWan)
+
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_agentk_perceives_time():
+    n_steps = 80
+    base_folder = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/Laptop"
+    )
+
+    neg, agent_info, issues = load_genius_domain_from_folder(
+        base_folder,
+        n_steps=n_steps,
+        time_limit=float("inf"),
+    )
+    neg._avoid_ultimatum = True
+    if neg is None:
+        raise ValueError(f"Failed to load domain from {base_folder}")
+    gagent = AgentK(ufun=agent_info[1]["ufun"])
+    neg.add(AspirationNegotiator(ufun=agent_info[0]["ufun"]))
+    neg.add(gagent)
+    current_time = 0.0
+    for _ in range(n_steps):
+        print(f"{_}\n")
+        assert (
+            gagent.relative_time >= current_time
+        ), f"Failed to get time before step {_}"
+        neg.step()
+        if neg.ami.state.ended:
+            break
+        if _ == n_steps - 1:
+            assert gagent.relative_time is None, f"Got a time after the last step"
+        else:
+            assert (
+                gagent.relative_time > current_time
+            ), f"Failed to get time after step {_}"
+        if neg.ami.state.ended:
+            break
+        current_time = gagent.relative_time
+
+    assert gagent.relative_time >= current_time
+
+
+@pytest.mark.skipif(
+    condition=True,
+    # condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_running_genius_mechanism_in_genius(tmp_path):
+
+    base_folder = Path(
+        pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+    )
+    profiles = [
+        "file://" + str(base_folder / "Laptop-C-prof1.xml"),
+        "file://" + str(base_folder / "Laptop-C-prof2.xml"),
+    ]
+    agents = ["agents.anac.y2010.AgentK.Agent_K", "agents.anac.y2010.AgentK.Agent_K"]
+    output_file = str(tmp_path)
+
+    gateway = GeniusBridge.gateway()
+    gateway.entry_point.run_negotiation(
+        "genius.core.protocol.StackedAlternatingOffersProtocol",
+        "file://" + str(base_folder / "Laptop-C-domain.xml"),
+        ";".join(profiles),
+        ";".join(agents),
+        output_file,
+    )
+
 
 if __name__ == "__main__":
     pytest.main(args=[__file__])

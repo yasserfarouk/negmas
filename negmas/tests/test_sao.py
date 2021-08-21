@@ -1277,3 +1277,5 @@ def test_no_check_offers_tuple():
         assert not isinstance(m.agreement[1], float) and isinstance(m.agreement[1], int)
         assert isinstance(m.agreement[2], float) and not isinstance(m.agreement[2], int)
         assert m.agreement == (3.0, 2, 1.0)
+
+
