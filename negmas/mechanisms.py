@@ -40,6 +40,7 @@ from negmas.outcomes import (
     enumerate_outcomes,
     outcome_as_tuple,
     outcome_is_valid,
+    outcome_as_dict,
 )
 from negmas.utilities import MappingUtilityFunction, UtilityFunction, pareto_frontier
 from negmas.genius import (
@@ -803,7 +804,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self.on_negotiation_end()
             return self.state
 
-        # if there is a single negotiator and no other negotiators can be added, 
+        # if there is a single negotiator and no other negotiators can be added,
         # end without starting
         if len(self._negotiators) < 2:
             if self.ami.dynamic_entry:
@@ -813,7 +814,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self.on_negotiation_end()
                 return self.state
 
-        # if the mechanism states that it is broken, timedout or ended with 
+        # if the mechanism states that it is broken, timedout or ended with
         # agreement, report that
         if self._broken or self._timedout or self._agreement is not None:
             self._running = False
@@ -846,7 +847,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 return self.state
 
         # send round start only if the mechanism is not waiting for anyone
-        # TODO check this. 
+        # TODO check this.
         if not self._waiting and self._enable_callbacks:
             for agent in self._negotiators:
                 agent.on_round_start(state)
@@ -905,7 +906,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if not self._running:
             self.on_negotiation_end()
         return self.state
-    
+
     def _add_to_history(self, state4history):
         if len(self._history) == 0:
             self._history.append(state4history)
@@ -1126,6 +1127,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def _get_ami(self, negotiator: Negotiator, role: str) -> AgentMechanismInterface:
         return self.ami
+
+    def cast_outcome(self, outcome):
+        """Converts an outcome to the outcome-type used in this negotiation"""
+        if issubclass(self.ami.outcome_type, tuple) and not isinstance(outcome, tuple):
+            return outcome_as_tuple(outcome)
+        if issubclass(self.ami.outcome_type, dict) and not isinstance(outcome, tuple):
+            return outcome_as_dict(outcome, self.issues)
+        return outcome
 
 
 # @dataclass
