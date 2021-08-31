@@ -141,6 +141,7 @@ def load_genius_domain(
         - issues Union[Issue, Dict[str, Issue], List[Issue]]] : The issues
 
     """
+
     issues, issues_details, mechanism = None, None, None
     if domain_file_name is not None:
         domain_file_name = str(domain_file_name)
@@ -282,7 +283,7 @@ def load_genius_domain_from_folder(
     normalize_utilities=False,
     normalize_max_only=False,
     n_steps=None,
-    time_limit=60,  # GENIUS uses 3min time limit by default
+    time_limit=3 * 60,  # GENIUS uses 3min time limit by default
     max_n_agents=None,
     dynamic_entry=True,
     safe_parsing=False,
