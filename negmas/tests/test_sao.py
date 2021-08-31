@@ -1,3 +1,5 @@
+import pytest
+import pkg_resources
 import random
 import time
 from collections import defaultdict
@@ -1278,4 +1280,72 @@ def test_no_check_offers_tuple():
         assert isinstance(m.agreement[2], float) and not isinstance(m.agreement[2], int)
         assert m.agreement == (3.0, 2, 1.0)
 
+def test_no_limits_raise_warning():
+    from negmas.inout import load_genius_domain_from_folder
+    from negmas.genius import GeniusNegotiator
+    from pathlib import Path
+
+    with pytest.warns(UserWarning):
+        folder_name = pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/cameradomain"
+        )
+        mechanism, ufuns, _ = load_genius_domain_from_folder(
+            folder_name, n_steps=None, time_limit=None
+        )
+
+def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
+    from negmas.inout import load_genius_domain_from_folder
+    from negmas.genius import GeniusNegotiator
+    from pathlib import Path
+
+    with pytest.warns(UserWarning, match=".*has a .*"):
+        folder_name = pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/cameradomain"
+        )
+        mechanism, ufuns, _ = load_genius_domain_from_folder(
+            folder_name, n_steps=60, time_limit=180
+        )
+        a1 = GeniusNegotiator(
+            java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
+            domain_file_name=f"{folder_name}/{mechanism.name}.xml",
+            utility_file_name=ufuns[0]["ufun_name"],
+        )
+        mechanism.add(a1)
+
+def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
+    from negmas.inout import load_genius_domain_from_folder
+    from negmas.genius import GeniusNegotiator
+    from pathlib import Path
+
+    with pytest.warns(None) as record:
+        folder_name = pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/cameradomain"
+        )
+        mechanism, ufuns, _ = load_genius_domain_from_folder(
+            folder_name, n_steps=None, time_limit=180
+        )
+        a1 = GeniusNegotiator(
+            java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
+            domain_file_name=f"{folder_name}/{mechanism.name}.xml",
+            utility_file_name=ufuns[0]["ufun_name"],
+        )
+        mechanism.add(a1)
+
+    assert len(record) == 0
+
+    with pytest.warns(None) as record:
+        folder_name = pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/cameradomain"
+        )
+        mechanism, ufuns, _ = load_genius_domain_from_folder(
+            folder_name, n_steps=60, time_limit=None
+        )
+        a1 = GeniusNegotiator(
+            java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
+            domain_file_name=f"{folder_name}/{mechanism.name}.xml",
+            utility_file_name=ufuns[0]["ufun_name"],
+        )
+        mechanism.add(a1)
+
+    assert len(record) == 0
 

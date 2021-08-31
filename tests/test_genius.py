@@ -960,8 +960,7 @@ def test_agentk_perceives_time():
 
 
 @pytest.mark.skipif(
-    condition=True,
-    # condition=not genius_bridge_is_running(),
+    condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_running_genius_mechanism_in_genius(tmp_path):

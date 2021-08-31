@@ -17,7 +17,8 @@ from ..inout import get_domain_issues
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..negotiators import Controller
 from ..outcomes import Issue, ResponseType
-from ..sao import SAONegotiator, SAOResponse
+from ..sao.common import SAOResponse
+from ..sao.negotiators import SAONegotiator
 from ..utilities import UtilityFunction, make_discounted_ufun, normalize
 from .common import (
     DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT,
@@ -430,8 +431,9 @@ class GeniusNegotiator(SAONegotiator):
                 state.current_proposer,
                 "Offer",
                 self._outcome2str(offer),
+                state.step,
             )
-        response, outcome = self.parse(self.java.choose_action(self.java_uuid))
+        response, outcome = self.parse(self.java.choose_action(self.java_uuid, state.step))
         self._my_last_offer = outcome
         return SAOResponse(response, outcome)
 
