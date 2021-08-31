@@ -145,6 +145,8 @@ class SAOMechanism(Mechanism):
             name=name,
             **kwargs,
         )
+        if (n_steps is None or n_steps == float("inf")) and (time_limit is None or time_limit == float("inf")):
+            warnings.warn("You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!")
         self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
         self.params["publish_proposer"] = publish_proposer
@@ -184,6 +186,21 @@ class SAOMechanism(Mechanism):
         self._waiting_time: Dict[str, float] = defaultdict(float)
         self._waiting_start: Dict[str, float] = defaultdict(lambda: float("inf"))
         self._selected_first = 0
+
+    def add(
+        self,
+        negotiator: "Negotiator",
+        *,
+        ufun: Optional["UtilityFunction"] = None,
+        role: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[bool]:
+        from ..genius.negotiator import GeniusNegotiator
+        added = super().add(negotiator, ufun=ufun, role=role, **kwargs)
+        if added and isinstance(negotiator, GeniusNegotiator) and self.ami.time_limit is not None and self.ami.time_limit != float("inf") and self.ami.n_steps is not None:
+            warnings.warn(f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.ami.time_limit} seconds and a n_steps of {self.ami.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
+                    category=UserWarning)
+        return added
 
     def join(
         self,
@@ -276,7 +293,7 @@ class SAOMechanism(Mechanism):
                     {
                         "current_proposer": a,
                         "current_offer": o,
-                        "offer_index": self.outcomes.index(o),
+                        "offer_index": self.outcomes.index(o) if o is not None else None,
                         "relative_time": state.relative_time,
                         "step": state.step,
                         "u0": vnegotiators[0].utility_function(o),
@@ -293,7 +310,7 @@ class SAOMechanism(Mechanism):
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
         agent_names = [a.name for a in vnegotiators]
         if has_history:
-            history["offer_index"] = [outcomes.index(_) for _ in history.current_offer]
+            history["offer_index"] = [outcomes.index(_) if _ is not None else None for _ in history.current_offer]
         frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
         frontier_indices = [
             i
