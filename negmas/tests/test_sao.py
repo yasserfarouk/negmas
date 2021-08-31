@@ -15,6 +15,7 @@ import hypothesis.strategies as st
 from hypothesis import HealthCheck, example, given, settings
 from pytest import mark
 
+from negmas.genius import genius_bridge_is_running
 from negmas import Issue, ResponseType
 from negmas.helpers import unique_name
 from negmas.outcomes import Outcome, outcome_as_tuple
@@ -1293,6 +1294,10 @@ def test_no_limits_raise_warning():
             folder_name, n_steps=None, time_limit=None
         )
 
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
     from negmas.inout import load_genius_domain_from_folder
     from negmas.genius import GeniusNegotiator
@@ -1312,6 +1317,10 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
         )
         mechanism.add(a1)
 
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
     from negmas.inout import load_genius_domain_from_folder
     from negmas.genius import GeniusNegotiator
