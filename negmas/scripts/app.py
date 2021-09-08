@@ -887,9 +887,9 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     help="Port to run the NegLoader on. Pass 0 for the default value",
 )
 @click.option(
-    "--debug",
+    "--debug/--silent",
     default=False,
-    help="Run the bridge in debug mode",
+    help="Run the bridge in debug mode if --debug else silently",
 )
 @click.option(
     "--timeout",
