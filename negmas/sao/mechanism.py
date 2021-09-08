@@ -268,7 +268,7 @@ class SAOMechanism(Mechanism):
 
         if len(self.negotiators) < 2:
             warnings.warn(
-                "Cannot visualize negotiations with more less than 2 negotiators"
+                "Cannot visualize negotiations with less than 2 negotiators"
             )
             return
         if len(visible_negotiators) > 2:
