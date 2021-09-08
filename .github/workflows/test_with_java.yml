@@ -41,7 +41,7 @@ jobs:
           python -m pip install -e .
           negmas genius-setup
       - name: "running genius bridge"
-        run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs"
+        run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "python -m pytest . || python -m pytest --last-failed ."
 
