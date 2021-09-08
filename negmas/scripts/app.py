@@ -26,6 +26,7 @@ from negmas.tournaments import (
     evaluate_tournament,
     run_tournament,
 )
+from negmas.genius.common import DEFAULT_JAVA_PORT
 
 try:
     from .vendor.quick.quick import gui_option
@@ -883,7 +884,7 @@ def combine_results(path, dest, metric, significance, compile, verbose):
 @click.option(
     "--port",
     "-r",
-    default=0,
+    default=DEFAULT_JAVA_PORT,
     help="Port to run the NegLoader on. Pass 0 for the default value",
 )
 @click.option(
@@ -898,12 +899,18 @@ def combine_results(path, dest, metric, significance, compile, verbose):
     help="The timeout to pass. Zero or negative numbers to disable and use the bridge's global timeout.",
 )
 def genius(path, port, debug, timeout):
+    if port and negmas.genius_bridge_is_running(port):
+        print(f"Genius Bridge is already running on port {port} ... exiting")
+        sys.exit()
     negmas.init_genius_bridge(
         path=path if path != "auto" else None,
         port=port,
         debug=debug,
         timeout=timeout,
     )
+    while True:
+        pass
+
 
 
 @cli.command(help="Start the bridge to JNegMAS (to use Java agents in worlds)")
