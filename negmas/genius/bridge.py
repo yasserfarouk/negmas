@@ -1,7 +1,7 @@
 """
 Implements GeniusBridge which manages connections to Genius through Py4J.
 
-The main class is the GeniusBridge class which encapsulates a gateway 
+The main class is the GeniusBridge class which encapsulates a gateway
 (connection) to a JVM running the geniusbridge.jar file.
 We can have multiple gateways connected to the same JVM bridge.
 
@@ -18,16 +18,16 @@ Bridge Lifetime Control
 -----------------------
 - start() starts a bridge and connects to it
 - connect() connects to a *running* bridge
-- stop() stops a running bridge. 
+- stop() stops a running bridge.
 - restart() stops then starts a bridge.
 
 Bridge Control Operations
 -------------------------
 
-- clean() removes all agents from the bridge and runs garbage collection. You 
-  must be sure that no active negotiations are happening when you call this 
+- clean() removes all agents from the bridge and runs garbage collection. You
+  must be sure that no active negotiations are happening when you call this
   method.
-- kill_threads() [not recommended] Kills all threads started by the bridge. The 
+- kill_threads() [not recommended] Kills all threads started by the bridge. The
   bridge is most likely going to become unusable after running this command
 
 
@@ -112,7 +112,7 @@ def init_genius_bridge(
     if debug:
         params = " --debug"
     else:
-        params = ""
+        params = " --silent --no-logs"
     if timeout >= 0:
         params += f" --timeout={int(timeout)}"
 
