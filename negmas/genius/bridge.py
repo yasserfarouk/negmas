@@ -212,7 +212,7 @@ class GeniusBridge:
         debug: bool = False,
         timeout: float = 0,
         force_timeout: bool = True,
-        save_logs: bool = True,
+        save_logs: bool = False,
         log_path: Optional[os.PathLike] = None,
         die_on_exit: bool = False,
         use_shell: bool = False,
@@ -291,7 +291,7 @@ class GeniusBridge:
         if debug:
             params = ["--debug"]
         else:
-            params = []
+            params = ["--silent", "--no-logs"]
         if die_on_exit:
             params.append("--die-on-exit")
         if force_timeout:
