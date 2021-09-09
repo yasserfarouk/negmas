@@ -74,7 +74,7 @@ class SAOMechanism(Mechanism):
         enforce_issue_types: If True, the type of each issue is enforced depending on the value of `cast_offers`
         cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only
                      used if `enforce_issue_types`
-        enforce_outcome_type: If True, the outcomes sent by the negotiators are forced to the outcome type of the negotiation. Only 
+        enforce_outcome_type: If True, the outcomes sent by the negotiators are forced to the outcome type of the negotiation. Only
                               checker if `check_offers`
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
@@ -145,8 +145,12 @@ class SAOMechanism(Mechanism):
             name=name,
             **kwargs,
         )
-        if (n_steps is None or n_steps == float("inf")) and (time_limit is None or time_limit == float("inf")):
-            warnings.warn("You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!")
+        if (n_steps is None or n_steps == float("inf")) and (
+            time_limit is None or time_limit == float("inf")
+        ):
+            warnings.warn(
+                "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!"
+            )
         self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
         self.params["publish_proposer"] = publish_proposer
@@ -196,10 +200,19 @@ class SAOMechanism(Mechanism):
         **kwargs,
     ) -> Optional[bool]:
         from ..genius.negotiator import GeniusNegotiator
+
         added = super().add(negotiator, ufun=ufun, role=role, **kwargs)
-        if added and isinstance(negotiator, GeniusNegotiator) and self.ami.time_limit is not None and self.ami.time_limit != float("inf") and self.ami.n_steps is not None:
-            warnings.warn(f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.ami.time_limit} seconds and a n_steps of {self.ami.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
-                    category=UserWarning)
+        if (
+            added
+            and isinstance(negotiator, GeniusNegotiator)
+            and self.ami.time_limit is not None
+            and self.ami.time_limit != float("inf")
+            and self.ami.n_steps is not None
+        ):
+            warnings.warn(
+                f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.ami.time_limit} seconds and a n_steps of {self.ami.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
+                category=UserWarning,
+            )
         return added
 
     def join(
@@ -268,9 +281,7 @@ class SAOMechanism(Mechanism):
             plot_outcomes = False
 
         if len(self.negotiators) < 2:
-            warnings.warn(
-                "Cannot visualize negotiations with less than 2 negotiators"
-            )
+            warnings.warn("Cannot visualize negotiations with less than 2 negotiators")
             return
         if len(visible_negotiators) > 2:
             warnings.warn("Cannot visualize more than 2 agents")
@@ -296,7 +307,9 @@ class SAOMechanism(Mechanism):
                     {
                         "current_proposer": a,
                         "current_offer": o,
-                        "offer_index": self.outcomes.index(o) if o is not None else None,
+                        "offer_index": self.outcomes.index(o)
+                        if o is not None
+                        else None,
                         "relative_time": state.relative_time,
                         "step": state.step,
                         "u0": vnegotiators[0].utility_function(o),
@@ -313,7 +326,10 @@ class SAOMechanism(Mechanism):
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
         agent_names = [a.name for a in vnegotiators]
         if has_history:
-            history["offer_index"] = [outcomes.index(_) if _ is not None else None for _ in history.current_offer]
+            history["offer_index"] = [
+                outcomes.index(_) if _ is not None else None
+                for _ in history.current_offer
+            ]
         frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
         frontier_indices = [
             i
@@ -327,9 +343,9 @@ class SAOMechanism(Mechanism):
         frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
         frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
         if plot_utils:
-            fig_util = plt.figure()
+            fig_util = plt.figure(figsize=(20, 8))
         if plot_outcomes:
-            fig_outcome = plt.figure()
+            fig_outcome = plt.figure(figsize=(20, 8))
         gs_util = gridspec.GridSpec(n_agents, has_front + 1) if plot_utils else None
         gs_outcome = (
             gridspec.GridSpec(n_agents, has_front + 1) if plot_outcomes else None
@@ -375,9 +391,9 @@ class SAOMechanism(Mechanism):
             ]
             h["utility"] = h["current_offer"].apply(ufuns[a])
             if plot_outcomes:
-                ao.plot(h.relative_time, h["offer_index"], label=vnegotiators[1].name)
+                ao.plot(h.relative_time, h["offer_index"], label=vnegotiators[a].name + f" ({a})")
             if plot_utils:
-                au.plot(h.relative_time, h.utility, label=vnegotiators[1].name)
+                au.plot(h.relative_time, h.utility, label=vnegotiators[a].name + f" ({a})")
                 if utility_range is not None:
                     au.set_ylim(*utility_range)
         for a, (au, ao) in enumerate(
@@ -513,9 +529,9 @@ class SAOMechanism(Mechanism):
             else:
                 pathlib.Path(path).mkdir(parents=True, exist_ok=True)
             if plot_utils:
-                fig_util.savefig(os.path.join(path, fig_name))
+                fig_util.savefig(os.path.join(path, fig_name), bbox_inches="tight")
             if plot_outcomes:
-                fig_outcome.savefig(os.path.join(path, fig_name))
+                fig_outcome.savefig(os.path.join(path, fig_name), bbox_inches="tight")
         else:
             if plot_utils:
                 fig_util.show()
@@ -614,15 +630,20 @@ class SAOMechanism(Mechanism):
                 if not outcome_is_complete(response.outcome, self.issues):
                     return SAOResponse(response.response, None), False
                 if self._enforce_outcome_type:
-                    response = SAOResponse(response.response, self.cast_outcome(response.outcome))
+                    response = SAOResponse(
+                        response.response, self.cast_outcome(response.outcome)
+                    )
                 if self._enforce_issue_types:
                     if outcome_types_are_ok(response.outcome, self.issues):
                         return response, False
                     elif self._cast_offers:
-                        return SAOResponse(
-                            response.response,
-                            cast_outcome(response.outcome, self.issues),
-                        ), False
+                        return (
+                            SAOResponse(
+                                response.response,
+                                cast_outcome(response.outcome, self.issues),
+                            ),
+                            False,
+                        )
                     return SAOResponse(response.response, None), False
             return response, False
 
