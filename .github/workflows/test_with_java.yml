@@ -43,4 +43,8 @@ jobs:
       - name: "running genius bridge"
         run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -m pytest . || python -m pytest --last-failed ."
+        run: |
+          python -m pytest tests/test_genius.py  || python -m pytest --last-failed .
+          python -m pytest tests/test_genius_bridge.py  || python -m pytest --last-failed .
+          python -m pytest tests/test_inout.py  || python -m pytest --last-failed .
+          
