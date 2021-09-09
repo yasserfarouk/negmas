@@ -259,6 +259,7 @@ class SAOMechanism(Mechanism):
         save_fig: bool = False,
         path: str = None,
         fig_name: str = None,
+        ignore_none_offers: bool = True,
     ):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
@@ -289,6 +290,8 @@ class SAOMechanism(Mechanism):
         history = []
         for state in self.history:
             for a, o in state.new_offers:
+                if ignore_none_offers and o is None:
+                    continue
                 history.append(
                     {
                         "current_proposer": a,
@@ -364,18 +367,33 @@ class SAOMechanism(Mechanism):
         ):
             if au is None and ao is None:
                 break
-            if has_history:
-                h = history.loc[
-                    history.current_proposer == vnegotiators[a].id,
-                    ["relative_time", "offer_index", "current_offer"],
-                ]
-                h["utility"] = h["current_offer"].apply(ufuns[a])
-                if plot_outcomes:
-                    ao.plot(h.relative_time, h["offer_index"])
-                if plot_utils:
-                    au.plot(h.relative_time, h.utility)
-                    if utility_range is not None:
-                        au.set_ylim(*utility_range)
+            if not has_history:
+                continue
+            h = history.loc[
+                history.current_proposer == vnegotiators[a].id,
+                ["relative_time", "offer_index", "current_offer"],
+            ]
+            h["utility"] = h["current_offer"].apply(ufuns[a])
+            if plot_outcomes:
+                ao.plot(h.relative_time, h["offer_index"], label=vnegotiators[1].name)
+            if plot_utils:
+                au.plot(h.relative_time, h.utility, label=vnegotiators[1].name)
+                if utility_range is not None:
+                    au.set_ylim(*utility_range)
+        for a, (au, ao) in enumerate(
+            zip(
+                itertools.chain(axs_util, itertools.repeat(None)),
+                itertools.chain(axs_outcome, itertools.repeat(None)),
+            )
+        ):
+            if au is None and ao is None:
+                break
+            if not has_history:
+                continue
+            if au:
+                au.legend()
+            if ao:
+                ao.legend()
 
         if has_front:
             if plot_utils:
