@@ -397,7 +397,7 @@ def test_agentk_perceives_time():
     gagent = AgentK(ufun=agent_info[1]["ufun"])
     neg.add(AspirationNegotiator(ufun=agent_info[0]["ufun"]))
     neg.add(gagent)
-    current_time = -1
+    current_time = 0
     for _ in range(n_steps):
         print(f"{_}\n")
         assert (
