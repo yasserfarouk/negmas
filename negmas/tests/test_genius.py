@@ -51,7 +51,8 @@ def test_genius_agent(init_genius):
         ],
         keep_issue_names=True,
         keep_value_names=True,
-        time_limit=20,
+        time_limit=120,
+        n_steps=None,
     )
     assert len(p.negotiators) > 1
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
