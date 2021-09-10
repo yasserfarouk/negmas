@@ -10,6 +10,7 @@ from negmas import (
     Simpatico,
     GeniusNegotiator,
     AspirationNegotiator,
+    outcome_as_tuple,
     genius_bridge_is_running,
     load_genius_domain_from_folder,
     TheFawkes,
@@ -983,6 +984,36 @@ def test_running_genius_mechanism_in_genius(tmp_path):
         ";".join(agents),
         output_file,
     )
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_caudacius_caudacius():
+    n_steps = 100
+    base_folder = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/Car-A-domain"
+    )
+
+    neg, agent_info, issues = load_genius_domain_from_folder(
+        base_folder,
+        n_steps=n_steps,
+        time_limit=float("inf"),
+    )
+    neg._avoid_ultimatum = False
+    if neg is None:
+        raise ValueError(f"Failed to load domain from {base_folder}")
+    neg.add(Caduceus(ufun=agent_info[0]["ufun"]), strict=True)
+    neg.add(Caduceus(ufun=agent_info[1]["ufun"]), strict=True)
+    for _ in range(n_steps):
+        neg.step()
+        if neg.state.agreement is not None:
+            break
+        new_offers = [_[1] for _ in neg.state.new_offers]
+        assert all(_  is not None for _ in new_offers), f"failed at {neg.current_step}: {new_offers}"
+
+    assert not all([len(set(neg.negotiator_offers(outcome_as_tuple(_)))) == 1 for _ in neg.negotiator_ids]), f"None of the agents conceeded: {neg.trace}"
+
 
 
 if __name__ == "__main__":

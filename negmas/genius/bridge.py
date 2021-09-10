@@ -13,6 +13,7 @@ The most important methods that this class provides are:
 Status enquiry
 --------------
 - is_running: Tells you if a bridge is running on a given port
+- is_installed: Tells you if the bridge jar is insalled in the default location
 
 Bridge Lifetime Control
 -----------------------
@@ -59,6 +60,7 @@ __all__ = [
     "GeniusBridge",
     "init_genius_bridge",
     "genius_bridge_is_running",
+    "genius_bridge_is_installed",
 ]
 
 
@@ -135,6 +137,11 @@ def init_genius_bridge(
     )
     return True
 
+def genius_bridge_is_installed() -> bool:
+    """
+    Checks if geniusbridge is available in the default path location
+    """
+    return (pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar").exists()
 
 def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
     """
@@ -203,6 +210,11 @@ class GeniusBridge:
     def is_running(cls, port: int) -> bool:
         """Returns true if a geniusbridge.jar is running on the given port"""
         return genius_bridge_is_running(port)
+
+    @classmethod
+    def is_installed(cls) -> bool:
+        """Returns true if a geniusbridge.jar is available"""
+        return genius_bridge_is_installed()
 
     @classmethod
     def start(
