@@ -291,8 +291,10 @@ class GeniusNegotiator(SAONegotiator):
         if ufun is None:
             ufun = self.__ufun_received
         result = super().join(ami=ami, state=state, ufun=ufun, role=role)
+        if not result:
+            return False
         # only connect to the JVM running genius-bridge if you are going to join a negotiation.
-        if result and not self.is_connected:
+        if not self.is_connected:
             mechanism_port = ami.params.get("genius_port", 0)
             if mechanism_port > 0:
                 self.port = mechanism_port
@@ -303,9 +305,8 @@ class GeniusNegotiator(SAONegotiator):
             )
             if not self.is_connected:
                 return False
-            self.java_uuid = self._create()
-            # self.uuid = self.java_uuid
-            # self.name = self.java_uuid
+
+        self.java_uuid = self._create()
 
         if self._normalize_utility:
             self._utility_function = normalize(
@@ -317,13 +318,13 @@ class GeniusNegotiator(SAONegotiator):
         self.issues = ami.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         self.keep_issue_names = self.keep_value_names = ami.outcome_type == dict
-        if result and ami.issues is not None and self.domain_file_name is None:
+        if ami.issues is not None and self.domain_file_name is None:
             domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.domain_file_name = domain_file.name
             domain_file.write(Issue.to_xml_str(ami.issues))
             domain_file.close()
             self._temp_domain_file = True
-        if result and ufun is not None and self.utility_file_name is None:
+        if ufun is not None and self.utility_file_name is None:
             utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
             utility_file.write(
