@@ -108,7 +108,7 @@ class SAOMechanism(Mechanism):
         cache_outcomes=True,
         max_n_outcomes: int = 1_000_000,
         annotation: Optional[Dict[str, Any]] = None,
-        end_on_no_response=False,
+        end_on_no_response=True,
         publish_proposer=True,
         publish_n_acceptances=False,
         enable_callbacks=False,

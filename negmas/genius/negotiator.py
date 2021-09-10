@@ -435,7 +435,7 @@ class GeniusNegotiator(SAONegotiator):
             )
             self.__started = True
         except Exception as e:
-            raise ValueError(f"Cannot start negotiation: {str(e)}")
+            raise ValueError(f"{self._me()}: Cannot start negotiation: {str(e)}")
 
     def cancel(self, reason=None) -> None:
         try:
@@ -455,21 +455,31 @@ class GeniusNegotiator(SAONegotiator):
             return None
         return t
 
+    def _me(self):
+        return f"Agent {self.name} (jid: {self.java_uuid}) of type {self.java_class_name}"
+
     def counter(self, state: MechanismState, offer: Optional["Outcome"]):
+        if offer is None and self._my_last_offer is not None and self._strict:
+            raise ValueError(f"{self._me()} got counter with a None offer.")
         if offer is not None:
-            self.java.receive_message(
+            received = self.java.receive_message(
                 self.java_uuid,
                 state.current_proposer,
                 "Offer",
                 self._outcome2str(offer),
                 state.step,
             )
+            if self._strict and not received:
+                raise ValueError(f"{self._me()} failed to receive message in step {state.step}")
         response, outcome = self.parse(self.java.choose_action(self.java_uuid, state.step))
+        if self._strict and response == ResponseType.REJECT_OFFER and outcome is None:
+                raise ValueError(f"{self._me()} returned a None counter offer in step {state.step}")
+
         self._my_last_offer = outcome
         return SAOResponse(response, outcome)
 
     def propose(self, state):
-        raise ValueError(f"propose should never be called directly on GeniusNegotiator")
+        raise ValueError(f"{self._me()}: propose should never be called directly on GeniusNegotiator")
 
     def parse(self, action: str) -> Tuple[Optional[ResponseType], Optional["Outcome"]]:
         """
@@ -482,6 +492,8 @@ class GeniusNegotiator(SAONegotiator):
         """
         response, outcome = None, None
         if len(action) < 1:
+            if self._strict:
+                raise ValueError(f"{self._me()} received no actions while parsing")
             return ResponseType.REJECT_OFFER, None
         id, typ_, bid_str = action.split(FIELD_SEP)
         issues = self._ami.issues
@@ -520,8 +532,10 @@ class GeniusNegotiator(SAONegotiator):
                             }
                         )
             except Exception as e:
+                if self._strict:
+                    raise ValueError(f"{self._me()} failed to parse {bid_str} of action {action} with exception {str(e)}")
                 warnings.warn(
-                    f"Failed in parsing bid string: {bid_str} of action {action} with exception {str(e)}"
+                    f"{self._me()} failed in parsing bid string: {bid_str} of action {action} with exception {str(e)}"
                 )
 
         if typ_ == "Offer":
@@ -531,12 +545,12 @@ class GeniusNegotiator(SAONegotiator):
         elif typ_ == "EndNegotiation":
             response = ResponseType.END_NEGOTIATION
         elif typ_ in ("NullOffer", "Failure", "NoAction"):
+            if self._strict:
+                raise ValueError(f"{self._me()} received {typ_} in action {action}")
             response = ResponseType.REJECT_OFFER
             outcome = None
         else:
-            raise ValueError(f"Unknown response: {typ_} in action {action}")
-        # if outcome is None:
-        #     breakpoint()
+            raise ValueError(f"{self._me()}: Unknown response: {typ_} in action {action}")
         return response, outcome
 
     def _outcome2str(self, outcome):

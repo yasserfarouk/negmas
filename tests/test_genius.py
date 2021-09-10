@@ -69,8 +69,8 @@ from negmas import (
 from negmas.genius import GeniusBridge
 from negmas.genius import get_genius_agents
 
-TIMELIMIT = 30
-STEPLIMIT = 50
+TIMELIMIT = 120
+STEPLIMIT = 100
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = tuple()
 # AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
@@ -444,6 +444,60 @@ def test_running_genius_mechanism_in_genius(tmp_path):
         output_file,
     )
 
+
+@pytest.mark.skipif(
+    condition=not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+@pytest.mark.parametrize(
+    ["a1", "a2"],
+    [
+        ("agents.anac.y2011.HardHeaded.KLH", "agents.anac.y2012.CUHKAgent.CUHKAgent"),
+    ],
+)
+def test_2genius_together(a1, a2):
+    n_steps, time_limit = 1000, 120
+    base_folder = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/Car-A-domain"
+    )
+
+    neg, agent_info, issues = load_genius_domain_from_folder(
+        base_folder,
+        n_steps=n_steps,
+        time_limit=float("inf"),
+    )
+    neg._avoid_ultimatum = False
+    if neg is None:
+        raise ValueError(f"Failed to load domain from {base_folder}")
+    neg.add(
+        GeniusNegotiator(java_class_name=a1, strict=True, ufun=agent_info[0]["ufun"]),
+        strict=True,
+    )
+    neg.add(
+        GeniusNegotiator(java_class_name=a2, strict=True, ufun=agent_info[1]["ufun"]),
+        strict=True,
+    )
+    neg.run()
+
+    neg, agent_info, issues = load_genius_domain_from_folder(
+        base_folder,
+        n_steps=None,
+        time_limit=time_limit,
+    )
+    neg._avoid_ultimatum = False
+    if neg is None:
+        raise ValueError(f"Failed to load domain from {base_folder}")
+    neg.add(
+        GeniusNegotiator(java_class_name=a1, strict=True, ufun=agent_info[0]["ufun"]),
+        strict=True,
+    )
+    neg.add(
+        GeniusNegotiator(java_class_name=a2, strict=True, ufun=agent_info[1]["ufun"]),
+        strict=True,
+    )
+    neg.run()
+
+
 @pytest.mark.skipif(
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
@@ -469,10 +523,16 @@ def test_caudacius_caudacius():
         if neg.state.agreement is not None:
             break
         new_offers = [_[1] for _ in neg.state.new_offers]
-        assert all(_  is not None for _ in new_offers), f"failed at {neg.current_step}: {new_offers}"
+        assert all(
+            _ is not None for _ in new_offers
+        ), f"failed at {neg.current_step}: {new_offers}"
 
-    assert not all([len(set(neg.negotiator_offers(outcome_as_tuple(_)))) == 1 for _ in neg.negotiator_ids]), f"None of the agents conceeded: {neg.trace}"
-
+    assert not all(
+        [
+            len(set(neg.negotiator_offers(outcome_as_tuple(_)))) == 1
+            for _ in neg.negotiator_ids
+        ]
+    ), f"None of the agents conceeded: {neg.trace}"
 
 
 if __name__ == "__main__":
