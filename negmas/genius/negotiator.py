@@ -40,7 +40,32 @@ INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
 
 
 class GeniusNegotiator(SAONegotiator):
-    """Encapsulates a Genius Negotiator"""
+    """Encapsulates a Genius Negotiator
+
+    Args:
+        assume_normalized: Assume that the utility function is already normalized (or do not need to be normalized)
+        ufun: The ufun of the negotiator [optional]
+        name: Negotiator name [optional]
+        rational_proposal: If true, the negotiator will not offer anything less than their reserved-value
+        parent: Parent `Controller`
+        owner: The agent that owns the negotiator (if any)
+        java_class_name: The java class name of the Geinus underlying agent
+        domain_file_name: Optional domain file name (containing the negotiation issues or agenda)
+        utility_file_name: Optional ufun file name (xml) from which a ufun will be loaded for the agent
+        keep_issue_names: When reading domainand utility files keep issue names
+        keep_value_names: When reading domainand utility files keep value names
+        can_propose: The negotiator can propose
+        normalize_utility: Normalize the ufun [0-1] if it is not already normalized and not assumed-normalized.
+        normalize_max_only: Normalize the max to 1.0 but do not normalize the min.
+        auto_load_java: Load the genius bridge if needed
+        port: The port to load the genius bridge to (or use if it is already loaded)
+        genius_bridge_path: The path to the genius bridge
+        strict: If True, raise exceptions if any exception is thrown by the agent or the bridge 
+                (or if the agent could not choose an action). 
+                If false, ignore these exceptions and assume a None return. 
+                If None use strict for n_steps limited negotiations and not strict for time_limit
+                limited ones.
+    """
 
     def __init__(
         self,
@@ -61,6 +86,7 @@ class GeniusNegotiator(SAONegotiator):
         auto_load_java: bool = True,
         port: int = DEFAULT_JAVA_PORT,
         genius_bridge_path: str = None,
+        strict: bool = None,
     ):
         super().__init__(
             name=name,
@@ -73,6 +99,7 @@ class GeniusNegotiator(SAONegotiator):
         self.__frozen_relative_time = None
         self.__destroyed = False
         self.__started = False
+        self._strict = strict
         self.capabilities["propose"] = can_propose
         self.add_capabilities({"genius": True})
         self.genius_bridge_path = (
@@ -350,6 +377,8 @@ class GeniusNegotiator(SAONegotiator):
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Called when the info starts. Connects to the JVM."""
         super().on_negotiation_start(state=state)
+        if self._strict is None:
+            self._strict = self.ami.n_steps is not None and self.ami.n_steps != float("inf")
         if self._utility_function is not None and self.utility_file_name is None:
             utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
@@ -401,6 +430,7 @@ class GeniusNegotiator(SAONegotiator):
                 self.domain_file_name,  # domain file
                 self.utility_file_name,  # Negotiator file
                 int(timeout),
+                self._strict,
             )
             self.__started = True
         except Exception as e:
@@ -504,6 +534,8 @@ class GeniusNegotiator(SAONegotiator):
             outcome = None
         else:
             raise ValueError(f"Unknown response: {typ_} in action {action}")
+        # if outcome is None:
+        #     breakpoint()
         return response, outcome
 
     def _outcome2str(self, outcome):
