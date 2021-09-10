@@ -827,9 +827,11 @@ def test_sync_controller(n_negotiations, n_negotiators, oia):
         mechanisms.append(
             SAOMechanism(
                 outcomes=n_outcomes,
-                n_steps=5,
+                n_steps=10,
+                time_limit=None,
                 offering_is_accepting=oia,
                 avoid_ultimatum=False,
+                end_on_no_response=False,
             )
         )
         ufuns = MappingUtilityFunction.generate_random(
@@ -1082,6 +1084,7 @@ def test_loops_are_broken(keep_order):
         issues=[Issue((0.0, 1.0), "price")],
         n_steps=50,
         outcome_type=dict,
+        end_on_no_response=False,
     )
 
     n1.add(a.create_negotiator(name="a>b"))

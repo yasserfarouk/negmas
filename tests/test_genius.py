@@ -70,25 +70,9 @@ from negmas.genius import GeniusBridge
 from negmas.genius import get_genius_agents
 
 TIMELIMIT = 120
-STEPLIMIT = 100
+STEPLIMIT = 1000
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = tuple()
-# AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = (
-#     AgentX,
-#     Ngent,
-#     RandomDance,
-#     PokerFace,
-#     AgentBuyong,
-#     Kawaii,
-#     Atlas3,
-#     Group2,
-#     WhaleAgent,
-#     DoNA,
-#     ValueModelAgent,
-#     TheNegotiator,
-#     TMFAgent,
-#     TheFawkes,
-# )
 
 SKIP_IF_NO_BRIDGE = True
 
@@ -224,7 +208,7 @@ def test_old_agent():
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-@settings(max_examples=20, deadline=50000)
+@settings(max_examples=20, deadline=500000)
 @given(
     agent_name1=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     agent_name2=st.sampled_from(GeniusNegotiator.robust_negotiators()),
@@ -263,8 +247,8 @@ def test_genius_agents_run_using_hypothesis(
         base_folder,
         keep_issue_names=keep_issue_names,
         keep_value_names=keep_value_names,
-        time_limit=TIMELIMIT,
-        n_steps=None,
+        time_limit=None,
+        n_steps=STEPLIMIT,
     )
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")

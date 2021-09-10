@@ -37,6 +37,7 @@ __all__ = [
 ]
 
 INTERNAL_SEP, ENTRY_SEP, FIELD_SEP = "<<s=s>>", "<<y,y>>", "<<sy>>"
+FAILED, OK, TIMEOUT = "__FAILED__", "__OK__", "__TIMEOUT__"
 
 
 class GeniusNegotiator(SAONegotiator):
@@ -60,9 +61,9 @@ class GeniusNegotiator(SAONegotiator):
         auto_load_java: Load the genius bridge if needed
         port: The port to load the genius bridge to (or use if it is already loaded)
         genius_bridge_path: The path to the genius bridge
-        strict: If True, raise exceptions if any exception is thrown by the agent or the bridge 
-                (or if the agent could not choose an action). 
-                If false, ignore these exceptions and assume a None return. 
+        strict: If True, raise exceptions if any exception is thrown by the agent or the bridge
+                (or if the agent could not choose an action).
+                If false, ignore these exceptions and assume a None return.
                 If None use strict for n_steps limited negotiations and not strict for time_limit
                 limited ones.
     """
@@ -249,7 +250,7 @@ class GeniusNegotiator(SAONegotiator):
     def _create(self):
         """Creates the corresponding java agent"""
         aid = self.java.create_agent(self.java_class_name)
-        if not aid:
+        if aid == FAILED:
             raise ValueError(f"Cannot initialized {self.java_class_name}")
         return aid
 
@@ -278,7 +279,7 @@ class GeniusNegotiator(SAONegotiator):
     def java_name(self):
         if not self.java:
             return None
-        return self.java.getName(self.java_uuid)
+        return self.java.get_name(self.java_uuid)
 
     def join(
         self,
@@ -342,8 +343,8 @@ class GeniusNegotiator(SAONegotiator):
     def destroy_java_counterpart(self, state=None) -> None:
         if self.__started and not self.__destroyed:
             if self.java is not None:
-                self.__frozen_relative_time = self.java.get_time(self.java_uuid)
-                self.java.on_negotiation_end(
+                self.__frozen_relative_time = self.java.get_relative_time(self.java_uuid)
+                result = self.java.on_negotiation_end(
                     self.java_uuid,
                     None
                     if state is None
@@ -351,11 +352,15 @@ class GeniusNegotiator(SAONegotiator):
                     if state.agreement is not None
                     else None,
                 )
-                self.java.destroy_agent(self.java_uuid)
+                if result in (OK, TIMEOUT):
+                    results = self.java.destroy_agent(self.java_uuid)
+                    if result in (FAILED, TIMEOUT) and self._strict:
+                        raise ValueError(
+                            f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak"
+                        )
+                elif self._strict:
+                    raise ValueError(f"{self._me()} failed to end the negotiation!!")
             self.__destroyed = True
-        # print(self.utility_file_name)
-        # print(self.domain_file_name)
-        # return
         if self._temp_ufun_file:
             try:
                 os.unlink(self.utility_file_name)  # type: ignore
@@ -379,7 +384,9 @@ class GeniusNegotiator(SAONegotiator):
         """Called when the info starts. Connects to the JVM."""
         super().on_negotiation_start(state=state)
         if self._strict is None:
-            self._strict = self.ami.n_steps is not None and self.ami.n_steps != float("inf")
+            self._strict = self.ami.n_steps is not None and self.ami.n_steps != float(
+                "inf"
+            )
         if self._utility_function is not None and self.utility_file_name is None:
             utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
@@ -420,9 +427,16 @@ class GeniusNegotiator(SAONegotiator):
 
         if n_steps * n_seconds > 0:
             # n_seconds take precedence
+            if self._strict:
+                raise ValueError(
+                    f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. Not allowed in strict execution"
+                )
+            warnings.warn(
+                f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. n_steps will be ignored"
+            )
             n_steps = -1
         try:
-            self.java.on_negotiation_start(
+            result = self.java.on_negotiation_start(
                 self.java_uuid,  # java_uuid
                 info.n_negotiators,  # number of agents
                 n_steps,
@@ -433,7 +447,7 @@ class GeniusNegotiator(SAONegotiator):
                 int(timeout),
                 self._strict,
             )
-            self.__started = True
+            self.__started = result == OK
         except Exception as e:
             raise ValueError(f"{self._me()}: Cannot start negotiation: {str(e)}")
 
@@ -445,18 +459,23 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def relative_time(self) -> Optional[float]:
-        if  self.ami is None or not self.ami.state.started:
+        if self.ami is None or not self.ami.state.started:
             return 0
         if self.ami is not None and self.ami.state.ended:
             return self.__frozen_relative_time
-        t = self.java.get_time(self.java_uuid)
-        print(f"Received {t} from genius")
+        t = self.java.get_relative_time(self.java_uuid)
         if t < 0:
+            if self._strict:
+                raise ValueError(
+                    f"{self._me()} cannot read relative time (returned {t})"
+                )
             return None
         return t
 
     def _me(self):
-        return f"Agent {self.name} (jid: {self.java_uuid}) of type {self.java_class_name}"
+        return (
+            f"Agent {self.name} (jid: {self.java_uuid}) of type {self.java_class_name}"
+        )
 
     def counter(self, state: MechanismState, offer: Optional["Outcome"]):
         if offer is None and self._my_last_offer is not None and self._strict:
@@ -469,17 +488,33 @@ class GeniusNegotiator(SAONegotiator):
                 self._outcome2str(offer),
                 state.step,
             )
-            if self._strict and not received:
-                raise ValueError(f"{self._me()} failed to receive message in step {state.step}")
-        response, outcome = self.parse(self.java.choose_action(self.java_uuid, state.step))
-        if self._strict and response == ResponseType.REJECT_OFFER and outcome is None:
-                raise ValueError(f"{self._me()} returned a None counter offer in step {state.step}")
+            if self._strict and received == FAILED:
+                raise ValueError(
+                    f"{self._me()} failed to receive message in step {state.step}"
+                )
+        response, outcome = self.parse(
+            self.java.choose_action(self.java_uuid, state.step)
+        )
+        if self._strict and (
+            response
+            not in (
+                ResponseType.REJECT_OFFER,
+                ResponseType.ACCEPT_OFFER,
+                ResponseType.END_NEGOTIATION,
+            )
+            or (response == ResponseType.REJECT_OFFER and outcome is None)
+        ):
+            raise ValueError(
+                f"{self._me()} returned a None counter offer in step {state.step}"
+            )
 
         self._my_last_offer = outcome
         return SAOResponse(response, outcome)
 
     def propose(self, state):
-        raise ValueError(f"{self._me()}: propose should never be called directly on GeniusNegotiator")
+        raise ValueError(
+            f"{self._me()}: propose should never be called directly on GeniusNegotiator"
+        )
 
     def parse(self, action: str) -> Tuple[Optional[ResponseType], Optional["Outcome"]]:
         """
@@ -495,7 +530,13 @@ class GeniusNegotiator(SAONegotiator):
             if self._strict:
                 raise ValueError(f"{self._me()} received no actions while parsing")
             return ResponseType.REJECT_OFFER, None
-        id, typ_, bid_str = action.split(FIELD_SEP)
+        _, typ_, bid_str = action.split(FIELD_SEP)
+        if typ_ == FAILED:
+            raise ValueError(f"{self._me()} sent an action that cannot be parsed ({action})")
+        elif typ_ == TIMEOUT:
+            if self.ami.state.relative_time < 1.0:
+                raise ValueError(f"{self._me()} indicated that it timedout")
+
         issues = self._ami.issues
 
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
@@ -533,12 +574,14 @@ class GeniusNegotiator(SAONegotiator):
                         )
             except Exception as e:
                 if self._strict:
-                    raise ValueError(f"{self._me()} failed to parse {bid_str} of action {action} with exception {str(e)}")
+                    raise ValueError(
+                        f"{self._me()} failed to parse {bid_str} of action {action} with exception {str(e)}"
+                    )
                 warnings.warn(
                     f"{self._me()} failed in parsing bid string: {bid_str} of action {action} with exception {str(e)}"
                 )
 
-        if typ_ == "Offer":
+        if typ_ in (TIMEOUT, "Offer"):
             response = ResponseType.REJECT_OFFER
         elif typ_ == "Accept":
             response = ResponseType.ACCEPT_OFFER
@@ -550,7 +593,9 @@ class GeniusNegotiator(SAONegotiator):
             response = ResponseType.REJECT_OFFER
             outcome = None
         else:
-            raise ValueError(f"{self._me()}: Unknown response: {typ_} in action {action}")
+            raise ValueError(
+                f"{self._me()}: Unknown response: {typ_} in action {action}"
+            )
         return response, outcome
 
     def _outcome2str(self, outcome):
