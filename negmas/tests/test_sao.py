@@ -1018,7 +1018,7 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
     c = SAOSingleAgreementRandomController(strict=strict)
     negs = [
         SAOMechanism(
-            issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=tuple
+            issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=tuple, end_on_no_response=False,
         )
         for _ in range(n_negs)
     ]
