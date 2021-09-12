@@ -20,6 +20,7 @@ from negmas.common import AgentMechanismInterface
 
 __all__ = [
     "pareto_frontier",
+    "nash_point",
     "make_discounted_ufun",
     "normalize",
     "outcome_with_utility",
@@ -155,6 +156,55 @@ def _pareto_frontier(
         frontier = [frontier[_] for _ in indx]
     return [tuple(_[1]) for _ in frontier], [_[0] for _ in frontier]
 
+def nash_point(
+    ufuns: Iterable[UtilityFunction],
+    frontier: Iterable[Tuple[float]],
+    issues: Optional[List[Issue]],
+    outcomes: Optional[List[Outcome]],
+) -> Tuple[Optional[Tuple[float]], Optional[int]]:
+    """
+    Calculates the nash point on the pareto frontier of a negotiation
+
+    Args:
+        ufuns: A list of ufuns to use
+        frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        issues: The issues on which the ufun is defined (outcomes may be passed instead)
+        outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
+
+    Returns:
+
+        A tuple of three values (all will be None if reserved values are unknown)
+
+        - A tuple of utility values at the nash point
+        - The index of the given frontier corresponding to the nash point
+
+    Remarks:
+
+        - The function searches within the given frontier only.
+
+    """
+    nash_val = float("-inf")
+    u_vals = None
+    nash_indx = None
+    reserves = [_.reserved_value for _ in ufuns]
+    reserves = [float("-inf") if _ is None else _ for _ in reserves]
+    maxs = [utility_range(_, issues, outcomes)[1] for _ in ufuns]
+    if any([_ == float("inf") or _ == float("-inf") for _ in reserves]):
+        return None, None
+    if any([_ is None or _ == float("inf") or _ == float("-inf") for _ in maxs]):
+        return None, None
+    diffs = [float(a) - float(b) for a, b in zip(maxs, reserves)]
+    if any([_ <= 1.0e-9 for _ in maxs]):
+        return None, None
+    for indx, us in enumerate(frontier):
+        val = 0.0
+        for u, r, d in zip(us, reserves, diffs):
+            val *= (float(u) - float(r)) / d
+        if val > nash_val:
+            nash_val= val
+            u_vals = us
+            nash_indx = indx
+    return u_vals, nash_indx
 
 def pareto_frontier(
     ufuns: Iterable[UtilityFunction],

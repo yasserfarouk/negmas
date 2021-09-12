@@ -31,6 +31,7 @@ class SAOState(MechanismState):
     n_acceptances: int = 0
     new_offers: List[Tuple[str, "Outcome"]] = field(default_factory=list)
     new_offerer_agents: List[str] = field(default_factory=list)
+    last_negotiator: Optional[str] = None
 
     def __copy__(self):
         return SAOState(**self.__dict__)
