@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Manages connections to Genius allowing NegMAS users to run Genius agents as negotiators.
 """

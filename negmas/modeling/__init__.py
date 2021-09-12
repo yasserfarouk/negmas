@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """A package for generalized opponent modeling"""
 from .acceptance import *
 from .future import *
