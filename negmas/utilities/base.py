@@ -1,12 +1,13 @@
-import warnings
 import itertools
-from math import sqrt
 import random
+import warnings
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import reduce
+from math import sqrt
 from operator import mul
 from typing import (
+    Any,
     Callable,
     Collection,
     Dict,
@@ -18,14 +19,13 @@ from typing import (
     Tuple,
     Type,
     Union,
-    Any,
 )
 
 import numpy as np
 
 from negmas.common import AgentMechanismInterface, NamedObject
 from negmas.generics import ienumerate, ivalues
-from negmas.helpers import Distribution, PATH, ikeys, snake_case, get_full_type_name
+from negmas.helpers import PATH, Distribution, get_full_type_name, ikeys, snake_case
 from negmas.outcomes import (
     Issue,
     Outcome,
@@ -35,7 +35,7 @@ from negmas.outcomes import (
     outcome_is_valid,
     sample_outcomes,
 )
-from negmas.serialization import serialize, deserialize
+from negmas.serialization import deserialize, serialize
 
 __all__ = [
     "UtilityDistribution",
@@ -233,7 +233,7 @@ class UtilityFunction(ABC, NamedObject):
             See ``from_xml_str`` for all the parameters
 
         """
-        with open(file_name, "r") as f:
+        with open(file_name) as f:
             xml_str = f.read()
             return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
@@ -381,10 +381,12 @@ class UtilityFunction(ABC, NamedObject):
             ...         , 'r').read(), force_single_issue=False, normalize_utility=True)
 
         """
-        from negmas.utilities.linear import LinearUtilityAggregationFunction
-        from negmas.utilities.nonlinear import MappingUtilityFunction
         from negmas.utilities.complex import ComplexWeightedUtilityFunction
-        from negmas.utilities.nonlinear import HyperRectangleUtilityFunction
+        from negmas.utilities.linear import LinearUtilityAggregationFunction
+        from negmas.utilities.nonlinear import (
+            HyperRectangleUtilityFunction,
+            MappingUtilityFunction,
+        )
 
         root = ET.fromstring(xml_str)
         if safe_parsing and root.tag != "utility_space":
@@ -701,13 +703,13 @@ class UtilityFunction(ABC, NamedObject):
                         return None, reserved_value, discount_factor
                 if keep_value_names:
                     names = itertools.product(
-                        *[
+                        *(
                             [
                                 str(item_key).replace("&", "-")
                                 for item_key in ikeys(items)
                             ]
                             for issue_key, items in zip(ikeys(issues), ivalues(issues))
-                        ]
+                        )
                     )
                     names = map(lambda items: ("+".join(items),), names)
                 else:
@@ -716,10 +718,10 @@ class UtilityFunction(ABC, NamedObject):
                         n_outcomes = reduce(mul, n_items, 1)
                     names = [(_,) for _ in range(n_outcomes)]
                 utils = itertools.product(
-                    *[
+                    *(
                         [item_utility for item_utility in ivalues(items)]
                         for issue_key, items in zip(ikeys(issues), ivalues(issues))
-                    ]
+                    )
                 )
                 utils = map(lambda vals: sum(vals), utils)
                 if normalize_utility:
@@ -735,13 +737,13 @@ class UtilityFunction(ABC, NamedObject):
                 utils = None
                 if normalize_utility:
                     utils = itertools.product(
-                        *[
+                        *(
                             [
                                 item_utility * weights[issue_info[issue_key]["index"]]
                                 for item_utility in ivalues(items)
                             ]
                             for issue_key, items in zip(ikeys(issues), ivalues(issues))
-                        ]
+                        )
                     )
                     if len(weights) > 0:
                         ws = dict()
@@ -816,7 +818,7 @@ class UtilityFunction(ABC, NamedObject):
             if normalize_utility:
                 n_items_to_test = 10
                 utils = itertools.product(
-                    *[
+                    *(
                         [
                             issue["fun"](_)
                             for _ in np.linspace(
@@ -827,7 +829,7 @@ class UtilityFunction(ABC, NamedObject):
                             )
                         ]
                         for key, issue in zip(ikeys(real_issues), ivalues(real_issues))
-                    ]
+                    )
                 )
                 if len(weights) > 0:
                     ws = dict()

@@ -1,6 +1,6 @@
 import itertools
-from functools import partial
 import random
+from functools import partial
 from typing import (
     Any,
     Collection,
@@ -14,19 +14,13 @@ from typing import (
     Union,
 )
 
-from negmas.helpers import get_full_type_name
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, deserialize
 from negmas.common import AgentMechanismInterface
 from negmas.generics import GenericMapping, ienumerate, iget
-from negmas.helpers import gmap, ikeys
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-    outcome_as,
-    outcome_as_tuple,
-)
-from .base import UtilityFunction, UtilityValue, ExactUtilityValue
-from negmas.helpers import make_range
+from negmas.helpers import get_full_type_name, gmap, ikeys, make_range
+from negmas.outcomes import Issue, Outcome, outcome_as, outcome_as_tuple
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+
+from .base import ExactUtilityValue, UtilityFunction, UtilityValue
 
 __all__ = [
     "LinearUtilityAggregationFunction",
@@ -231,17 +225,13 @@ class LinearUtilityFunction(UtilityFunction):
         if issues is not None:
             ranges = [(i.min_value, i.max_value) for i in issues]
             u = sorted(
-                [
-                    (
-                        self(
-                            outcome_as(
-                                outcome, self.outcome_type, [_.name for _ in issues]
-                            )
-                        ),
-                        outcome,
-                    )
-                    for outcome in itertools.product(*ranges)
-                ]
+                (
+                    self(
+                        outcome_as(outcome, self.outcome_type, [_.name for _ in issues])
+                    ),
+                    outcome,
+                )
+                for outcome in itertools.product(*ranges)
             )
             if return_outcomes:
                 return (

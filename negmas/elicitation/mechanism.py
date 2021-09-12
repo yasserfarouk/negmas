@@ -2,10 +2,34 @@ import logging
 import math
 import random
 import warnings
-
-import pandas as pd
 from typing import Any, Dict
 
+import pandas as pd
+
+from ..genius import GeniusNegotiator
+from ..helpers import create_loggers, instantiate
+from ..inout import load_genius_domain_from_folder
+from ..mechanisms import Mechanism
+from ..modeling import UncertainOpponentModel
+from ..negotiators import AspirationMixin
+from ..outcomes import Outcome
+from ..sao import (
+    AspirationNegotiator,
+    LimitedOutcomesAcceptor,
+    LimitedOutcomesNegotiator,
+    OnlyBestNegotiator,
+    RandomNegotiator,
+    SAOMechanism,
+    SAOState,
+    ToughNegotiator,
+)
+from ..utilities import (
+    IPUtilityFunction,
+    MappingUtilityFunction,
+    UtilityDistribution,
+    UtilityFunction,
+    UtilityValue,
+)
 from .baseline import DummyElicitor, FullKnowledgeElicitor
 from .expectors import BalancedExpector, MaxExpector, MinExpector
 from .pandora import FullElicitor, RandomElicitor
@@ -24,30 +48,6 @@ from .voi import (
     VOIOptimalElicitor,
     np,
     time,
-)
-from ..genius import GeniusNegotiator
-from ..helpers import create_loggers, instantiate
-from ..inout import load_genius_domain_from_folder
-from ..mechanisms import Mechanism
-from ..modeling import UncertainOpponentModel
-from ..negotiators import AspirationMixin
-from ..outcomes import Outcome
-from ..sao import (
-    AspirationNegotiator,
-    LimitedOutcomesAcceptor,
-    OnlyBestNegotiator,
-    RandomNegotiator,
-    SAOState,
-    ToughNegotiator,
-    SAOMechanism,
-    LimitedOutcomesNegotiator,
-)
-from ..utilities import (
-    IPUtilityFunction,
-    MappingUtilityFunction,
-    UtilityDistribution,
-    UtilityFunction,
-    UtilityValue,
 )
 
 __all__ = ["SAOElicitingMechanism"]
@@ -575,8 +575,8 @@ class SAOElicitingMechanism(SAOMechanism):
         consider_costs=False,
     ):
         try:
-            import matplotlib.pyplot as plt
             import matplotlib.gridspec as gridspec
+            import matplotlib.pyplot as plt
 
             if len(self.negotiators) > 2:
                 warnings.warn(

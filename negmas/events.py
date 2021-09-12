@@ -1,16 +1,16 @@
 """Implements Event management"""
-from pathlib import Path
+import json
+import random
 import time
 import warnings
-import random
-import json
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Union, Optional, Iterable
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from .common import NamedObject
-from .serialization import serialize
 from .outcomes import Issue
+from .serialization import serialize
 
 __all__ = [
     "Event",

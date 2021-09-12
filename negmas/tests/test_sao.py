@@ -1,22 +1,22 @@
-import pytest
-import pkg_resources
+import itertools
 import random
 import time
 from collections import defaultdict
 from pathlib import Path
-import itertools
-import pytest_check as check
 
 # from pprint import pprint
 from time import sleep
-from typing import Dict, Sequence, List
+from typing import Dict, List, Sequence
 
 import hypothesis.strategies as st
+import pkg_resources
+import pytest
+import pytest_check as check
 from hypothesis import HealthCheck, example, given, settings
 from pytest import mark
 
-from negmas.genius import genius_bridge_is_running
 from negmas import Issue, ResponseType
+from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
 from negmas.outcomes import Outcome, outcome_as_tuple
 from negmas.sao import (
@@ -24,10 +24,10 @@ from negmas.sao import (
     LimitedOutcomesNegotiator,
     RandomNegotiator,
     SAOMechanism,
+    SAONegotiator,
     SAOResponse,
     SAOState,
     SAOSyncController,
-    SAONegotiator,
 )
 from negmas.utilities import LinearUtilityFunction, MappingUtilityFunction
 
@@ -1018,7 +1018,10 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
     c = SAOSingleAgreementRandomController(strict=strict)
     negs = [
         SAOMechanism(
-            issues=[Issue((0.0, 1.0), "price")], n_steps=50, outcome_type=tuple, end_on_no_response=False,
+            issues=[Issue((0.0, 1.0), "price")],
+            n_steps=50,
+            outcome_type=tuple,
+            end_on_no_response=False,
         )
         for _ in range(n_negs)
     ]
@@ -1284,10 +1287,12 @@ def test_no_check_offers_tuple():
         assert isinstance(m.agreement[2], float) and not isinstance(m.agreement[2], int)
         assert m.agreement == (3.0, 2, 1.0)
 
+
 def test_no_limits_raise_warning():
-    from negmas.inout import load_genius_domain_from_folder
-    from negmas.genius import GeniusNegotiator
     from pathlib import Path
+
+    from negmas.genius import GeniusNegotiator
+    from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning):
         folder_name = pkg_resources.resource_filename(
@@ -1297,14 +1302,16 @@ def test_no_limits_raise_warning():
             folder_name, n_steps=None, time_limit=None
         )
 
+
 @pytest.mark.skipif(
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
-    from negmas.inout import load_genius_domain_from_folder
-    from negmas.genius import GeniusNegotiator
     from pathlib import Path
+
+    from negmas.genius import GeniusNegotiator
+    from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning, match=".*has a .*"):
         folder_name = pkg_resources.resource_filename(
@@ -1320,14 +1327,16 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
         )
         mechanism.add(a1)
 
+
 @pytest.mark.skipif(
     condition=not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
-    from negmas.inout import load_genius_domain_from_folder
-    from negmas.genius import GeniusNegotiator
     from pathlib import Path
+
+    from negmas.genius import GeniusNegotiator
+    from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(None) as record:
         folder_name = pkg_resources.resource_filename(
@@ -1360,4 +1369,3 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
         mechanism.add(a1)
 
     assert len(record) == 0
-

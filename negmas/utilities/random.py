@@ -1,5 +1,7 @@
 from typing import List, Optional, Type
+
 import numpy as np
+
 from negmas.outcomes import Outcome
 from negmas.utilities.nonlinear import MappingUtilityFunction
 

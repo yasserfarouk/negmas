@@ -168,7 +168,7 @@ def test_best_only_asp_negotiator():
     if len(a1offers) > 0:
         assert (
             len(set(a1offers)) <= 2
-            and min([u1[_[0]] for _ in a1offers if _ is not None]) >= 0.9
+            and min(u1[_[0]] for _ in a1offers if _ is not None) >= 0.9
         )
     assert len(set(a2offers)) >= 1
 

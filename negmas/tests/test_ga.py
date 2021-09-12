@@ -1,9 +1,6 @@
 from pytest import mark
 
-from negmas import (
-    MappingUtilityFunction,
-    SorterNegotiator,
-)
+from negmas import MappingUtilityFunction, SorterNegotiator
 from negmas.ga import GAMechanism
 
 

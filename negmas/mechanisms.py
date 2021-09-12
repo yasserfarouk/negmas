@@ -32,21 +32,18 @@ from negmas.common import (
 )
 from negmas.events import Event, EventSource
 from negmas.generics import ikeys
+from negmas.genius import DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
 from negmas.outcomes import (
     Issue,
     Outcome,
     enumerate_outcomes,
+    outcome_as_dict,
     outcome_as_tuple,
     outcome_is_valid,
-    outcome_as_dict,
 )
 from negmas.utilities import MappingUtilityFunction, UtilityFunction, pareto_frontier
-from negmas.genius import (
-    DEFAULT_JAVA_PORT,
-    get_free_tcp_port,
-)
 
 __all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
 
@@ -178,7 +175,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 issues = []
                 issue_names = ikeys(outcomes[0])
                 for issue in range(n_issues):
-                    vals = list(set([_[issue] for _ in outcomes]))
+                    vals = list({_[issue] for _ in outcomes})
                     issues.append(vals)
                 __issues = [
                     Issue(_, name=name_) for _, name_ in zip(issues, issue_names)
@@ -418,7 +415,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return None
 
         relative_step = (
-            (self._step + 1) / (self.ami.n_steps + 1) if self.ami.n_steps is not None else -1.0
+            (self._step + 1) / (self.ami.n_steps + 1)
+            if self.ami.n_steps is not None
+            else -1.0
         )
         relative_time = (
             self.time / self.ami.time_limit if self.ami.time_limit is not None else -1.0

@@ -9,13 +9,6 @@ from typing import List, Optional, Type, Union
 
 import numpy as np
 
-from .common import SAOResponse
-from .components import (
-    LimitedOutcomesAcceptorMixin,
-    LimitedOutcomesMixin,
-    RandomProposalMixin,
-    RandomResponseMixin,
-)
 from ..common import (
     AgentMechanismInterface,
     MechanismState,
@@ -40,6 +33,13 @@ from ..utilities import (
     UtilityFunction,
     outcome_with_utility,
     utility_range,
+)
+from .common import SAOResponse
+from .components import (
+    LimitedOutcomesAcceptorMixin,
+    LimitedOutcomesMixin,
+    RandomProposalMixin,
+    RandomResponseMixin,
 )
 
 __all__ = [
@@ -822,7 +822,7 @@ class OnlyBestNegotiator(SAONegotiator):
         self.ordered_outcomes = []
         self.acceptable_outcomes = []
         self.wheel = np.array([])
-        self.offered = set([])
+        self.offered = set()
         super().__init__(name=name, parent=parent, ufun=ufun, **kwargs)
         if not dynamic_ufun:
             warnings.warn(
@@ -964,7 +964,7 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         super().on_ufun_changed()
         outcomes = self._ami.discrete_outcomes()
         self.ordered_outcomes = sorted(
-            [(self._utility_function(outcome), outcome) for outcome in outcomes],
+            ((self._utility_function(outcome), outcome) for outcome in outcomes),
             key=lambda x: x[0],
             reverse=True,
         )

@@ -1,8 +1,8 @@
 <negotiation_template number_of_sessions="1">
-<agent utility_space="" name="" class=""> 
-</agent> 
-<agent utility_space="" name="" class=""> 
-</agent> 
+<agent utility_space="" name="" class="">
+</agent>
+<agent utility_space="" name="" class="">
+</agent>
 	<utility_space number_of_issues="6">
 		<objective index="0" description="" name="Car" type="objective" etype="objective">
 			<issue index="1" vtype="discrete" type="discrete" name="CD player">

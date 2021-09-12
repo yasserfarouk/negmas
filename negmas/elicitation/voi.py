@@ -8,6 +8,7 @@ from abc import abstractmethod
 from collections import defaultdict
 from heapq import heapify, heappop, heappush
 from warnings import warn
+
 import numpy as np
 
 try:
@@ -26,19 +27,16 @@ except ImportError:
     )
 from typing import Callable, List, Optional, Tuple, Union
 
-from .base import BaseElicitor
-from .common import _scale, argmax
-from .expectors import Expector, MeanExpector
-from .queries import Query, Answer, RangeConstraint
-from .strategy import EStrategy
 from ..common import MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
-from ..sao import (
-    AspirationNegotiator,
-    SAONegotiator,
-)
+from ..sao import AspirationNegotiator, SAONegotiator
 from ..utilities import UtilityValue
+from .base import BaseElicitor
+from .common import _scale, argmax
+from .expectors import Expector, MeanExpector
+from .queries import Answer, Query, RangeConstraint
+from .strategy import EStrategy
 
 __all__ = [
     "BaseVOIElicitor",
@@ -439,7 +437,7 @@ class VOIElicitor(BaseVOIElicitor):
 
     def eeu(self, policy: np.ndarray, eus: np.ndarray) -> float:
         """Expected Expected Negotiator for following the policy"""
-        p = np.ones((len(policy) + 1))
+        p = np.ones(len(policy) + 1)
         m = self.opponent_model.acceptance_probabilities()[policy]
         r = 1 - m
         eup = -eus * m
@@ -517,7 +515,7 @@ class VOIElicitor(BaseVOIElicitor):
             _policy = np.array([_[1] for _ in eu_policy])
             _eus = np.array([_[0] for _ in eu_policy])
             answer_eeus.append(self.eeu(policy=_policy, eus=_eus))
-        return cost - sum([a * b for a, b in zip(answer_probabilities, answer_eeus)])
+        return cost - sum(a * b for a, b in zip(answer_probabilities, answer_eeus))
 
 
 class VOIFastElicitor(BaseVOIElicitor):
@@ -540,7 +538,7 @@ class VOIFastElicitor(BaseVOIElicitor):
         eu_policy = sortedlist(zip(eus, range(n_outcomes)))
         policy = np.array([_[1] for _ in eu_policy])
         eu = np.array([_[0] for _ in eu_policy])
-        p = np.ones((len(policy) + 1))
+        p = np.ones(len(policy) + 1)
         ac = self.opponent_model.acceptance_probabilities()[policy]
         eup = -eu * ac
         r = 1 - ac
@@ -627,7 +625,7 @@ class VOIFastElicitor(BaseVOIElicitor):
                 self.eu_policy.remove(new_util)
             answer_eeus.append(reeu)
         self.eu_policy.add(old_util)
-        qeeu = cost - sum([a * b for a, b in zip(answer_probabilities, answer_eeus)])
+        qeeu = cost - sum(a * b for a, b in zip(answer_probabilities, answer_eeus))
         return qeeu
 
 
@@ -637,7 +635,7 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
 
     def eeu(self, policy: np.ndarray, eup: np.ndarray) -> float:
         """Expected Expected Negotiator for following the policy"""
-        p = np.ones((len(policy) + 1))
+        p = np.ones(len(policy) + 1)
         r = 1 - self.opponent_model.acceptance_probabilities()[policy]
         p[1:] = np.cumprod(r)
         try:
@@ -1014,7 +1012,7 @@ class VOIOptimalElicitor(BaseElicitor):
         eu_policy = sortedlist(zip(eus, range(n_outcomes)))
         policy = np.array([_[1] for _ in eu_policy])
         eu = np.array([_[0] for _ in eu_policy])
-        p = np.ones((len(policy) + 1))
+        p = np.ones(len(policy) + 1)
         ac = self.opponent_model.acceptance_probabilities()[policy]
         eup = -eu * ac
         r = 1 - ac

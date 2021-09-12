@@ -6,15 +6,14 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import lru_cache
-
 from typing import Dict, List, Optional, Tuple, Union
 
-from .common import SAOResponse, SAOState
-from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
 from ..common import AgentMechanismInterface, MechanismState
 from ..negotiators import AspirationMixin, Controller
 from ..outcomes import Outcome, ResponseType, outcome_is_valid
 from ..utilities import utility_range
+from .common import SAOResponse, SAOState
+from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
 
 __all__ = [
     "SAOController",
@@ -327,6 +326,7 @@ class SAOSyncController(SAOController):
         if negotiator_id in self.__n_waits.keys():
             del self.__n_waits[negotiator_id]
         return super().on_negotiation_end(negotiator_id, state)
+
 
 class SAORandomSyncController(SAOSyncController):
     """

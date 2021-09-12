@@ -1,6 +1,7 @@
 import pytest
+
+from negmas import Issue, Issues, outcome_in_range, outcome_is_valid
 from negmas.tests.fixtures import *
-from negmas import Issues, Issue, outcome_in_range, outcome_is_valid
 
 
 def test_dict_outcomes(issues, valid_outcome_dict, invalid_outcome_dict):

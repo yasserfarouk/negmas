@@ -1,12 +1,12 @@
-from dataclasses import dataclass
 import warnings
-
-import numpy as np
+from dataclasses import dataclass
 from typing import List, Optional
 
+import numpy as np
+
 from ..outcomes import Outcome
-from ..utilities import UtilityFunction, MappingUtilityFunction
-from .queries import Query, QResponse, Constraint, CostEvaluator
+from ..utilities import MappingUtilityFunction, UtilityFunction
+from .queries import Constraint, CostEvaluator, QResponse, Query
 
 np.seterr(all="raise")  # setting numpy to raise exceptions in case of errors
 

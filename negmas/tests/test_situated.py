@@ -3,7 +3,7 @@ from typing import Any, Callable, Collection, Dict, List, Optional, Set
 
 import hypothesis.strategies as st
 import pytest
-from hypothesis import given, settings, HealthCheck
+from hypothesis import HealthCheck, given, settings
 
 from negmas import (
     AgentMechanismInterface,

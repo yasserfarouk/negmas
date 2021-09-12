@@ -27,4 +27,3 @@ jobs:
       - name: "Create documentation"
         run: sh make_docs.sh
         working-directory: ./docs
-

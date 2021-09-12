@@ -4,12 +4,9 @@
 This set of utlities can be extended but must be backward compatible for at
 least two versions
 """
-from pathlib import Path
-import warnings
-import base64
-from types import LambdaType, FunctionType
-from contextlib import contextmanager
 import atexit
+import base64
+import concurrent
 import copy
 import datetime
 import importlib
@@ -25,11 +22,14 @@ import socket
 import string
 import sys
 import traceback
+import warnings
 from collections import defaultdict
-import concurrent
 from concurrent.futures import TimeoutError
 from concurrent.futures.thread import ThreadPoolExecutor
+from contextlib import contextmanager
 from enum import Enum
+from pathlib import Path
+from types import FunctionType, LambdaType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -49,9 +49,9 @@ import inflect
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from scipy.stats import tmean
 import stringcase
 import yaml
+from scipy.stats import tmean
 
 from negmas.config import NEGMAS_CONFIG
 from negmas.generics import GenericMapping, IterableMapping, gmap, ikeys
@@ -485,13 +485,13 @@ def _pretty_string(src, dpth=0, current_key="", tab_size=2) -> str:
         output += tabs(dpth) + "]"
     else:
         if len(current_key) > 0:
-            output += tabs(dpth) + '"%s":%s' % (current_key, src)
+            output += tabs(dpth) + f'"{current_key}":{src}'
         else:
             output += tabs(dpth) + "%s" % src
     return output
 
 
-class LazyInitializable(object):
+class LazyInitializable:
     """Base Negotiator for all agents
 
     Supports a set_params function that can be used for lazy initialization
@@ -573,7 +573,7 @@ class LazyInitializable(object):
         """
 
 
-class Distribution(object):
+class Distribution:
     """Any distribution from scipy.stats with overloading of addition and multiplication.
 
     Args:
@@ -865,7 +865,7 @@ class ConfigReader:
                             config = str(name)
                         else:
                             raise ValueError(f"Cannot find config in {config}.")
-            with open(config, "r") as f:
+            with open(config) as f:
                 if config.endswith(".json"):
                     config = json.load(f)
                 elif config.endswith(".cfg"):
@@ -1248,10 +1248,10 @@ def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
         return d
 
     if file_name.suffix == ".json":
-        with open(file_name, "r") as f:
+        with open(file_name) as f:
             d = json.load(f)
     elif file_name.suffix == ".yaml":
-        with open(file_name, "r") as f:
+        with open(file_name) as f:
             yaml.safe_load(f)
     elif file_name.suffix == ".pickle":
         with open(file_name, "rb") as f:
@@ -1325,13 +1325,13 @@ def add_records(
     # if file_name.exists():
     if is_nonzero_file(file_name):
         new_file = False
-        with open(file_name, "r") as f:
+        with open(file_name) as f:
             header = f.readline().strip().strip("\n")
         cols = header.split(",")
         for col in cols:
             if len(col) > 0 and col not in data.columns:
                 data[col] = None
-        if set([_ for _ in data.columns]) == set(cols):
+        if {_ for _ in data.columns} == set(cols):
             data = data.loc[:, cols]
         else:
             try:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # negmas documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
@@ -19,15 +18,16 @@
 # absolute, like shown here.
 #
 from __future__ import annotations
-import typing
-
-# typing.get_type_hints = lambda obj, *unused: obj
 
 import os
+import typing
 
 import sphinx_rtd_theme
 
 import negmas
+
+# typing.get_type_hints = lambda obj, *unused: obj
+
 
 # -- General configuration ---------------------------------------------
 
@@ -77,9 +77,9 @@ source_parsers = {".md": "recommonmark.parser.CommonMarkParser"}
 master_doc = "index"
 
 # General information about the project.
-project = u"negmas"
-copyright = u"2018, Yasser Mohammad"
-author = u"Yasser Mohammad"
+project = "negmas"
+copyright = "2018, Yasser Mohammad"
+author = "Yasser Mohammad"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -185,7 +185,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "negmas.tex", u"NegMAS Documentation", u"Yasser Mohammad", "manual")
+    (master_doc, "negmas.tex", "NegMAS Documentation", "Yasser Mohammad", "manual")
 ]
 
 # -- Options for graphviz used in inheritence diagrams -----------------
@@ -199,7 +199,7 @@ inheritance_graph_attrs = dict(
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "negmas", u"NegMAS Documentation", [author], 1)]
+man_pages = [(master_doc, "negmas", "NegMAS Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------
@@ -211,7 +211,7 @@ texinfo_documents = [
     (
         master_doc,
         "negmas",
-        u"NegMAS Documentation",
+        "NegMAS Documentation",
         author,
         "NegMAS",
         "Situated Simultaneous Negotiations Library.",

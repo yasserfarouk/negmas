@@ -41,7 +41,6 @@ ufun = MappingUtilityFunction(
 
 import negmas.elicitation as elicitation
 
-
 all_countable_queries_elicitor_types = [
     _
     for _ in elicitation.__all__
@@ -88,7 +87,7 @@ def master(true_utilities, strategy_name="titration-0.05"):
     return user, strategy
 
 
-class TestCountableOutcomesUser(object):
+class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_initializable(self):
         user = User(ufun=ufun, cost=cost)
         assert user.total_cost == 0.0, "total cost is not initialized to zero"
@@ -418,7 +417,7 @@ def data_folder():
     return pkg_resources.resource_filename("negmas", resource_name="tests/data")
 
 
-class TestCountableOutcomesElicitor(object):
+class TestCountableOutcomesElicitor:
     def test_dummy(self, master, true_utilities):
         user, strategy = master
         neg = SAOMechanism(outcomes=[(_,) for _ in range(n_outcomes)], n_steps=10)
@@ -495,7 +494,7 @@ class TestCountableOutcomesElicitor(object):
                 == true_utilities[neg.agreement[0]] - elicitor.elicitation_cost
             )
         if hasattr(elicitor, "each_outcome_once") and elicitor.each_outcome_once:
-            assert len(set([_[0] for _ in elicitor.offers])) == len(elicitor.offers)
+            assert len({_[0] for _ in elicitor.offers}) == len(elicitor.offers)
         # print(
         #     f"Got {elicitor.ufun(neg.agreement)} with elicitation cost {elicitor.elicitation_cost} "
         #     f"for {elicitor} using {len(queries)} elicited_queries"
@@ -808,8 +807,8 @@ def test_a_small_elicitation_session():
 
 
 def test_a_typical_elicitation_session():
-    import random
     import os
+    import random
 
     n_outcomes = 10
     accepted_outcomes = [int(random.random() <= 0.5) for _ in range(n_outcomes)]

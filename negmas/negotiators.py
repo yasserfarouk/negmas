@@ -3,11 +3,11 @@ This module defines the interfaces to all negotiation agents (negotiators)
 in negmas.
 
 """
-from collections import namedtuple
 import functools
 import math
 import warnings
 from abc import ABC
+from collections import namedtuple
 from random import sample
 from typing import (
     TYPE_CHECKING,
@@ -30,8 +30,8 @@ from negmas.outcomes import Issue
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
-    from negmas.utilities import UtilityFunction
     from negmas.situated import Agent
+    from negmas.utilities import UtilityFunction
 
 __all__ = [
     "Negotiator",

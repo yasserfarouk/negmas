@@ -1,23 +1,15 @@
 from typing import List, Optional, Tuple, Union
 
-from .common import _loc, _upper
-from .queries import (
-    Query,
-    Answer,
-    RangeConstraint,
-)
 from ..common import AgentMechanismInterface
 from ..outcomes import Outcome, outcome_as_tuple
-from ..utilities import (
-    IPUtilityFunction,
-    UtilityDistribution,
-    UtilityValue,
-)
+from ..utilities import IPUtilityFunction, UtilityDistribution, UtilityValue
+from .common import _loc, _upper
+from .queries import Answer, Query, RangeConstraint
 
 __all__ = ["EStrategy"]
 
 
-class EStrategy(object):
+class EStrategy:
     """A proxy for a user that have some true utilities which can be elicited.
 
     Args:

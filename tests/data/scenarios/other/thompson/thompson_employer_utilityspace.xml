@@ -1,10 +1,10 @@
-<utility_space> 
-<objective index="0" etype="objective" type="objective" description="" name="Employment"> 
-<issue index="1" name="Signing bonus" vtype="discrete" etype="discrete"> 
-	<item index="1" value="10%" evaluation="0"> 
-	</item> 
-	<item index="2" value="8%" evaluation="25"> 
-	</item> 
+<utility_space>
+<objective index="0" etype="objective" type="objective" description="" name="Employment">
+<issue index="1" name="Signing bonus" vtype="discrete" etype="discrete">
+	<item index="1" value="10%" evaluation="0">
+	</item>
+	<item index="2" value="8%" evaluation="25">
+	</item>
 	<item index="3" value="6%" evaluation="50">
 	</item>
 	<item index="4" value="4%" evaluation="75">
@@ -19,8 +19,8 @@
 			<item index="5" value="2%" evaluation="1"/>
 		</criteria_function>
 	</similarity_function>
-</issue> 
-<issue index="2" vtype="discrete" etype="discrete" name="Job assignment"> 
+</issue>
+<issue index="2" vtype="discrete" etype="discrete" name="Job assignment">
 	<item index="1" value="Division A" evaluation="0">
 	</item>
 	<item index="2" value="Division B" evaluation="25">
@@ -40,8 +40,8 @@
 		</criteria_function>
 	</similarity_function>
 
-</issue> 
-<issue index="3" vtype="discrete" etype="discrete" name="Moving expense coverage"> 
+</issue>
+<issue index="3" vtype="discrete" etype="discrete" name="Moving expense coverage">
 	<item index="1" value="100%" evaluation="0">
 	</item>
 	<item index="2" value="90%" evaluation="25">
@@ -62,8 +62,8 @@
 		</criteria_function>
 	</similarity_function>
 
-</issue> 
-<issue index="4" vtype="discrete" etype="discrete" name="Insurance coverage"> 
+</issue>
+<issue index="4" vtype="discrete" etype="discrete" name="Insurance coverage">
 	<item index="1" value="100%" evaluation="0">
 	</item>
 	<item index="2" value="80%" evaluation="25">
@@ -83,7 +83,7 @@
 			<item index="5" value="0%" evaluation="1"/>
 		</criteria_function>
 	</similarity_function>
-</issue> 
+</issue>
 <issue index="5" vtype="discrete" etype="discrete" name="Salary">
 	<item index="1" value="$40,000" evaluation="0"></item>
 	<item index="2" value="$38,000" evaluation="25"></item>
@@ -101,14 +101,13 @@
 		</criteria_function>
 	</similarity_function>
 
-</issue> 
- 
- 
+</issue>
+
+
 	<weight index="1" value="0.17"></weight>
 	<weight index="2" value="0.08"></weight>
 	<weight index="3" value="0.06"></weight>
 	<weight index="4" value="0.28"></weight>
 	<weight index="5" value="0.41"></weight>
 </objective>
-</utility_space> 
- 
+</utility_space>

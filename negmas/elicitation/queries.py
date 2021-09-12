@@ -3,17 +3,12 @@ import operator
 import pprint
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
 
-from .common import _loc, _upper
 from ..common import AgentMechanismInterface
 from ..outcomes import Outcome
-from ..utilities import (
-    UtilityDistribution,
-    UtilityFunction,
-    UtilityValue,
-)
+from ..utilities import UtilityDistribution, UtilityFunction, UtilityValue
+from .common import _loc, _upper
 
 __all__ = [
     "Constraint",

@@ -1,5 +1,5 @@
-<utility_space> 
-<objective index="0" etype="objective" type="objective" description="" name="PieDomain"> 
+<utility_space>
+<objective index="0" etype="objective" type="objective" description="" name="PieDomain">
 <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Pie">
 <item index="1" value="a0"  cost="0"  evaluation="0" description="a0"></item>
 <item index="2" value="a1"  cost="0"  evaluation="1" description="a1"></item>
@@ -1002,8 +1002,8 @@
 <item index="999" value="a998"  cost="0"  evaluation="998" description="a998"></item>
 <item index="1000" value="a999"  cost="0"  evaluation="999" description="a999"></item>
 <item index="1001" value="a1000"  cost="0"  evaluation="1000" description="a1000"></item>
-</issue> 
-<weight index="1" value="1"> 
-</weight> 
-</objective> 
-</utility_space> 
+</issue>
+<weight index="1" value="1">
+</weight>
+</objective>
+</utility_space>

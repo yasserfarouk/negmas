@@ -22,7 +22,7 @@ else:
     _GTypeRole = QtCore.Qt.UserRole
     _missing = object()
 
-    class GStyle(object):
+    class GStyle:
         _base_style = """
             ._OptionLabel {
                 font-size: 16px;
@@ -95,7 +95,7 @@ else:
 
     class GListView(QtWidgets.QListView):
         def __init__(self, opt):
-            super(GListView, self).__init__()
+            super().__init__()
             self.nargs = opt.nargs
             self.model = GItemModel(
                 opt.nargs, parent=self, opt_type=opt.type, default=opt.default
@@ -123,7 +123,7 @@ else:
                     si = self.selectedIndexes()
                     for i in si:
                         self.model.removeRow(i.row())
-            super(GListView, self).keyPressEvent(e)
+            super().keyPressEvent(e)
 
     class GItemModel(QtGui.QStandardItemModel):
         def __init__(self, n, parent=None, opt_type=click.STRING, default=None):
@@ -136,7 +136,7 @@ else:
                     self.insertRow(row, default)
 
         def insertRow(self, idx, val=""):
-            super(GItemModel, self).insertRow(idx)
+            super().insertRow(idx)
 
             index = self.index(idx, 0, QtCore.QModelIndex())
             if val is None or val == "":
@@ -244,7 +244,7 @@ else:
         def __init__(
             self, *args, exists=False, file_okay=True, dir_okay=True, **kwargs
         ):
-            super(GFileDialog, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
             self.setLabelText(QtWidgets.QFileDialog.Accept, "Select")
             if (exists, file_okay, dir_okay) == (True, True, False):
@@ -263,11 +263,11 @@ else:
                 self.accept = self.accept_all
 
         def accept_all(self):
-            super(GFileDialog, self).done(QtWidgets.QFileDialog.Accepted)
+            super().done(QtWidgets.QFileDialog.Accepted)
 
     class GLineEdit_path(QtWidgets.QLineEdit):
         def __init__(self, parent=None, exists=False, file_okay=True, dir_okay=True):
-            super(GLineEdit_path, self).__init__(parent)
+            super().__init__(parent)
             self.action = self.addAction(
                 self.style().standardIcon(QtWidgets.QStyle.SP_DirIcon),
                 QtWidgets.QLineEdit.TrailingPosition,
@@ -312,7 +312,7 @@ else:
 
     class _GLabeledSlider(QtWidgets.QSlider):
         def __init__(self, min, max, val):
-            super(_GLabeledSlider, self).__init__(QtCore.Qt.Horizontal)
+            super().__init__(QtCore.Qt.Horizontal)
             self.min, self.max = min, max
 
             self.setMinimum(min)
@@ -323,10 +323,8 @@ else:
 
         def __init_label(self):
             l = max(
-                [
-                    math.ceil(math.log10(abs(x))) if x != 0 else 1
-                    for x in [self.min, self.max]
-                ]
+                math.ceil(math.log10(abs(x))) if x != 0 else 1
+                for x in [self.min, self.max]
             )
             l += 1
             return QtWidgets.QLabel("0" * l)
@@ -369,10 +367,8 @@ else:
 
         def __init_label(self):
             l = max(
-                [
-                    math.ceil(math.log10(abs(x))) if x != 0 else 1
-                    for x in [self.min, self.max]
-                ]
+                math.ceil(math.log10(abs(x))) if x != 0 else 1
+                for x in [self.min, self.max]
             )
             l += 1
             return QtWidgets.QLabel("0" * l)
@@ -559,7 +555,7 @@ else:
 
     class _Spliter(QtWidgets.QFrame):
         def __init__(self, parent=None):
-            super(_Spliter, self).__init__(parent=parent)
+            super().__init__(parent=parent)
             self.setFrameShape(QtWidgets.QFrame.HLine)
 
     class _InputComboBox(QtWidgets.QComboBox):
@@ -585,7 +581,7 @@ else:
 
     class CommandLayout(QtWidgets.QGridLayout):
         def __init__(self, func, run_exit, parent_layout=None):
-            super(CommandLayout, self).__init__()
+            super().__init__()
             self.parent_layout = parent_layout
             self.func = func
             self.run_exit = run_exit
@@ -664,7 +660,7 @@ else:
 
     class RunCommand(QtCore.QRunnable):
         def __init__(self, func, run_exit):
-            super(RunCommand, self).__init__()
+            super().__init__()
             self.func = func
             self.run_exit = run_exit
 
@@ -689,12 +685,12 @@ else:
 
     class GCommand(click.Command):
         def __init__(self, new_thread=True, *arg, **args):
-            super(GCommand, self).__init__(*arg, **args)
+            super().__init__(*arg, **args)
             self.new_thread = new_thread
 
     class GOption(click.Option):
         def __init__(self, *arg, show_name=_missing, **args):
-            super(GOption, self).__init__(*arg, **args)
+            super().__init__(*arg, **args)
             self.show_name = show_name
 
     # def normalOutputWritten(t):

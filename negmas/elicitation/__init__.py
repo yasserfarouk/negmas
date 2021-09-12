@@ -2,16 +2,15 @@
 The interface to all negotiators capable of eliciting user preferences before
 , and during negotiations.
 """
-from .common import *
-from .queries import *
-from .user import *
-from .strategy import *
 from .base import *
 from .baseline import *
-from .pandora import *
-from .voi import *
+from .common import *
 from .mechanism import *
-
+from .pandora import *
+from .queries import *
+from .strategy import *
+from .user import *
+from .voi import *
 
 __all__ = (
     common.__all__

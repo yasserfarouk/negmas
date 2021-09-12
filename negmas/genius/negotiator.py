@@ -3,34 +3,29 @@ Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
-import os
 import math
+import os
 import pathlib
 import random
 import tempfile
 import warnings
-
 from typing import List, Optional, Tuple, Union
 
 from ..common import AgentMechanismInterface, MechanismState
-from ..inout import get_domain_issues
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
+from ..inout import get_domain_issues
 from ..negotiators import Controller
 from ..outcomes import Issue, ResponseType
 from ..sao.common import SAOResponse
 from ..sao.negotiators import SAONegotiator
 from ..utilities import UtilityFunction, make_discounted_ufun, normalize
+from .bridge import GeniusBridge
 from .common import (
     DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT,
     DEFAULT_JAVA_PORT,
     get_free_tcp_port,
 )
-from .ginfo import (
-    AGENT_BASED_NEGOTIATORS,
-    PARTY_BASED_NEGOTIATORS,
-    TESTED_NEGOTIATORS,
-)
-from .bridge import GeniusBridge
+from .ginfo import AGENT_BASED_NEGOTIATORS, PARTY_BASED_NEGOTIATORS, TESTED_NEGOTIATORS
 
 __all__ = [
     "GeniusNegotiator",
@@ -340,7 +335,9 @@ class GeniusNegotiator(SAONegotiator):
     def destroy_java_counterpart(self, state=None) -> None:
         if self.__started and not self.__destroyed:
             if self.java is not None:
-                self.__frozen_relative_time = self.java.get_relative_time(self.java_uuid)
+                self.__frozen_relative_time = self.java.get_relative_time(
+                    self.java_uuid
+                )
                 result = self.java.on_negotiation_end(
                     self.java_uuid,
                     None
@@ -529,10 +526,14 @@ class GeniusNegotiator(SAONegotiator):
             return ResponseType.REJECT_OFFER, None
         _, typ_, bid_str = action.split(FIELD_SEP)
         if typ_ == FAILED:
-            raise ValueError(f"{self._me()} sent an action that cannot be parsed ({action})")
+            raise ValueError(
+                f"{self._me()} sent an action that cannot be parsed ({action})"
+            )
         elif typ_ == TIMEOUT:
             if self.ami.state.relative_time < 1.0:
-                raise ValueError(f"{self._me()} indicated that it timedout at relative time ({self.ami.state.relative_time})")
+                raise ValueError(
+                    f"{self._me()} indicated that it timedout at relative time ({self.ami.state.relative_time})"
+                )
 
         issues = self._ami.issues
 

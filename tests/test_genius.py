@@ -1,73 +1,73 @@
 from pathlib import Path
+
 import hypothesis.strategies as st
 import pkg_resources
 import pytest
 from hypothesis import given, settings
 from py4j.protocol import Py4JNetworkError
 
-from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
 from negmas import (
-    Simpatico,
-    GeniusNegotiator,
-    AspirationNegotiator,
-    outcome_as_tuple,
-    genius_bridge_is_running,
-    load_genius_domain_from_folder,
-    TheFawkes,
-    Gangster,
+    AgentBuyong,
+    AgentHP2,
     AgentK,
-    Yushu,
-    Nozomi,
-    IAMhaggler,
+    AgentK2,
+    AgentLG,
+    AgentM,
     AgentX,
-    YXAgent,
+    AgentYK,
+    AgreeableAgent2018,
+    AspirationNegotiator,
+    Atlas3,
+    Atlas32016,
+    BetaOne,
+    BRAMAgent,
     Caduceus,
-    ParsCat,
+    CaduceusDC16,
+    CUHKAgent,
+    DoNA,
+    E2Agent,
+    Farma,
+    Gahboninho,
+    Gangster,
+    GeniusNegotiator,
+    GrandmaAgent,
+    Group2,
+    HardHeaded,
+    IAMhaggler,
+    IAMhaggler2011,
+    Kawaii,
+    KGAgent,
+    MengWan,
+    MetaAgent,
+    MyAgent,
+    Ngent,
+    NiceTitForTat,
+    Nozomi,
+    OMACagent,
     ParsAgent,
+    ParsCat,
+    PhoenixParty,
+    PokerFace,
     PonPokoAgent,
     RandomDance,
-    BetaOne,
-    MengWan,
-    AgreeableAgent2018,
     Rubick,
-    CaduceusDC16,
+    Simpatico,
     Terra,
-    AgentHP2,
-    GrandmaAgent,
-    Ngent,
-    Atlas32016,
-    MyAgent,
-    Farma,
-    PokerFace,
-    XianFaAgent,
-    PhoenixParty,
-    AgentBuyong,
-    Kawaii,
-    Atlas3,
-    AgentYK,
-    KGAgent,
-    E2Agent,
-    Group2,
-    WhaleAgent,
-    DoNA,
-    AgentM,
-    TMFAgent,
-    MetaAgent,
-    TheNegotiatorReloaded,
-    OMACagent,
-    AgentLG,
-    CUHKAgent,
-    ValueModelAgent,
-    NiceTitForTat,
+    TheFawkes,
     TheNegotiator,
-    AgentK2,
-    BRAMAgent,
-    IAMhaggler2011,
-    Gahboninho,
-    HardHeaded,
+    TheNegotiatorReloaded,
+    TMFAgent,
+    ValueModelAgent,
+    WhaleAgent,
+    XianFaAgent,
+    Yushu,
+    YXAgent,
+    genius_bridge_is_running,
+    load_genius_domain_from_folder,
+    outcome_as_tuple,
 )
-from negmas.genius import GeniusBridge
-from negmas.genius import get_anac_agents
+from negmas.genius import GeniusBridge, get_anac_agents
+from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
 
 TIMELIMIT = 120
 STEPLIMIT = 1000
@@ -135,9 +135,10 @@ def test_inclusion_of_sets_in_get_agents():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_does_not_freeze():
-    from negmas.inout import load_genius_domain_from_folder
-    from negmas.genius import GeniusNegotiator
     from pathlib import Path
+
+    from negmas.genius import GeniusNegotiator
+    from negmas.inout import load_genius_domain_from_folder
 
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
@@ -169,9 +170,10 @@ def test_genius_does_not_freeze():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_old_agent():
-    from negmas.inout import load_genius_domain_from_folder
-    from negmas.genius import GeniusNegotiator
     from pathlib import Path
+
+    from negmas.genius import GeniusNegotiator
+    from negmas.inout import load_genius_domain_from_folder
 
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
@@ -436,11 +438,30 @@ def test_running_genius_mechanism_in_genius(tmp_path):
 @pytest.mark.parametrize(
     ["a1", "a2", "n_steps", "time_limit"],
     [
-        ("agents.anac.y2011.IAMhaggler2011.IAMhaggler2011", "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011", 100, None),
-        ("agents.anac.y2011.HardHeaded.KLH", "agents.anac.y2012.CUHKAgent.CUHKAgent", None, 20),
-        ("agents.anac.y2011.IAMhaggler2011.IAMhaggler2011", "agents.anac.y2010.Nozomi.Nozomi", None, 30),
-        ("agents.TimeDependentAgentBoulware", "negotiator.parties.BoulwareNegotiationParty", 100, None),
-
+        (
+            "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
+            "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
+            100,
+            None,
+        ),
+        (
+            "agents.anac.y2011.HardHeaded.KLH",
+            "agents.anac.y2012.CUHKAgent.CUHKAgent",
+            None,
+            20,
+        ),
+        (
+            "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011",
+            "agents.anac.y2010.Nozomi.Nozomi",
+            None,
+            30,
+        ),
+        (
+            "agents.TimeDependentAgentBoulware",
+            "negotiator.parties.BoulwareNegotiationParty",
+            100,
+            None,
+        ),
     ],
 )
 def test_2genius_together(a1, a2, n_steps, time_limit):

@@ -8,4 +8,3 @@ Negotiation Mechanisms
     modules/mt
     modules/ga
     modules/concurrent
-

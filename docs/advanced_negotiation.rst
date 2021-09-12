@@ -10,4 +10,3 @@ Advanced Negotiation
     modules/modeling/acceptance
     modules/elicitors
     modules/concurrent
-

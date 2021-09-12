@@ -53,7 +53,6 @@ from py4j.protocol import Py4JNetworkError
 
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..helpers import TimeoutCaller, TimeoutError, unique_name
-
 from .common import DEFAULT_JAVA_PORT, get_free_tcp_port
 
 __all__ = [
@@ -137,11 +136,13 @@ def init_genius_bridge(
     )
     return True
 
+
 def genius_bridge_is_installed() -> bool:
     """
     Checks if geniusbridge is available in the default path location
     """
     return (pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar").exists()
+
 
 def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
     """

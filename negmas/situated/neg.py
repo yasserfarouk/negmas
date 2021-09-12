@@ -9,19 +9,19 @@ from typing import (
     Callable,
     Collection,
     Dict,
+    Iterable,
     List,
     Optional,
     Set,
     Type,
     Union,
-    Iterable,
 )
 
 from negmas import AgentMechanismInterface, MechanismState
 from negmas.helpers import get_class, get_full_type_name, instantiate
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
-from negmas.serialization import serialize, to_flat_dict, deserialize
+from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import (
     Action,
     Agent,
@@ -506,9 +506,9 @@ class NegWorld(NoContractExecutionMixin, World):
 
 
 if __name__ == "__main__":
-    from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
-    from negmas.genius.gnegotiators import Atlas3, NiceTitForTat
     from negmas.genius import genius_bridge_is_running
+    from negmas.genius.gnegotiators import Atlas3, NiceTitForTat
+    from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
     from negmas.situated import save_stats
     from negmas.utilities import LinearUtilityAggregationFunction as U
 

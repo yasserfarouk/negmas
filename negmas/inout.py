@@ -1,18 +1,18 @@
 """Defines import/export functionality
 """
-import pathlib
 import functools
 import operator
 import os
+import pathlib
 import shutil
 import xml.etree.ElementTree as ET
 from os import listdir
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union, Sequence
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from .helpers import PATH
 from .generics import ivalues
+from .helpers import PATH
 from .negotiators import Negotiator
 from .outcomes import Issue, enumerate_outcomes
 from .sao import SAOMechanism

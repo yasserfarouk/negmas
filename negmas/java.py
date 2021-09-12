@@ -21,7 +21,6 @@ from py4j.java_gateway import (
     JavaGateway,
     JavaObject,
 )
-
 from py4j.protocol import Py4JNetworkError
 
 from .helpers import camel_case, get_class, snake_case

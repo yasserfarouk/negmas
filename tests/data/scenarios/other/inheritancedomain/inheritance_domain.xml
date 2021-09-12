@@ -2,7 +2,7 @@
 	<agent name="Janet" class="SimpleAgent" utility_space="inheritance_Janet.xml"/>
 	<agent name="Marty" class="SimpleAgent" utility_space="inheritance_Marty.xml"/>
 	<utility_space number_of_issues="0">
-	<objective index="1" etype="objective" type="objective" description="" name="Inheritance"> 
+	<objective index="1" etype="objective" type="objective" description="" name="Inheritance">
 		<issue index="2" name="house" type="discrete">
 			<item index="1" value="Janet"/>
 			<item index="2" value="Marty"/>
@@ -38,6 +38,6 @@
 			<item index="2" value="Marty"/>
 			<item index="3" value="unspecified"/>
 		</issue>
-	</objective> 	
+	</objective>
 	</utility_space>
 </negotiation_template>
