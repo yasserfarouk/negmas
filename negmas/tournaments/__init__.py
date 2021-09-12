@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Tournament generation and management.
 """

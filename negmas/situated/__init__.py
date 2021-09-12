@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from .situated import *
 from .neg import *
 

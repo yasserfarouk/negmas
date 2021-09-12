@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """"
 The interface to all negotiators capable of eliciting user preferences before
 , and during negotiations.

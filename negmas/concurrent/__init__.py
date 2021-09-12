@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Implements Concurrent Negotiation Mechanisms and their agents"""
 
 from .chain import *

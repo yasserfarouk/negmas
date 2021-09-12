@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.
 """

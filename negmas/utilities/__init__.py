@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 r"""Models basic types of utility functions.
 
 Utility functions are at the core of negotiation. Agents engage in negotiations with the goal of maximizing some utility
