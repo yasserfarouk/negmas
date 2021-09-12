@@ -2,6 +2,7 @@
 Implements Stacked Alternating Offers (SAO) mechanism.
 """
 from collections import defaultdict
+from pprint import pformat
 import functools
 import itertools
 import math
@@ -28,6 +29,7 @@ from ..outcomes import (
     cast_outcome,
 )
 from ..helpers import exception2str, TimeoutCaller, TimeoutError
+from ..utilities.ops import nash_point
 
 __all__ = [
     "SAOMechanism",
@@ -261,6 +263,7 @@ class SAOMechanism(Mechanism):
             current_proposer_agent=current_proposer_agent,
             n_acceptances=self._n_accepting if self.publish_n_acceptances else 0,
             new_offerer_agents=new_offerer_agents,
+            last_negotiator=self.negotiators[self._last_checked_negotiator] if self._last_checked_negotiator >=0 else "---"
         )
 
     def plot(
@@ -273,6 +276,13 @@ class SAOMechanism(Mechanism):
         path: str = None,
         fig_name: str = None,
         ignore_none_offers: bool = True,
+        with_lines: bool = True,
+        show_agreement: bool = False,
+        show_pareto_distance: bool = True,
+        show_nash_distance: bool = True,
+        show_end_reason: bool = True,
+        show_last_negotiator: bool = True,
+        show_annotations: bool = False,
     ):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
@@ -298,6 +308,7 @@ class SAOMechanism(Mechanism):
                 self.negotiators[visible_negotiators[1]],
             ]
         # indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
+        outcomes = self.discrete_outcomes()
         history = []
         for state in self.history:
             for a, o in state.new_offers:
@@ -307,7 +318,7 @@ class SAOMechanism(Mechanism):
                     {
                         "current_proposer": a,
                         "current_offer": o,
-                        "offer_index": self.outcomes.index(o)
+                        "offer_index": outcomes.index(o)
                         if o is not None
                         else None,
                         "relative_time": state.relative_time,
@@ -322,8 +333,9 @@ class SAOMechanism(Mechanism):
         # n_negotiators = len(self.negotiators)
         n_agents = len(vnegotiators)
         ufuns = self._get_ufuns()
-        outcomes = self.outcomes
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
+        xrange = max(_[0] for _ in utils) - min(_[0] for _ in utils)
+        yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
         agent_names = [a.name for a in vnegotiators]
         if has_history:
             history["offer_index"] = [
@@ -331,6 +343,9 @@ class SAOMechanism(Mechanism):
                 for _ in history.current_offer
             ]
         frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
+        nash, _ = nash_point(ufuns, frontier, self.issues, self.outcomes)
+        if not nash:
+            show_nash_distance = False
         frontier_indices = [
             i
             for i, _ in enumerate(frontier)
@@ -396,21 +411,25 @@ class SAOMechanism(Mechanism):
                 au.plot(h.relative_time, h.utility, label=vnegotiators[a].name + f" ({a})")
                 if utility_range is not None:
                     au.set_ylim(*utility_range)
-        for a, (au, ao) in enumerate(
-            zip(
-                itertools.chain(axs_util, itertools.repeat(None)),
-                itertools.chain(axs_outcome, itertools.repeat(None)),
-            )
-        ):
-            if au is None and ao is None:
-                break
-            if not has_history:
-                continue
-            if au:
-                au.legend()
-            if ao:
-                ao.legend()
-
+        # for a, (au, ao) in enumerate(
+        #     zip(
+        #         itertools.chain(axs_util, itertools.repeat(None)),
+        #         itertools.chain(axs_outcome, itertools.repeat(None)),
+        #     )
+        # ):
+        #     if au is None and ao is None:
+        #         break
+        #     if not has_history:
+        #         continue
+        #     if au:
+        #         au.legend()
+        #     if ao:
+        #         ao.legend()
+        agreement = self.agreement if self.agreement is not None else tuple(None for _ in ufuns)
+        agreement_utility = tuple(u(agreement) for u in ufuns)
+        unknown_agreement_utility = None in agreement_utility
+        if unknown_agreement_utility:
+            show_pareto_distance = show_nash_distance = False
         if has_front:
             if plot_utils:
                 axu = fig_util.add_subplot(gs_util[:, 0])
@@ -424,27 +443,55 @@ class SAOMechanism(Mechanism):
                 )
             if plot_outcomes:
                 axo = fig_outcome.add_subplot(gs_outcome[:, 0])
-            clrs = ("blue", "green")
+            pareto_distance = float("inf")
+            nash_distance = float("inf")
+            clrs = ("green", "blue")
+            mrkrs = ("s", "o")
             if plot_utils:
                 f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
                 axu.scatter(f1, f2, label="frontier", color="red", marker="x")
-                # axu.legend()
-                axu.set_xlabel(agent_names[0] + " utility")
-                axu.set_ylabel(agent_names[1] + " utility")
-                if self.agreement is not None:
-                    pareto_distance = 1e9
-                    cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
+                axu.set_xlabel(agent_names[0] + f"(0) utility")
+                axu.set_ylabel(agent_names[1] + f"(1) utility")
+                cu = agreement_utility
+                if not unknown_agreement_utility:
+                    if nash:
+                        nash_distance = math.sqrt((nash[0] - cu[0]) ** 2 + (nash[1] - cu[1]) ** 2)
                     for pu in frontier:
                         dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
                         if dist < pareto_distance:
                             pareto_distance = dist
-                    axu.text(
-                        0.05,
-                        0.05,
-                        f"Pareto-distance={pareto_distance:5.2}",
-                        verticalalignment="top",
-                        transform=axu.transAxes,
-                    )
+                txt = ""
+                if show_agreement:
+                    txt += f"Agreement:{pformat(self.agreement) if issubclass(self.ami.outcome_type, dict) else self.agreement}\n"
+                if show_pareto_distance and self.agreement is not None:
+                    txt += f"Pareto-distance={pareto_distance:5.2}\n"
+                if show_nash_distance and self.agreement is not None:
+                    txt += f"Nash-distance={nash_distance:5.2}\n"
+                if show_end_reason:
+                    if self.state.ended and self.state.agreement is None:
+                        txt += "Negotiation Ended\n"
+                    elif self.state.timedout:
+                        txt += "Negotiation Timedout\n"
+                    elif self.state.agreement is not None:
+                        txt += "Negotiation Success\n"
+                    elif self.state.erred:
+                        txt += "Negotiation ERROR\n"
+                    elif self.state.agreement is not None:
+                        txt += "Agreemend Reached\n"
+                    elif self.state.agreement is None:
+                        txt += "No Agreement\n"
+                    else:
+                        txt += "Unknown state!!\n"
+                if show_last_negotiator:
+                    txt += f"Last: {self.state.last_negotiator}"
+
+                axu.text(
+                    0.05,
+                    0.05,
+                    txt,
+                    verticalalignment="bottom",
+                    transform=axu.transAxes,
+                )
 
             if plot_outcomes:
                 axo.scatter(
@@ -466,23 +513,69 @@ class SAOMechanism(Mechanism):
                     ]
                     h["u0"] = h["current_offer"].apply(ufuns[0])
                     h["u1"] = h["current_offer"].apply(ufuns[1])
-                    axu.scatter(h.u0, h.u1, color=clrs[a], label=f"{agent_names[a]}")
-                axu.scatter(
-                    [frontier[0][0]],
-                    [frontier[0][1]],
-                    color="magenta",
-                    label=f"Max. Welfare",
-                )
-                axu.annotate(
-                    "Max. Welfare",
-                    xy=frontier[0],  # theta, radius
-                    xytext=(
-                        frontier[0][0] + 0.02,
-                        frontier[0][1] + 0.02,
-                    ),  # fraction, fraction
-                    horizontalalignment="left",
-                    verticalalignment="bottom",
-                )
+                    (axu.scatter if not with_lines else axu.plot)(
+                                h.u0, h.u1, color=clrs[a], label=f"{agent_names[a]}", marker=mrkrs[a])
+                if frontier:
+                    axu.scatter(
+                        [frontier[0][0]],
+                        [frontier[0][1]],
+                        color="magenta",
+                        label=f"Max. Welfare",
+                        marker="+",
+                        s=120,
+                    )
+                    if show_annotations:
+                        axu.annotate(
+                            "Max. Welfare",
+                            xy=frontier[0],  # theta, radius
+                            xytext=(
+                                frontier[0][0] + 0.02,
+                                frontier[0][1] + 0.02 * yrange,
+                            ),  # fraction, fraction
+                            horizontalalignment="left",
+                            verticalalignment="bottom",
+                        )
+                if nash:
+                    axu.scatter(
+                        [nash[0]],
+                        [nash[1]],
+                        color="cyan",
+                        label=f"Nash Point",
+                        marker="x",
+                        s=120,
+                    )
+                    if show_annotations:
+                        axu.annotate(
+                            "Nash Point",
+                            xy=nash,  # theta, radius
+                            xytext=(
+                                nash[0] + 0.02,
+                                nash[1] - 0.02 * yrange,
+                            ),  # fraction, fraction
+                            horizontalalignment="left",
+                            verticalalignment="bottom",
+                        )
+                if self.state.agreement is not None:
+                    axu.scatter(
+                        [ufuns[0](self.state.agreement)],
+                        [ufuns[1](self.state.agreement)],
+                        color="black",
+                        marker="*",
+                        s=120,
+                        label="Agreement",
+                    )
+                    if show_annotations:
+                        axu.annotate(
+                            "Agreement",
+                            xy=nash,  # theta, radius
+                            xytext=(
+                            agreement_utility[0] + 0.02,
+                            agreement_utility[1] + 0.02,
+                            ),  # fraction, fraction
+                            horizontalalignment="left",
+                            verticalalignment="bottom",
+                        )
+                axu.legend()
             if plot_outcomes and has_history:
                 steps = sorted(history.step.unique().tolist())
                 aoffers = [[], []]
@@ -499,18 +592,10 @@ class SAOMechanism(Mechanism):
                     if len(offrs) == 2:
                         aoffers[0].append(offrs[0])
                         aoffers[1].append(offrs[1])
-                axo.scatter(aoffers[0], aoffers[1], color=clrs[0], label=f"offers")
+                (axo.scatter if not with_lines else axo.plot)(
+                        aoffers[0], aoffers[1], color=clrs[0], label=f"offers")
 
             if self.state.agreement is not None:
-                if plot_utils:
-                    axu.scatter(
-                        [ufuns[0](self.state.agreement)],
-                        [ufuns[1](self.state.agreement)],
-                        color="black",
-                        marker="*",
-                        s=120,
-                        label="SCMLAgreement",
-                    )
                 if plot_outcomes:
                     axo.scatter(
                         [outcomes.index(self.state.agreement)],
@@ -524,6 +609,8 @@ class SAOMechanism(Mechanism):
         if save_fig:
             if fig_name is None:
                 fig_name = str(uuid.uuid4()) + ".png"
+            parts = fig_name.split(".")
+            fig_name_outcomes = ".".join(parts[:-1]) + "_outcomes." + parts[-1]
             if path is None:
                 path = pathlib.Path().absolute()
             else:
@@ -531,7 +618,7 @@ class SAOMechanism(Mechanism):
             if plot_utils:
                 fig_util.savefig(os.path.join(path, fig_name), bbox_inches="tight")
             if plot_outcomes:
-                fig_outcome.savefig(os.path.join(path, fig_name), bbox_inches="tight")
+                fig_outcome.savefig(os.path.join(path, fig_name_outcomes), bbox_inches="tight")
         else:
             if plot_utils:
                 fig_util.show()
