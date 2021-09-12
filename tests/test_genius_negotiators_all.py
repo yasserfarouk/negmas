@@ -66,9 +66,24 @@ from negmas import (
     IAMhaggler2011,
     Gahboninho,
     HardHeaded,
+    ConcederNegotiationParty,
+    BayesianAgent,
+    FuzzyAgent,
+    ABMPAgent2,
+    OptimalBidderSimple,
+    SimilarityAgent,
+    BoulwareNegotiationParty,
+    TimeDependentAgentLinear,
+    TimeDependentAgentHardliner,
+    TimeDependentAgentConceder,
+    TimeDependentAgentBoulware,
+    RandomParty2,
+    RandomParty,
+    RandomCounterOfferNegotiationParty,
+    SimpleAgent,
+    ImmediateAcceptor,
 )
 from negmas.genius import GeniusBridge
-from negmas.genius import get_genius_agents
 
 TIMELIMIT = 30
 STEPLIMIT = 50
@@ -575,6 +590,134 @@ def test_Ngent():
 )
 def test_Simpatico():
     do_test_genius_agent(Simpatico)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_ConcederNegotiationParty():
+    do_test_genius_agent(ConcederNegotiationParty)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_BayesianAgent():
+    do_test_genius_agent(BayesianAgent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_FuzzyAgent():
+    do_test_genius_agent(FuzzyAgent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_ABMPAgent2():
+    do_test_genius_agent(ABMPAgent2)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_OptimalBidderSimple():
+    do_test_genius_agent(OptimalBidderSimple)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_SimilarityAgent():
+    do_test_genius_agent(SimilarityAgent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_BoulwareNegotiationParty():
+    do_test_genius_agent(BoulwareNegotiationParty)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_TimeDependentAgentLinear():
+    do_test_genius_agent(TimeDependentAgentLinear)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_TimeDependentAgentHardliner():
+    do_test_genius_agent(TimeDependentAgentHardliner)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_TimeDependentAgentConceder():
+    do_test_genius_agent(TimeDependentAgentConceder)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_TimeDependentAgentBoulware():
+    do_test_genius_agent(TimeDependentAgentBoulware)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_RandomParty2():
+    do_test_genius_agent(RandomParty2)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_RandomParty():
+    do_test_genius_agent(RandomParty)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_RandomCounterOfferNegotiationParty():
+    do_test_genius_agent(RandomCounterOfferNegotiationParty)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_SimpleAgent():
+    do_test_genius_agent(SimpleAgent)
+
+
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Gridge, skipping genius-agent tests",
+)
+def test_ImmediateAcceptor():
+    do_test_genius_agent(ImmediateAcceptor)
 
 
 #### agents after this line are not very robust

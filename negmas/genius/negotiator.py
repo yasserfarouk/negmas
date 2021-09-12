@@ -337,9 +337,6 @@ class GeniusNegotiator(SAONegotiator):
             self._temp_ufun_file = True
         return result
 
-    def test(self) -> str:
-        return self.java.test(self.java_class_name)
-
     def destroy_java_counterpart(self, state=None) -> None:
         if self.__started and not self.__destroyed:
             if self.java is not None:
@@ -535,7 +532,7 @@ class GeniusNegotiator(SAONegotiator):
             raise ValueError(f"{self._me()} sent an action that cannot be parsed ({action})")
         elif typ_ == TIMEOUT:
             if self.ami.state.relative_time < 1.0:
-                raise ValueError(f"{self._me()} indicated that it timedout")
+                raise ValueError(f"{self._me()} indicated that it timedout at relative time ({self.ami.state.relative_time})")
 
         issues = self._ami.issues
 

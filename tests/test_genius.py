@@ -67,7 +67,7 @@ from negmas import (
     HardHeaded,
 )
 from negmas.genius import GeniusBridge
-from negmas.genius import get_genius_agents
+from negmas.genius import get_anac_agents
 
 TIMELIMIT = 120
 STEPLIMIT = 1000
@@ -97,9 +97,9 @@ def test_get_genius_agents_example(
     uncertainty,
     elicitation,
 ):
-    winners = get_genius_agents(bilateral=True, winners_only=True)
-    everyone = get_genius_agents(bilateral=True)
-    finalists = get_genius_agents(bilateral=True, finalists_only=True)
+    winners = get_anac_agents(bilateral=True, winners_only=True)
+    everyone = get_anac_agents(bilateral=True)
+    finalists = get_anac_agents(bilateral=True, finalists_only=True)
     # assert len(winners) > 0
     # assert len(everyone) > 0
     # assert len(finalists) > 0
@@ -120,9 +120,9 @@ def test_inclusion_of_sets_in_get_agents():
     from negmas.genius.ginfo import GENIUS_INFO
 
     for year in GENIUS_INFO.keys():
-        winners = get_genius_agents(year=year, winners_only=True)
-        finalists = get_genius_agents(year=year, finalists_only=True)
-        everyone = get_genius_agents(year=year)
+        winners = get_anac_agents(year=year, winners_only=True)
+        finalists = get_anac_agents(year=year, finalists_only=True)
+        everyone = get_anac_agents(year=year)
         assert not finalists or all([_ in finalists for _ in winners]), set(
             winners
         ).difference(set(finalists))
@@ -434,13 +434,16 @@ def test_running_genius_mechanism_in_genius(tmp_path):
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 @pytest.mark.parametrize(
-    ["a1", "a2"],
+    ["a1", "a2", "n_steps", "time_limit"],
     [
-        ("agents.anac.y2011.HardHeaded.KLH", "agents.anac.y2012.CUHKAgent.CUHKAgent"),
+        ("agents.anac.y2011.IAMhaggler2011.IAMhaggler2011", "agents.anac.y2011.IAMhaggler2011.IAMhaggler2011", 100, None),
+        ("agents.anac.y2011.HardHeaded.KLH", "agents.anac.y2012.CUHKAgent.CUHKAgent", None, 20),
+        ("agents.anac.y2011.IAMhaggler2011.IAMhaggler2011", "agents.anac.y2010.Nozomi.Nozomi", None, 30),
+        ("agents.TimeDependentAgentBoulware", "negotiator.parties.BoulwareNegotiationParty", 100, None),
+
     ],
 )
-def test_2genius_together(a1, a2):
-    n_steps, time_limit = 1000, 120
+def test_2genius_together(a1, a2, n_steps, time_limit):
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Car-A-domain"
     )
@@ -448,24 +451,6 @@ def test_2genius_together(a1, a2):
     neg, agent_info, issues = load_genius_domain_from_folder(
         base_folder,
         n_steps=n_steps,
-        time_limit=float("inf"),
-    )
-    neg._avoid_ultimatum = False
-    if neg is None:
-        raise ValueError(f"Failed to load domain from {base_folder}")
-    neg.add(
-        GeniusNegotiator(java_class_name=a1, strict=True, ufun=agent_info[0]["ufun"]),
-        strict=True,
-    )
-    neg.add(
-        GeniusNegotiator(java_class_name=a2, strict=True, ufun=agent_info[1]["ufun"]),
-        strict=True,
-    )
-    neg.run()
-
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
-        n_steps=None,
         time_limit=time_limit,
     )
     neg._avoid_ultimatum = False

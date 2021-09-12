@@ -1,60 +1,76 @@
 from .negotiator import GeniusNegotiator
 
 __all__ = [
-    "Simpatico",
-    "Caduceus",
-    "YXAgent",
-    "AgentX",
-    "ParsCat",
-    "PonPokoAgent",
-    "HardHeaded",
-    "Gahboninho",
-    "IAMhaggler2011",
-    "BRAMAgent",
-    "AgentK2",
-    "TheNegotiator",
-    "NiceTitForTat",
-    "ValueModelAgent",
-    "CUHKAgent",
-    "AgentLG",
-    "OMACagent",
-    "TheNegotiatorReloaded",
-    "MetaAgent",
-    "TMFAgent",
-    "AgentM",
-    "DoNA",
-    "WhaleAgent",
-    "Group2",
-    "E2Agent",
-    "KGAgent",
-    "AgentYK",
-    "BraveCat",
-    "Atlas3",
-    "ParsAgent",
-    "RandomDance",
-    "Kawaii",
+    "ABMPAgent2",
     "AgentBuyong",
-    "PhoenixParty",
-    "XianFaAgent",
-    "PokerFace",
-    "Farma",
-    "MyAgent",
-    "Atlas32016",
-    "Ngent",
-    "GrandmaAgent",
     "AgentHP2",
-    "Terra",
-    "CaduceusDC16",
-    "Rubick",
-    "AgreeableAgent2018",
-    "MengWan",
-    "BetaOne",
     "AgentK",
-    "Yushu",
-    "Nozomi",
-    "IAMhaggler",
+    "AgentK2",
+    "AgentLG",
+    "AgentM",
+    "AgentX",
+    "AgentYK",
+    "AgreeableAgent2018",
+    "Atlas3",
+    "Atlas32016",
+    "BRAMAgent",
+    "BayesianAgent",
+    "BetaOne",
+    "BoulwareNegotiationParty",
+    "BraveCat",
+    "CUHKAgent",
+    "Caduceus",
+    "CaduceusDC16",
+    "ConcederNegotiationParty",
+    "DoNA",
+    "E2Agent",
+    "Farma",
+    "FuzzyAgent",
+    "Gahboninho",
     "Gangster",
+    "GrandmaAgent",
+    "Group2",
+    "HardHeaded",
+    "IAMhaggler",
+    "IAMhaggler2011",
+    "ImmediateAcceptor",
+    "KGAgent",
+    "Kawaii",
+    "MengWan",
+    "MetaAgent",
+    "MyAgent",
+    "Ngent",
+    "NiceTitForTat",
+    "Nozomi",
+    "OMACagent",
+    "OptimalBidderSimple",
+    "ParsAgent",
+    "ParsCat",
+    "PhoenixParty",
+    "PokerFace",
+    "PonPokoAgent",
+    "RandomCounterOfferNegotiationParty",
+    "RandomDance",
+    "RandomParty",
+    "RandomParty2",
+    "Rubick",
+    "SimilarityAgent",
+    "Simpatico",
+    "SimpleAgent",
+    "TMFAgent",
+    "Terra",
     "TheFawkes",
+    "TheNegotiator",
+    "TheNegotiatorReloaded",
+    "TimeDependentAgentBoulware",
+    "TimeDependentAgentConceder",
+    "TimeDependentAgentHardliner",
+    "TimeDependentAgentLinear",
+    "ValueModelAgent",
+    "WhaleAgent",
+    "XianFaAgent",
+    "YXAgent",
+    "Yushu",
 ]
 
 
@@ -385,4 +401,102 @@ class Simpatico(GeniusNegotiator):
 class TheFawkes(GeniusNegotiator):
     def __init__(self, **kwargs):
         kwargs["java_class_name"] = "agents.anac.y2013.TheFawkes.TheFawkes"
+        super().__init__(**kwargs)
+
+
+class ImmediateAcceptor(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.ImmediateAcceptor"
+        super().__init__(**kwargs)
+
+
+class SimpleAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = ["agents.SimpleAgent"]
+        super().__init__(**kwargs)
+
+
+class RandomCounterOfferNegotiationParty(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs[
+            "java_class_name"
+        ] = "negotiator.parties.RandomCounterOfferNegotiationParty"
+        super().__init__(**kwargs)
+
+
+class RandomParty(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "negotiator.parties.RandomParty"
+        super().__init__(**kwargs)
+
+
+class RandomParty2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "negotiator.parties.RandomParty2"
+        super().__init__(**kwargs)
+
+
+class TimeDependentAgentBoulware(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.TimeDependentAgentBoulware"
+        super().__init__(**kwargs)
+
+
+class TimeDependentAgentConceder(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.TimeDependentAgentConceder"
+        super().__init__(**kwargs)
+
+
+class TimeDependentAgentHardliner(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.TimeDependentAgentHardliner"
+        super().__init__(**kwargs)
+
+
+class TimeDependentAgentLinear(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.TimeDependentAgentLinear"
+        super().__init__(**kwargs)
+
+
+class BoulwareNegotiationParty(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "negotiator.parties.BoulwareNegotiationParty"
+        super().__init__(**kwargs)
+
+
+class SimilarityAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.SimilarityAgent"
+        super().__init__(**kwargs)
+
+
+class OptimalBidderSimple(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.OptimalBidderSimple"
+        super().__init__(**kwargs)
+
+
+class ABMPAgent2(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.ABMPAgent2"
+        super().__init__(**kwargs)
+
+
+class FuzzyAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.FuzzyAgent"
+        super().__init__(**kwargs)
+
+
+class BayesianAgent(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "agents.BayesianAgent"
+        super().__init__(**kwargs)
+
+
+class ConcederNegotiationParty(GeniusNegotiator):
+    def __init__(self, **kwargs):
+        kwargs["java_class_name"] = "negotiator.parties.ConcederNegotiationParty"
         super().__init__(**kwargs)
