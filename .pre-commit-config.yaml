@@ -20,16 +20,20 @@ repos:
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
+        exclude: __init__.py
 
 -   repo: https://github.com/asottile/seed-isort-config
     rev: v2.2.0
     hooks:
     -   id: seed-isort-config
+        exclude: __init__.py
 
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.9.3
     hooks:
     -   id: isort
+        exclude: __init__.py
+
 -   repo: https://github.com/psf/black
     rev: 21.8b0
     hooks:
@@ -39,4 +43,5 @@ repos:
     rev: v1.11.0
     hooks:
     -   id: blacken-docs
+        exclude: __init__.py
         additional_dependencies: [black==20.8b1]
