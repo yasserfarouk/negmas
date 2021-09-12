@@ -25,12 +25,12 @@ Examples:
 
 """
 
-import sys
-import warnings
 import copy
 import itertools
 import numbers
 import random
+import sys
+import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass, fields
@@ -41,13 +41,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Optional,
     Collection,
     Dict,
     Generator,
     Iterable,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -58,7 +58,7 @@ import numpy as np
 
 from .common import NamedObject
 from .generics import ienumerate, iget, ikeys, ivalues
-from .helpers import unique_name, PATH
+from .helpers import PATH, unique_name
 from .java import PYTHON_CLASS_IDENTIFIER
 
 if TYPE_CHECKING:
@@ -779,10 +779,10 @@ class Issue(NamedObject):
                 if keep_value_names:
                     if len(issues) > 1:
                         all_values = itertools.product(
-                            *[
+                            *(
                                 [str(_) for _ in issue.alli(n=n_discretization)]
                                 for issue_key, issue in zip(range(len(issues)), issues)
-                            ]
+                            )
                         )
                         all_values = list(
                             map(lambda items: "+".join(items), all_values)
@@ -847,7 +847,7 @@ class Issue(NamedObject):
             See ``from_xml_str`` for all the parameters
 
         """
-        with open(file_name, "r", encoding="utf-8") as f:
+        with open(file_name, encoding="utf-8") as f:
             xml_str = f.read()
 
             return cls.from_xml_str(
@@ -1481,7 +1481,7 @@ class Issue(NamedObject):
         }
 
 
-class Issues(object):
+class Issues:
     """Encodes a set of Issues.
 
     Args:
@@ -1744,7 +1744,7 @@ def enumerate_outcomes(
         )
         astype = dict if keep_issue_names else tuple
     try:
-        outcomes = list(tuple(_) for _ in itertools.product(*[_.all for _ in issues]))
+        outcomes = list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
     except:
         return None
 
@@ -1973,6 +1973,7 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection[Issue]) -> bool:
             return False
 
     return True
+
 
 def outcome_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
     """

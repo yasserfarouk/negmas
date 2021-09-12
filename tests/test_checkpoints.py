@@ -2,7 +2,7 @@ from datetime import timedelta
 from pathlib import Path, PosixPath
 
 import hypothesis.strategies as st
-from hypothesis import example, given, settings, HealthCheck
+from hypothesis import HealthCheck, example, given, settings
 
 from negmas import AspirationNegotiator, MappingUtilityFunction, SAOMechanism
 from negmas.checkpoints import CheckpointRunner

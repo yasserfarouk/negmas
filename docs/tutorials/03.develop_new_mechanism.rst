@@ -59,36 +59,36 @@ negotiators is less than or equal to one:
 
     class NashBargainingGame(Mechanism):
         """A mechanism representing the nash bargaining game"""
-        
+
         def __init__(self, **kwargs):
             kwargs.update(dict(n_steps=1, max_n_agents=2, dynamic_entry=False))
             super().__init__(**kwargs)
-            self.add_requirements(dict(propose_for_self = True))   
+            self.add_requirements(dict(propose_for_self = True))
             self.ufuns: List[UtilityFunction] = []
-        
+
         def add(
             self,
             negotiator: "Negotiator",
             *,
-            ufun: Optional["UtilityFunction"] = None,        
+            ufun: Optional["UtilityFunction"] = None,
             **kwargs,
         ) -> Optional[bool]:
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
             if added:
                 self.ufuns.append(self.negotiators[-1].utility_function)
-                
+
         def is_feasible(self, outcome: Tuple[float]):
             """Tests feasibility of outcomes.
-            
+
             The default implementation tests that the of all utilities assigned to all negotiators is less than 1.0.
-            """        
+            """
             return sum(u(outcome) for u in self.ufuns) <= (1.0 + 1e-3)
-        
+
         def round(self)-> MechanismRoundResult:
             """One round of the mechanism"""
             if len(self.negotiators) != 2:
-                return MechanismRoundResult(error=True, 
-                                            error_details=f"Got {len(self.negotiators)} negotiators!!", 
+                return MechanismRoundResult(error=True,
+                                            error_details=f"Got {len(self.negotiators)} negotiators!!",
                                             broken=True)
             outcome = tuple(n.propose_for_self(self.ufuns, i) for i, n in enumerate(self.negotiators))
             if self.is_feasible(outcome):
@@ -106,15 +106,15 @@ mechanism.
 
     class NashBargainingNegotiator(Negotiator, ABC):
         """Base class of all negotiators capable of negotiating in the nash bargaining game"""
-        
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.add_capabilities(dict(propose_for_self=True))
-        
+
         @abstractmethod
-        def propose_for_self(self, ufuns: List[UtilityFunction], my_indx: int) -> float:   
+        def propose_for_self(self, ufuns: List[UtilityFunction], my_indx: int) -> float:
             """Propose some outcome which is just a real number"""
-            
+
 
 Note that any agreement with utilities that sum to the maximum possible
 value within the feasible space is a nash equilibrium to this game and
@@ -133,10 +133,10 @@ widely known equilibria for the Nash bargaining game:
 
 .. math::
 
-   \text{argmax}_{\omega_1, \omega_2 \in F}\left(\omega_1+\omega_2\right) 
+   \text{argmax}_{\omega_1, \omega_2 \in F}\left(\omega_1+\omega_2\right)
    \text{ s.t. }
-   \left(\frac{\tilde u_1(\omega_1)-\tilde u_1(\phi)}{\tilde u_2(\omega_2)-\tilde u_2(\phi)} = 
-   \frac{\max_{v \in F} \left(\tilde u_1(v)\right)-\tilde u_1(\phi)}{\max_{v \in F} 
+   \left(\frac{\tilde u_1(\omega_1)-\tilde u_1(\phi)}{\tilde u_2(\omega_2)-\tilde u_2(\phi)} =
+   \frac{\max_{v \in F} \left(\tilde u_1(v)\right)-\tilde u_1(\phi)}{\max_{v \in F}
    \left(\tilde u_2(v)\right)-\tilde u_2(\phi)}\right)
 
 -  Kalai Point (1977): The pareto outcome maximizing the utility for the
@@ -155,7 +155,7 @@ for nonlinear nonconvex utility functions).
         def propose_for_self(self, ufuns: List[UtilityFunction], my_indx: int)-> float:
             objective = lambda f0: - (ufuns[0]((f0, 1.0-f0)) - ufuns[0].reserved_value) * \
                                      (ufuns[1]((f0, 1.0-f0)) - ufuns[1].reserved_value)
-            while True:            
+            while True:
                 result = minimize(objective, x0=[random()], bounds=[(0.0, 1.0)])
                 if result.success:
                     break
@@ -193,10 +193,10 @@ example, how does the reservation value affect the outcome:
     u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
     for i, r in enumerate(values):
         m = NashBargainingGame()
-        u1 = LinearUtilityFunction([1, 0], reserved_value=r)    
+        u1 = LinearUtilityFunction([1, 0], reserved_value=r)
         m.add(NashNegotiator(ufun=u1, name="a1"))
         m.add(NashNegotiator(ufun=u2, name="a2"))
-        result = m.run()    
+        result = m.run()
         u1values[i] =u1(result.agreement)
         u2values[i] =u2(result.agreement)
         a1values[i], a2values[i] = result.agreement
@@ -208,7 +208,7 @@ example, how does the reservation value affect the outcome:
     plt.legend()
     plt.xlabel("Reservation value for first negotiator")
     plt.show()
-    
+
     plt.subplot(212)
     plt.plot(values, a1values, label="First negotiator")
     plt.plot(values, a2values, label="Second negotiator")
@@ -234,7 +234,7 @@ What happens if the utility value of a negotiator had a different slope:
 
 .. code:: ipython3
 
-    u1values, u2values = np.zeros(101), np.zeros(101) 
+    u1values, u2values = np.zeros(101), np.zeros(101)
     a1values, a2values = np.zeros(101), np.zeros(101)
     slopes = np.linspace(0.0, 1.0, 101, endpoint=True)
     u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
@@ -246,7 +246,7 @@ What happens if the utility value of a negotiator had a different slope:
         result = m.run()
         u1values[i], u2values[i] =u1(result.agreement), u2(result.agreement)
         a1values[i], a2values[i] = result.agreement
-        
+
     plt.subplot(211)
     plt.plot(slopes, u1values, label="First negotiator")
     plt.plot(slopes, u2values, label="Second negotiator")
@@ -255,7 +255,7 @@ What happens if the utility value of a negotiator had a different slope:
     plt.legend()
     plt.xlabel("Slope value for first negotiator")
     plt.show()
-    
+
     plt.subplot(212)
     plt.plot(slopes, a1values, label="First negotiator")
     plt.plot(slopes, a2values, label="Second negotiator")
@@ -318,37 +318,37 @@ We can then define the mechanism class itself:
         def __init__(self, extended=False, **kwargs):
             kwargs.update(dict(issues=[Issue(values=(0.0, 1.0), name="first")
                                        , Issue(values=(0.0, 1.0), name="second")],
-                                       max_n_agents=2, dynamic_entry=False, 
+                                       max_n_agents=2, dynamic_entry=False,
                                state_factory=RubinsteinMechanismState,
                               keep_issue_names=False))
             super().__init__(**kwargs)
-            self.add_requirements(dict(propose=True, set_index=True))   
+            self.add_requirements(dict(propose=True, set_index=True))
             self.discounts: List[UtilityFunction] = []
             self.proposals = []
             self.extended = extended
-        
+
         def extra_state(self) -> Optional[Dict[str, Any]]:
             return dict(discounts=self.discounts)
-        
+
         def add(
             self,
             negotiator: "Negotiator",
             *,
-            discount: float =0.95,        
+            discount: float =0.95,
             **kwargs,
         ) -> Optional[bool]:
-            weights = [1, 0] if len(self.negotiators) == 0 else [0, 1] 
+            weights = [1, 0] if len(self.negotiators) == 0 else [0, 1]
             ufun = ExpDiscountedUFun(LinearUtilityFunction(weights), discount=discount, ami=self.ami)
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
-            if added:               
+            if added:
                 self.discounts.append(discount)
-                    
+
         def round(self)-> MechanismRoundResult:
             """One round of the mechanism"""
             if self.current_step == 0:
                 if len(self.negotiators) != 2:
-                    return MechanismRoundResult(error=True, 
-                                            error_details=f"Got {len(self.negotiators)} negotiators!!", 
+                    return MechanismRoundResult(error=True,
+                                            error_details=f"Got {len(self.negotiators)} negotiators!!",
                                             broken=True)
                 for i, n in enumerate(self.negotiators):
                     n.set_index(i)
@@ -362,11 +362,11 @@ We can then define the mechanism class itself:
                         return MechanismRoundResult(agreement=(min(outcomes[0][0], outcomes[1][0]),
                                                        min(outcomes[0][1], outcomes[1][1])))
                 elif max(abs(outcomes[0][i] - outcomes[1][i]) for i in range(2)) < 1e-3:
-                    return MechanismRoundResult(agreement=tuple(0.5 *(outcomes[0][i]+outcomes[1][i]) 
+                    return MechanismRoundResult(agreement=tuple(0.5 *(outcomes[0][i]+outcomes[1][i])
                                                                 for i in range(2)))
-                                                        
+
             return MechanismRoundResult()
-        
+
 
 The mechanism is very similar to the Nash Bargaining Game with few
 modifications:
@@ -393,15 +393,15 @@ We can now develop the base negotiator type for this mechanism:
 .. code:: ipython3
 
     class RubinsteinNegotiator(Negotiator):
-        
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.add_capabilities(dict(propose=True, set_index=True))
             self.my_index = -1
-        
+
         def set_index(self, indx: i) -> None:
             self.my_index = indx
-            
+
         @abstractmethod
         def propose(self, state: RubinsteinMechanismState)  -> Outcome:
             """Proposes an outcome which is a tuple of two numbers between zero and one"""
@@ -437,7 +437,7 @@ discounting) and otherwise returns a random apportionment of the pie.
 .. code:: ipython3
 
     class RandomRubinsteinNegotiator(RubinsteinNegotiator):
-    
+
         def propose(self, state: RubinsteinMechanismState)-> Outcome:
             if self.utility_function((1.0, 1.0)) < 0.0:
                 return None
@@ -474,11 +474,11 @@ We can implement the optimal negotiator for this mechanism as follows:
 .. code:: ipython3
 
     class OptimalRubinsteinNegotiator(RubinsteinNegotiator):
-        
+
         def propose(self, state: RubinsteinMechanismState) -> Outcome:
-            first = (1-state.discounts[1]) / (1 - state.discounts[1] * state.discounts[0])        
+            first = (1-state.discounts[1]) / (1 - state.discounts[1] * state.discounts[0])
             return first, 1 - first
-    
+
     mechanism = RubinsteinMechanism()
     mechanism.add(OptimalRubinsteinNegotiator())
     mechanism.add(OptimalRubinsteinNegotiator())
@@ -503,13 +503,13 @@ other agent’s
         def __init__(self, *args, aspiration_type="linear", max_aspiration=1.0, **kwargs):
             super().__init__(*args, **kwargs)
             AspirationMixin.aspiration_init(self, aspiration_type=aspiration_type, max_aspiration=max_aspiration)
-            
+
         def propose(self, state: RubinsteinMechanismState)-> Outcome:
             if self.utility_function((1.0, 1.0)) < 0.0:
                 return None
-            r = self.aspiration(state.relative_time)        
-            return  (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)        
-    
+            r = self.aspiration(state.relative_time)
+            return  (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)
+
     mechanism = RubinsteinMechanism(n_steps=100, extended=True)
     mechanism.add(AspirationRubinsteinNegotiator())
     mechanism.add(AspirationRubinsteinNegotiator())
@@ -552,5 +552,3 @@ As expected, the agreement shifted toward the second agent.
 
 
 Download :download:`Notebook<notebooks/03.develop_new_mechanism.ipynb>`.
-
-

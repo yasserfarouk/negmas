@@ -1,4 +1,4 @@
-"""Models basic types of utility functions.
+r"""Models basic types of utility functions.
 
 Utility functions are at the core of negotiation. Agents engage in negotiations with the goal of maximizing some utility
 function. In most cases, these utility functions are assumed to be known a-periori and static for the duration of a
@@ -20,15 +20,15 @@ Notes:
 
 """
 from .base import *
-from .ops import *
-from .static import *
+from .complex import *
 from .discounted import *
+from .java import *
 from .linear import *
 from .nonlinear import *
-from .random import *
-from .complex import *
-from .java import *
+from .ops import *
 from .probabilistic import *
+from .random import *
+from .static import *
 
 __all__ = (
     base.__all__

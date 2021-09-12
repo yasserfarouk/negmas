@@ -2,7 +2,7 @@
 Keeps information about ANAC competitions and Genius Agents
 """
 import itertools
-from typing import List, Set, Tuple, Optional
+from typing import List, Optional, Set, Tuple
 
 __all__ = [
     "GENIUS_INFO",
@@ -432,11 +432,11 @@ TESTED_NEGOTIATORS = list(
         ["agents.anac.y2015.AgentX.AgentX"]
         + list(
             itertools.chain(
-                *[
+                *(
                     list(_[1] for _ in itertools.chain(*v["winners"]))
                     for year, v in GENIUS_INFO.items()
                     if v["multilateral"] and not v["learning"]
-                ]
+                )
             )
         )
     )

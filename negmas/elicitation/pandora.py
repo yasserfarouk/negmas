@@ -3,29 +3,26 @@ import random
 import time
 from heapq import heapify, heappop
 from math import sqrt
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.optimize as opt
-from typing import Callable, List, Optional, Tuple, Union
 
-from .common import _loc, _scale
-from .base import BaseElicitor
-from .expectors import (
-    MeanExpector,
-    MinExpector,
-    MaxExpector,
-    AspiringExpector,
-    BalancedExpector,
-)
 from ..common import MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
-from ..sao import (
-    AspirationNegotiator,
-    SAONegotiator,
-)
+from ..sao import AspirationNegotiator, SAONegotiator
 from ..utilities import UtilityValue
+from .base import BaseElicitor
+from .common import _loc, _scale
+from .expectors import (
+    AspiringExpector,
+    BalancedExpector,
+    MaxExpector,
+    MeanExpector,
+    MinExpector,
+)
 
 __all__ = [
     "BasePandoraElicitor",
@@ -158,7 +155,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         return self.aspiration(state.relative_time)
 
     def update_cutoff_utility(self) -> None:
-        """
+        r"""
         Updates the cutoff utility under which no elicitation is done.
 
         Remarks:

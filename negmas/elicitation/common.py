@@ -1,8 +1,8 @@
-import numpy as np
 from typing import Any, Iterable
 
-from ..utilities import UtilityValue
+import numpy as np
 
+from ..utilities import UtilityValue
 
 np.seterr(all="raise")  # setting numpy to raise exceptions in case of errors
 

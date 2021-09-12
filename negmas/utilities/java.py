@@ -1,16 +1,7 @@
-from typing import (
-    List,
-    Optional,
-    TYPE_CHECKING,
-)
-
+from typing import TYPE_CHECKING, List, Optional
 
 from negmas.java import JavaCallerMixin, to_java
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-    outcome_as_dict,
-)
+from negmas.outcomes import Issue, Outcome, outcome_as_dict
 
 from .base import UtilityFunction, UtilityValue
 

@@ -15,7 +15,6 @@ import re
 # It ensures open() defaults to text mode with universal newlines,
 # and accepts an argument to specify the text encoding
 # Python 3 only projects can skip this import
-from io import open
 from os import path
 
 from setuptools import find_packages, setup
@@ -27,7 +26,7 @@ with open(path.join(here, "README.rst"), encoding="utf-8") as f:
 with open(path.join(here, "HISTORY.rst"), encoding="utf-8") as f:
     history_txt = f.read()
 
-long_description = "%s\n%s" % (
+long_description = "{}\n{}".format(
     re.compile("^.. start-badges.*^.. end-badges", re.M | re.S).sub("", readme_txt),
     re.sub(":[a-z]+:`~?(.*?)`", r"``\1``", history_txt),
 )

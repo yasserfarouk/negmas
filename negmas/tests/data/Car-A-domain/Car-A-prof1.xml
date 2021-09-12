@@ -20,7 +20,7 @@
 					<item index="3" value="standard" evaluation="0.6"/>
 					<item index="4" value="meager" evaluation="0.4"/>
 					<item index="5" value="none" evaluation="0.2"/>
-					<item index="6" value="unspecified" evaluation="0"/>			
+					<item index="6" value="unspecified" evaluation="0"/>
 				</criteria_function>
 			</similarity_function>
 		</issue>
@@ -37,7 +37,7 @@
 				<item index="3" value="standard" evaluation="0.6"/>
 				<item index="4" value="meager" evaluation="0.4"/>
 				<item index="5" value="none" evaluation="0.2"/>
-				<item index="6" value="unspecified" evaluation="0"/>			
+				<item index="6" value="unspecified" evaluation="0"/>
 			</criteria_function>
 		</similarity_function>
 
@@ -55,7 +55,7 @@
 				<item index="3" value="standard" evaluation="0.6"/>
 				<item index="4" value="meager" evaluation="0.4"/>
 				<item index="5" value="none" evaluation="0.2"/>
-				<item index="6" value="unspecified" evaluation="0"/>			
+				<item index="6" value="unspecified" evaluation="0"/>
 			</criteria_function>
 		</similarity_function>
 
@@ -73,7 +73,7 @@
 				<item index="3" value="standard" evaluation="0.6"/>
 				<item index="4" value="meager" evaluation="0.4"/>
 				<item index="5" value="none" evaluation="0.2"/>
-				<item index="6" value="unspecified" evaluation="0"/>			
+				<item index="6" value="unspecified" evaluation="0"/>
 			</criteria_function>
 		</similarity_function>
 
@@ -91,7 +91,7 @@
 				<item index="3" value="standard" evaluation="0.6"/>
 				<item index="4" value="meager" evaluation="0.4"/>
 				<item index="5" value="none" evaluation="0.2"/>
-				<item index="6" value="unspecified" evaluation="0"/>			
+				<item index="6" value="unspecified" evaluation="0"/>
 			</criteria_function>
 		</similarity_function>
 		</issue>
@@ -109,7 +109,7 @@
 				<item index="3" value="standard" evaluation="0.6"/>
 				<item index="4" value="meager" evaluation="0.4"/>
 				<item index="5" value="none" evaluation="0.2"/>
-				<item index="6" value="unspecified" evaluation="0"/>			
+				<item index="6" value="unspecified" evaluation="0"/>
 			</criteria_function>
 		</similarity_function>
 		</issue>

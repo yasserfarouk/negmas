@@ -1,23 +1,14 @@
 import pprint
-from typing import (
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
+from typing import Dict, Iterable, List, Optional, Tuple, Type
 
 import numpy as np
 
 from negmas.common import AgentMechanismInterface
 from negmas.generics import iget, ivalues
 from negmas.helpers import Distribution, ikeys
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-)
-from .base import UtilityFunction, UtilityValue, UtilityDistribution
+from negmas.outcomes import Issue, Outcome
+
+from .base import UtilityDistribution, UtilityFunction, UtilityValue
 from .nonlinear import MappingUtilityFunction
 
 __all__ = [
@@ -295,7 +286,7 @@ class IPUtilityFunction(UtilityFunction):
         """
         if isinstance(outcome, tuple):
             return outcome
-        return tuple((outcome.get(_, None) for _ in self.issue_names))
+        return tuple(outcome.get(_, None) for _ in self.issue_names)
 
     def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.

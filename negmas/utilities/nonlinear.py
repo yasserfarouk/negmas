@@ -10,25 +10,23 @@ from typing import (
     Union,
 )
 
-
-from negmas.helpers import get_full_type_name
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, deserialize
 from negmas.common import AgentMechanismInterface
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
-from negmas.helpers import Floats, gmap, ikeys
+from negmas.helpers import Floats, get_full_type_name, gmap, ikeys
 from negmas.outcomes import (
     Issue,
+    Outcome,
     OutcomeRange,
     outcome_as_tuple,
     outcome_in_range,
-    Outcome,
 )
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.utilities.base import (
-    UtilityFunction,
-    UtilityValue,
+    ExactUtilityValue,
     OutcomeUtilityMapping,
     OutcomeUtilityMappings,
-    ExactUtilityValue,
+    UtilityFunction,
+    UtilityValue,
 )
 
 __all__ = [
@@ -571,9 +569,10 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             self.weights, self.outcome_ranges, self.mappings
         ):  # type: ignore
             # fail on any outcome_range that constrains issues not in the presented outcome
-            if outcome_range is not None and set(ikeys(outcome_range)) - set(
-                ikeys(offer)
-            ) != set([]):
+            if (
+                outcome_range is not None
+                and set(ikeys(outcome_range)) - set(ikeys(offer)) != set()
+            ):
                 if self.ignore_issues_not_in_input:
                     continue
 

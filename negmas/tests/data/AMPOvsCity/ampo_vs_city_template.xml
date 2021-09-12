@@ -17,7 +17,7 @@
 			<item index="3" value="601-700"/>
 			<item index="4" value="701-800"/>
 			<item index="5" value="800+"/>
-		</issue>             
+		</issue>
 		<issue index="4" name="Increase in Vacation Less Than Five Years">
 			<item index="1" value="0 days"/>
 			<item index="2" value="2 days"/>
@@ -25,19 +25,19 @@
 			<item index="4" value="4 days"/>
 			<item index="5" value="5 days"/>
 			<item index="6" value="6+ days"/>
-		</issue>             
+		</issue>
 		<issue index="5" name="Increase in Vacation More Than Five Years">
 			<item index="1" value="0 dyas"/>
 			<item index="2" value="1 day"/>
 			<item index="3" value="2 days"/>
 			<item index="4" value="3 day"/>
 			<item index="5" value="3+ day"/>
-		</issue>             
+		</issue>
 		<issue index="6" name="Reinstatement">
 			<item index="1" value="No"/>
 			<item index="2" value="Yes, without back pay"/>
 			<item index="3" value="Yes, with back pay"/>
-		</issue>             
+		</issue>
 		<issue index="7" name="Two-Man Patrols">
 			<item index="1" value="Status Quo"/>
 			<item index="2" value="Less than 20% increase"/>
@@ -48,7 +48,7 @@
 			<item index="1" value="No"/>
 			<item index="2" value="1-19"/>
 			<item index="3" value="20"/>
-		</issue>             
+		</issue>
 		<issue index="9" name="Increase Number of Sergeants">
 			<item index="1" value="0"/>
 			<item index="2" value="2"/>
@@ -60,7 +60,7 @@
 		<issue index="10" name="Commisioner Daniels">
 			<item index="1" value="Fire"/>
 			<item index="2" value="Keep"/>
-		</issue>             
+		</issue>
 		<issue index="11" name="Police Civilian Review Board">
 			<item index="1" value="Disband"/>
 			<item index="2" value="Add police, no vote change"/>

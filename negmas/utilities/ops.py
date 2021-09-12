@@ -1,22 +1,11 @@
-from typing import (
-    Collection,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    TYPE_CHECKING,
-)
+from typing import TYPE_CHECKING, Collection, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-)
+from negmas.common import AgentMechanismInterface
+from negmas.outcomes import Issue, Outcome
 
 from .base import UtilityFunction, UtilityValue
-from negmas.common import AgentMechanismInterface
 
 __all__ = [
     "pareto_frontier",
@@ -42,7 +31,7 @@ def make_discounted_ufun(
     discount_per_real_time: float = None,
     dynamic_reservation: bool = True,
 ):
-    from negmas.utilities.discounted import LinDiscountedUFun, ExpDiscountedUFun
+    from negmas.utilities.discounted import ExpDiscountedUFun, LinDiscountedUFun
 
     if cost_per_round is not None and cost_per_round > 0.0:
         ufun = LinDiscountedUFun(
@@ -156,6 +145,7 @@ def _pareto_frontier(
         frontier = [frontier[_] for _ in indx]
     return [tuple(_[1]) for _ in frontier], [_[0] for _ in frontier]
 
+
 def nash_point(
     ufuns: Iterable[UtilityFunction],
     frontier: Iterable[Tuple[float]],
@@ -201,10 +191,11 @@ def nash_point(
         for u, r, d in zip(us, reserves, diffs):
             val *= (float(u) - float(r)) / d
         if val > nash_val:
-            nash_val= val
+            nash_val = val
             u_vals = us
             nash_indx = indx
     return u_vals, nash_indx
+
 
 def pareto_frontier(
     ufuns: Iterable[UtilityFunction],

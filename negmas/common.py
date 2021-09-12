@@ -15,7 +15,6 @@ from typing_extensions import Protocol, runtime
 from .helpers import dump, get_full_type_name, load, unique_name
 from .java import to_dict, to_java
 
-
 # from .actors.thread_actors import ThreadProxy
 
 if TYPE_CHECKING:
@@ -351,7 +350,7 @@ class Runnable(Protocol):
         pass
 
 
-class NamedObject(object):
+class NamedObject:
     """The base class of all named entities.
 
     All named entities need to call this class's __init__() somewhere during initialization.

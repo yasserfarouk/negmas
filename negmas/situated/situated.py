@@ -68,6 +68,7 @@ dropped-contract                     contract: `Contract`
 
 """
 import copy
+import itertools
 import json
 import logging
 import math
@@ -96,8 +97,8 @@ from typing import (
     Tuple,
     Union,
 )
+from warnings import warn
 
-import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -106,30 +107,24 @@ from matplotlib.axis import Axis
 
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import AgentMechanismInterface, MechanismState, NamedObject, Rational
-from negmas.events import Event, EventSink, EventSource, Notifier, EventLogger
+from negmas.events import Event, EventLogger, EventSink, EventSource, Notifier
+from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import (
     ConfigReader,
     add_records,
     create_loggers,
     dump,
+    exception2str,
     get_class,
     humanize_time,
     instantiate,
     unique_name,
-    exception2str,
 )
-from negmas.serialization import serialize, to_flat_dict
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
+from negmas.serialization import serialize, to_flat_dict
 from negmas.utilities import UtilityFunction
-from negmas.genius import (
-    DEFAULT_JAVA_PORT,
-    get_free_tcp_port,
-    ANY_JAVA_PORT,
-)
-
-from warnings import warn
 
 try:
     import networkx as nx
@@ -818,7 +813,7 @@ class MechanismFactory:
         mechanisms = self.world.mechanisms
         if (
             (not self.allow_self_negotiation)
-            and (len(set(_.id if _ is not None else "" for _ in partners)) < 2)
+            and (len({_.id if _ is not None else "" for _ in partners}) < 2)
             and len(partners) > 1
         ):
             return None
@@ -3358,9 +3353,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             f"{_.perpetrator}:{_.type}({_.level})"
                             for _ in contract_breaches
                         )
-                        breachers = set(
+                        breachers = {
                             (_.perpetrator, tuple(_.victims)) for _ in contract_breaches
-                        )
+                        }
                         for breacher, victims in breachers:
                             if isinstance(victims, str) or isinstance(victims, Agent):
                                 victims = [victims]
@@ -5248,17 +5243,17 @@ class TimeInAgreementMixin:
 
     def executable_contracts(self: World) -> Collection[Contract]:
         """Called at every time-step to get the contracts that are `executable` at this point of the simulation"""
-        if set(
+        if {
             _["id"]
             for _ in self._saved_contracts.values()
             if _["delivery_time"] == self.current_step and _["signed_at"] >= 0
-        ) != set(_.id for _ in self.contracts_per_step.get(self.current_step, [])):
-            saved = set(
+        } != {_.id for _ in self.contracts_per_step.get(self.current_step, [])}:
+            saved = {
                 _["id"]
                 for _ in self._saved_contracts.values()
                 if _["delivery_time"] == self.current_step and _["signed_at"] >= 0
-            )
-            used = set(_.id for _ in self.contracts_per_step.get(self.current_step, []))
+            }
+            used = {_.id for _ in self.contracts_per_step.get(self.current_step, [])}
             err = (
                 f"Some signed contracts due at {self.current_step} are not being executed: {saved - used} "
                 f"({used - saved}):\n"

@@ -10,7 +10,7 @@ from negmas import (
     load_genius_domain,
     load_genius_domain_from_folder,
 )
-from negmas.genius import Caduceus, GeniusBridge, YXAgent, AgentX, Atlas3
+from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
 
 dom_folder = pathlib.Path(
     pkg_resources.resource_filename(

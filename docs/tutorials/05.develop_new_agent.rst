@@ -26,11 +26,11 @@ code which is self explanatory this time.
                     partners=sample(agents, k=randint(1, len(agents) - 1)),
                     negotiator=RandomNegotiator(),
                 )
-    
+
         def init(self):
             # we need no initialization
             pass
-    
+
         def respond_to_negotiation_request(
             self, initiator: str, partners: List[str], mechanism: AgentMechanismInterface
         ) -> Optional[Negotiator]:
@@ -80,7 +80,7 @@ as a pandas dataframe.
 
     def stats_df(world):
         return pd.DataFrame(world.stats)
-    
+
     plt.bar(range(world.n_steps), stats_df(world)['step_time'])
     plt.xlabel('Simulation Step')
     plt.ylabel('Time (s)')
@@ -111,7 +111,7 @@ We can see a picture of contracting in this world as follows:
 
 .. code:: ipython3
 
-    plt.plot(world.stats['n_contracts_signed'], label='Signed Contracts') 
+    plt.plot(world.stats['n_contracts_signed'], label='Signed Contracts')
     plt.plot(world.stats['n_contracts_executed'], label='Executed Contracts')
     plt.legend()
     plt.xlabel('Simulation Step')
@@ -143,7 +143,7 @@ We can actually check what happens to ALL agents
 
     fig, utility = plt.subplots(1, 1)
     snames = sorted(_.name for _ in world.agents.values())
-    for name in snames:    
+    for name in snames:
         utility.plot(np.asarray(world.stats[f'total_utility_{name}']), label=name)
     utility.set(xlabel='Simulation Step', ylabel='Player Total Utility')
     utility.legend(loc='lower left')
@@ -187,7 +187,7 @@ attempt:
             super().__init__(*args, **kwargs)
             self.negotiator_type = negotiator_type
             self.negotiator_params = negotiator_params if negotiator_params is not None else dict()
-        
+
         def step(self):
             # get IDs of all ogher agents from the AWI
             agents = self.awi.agents
@@ -198,10 +198,10 @@ attempt:
                     partners=sample(agents, k=randint(1, len(agents) - 1)),
                     negotiator=self.negotiator_type(ufun=self.ufun, **self.negotiator_params),
                 )
-    
+
         def init(self):
             pass
-    
+
         def respond_to_negotiation_request(
             self, initiator: str, partners: List[str], mechanism: AgentMechanismInterface
         ) -> Optional[Negotiator]:
@@ -257,5 +257,3 @@ Better.
 
 
 Download :download:`Notebook<notebooks/05.develop_new_agent.ipynb>`.
-
-

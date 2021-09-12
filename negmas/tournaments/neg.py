@@ -1,27 +1,27 @@
 """
 Negotiation tournaments module.
 """
-from itertools import cycle, permutations, combinations
 from collections import defaultdict
-from random import randint
+from copy import deepcopy
 from functools import partial
+from itertools import combinations, cycle, permutations
 from os import PathLike
+from random import randint
 from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Type, Union
 
-from negmas.helpers import unique_name, get_class
+from negmas.helpers import get_class, unique_name
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.serialization import deserialize, serialize
 from negmas.situated import Agent
-from negmas.utilities.linear import LinearUtilityFunction
+from negmas.situated.neg import NegAgent, NegDomain, NegWorld  # , _wrap_in_agents
 from negmas.tournaments.tournaments import (
     TournamentResults,
     WorldRunResults,
     create_tournament,
     tournament,
 )
-from negmas.situated.neg import NegDomain, NegWorld, NegAgent # , _wrap_in_agents
-from copy import deepcopy
+from negmas.utilities.linear import LinearUtilityFunction
 
 __all__ = [
     "create_neg_tournament",
@@ -81,7 +81,7 @@ def neg_config_generator(
         "scoring_context": {},
         "non_competitors": None,
         "non_competitor_params": None,
-        "is_default": [False] * n_competitors + [True] * (len(domain.ufuns) - 1)
+        "is_default": [False] * n_competitors + [True] * (len(domain.ufuns) - 1),
     }
     return [config]
 

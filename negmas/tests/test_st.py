@@ -1,9 +1,6 @@
 from pytest import mark
 
-from negmas import (
-    BinaryComparatorNegotiator,
-    MappingUtilityFunction,
-)
+from negmas import BinaryComparatorNegotiator, MappingUtilityFunction
 from negmas.st import HillClimbingSTMechanism, VetoSTMechanism
 
 

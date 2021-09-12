@@ -1,7 +1,8 @@
 import pytest
-from .fixtures import *
 
 from negmas import Issue
+
+from .fixtures import *
 
 
 def test_type(hamlet, cissue, dissue):

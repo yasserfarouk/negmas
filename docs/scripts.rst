@@ -283,5 +283,3 @@ To report the winners of a tournament, you can use tournament `winners` . The pa
                                 var, sum  [default: median]
   --config FILE                 Read configuration from FILE.
 ============================== =======================================================
-
-

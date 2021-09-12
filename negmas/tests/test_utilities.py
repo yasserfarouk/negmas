@@ -1,4 +1,5 @@
 import random
+
 import pkg_resources
 import pytest
 from pytest import mark
@@ -9,8 +10,8 @@ from negmas.utilities import (
     LinearUtilityAggregationFunction,
     LinearUtilityFunction,
     MappingUtilityFunction,
-    pareto_frontier,
     UtilityFunction,
+    pareto_frontier,
     utility_range,
 )
 
@@ -192,7 +193,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=True,
         normalize_utility=False,
@@ -263,7 +263,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=False,
         normalize_utility=True,
@@ -280,7 +279,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=False,
         normalize_utility=True,
@@ -297,7 +295,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=True,
         keep_issue_names=False,
@@ -311,7 +308,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=False,
         normalize_utility=False,
@@ -336,7 +332,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=True,
         normalize_utility=True,
@@ -349,7 +344,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=True,
         keep_issue_names=False,
@@ -363,7 +357,6 @@ def test_normalization():
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=False,
         normalize_utility=True,
@@ -408,7 +401,6 @@ def test_inverse_genius_domain(normalize):
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
             ),
-            "r",
         ).read(),
     )
     u, _ = UtilityFunction.from_xml_str(
@@ -416,7 +408,6 @@ def test_inverse_genius_domain(normalize):
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
-            "r",
         ).read(),
         force_single_issue=False,
         normalize_utility=normalize,
@@ -428,7 +419,9 @@ def test_inverse_genius_domain(normalize):
 
 
 def test_random_linear_utils_is_normalized():
-    from negmas.utilities import LinearUtilityAggregationFunction as U1, LinearUtilityFunction as U2
+    from negmas.utilities import LinearUtilityAggregationFunction as U1
+    from negmas.utilities import LinearUtilityFunction as U2
+
     eps = 1e-6
     issues = [Issue(10), Issue(5), Issue(2)]
 
@@ -440,6 +433,7 @@ def test_random_linear_utils_is_normalized():
             assert sum(u.weights) <= 1 + eps
         for w in Issue.enumerate(issues):
             assert -1e-6 <= u(w) <= 1 + 1e-6, f"{str(u.to_dict())}"
+
 
 if __name__ == "__main__":
     pytest.main(args=[__file__])

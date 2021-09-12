@@ -1,24 +1,12 @@
 import random
-from typing import (
-    Callable,
-    List,
-    Optional,
-    Type,
-    Union,
-    Any,
-    Dict,
-)
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize, deserialize
 from negmas.common import AgentMechanismInterface
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-)
-from negmas.helpers import get_class
-from .base import UtilityValue, UtilityFunction
-from negmas.helpers import make_range, get_full_type_name
+from negmas.helpers import get_class, get_full_type_name, make_range
+from negmas.outcomes import Issue, Outcome
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+
+from .base import UtilityFunction, UtilityValue
 
 __all__ = [
     "LinDiscountedUFun",
@@ -75,7 +63,7 @@ class ExpDiscountedUFun(UtilityFunction):
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
 
@@ -217,7 +205,7 @@ class LinDiscountedUFun(UtilityFunction):
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
 

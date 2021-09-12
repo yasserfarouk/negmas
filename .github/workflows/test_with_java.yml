@@ -47,4 +47,3 @@ jobs:
           python -m pytest tests/test_genius.py  || python -m pytest --last-failed .
           python -m pytest tests/test_genius_bridge.py  || python -m pytest --last-failed .
           python -m pytest tests/test_inout.py  || python -m pytest --last-failed .
-          

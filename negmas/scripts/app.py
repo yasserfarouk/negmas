@@ -16,17 +16,17 @@ import yaml
 from tabulate import tabulate
 
 import negmas
-from negmas.helpers import humanize_time, load, unique_name, truncated_mean
+from negmas.genius.common import DEFAULT_JAVA_PORT
+from negmas.helpers import humanize_time, load, truncated_mean, unique_name
 from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
 from negmas.tournaments import (
+    combine_tournament_results,
     combine_tournament_stats,
     combine_tournaments,
-    combine_tournament_results,
     create_tournament,
     evaluate_tournament,
     run_tournament,
 )
-from negmas.genius.common import DEFAULT_JAVA_PORT
 
 try:
     from .vendor.quick.quick import gui_option
@@ -912,7 +912,6 @@ def genius(path, port, debug, timeout):
         pass
 
 
-
 @cli.command(help="Start the bridge to JNegMAS (to use Java agents in worlds)")
 @click.option(
     "--path",
@@ -959,7 +958,7 @@ def download_and_set(key, url, file_name):
     config_file = config_path / "config.json"
 
     if config_file.exists():
-        with open(config_file, "r") as f:
+        with open(config_file) as f:
             config = json.load(f)
     config[key] = str(jar_path)
     with open(config_file, "w") as f:

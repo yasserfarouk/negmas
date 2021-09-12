@@ -11,12 +11,12 @@ You can use these to run negotiations as follows:
     random.seed(0) # for reproducibility
     from pprint import pprint # for printing
     from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
-    
+
     session = SAOMechanism(outcomes=10, n_steps=100)
     negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
     for negotiator in negotiators:
         session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
-    
+
     pprint(session.run().__dict__)
 
 
@@ -56,12 +56,12 @@ instead of a ``Mechanism`` object
 
     random.seed(0) # for reproducibility
     from negmas import SAOProtocol
-    
+
     session = SAOProtocol(outcomes=10, n_steps=100)
     negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
     for negotiator in negotiators:
         session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
-    
+
     pprint(session.run().__dict__)
 
 
@@ -104,18 +104,18 @@ This can be modeled in the following negotiation:
     issues = [Issue(name='price', values=10), Issue(name='quantity', values=10)
               , Issue(name='delivery_time', values=10)]
     session = SAOMechanism(issues=issues, n_steps=20)
-    
+
     buyer_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: 9.0 - x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: x})
                              , outcomes=session.outcomes)
-    
+
     seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x})
                                , outcomes=session.outcomes)
-    
-    
+
+
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     pprint(session.run().__dict__)
@@ -201,13 +201,13 @@ the delivery time and price to go down. Let’s see what happens:
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=50)
-    
+
     seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
                              , outcomes=session.outcomes)
-    
+
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     pprint(session.run().__dict__)
@@ -255,13 +255,13 @@ What happens if we give them more time to negotiate:
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-    
+
     seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
                              , outcomes=session.outcomes)
-    
+
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     session.run()
@@ -281,13 +281,13 @@ to *linear* instead of the default *boulware*:
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-    
+
     seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
                              , outcomes=session.outcomes)
-    
+
     session.add(AspirationNegotiator(name='buyer', aspiration_type="linear"), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
     session.run()
@@ -304,5 +304,3 @@ help the negotiators get to a point on the pareto-front.
 
 
 Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
-
-

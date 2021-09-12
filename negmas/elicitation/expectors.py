@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-
 from typing import Optional, Union
 
 from ..common import AgentMechanismInterface, MechanismState

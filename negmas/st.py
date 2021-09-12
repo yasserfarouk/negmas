@@ -120,8 +120,8 @@ class VetoSTMechanism(Mechanism):
         show_all_offers=False,
         **kwargs,
     ):
-        import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
+        import matplotlib.pyplot as plt
         import pandas as pd
 
         if len(self.negotiators) < 2:

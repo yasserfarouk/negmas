@@ -5,7 +5,3 @@ include LICENSE
 include README.rst
 recursive-exclude negmas *.pyc
 recursive-exclude negmas __pycache__
-
-
-
-

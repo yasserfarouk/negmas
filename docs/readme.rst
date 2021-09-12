@@ -3,4 +3,3 @@ Basics
 ******
 
 .. include:: ../README.rst
-

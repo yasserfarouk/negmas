@@ -5,5 +5,3 @@ Reference
    :glob:
 
    api/*
-
-

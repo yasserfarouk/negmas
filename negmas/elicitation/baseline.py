@@ -1,11 +1,10 @@
 import time
-
 from typing import Optional, Union
 
-from .base import BaseElicitor
 from ..common import MechanismState
 from ..outcomes import Outcome
 from ..utilities import UtilityValue
+from .base import BaseElicitor
 
 __all__ = ["DummyElicitor", "FullKnowledgeElicitor"]
 

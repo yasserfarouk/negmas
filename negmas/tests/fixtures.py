@@ -10,12 +10,12 @@ def bissue():
 
 @fixture()
 def hamlet():
-    return Issue(["val {}".format(_) for _ in range(5)], name="THE problem")
+    return Issue([f"val {_}" for _ in range(5)], name="THE problem")
 
 
 @fixture()
 def uissue():
-    return Issue(["val {}".format(_) for _ in range(5)])
+    return Issue([f"val {_}" for _ in range(5)])
 
 
 @fixture()
@@ -30,7 +30,7 @@ def dissue():
 
 @fixture()
 def sissue():
-    return Issue(["val {}".format(_) for _ in range(5)], name="s")
+    return Issue([f"val {_}" for _ in range(5)], name="s")
 
 
 @fixture()

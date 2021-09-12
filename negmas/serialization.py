@@ -2,28 +2,26 @@
 Implements serialization to and from strings and secondary storage.
 
 """
-import warnings
 import json
-from typing import Any, Dict, Iterable, Optional
-import cloudpickle
+import warnings
 from pathlib import Path
+from typing import Any, Dict, Iterable, Optional, Type
 
+import cloudpickle
 import numpy as np
 from pandas import json_normalize
 
 from .helpers import (
+    TYPE_START,
+    dump,
     get_class,
+    get_full_type_name,
+    is_jsonable,
     is_lambda_function,
     is_non_lambda_function,
     is_type,
-    is_jsonable,
-    get_class,
-    get_full_type_name,
-    dump,
     load,
-    TYPE_START,
 )
-from typing import Type
 
 __all__ = [
     "serialize",
@@ -101,6 +99,7 @@ def serialize(
           `deserialize`, `PYTHON_CLASS_IDENTIFIER`
 
     """
+
     def add_to_mem(x, objmem):
         if not objmem:
             objmem = {id(x)}
@@ -158,12 +157,8 @@ def serialize(
         objmem = add_to_mem(value, objmem)
         return adjust_dict(
             type(value)(
-                (
-                    serialize(
-                        _, deep=deep, add_type_field=add_type_field, objmem=objmem
-                    )
-                    for _ in value
-                )
+                serialize(_, deep=deep, add_type_field=add_type_field, objmem=objmem)
+                for _ in value
             )
         )
     if hasattr(value, "to_dict"):
@@ -285,7 +280,6 @@ def deserialize(
 
     """
 
-
     def good_field(k: str):
         if not isinstance(k, str):
             return True
@@ -324,9 +318,9 @@ def deserialize(
         return d
     if isinstance(d, str):
         if d.startswith(TYPE_START):
-            return get_class(d[len(TYPE_START):])
+            return get_class(d[len(TYPE_START) :])
         elif d.startswith(PATH_START):
-            return Path(d[len(PATH_START):])
+            return Path(d[len(PATH_START) :])
         return d
     if isinstance(d, bytes):
         if d.startswith(LAMBDA_START):

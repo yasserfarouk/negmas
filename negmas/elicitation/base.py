@@ -1,25 +1,22 @@
 import copy
 import time
 from abc import abstractmethod
-
-import numpy as np
 from typing import Callable, List, Optional, Tuple, Union
 
-from .expectors import MeanExpector
-from .common import _locs, _uppers
+import numpy as np
+
 from ..common import AgentMechanismInterface, MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome, ResponseType
-from ..sao import (
-    AspirationNegotiator,
-    SAONegotiator,
-)
+from ..sao import AspirationNegotiator, SAONegotiator
 from ..utilities import (
     IPUtilityFunction,
     MappingUtilityFunction,
     UtilityDistribution,
     UtilityValue,
 )
+from .common import _locs, _uppers
+from .expectors import MeanExpector
 
 __all__ = ["BaseElicitor"]
 

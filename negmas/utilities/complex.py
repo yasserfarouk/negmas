@@ -1,24 +1,12 @@
 import random
-from typing import (
-    Callable,
-    Iterable,
-    List,
-    Optional,
-    Type,
-    Any,
-    Dict,
-)
-
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type
 
 from negmas.common import AgentMechanismInterface
-from negmas.serialization import serialize, deserialize
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-)
-from .base import UtilityValue, UtilityFunction, ExactUtilityValue
-from negmas.helpers import make_range, get_full_type_name
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER
+from negmas.helpers import get_full_type_name, make_range
+from negmas.outcomes import Issue, Outcome
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+
+from .base import ExactUtilityValue, UtilityFunction, UtilityValue
 
 __all__ = [
     "ComplexWeightedUtilityFunction",
@@ -123,7 +111,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction):
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
         return cls(**d)
 
@@ -170,7 +158,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
-        d.pop(PYTHON_CLASS_IDENTIFIER , None)
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
         d["combination_function"] = deserialize(d["combination_function"])
         return cls(**d)

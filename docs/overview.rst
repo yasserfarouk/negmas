@@ -312,7 +312,7 @@ examples:
 
 .. code:: ipython3
 
-    [ 
+    [
         outcome_is_valid(valid_outcome, [issue2, issue3, issue4]),      # valid giving True
         outcome_is_valid(invalid_outcome, [issue2, issue3, issue4])     # invalid giving False
     ]
@@ -332,7 +332,7 @@ for the last three issues given above:
 
 .. code:: ipython3
 
-    [ 
+    [
         outcome_is_valid({'The Problem': 'to be'}, [issue2, issue3, issue4]),
         outcome_is_valid({'The Problem': 'to be', 'number of items': 5}, [issue2, issue3, issue4])
     ]
@@ -351,7 +351,7 @@ same way.
 
 .. code:: ipython3
 
-    [ 
+    [
         outcome_is_valid(['to be', 4, 0.5], [issue2, issue3, issue4]),
         outcome_is_valid(('to be', 4, 1.5), [issue2, issue3, issue4])
     ]
@@ -372,10 +372,10 @@ in the given set of issues. This can be done using the
 
 .. code:: ipython3
 
-    [ 
+    [
         outcome_is_complete(valid_outcome, [issue2, issue3, issue4]),            # complete -> True
         outcome_is_complete(invalid_outcome, [issue2, issue3, issue4]),          # invalid -> incomplete -> False
-        outcome_is_complete({'The Problem': 'to be'}, [issue2, issue3, issue4])  # incomplete -> False  
+        outcome_is_complete({'The Problem': 'to be'}, [issue2, issue3, issue4])  # incomplete -> False
     ]
 
 
@@ -406,8 +406,8 @@ Now you can use objects of MyOutcome as normal outcomes
 .. code:: ipython3
 
     issues = [
-        Issue(['to be', 'not to be'], name='problem'), 
-        Issue((0.0, 3.0), name='price'), 
+        Issue(['to be', 'not to be'], name='problem'),
+        Issue((0.0, 3.0), name='price'),
         Issue(5, name='quantity')
     ]
 
@@ -478,10 +478,10 @@ It is easy to check whether a specific outcome is within a given range:
 
     outcome1 = {'The Problem': 'to be', 'number of items': 5, 'cost': 0.15}
     outcome2 = {'The Problem': 'to be', 'number of items': 10, 'cost': 0.15}
-    [ 
+    [
         outcome_in_range(outcome1, range1),       # True
         outcome_in_range(outcome2, range1)        # False
-    ]       
+    ]
 
 
 
@@ -587,13 +587,13 @@ interface. This is a simple example:
     class ConstUtilityFunction(UtilityFunction):
        def eval(self, offer):
             try:
-                return 3.0 * offer['cost'] 
+                return 3.0 * offer['cost']
             except KeyError:  # No value was given to the cost
                 return None
-        
+
        def xml(self):
             return '<ufun const=True value=3.0></ufun>'
-    
+
     f = ConstUtilityFunction()
     [f({'The Problem': 'to be'}), f({'cost': 10})]
 
@@ -617,19 +617,19 @@ change or evolution of them during negotiations. For example this
         def __init__(self, mood='good'):
             super().__init__()
             self.mood = mood
-            
+
         def __call__(self, offer):
             return float(offer['cost']) if self.mood == 'good'\
                                 else 0.1 * offer['cost'] if self.mood == 'bad' \
-                                else None 
+                                else None
         def set_mood(self, mood):
             self.mood = mood
-        
+
         def xml(self):
             pass
-    
+
     offer = {'cost': 10.0}
-    
+
     f = MoodyUtilityFunction()
     # I am in a good mode now
     print(f'Utility in good mood of {offer} is {f(offer)}')
@@ -849,9 +849,9 @@ can be represented as follows:
 .. code:: ipython3
 
     seller_utility = HyperRectangleUtilityFunction(
-        outcome_ranges= [None], 
+        outcome_ranges= [None],
         utilities= [
-            lambda x: 2.0*x['price']/x['number of items'] 
+            lambda x: 2.0*x['price']/x['number of items']
             - 0.5 * int(x['delivery'] == 'delivered')
         ]
     )
@@ -887,10 +887,10 @@ two different local ones:
             None,
             {0: (1.0, 2.0), 1: (1.0, 2.0)},
             {0: (1.4, 2.0), 2: (2.0, 3.0)}
-        ], 
+        ],
         utilities=[
             5.0, 2.0, lambda x: 2 * x[2] + x[0]
-        ], 
+        ],
         weights=[1,0.5,2.5]
     )
 
@@ -965,9 +965,9 @@ or not. To allow such cases, the initializer of
             None,
             {0: (1.0, 2.0), 1: (1.0, 2.0)},
             {0: (1.4, 2.0), 2: (2.0, 3.0)}
-        ], 
-        utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]], 
-        ignore_failing_range_utilities=True, 
+        ],
+        utilities=[5.0, 2.0, lambda x: 2 * x[2] + x[0]],
+        ignore_failing_range_utilities=True,
         ignore_issues_not_in_input=True
     )
     print(g([1.5, 1.5]))
@@ -1264,23 +1264,23 @@ respond to every offer in parallel.
             super().__init__(*args, **kwargs)
             self.current_offer = None
             self.current_offerer = -1
-    
+
         def round(self):
             n_agents = len(self.negotiators)
             current = self.negotiators[(self.current_offerer + 1) % n_agents]
             self.current_offer = current.propose(self.state)
-            
-            def get_response(negotiator, offer=self.current_offer, 
+
+            def get_response(negotiator, offer=self.current_offer,
                              state=self.state):
                 return negotiator.respond(state, offer)
-            
+
             with ThreadPoolExecutor(4) as executor:
                 responses = executor.map(get_response, self.negotiators)
             self.current_offerer = (self.current_offerer + 1) % n_agents
             if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
                 return MechanismRoundResult(agreement=self.current_offer)
             if any(_== ResponseType.END_NEGOTIATION for _ in responses):
-                return MechanismRoundResult(broken=True)        
+                return MechanismRoundResult(broken=True)
             return MechanismRoundResult()
 
 
@@ -1327,7 +1327,7 @@ Our mechanism keeps a history in the form of a list of
 
 .. code:: ipython3
 
-    import pandas as pd 
+    import pandas as pd
     pd.DataFrame([vars(_) for _ in p.history])
 
 
@@ -1340,11 +1340,11 @@ Our mechanism keeps a history in the form of a list of
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-    
+
         .dataframe tbody tr th {
             vertical-align: top;
         }
-    
+
         .dataframe thead th {
             text-align: right;
         }
@@ -1434,18 +1434,18 @@ filling it in the mechanism:
 .. code:: ipython3
 
     from dataclasses import dataclass
-    
+
     @dataclass
     class MyState(MechanismState):
         current_offer: Outcome = None
         current_offerer: str = "none"
-    
+
     class NewParallelResponseMechanism(ParallelResponseMechanism):
-        
+
         def __init__(self, *args, **kwargs):
             kwargs['state_factory'] = MyState
             super().__init__(*args, **kwargs)
-            
+
         def extra_state(self):
             if self.current_offerer >= 0:
                 current = self.negotiators[self.current_offerer].name
@@ -1455,7 +1455,7 @@ filling it in the mechanism:
                 current_offer = self.current_offer,
                 current_offerer = current
             )
-        
+
 
 That is all. We just needed to define our new state type, set the
 state_factory of the mechanism to it and define how to fill it in the
@@ -1485,14 +1485,14 @@ to confirm that the current offer and its source are stored.
         """Returns a Pandas Dataframe with the negotiation history"""
         return pd.DataFrame([
             dict(
-                step=_.step, 
+                step=_.step,
                 agreement=_.agreement,
                 relative_time=_.relative_time,
                 timedout=_.timedout,
                 broken=_.broken,
-                current_offer=_.current_offer, 
+                current_offer=_.current_offer,
                 current_offerer=_.current_offerer
-            ) 
+            )
             for _ in p.history])
     show_history(p)
 
@@ -1506,11 +1506,11 @@ to confirm that the current offer and its source are stored.
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-    
+
         .dataframe tbody tr th {
             vertical-align: top;
         }
-    
+
         .dataframe thead th {
             text-align: right;
         }
@@ -1572,11 +1572,11 @@ acceptable outcomes in our case):
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-    
+
         .dataframe tbody tr th {
             vertical-align: top;
         }
-    
+
         .dataframe thead th {
             text-align: right;
         }
@@ -1699,11 +1699,11 @@ agree upon:
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-    
+
         .dataframe tbody tr th {
             vertical-align: top;
         }
-    
+
         .dataframe thead th {
             text-align: right;
         }
@@ -1788,4 +1788,3 @@ inherited class that is capable of interacting with this world and a
 corresponding ``AgentWorldInterface``.
 
 You can see an example of a world simulation in the tutorials.
-

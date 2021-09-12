@@ -16,8 +16,8 @@ def scenarios_folder():
 
 
 def test_reading_writing_linear_ufun(tmp_path):
-    from negmas.utilities import LinearUtilityAggregationFunction, UtilityFunction
     from negmas.outcomes import Issue
+    from negmas.utilities import LinearUtilityAggregationFunction, UtilityFunction
 
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"

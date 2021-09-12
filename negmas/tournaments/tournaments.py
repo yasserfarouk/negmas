@@ -55,11 +55,10 @@ from negmas.helpers import (
     import_by_name,
     load,
     shortest_unique_names,
-    unique_name,
     truncated_mean,
+    unique_name,
 )
-from negmas.serialization import serialize, to_flat_dict, deserialize
-
+from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import Agent, World, save_stats
 
 __all__ = [
@@ -88,11 +87,13 @@ def to_file(x, f):
     #         s = str(s)
     #     file.write(s)
 
+
 def from_file(f):
     return load(f)
     # with open(f, "r") as file:
     #     s = file.read()
     # return deserialize(eval(s))
+
 
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 # files created before running worlds
@@ -316,10 +317,10 @@ class AgentStats:
     def to_record(self, world, label="name"):
         """Converts AgentStats to a record in the form of a dict"""
         x = vars(self)
-        cols = set(_ for _ in x.keys())
+        cols = {_ for _ in x.keys()}
         rows = set()
         for d in cols:
-            rows |= set(_ for _ in x[d].keys())
+            rows |= {_ for _ in x[d].keys()}
         cols = list(cols)
         rows = list(rows)
         results = [dict() for _ in rows]
@@ -565,7 +566,7 @@ def run_world(
     default_dir = (
         Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
     ).absolute()
-    world_params["log_file_name"] = world_params.get("log_file_name", str("log.txt"))
+    world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
     world_params["log_folder"] = world_params.get("__dir_name", str(default_dir))
     world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
     # delete the parameters not used by _run_worlds
@@ -645,9 +646,7 @@ def run_worlds(
         default_dir = (
             Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
         ).absolute()
-        world_params["log_file_name"] = world_params.get(
-            "log_file_name", str("log.txt")
-        )
+        world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
         world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
         # delete the parameters not used by _run_worlds
         for k in ("__world_generator", "__tournament_name", "__score_calculator"):
@@ -1581,13 +1580,12 @@ def tournament(
         stage_winners_fraction = 0
 
     competitor_indx = dict()
-    for i,c in enumerate(competitors):
+    for i, c in enumerate(competitors):
         tname = get_full_type_name(c)
         ctype = get_class(c)
         if hasattr(ctype, "_type_name"):
             tname = ctype._type_name()
         competitor_indx[tname] = i
-
 
     def _run_eval(competitors_, stage_name):
         final_tournament_path = create_tournament(
@@ -1825,7 +1823,7 @@ def run_tournament(
             files_to_remove.append(afile)
             continue
         try:
-            with open(afile, "r") as f:
+            with open(afile) as f:
                 try:
                     n_attempts = int(f.read())
                 except Exception:
@@ -2223,7 +2221,7 @@ def create_tournament(
                 )
         this_assigned = list(
             itertools.chain(
-                *[
+                *(
                     config_assigner(
                         config=c,
                         max_n_worlds=max_worlds_per_config,
@@ -2235,7 +2233,7 @@ def create_tournament(
                         exclude_competitors_from_reassignment=exclude_competitors_from_reassignment,
                     )
                     for c in myconfigs
-                ]
+                )
             )
         )
         for i, config_set in enumerate(this_assigned):
@@ -2310,7 +2308,7 @@ def create_tournament(
                 }
             )
             config["world_params"].update(
-                {"log_file_name": str("log.txt"), "log_folder": str(dir_name)}
+                {"log_file_name": "log.txt", "log_folder": str(dir_name)}
             )
     if forced_logs_fraction > 1e-5:
         n_logged = max(1, int(len(assigned) * forced_logs_fraction))
@@ -2568,40 +2566,19 @@ def evaluate_tournament(
     scores = scores.loc[~scores["agent_type"].isnull(), :]
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
     if not isinstance(metric, str):
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .apply(metric)
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].apply(metric)
     elif metric == "truncated_mean":
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .apply(truncated_mean)
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].apply(truncated_mean)
     elif metric == "median":
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .median()
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].median()
     elif metric == "mean":
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .mean()
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].mean()
     elif metric == "std":
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .std()
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].std()
     elif metric == "var":
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .var()
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].var()
     elif metric == "sum":
-        total_scores = (
-            scores.groupby(["agent_type"])["score"]
-            .sum()
-        )
+        total_scores = scores.groupby(["agent_type"])["score"].sum()
     else:
         raise ValueError(
             f"Unknown metric: {metric}. Supported metrics include mean, median, std, var, sum or a callable"

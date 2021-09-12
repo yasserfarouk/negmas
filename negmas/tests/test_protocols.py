@@ -113,7 +113,7 @@ def test_can_check_compatibility(mechanism):
     mechanism.add_requirements({"a": [True, False]})
     assert mechanism.is_satisfying(c)
 
-    class HasCapabilities(object):
+    class HasCapabilities:
         capabilities = c
 
     assert mechanism.can_participate(HasCapabilities())

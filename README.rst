@@ -129,10 +129,13 @@ Using the package for negotiation can be as simple as the following code snippet
 
     import random
     from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
+
     session = SAOMechanism(outcomes=10, n_steps=100)
-    negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
+    negotiators = [AspirationNegotiator(name=f"a{_}") for _ in range(5)]
     for negotiator in negotiators:
-        session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
+        session.add(
+            negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0])
+        )
     session.run()
 
 In this snippet, we created a mechanism session with an outcome-space of *10* discrete outcomes that would run for *10*
@@ -149,6 +152,8 @@ Developing a novel negotiator slightly more difficult by is still doable in few 
 .. code-block:: python
 
     from negmas.sao import SAONegotiator
+
+
     class MyAwsomeNegotiator(SAONegotiator):
         def propose(self, state):
             """Your code to create a proposal goes here"""
@@ -164,6 +169,7 @@ Developing a novel negotiation protocol is actually even simpler:
 .. code-block:: python
 
     from negmas.mechanisms import Mechanism
+
 
     class MyNovelProtocol(Mechanism):
         def round(self):
@@ -194,4 +200,3 @@ Acknowledgement
 
 NegMAS tests use scenarios used in ANAC 2010 to ANAC 2018 competitions obtained from the Genius_ Platform. These domains
 can be found in the tests/data and notebooks/data folders.
-

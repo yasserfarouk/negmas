@@ -58,7 +58,8 @@ def test_genius_bridge_killing_forcibly(init_genius):
 
 
 @pytest.mark.skipif(
-    condition=SKIP_IF_NO_BRIDGE, reason="No Genius Bridge, skipping genius-agent tests",
+    condition=SKIP_IF_NO_BRIDGE,
+    reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_bridge_starting():
     port = GeniusBridge.start(-1)
@@ -67,7 +68,8 @@ def test_genius_bridge_starting():
 
 
 @pytest.mark.skipif(
-    condition=SKIP_IF_NO_BRIDGE or not genius_bridge_is_running(), reason="No Genius Bridge, skipping genius-agent tests",
+    condition=SKIP_IF_NO_BRIDGE or not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_bridge_restarting():
     port = GeniusBridge.restart()
