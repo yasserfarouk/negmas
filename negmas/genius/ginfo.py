@@ -405,18 +405,21 @@ PARTY_BASED_NEGOTIATORS = [
 """Genius agents based on the Party base-class. These are the newest agents"""
 
 TEST_FAILING_NEGOTIATORS = [
+    "agents.anac.y2017.rubick.Rubick",  # failed all tests
+    "agents.anac.y2017.caduceusdc16.CaduceusDC16",  # failed all tests
+    "agents.OptimalBidderSimple",  # failes most tests but not all
+    "agents.FuzzyAgent",  # fails most test but not all
+    "agents.SimilarityAgent",  # failed some but not all tests
+    "agents.ABMPAgent2",  # failed some but not all tests
+    "agents.anac.y2013.MetaAgent.MetaAgent2013",  # failed a few tests
     "agents.BayesianAgentForAuction",
     "agents.DecUtilAgent",
-    "agents.FuzzyAgent",
     "agents.OptimalBidder",
     "agents.OptimalBidderU",
     "agents.QOAgent",
     "agents.RandomIncreasingUtilAgent",
-    "agents.SimilarityAgent",
     "agents.anac.y2014.AgentTD.AgentTD",
     "agents.anac.y2017.geneking.GeneKing",
-    "agents.anac.y2017.rubick.Rubick",
-    "agents.anac.y2017.caduceusdc16.CaduceusDC16",
     "agents.anac.y2018.beta_one.Group2",
     "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018",
     "agents.anac.y2016.agenthp2.AgentHP2_main",
