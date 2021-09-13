@@ -367,6 +367,9 @@ class SAOMechanism(Mechanism):
         )
         axs_util, axs_outcome = [], []
 
+        clrs = ("green", "blue")
+        mrkrs = ("s", "o")
+
         for a in range(n_agents):
             if a == 0:
                 if plot_utils:
@@ -410,27 +413,21 @@ class SAOMechanism(Mechanism):
                     h.relative_time,
                     h["offer_index"],
                     label=vnegotiators[a].name + f" ({a})",
+                    color=clrs[a],
                 )
+                ao.legend()
             if plot_utils:
                 au.plot(
-                    h.relative_time, h.utility, label=vnegotiators[a].name + f" ({a})"
+                    h.relative_time,
+                    h.utility,
+                    label=vnegotiators[a].name + f" ({a})",
+                    color=clrs[a],
                 )
                 if utility_range is not None:
                     au.set_ylim(*utility_range)
-        # for a, (au, ao) in enumerate(
-        #     zip(
-        #         itertools.chain(axs_util, itertools.repeat(None)),
-        #         itertools.chain(axs_outcome, itertools.repeat(None)),
-        #     )
-        # ):
-        #     if au is None and ao is None:
-        #         break
-        #     if not has_history:
-        #         continue
-        #     if au:
-        #         au.legend()
-        #     if ao:
-        #         ao.legend()
+                au.set_ylabel(vnegotiators[a].name + f" ({a}) utility")
+                au.set_xlabel("relative time")
+                au.legend()
         agreement = (
             self.agreement if self.agreement is not None else tuple(None for _ in ufuns)
         )
@@ -444,7 +441,7 @@ class SAOMechanism(Mechanism):
                 axu.scatter(
                     [_[0] for _ in utils],
                     [_[1] for _ in utils],
-                    label="outcomes",
+                    # label="outcomes",
                     color="gray",
                     marker="s",
                     s=20,
@@ -453,11 +450,9 @@ class SAOMechanism(Mechanism):
                 axo = fig_outcome.add_subplot(gs_outcome[:, 0])
             pareto_distance = float("inf")
             nash_distance = float("inf")
-            clrs = ("green", "blue")
-            mrkrs = ("s", "o")
             if plot_utils:
                 f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-                axu.scatter(f1, f2, label="frontier", color="red", marker="x")
+                axu.scatter(f1, f2, color="red", marker="x")
                 axu.set_xlabel(agent_names[0] + f"(0) utility")
                 axu.set_ylabel(agent_names[1] + f"(1) utility")
                 cu = agreement_utility
@@ -590,7 +585,13 @@ class SAOMechanism(Mechanism):
                             horizontalalignment="left",
                             verticalalignment="bottom",
                         )
-                axu.legend()
+                axu.legend(
+                    bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+                    loc="lower left",
+                    ncol=5,
+                    mode="expand",
+                    borderaxespad=0.0,
+                )
             if plot_outcomes and has_history:
                 steps = sorted(history.step.unique().tolist())
                 aoffers = [[], []]

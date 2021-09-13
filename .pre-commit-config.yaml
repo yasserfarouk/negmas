@@ -7,31 +7,26 @@ repos:
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
     -   id: fix-byte-order-marker  # Forbid UTF-8 byte-order markers
-    -   id: check-docstring-first
+    # -   id: check-docstring-first
     -   id: check-case-conflict
     -   id: check-json
     -   id: end-of-file-fixer
     -   id: mixed-line-ending
     -   id: check-added-large-files
-    -   id: fix-encoding-pragma
+    # -   id: fix-encoding-pragma
 
--   repo: https://github.com/asottile/pyupgrade
-    rev: v2.26.0
-    hooks:
-    -   id: pyupgrade
-        args: [--py37-plus]
-        exclude: __init__.py
-
--   repo: https://github.com/asottile/seed-isort-config
-    rev: v2.2.0
-    hooks:
-    -   id: seed-isort-config
-        exclude: __init__.py
+# -   repo: https://github.com/asottile/pyupgrade
+#     rev: v2.26.0
+#     hooks:
+#     -   id: pyupgrade
+#         args: [--py37-plus]
+#         exclude: __init__.py
 
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.9.3
     hooks:
     -   id: isort
+        args: ["--profile", "black"]
         exclude: __init__.py
 
 -   repo: https://github.com/psf/black
