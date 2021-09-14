@@ -1,6 +1,47 @@
 History
 =======
 
+Release 0.8.9
+-------------
+
+* [sao] improvement to the plot() method of SAOMechanism
+* [genius] Almost complete rewriting of the genius-bridge. Now we are
+  compatible with genius*bridge v0.2.0
+* [genius] Renaming get_genius_agents() to get_anac_agents()
+* [genius] Updating TEST_FAILING_NEGOTIATORS and adding ALL_GENIUS_NEGOTIATORS,
+  ALL_BASIC_GENIUS_NEGOTIATORS to ginfo
+* [core] Adding nash_point() to find the nash point of a set of ufuns (within
+  the pareto frontier)
+* [bugfix] plotting SAOMechanism instances with continuous Issue spaces work
+  now
+* [genius] Stricter GeniusNegotiator.  If strict=True is given to a
+  GeniusNegotiator (or in an n_steps limited negotaition with strict not given
+  at all), more tests are incorporated to make sure that the Genius agent is
+  getting what it expects all the time.
+* [sao] relative_time matches Genius behavior.  relative_time was equal to
+  step/n_steps now it is (step+1)/(n_steps+1) This is only in the case of using
+  n_steps as a limit of a mechanism.
+* [tests] Extracting long genius tests out and running genius tests in CI
+* [genius] Added is_installed to GeniusBridge and genius_bridge_is_installed()
+* [bugfix] Handling wrong time perception in Genius agents
+* [genius] Adding wxtra warnings for common timinig problems in SAO
+    * A warning is now raised in either of the following cases:
+      1. A mechanism is created with neither a time_limit nor n_step set
+      2. A Genius agent tries to join a mechanism with both time_limit and
+         n_steps set
+    * We stopped using timeline.increment() inside the genius bridge and now
+      pass the round number (step in negmas terms) directly from negmas.
+      This should avoid any possibility of double counting
+
+* [sao] Adding enforce_outcome_type to SAOMechanism
+* [sao] Adding enforcement of issue value types SAOP
+* [sao] Adding the ability to cast_outcome to Mechanism
+* [genius] Adding relative_time to GeniusNegotiator which checks the time as perceived by the Genius Agent inside the JVM
+* [genius] Improving the way tuple ouctomes are handled in GeniusNegotiator
+* [tournament] Allowing truncated_mean in eval
+* [cli] adding truncated_mean as a possible metric
+
+
 Release 0.8.8
 -------------
 
