@@ -1,6 +1,10 @@
 name: PyPI
 
-on: push
+on:
+  workflow_run:
+    workflows: ["CI", "CI-Bridge"]
+    types:
+      - completed
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
