@@ -1,10 +1,6 @@
 name: PyPI
 
-on:
-  workflow_run:
-    workflows: ["CI", "CI-Bridge"]
-    types:
-      - completed
+on: push
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
@@ -30,6 +26,21 @@ jobs:
         user: __token__
         password: ${{ secrets.pypitesttoken }}
         repository_url: https://test.pypi.org/legacy/
+    - name: "Run all tests"
+      run: |
+          set -xe
+          python -VV
+          python -m site
+          python -m pip install --upgrade pip setuptools wheel pytest
+          python -m pip install --upgrade  virtualenv
+          python -m pip install -r requirements.txt
+          python -m pip install -r docs/requirements.txt
+          python -m pip install -r requirements-elicitation.txt
+          python -m pip install -e .
+          pip install pytest
+          negmas genius-setup
+          java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &
+          python -m pytest negmas tests        
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
