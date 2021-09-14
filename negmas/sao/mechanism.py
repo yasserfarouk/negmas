@@ -621,6 +621,7 @@ class SAOMechanism(Mechanism):
                         marker="*",
                         s=120,
                         label="Agreement",
+                        zorder=10,
                     )
 
         if save_fig:
