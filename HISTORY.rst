@@ -26,13 +26,12 @@ Release 0.8.9
 * [bugfix] Handling wrong time perception in Genius agents
 * [genius] Adding wxtra warnings for common timinig problems in SAO
     * A warning is now raised in either of the following cases:
-      1. A mechanism is created with neither a time_limit nor n_step set
-      2. A Genius agent tries to join a mechanism with both time_limit and
-         n_steps set
+        1. A mechanism is created with neither a time_limit nor n_step set
+        2. A Genius agent tries to join a mechanism with both time_limit and
+           n_steps set
     * We stopped using timeline.increment() inside the genius bridge and now
       pass the round number (step in negmas terms) directly from negmas.
       This should avoid any possibility of double counting
-
 * [sao] Adding enforce_outcome_type to SAOMechanism
 * [sao] Adding enforcement of issue value types SAOP
 * [sao] Adding the ability to cast_outcome to Mechanism
