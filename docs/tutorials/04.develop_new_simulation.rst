@@ -145,9 +145,7 @@ This is done here using the following method:
 
 .. code:: python
 
-       def request_negotiation(
-           self, partners: List[str], negotiator: SAONegotiator
-       ) -> bool:
+       def request_negotiation(self, partners: List[str], negotiator: SAONegotiator) -> bool:
            ...
 
 Here the agent is asked to provide only a list of ``partners`` and a
@@ -169,12 +167,12 @@ Here the agent is asked to provide only a list of ``partners`` and a
 .. code:: python
 
           req_id = self.agent.create_negotiation_request(
-               issues=self._world.ISSUES,
-               partners=partners,
-               negotiator=negotiator,
-               annotation=dict(),
-               extra=dict(negotiator_id=negotiator.id),
-           )
+              issues=self._world.ISSUES,
+              partners=partners,
+              negotiator=negotiator,
+              annotation=dict(),
+              extra=dict(negotiator_id=negotiator.id),
+          )
 
 3. Finally, the AWI requests the negotiation from the world using the
    base ``request_negotiation_about`` method.
@@ -182,8 +180,8 @@ Here the agent is asked to provide only a list of ``partners`` and a
 .. code:: python
 
        return self.request_negotiation_about(
-               issues=self._world.ISSUES, partners=partners, req_id=req_id
-           )
+           issues=self._world.ISSUES, partners=partners, req_id=req_id
+       )
 
 Other than this commonly provided method, the AWI provides two
 properties that can be accessed by the agent, ``agents`` which returns
@@ -324,9 +322,7 @@ This is done here:
 .. code:: python
 
        kwargs["awi_type"] = AWI
-       kwargs["negotiation_quota_per_step"] = kwargs.get(
-           "negotiation_quota_per_step", 8
-       )
+       kwargs["negotiation_quota_per_step"] = kwargs.get("negotiation_quota_per_step", 8)
        kwargs["force_signing"] = True
        kwargs["default_signing_delay"] = 0
        super().__init__(*args, **kwargs)
@@ -366,7 +362,9 @@ base class version using ``super()``:
 
 .. code:: python
 
-       def join(self, x: "Agent", ufun: UtilityFunction = None, breach_prob: float = None, **kwargs):
+       def join(
+           self, x: "Agent", ufun: UtilityFunction = None, breach_prob: float = None, **kwargs
+       ):
            """Define the ufun and breach-probability for each agent"""
            super().join(x, **kwargs)
            ...
@@ -378,9 +376,11 @@ base class version using ``super()``:
 
 .. code:: python
 
-       x.utility_function = LinearUtilityFunction(
-           np.random.rand(len(self.ISSUES)) - 0.5
-       ) if ufun is None else ufun
+       x.utility_function = (
+           LinearUtilityFunction(np.random.rand(len(self.ISSUES)) - 0.5)
+           if ufun is None
+           else ufun
+       )
        self._ufuns[x.id] = x.utility_function
        self._breach_prob[x.id] = random() * 0.1 if breach_prob is None else breach_prob
 
@@ -430,16 +430,40 @@ The callbacks related to this are:
 
 .. code:: python
 
-       def on_contract_signed(self, contract: Contract) -> None:
-       def executable_contracts(self) -> Collection[Contract]:
-       def order_contracts_for_execution( self, contracts: Collection[Contract]) -> Collection[Contract]:
-       def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
-       def complete_contract_execution( self, contract: Contract, breaches: List[Breach]
-                                       , resolution: Contract) -> None:
-       def delete_executed_contracts(self) -> None:
-       def contract_record(self, contract: Contract) -> Dict[str, Any]:
-       def breach_record(self, breach: Breach) -> Dict[str, Any]:
-       def contract_size(self, contract: Contract) -> float:
+       def on_contract_signed(self, contract):
+           ...
+
+
+       def executable_contracts(self):
+           ...
+
+
+       def order_contracts_for_execution(self, contracts):
+           ...
+
+
+       def start_contract_execution(self, contract):
+           ...
+
+
+       def complete_contract_execution(self, contract, breaches, resolution):
+           ...
+
+
+       def delete_executed_contracts(self):
+           ...
+
+
+       def contract_record(self, contract):
+           ...
+
+
+       def breach_record(self, breach):
+           ...
+
+
+       def contract_size(self, contract):
+           ...
 
 The names are almost self-explanatory and we will go through them one by
 one:
@@ -484,7 +508,9 @@ one:
            if random() < self._breach_prob[aid]:
                breaches.append(
                    Breach(
-                       contract, aid, "breach",
+                       contract,
+                       aid,
+                       "breach",
                        victims=[_ for _ in contract.partners if _ != aid],
                    )
                )
@@ -660,6 +686,7 @@ based agents to provide some implementation for them
        def step(self):
            ...
 
+
        @abstractmethod
        def init(self):
            ...
@@ -670,7 +697,10 @@ We then add a third method for responding to negotiation requests:
 
        @abstractmethod
        def respond_to_negotiation_request(
-           self, initiator: str, partners: List[str], mechanism: AgentMechanismInterface,
+           self,
+           initiator: str,
+           partners: List[str],
+           mechanism: AgentMechanismInterface,
        ) -> Optional[Negotiator]:
            ...
 
@@ -693,17 +723,36 @@ during the simulation. These are:
 
 .. code:: python
 
-       def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]])
-       def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface)
-       def on_negotiation_failure( self, partners: List[str], annotation: Dict[str, Any],
-           mechanism: AgentMechanismInterface, state: MechanismState,)
-       def on_negotiation_success( self, contract: Contract, mechanism: AgentMechanismInterface)
-       def set_renegotiation_agenda(
-           self, contract: Contract, breaches: List[Breach]) -> Optional[RenegotiationRequest]
-       def respond_to_renegotiation_request(
-           self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest) -> Optional[Negotiator]
-       def on_contract_executed(self, contract: Contract)
-       def on_contract_breached(self, contract: Contract, breaches: List[Breach])
+       def on_neg_request_rejected(self, req_id, by):
+           ...
+
+
+       def on_neg_request_accepted(self, req_id, mechanism):
+           ...
+
+
+       def on_negotiation_failure(self, partners, annotation, mechanism, state):
+           ...
+
+
+       def on_negotiation_success(self, contract, mechanism):
+           ...
+
+
+       def set_renegotiation_agenda(self, contract, breaches):
+           ...
+
+
+       def respond_to_renegotiation_request(self, contract, breaches, agenda):
+           ...
+
+
+       def on_contract_executed(self, contract):
+           ...
+
+
+       def on_contract_breached(self, contract, breaches):
+           ...
 
 These callbacks are called by the world at key points of the process
 from a negotiation request to an exeucted/breached contract. The names
@@ -817,9 +866,13 @@ Controls all negotiations conducted during the simulation.
 
 .. code:: python
 
-       super().__init__(...
-                        mechanisms={"negmas.sao.SAOMechanism": dict(offering_is_accepting=False), "negmas.st.STVetoMechanism": dict()},
-                        ....)
+       super().__init__(
+           ...,
+           mechanisms={
+               "negmas.sao.SAOMechanism": dict(offering_is_accepting=False),
+               "negmas.st.STVetoMechanism": dict(),
+           },
+       )
 
 Signing parameters
 ^^^^^^^^^^^^^^^^^^
