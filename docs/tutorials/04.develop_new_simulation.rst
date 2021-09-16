@@ -430,40 +430,44 @@ The callbacks related to this are:
 
 .. code:: python
 
-       def on_contract_signed(self, contract):
-           ...
+        def on_contract_signed(self, contract):
+            ...
 
 
-       def executable_contracts(self):
-           ...
+        def executable_contracts(self) -> Collection[Contract]:
+            ...
 
 
-       def order_contracts_for_execution(self, contracts):
-           ...
+        def order_contracts_for_execution(
+            self, contracts: Collection[Contract]
+        ) -> Collection[Contract]:
+            ...
 
 
-       def start_contract_execution(self, contract):
-           ...
+        def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
+            ...
 
 
-       def complete_contract_execution(self, contract, breaches, resolution):
-           ...
+        def complete_contract_execution(
+            self, contract: Contract, breaches: List[Breach], resolution: Contract
+        ) -> None:
+            ...
 
 
-       def delete_executed_contracts(self):
-           ...
+        def delete_executed_contracts(self) -> None:
+            ...
 
 
-       def contract_record(self, contract):
-           ...
+        def contract_record(self, contract: Contract) -> Dict[str, Any]:
+            ...
 
 
-       def breach_record(self, breach):
-           ...
+        def breach_record(self, breach: Breach) -> Dict[str, Any]:
+            ...
 
 
-       def contract_size(self, contract):
-           ...
+        def contract_size(self, contract: Contract) -> float:
+            ...
 
 The names are almost self-explanatory and we will go through them one by
 one:
@@ -723,36 +727,48 @@ during the simulation. These are:
 
 .. code:: python
 
-       def on_neg_request_rejected(self, req_id, by):
-           ...
+        def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+            ...
 
 
-       def on_neg_request_accepted(self, req_id, mechanism):
-           ...
+        def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+            ...
 
 
-       def on_negotiation_failure(self, partners, annotation, mechanism, state):
-           ...
+        def on_negotiation_failure(
+            self,
+            partners: List[str],
+            annotation: Dict[str, Any],
+            mechanism: AgentMechanismInterface,
+            state: MechanismState,
+        ):
+            ...
 
 
-       def on_negotiation_success(self, contract, mechanism):
-           ...
+        def on_negotiation_success(
+            self, contract: Contract, mechanism: AgentMechanismInterface
+        ):
+            ...
 
 
-       def set_renegotiation_agenda(self, contract, breaches):
-           ...
+        def set_renegotiation_agenda(
+            self, contract: Contract, breaches: List[Breach]
+        ) -> Optional[RenegotiationRequest]:
+            ...
 
 
-       def respond_to_renegotiation_request(self, contract, breaches, agenda):
-           ...
+        def respond_to_renegotiation_request(
+            self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+        ) -> Optional[Negotiator]:
+            ...
 
 
-       def on_contract_executed(self, contract):
-           ...
+        def on_contract_executed(self, contract: Contract):
+            ...
 
 
-       def on_contract_breached(self, contract, breaches):
-           ...
+        def on_contract_breached(self, contract: Contract, breaches: List[Breach]):
+            ...
 
 These callbacks are called by the world at key points of the process
 from a negotiation request to an exeucted/breached contract. The names
@@ -867,11 +883,11 @@ Controls all negotiations conducted during the simulation.
 .. code:: python
 
        super().__init__(
-           ...,
            mechanisms={
                "negmas.sao.SAOMechanism": dict(offering_is_accepting=False),
                "negmas.st.STVetoMechanism": dict(),
            },
+           ...,
        )
 
 Signing parameters

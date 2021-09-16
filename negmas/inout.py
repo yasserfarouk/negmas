@@ -522,7 +522,11 @@ def convert_genius_domain_from_folder(
     dst_folder_name: PATH,
     **kwargs,
 ) -> bool:
-    """Loads a genius domain from a folder. See ``load_genius_domain`` for more details."""
+    """
+    Loads a genius domain from a folder and saves it to another after transformatin.
+
+    See ``load_genius_domain`` for more details of the transformations
+    """
     src_folder_name = pathlib.Path(src_folder_name)
     os.makedirs(dst_folder_name, exist_ok=True)
     files = sorted(listdir(src_folder_name))

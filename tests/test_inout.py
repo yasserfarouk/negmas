@@ -31,7 +31,6 @@ def test_reading_writing_linear_ufun(tmp_path):
     for ufun in ufuns:
         assert isinstance(ufun, LinearUtilityAggregationFunction)
         dst = tmp_path / "tmp.xml"
-        print(dst)
         UtilityFunction.to_genius(ufun, issues=issues, file_name=dst)
         ufun2, _ = UtilityFunction.from_genius(dst)
         assert isinstance(ufun2, LinearUtilityAggregationFunction)
@@ -42,7 +41,6 @@ def test_reading_writing_linear_ufun(tmp_path):
 def test_importing_file_without_exceptions(scenarios_folder):
     folder_name = scenarios_folder + "/other/S-1NIKFRT-1"
     load_genius_domain_from_folder(folder_name, n_discretization=10)
-    # print(domain)
 
 
 def test_convert_dir_no_names(tmpdir):
@@ -50,9 +48,9 @@ def test_convert_dir_no_names(tmpdir):
 
     dst = tmpdir.mkdir("sub")
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    dst = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/LaptopConv"
-    )
+    # dst = pkg_resources.resource_filename(
+    #     "negmas", resource_name="tests/data/LaptopConv"
+    # )
 
     assert convert_genius_domain_from_folder(
         src_folder_name=src,
@@ -64,7 +62,7 @@ def test_convert_dir_no_names(tmpdir):
         keep_value_names=False,
         normalize_utilities=True,
     )
-    mechanism, agent_info, issues = load_genius_domain_from_folder(
+    _, _, issues = load_genius_domain_from_folder(
         dst,
         keep_value_names=True,
         keep_issue_names=True,
@@ -84,7 +82,7 @@ def test_simple_run_with_aspiration_agents():
         "negmas", resource_name="tests/data/Laptop"
     )
     assert os.path.exists(file_name)
-    mechanism, agents, issues = load_genius_domain_from_folder(
+    mechanism, _, _ = load_genius_domain_from_folder(
         file_name,
         n_steps=100,
         time_limit=30,
@@ -94,7 +92,7 @@ def test_simple_run_with_aspiration_agents():
         agent_factories=AspirationNegotiator,
     )
     assert mechanism is not None
-    state = mechanism.run()
+    mechanism.run()
 
 
 def test_encoding_decoding_all(capsys, scenarios_folder):
@@ -107,7 +105,6 @@ def test_encoding_decoding_all(capsys, scenarios_folder):
         for root, dirs, files in walk(base):
             if len(files) == 0 or len(dirs) != 0:
                 continue
-            # print(f'{nxt:05}: Importing {root}', flush=True)
             m, ufun_info, _ = load_genius_domain_from_folder(root)
             assert m is not None
             if genius_bridge_is_running():
@@ -137,16 +134,11 @@ def test_importing_all_single_issue_without_exceptions(capsys, scenarios_folder)
         for root, dirs, files in walk(base):
             if len(files) == 0 or len(dirs) != 0:
                 continue
-            try:
-                domain, _, _ = load_genius_domain_from_folder(
-                    root, force_single_issue=True, max_n_outcomes=10000
-                )
-            except Exception as x:
-                print(f"Failed on {root}")
-                raise x
+            domain, _, _ = load_genius_domain_from_folder(
+                root, force_single_issue=True, max_n_outcomes=10000
+            )
             nxt += 1
             success += domain is not None
-            # print(f'{success:05}/{nxt:05}: {"Single " if domain is not None else "Multi--"}outcome: {root}', flush=True)
 
 
 def test_convert_dir_keep_names(tmpdir):
@@ -154,9 +146,9 @@ def test_convert_dir_keep_names(tmpdir):
 
     dst = tmpdir.mkdir("sub")
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    dst = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/LaptopConv"
-    )
+    # dst = pkg_resources.resource_filename(
+    #     "negmas", resource_name="tests/data/LaptopConv"
+    # )
     assert convert_genius_domain_from_folder(
         src_folder_name=src,
         dst_folder_name=dst,
@@ -167,7 +159,7 @@ def test_convert_dir_keep_names(tmpdir):
         keep_value_names=True,
         normalize_utilities=True,
     )
-    mechanism, agent_info, issues = load_genius_domain_from_folder(dst)
+    _, _, issues = load_genius_domain_from_folder(dst)
     assert len(issues) == 1
     for k, v in enumerate(issues):
         assert (
