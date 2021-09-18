@@ -6,7 +6,6 @@ import datetime
 import uuid
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
-from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -154,13 +153,11 @@ class AgentMechanismInterface:
     _mechanism = None
 
     @property
-    @lru_cache
     def issue_names(self):
         """Returns issue names"""
         return [_.name for _ in self.issues]
 
     @property
-    @lru_cache
     def params(self):
         """Returns the parameters used to initialize the mechanism."""
         return self._mechanism.params
@@ -182,7 +179,6 @@ class AgentMechanismInterface:
         """
         return self._mechanism.random_outcomes(n=n, astype=astype)
 
-    @lru_cache
     def discrete_outcomes(
         self, n_max: int = None, astype: Type["Outcome"] = None
     ) -> List["Outcome"]:
@@ -201,7 +197,6 @@ class AgentMechanismInterface:
         """
         return self._mechanism.discrete_outcomes(n_max=n_max, astype=astype)
 
-    @lru_cache
     def outcome_index(self, outcome: "Outcome") -> Optional[int]:
         """
         The index of an outcome
@@ -233,7 +228,6 @@ class AgentMechanismInterface:
         return self._mechanism.state
 
     @property
-    @lru_cache
     def requirements(self) -> dict:
         """
         The protocol requirements

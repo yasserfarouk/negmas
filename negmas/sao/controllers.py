@@ -5,7 +5,6 @@ import itertools
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from functools import lru_cache
 from typing import Dict, List, Optional, Tuple, Union
 
 from ..common import AgentMechanismInterface, MechanismState

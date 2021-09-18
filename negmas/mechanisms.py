@@ -9,7 +9,6 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 from typing import (
     Any,
@@ -1150,7 +1149,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return outcome_as_tuple(outcome, self.issue_names)
 
     @property
-    @lru_cache
     def issue_names(self):
         """Returns issue names"""
         return [_.name for _ in self.issues]
