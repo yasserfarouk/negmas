@@ -2283,7 +2283,7 @@ def outcome_as_tuple(outcome: "Outcome", issue_names: Optional[List[int]]):
         return None
 
     if isinstance(outcome, tuple):
-        if issue_names is not None:
+        if issue_names is not None and len(outcome) > 1:
             warnings.warn(
                 f"Converting an outcome {outcome} which is already a a tuple to a tuple with issue names specified. There is no guarantee that the order in the input is the same as issue_names"
             )
