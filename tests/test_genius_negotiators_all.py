@@ -81,7 +81,6 @@ from negmas import (
     YXAgent,
     genius_bridge_is_running,
     load_genius_domain_from_folder,
-    outcome_as_tuple,
 )
 from negmas.genius import GeniusBridge
 from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS

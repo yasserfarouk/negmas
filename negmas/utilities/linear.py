@@ -130,7 +130,7 @@ class LinearUtilityFunction(UtilityFunction):
                     )
                 return u
 
-        offer = outcome_as_tuple(offer)
+        offer = outcome_as_tuple(offer, self.issue_names)
         return sum(w * (v + b) for w, b, v in zip(self.weights, self.biases, offer))
 
     def xml(self, issues: List[Issue]) -> str:

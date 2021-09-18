@@ -912,9 +912,13 @@ class UtilityFunction(ABC, NamedObject):
         if self.outcome_type is None:
             pass
         elif issubclass(self.outcome_type, tuple):
-            offer = outcome_as_tuple(offer)
+            offer = outcome_as_tuple(
+                offer, self.issue_names if self.issue_names else self.ami.issue_names
+            )
         elif issubclass(self.outcome_type, dict):
-            offer = outcome_as_dict(offer, self.issue_names)
+            offer = outcome_as_dict(
+                offer, self.issue_names if self.issue_names else self.ami.issue_names
+            )
         else:
             if isinstance(offer, dict):
                 offer = self.outcome_type(**offer)

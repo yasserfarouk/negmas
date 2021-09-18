@@ -64,7 +64,6 @@ from negmas import (
     YXAgent,
     genius_bridge_is_running,
     load_genius_domain_from_folder,
-    outcome_as_tuple,
 )
 from negmas.genius import GeniusBridge, get_anac_agents
 from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
@@ -519,7 +518,7 @@ def test_caudacius_caudacius():
 
     assert not all(
         [
-            len(set(neg.negotiator_offers(outcome_as_tuple(_)))) == 1
+            len(set(neg.negotiator_offers(neg.as_tuple(_)))) == 1
             for _ in neg.negotiator_ids
         ]
     ), f"None of the agents conceeded: {neg.trace}"

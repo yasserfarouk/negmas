@@ -33,7 +33,7 @@ def test_ufun_range_general(n_issues):
     issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = MappingUtilityFunction(
-        mapping=lambda x: sum(r * v for r, v in zip(rs, outcome_as_tuple(x))),
+        mapping=lambda x: sum(r * v for r, v in zip(rs, outcome_as_tuple(x, issues))),
         outcome_type=tuple,
     )
     assert ufun([0.0] * n_issues) == 0.0

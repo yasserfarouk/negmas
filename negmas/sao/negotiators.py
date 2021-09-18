@@ -366,7 +366,9 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
                 weights=np.random.random(len(ami.issues))
             )
         else:
-            outcomes = [outcome_as_tuple(_) for _ in ami.discrete_outcomes()]
+            outcomes = [
+                outcome_as_tuple(_, ami.issue_names) for _ in ami.discrete_outcomes()
+            ]
             self._utility_function = MappingUtilityFunction(
                 dict(zip(outcomes, np.random.rand(len(outcomes)))),
             )
