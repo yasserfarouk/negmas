@@ -9,6 +9,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import (
     Any,
@@ -226,7 +227,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self.outcome_indices = range(len(self.__outcomes))
             self.__outcome_index = dict(
                 zip(
-                    (outcome_as_tuple(o) for o in self.__outcomes),
+                    (
+                        outcome_as_tuple(o, __issues) if not isinstance(o, tuple) else o
+                        for o in self.__outcomes
+                    ),
                     range(len(self.__outcomes)),
                 )
             )
@@ -301,7 +305,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.__outcomes is None:
             return None
         if self.__outcome_index is not None:
-            return self.__outcome_index[outcome_as_tuple(outcome)]
+            return self.__outcome_index[self.as_tuple(outcome)]
         return self.__outcomes.index(outcome)
 
     @property
@@ -1130,10 +1134,26 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def cast_outcome(self, outcome):
         """Converts an outcome to the outcome-type used in this negotiation"""
         if issubclass(self.ami.outcome_type, tuple) and not isinstance(outcome, tuple):
-            return outcome_as_tuple(outcome)
+            return self.as_tuple(outcome)
         if issubclass(self.ami.outcome_type, dict) and not isinstance(outcome, tuple):
             return outcome_as_dict(outcome, self.issues)
         return outcome
+
+    def as_tuple(self, outcome):
+        """
+        Converts the outcome to a tuple
+        """
+        if outcome is None:
+            return outcome
+        if isinstance(outcome, tuple):
+            return outcome
+        return outcome_as_tuple(outcome, self.issue_names)
+
+    @property
+    @lru_cache
+    def issue_names(self):
+        """Returns issue names"""
+        return [_.name for _ in self.issues]
 
 
 # @dataclass

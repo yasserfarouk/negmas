@@ -1083,6 +1083,37 @@ class SAOMechanism(Mechanism):
         )
 
     @property
+    def extended_trace(self) -> List[Tuple[int, str, Outcome]]:
+        """Returns the negotiation history as a list of step/negotiator/offer tuples"""
+        offers = []
+        for state in self._history:
+            state: SAOState
+            offers += [(state.step, n, o) for n, o in state.new_offers]
+
+        def not_equal(a, b):
+            if isinstance(a, dict):
+                a = a.values()
+            if isinstance(b, dict):
+                b = b.values()
+            return any(x != y for x, y in zip(a, b))
+
+        self._history: List[SAOState]
+        if (
+            self.agreement is not None
+            and offers
+            and not_equal(offers[-1][1], self.agreement)
+        ):
+            offers.append(
+                (
+                    self._history[-1].step,
+                    self._history[-1].current_proposer,
+                    self.agreement,
+                )
+            )
+
+        return offers
+
+    @property
     def trace(self) -> List[Tuple[str, Outcome]]:
         """Returns the negotiation history as a list of negotiator/offer tuples"""
         offers = []

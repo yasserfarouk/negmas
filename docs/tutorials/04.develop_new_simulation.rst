@@ -843,7 +843,7 @@ operations in each simulation step.
    Available operations include:
 
    -  StatsUpdate: Updating statistics stored in ``_stats`` by calling
-      ``update_stats`` of the ``World`` class. Each time this operation
+      `update_stats`` of the ``World`` class. Each time this operation
       is conducted a higher ``stage`` is passed to the ``update_stats``
       method (the first such call will by default run ``pre_step_stats``
       and later calls will call ``post_step_stats`` but you can change

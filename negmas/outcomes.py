@@ -1981,7 +1981,8 @@ def outcome_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
     """
     if not issues or not outcome:
         return True
-    outcome = outcome_as_tuple(outcome)
+    if not isinstance(outcome, tuple):
+        outcome = outcome_as_tuple(outcome, [_.name for _ in issues])
     for v, i in zip(outcome, issues):
         if i.value_type is None:
             continue
@@ -1999,7 +2000,7 @@ def cast_outcome(outcome: "Outocme", issues: List[Issue]) -> bool:
     is_dict = isinstance(outcome, dict)
     if is_dict:
         keys = outcome.keys()
-        outcome = outcome_as_tuple(outcome)
+        outcome = outcome_as_tuple(outcome, [_.name for _ in issues])
     new_outcome = list(outcome)
     for indx, (v, i) in enumerate(zip(outcome, issues)):
         if i.value_type is None:
@@ -2271,25 +2272,45 @@ def outcome_as_dict(outcome: "Outcome", issue_names: List[str] = None):
     return dict(zip((str(_) for _ in range(len(outcome))), outcome))
 
 
-def outcome_as_tuple(outcome: "Outcome"):
-    """Converts the outcome to a tuple no matter what was its type"""
+def outcome_as_tuple(outcome: "Outcome", issue_names: Optional[List[int]]):
+    """
+    Converts the outcome to a tuple no matter what was its type
+
+    if issue_names is not given, the order of the outcome will be whatever values() returns for dicts
+    """
 
     if outcome is None:
         return None
 
     if isinstance(outcome, tuple):
+        if issue_names is not None:
+            warnings.warn(
+                f"Converting an outcome {outcome} which is already a a tuple to a tuple with issue names specified. There is no guarantee that the order in the input is the same as issue_names"
+            )
         return outcome
 
     if isinstance(outcome, dict):
-        return tuple(list(outcome.values()))
+        if issue_names is None:
+            return tuple(outcome.values())
+        return tuple(outcome[_ if isinstance(_, str) else _.name] for _ in issue_names)
 
     if isinstance(outcome, OutcomeType):
+        if issue_names is not None:
+            return outcome_as_tuple(outcome.asdict(), issue_names)
         return outcome.astuple()
 
     if isinstance(outcome, np.ndarray):
+        if issue_names is not None:
+            warnings.warn(
+                f"Converting an outcome {outcome} to a tuple with issue names is not supported for np.ndarray"
+            )
         return tuple(outcome.tolist())
 
     if isinstance(outcome, Iterable):
+        if issue_names is not None:
+            warnings.warn(
+                f"Converting an outcome {outcome} to a tuple with issue names is not supported for general iterables"
+            )
         return tuple(outcome)
 
     raise ValueError(f"Unknown type for outcome {type(outcome)}")
@@ -2307,8 +2328,12 @@ def outcome_as(outcome: "Outcome", astype: Type, issue_names: List[str] = None):
     if astype is None:
         return outcome
     if issubclass(astype, tuple):
-        return outcome_as_tuple(outcome)
+        if isinstance(outcome, tuple):
+            return outcome
+        return outcome_as_tuple(outcome, issue_names)
     if issubclass(astype, dict):
+        if isinstance(outcome, dict):
+            return outcome
         return outcome_as_dict(outcome, issue_names)
     return astype(**outcome_as_dict(outcome, issue_names))
 

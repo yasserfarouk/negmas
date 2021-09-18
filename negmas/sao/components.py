@@ -153,16 +153,16 @@ class LimitedOutcomesAcceptorMixin:
         if not super().join(*args, **kwargs):
             return False
 
-        self._make_ufun()
+        self._make_ufun(self.ami.issues)
         return True
 
-    def _make_ufun(self):
+    def _make_ufun(self, issues):
         """Generates a ufun that maps acceptance probability to the utility"""
         if self.acceptable_outcomes is None:
             self.acceptable_outcomes = self.ami.discrete_outcomes()
 
         self.acceptable_outcomes = [
-            outcome_as_tuple(_) for _ in self.acceptable_outcomes
+            outcome_as_tuple(_, issues) for _ in self.acceptable_outcomes
         ]
 
         if self.acceptance_probabilities is None:
@@ -187,9 +187,8 @@ class LimitedOutcomesAcceptorMixin:
             ResponseType: The response to the offer
 
         """
-        # offer = outcome_as_tuple(offer)
         if not hasattr(self, "mapping"):
-            self._make_ufun()
+            self._make_ufun(self.ami.issues)
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
@@ -197,7 +196,7 @@ class LimitedOutcomesAcceptorMixin:
         if r < self.p_ending:
             return ResponseType.END_NEGOTIATION
 
-        if random.random() < self.mapping[outcome_as_tuple(offer)]:
+        if random.random() < self.mapping[outcome_as_tuple(offer, self.ami.issues)]:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

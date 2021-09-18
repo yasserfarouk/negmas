@@ -145,7 +145,7 @@ class MappingUtilityFunction(UtilityFunction):
             return self.reserved_value
         try:
             if isinstance(offer, dict) and isinstance(self.mapping, dict):
-                m = gmap(self.mapping, outcome_as_tuple(offer))
+                m = gmap(self.mapping, outcome_as_tuple(offer, self.ami.issues))
             else:
                 m = gmap(self.mapping, offer)
         except Exception:

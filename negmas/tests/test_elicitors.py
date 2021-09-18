@@ -578,8 +578,8 @@ class TestCountableOutcomesElicitor:
         domain, agents_info, issues = load_genius_domain_from_folder(
             os.path.join(data_folder, "Laptop"),
             force_single_issue=True,
-            keep_issue_names=True,
-            keep_value_names=True,
+            keep_issue_names=False,
+            keep_value_names=False,
             agent_factories=lambda: AspirationNegotiator(),
             normalize_utilities=True,
         )

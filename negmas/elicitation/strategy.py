@@ -68,7 +68,7 @@ class EStrategy:
         """
 
         lower, upper, _ = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome_as_tuple(outcome)]
+        index = self.indices[outcome_as_tuple(outcome, None)]
         lower, upper = lower[index], upper[index]
         epsilon = self.resolution
 
@@ -107,7 +107,7 @@ class EStrategy:
 
     def next_query(self, outcome: "Outcome") -> Optional[Query]:
         lower, upper, outcomes = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome_as_tuple(outcome)]
+        index = self.indices[outcome_as_tuple(outcome, None)]
         lower, upper = lower[index], upper[index]
 
         if abs(upper - lower) < self.resolution:
@@ -258,7 +258,7 @@ class EStrategy:
 
     def utility_estimate(self, outcome: "Outcome") -> UtilityValue:
         """Gets a probability distribution of the Negotiator for this outcome without elicitation. Costs nothing"""
-        indx = self.indices[outcome_as_tuple(outcome)]
+        indx = self.indices[outcome_as_tuple(outcome, None)]
         scale = self.upper[indx] - self.lower[indx]
         if scale < self.resolution:
             return self.lower[indx]
@@ -306,7 +306,9 @@ class EStrategy:
         self.lower = [0.0] * ami.n_outcomes
         self.upper = [1.0] * ami.n_outcomes
         self.indices = dict(
-            zip((outcome_as_tuple(_) for _ in ami.outcomes), range(ami.n_outcomes))
+            zip(
+                (outcome_as_tuple(_, None) for _ in ami.outcomes), range(ami.n_outcomes)
+            )
         )
         if ufun is not None:
             distributions = list(ufun.distributions.values())

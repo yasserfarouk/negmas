@@ -18,7 +18,7 @@ from pytest import mark
 from negmas import Issue, ResponseType
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
-from negmas.outcomes import Outcome, outcome_as_tuple
+from negmas.outcomes import Outcome
 from negmas.sao import (
     AspirationNegotiator,
     LimitedOutcomesNegotiator,
