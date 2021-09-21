@@ -3,10 +3,11 @@
 import functools
 import operator
 import os
-import pathlib
 import shutil
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from os import listdir
+from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -26,6 +27,18 @@ __all__ = [
     "find_domain_and_utility_files",
     "get_domain_issues",
 ]
+
+
+@dataclass
+class Domain:
+    """
+    A class representing a negotiation domain
+    """
+
+    issues: List[Issue]
+    ufuns: List[UtilityFunction]
+    ufun_paths: List[Path]
+    discounts: List[float]
 
 
 def get_domain_issues(
@@ -527,7 +540,7 @@ def convert_genius_domain_from_folder(
 
     See ``load_genius_domain`` for more details of the transformations
     """
-    src_folder_name = pathlib.Path(src_folder_name)
+    src_folder_name = Path(src_folder_name)
     os.makedirs(dst_folder_name, exist_ok=True)
     files = sorted(listdir(src_folder_name))
     domain_file_name = None

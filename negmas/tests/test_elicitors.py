@@ -17,6 +17,7 @@ from negmas.elicitation import (
     possible_queries,
 )
 from negmas.helpers import instantiate
+from negmas.outcomes import Issue
 from negmas.sao import AspirationNegotiator, LimitedOutcomesNegotiator, SAOMechanism
 from negmas.utilities import IPUtilityFunction, MappingUtilityFunction, pareto_frontier
 
@@ -537,11 +538,13 @@ class TestCountableOutcomesElicitor:
                     lambda o: elicitor_utilities[o[0]],
                     reserved_value=reserved_value,
                     outcome_type=tuple,
+                    issue_names=["0"],
                 ),
                 MappingUtilityFunction(
                     lambda o: opponent_utilities[o[0]],
                     reserved_value=reserved_value,
                     outcome_type=tuple,
+                    issue_names=["0"],
                 ),
             ],
             outcomes=outcomes,

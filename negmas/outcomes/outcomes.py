@@ -25,10 +25,11 @@ import numpy as np
 from negmas.generics import ienumerate, iget, ikeys
 
 from .common import Outcome, OutcomeRange, OutcomeType
-from .issues import Issue
 
 if TYPE_CHECKING:
     from negmas import Mechanism
+
+    from .issues import ssue
 
 __all__ = [
     "outcome_for",
@@ -49,22 +50,22 @@ __all__ = [
 ]
 
 
-def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
+def num_outcomes(issues: Collection["Issue"]) -> Optional[int]:
     """
     Returns the total number of outcomes in a set of issues.
     `-1` indicates infinity
     """
-    return Issue.num_outcomes(issues)
 
+    n = 1
 
-def is_outcome(x: Any) -> bool:
-    """Checks if x is acceptable as an outcome type"""
+    for issue in issues:
+        n *= issue.cardinality
 
-    return isinstance(x, dict) or isinstance(x, tuple) or isinstance(x, OutcomeType)
+    return n
 
 
 def enumerate_outcomes(
-    issues: Iterable[Issue], keep_issue_names=None, astype=dict
+    issues: Iterable["Issue"], keep_issue_names=None, astype=dict
 ) -> Optional[Union[List["Outcome"], Dict[str, "Outcome"]]]:
     """Enumerates all outcomes of this set of issues if possible
 
@@ -99,8 +100,14 @@ def enumerate_outcomes(
     return outcomes
 
 
+def is_outcome(x: Any) -> bool:
+    """Checks if x is acceptable as an outcome type"""
+
+    return isinstance(x, dict) or isinstance(x, tuple) or isinstance(x, OutcomeType)
+
+
 def sample_outcomes(
-    issues: Iterable[Issue],
+    issues: Iterable["Issue"],
     n_outcomes: Optional[int] = None,
     keep_issue_names=None,
     astype=dict,
@@ -263,7 +270,7 @@ def _is_single(x):
     return isinstance(x, str) or isinstance(x, numbers.Number)
 
 
-def outcome_is_valid(outcome: "Outcome", issues: Collection[Issue]) -> bool:
+def outcome_is_valid(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
     """Test validity of an outcome given a set of issues.
 
     Examples:
@@ -316,7 +323,7 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection[Issue]) -> bool:
     return True
 
 
-def outcome_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
+def outcome_types_are_ok(outcome: "Outcome", issues: List["Issue"]) -> bool:
     """
     Checks that the types of all issue values in the outcome are correct
     """
@@ -332,7 +339,7 @@ def outcome_types_are_ok(outcome: "Outcome", issues: List[Issue]) -> bool:
     return True
 
 
-def cast_outcome(outcome: "Outocme", issues: List[Issue]) -> bool:
+def cast_outcome(outcome: "Outocme", issues: List["Issue"]) -> bool:
     """
     Casts the types of values in the outcomes to the value-type of each issue (if given)
     """
@@ -350,7 +357,7 @@ def cast_outcome(outcome: "Outocme", issues: List[Issue]) -> bool:
     return dict(zip(keys, new_outcome)) if is_dict else tuple(new_outcome)
 
 
-def outcome_is_complete(outcome: "Outcome", issues: Collection[Issue]) -> bool:
+def outcome_is_complete(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
     """Tests that the outcome is valid and complete.
 
     Examples:
@@ -405,7 +412,7 @@ def outcome_is_complete(outcome: "Outcome", issues: Collection[Issue]) -> bool:
 
 
 def outcome_range_is_valid(
-    outcome_range: OutcomeRange, issues: Optional[Collection[Issue]] = None
+    outcome_range: OutcomeRange, issues: Optional[Collection["Issue"]] = None
 ) -> Union[bool, Tuple[bool, str]]:
     """Tests whether the outcome range is valid for the set of issues.
 
@@ -428,7 +435,7 @@ def outcome_range_is_valid(
 
 
 def outcome_range_is_complete(
-    outcome_range: OutcomeRange, issues: Optional[Collection[Issue]] = None
+    outcome_range: OutcomeRange, issues: Optional[Collection["Issue"]] = None
 ) -> Union[bool, Tuple[bool, str]]:
     """Tests whether the outcome range is valid and complete for the set of issues
 
@@ -592,7 +599,7 @@ def outcome_in_range(
     return True
 
 
-def outcome_as_dict(outcome: "Outcome", issues: List[Union[str, Issue]] = None):
+def outcome_as_dict(outcome: "Outcome", issues: List[Union[str, "Issue"]] = None):
     """Converts the outcome to a dict no matter what was its type"""
 
     if outcome is None:
@@ -613,7 +620,7 @@ def outcome_as_dict(outcome: "Outcome", issues: List[Union[str, Issue]] = None):
     return dict(zip((str(_) for _ in range(len(outcome))), outcome))
 
 
-def outcome_as_tuple(outcome: "Outcome", issues: Optional[List[Union[str, Issue]]]):
+def outcome_as_tuple(outcome: "Outcome", issues: Optional[List[Union[str, "Issue"]]]):
     """
     Converts the outcome to a tuple no matter what was its type
 
@@ -664,7 +671,7 @@ def outcome_as_tuple(outcome: "Outcome", issues: Optional[List[Union[str, Issue]
 
 
 def outcome_as(
-    outcome: "Outcome", astype: Type, issues: Optional[List[Union[str, Issue]]] = None
+    outcome: "Outcome", astype: Type, issues: Optional[List[Union[str, "Issue"]]] = None
 ):
     """Converts the outcome to tuple, dict or any `OutcomeType`.
 

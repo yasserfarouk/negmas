@@ -112,6 +112,7 @@ class MappingUtilityFunction(UtilityFunction):
             reserved_value=reserved_value,
             ami=ami,
             id=id,
+            **kwargs,
         )
         self.mapping = mapping
         self.default = default
