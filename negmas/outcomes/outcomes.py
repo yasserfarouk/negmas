@@ -134,12 +134,14 @@ def sample_outcomes(
 
         enumberate the whole space
 
+        >>> from negmas.outcomes import Issue
         >>> issues = [Issue(values=(0.0, 1.0), name='Price'), Issue(values=['a', 'b'], name='Name')]
         >>> sample_outcomes(issues=issues)
         [{'Price': 0.0, 'Name': 'a'}, {'Price': 0.0, 'Name': 'b'}, {'Price': 0.25, 'Name': 'a'}, {'Price': 0.25, 'Name': 'b'}, {'Price': 0.5, 'Name': 'a'}, {'Price': 0.5, 'Name': 'b'}, {'Price': 0.75, 'Name': 'a'}, {'Price': 0.75, 'Name': 'b'}, {'Price': 1.0, 'Name': 'a'}, {'Price': 1.0, 'Name': 'b'}]
 
         enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
 
+        >>> from negmas.outcomes import Issue
         >>> issues = [Issue(values=(0, 1), name='Price', value_type=float), Issue(values=['a', 'b'], name='Name')]
         >>> issues[0].is_continuous()
         True
@@ -149,6 +151,7 @@ def sample_outcomes(
         >>> len(set(tuple(_.values()) for _ in sampled))
         5
 
+        >>> from negmas.outcomes import Issue
         >>> issues = [Issue(values=(0, 1), name='Price'), Issue(values=['a', 'b'], name='Name')]
         >>> issues[0].is_continuous()
         False
@@ -274,6 +277,8 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
     """Test validity of an outcome given a set of issues.
 
     Examples:
+
+        >>> from negmas.outcomes import Issue
         >>> issues = [Issue((0.5, 2.0), 'price'), Issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')\
                 , Issue(20, 'count')]
         >>> for _ in issues: print(_)
@@ -361,6 +366,8 @@ def outcome_is_complete(outcome: "Outcome", issues: Collection["Issue"]) -> bool
     """Tests that the outcome is valid and complete.
 
     Examples:
+
+        >>> from negmas.outcomes import Issue
         >>> issues = [Issue((0.5, 2.0), 'price'), Issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')\
                 , Issue(20, 'count')]
         >>> for _ in issues: print(_)
