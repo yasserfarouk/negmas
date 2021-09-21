@@ -26,8 +26,8 @@ Examples:
 """
 
 from .common import *
-from .issues import *
 from .outcomes import *
+from .issues import *
 
 
 __all__ = common.__all__ + issues.__all__ + outcomes.__all__

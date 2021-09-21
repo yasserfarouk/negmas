@@ -30,6 +30,8 @@ from negmas.generics import ikeys, ivalues
 from negmas.helpers import PATH, unique_name
 from negmas.java import PYTHON_CLASS_IDENTIFIER
 
+from .outcomes import enumerate_outcomes, num_outcomes, outcome_as_dict
+
 if TYPE_CHECKING:
     from negmas import Mechanism
 
@@ -801,12 +803,7 @@ class Issue(NamedObject):
     @staticmethod
     def num_outcomes(issues: Iterable["Issue"]) -> Union[int, float]:
         """Returns the total number of outcomes in a set of issues. `-1` indicates infinity"""
-        n = 1
-
-        for issue in issues:
-            n *= issue.cardinality
-
-        return n
+        return num_outcomes(issues)
 
     @staticmethod
     def generate(
@@ -1081,7 +1078,7 @@ class Issue(NamedObject):
         Returns:
             List of outcomes of the given type.
         """
-        n = num_outcomes(issues)
+        n = cls.num_outcomes(issues)
 
         if n is None or n == float("inf"):
             return cls.sample(
@@ -1179,6 +1176,7 @@ class Issue(NamedObject):
             >>> list(samples[0].keys())
             ['price', 'quantity']
 
+            >>> from dataclasses import dataclass
             >>> @dataclass
             ... class MyOutcome(OutcomeType):
             ...     price: float = 0.0
@@ -1199,7 +1197,7 @@ class Issue(NamedObject):
         """
         if astype is None:
             astype = dict
-        n_total = num_outcomes(issues)
+        n_total = cls.num_outcomes(issues)
 
         if (
             n_total is not None
