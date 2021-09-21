@@ -4258,7 +4258,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return None
         agreement = mechanism.state.agreement
         agreement = outcome_as_dict(
-            agreement, issue_names=[_.name for _ in mechanism.issues]
+            agreement, issues=[_.name for _ in mechanism.issues]
         )
         signed_at = -1
         contract = Contract(
