@@ -8,7 +8,6 @@ from collections import defaultdict
 from functools import reduce
 from operator import mul
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
@@ -30,14 +29,13 @@ from negmas.generics import ikeys, ivalues
 from negmas.helpers import PATH, unique_name
 from negmas.java import PYTHON_CLASS_IDENTIFIER
 
-from .outcomes import enumerate_outcomes, num_outcomes, outcome_as_dict
-
-if TYPE_CHECKING:
-    from negmas import Mechanism
+from .outcomes import outcome_as_dict
 
 __all__ = [
     "Issue",
     "Issues",
+    "num_outcomes",
+    "enumerate_outcomes",
 ]
 
 
@@ -53,6 +51,7 @@ class Issue(NamedObject):
 
     Examples:
 
+        >>> from negmas.outcomes import Issue
         >>> print(Issue(['to be', 'not to be'], name='THE problem'))
         THE problem: ['to be', 'not to be']
         >>> print(Issue(3, name='Cars'))
@@ -235,6 +234,7 @@ class Issue(NamedObject):
               than the ones given
 
         """
+        from negmas.outcomes.issues import Issue
 
         def convert_type(v, old, values):
             if isinstance(v, numbers.Integral) and not isinstance(
@@ -1543,3 +1543,53 @@ class Issues:
 
     def __str__(self):
         return "\n".join([str(_) for _ in self.issues])
+
+
+def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
+    """
+    Returns the total number of outcomes in a set of issues.
+    `-1` indicates infinity
+    """
+
+    n = 1
+
+    for issue in issues:
+        n *= issue.cardinality
+
+    return n
+
+
+def enumerate_outcomes(
+    issues: Iterable[Issue], keep_issue_names=None, astype=dict
+) -> Optional[Union[List["Outcome"], Dict[str, "Outcome"]]]:
+    """Enumerates all outcomes of this set of issues if possible
+
+    Args:
+        issues: A list of issues
+        keep_issue_names: DEPRECTED. use `astype` instead
+        astype: The type to use for returning outcomes. Can be tuple, dict or any `OutcomeType`
+
+    Returns:
+        list of outcomes
+    """
+    if keep_issue_names is not None:
+        warnings.warn(
+            "keep_issue_names is depricated. Use outcome_type instead.\n"
+            "keep_issue_names=True <--> outcome_type=dict\n"
+            "keep_issue_names=False <--> outcome_type=tuple\n",
+            DeprecationWarning,
+        )
+        astype = dict if keep_issue_names else tuple
+    try:
+        outcomes = list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
+    except:
+        return None
+
+    if issubclass(astype, dict):
+        issue_names = [_.name for _ in issues]
+        outcomes = [outcome_as_dict(_, issue_names) for _ in outcomes]
+    elif not issubclass(astype, tuple):
+        issue_names = [_.name for _ in issues]
+        outcomes = [astype(**outcome_as_dict(_, issue_names)) for _ in outcomes]
+
+    return outcomes

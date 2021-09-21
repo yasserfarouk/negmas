@@ -10,6 +10,7 @@ __all__ = [
     "OutcomeType",
     "OutcomeRange",
     "ResponseType",
+    "is_outcome",
 ]
 
 
@@ -122,3 +123,9 @@ OutcomeRange = Mapping[
 
 Outcomes = Collection[Outcome]
 OutcomeRanges = Collection[OutcomeRange]
+
+
+def is_outcome(x: Any) -> bool:
+    """Checks if x is acceptable as an outcome type"""
+
+    return isinstance(x, dict) or isinstance(x, tuple) or isinstance(x, OutcomeType)

@@ -29,7 +29,7 @@ from .common import Outcome, OutcomeRange, OutcomeType
 if TYPE_CHECKING:
     from negmas import Mechanism
 
-    from .issues import ssue
+    from .issues import Issue
 
 __all__ = [
     "outcome_for",
@@ -43,67 +43,8 @@ __all__ = [
     "cast_outcome",
     "outcome_types_are_ok",
     "outcome_is_valid",
-    "enumerate_outcomes",
     "sample_outcomes",
-    "num_outcomes",
-    "is_outcome",
 ]
-
-
-def num_outcomes(issues: Collection["Issue"]) -> Optional[int]:
-    """
-    Returns the total number of outcomes in a set of issues.
-    `-1` indicates infinity
-    """
-
-    n = 1
-
-    for issue in issues:
-        n *= issue.cardinality
-
-    return n
-
-
-def enumerate_outcomes(
-    issues: Iterable["Issue"], keep_issue_names=None, astype=dict
-) -> Optional[Union[List["Outcome"], Dict[str, "Outcome"]]]:
-    """Enumerates all outcomes of this set of issues if possible
-
-    Args:
-        issues: A list of issues
-        keep_issue_names: DEPRECTED. use `astype` instead
-        astype: The type to use for returning outcomes. Can be tuple, dict or any `OutcomeType`
-
-    Returns:
-        list of outcomes
-    """
-    if keep_issue_names is not None:
-        warnings.warn(
-            "keep_issue_names is depricated. Use outcome_type instead.\n"
-            "keep_issue_names=True <--> outcome_type=dict\n"
-            "keep_issue_names=False <--> outcome_type=tuple\n",
-            DeprecationWarning,
-        )
-        astype = dict if keep_issue_names else tuple
-    try:
-        outcomes = list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
-    except:
-        return None
-
-    if issubclass(astype, dict):
-        issue_names = [_.name for _ in issues]
-        outcomes = [outcome_as_dict(_, issue_names) for _ in outcomes]
-    elif not issubclass(astype, tuple):
-        issue_names = [_.name for _ in issues]
-        outcomes = [astype(**outcome_as_dict(_, issue_names)) for _ in outcomes]
-
-    return outcomes
-
-
-def is_outcome(x: Any) -> bool:
-    """Checks if x is acceptable as an outcome type"""
-
-    return isinstance(x, dict) or isinstance(x, tuple) or isinstance(x, OutcomeType)
 
 
 def sample_outcomes(
@@ -162,6 +103,8 @@ def sample_outcomes(
         4
 
     """
+    from negmas.outcomes import Issue, enumerate_outcomes
+
     if keep_issue_names is not None:
         warnings.warn(
             "keep_issue_names is depricated. Use outcome_type instead.\n"
