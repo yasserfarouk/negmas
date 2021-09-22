@@ -1098,10 +1098,12 @@ class SAOMechanism(Mechanism):
             return any(x != y for x, y in zip(a, b))
 
         self._history: List[SAOState]
+        # if the agreement does not appear as the last offer in the trace, add it.
+        # this should not happen though!!
         if (
             self.agreement is not None
             and offers
-            and not_equal(offers[-1][1], self.agreement)
+            and not_equal(offers[-1][-1], self.agreement)
         ):
             offers.append(
                 (
@@ -1130,7 +1132,7 @@ class SAOMechanism(Mechanism):
         if (
             self.agreement is not None
             and offers
-            and not_equal(offers[-1][1], self.agreement)
+            and not_equal(offers[-1][-1], self.agreement)
         ):
             offers.append(
                 (
