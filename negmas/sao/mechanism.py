@@ -671,6 +671,7 @@ class SAOMechanism(Mechanism):
                 self.ami.negotiator_time_limit - times[negotiator.id],
                 self.ami.step_time_limit,
                 rem,
+                self._hidden_time_limit - self.time
             )
             if timeout is None or timeout == float("inf") or self._sync_calls:
                 __strt = time.perf_counter()
@@ -1098,10 +1099,12 @@ class SAOMechanism(Mechanism):
             return any(x != y for x, y in zip(a, b))
 
         self._history: List[SAOState]
+        # if the agreement does not appear as the last offer in the trace, add it.
+        # this should not happen though!!
         if (
             self.agreement is not None
             and offers
-            and not_equal(offers[-1][1], self.agreement)
+            and not_equal(offers[-1][-1], self.agreement)
         ):
             offers.append(
                 (
@@ -1130,7 +1133,7 @@ class SAOMechanism(Mechanism):
         if (
             self.agreement is not None
             and offers
-            and not_equal(offers[-1][1], self.agreement)
+            and not_equal(offers[-1][-1], self.agreement)
         ):
             offers.append(
                 (

@@ -81,6 +81,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcomes: List of outcomes (optional as you can pass `issues`). If an int then it is the number of outcomes
         n_steps: Number of rounds allowed (None means infinity)
         time_limit: Number of real seconds allowed (None means infinity)
+        hidden_time_limit: Number of real seconds allowed but not visilbe to the negotiators
         max_n_agents:  Maximum allowed number of agents
         dynamic_entry: Allow agents to enter/leave negotiations between rounds
         cache_outcomes: If true, a list of all possible outcomes will be cached
@@ -112,6 +113,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcomes: Union[int, List["Outcome"]] = None,
         n_steps: int = None,
         time_limit: float = None,
+        hidden_time_limit: float = float("inf"),
         step_time_limit: float = None,
         negotiator_time_limit: float = None,
         max_n_agents: int = None,
@@ -144,6 +146,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             exist_ok=exist_ok,
             single=single_checkpoint,
         )
+        self._hidden_time_limit = hidden_time_limit
         time_limit = time_limit if time_limit is not None else float("inf")
         step_time_limit = (
             step_time_limit if step_time_limit is not None else float("inf")
@@ -801,7 +804,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # end with a timeout if condition is met
         if (self.time > self.time_limit) or (
             self.ami.n_steps and self._step >= self.ami.n_steps
-        ):
+        ) or self.time > self._hidden_time_limit:
             self._running, self._broken, self._timedout = False, False, True
             self.on_negotiation_end()
             return self.state
