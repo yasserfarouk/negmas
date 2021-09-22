@@ -6,7 +6,7 @@ from pathlib import Path
 
 # from pprint import pprint
 from time import sleep
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, NoReturn
 
 import hypothesis.strategies as st
 import pkg_resources
@@ -133,6 +133,19 @@ class MySyncController(SAOSyncController):
         self.end_after = end_after
         self.offer_none_after = offer_none_after
 
+class InfiniteLoopNegotiator(RandomNegotiator):
+    """A negotiator that wastes time"""
+
+    def __init__(self, *args, **kwargs):
+        pa, pe, pr = 0.0, 0.0, 1.0
+        kwargs["p_acceptance"] = kwargs.get("p_acceptance", pa)
+        kwargs["p_ending"] = kwargs.get("p_ending", pe)
+        kwargs["p_rejection"] = kwargs.get("p_rejection", pr)
+        super().__init__(*args, **kwargs)
+
+    def counter(self, state, offer) -> NoReturn:
+        while True:
+            pass
 
 class TimeWaster(RandomNegotiator):
     """A negotiator that wastes time"""
@@ -326,6 +339,27 @@ def test_single_mechanism_history_with_waiting(
 
         for j, w in enumerate(r[i]):
             assert s[1 - i][j] == w
+
+
+def test_hidden_time_limit_words():
+    n_outcomes, n_steps, tlimit = 100, 10, 1
+    mechanism = SAOMechanism(
+        outcomes=n_outcomes,
+        n_steps=n_steps,
+        ignore_negotiator_exceptions=True,
+        hidden_time_limit=tlimit,
+        step_time_limit=float("inf"),
+    )
+    ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
+    mechanism.add(InfiniteLoopNegotiator(name=f"agent{0}", ufun=ufuns[0]))
+    mechanism.add(InfiniteLoopNegotiator(name=f"agent{1}", ufun=ufuns[1]))
+    mechanism.run()
+    assert mechanism.state.agreement is None
+    assert mechanism.state.started
+    assert mechanism.state.timedout
+    assert mechanism.state.step < n_steps
+    assert time.perf_counter() - mechanism._start_time >= tlimit
+    assert not mechanism.state.waiting
 
 
 def test_neg_run_no_waiting():

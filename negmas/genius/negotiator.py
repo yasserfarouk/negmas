@@ -416,19 +416,28 @@ class GeniusNegotiator(SAONegotiator):
             if info.time_limit and not math.isinf(info.time_limit)
             else DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT
         )
-        if timeout is None or math.isinf(timeout) or timeout <= 0:
+        if timeout is None or math.isinf(timeout) or timeout < 0:
             timeout = DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT
 
         if n_steps * n_seconds > 0:
-            # n_seconds take precedence
-            if self._strict:
-                raise ValueError(
-                    f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. Not allowed in strict execution"
+            if n_steps < 0:
+                if self._strict:
+                    raise ValueError(
+                    f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. Not allowed in strict mode"
+                    )
+                warnings.warn(
+                    f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. This may lead to an infinite negotiation"
                 )
-            warnings.warn(
-                f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. n_steps will be ignored"
-            )
-            n_steps = -1
+            else:
+                # n_steps take precedence
+                if self._strict:
+                    raise ValueError(
+                        f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. Not allowed in strict execution"
+                    )
+                warnings.warn(
+                    f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. time_limit will be ignored"
+                )
+                n_seconds, timeout = -1, -1
         try:
             result = self.java.on_negotiation_start(
                 self.java_uuid,  # java_uuid
