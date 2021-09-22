@@ -671,6 +671,7 @@ class SAOMechanism(Mechanism):
                 self.ami.negotiator_time_limit - times[negotiator.id],
                 self.ami.step_time_limit,
                 rem,
+                self._hidden_time_limit - self.time
             )
             if timeout is None or timeout == float("inf") or self._sync_calls:
                 __strt = time.perf_counter()
