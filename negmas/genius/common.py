@@ -1,4 +1,5 @@
 import socket
+import sys
 
 __all__ = [
     "DEFAULT_JAVA_PORT",
@@ -12,7 +13,7 @@ DEFAULT_JAVA_PORT = 25337
 DEFAULT_PYTHON_PORT = 25338
 RANDOM_JAVA_PORT = 0
 ANY_JAVA_PORT = -1
-DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT = 180
+DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT = sys.maxsize
 
 
 def get_free_tcp_port():
