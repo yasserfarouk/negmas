@@ -12,8 +12,8 @@ from ..common import MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
+from ..preferences import Value
 from ..sao import AspirationNegotiator, SAONegotiator
-from ..utilities import UtilityValue
 from .base import BaseElicitor
 from .common import _loc, _scale
 from .expectors import (
@@ -143,9 +143,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         self.precalculated_index = precalculated_index
         self.incremental = incremental
 
-    def utility_on_rejection(
-        self, outcome: "Outcome", state: MechanismState
-    ) -> UtilityValue:
+    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         """Uses the aspiration level as the utility of rejection.
 
         Remarks:
@@ -165,7 +163,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         """
         self.cutoff_utility = self.reserved_value
         expected_utilities = [
-            self.user_ufun(outcome) for outcome in self.offerable_outcomes
+            self.user_preferences(outcome) for outcome in self.offerable_outcomes
         ]
         if len(expected_utilities) > 0:
             self.cutoff_utility = max(expected_utilities)
@@ -197,7 +195,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             return self.continue_eliciting_past_reserved_val
         outcome = self._ami.outcomes[best_index]
         u = self.do_elicit(outcome, None)
-        self.utility_function.distributions[outcome] = u
+        self.preferences.distributions[outcome] = u
         expected_value = self.offering_utility(outcome, state=state)
         # TODO confirm that offerable_outcomes need not be unique or use
         # a set for it.
@@ -212,7 +210,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         self.elicitation_history.append((outcome, u, state.step))
         return True
 
-    def do_elicit(self, outcome: "Outcome", state: MechanismState) -> UtilityValue:
+    def do_elicit(self, outcome: "Outcome", state: MechanismState) -> Value:
         """
         Does a real elicitation step.
 
@@ -247,7 +245,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
 
     def init_elicitation(
         self,
-        ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         **kwargs,
     ):
         """
@@ -258,7 +256,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             - After calling the parent's `init_elicitation`, this method calls
               `init_unknowns` to initialize the unknown list.
         """
-        super().init_elicitation(ufun=ufun, **kwargs)
+        super().init_elicitation(preferences=preferences, **kwargs)
         strt_time = time.perf_counter()
         self.cutoff_utility = self.reserved_value
         self.unknown = None  # needed as init_unknowns uses unknown
@@ -292,7 +290,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             return -unknowns[0][0], unknowns[0][1]
         return self.reserved_value, None
 
-    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: Value):
         """
         Updates the unknown list (and makes sure it is a heap) given the given utility
         value for the given outcome.
@@ -342,7 +340,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         else:
             unknown = [_ for _ in unknown if _[1] is not None]
 
-        xw = list(self.utility_function.distributions.values())
+        xw = list(self.preferences.distributions.values())
         if len(unknown) == 0:
             return
         unknown_indices = [_[1] for _ in unknown if _[1] is not None]
@@ -438,15 +436,15 @@ class FullElicitor(BasePandoraElicitor):
         )
         self.elicited = {}
 
-    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: Value):
         pass
 
     def init_elicitation(
         self,
-        ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         **kwargs,
     ):
-        super().init_elicitation(ufun=ufun)
+        super().init_elicitation(preferences=preferences)
         strt_time = time.perf_counter()
         self.elicited = False
         self._elicitation_time += time.perf_counter() - strt_time
@@ -506,7 +504,7 @@ class RandomElicitor(BasePandoraElicitor):
         heapify(z)
         self.unknown = z
 
-    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: Value):
         pass
 
 
@@ -623,7 +621,7 @@ class FastElicitor(PandoraElicitor):
         kwargs["deep_elicitation"] = False
         super().__init__(*args, **kwargs)
 
-    def update_best_offer_utility(self, outcome: "Outcome", u: UtilityValue):
+    def update_best_offer_utility(self, outcome: "Outcome", u: Value):
         """We need not do anything here as we will remove the outcome anyway to the known list"""
 
     def do_elicit(self, outcome: "Outcome", state: MechanismState):

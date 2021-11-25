@@ -220,14 +220,14 @@ specific information you need to keep. Here is the full implementation:
             self._ufuns: Dict[str, UtilityFunction] = dict()
             self._breach_prob: Dict[str, float] = dict()
 
-        def join(self, x: "Agent", ufun: UtilityFunction = None, breach_prob: float = None, **kwargs):
+        def join(self, x: "Agent", preferences: Preferences = None, breach_prob: float = None, **kwargs):
             """Define the ufun and breach-probability for each agent"""
             super().join(x, **kwargs)
             weights = np.random.rand(len(self.ISSUES)) - 0.5
-            x.utility_function = LinearUtilityFunction(
+            x.ufun = LinearUtilityFunction(
                 weights, reserved_value=0.0
             ) if ufun is None else ufun
-            self._ufuns[x.id] = x.utility_function
+            self._ufuns[x.id] = x.ufun
             self._breach_prob[x.id] = random() * 0.1 if breach_prob is None else breach_prob
 
         def simulation_step(self, stage: int = 0):
@@ -249,7 +249,7 @@ specific information you need to keep. Here is the full implementation:
             super().on_contract_signed(contract)
             self._contracts[self.current_step + 1].append(contract)
 
-        def executable_contracts(self) -> Collection[Contract]:
+        def executable_contracts(self):
             """What contracts are to be executed in the current step?
             Ones that were signed the previous step"""
             return self._contracts[self.current_step]
@@ -363,7 +363,11 @@ base class version using ``super()``:
 .. code:: python
 
        def join(
-           self, x: "Agent", ufun: UtilityFunction = None, breach_prob: float = None, **kwargs
+           self,
+           x: "Agent",
+           preferences: Preferences = None,
+           breach_prob: float = None,
+           **kwargs
        ):
            """Define the ufun and breach-probability for each agent"""
            super().join(x, **kwargs)
@@ -376,12 +380,12 @@ base class version using ``super()``:
 
 .. code:: python
 
-       x.utility_function = (
+       x.ufun = (
            LinearUtilityFunction(np.random.rand(len(self.ISSUES)) - 0.5)
            if ufun is None
            else ufun
        )
-       self._ufuns[x.id] = x.utility_function
+       self._ufuns[x.id] = x.ufun
        self._breach_prob[x.id] = random() * 0.1 if breach_prob is None else breach_prob
 
 Simulation, action, and state
@@ -430,44 +434,44 @@ The callbacks related to this are:
 
 .. code:: python
 
-        def on_contract_signed(self, contract):
-            ...
+       def on_contract_signed(self, contract: Contract) -> None:
+           ...
 
 
-        def executable_contracts(self) -> Collection[Contract]:
-            ...
+       def executable_contracts(self) -> Collection[Contract]:
+           ...
 
 
-        def order_contracts_for_execution(
-            self, contracts: Collection[Contract]
-        ) -> Collection[Contract]:
-            ...
+       def order_contracts_for_execution(
+           self, contracts: Collection[Contract]
+       ) -> Collection[Contract]:
+           ...
 
 
-        def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
-            ...
+       def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
+           ...
 
 
-        def complete_contract_execution(
-            self, contract: Contract, breaches: List[Breach], resolution: Contract
-        ) -> None:
-            ...
+       def complete_contract_execution(
+           self, contract: Contract, breaches: List[Breach], resolution: Contract
+       ) -> None:
+           ...
 
 
-        def delete_executed_contracts(self) -> None:
-            ...
+       def delete_executed_contracts(self) -> None:
+           ...
 
 
-        def contract_record(self, contract: Contract) -> Dict[str, Any]:
-            ...
+       def contract_record(self, contract: Contract) -> Dict[str, Any]:
+           ...
 
 
-        def breach_record(self, breach: Breach) -> Dict[str, Any]:
-            ...
+       def breach_record(self, breach: Breach) -> Dict[str, Any]:
+           ...
 
 
-        def contract_size(self, contract: Contract) -> float:
-            ...
+       def contract_size(self, contract: Contract) -> float:
+           ...
 
 The names are almost self-explanatory and we will go through them one by
 one:
@@ -727,48 +731,48 @@ during the simulation. These are:
 
 .. code:: python
 
-        def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
-            ...
+       def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+           ...
 
 
-        def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
-            ...
+       def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+           ...
 
 
-        def on_negotiation_failure(
-            self,
-            partners: List[str],
-            annotation: Dict[str, Any],
-            mechanism: AgentMechanismInterface,
-            state: MechanismState,
-        ):
-            ...
+       def on_negotiation_failure(
+           self,
+           partners: List[str],
+           annotation: Dict[str, Any],
+           mechanism: AgentMechanismInterface,
+           state: MechanismState,
+       ):
+           ...
 
 
-        def on_negotiation_success(
-            self, contract: Contract, mechanism: AgentMechanismInterface
-        ):
-            ...
+       def on_negotiation_success(
+           self, contract: Contract, mechanism: AgentMechanismInterface
+       ):
+           ...
 
 
-        def set_renegotiation_agenda(
-            self, contract: Contract, breaches: List[Breach]
-        ) -> Optional[RenegotiationRequest]:
-            ...
+       def set_renegotiation_agenda(
+           self, contract: Contract, breaches: List[Breach]
+       ) -> Optional[RenegotiationRequest]:
+           ...
 
 
-        def respond_to_renegotiation_request(
-            self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-        ) -> Optional[Negotiator]:
-            ...
+       def respond_to_renegotiation_request(
+           self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
+       ) -> Optional[Negotiator]:
+           ...
 
 
-        def on_contract_executed(self, contract: Contract):
-            ...
+       def on_contract_executed(self, contract: Contract):
+           ...
 
 
-        def on_contract_breached(self, contract: Contract, breaches: List[Breach]):
-            ...
+       def on_contract_breached(self, contract: Contract, breaches: List[Breach]):
+           ...
 
 These callbacks are called by the world at key points of the process
 from a negotiation request to an exeucted/breached contract. The names
@@ -843,7 +847,7 @@ operations in each simulation step.
    Available operations include:
 
    -  StatsUpdate: Updating statistics stored in ``_stats`` by calling
-      `update_stats`` of the ``World`` class. Each time this operation
+      ``update_stats`` of the ``World`` class. Each time this operation
       is conducted a higher ``stage`` is passed to the ``update_stats``
       method (the first such call will by default run ``pre_step_stats``
       and later calls will call ``post_step_stats`` but you can change

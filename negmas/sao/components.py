@@ -7,8 +7,9 @@ from typing import Iterable, List, Optional, Tuple, Union
 
 from ..common import MechanismState
 from ..negotiators import Negotiator
-from ..outcomes import Outcome, ResponseType, outcome_as_tuple
-from ..utilities import MappingUtilityFunction
+from ..outcomes import Outcome
+from ..preferences import MappingUtilityFunction
+from .common import ResponseType
 
 __all__ = [
     "LimitedOutcomesAcceptorMixin",
@@ -153,17 +154,17 @@ class LimitedOutcomesAcceptorMixin:
         if not super().join(*args, **kwargs):
             return False
 
-        self._make_ufun(self.ami.issues)
+        self._make_preferences(self.ami.issues)
         return True
 
-    def _make_ufun(self, issues):
+    def _make_preferences(self, issues):
         """Generates a ufun that maps acceptance probability to the utility"""
         if self.acceptable_outcomes is None:
             self.acceptable_outcomes = self.ami.discrete_outcomes()
 
-        self.acceptable_outcomes = [
-            outcome_as_tuple(_, issues) for _ in self.acceptable_outcomes
-        ]
+        # self.acceptable_outcomes = [
+        #     dict2outcome(_, issues) for _ in self.acceptable_outcomes
+        # ]
 
         if self.acceptance_probabilities is None:
             self.acceptance_probabilities = [1.0] * len(self.acceptable_outcomes)
@@ -174,8 +175,8 @@ class LimitedOutcomesAcceptorMixin:
         self.mapping = defaultdict(float)
         for p, o in zip(self.acceptance_probabilities, self.acceptable_outcomes):
             self.mapping[o] = p
-        self.utility_function = MappingUtilityFunction(self.mapping)
-        self.on_ufun_changed()
+        self.ufun = MappingUtilityFunction(self.mapping)
+        self.on_preferences_changed()
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         """Respond to an offer.
@@ -188,7 +189,7 @@ class LimitedOutcomesAcceptorMixin:
 
         """
         if not hasattr(self, "mapping"):
-            self._make_ufun(self.ami.issues)
+            self._make_preferences(self.ami.issues)
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
@@ -196,7 +197,7 @@ class LimitedOutcomesAcceptorMixin:
         if r < self.p_ending:
             return ResponseType.END_NEGOTIATION
 
-        if random.random() < self.mapping[outcome_as_tuple(offer, self.ami.issues)]:
+        if random.random() < self.mapping[offer]:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

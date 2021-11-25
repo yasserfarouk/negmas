@@ -3950,7 +3950,7 @@
 <p id="t943" class="pln"><span class="str">        string.</span><span class="strut">&nbsp;</span></p>
 <p id="t944" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t945" class="pln"><span class="str">        Examples:</span><span class="strut">&nbsp;</span></p>
-<p id="t946" class="pln"><span class="str">            >>> from negmas.utilities import *</span><span class="strut">&nbsp;</span></p>
+<p id="t946" class="pln"><span class="str">            >>> from negmas.preferences import *</span><span class="strut">&nbsp;</span></p>
 <p id="t947" class="pln"><span class="str">            >>> print(LinearUtilityAggregationFunction({1:lambda x:x, 2:lambda x:x}).type)</span><span class="strut">&nbsp;</span></p>
 <p id="t948" class="pln"><span class="str">            linear_aggregation</span><span class="strut">&nbsp;</span></p>
 <p id="t949" class="pln"><span class="str">            >>> print(MappingUtilityFunction(lambda x: x).type)</span><span class="strut">&nbsp;</span></p>
@@ -4231,7 +4231,7 @@
 <p id="t1224" class="pln">    <span class="str">"""A discounted utility function based on some factor of the negotiation</span><span class="strut">&nbsp;</span></p>
 <p id="t1225" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t1226" class="pln"><span class="str">    Args:</span><span class="strut">&nbsp;</span></p>
-<p id="t1227" class="pln"><span class="str">        ufun: The utility function that is being discounted</span><span class="strut">&nbsp;</span></p>
+<p id="t1227" class="pln"><span class="str">        preferences: The utility function that is being discounted</span><span class="strut">&nbsp;</span></p>
 <p id="t1228" class="pln"><span class="str">        discount: discount factor</span><span class="strut">&nbsp;</span></p>
 <p id="t1229" class="pln"><span class="str">        factor: str -> The name of the AgentMechanismInterface variable based on which discounting operate</span><span class="strut">&nbsp;</span></p>
 <p id="t1230" class="pln"><span class="str">        callable -> must receive a mechanism info object and returns a float representing the factor</span><span class="strut">&nbsp;</span></p>

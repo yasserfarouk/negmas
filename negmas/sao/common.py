@@ -3,16 +3,27 @@ Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
 from copy import deepcopy
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import List, Optional, Tuple
 
-from negmas.common import AgentMechanismInterface, MechanismState
-from negmas.outcomes import ResponseType
+from negmas.common import MechanismState, NegotiatorMechanismInterface
 
 __all__ = [
+    "ResponseType",
     "SAOResponse",
     "SAOState",
     "SAOAMI",
 ]
+
+
+class ResponseType(Enum):
+    """Possible responses to offers during negotiation."""
+
+    ACCEPT_OFFER = 0
+    REJECT_OFFER = 1
+    END_NEGOTIATION = 2
+    NO_RESPONSE = 3
+    WAIT = 4
 
 
 @dataclass
@@ -42,7 +53,7 @@ class SAOState(MechanismState):
 
 
 @dataclass
-class SAOAMI(AgentMechanismInterface):
+class SAOAMI(NegotiatorMechanismInterface):
     end_on_no_response: bool = True
     publish_proposer: bool = True
     publish_n_acceptances: bool = False

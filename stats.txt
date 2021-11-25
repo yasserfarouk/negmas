@@ -118,7 +118,7 @@ negmas/outcomes.py
         (C % L): 44%
         (C % S): 160%
         (C + M % L): 63%
-negmas/utilities.py
+negmas/preferences.py
     LOC: 2642
     LLOC: 1042
     SLOC: 1506
@@ -238,7 +238,7 @@ negmas/tests/test_issue.py
         (C % L): 0%
         (C % S): 0%
         (C + M % L): 0%
-negmas/tests/test_utilities.py
+negmas/tests/test_preferences.py
     LOC: 150
     LLOC: 55
     SLOC: 133
@@ -620,7 +620,7 @@ negmas/__init__.py - A (69.35)
 negmas/tournaments.py - A (31.31)
 negmas/common.py - A (50.17)
 negmas/outcomes.py - C (0.00)
-negmas/utilities.py - C (0.00)
+negmas/preferences.py - C (0.00)
 negmas/mechanisms.py - C (5.21)
 negmas/helpers.py - A (26.70)
 negmas/inout.py - A (49.57)
@@ -630,7 +630,7 @@ negmas/tests/test_negotiators.py - A (21.79)
 negmas/tests/test_SAOMechanism.py - A (56.64)
 negmas/tests/test_situated.py - A (32.12)
 negmas/tests/test_issue.py - A (33.76)
-negmas/tests/test_utilities.py - A (49.99)
+negmas/tests/test_preferences.py - A (49.99)
 negmas/tests/__init__.py - A (100.00)
 negmas/tests/test_inout.py - A (58.22)
 negmas/tests/test_genius.py - A (37.40)

@@ -17,10 +17,11 @@ from typing import (
     Union,
 )
 
-from negmas import AgentMechanismInterface, MechanismState
+from negmas import MechanismState, NegotiatorMechanismInterface
 from negmas.helpers import get_class, get_full_type_name, instantiate
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
+from negmas.preferences import Preferences, utility_range
 from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import (
     Action,
@@ -32,7 +33,6 @@ from negmas.situated import (
     RenegotiationRequest,
     World,
 )
-from negmas.utilities import UtilityFunction, utility_range
 
 __all__ = [
     "NegWorld",
@@ -105,7 +105,7 @@ class NegDomain:
     """Domain name"""
     issues: List[Issue]
     """The issue space as a list of issues"""
-    ufuns: List[UtilityFunction]
+    ufuns: List[Preferences]
     """The utility functions used by all negotiators in the domain"""
     partner_types: List[Union[str, Negotiator]]
     """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
@@ -174,9 +174,11 @@ class NegAgent(Agent):
     def _type_name(cls):
         return cls.__module__ + "." + cls.__name__
 
-    def make_negotiator(self, ufun: Optional[UtilityFunction] = None):
+    def make_negotiator(self, preferences: Optional[Preferences] = None):
         """Makes a negotiator of the appropriate type passing it an optional ufun"""
-        return instantiate(self._negotiator_type, ufun=ufun, **self._negotiator_params)
+        return instantiate(
+            self._negotiator_type, preferences=preferences, **self._negotiator_params
+        )
 
     def _respond_to_negotiation_request(
         self,
@@ -184,12 +186,12 @@ class NegAgent(Agent):
         partners: List[str],
         issues: List[Issue],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         role: Optional[str],
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         """Responds to any negotiation request by creating a negotiator"""
-        return self.make_negotiator(self.awi.get_ufun(partners.index(self.id)))
+        return self.make_negotiator(self.awi.get_preferences(partners.index(self.id)))
 
     def step(self):
         """Called by the simulator at every simulation step"""
@@ -200,20 +202,22 @@ class NegAgent(Agent):
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
         """Called when a requested negotiation is rejected"""
 
-    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+    def on_neg_request_accepted(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
         """Called when a requested negotiation is accepted"""
 
     def on_negotiation_failure(
         self,
         partners: List[str],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
         """Called whenever a negotiation ends without agreement"""
 
     def on_negotiation_success(
-        self, contract: Contract, mechanism: AgentMechanismInterface
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
         """Called whenever a negotiation ends with agreement"""
 
@@ -258,7 +262,7 @@ class _NegPartner(NegAgent):
 class _NegAWI(AgentWorldInterface):
     """The AWI for the `NegWorld`"""
 
-    def get_ufun(self, uid: int):
+    def get_preferences(self, uid: int):
         """Get the agent's ufun"""
         return self._world._domain.ufuns[uid]
 
@@ -327,9 +331,9 @@ class NegWorld(NoContractExecutionMixin, World):
         self._partners: Dict[str, NegAgent] = dict()
         self._n_negs_per_copmetitor = defaultdict(int)
         self._normalize_scores = normalize_scores
-        self._ufun_ranges = None
+        self._preferences_ranges = None
         if self._normalize_scores:
-            self._ufun_ranges = [
+            self._preferences_ranges = [
                 utility_range(u, issues=domain.issues) for u in domain.ufuns
             ]
         partner_types = domain.partner_types
@@ -372,7 +376,7 @@ class NegWorld(NoContractExecutionMixin, World):
     def simulation_step(self, stage):
         def unormalize(u, indx):
             if self._normalize_scores:
-                mn, mx = self._ufun_ranges[indx]
+                mn, mx = self._preferences_ranges[indx]
                 if mx > mn:
                     u = (u - mn) / (mx - mn)
                 else:
@@ -408,7 +412,7 @@ class NegWorld(NoContractExecutionMixin, World):
             self._received_utility[aid].append(u)
             self._received_advantage[aid].append(u - r)
             pufuns = [
-                (partners.index(pid), p.awi.get_ufun(partners.index(pid)))
+                (partners.index(pid), p.awi.get_preferences(partners.index(pid)))
                 for pid, p in self._partners.items()
             ]
             pu = sum(unormalize(float(_(agreement)), i) for i, _ in pufuns)
@@ -508,9 +512,9 @@ class NegWorld(NoContractExecutionMixin, World):
 if __name__ == "__main__":
     from negmas.genius import genius_bridge_is_running
     from negmas.genius.gnegotiators import Atlas3, NiceTitForTat
+    from negmas.preferences import LinearUtilityAggregationFunction as U
     from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
     from negmas.situated import save_stats
-    from negmas.utilities import LinearUtilityAggregationFunction as U
 
     issues = [Issue(10, "quantity"), Issue(5, "price")]
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]

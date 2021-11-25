@@ -6,8 +6,8 @@ from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 
-from negmas.common import NamedObject
 from negmas.helpers import load
+from negmas.types import NamedObject
 
 
 class CheckpointMixin:

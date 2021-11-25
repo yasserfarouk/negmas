@@ -1,9 +1,9 @@
 from negmas.genius import Atlas3, NiceTitForTat, genius_bridge_is_running
 from negmas.outcomes import Issue
+from negmas.preferences import LinearUtilityFunction as U
 from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
 from negmas.situated.neg import NegDomain
 from negmas.tournaments.neg import domains_from_list, neg_tournament
-from negmas.utilities import LinearUtilityFunction as U
 
 
 def test_can_run_world():

@@ -1,11 +1,19 @@
 import os
 from os import walk
+from pathlib import Path
 
 import pkg_resources
 import pytest
 
-from negmas import AspirationNegotiator, load_genius_domain_from_folder
+from negmas import load_genius_domain_from_folder
 from negmas.genius import genius_bridge_is_running
+from negmas.inout import Domain
+from negmas.outcomes import enumerate_issues
+from negmas.outcomes.issue_ops import issues_to_genius
+from negmas.preferences.base_crisp import UtilityFunction
+from negmas.preferences.discounted import DiscountedUtilityFunction
+from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
+from negmas.sao import AspirationNegotiator
 
 
 @pytest.fixture
@@ -15,66 +23,41 @@ def scenarios_folder():
     )
 
 
-def test_reading_writing_linear_ufun(tmp_path):
+def get_all_scenarios():
+    base = Path(__file__).parent / "data" / "scenarios"
+    data = []
+    for root, dirs, files in walk(base):
+        if len(files) == 0 or len(dirs) != 0:
+            continue
+        data.append(root)
+    return data
+
+
+def test_reading_writing_linear_preferences(tmp_path):
     from negmas.outcomes import Issue
-    from negmas.utilities import LinearUtilityAggregationFunction, UtilityFunction
+    from negmas.preferences import LinearUtilityAggregationFunction, UtilityFunction
 
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )
-    _, agent_info, issues = load_genius_domain_from_folder(
+    domain = load_genius_domain_from_folder(
         base_folder,
-        keep_issue_names=True,
-        keep_value_names=True,
     )
-    ufuns = [_["ufun"] for _ in agent_info]
+    ufuns, issues = domain.ufuns, domain.issues
     for ufun in ufuns:
         assert isinstance(ufun, LinearUtilityAggregationFunction)
         dst = tmp_path / "tmp.xml"
         UtilityFunction.to_genius(ufun, issues=issues, file_name=dst)
-        ufun2, _ = UtilityFunction.from_genius(dst)
+        print(str(dst))
+        ufun2, _ = UtilityFunction.from_genius(dst, issues=issues)
         assert isinstance(ufun2, LinearUtilityAggregationFunction)
-        for outcome in Issue.enumerate(issues):
+        for outcome in enumerate_issues(issues):
             assert abs(ufun2(outcome) - ufun(outcome)) < 1e-3
 
 
 def test_importing_file_without_exceptions(scenarios_folder):
     folder_name = scenarios_folder + "/other/S-1NIKFRT-1"
-    load_genius_domain_from_folder(folder_name, n_discretization=10)
-
-
-def test_convert_dir_no_names(tmpdir):
-    from negmas import convert_genius_domain_from_folder
-
-    dst = tmpdir.mkdir("sub")
-    src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    # dst = pkg_resources.resource_filename(
-    #     "negmas", resource_name="tests/data/LaptopConv"
-    # )
-
-    assert convert_genius_domain_from_folder(
-        src_folder_name=src,
-        dst_folder_name=dst,
-        force_single_issue=True,
-        cache_and_discretize_outcomes=False,
-        n_discretization=None,
-        keep_issue_names=False,
-        keep_value_names=False,
-        normalize_utilities=True,
-    )
-    _, _, issues = load_genius_domain_from_folder(
-        dst,
-        keep_value_names=True,
-        keep_issue_names=True,
-        normalize_utilities=False,
-        force_single_issue=False,
-    )
-    assert len(issues) == 1
-    for k, v in enumerate(issues):
-        assert (
-            f"{k}:{v}"
-            == """0:0: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26']"""
-        )
+    load_genius_domain_from_folder(folder_name)
 
 
 def test_simple_run_with_aspiration_agents():
@@ -82,87 +65,95 @@ def test_simple_run_with_aspiration_agents():
         "negmas", resource_name="tests/data/Laptop"
     )
     assert os.path.exists(file_name)
-    mechanism, _, _ = load_genius_domain_from_folder(
-        file_name,
-        n_steps=100,
-        time_limit=30,
-        force_single_issue=True,
-        keep_issue_names=False,
-        keep_value_names=False,
-        agent_factories=AspirationNegotiator,
-    )
+    domain = Domain.from_genius_folder(file_name).to_single_issue()
+    mechanism = domain.make_session(AspirationNegotiator, n_steps=100, time_limit=30)
     assert mechanism is not None
     mechanism.run()
 
 
-def test_encoding_decoding_all(capsys, scenarios_folder):
+def compared_two_domains(domain, domain2):
     from negmas.genius import AgentX, Atlas3
 
-    # from random import sample
-
-    with capsys.disabled():
-        base = scenarios_folder
-        for root, dirs, files in walk(base):
-            if len(files) == 0 or len(dirs) != 0:
-                continue
-            m, ufun_info, _ = load_genius_domain_from_folder(root)
-            assert m is not None
-            if genius_bridge_is_running():
-                for info in ufun_info:
-                    n1 = Atlas3(
-                        domain_file_name=f"{root}/{m.name}.xml",
-                        ufun=info["ufun"],
-                    )
-                    n2 = AgentX(
-                        domain_file_name=f"{root}/{m.name}.xml",
-                        utility_file_name=info["ufun_name"],
-                    )
-                    m.add(n1)
-                    m.add(n2)
-                    u1, u2 = n1.ufun, n2.ufun
-                    outcomes = m.discrete_outcomes(n_max=50)
-                    for outcome in outcomes:
-                        assert abs(u1(outcome) - u2(outcome)) < 1e-3
-                    n1.destroy_java_counterpart()
-                    n2.destroy_java_counterpart()
-
-
-def test_importing_all_single_issue_without_exceptions(capsys, scenarios_folder):
-    with capsys.disabled():
-        base = scenarios_folder
-        nxt, success = 0, 0
-        for root, dirs, files in walk(base):
-            if len(files) == 0 or len(dirs) != 0:
-                continue
-            domain, _, _ = load_genius_domain_from_folder(
-                root, force_single_issue=True, max_n_outcomes=10000
-            )
-            nxt += 1
-            success += domain is not None
-
-
-def test_convert_dir_keep_names(tmpdir):
-    from negmas import convert_genius_domain_from_folder
-
-    dst = tmpdir.mkdir("sub")
-    src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    # dst = pkg_resources.resource_filename(
-    #     "negmas", resource_name="tests/data/LaptopConv"
-    # )
-    assert convert_genius_domain_from_folder(
-        src_folder_name=src,
-        dst_folder_name=dst,
-        force_single_issue=True,
-        cache_and_discretize_outcomes=True,
-        n_discretization=10,
-        keep_issue_names=True,
-        keep_value_names=True,
-        normalize_utilities=True,
-    )
-    _, _, issues = load_genius_domain_from_folder(dst)
-    assert len(issues) == 1
-    for k, v in enumerate(issues):
+    assert len(domain.issues) == len(domain2.issues)
+    for i1, i2 in zip(domain.issues, domain2.issues):
         assert (
-            f"{k}:{v}"
-            == """0:Laptop-Harddisk-External Monitor: ["Dell+60 Gb+19'' LCD", "Dell+60 Gb+20'' LCD", "Dell+60 Gb+23'' LCD", "Dell+80 Gb+19'' LCD", "Dell+80 Gb+20'' LCD", "Dell+80 Gb+23'' LCD", "Dell+120 Gb+19'' LCD", "Dell+120 Gb+20'' LCD", "Dell+120 Gb+23'' LCD", "Macintosh+60 Gb+19'' LCD", "Macintosh+60 Gb+20'' LCD", "Macintosh+60 Gb+23'' LCD", "Macintosh+80 Gb+19'' LCD", "Macintosh+80 Gb+20'' LCD", "Macintosh+80 Gb+23'' LCD", "Macintosh+120 Gb+19'' LCD", "Macintosh+120 Gb+20'' LCD", "Macintosh+120 Gb+23'' LCD", "HP+60 Gb+19'' LCD", "HP+60 Gb+20'' LCD", "HP+60 Gb+23'' LCD", "HP+80 Gb+19'' LCD", "HP+80 Gb+20'' LCD", "HP+80 Gb+23'' LCD", "HP+120 Gb+19'' LCD", "HP+120 Gb+20'' LCD", "HP+120 Gb+23'' LCD"]"""
+            i1.cardinality == i2.cardinality
+            and i1.type == i2.type
+            and i1.value_type == i2.value_type
         )
+
+    assert len(domain.ufuns) == len(domain2.ufuns)
+
+    for u1, u2 in zip(domain.ufuns, domain2.ufuns):
+        while isinstance(u1, DiscountedUtilityFunction):
+            u1 = u1.ufun
+        while isinstance(u2, DiscountedUtilityFunction):
+            u2 = u2.ufun
+        if isinstance(u1, HyperRectangleUtilityFunction) or isinstance(
+            u2, HyperRectangleUtilityFunction
+        ):
+            continue
+        outcomes = domain.agenda.discrete_outcomes(5, 1000)
+        for w in outcomes:
+            assert abs(u1(w) - u2(w)) < 1e-3
+
+    for ufun in domain.ufuns:
+        if isinstance(ufun, HyperRectangleUtilityFunction):
+            continue
+        m = domain.make_session(n_steps=100, name=domain.agenda.name)
+        assert m is not None
+        if not genius_bridge_is_running():
+            continue
+        n1 = Atlas3(domain_file_name=m.name, ufun=ufun)
+        n2 = AgentX(domain_file_name=m.name, utility_file_name=ufun.name)
+        m.add(n1)
+        m.add(n2)
+        u1, u2 = n1.ufun, n2.ufun
+        outcomes = m.discrete_outcomes(n_max=100)
+        for outcome in outcomes:
+            assert abs(u1(outcome) - u2(outcome)) < 1e-3
+        n1.destroy_java_counterpart()
+        n2.destroy_java_counterpart()
+
+
+@pytest.mark.parametrize("folder_name", get_all_scenarios())
+def test_encoding_decoding_all_without_discounting(tmp_path, capsys, folder_name):
+    # def test_encoding_decoding_all_without_discounting(tmp_path, capsys):
+    # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2016/AgentHp2"
+    # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2012/MusicCollectionC"
+    # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/other/Domain8"
+    # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/other/S-1NIKFRT-3"
+    # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/other/QODomain"
+    domain = Domain.from_genius_folder(
+        folder_name, safe_parsing=False
+    ).remove_discounting()
+    tmp = tmp_path / "tmp"
+    print(f"{str(folder_name)}\n-> {str(tmp)}")
+    domain.to_genius_folder(tmp)
+    domain2 = Domain.from_genius_folder(tmp).remove_discounting()
+    compared_two_domains(domain, domain2)
+
+
+@pytest.mark.parametrize("folder_name", get_all_scenarios())
+# @pytest.mark.skip(reason="Ignored for now as we do not know how to save discouted ufuns yet")
+def test_encoding_decoding_all_with_discounting(capsys, tmp_path, folder_name):
+    with capsys.disabled():
+        domain = Domain.from_genius_folder(folder_name, safe_parsing=False)
+        tmp = tmp_path / "tmp"
+        print(f"{str(folder_name)}\n-> {str(tmp)}")
+        domain.to_genius_folder(tmp)
+        domain2 = Domain.from_genius_folder(tmp)
+        compared_two_domains(domain, domain2)
+
+
+@pytest.mark.parametrize("folder_name", get_all_scenarios())
+def test_importing_all_single_issue_without_exceptions(capsys, folder_name):
+    with capsys.disabled():
+        d1 = Domain.from_genius_folder(folder_name, safe_parsing=False)
+        d2 = Domain.from_genius_folder(folder_name, safe_parsing=False).discretize()
+        if d2.agenda.cardinality < 10_000:
+            d2.to_single_issue()
+            assert (
+                d1.agenda.cardinality == d2.agenda.cardinality
+                or d1.agenda.cardinality == float("inf")
+            )

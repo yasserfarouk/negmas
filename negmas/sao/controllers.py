@@ -7,11 +7,11 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
-from ..common import AgentMechanismInterface, MechanismState
+from ..common import MechanismState, NegotiatorMechanismInterface
 from ..negotiators import AspirationMixin, Controller
-from ..outcomes import Outcome, ResponseType, outcome_is_valid
-from ..utilities import utility_range
-from .common import SAOResponse, SAOState
+from ..outcomes import Outcome, outcome_is_valid
+from ..preferences import utility_range
+from .common import ResponseType, SAOResponse, SAOState
 from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
 
 __all__ = [
@@ -36,7 +36,7 @@ class SAOController(Controller):
          default_negotiator_params: Default paramters to pass to the default controller.
          auto_kill: Automatically kill the negotiator once its negotiation session is ended.
          name: Controller name
-         ufun: The ufun of the controller.
+         preferences: The ufun of the controller.
     """
 
     def __init__(
@@ -45,23 +45,23 @@ class SAOController(Controller):
         default_negotiator_params=None,
         auto_kill=False,
         name=None,
-        ufun=None,
+        preferences=None,
     ):
         super().__init__(
             default_negotiator_type=default_negotiator_type,
             default_negotiator_params=default_negotiator_params,
             auto_kill=auto_kill,
             name=name,
-            ufun=ufun,
+            preferences=preferences,
         )
 
     def before_join(
         self,
         negotiator_id: str,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -84,10 +84,10 @@ class SAOController(Controller):
     def after_join(
         self,
         negotiator_id: str,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> None:
         """
@@ -164,7 +164,7 @@ class SAOSyncController(SAOController):
 
     Args:
 
-        global_ufun: If true, the controller assumes that the ufun is only
+        global_preferences: If true, the controller assumes that the ufun is only
                      defined globally for the complete set of negotiations
 
     Remarks:
@@ -176,7 +176,7 @@ class SAOSyncController(SAOController):
 
     """
 
-    def __init__(self, *args, global_ufun=False, **kwargs):
+    def __init__(self, *args, global_preferences=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.__offers: Dict[str, "Outcome"] = {}
         """Keeps the last offer received for each negotiation"""
@@ -188,7 +188,7 @@ class SAOSyncController(SAOController):
         """Keeps the last state received for each negotiation"""
         self.__n_waits: Dict[str, int] = defaultdict(int)
         """The number of contiguous waits sent for every partner"""
-        self.__global_ufun = global_ufun
+        self.__global_preferences = global_preferences
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
@@ -200,7 +200,7 @@ class SAOSyncController(SAOController):
             proposal = self.__proposals.pop(negotiator_id)
         else:
             # if there was no proposal, get one. Note that `None` is a valid proposal
-            if self.__global_ufun:
+            if self.__global_preferences:
                 self.__proposals = self.first_proposals()
                 proposal = self.__proposals.pop(negotiator_id)
             else:
@@ -581,8 +581,10 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
         return self._best_outcomes[negotiator][0]
 
-    def after_join(self, negotiator_id, ami, state, *, ufun=None, role="agent"):
-        super().after_join(negotiator_id, ami, state, ufun=ufun, role=role)
+    def after_join(self, negotiator_id, ami, state, *, preferences=None, role="agent"):
+        super().after_join(
+            negotiator_id, ami, state, preferences=preferences, role=role
+        )
         self._best_outcomes[negotiator_id] = self.best_outcome(negotiator_id)
 
     def best_outcome(
@@ -782,7 +784,7 @@ class SAOSingleAgreementAspirationController(
     to accept and what to propose.
 
     Args:
-        ufun: The utility function to use for ALL negotiations
+        preferences: The utility function to use for ALL negotiations
         max_aspiration: The maximum aspiration level to start with
         aspiration_type: The aspiration type/ exponent
 
@@ -809,18 +811,6 @@ class SAOSingleAgreementAspirationController(
         super().__init__(*args, **kwargs)
         AspirationMixin.aspiration_init(self, max_aspiration, aspiration_type)
 
-    def after_join(self, negotiator_id, ami, state, *, ufun=None, role="agent"):
-        if self.ufun is not None:
-            if (
-                self.ufun.outcome_type is not None
-                and self.ufun.outcome_type != ami.outcome_type
-            ):
-                raise ValueError(
-                    f"Controller's ufun is of type {self.ufun.outcome_type} while the mechanism ufun is of type"
-                    f"{ami.outcome_type}"
-                )
-            self.ufun.outcome_type = ami.outcome_type
-
     def is_acceptable(self, offer: "Outcome", source: str, state: SAOState):
         return self.ufun(offer) >= self.aspiration(state.relative_time)
 
@@ -836,7 +826,7 @@ class SAOSingleAgreementAspirationController(
         return best_negotiator
 
     def best_outcome(self, negotiator, state=None):
-        outcome = self.ufun.outcome_with_utility(
+        outcome = self.ufun.sample_outcome_with_utility(
             rng=(
                 self.aspiration(state.relative_time)
                 if state is not None

@@ -1,6 +1,6 @@
 from pytest import fixture
 
-from negmas.outcomes import Issue
+from negmas.outcomes import Issue, generate_issues
 
 
 @fixture()
@@ -40,7 +40,7 @@ def issues(cissue, dissue, sissue):
 
 @fixture()
 def int_issues():
-    return Issue.generate([5], [10])
+    return generate_issues([5], [10])
 
 
 @fixture()

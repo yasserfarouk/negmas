@@ -9,9 +9,11 @@ from typing import List, Optional, Type, Union
 
 import numpy as np
 
+from negmas.preferences.preferences import Preferences
+
 from ..common import (
-    AgentMechanismInterface,
     MechanismState,
+    NegotiatorMechanismInterface,
     _ShadowAgentMechanismInterface,
 )
 from ..events import Notification
@@ -25,16 +27,16 @@ from ..java import (
     to_java,
 )
 from ..negotiators import AspirationMixin, Controller, Negotiator
-from ..outcomes import Issue, Outcome, ResponseType, outcome_as_dict, outcome_as_tuple
-from ..utilities import (
+from ..outcomes import Outcome, num_outcomes, outcome2dict
+from ..preferences import (
     JavaUtilityFunction,
     LinearUtilityFunction,
     MappingUtilityFunction,
     UtilityFunction,
-    outcome_with_utility,
+    sample_outcome_with_utility,
     utility_range,
 )
-from .common import SAOResponse
+from .common import ResponseType, SAOResponse
 from .components import (
     LimitedOutcomesAcceptorMixin,
     LimitedOutcomesMixin,
@@ -66,7 +68,7 @@ class SAONegotiator(Negotiator):
     Args:
          name: Negotiator name
          parent: Parent controller if any
-         ufun: The ufun of the negotiator
+         preferences: The preferences of the negotiator
          assume_normalized: If true, the negotiator can assume that the ufun is normalized between zreo and one.
          rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
                             reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
@@ -82,14 +84,16 @@ class SAONegotiator(Negotiator):
     def __init__(
         self,
         assume_normalized=True,
-        ufun: Optional[UtilityFunction] = None,
+        preferences: Optional[Preferences] = None,
         name: Optional[str] = None,
         parent: Controller = None,
         owner: "Agent" = None,
         id: Optional[str] = None,
         rational_proposal=True,
     ):
-        super().__init__(name=name, ufun=ufun, parent=parent, owner=owner, id=id)
+        super().__init__(
+            name=name, preferences=preferences, parent=parent, owner=owner, id=id
+        )
         self.assume_normalized = assume_normalized
         self.__end_negotiation = False
         self.my_last_proposal: Optional["Outcome"] = None
@@ -129,15 +133,15 @@ class SAONegotiator(Negotiator):
         """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
-        if self._ufun_modified:
-            self.on_ufun_changed()
+        if self._preferences_modified:
+            self.on_preferences_changed()
         proposal = self.propose(state=state)
 
         # never return a proposal that is less than the reserved value
         if self.rational_proposal:
             utility = None
-            if proposal is not None and self._utility_function is not None:
-                utility = self._utility_function(proposal)
+            if proposal is not None and self._preferences is not None:
+                utility = self._preferences(proposal)
                 if utility is not None and utility < self.reserved_value:
                     return None
 
@@ -175,8 +179,8 @@ class SAONegotiator(Negotiator):
         """
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
-        if self._ufun_modified:
-            self.on_ufun_changed()
+        if self._preferences_modified:
+            self.on_preferences_changed()
         return self.respond(state=state, offer=offer)
 
     def counter(
@@ -218,11 +222,11 @@ class SAONegotiator(Negotiator):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
-        if self._utility_function is None:
+        if self._preferences is None:
             return ResponseType.REJECT_OFFER
         if offer is None:
             return ResponseType.REJECT_OFFER
-        if self._utility_function(offer) < self.reserved_value:
+        if self._preferences(offer) < self.reserved_value:
             return ResponseType.REJECT_OFFER
         utility = None
         if self.my_last_proposal_utility is not None:
@@ -231,8 +235,8 @@ class SAONegotiator(Negotiator):
             myoffer = self.propose_(state=state)
             if myoffer is None:
                 return ResponseType.NO_RESPONSE
-            utility = self._utility_function(myoffer)
-        if utility is not None and self._utility_function(offer) >= utility:
+            utility = self._preferences(myoffer)
+        if utility is not None and self._preferences(offer) >= utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -343,10 +347,10 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -355,21 +359,19 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
         Args:
             ami: The AMI
             state: The current mechanism state
-            ufun: IGNORED.
+            preferences: IGNORED.
             role: IGNORED.
         """
-        result = super().join(ami, state, ufun=ufun, role=role)
+        result = super().join(ami, state, preferences=preferences, role=role)
         if not result:
             return False
         if ami.issues is not None and any(_.is_continuous() for _ in ami.issues):
-            self._utility_function = LinearUtilityFunction(
+            self._preferences = LinearUtilityFunction(
                 weights=np.random.random(len(ami.issues))
             )
         else:
-            outcomes = [
-                outcome_as_tuple(_, ami.issue_names) for _ in ami.discrete_outcomes()
-            ]
-            self._utility_function = MappingUtilityFunction(
+            outcomes = ami.discrete_outcomes()
+            self._preferences = MappingUtilityFunction(
                 dict(zip(outcomes, np.random.rand(len(outcomes)))),
             )
         return True
@@ -438,7 +440,7 @@ class LimitedOutcomesAcceptor(LimitedOutcomesAcceptorMixin, SAONegotiator):
         acceptance_probabilities: Optional[List[float]] = None,
         p_ending=0.0,
         p_no_response=0.0,
-        ufun=None,
+        preferences=None,
         **kwargs,
     ) -> None:
         super().__init__(self, **kwargs)
@@ -461,11 +463,11 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     Args:
         name: The agent name
-        ufun:  The utility function to attache with the agent
+        preferences:  The utility function to attache with the agent
         max_aspiration: The aspiration level to use for the first offer (or first acceptance decision).
         aspiration_type: The polynomial aspiration curve type. Here you can pass the exponent as a real value or
                          pass a string giving one of the predefined types: linear, conceder, boulware.
-        dynamic_ufun: If True, the utility function will be assumed to be changing over time. This is depricated.
+        dynamic_preferences: If True, the utility function will be assumed to be changing over time. This is depricated.
         randomize_offer: If True, the agent will propose outcomes with utility >= the current aspiration level not
                          outcomes just above it.
         can_propose: If True, the agent is allowed to propose
@@ -493,7 +495,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self,
         max_aspiration=1.0,
         aspiration_type="boulware",
-        dynamic_ufun=True,
+        dynamic_preferences=True,
         randomize_offer=False,
         can_propose=True,
         assume_normalized=False,
@@ -518,9 +520,9 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self.aspiration_init(
             max_aspiration=max_aspiration, aspiration_type=aspiration_type
         )
-        if not dynamic_ufun:
+        if not dynamic_preferences:
             warnings.warn(
-                "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
+                "dynamic_preferences is deprecated. All Aspiration negotiators assume a dynamic ufun"
             )
         self.randomize_offer = randomize_offer
         self._max_aspiration = self.max_aspiration
@@ -539,8 +541,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self.n_outcomes_to_force_presort = 10000
         self.n_trials = 1
 
-    def on_ufun_changed(self):
-        super().on_ufun_changed()
+    def on_preferences_changed(self):
+        super().on_preferences_changed()
         if self.ufun is None or self._ami is None:
             self.ufun_max = self.ufun_min = None
             return
@@ -548,16 +550,16 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         if (
             not presort
             and all(i.is_countable() for i in self._ami.issues)
-            and Issue.num_outcomes(self._ami.issues) >= self.n_outcomes_to_force_presort
+            and num_outcomes(self._ami.issues) >= self.n_outcomes_to_force_presort
         ):
             presort = True
         if presort:
             outcomes = self._ami.discrete_outcomes()
-            uvals = self.utility_function.eval_all(outcomes)
+            uvals = self.preferences.eval_all(outcomes)
             uvals_outcomes = [
                 (u, o)
                 for u, o in zip(uvals, outcomes)
-                if u >= self.utility_function.reserved_value
+                if u >= self.preferences.reserved_value
             ]
             self.ordered_outcomes = sorted(
                 uvals_outcomes,
@@ -567,7 +569,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             if self.assume_normalized:
                 self.ufun_min, self.ufun_max = 0.0, 1.0
             elif len(self.ordered_outcomes) < 1:
-                self.ufun_max = self.ufun_min = self.utility_function.reserved_value
+                self.ufun_max = self.ufun_min = self.preferences.reserved_value
             else:
                 if self.ufun_max is None:
                     self.ufun_max = self.ordered_outcomes[0][0]
@@ -608,14 +610,10 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         if self.ufun_max is None or self.ufun_min is None:
-            self.on_ufun_changed()
-        if (
-            self._utility_function is None
-            or self.ufun_max is None
-            or self.ufun_min is None
-        ):
+            self.on_preferences_changed()
+        if self._preferences is None or self.ufun_max is None or self.ufun_min is None:
             return ResponseType.REJECT_OFFER
-        u = self._utility_function(offer)
+        u = self._preferences(offer)
         if u is None or u < self.reserved_value:
             return ResponseType.REJECT_OFFER
         asp = (
@@ -630,12 +628,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         if self.ufun_max is None or self.ufun_min is None:
-            self.on_ufun_changed()
-        if (
-            self._utility_function is None
-            or self.ufun_max is None
-            or self.ufun_min is None
-        ):
+            self.on_preferences_changed()
+        if self._preferences is None or self.ufun_max is None or self.ufun_min is None:
             return None
         if self.ufun_max < self.reserved_value:
             return None
@@ -666,8 +660,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             if asp >= 0.99999999999 and self.best_outcome is not None:
                 return self.best_outcome
             if self.randomize_offer:
-                return outcome_with_utility(
-                    ufun=self._utility_function,
+                return sample_outcome_with_utility(
+                    ufun=self.ufun,
                     rng=(asp, float("inf")),
                     issues=self._ami.issues,
                 )
@@ -675,8 +669,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             for _ in range(self.n_trials):
                 rng = self.ufun_max - self.ufun_min
                 mx = min(asp + tol * rng, self.__last_offer_util)
-                outcome = outcome_with_utility(
-                    ufun=self._utility_function,
+                outcome = sample_outcome_with_utility(
+                    ufun=self.ufun,
                     rng=(asp, mx),
                     issues=self._ami.issues,
                 )
@@ -689,7 +683,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                     if self.__last_offer is None
                     else self.__last_offer
                 )
-            self.__last_offer_util = self.utility_function(outcome)
+            self.__last_offer_util = self.preferences(outcome)
             self.__last_offer = outcome
             return outcome
 
@@ -701,7 +695,7 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
     Args:
          name: Negotiator name
          parent: Parent controller if any
-         ufun: The ufun of the negotiator
+         preferences: The ufun of the negotiator
          assume_normalized: If true, the negotiator can assume that the ufun is normalized.
          rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
                             reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
@@ -729,9 +723,9 @@ class ToughNegotiator(SAONegotiator):
     Args:
          name: Negotiator name
          parent: Parent controller if any
-         dynamic_ufun: If `True`, assumes a dynamic ufun that can change during the negotiation
+         dynamic_preferences: If `True`, assumes a dynamic ufun that can change during the negotiation
          can_propose: If `False` the negotiator will never propose but can only accept
-         ufun: The ufun of the negotiator
+         preferences: The ufun of the negotiator
          rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
                             reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
          owner: The `Agent` that owns the negotiator.
@@ -745,18 +739,12 @@ class ToughNegotiator(SAONegotiator):
         self,
         name=None,
         parent: Controller = None,
-        dynamic_ufun=True,
         can_propose=True,
-        ufun=None,
         **kwargs,
     ):
-        super().__init__(name=name, parent=parent, ufun=ufun, **kwargs)
+        super().__init__(name=name, parent=parent, **kwargs)
         self.best_outcome = None
         self._offerable_outcomes = None
-        if not dynamic_ufun:
-            warnings.warn(
-                "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
-            )
         self.add_capabilities(
             {
                 "respond": True,
@@ -766,12 +754,12 @@ class ToughNegotiator(SAONegotiator):
             }
         )
 
-    def on_ufun_changed(self):
-        super().on_ufun_changed()
-        if self._utility_function is None:
+    def on_preferences_changed(self):
+        super().on_preferences_changed()
+        if self._preferences is None:
             return
         _, _, _, self.best_outcome = utility_range(
-            self.utility_function,
+            self.preferences,
             issues=self.ami.issues,
             return_outcomes=True,
         )
@@ -794,9 +782,9 @@ class OnlyBestNegotiator(SAONegotiator):
     Args:
          name: Negotiator name
          parent: Parent controller if any
-         dynamic_ufun: If `True`, assumes a dynamic ufun that can change during the negotiation
+         dynamic_preferences: If `True`, assumes a dynamic ufun that can change during the negotiation
          can_propose: If `False` the negotiator will never propose but can only accept
-         ufun: The ufun of the negotiator
+         preferences: The ufun of the negotiator
          min_utility: The minimum utility to offer or accept
          top_fraction: The fraction of the outcomes (ordered decreasingly by utility) to offer or accept
          best_first: Guarantee offering will non-increasing in terms of utility value
@@ -810,13 +798,13 @@ class OnlyBestNegotiator(SAONegotiator):
         self,
         name=None,
         parent: Controller = None,
-        dynamic_ufun=True,
+        dynamic_preferences=True,
         min_utility=0.95,
         top_fraction=0.05,
         best_first=False,
         probabilistic_offering=True,
         can_propose=True,
-        ufun=None,
+        preferences=None,
         **kwargs,
     ):
         self._offerable_outcomes = None
@@ -825,10 +813,10 @@ class OnlyBestNegotiator(SAONegotiator):
         self.acceptable_outcomes = []
         self.wheel = np.array([])
         self.offered = set()
-        super().__init__(name=name, parent=parent, ufun=ufun, **kwargs)
-        if not dynamic_ufun:
+        super().__init__(name=name, parent=parent, preferences=preferences, **kwargs)
+        if not dynamic_preferences:
             warnings.warn(
-                "dynamic_ufun is deprecated. All Aspiration negotiators assume a dynamic ufun"
+                "dynamic_preferences is deprecated. All Aspiration negotiators assume a dynamic ufun"
             )
         self.top_fraction = top_fraction
         self.min_utility = min_utility
@@ -843,14 +831,14 @@ class OnlyBestNegotiator(SAONegotiator):
             }
         )
 
-    def on_ufun_changed(self):
-        super().on_ufun_changed()
+    def on_preferences_changed(self):
+        super().on_preferences_changed()
         outcomes = (
             self._ami.discrete_outcomes()
             if self._offerable_outcomes is None
             else self._offerable_outcomes
         )
-        eu_outcome = list(zip(self.utility_function.eval_all(outcomes), outcomes))
+        eu_outcome = list(zip(self.preferences.eval_all(outcomes), outcomes))
         self.ordered_outcomes = sorted(eu_outcome, key=lambda x: x[0], reverse=True)
         if self.min_utility is None:
             selected, selected_utils = [], []
@@ -923,7 +911,7 @@ class NaiveTitForTatNegotiator(SAONegotiator):
 
     Args:
         name: Negotiator name
-        ufun: negotiator ufun
+        preferences: negotiator ufun
         parent: A controller
         kindness: How 'kind' is the agent. A value of zero is standard tit-for-tat. Positive values makes the negotiator
                   concede faster and negative values slower.
@@ -944,7 +932,7 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         self,
         name: str = None,
         parent: Controller = None,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         kindness=0.0,
         randomize_offer=False,
         always_concede=True,
@@ -956,25 +944,25 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         self.ordered_outcomes = None
         self.sent_offer_index = None
         self.n_sent = 0
-        super().__init__(name=name, ufun=ufun, parent=parent, **kwargs)
+        super().__init__(name=name, preferences=preferences, parent=parent, **kwargs)
         self.kindness = kindness
         self.initial_concession = initial_concession
         self.randomize_offer = randomize_offer
         self.always_concede = always_concede
 
-    def on_ufun_changed(self):
-        super().on_ufun_changed()
+    def on_preferences_changed(self):
+        super().on_preferences_changed()
         outcomes = self._ami.discrete_outcomes()
         self.ordered_outcomes = sorted(
-            ((self._utility_function(outcome), outcome) for outcome in outcomes),
+            ((self._preferences(outcome), outcome) for outcome in outcomes),
             key=lambda x: x[0],
             reverse=True,
         )
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        if self._utility_function is None:
+        if self._preferences is None:
             return ResponseType.REJECT_OFFER
-        offered_utility = self._utility_function(offer)
+        offered_utility = self._preferences(offer)
         if len(self.received_utilities) < 2:
             self.received_utilities.append(offered_utility)
         else:
@@ -1065,7 +1053,7 @@ class PassThroughSAONegotiator(SAONegotiator):
         ami,
         state,
         *,
-        ufun=None,
+        preferences=None,
         role="agent",
     ) -> bool:
         """
@@ -1082,15 +1070,15 @@ class PassThroughSAONegotiator(SAONegotiator):
         permission = (
             self._Negotiator__parent is None
             or self._Negotiator__parent.before_join(
-                self.id, ami, state, ufun=ufun, role=role
+                self.id, ami, state, preferences=preferences, role=role
             )
         )
         if not permission:
             return False
-        if super().join(ami, state, ufun=ufun, role=role):
+        if super().join(ami, state, preferences=preferences, role=role):
             if self._Negotiator__parent:
                 self._Negotiator__parent.after_join(
-                    self.id, ami, state, ufun=ufun, role=role
+                    self.id, ami, state, preferences=preferences, role=role
                 )
             return True
         return False
@@ -1131,7 +1119,6 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         java_object: The Java object if known
         java_class_name: Name of the java negotiator class
         auto_load_java: If true, jnemgas will be loaded if not running.
-        outcome_type: Type of outcome to use
 
     Remarks:
         - You cannot pass a ufun here.
@@ -1142,7 +1129,6 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
         java_object,
         java_class_name: Optional[str],
         auto_load_java: bool = False,
-        outcome_type: Type = dict,
     ):
         if java_class_name is not None or java_object is not None:
             self.init_java_bridge(
@@ -1159,16 +1145,15 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
                 self._java_object
             ).items()
         }
-        ufun = d.get("utility_function", None)
+        ufun = d.get("ufun", None)
         ufun = JavaUtilityFunction(ufun, None) if ufun is not None else None
         super().__init__(
             name=d.get("name", None),
             assume_normalized=d.get("assume_normalized", False),
-            ufun=ufun,
+            preferences=ufun,
             rational_proposal=d.get("rational_proposal", True),
             parent=d.get("parent", None),
         )
-        self._outcome_type = outcome_type
         self.add_capabilities(
             {
                 "respond": True,
@@ -1207,14 +1192,17 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
         return self._java_object.join(
-            java_link(_ShadowAgentMechanismInterface(ami)), to_java(state), ufun, role
+            java_link(_ShadowAgentMechanismInterface(ami)),
+            to_java(state),
+            preferences,
+            role,
         )
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -1235,7 +1223,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
     def on_negotiation_end(self, state: MechanismState) -> None:
         self._java_object.onNegotiationEnd(to_java(state))
 
-    def on_ufun_changed(self):
+    def on_preferences_changed(self):
         self._java_object.onUfunChanged()
 
     @classmethod
@@ -1252,7 +1240,7 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
             assume_normalized=java_object.getAssumeNormalized(),
             rational_proposal=java_object.getRationalProposal(),
             parent=parent,
-            ufun=ufun,
+            preferences=ufun,
         )
 
     def on_notification(self, notification: Notification, notifier: str):
@@ -1262,18 +1250,14 @@ class JavaSAONegotiator(SAONegotiator, JavaCallerMixin):
 
     def respond(self, state: MechanismState, offer: "Outcome"):
         return _from_java_response(
-            self._java_object.respond(to_java(state), outcome_as_dict(offer))
+            self._java_object.respond(to_java(state), outcome2dict(offer))
         )
 
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         outcome = from_java(self._java_object.propose(to_java(state)))
         if outcome is None:
             return None
-        if self._outcome_type == dict:
-            return outcome
-        if self._outcome_type == tuple:
-            return tuple(outcome.values())
-        return self._outcome_type(outcome)
+        return outcome
 
     # class Java:
     #    implements = ['jnegmas.sao.SAONegotiator']
@@ -1307,7 +1291,9 @@ class _ShadowSAONegotiator:
             self.shadow.join(
                 ami=from_java(ami),
                 state=from_java(state),
-                ufun=JavaUtilityFunction(ufun, None) if ufun is not None else None,
+                preferences=JavaUtilityFunction(ufun, None)
+                if ufun is not None
+                else None,
                 role=role,
             )
         )
@@ -1338,7 +1324,7 @@ class _ShadowSAONegotiator:
         )
 
     def onUfunChanged(self):
-        return to_java(self.shadow.on_ufun_changed())
+        return to_java(self.shadow.on_preferences_changed())
 
     def onPartnerRefusedToPropose(self, state, agent_id):
         return to_java(
@@ -1362,12 +1348,12 @@ class _ShadowSAONegotiator:
         return to_java(self.shadow.on_notification(from_java(notification), notifier))
 
     def setUtilityFunction(self, ufun):
-        self.shadow.utility_function = (
+        self.shadow.preferences = (
             ufun if ufun is None else JavaUtilityFunction(ufun, None)
         )
 
     def getUtilityFunction(self):
-        return to_java(self.shadow._utility_function)
+        return to_java(self.shadow._preferences)
 
     def getID(self):
         return self.shadow.id

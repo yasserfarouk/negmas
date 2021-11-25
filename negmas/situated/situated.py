@@ -1,4 +1,5 @@
-"""This module defines the base classes for worlds within which multiple agents engage in situated negotiations
+"""
+This module defines the base classes for worlds within which multiple agents engage in situated negotiations
 
 
 The `Agent` class encapsulates the managing entity that creates negotiators to engage in negotiations within a world
@@ -106,7 +107,7 @@ import yaml
 from matplotlib.axis import Axis
 
 from negmas.checkpoints import CheckpointMixin
-from negmas.common import AgentMechanismInterface, MechanismState, NamedObject, Rational
+from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Event, EventLogger, EventSink, EventSource, Notifier
 from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import (
@@ -122,9 +123,10 @@ from negmas.helpers import (
 )
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
-from negmas.outcomes import Issue, Outcome, OutcomeType, outcome_as_dict
+from negmas.outcomes import Issue, Outcome, num_outcomes, outcome2dict
+from negmas.preferences import Preferences
 from negmas.serialization import serialize, to_flat_dict
-from negmas.utilities import UtilityFunction
+from negmas.types import NamedObject, Rational
 
 try:
     import networkx as nx
@@ -296,7 +298,7 @@ class Action:
 
 
 @dataclass
-class Contract(OutcomeType):
+class Contract:
     """A agreement definition which encapsulates an agreement with partners and extra information"""
 
     partners: List[str] = field(default_factory=list)
@@ -334,7 +336,12 @@ class Contract(OutcomeType):
 
     def __hash__(self):
         """The hash depends only on the name"""
-        return self.id.__hash__()
+        if hasattr(self, "id"):
+            return self.id.__hash__()
+        s = super()
+        if s:
+            return s.__hash__()
+        return None
 
     class Java:
         implements = ["jnegmas.situated.Contract"]
@@ -768,8 +775,11 @@ class MechanismFactory:
 
         ufun = []
         if self.log_ufuns_file is not None:
-            for outcome in mechanism.discrete_outcomes(astype=dict):
-                record = {"mechanism_id": mechanism.id, "outcome": outcome}
+            for outcome in mechanism.discrete_outcomes():
+                record = {
+                    "mechanism_id": mechanism.id,
+                    "outcome": outcome2dict(outcome, mechanism.issues),
+                }
                 ufun.append(record)
         for i, (partner_, (_negotiator, _role)) in enumerate(zip(partners, responses)):
             if self.log_ufuns_file is not None:
@@ -780,9 +790,7 @@ class MechanismFactory:
                     record[f"reserved{i}"] = _negotiator.reserved_value
                     if hasattr(_negotiator, "utility_function"):
                         try:
-                            record[f"u{i}"] = _negotiator.utility_function(
-                                record["outcome"]
-                            )
+                            record[f"u{i}"] = _negotiator.preferences(record["outcome"])
                         except:
                             record[f"u{i}"] = None
                     else:
@@ -1027,13 +1035,13 @@ class AgentWorldInterface:
         issues: Collection[Issue],
         partners: Collection[Union[str, "Agent"]],
         negotiator: Negotiator,
-        ufun: UtilityFunction = None,
+        preferences: Preferences = None,
         caller_role: str = None,
         roles: Collection[str] = None,
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
         mechanism_params: Dict[str, Any] = None,
-    ) -> Optional[Tuple[Contract, AgentMechanismInterface]]:
+    ) -> Optional[Tuple[Contract, NegotiatorMechanismInterface]]:
         """
         Runs a negotiation until completion
 
@@ -1049,7 +1057,7 @@ class AgentWorldInterface:
                       at the beginning of the list. This will only be done if
                       `roles` was passed as None.
             negotiator: The negotiator to be used in the negotiation
-            ufun: The utility function. Only needed if the negotiator does not already know it
+            preferences: The preferences. Only needed if the negotiator does not already know it
             caller_role: The role of the caller in the negotiation
             issues: Negotiation issues
             annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
@@ -1074,7 +1082,7 @@ class AgentWorldInterface:
             mechanism_name=mechanism_name,
             mechanism_params=mechanism_params,
             negotiator=negotiator,
-            ufun=ufun,
+            preferences=preferences,
             caller_role=caller_role,
         )
 
@@ -1083,14 +1091,14 @@ class AgentWorldInterface:
         issues: Union[List[Issue], List[List[Issue]]],
         partners: List[List[Union[str, "Agent"]]],
         negotiators: List[Negotiator],
-        ufuns: List[UtilityFunction] = None,
+        preferences: List[Preferences] = None,
         caller_roles: List[str] = None,
         roles: Optional[List[Optional[List[str]]]] = None,
         annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
         mechanism_names: Optional[Union[str, List[str]]] = None,
         mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
         all_or_none: bool = False,
-    ) -> List[Tuple[Contract, AgentMechanismInterface]]:
+    ) -> List[Tuple[Contract, NegotiatorMechanismInterface]]:
         """
         Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
 
@@ -1134,7 +1142,7 @@ class AgentWorldInterface:
             partners=partners,
             negotiators=negotiators,
             caller_roles=caller_roles,
-            ufuns=ufuns,
+            preferences=preferences,
             all_or_none=all_or_none,
         )
 
@@ -1485,10 +1493,13 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
     #     self._awi = awi
 
     def __init__(
-        self, name: str = None, type_postfix: str = "", ufun: "UtilityFunction" = None
+        self,
+        name: str = None,
+        type_postfix: str = "",
+        preferences: "Preferences" = None,
     ):
         super().__init__(type_postfix=type_postfix)
-        Rational.__init__(self, name=name, ufun=ufun)
+        Rational.__init__(self, name=name, preferences=preferences)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
         self._accepted_requests: Dict[str, NegotiationRequestInfo] = {}
@@ -1709,7 +1720,9 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self.on_neg_request_rejected(req_id, by)
         self._requested_negotiations.pop(req_id, None)
 
-    def on_neg_request_accepted_(self, req_id: str, mechanism: AgentMechanismInterface):
+    def on_neg_request_accepted_(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
         """Called when a requested negotiation is accepted"""
         my_request = req_id is not None
         _request_dict = self._requested_negotiations
@@ -1735,7 +1748,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self,
         partners: List[str],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
         """Called whenever a negotiation ends without agreement"""
@@ -1743,7 +1756,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self._running_negotiations.pop(mechanism.id, None)
 
     def on_negotiation_success_(
-        self, contract: Contract, mechanism: AgentMechanismInterface
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
         """Called whenever a negotiation ends with agreement"""
         self.on_negotiation_success(contract, mechanism)
@@ -1769,7 +1782,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         partners: List[str],
         issues: List[Issue],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         role: Optional[str],
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
@@ -1826,7 +1839,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         partners: List[str],
         issues: List[Issue],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         role: Optional[str],
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
@@ -1864,7 +1877,9 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         """
 
     @abstractmethod
-    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+    def on_neg_request_accepted(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
         """Called when a requested negotiation is accepted"""
 
     @abstractmethod
@@ -1872,14 +1887,14 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self,
         partners: List[str],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
         """Called whenever a negotiation ends without agreement"""
 
     @abstractmethod
     def on_negotiation_success(
-        self, contract: Contract, mechanism: AgentMechanismInterface
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
         """Called whenever a negotiation ends with agreement"""
 
@@ -3676,7 +3691,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.neg_requests_sent[caller.id] += 1
         for partner in partners:
             self.neg_requests_received[partner.id] += 1
-        n_outcomes_ = Issue.num_outcomes(issues)
+        n_outcomes_ = num_outcomes(issues)
         if n_outcomes_ is None or n_outcomes_ < 1:
             self.logwarning(
                 f"A negotiation with no outcomes is requested by {caller.name}",
@@ -3873,13 +3888,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         issues: Collection[Issue],
         partners: Collection[Union[str, "Agent"]],
         negotiator: Negotiator,
-        ufun: UtilityFunction = None,
+        preferences: Preferences = None,
         caller_role: str = None,
         roles: Collection[str] = None,
         annotation: Optional[Dict[str, Any]] = None,
         mechanism_name: str = None,
         mechanism_params: Dict[str, Any] = None,
-    ) -> Tuple[Optional[Contract], Optional[AgentMechanismInterface]]:
+    ) -> Tuple[Optional[Contract], Optional[NegotiatorMechanismInterface]]:
         """
         Runs a negotiation until completion
 
@@ -3896,7 +3911,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                       at the beginning of the list. This will only be done if
                       `roles` was passed as None.
             negotiator: The negotiator to be used in the negotiation
-            ufun: The utility function. Only needed if the negotiator does not already know it
+            preferences: The utility function. Only needed if the negotiator does not already know it
             caller_role: The role of the caller in the negotiation
             issues: Negotiation issues
             annotation: Extra information to be passed to the `partners` when asking them to join the negotiation
@@ -3965,7 +3980,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if neg and neg.mechanism:
             mechanism = neg.mechanism
             if negotiator is not None:
-                mechanism.add(negotiator, ufun=ufun, role=caller_role)
+                mechanism.add(negotiator, preferences=preferences, role=caller_role)
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
@@ -3985,14 +4000,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         issues: Union[List[Issue], List[List[Issue]]],
         partners: List[List[Union[str, "Agent"]]],
         negotiators: List[Negotiator],
-        ufuns: List[UtilityFunction] = None,
+        preferences: List[Preferences] = None,
         caller_roles: List[str] = None,
         roles: Optional[List[Optional[List[str]]]] = None,
         annotations: Optional[List[Optional[Dict[str, Any]]]] = None,
         mechanism_names: Optional[Union[str, List[str]]] = None,
         mechanism_params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
         all_or_none: bool = False,
-    ) -> List[Tuple[Contract, AgentMechanismInterface]]:
+    ) -> List[Tuple[Contract, NegotiatorMechanismInterface]]:
         """
         Requests to run a set of negotiations simultaneously. Returns after all negotiations are run to completion
 
@@ -4048,8 +4063,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             caller_roles = [caller_roles] * n_negs
         if negotiators is None or isinstance(negotiators, Negotiator):
             raise ValueError(f"Must pass all negotiators for run_negotiations")
-        if ufuns is None or isinstance(ufuns, UtilityFunction):
-            ufuns = [ufuns] * n_negs
+        if preferences is None or isinstance(preferences, Preferences):
+            preferences = [preferences] * n_negs
 
         self.loginfo(
             f"{caller.name} requested {n_negs} immediate negotiation "
@@ -4131,7 +4146,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         contracts = [None] * n_negs
         amis = [None] * n_negs
         for i, (neg, crole, ufun, negotiator) in enumerate(
-            zip(negs, caller_roles, ufuns, negotiators)
+            zip(negs, caller_roles, preferences, negotiators)
         ):
             completed[i] = neg is None or (neg.mechanism is None) or negotiator is None
             if completed[i]:
@@ -4257,9 +4272,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         ):
             return None
         agreement = mechanism.state.agreement
-        agreement = outcome_as_dict(
-            agreement, issues=[_.name for _ in mechanism.issues]
-        )
+        agreement = outcome2dict(agreement, issues=[_.name for _ in mechanism.issues])
         signed_at = -1
         contract = Contract(
             partners=list(_.id for _ in partners),
@@ -5441,20 +5454,22 @@ class NoResponsesMixin:
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
         pass
 
-    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+    def on_neg_request_accepted(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
         pass
 
     def on_negotiation_failure(
         self,
         partners: List[str],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
         pass
 
     def on_negotiation_success(
-        self, contract: Contract, mechanism: AgentMechanismInterface
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
         pass
 

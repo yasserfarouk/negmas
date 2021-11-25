@@ -2,7 +2,7 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from ..utilities import UtilityValue
+from ..preferences import Value
 
 np.seterr(all="raise")  # setting numpy to raise exceptions in case of errors
 
@@ -10,27 +10,27 @@ np.seterr(all="raise")  # setting numpy to raise exceptions in case of errors
 __all__ = ["_loc", "_locs", "_scale", "_upper", "_uppers", "argmax", "argmin", "argmin"]
 
 
-def _loc(u: UtilityValue):
+def _loc(u: Value):
     """Returns the lower bound of a UtilityValue"""
     return u if isinstance(u, float) else u.loc
 
 
-def _locs(us: Iterable[UtilityValue]):
+def _locs(us: Iterable[Value]):
     """Returns the lower bound of an iterable of UtilityValue(s)"""
     return [u if isinstance(u, float) else u.loc for u in us]
 
 
-def _scale(u: UtilityValue):
+def _scale(u: Value):
     """Returns the difference between the upper and lower bounds of a UtilityValue"""
     return 0.0 if isinstance(u, float) else u.scale
 
 
-def _upper(u: UtilityValue):
+def _upper(u: Value):
     """Returns the upper bound of a UtilityValue"""
     return u if isinstance(u, float) else (u.loc + u.scale)
 
 
-def _uppers(us: Iterable[UtilityValue]):
+def _uppers(us: Iterable[Value]):
     """Returns the upper bounds of an Iterble of UtilityValues"""
     return [u if isinstance(u, float) else (u.loc + u.scale) for u in us]
 

@@ -530,7 +530,7 @@ Release 0.3.6
 - [SingleText] renaming is_acceptable to is_acceptable_as_agreement
 - [Core] Sampling with or without replacement from issues with values defined by a callable now return the same result
 - [Core] Allowing creator of AspirationNegotiator to pass max/min ufun values
-- [Core] Adding Negotiator.ufun as an alias to Negotiator.utility_function
+- [Core] Adding Negotiator.ufun as an alias to Negotiator.ufun
 - [Core] Allowing agreements from mechanisms to be a list of outcomes instead of one outcome
 - [Core] adding current_state to MechanismState
 - [Situated] [bug fix] run_negotiations was raising an exception if any partner refused to negotiation (i.e. passed a None negotiator).
@@ -834,7 +834,7 @@ Release 0.2.12
 - modifications to the implementation of TitForTatNegotiator to make it
   more sane.
 - deprecating changing the utility function directly (using
-  negotiator.utility_function = x) AFTER the negotiation starts. It is
+  negotiator.ufun = x) AFTER the negotiation starts. It is
   still possible to change it up to the call to join()
 - adding negmas.apps.scml.DEFAULT_NEGOTIATOR to control the default negotiator used
 - improved parameter settings (for internal parameters not published in the SCML document)

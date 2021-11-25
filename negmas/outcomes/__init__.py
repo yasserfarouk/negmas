@@ -26,8 +26,25 @@ Examples:
 """
 
 from .common import *
-from .issues import *
-from .outcomes import *
+from .base_issue import *
+from .callable_issue import *
+from .categorical_issue import *
+from .contiguous_issue import *
+from .continuous_issue import *
+from .ordinal_issue import *
+from .issue_ops import *
+from .outcome_ops import *
+from .outcome_space import *
 
-
-__all__ = common.__all__ + issues.__all__ + outcomes.__all__
+__all__ = (
+    common.__all__
+    + base_issue.__all__
+    + callable_issue.__all__
+    + categorical_issue.__all__
+    + ordinal_issue.__all__
+    + contiguous_issue.__all__
+    + continuous_issue.__all__
+    + issue_ops.__all__
+    + outcome_ops.__all__
+    + outcome_space.__all__
+)

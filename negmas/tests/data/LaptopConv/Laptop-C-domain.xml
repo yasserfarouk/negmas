@@ -1,7 +1,7 @@
 <negotiation_template>
 <utility_space number_of_issues="1">
 <objective description="" etype="objective" index="0" name="root" type="objective">
-    <issue etype="discrete" index="1" name="0" type="discrete" vtype="discrete">
+    <issue etype="discrete" index="1" name="0" type="discrete" vtype="integer">
         <item index="1" value="0" cost="0" description="0">
         </item>
         <item index="2" value="1" cost="0" description="1">

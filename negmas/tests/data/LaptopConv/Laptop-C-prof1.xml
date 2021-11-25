@@ -1,19 +1,19 @@
 <utility_space type="any" number_of_issues="3">
 <objective index="1" etype="objective" type="objective" description="" name="any">
-<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="0">
-    <item index="1" value="Dell" evaluation="None" />
-    <item index="2" value="Macintosh" evaluation="None" />
-    <item index="3" value="HP" evaluation="None" />
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="Laptop">
+    <item index="1" value="Dell" evaluation="12.0" />
+    <item index="2" value="Macintosh" evaluation="20.0" />
+    <item index="3" value="HP" evaluation="30.0" />
 </issue>
-<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="1">
-    <item index="1" value="60 Gb" evaluation="None" />
-    <item index="2" value="80 Gb" evaluation="None" />
-    <item index="3" value="120 Gb" evaluation="None" />
+<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="Harddisk">
+    <item index="1" value="60 Gb" evaluation="30.0" />
+    <item index="2" value="80 Gb" evaluation="20.0" />
+    <item index="3" value="120 Gb" evaluation="9.0" />
 </issue>
-<issue index="3" etype="discrete" type="discrete" vtype="discrete" name="2">
-    <item index="1" value="19'' LCD" evaluation="None" />
-    <item index="2" value="20'' LCD" evaluation="None" />
-    <item index="3" value="23'' LCD" evaluation="None" />
+<issue index="3" etype="discrete" type="discrete" vtype="discrete" name="External Monitor">
+    <item index="1" value="19'' LCD" evaluation="30.0" />
+    <item index="2" value="20'' LCD" evaluation="10.0" />
+    <item index="3" value="23'' LCD" evaluation="20.0" />
 </issue>
 <weight index="1" value="0.4452125771655631">
 </weight>

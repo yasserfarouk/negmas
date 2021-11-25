@@ -30,8 +30,8 @@ from typing import Callable, List, Optional, Tuple, Union
 from ..common import MechanismState
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
+from ..preferences import Value
 from ..sao import AspirationNegotiator, SAONegotiator
-from ..utilities import UtilityValue
 from .base import BaseElicitor
 from .common import _scale, argmax
 from .expectors import Expector, MeanExpector
@@ -118,7 +118,7 @@ class BaseVOIElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         queries: Optional[List[Query]] = None,
         **kwargs,
     ) -> None:
@@ -136,7 +136,7 @@ class BaseVOIElicitor(BaseElicitor):
             - It then calls `init_query_eeus` to initialize the EEU of all
               queries.
         """
-        super().init_elicitation(ufun=ufun)
+        super().init_elicitation(preferences=preferences)
         strt_time = time.perf_counter()
         ami = self._ami
         self.eus = np.array([_.mean() for _ in self.utility_distributions()])
@@ -199,7 +199,7 @@ class BaseVOIElicitor(BaseElicitor):
         return (
             self._ami.outcomes[outcome_index],
             self.expect(
-                self.utility_function(self._ami.outcomes[outcome_index]), state=state
+                self.preferences(self._ami.outcomes[outcome_index]), state=state
             ),
         )
 
@@ -290,7 +290,7 @@ class BaseVOIElicitor(BaseElicitor):
         if query is None:
             return False
         self.queries[q] = (None, None, None)
-        oldu = self.utility_function.distributions[outcome]
+        oldu = self.preferences.distributions[outcome]
         if _scale(oldu) < 1e-7:
             return False
         if self.dynamic_query_set:
@@ -330,9 +330,9 @@ class BaseVOIElicitor(BaseElicitor):
         self.total_voi += -eeu - self.current_eeu
         outcome_index = self.indices[outcome]
         if _scale(newu) < 1e-7:
-            self.utility_function.distributions[outcome] = newu
+            self.preferences.distributions[outcome] = newu
         else:
-            self.utility_function.distributions[outcome] = newu & oldu
+            self.preferences.distributions[outcome] = newu & oldu
         eu = float(newu)
         self.eus[outcome_index] = eu
         self.update_optimal_policy(
@@ -373,9 +373,7 @@ class BaseVOIElicitor(BaseElicitor):
         heapify(eeu_query)
         self.eeu_query = eeu_query
 
-    def utility_on_rejection(
-        self, outcome: "Outcome", state: MechanismState
-    ) -> UtilityValue:
+    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 
     def add_query(self, qeeu: Tuple[float, int]) -> None:
@@ -498,7 +496,7 @@ class VOIElicitor(BaseVOIElicitor):
     def _query_eeu(
         self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
     ) -> float:
-        current_util = self.utility_function(outcome)
+        current_util = self.preferences(outcome)
         answers = query.answers
         answer_probabilities = query.probs
         answer_eeus = []
@@ -570,7 +568,7 @@ class VOIFastElicitor(BaseVOIElicitor):
         answers = query.answers
         answer_probabilities = query.probs
         answer_eeus = []
-        current_util = self.utility_function(outcome)
+        current_util = self.preferences(outcome)
         old_util = self.outcome_in_policy[outcome_index]
         old_indx = eu_policy.index(old_util)
         eu_policy.remove(old_util)
@@ -752,10 +750,10 @@ class VOIOptimalElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         queries: Optional[List[Query]] = None,
     ) -> None:
-        super().init_elicitation(ufun=ufun)
+        super().init_elicitation(preferences=preferences)
         if queries is not None:
             raise ValueError(
                 f"self.__class__.__name__ does not allow the user to specify queries"
@@ -786,7 +784,7 @@ class VOIOptimalElicitor(BaseElicitor):
         return (
             self._ami.outcomes[outcome_index],
             self.expect(
-                self.utility_function(self._ami.outcomes[outcome_index]), state=state
+                self.preferences(self._ami.outcomes[outcome_index]), state=state
             ),
         )
 
@@ -827,7 +825,7 @@ class VOIOptimalElicitor(BaseElicitor):
         if query is None:
             return False
         self.queries[q] = (None, None, None)
-        oldu = self.utility_function.distributions[outcome]
+        oldu = self.preferences.distributions[outcome]
         if _scale(oldu) < 1e-7:
             return False
         u = self.user.ask(query)
@@ -864,9 +862,9 @@ class VOIOptimalElicitor(BaseElicitor):
         self.total_voi += -eeu - self.current_eeu
         outcome_index = self.indices[outcome]
         if _scale(newu) < 1e-7:
-            self.utility_function.distributions[outcome] = newu
+            self.preferences.distributions[outcome] = newu
         else:
-            self.utility_function.distributions[outcome] = newu & oldu
+            self.preferences.distributions[outcome] = newu & oldu
         eu = float(newu)
         self.eus[outcome_index] = eu
         self.update_optimal_policy(
@@ -890,7 +888,7 @@ class VOIOptimalElicitor(BaseElicitor):
         m = self.opponent_model.probability_of_acceptance(outcome)
         m1 = 1.0 - m
         m2 = m / m1 if m1 > 1e-6 else 0.0
-        uk = self.utility_function.distributions[outcome]
+        uk = self.preferences.distributions[outcome]
         beta, alpha = uk.scale + uk.loc, uk.loc
         delta = beta - alpha
         if abs(delta) < max(self.resolution, 1e-6):
@@ -996,9 +994,7 @@ class VOIOptimalElicitor(BaseElicitor):
                 k=k, outcome=outcomes[outcome_indx], s=s, p=p, n=n, eeu=eeu, eus=eus
             )
 
-    def utility_on_rejection(
-        self, outcome: "Outcome", state: MechanismState
-    ) -> UtilityValue:
+    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
 
     def add_query(self, qeeu: Tuple[float, int]) -> None:

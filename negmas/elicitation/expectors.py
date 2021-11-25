@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
-from ..common import AgentMechanismInterface, MechanismState
+from ..common import MechanismState, NegotiatorMechanismInterface
 from ..negotiators import AspirationMixin
-from ..utilities import UtilityValue
+from ..preferences import Value
 
 
 class Expector(ABC):
@@ -14,7 +14,7 @@ class Expector(ABC):
     reduction method that receives a utility value and return a real number.
     """
 
-    def __init__(self, ami: Optional[AgentMechanismInterface] = None):
+    def __init__(self, ami: Optional[NegotiatorMechanismInterface] = None):
         self.ami = ami
 
     @abstractmethod
@@ -23,7 +23,7 @@ class Expector(ABC):
         ...
 
     @abstractmethod
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         ...
 
 
@@ -32,22 +32,22 @@ class StaticExpector(Expector):
         return False
 
     @abstractmethod
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         ...
 
 
 class MeanExpector(StaticExpector):
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         return u if isinstance(u, float) else float(u)
 
 
 class MaxExpector(StaticExpector):
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         return u if isinstance(u, float) else u.loc + u.scale
 
 
 class MinExpector(StaticExpector):
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         return u if isinstance(u, float) else u.loc
 
 
@@ -55,7 +55,7 @@ class BalancedExpector(Expector):
     def is_dependent_on_negotiation_info(self) -> bool:
         return True
 
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         if state is None:
             state = self.ami.state
         if isinstance(u, float):
@@ -69,7 +69,7 @@ class BalancedExpector(Expector):
 class AspiringExpector(Expector, AspirationMixin):
     def __init__(
         self,
-        ami: Optional[AgentMechanismInterface] = None,
+        ami: Optional[NegotiatorMechanismInterface] = None,
         max_aspiration=1.0,
         aspiration_type: Union[str, int, float] = "linear",
     ) -> bool:
@@ -83,7 +83,7 @@ class AspiringExpector(Expector, AspirationMixin):
     def is_dependent_on_negotiation_info(self) -> bool:
         return True
 
-    def __call__(self, u: UtilityValue, state: MechanismState = None) -> float:
+    def __call__(self, u: Value, state: MechanismState = None) -> float:
         if state is None:
             state = self.ami.state
         if isinstance(u, float):

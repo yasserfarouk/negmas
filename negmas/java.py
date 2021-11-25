@@ -438,10 +438,10 @@ def from_java(
             python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
         if python_class_name is not None:
             python_class_name = py_class_name(python_class_name)
-            if python_class_name.endswith("Issue"):
-                python_class = get_class("negmas.outcomes.Issue")
-            else:
-                python_class = get_class(python_class_name)
+            # if python_class_name.endswith("Issue"):
+            #     python_class = get_class("negmas.outcomes.Issue")
+            # else:
+            python_class = get_class(python_class_name)
             # we resolve sub-objects first from the dict if deep is specified before calling from_java on the class
             if deep:
                 d = {

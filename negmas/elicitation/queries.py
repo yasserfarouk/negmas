@@ -5,9 +5,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
 
-from ..common import AgentMechanismInterface
+from negmas.preferences.preferences import Preferences
+
+from ..common import NegotiatorMechanismInterface
 from ..outcomes import Outcome
-from ..utilities import UtilityDistribution, UtilityFunction, UtilityValue
+from ..preferences import Distribution, UtilityFunction, Value
 from .common import _loc, _upper
 
 __all__ = [
@@ -47,7 +49,7 @@ class Constraint(ABC):
 
     @abstractmethod
     def is_satisfied(
-        self, ufun: UtilityFunction, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
     ) -> bool:
         """
         Whether or not the constraint is satisfied.
@@ -60,13 +62,11 @@ class Constraint(ABC):
         return self.__dict__.__repr__()
 
     @abstractmethod
-    def marginals(
-        self, outcomes: Iterable[Outcome] = None
-    ) -> List[UtilityDistribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[Distribution]:
         ...
 
     @abstractmethod
-    def marginal(self, outcome: "Outcome") -> UtilityDistribution:
+    def marginal(self, outcome: "Outcome") -> Distribution:
         ...
 
 
@@ -74,32 +74,30 @@ class MarginalNeutralConstraint(Constraint):
     """Constraints that do not affect the marginals of any outcomes. These constraints may only affect the joint
     distribution."""
 
-    def marginals(
-        self, outcomes: Iterable[Outcome] = None
-    ) -> List[UtilityDistribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[Distribution]:
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
         return [
-            UtilityDistribution(
-                dtype="uniform",
+            Distribution(
+                type="uniform",
                 loc=self.full_range[_][0],
                 scale=self.full_range[_][1] - self.full_range[_][0],
             )
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: "Outcome") -> UtilityDistribution:
+    def marginal(self, outcome: "Outcome") -> Distribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
-            return UtilityDistribution(
-                dtype="uniform",
+            return Distribution(
+                type="uniform",
                 loc=self.full_range[0],
                 scale=self.full_range[1] - self.full_range[0],
             )
         indx = self.index[outcome]
-        return UtilityDistribution(
-            dtype="uniform",
+        return Distribution(
+            type="uniform",
             loc=self.full_range[indx][0],
             scale=self.full_range[indx][1] - self.full_range[indx][0],
         )
@@ -121,13 +119,13 @@ class RankConstraint(MarginalNeutralConstraint):
         self.rankings = rankings
 
     def is_satisfied(
-        self, ufun: UtilityFunction, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
     ) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
             raise ValueError("No outcomes are  given in construction or to the call")
-        u = [(ufun(o), i) for i, o in enumerate(outcomes)]
+        u = [(preferences(o), i) for i, o in enumerate(outcomes)]
         ranking = sorted(u, key=lambda x: x[0])
         return ranking == self.rankings
 
@@ -137,7 +135,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
 
     def __init__(
         self,
-        op: Union[str, Callable[[UtilityValue, UtilityValue], bool]],
+        op: Union[str, Callable[[Value, Value], bool]],
         full_range: Union[Sequence[Tuple[float, float]], Tuple[float, float]] = (
             0.0,
             1.0,
@@ -166,7 +164,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
         self.op = op
 
     def is_satisfied(
-        self, ufun: UtilityFunction, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
     ) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
@@ -176,7 +174,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
             raise ValueError(
                 f"{len(outcomes)} outcomes were given to {self.__class__.__name__}"
             )
-        u = [(ufun(o), i) for i, o in enumerate(outcomes)]
+        u = [(preferences(o), i) for i, o in enumerate(outcomes)]
         return self.op(u[0], u[1])
 
     def __str__(self):
@@ -218,13 +216,13 @@ class RangeConstraint(Constraint):
             ]
 
     def is_satisfied(
-        self, ufun: UtilityFunction, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
     ) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
             raise ValueError("No outcomes are  given in construction or to the call")
-        us = [ufun(o) for o in outcomes]
+        us = [preferences(o) for o in outcomes]
         mn, mx = self.range
         if mn is not None:
             for u in us:
@@ -236,32 +234,30 @@ class RangeConstraint(Constraint):
                     return False
         return True
 
-    def marginals(
-        self, outcomes: Iterable[Outcome] = None
-    ) -> List[UtilityDistribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[Distribution]:
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
         return [
-            UtilityDistribution(
-                dtype="uniform",
+            Distribution(
+                type="uniform",
                 loc=self.effective_range[_][0],
                 scale=self.effective_range[_][1] - self.effective_range[_][0],
             )
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: "Outcome") -> UtilityDistribution:
+    def marginal(self, outcome: "Outcome") -> Distribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
-            return UtilityDistribution(
-                dtype="uniform",
+            return Distribution(
+                type="uniform",
                 loc=self.effective_range[0],
                 scale=self.effective_range[1] - self.effective_range[0],
             )
         indx = self.index[outcome]
-        return UtilityDistribution(
-            dtype="uniform",
+        return Distribution(
+            type="uniform",
             loc=self.effective_range[indx][0],
             scale=self.effective_range[indx][1] - self.effective_range[indx][0],
         )
@@ -323,11 +319,11 @@ class QResponse:
 
 
 def possible_queries(
-    ami: AgentMechanismInterface,
+    ami: NegotiatorMechanismInterface,
     strategy: "EStrategy",
     user: "User",
     outcome: "Outcome" = None,
-) -> List[Tuple[Outcome, List["UtilityDistribution"], float]]:
+) -> List[Tuple[Outcome, List["Distribution"], float]]:
     """Gets all queries that could be asked for that outcome until an exact value of ufun is found.
 
     For each ask,  the following tuple is returned:

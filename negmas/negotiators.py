@@ -3,6 +3,8 @@ This module defines the interfaces to all negotiation agents (negotiators)
 in negmas.
 
 """
+from __future__ import annotations
+
 import functools
 import math
 import warnings
@@ -23,15 +25,17 @@ from typing import (
 
 import numpy as np
 
-from negmas.common import AgentMechanismInterface, MechanismState, Rational
+from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Notifiable, Notification
 from negmas.helpers import get_class
-from negmas.outcomes import Issue
+from negmas.outcomes import Issue, sample_issues
+from negmas.preferences import Preferences
+from negmas.types import Rational
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
+    from negmas.preferences import Preferences, UtilityFunction
     from negmas.situated import Agent
-    from negmas.utilities import UtilityFunction
 
 __all__ = [
     "Negotiator",
@@ -76,12 +80,12 @@ class Negotiator(Rational, Notifiable, ABC):
     def __init__(
         self,
         name: str = None,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Preferences | None = None,
         parent: "Controller" = None,
         owner: "Agent" = None,
         id: str = None,
     ) -> None:
-        super().__init__(name=name, ufun=ufun, id=id)
+        super().__init__(name=name, preferences=preferences, id=id)
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None
@@ -104,8 +108,8 @@ class Negotiator(Rational, Notifiable, ABC):
         """Sets the owner"""
         self.__owner = owner
 
-    @Rational.utility_function.setter
-    def utility_function(self, value: "UtilityFunction"):
+    @Rational.preferences.setter
+    def preferences(self, value: "Preferences"):
         """Sets tha utility function."""
         if self._ami is not None and self._ami.state.started:
             warnings.warn(
@@ -113,10 +117,10 @@ class Negotiator(Rational, Notifiable, ABC):
                 "started is deprecated."
             )
         if self._ami is not None:
-            Rational.utility_function.fset(self, value)
+            Rational.preferences.fset(self, value)
         else:
-            self._utility_function = value
-            self._ufun_modified = True
+            self._preferences = value
+            self._preferences_modified = True
 
     @property
     def parent(self) -> "Controller":
@@ -130,7 +134,7 @@ class Negotiator(Rational, Notifiable, ABC):
     def _dissociate(self):
         self._mechanism_id = None
         self._ami = None
-        self._utility_function = self._init_utility
+        self._preferences = self._init_preferences
         self._role = None
 
     def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
@@ -140,7 +144,7 @@ class Negotiator(Rational, Notifiable, ABC):
         than the utility of the outcome.
 
         """
-        return self._utility_function(outcome) >= self.reserved_value
+        return self._preferences(outcome) >= self.reserved_value
 
     def isin(self, negotiation_id: Optional[str]) -> bool:
         """Is that agent participating in the given negotiation?
@@ -185,10 +189,10 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -211,12 +215,12 @@ class Negotiator(Rational, Notifiable, ABC):
         self._mechanism_id = ami.id
         self._ami = ami
         self._initial_state = state
-        if ufun is not None:
-            self.utility_function = ufun
-        if self._utility_function:
-            self._utility_function.ami = ami
-            if self._ufun_modified:
-                self.on_ufun_changed()
+        if preferences is not None and preferences != self.preferences:
+            self.preferences = preferences
+        if self._preferences:
+            self._preferences.ami = ami
+            if self._preferences_modified:
+                self.on_preferences_changed()
         return True
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -234,8 +238,8 @@ class Negotiator(Rational, Notifiable, ABC):
             - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
 
         """
-        if self._ufun_modified:
-            self.on_ufun_changed()
+        if self._preferences_modified:
+            self.on_preferences_changed()
 
     def on_round_start(self, state: MechanismState) -> None:
         """A call back called at each negotiation round start
@@ -332,30 +336,7 @@ class Negotiator(Rational, Notifiable, ABC):
         elif notification.type == "negotiation_end":
             self.on_negotiation_end(state=notification.data)
         elif notification.type == "ufun_modified":
-            self.on_ufun_changed()
-
-    def on_ufun_changed(self):
-        """
-        Called to inform the agent that its ufun has changed.
-
-        Remarks:
-
-            - You MUST call the super() version of this function either before or after your code when you are overriding
-              it.
-        """
-        if hasattr(self._utility_function, "outcome_type"):
-            if self._ami and self._utility_function.outcome_type is None:
-                self._utility_function.outcome_type = self._ami.outcome_type
-                self._utility_function.issue_names = [_.name for _ in self._ami.issues]
-            elif (
-                self._ami
-                and self._utility_function.outcome_type != self._ami.outcome_type
-            ):
-                raise ValueError(
-                    f"UFun uses outcome type {self._utility_function.outcome_type}, but the mechanism uses "
-                    f"{self._ami.outcome_type}"
-                )
-        super().on_ufun_changed()
+            self.on_preferences_changed()
 
     def cancel(self, reason=None) -> None:
         """
@@ -392,9 +373,9 @@ class PassThroughNegotiator(Negotiator):
             in (
                 "id",
                 "name",
-                "on_ufun_changed",
-                "has_ufun",
-                "utility_function",
+                "on_preferences_changed",
+                "has_preferences",
+                "preferences",
                 "reserved_value",
             )
             or item.startswith("_")
@@ -673,10 +654,10 @@ class Controller(Rational):
     def before_join(
         self,
         negotiator_id: str,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -686,7 +667,7 @@ class Controller(Rational):
             negotiator_id: The negotiator ID
             ami  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
-            ufun (UtilityFunction): The ufun function to use before any discounting.
+            preferences (UtilityFunction): The prefrences to use before any discounting.
             role (str): role of the agent.
 
         Returns:
@@ -699,10 +680,10 @@ class Controller(Rational):
     def after_join(
         self,
         negotiator_id: str,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> None:
         """
@@ -713,17 +694,17 @@ class Controller(Rational):
             negotiator_id: The negotiator ID
             ami  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
-            ufun (UtilityFunction): The ufun function to use before any discounting.
+            preferences (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
         """
 
     def join(
         self,
         negotiator_id: str,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -733,7 +714,7 @@ class Controller(Rational):
             negotiator_id: The negotiator ID
             ami  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
-            ufun (UtilityFunction): The ufun function to use before any discounting.
+            preferences (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
 
         Returns:
@@ -744,13 +725,15 @@ class Controller(Rational):
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        permission = self.before_join(negotiator, ami, state, ufun=ufun, role=role)
+        permission = self.before_join(
+            negotiator, ami, state, preferences=preferences, role=role
+        )
         if not permission:
             return False
         if hasattr(negotiator, "join") and self.call(
-            negotiator, "join", ami=ami, state=state, ufun=ufun, role=role
+            negotiator, "join", ami=ami, state=state, preferences=preferences, role=role
         ):
-            self.after_join(negotiator, ami, state, ufun=ufun, role=role)
+            self.after_join(negotiator, ami, state, preferences=preferences, role=role)
             return True
         return False
 
@@ -911,9 +894,9 @@ class EvaluatorMixin:
         self.capabilities["evaluate"] = True
 
     def evaluate(self, outcome: "Outcome") -> Optional["UtilityValue"]:
-        if self._utility_function is None:
+        if self._preferences is None:
             return None
-        return self._utility_function(outcome)
+        return self._preferences(outcome)
 
 
 class RealComparatorMixin:
@@ -933,30 +916,26 @@ class RealComparatorMixin:
             "UtilityValue": An estimate of the differences between the two outcomes. It can be a real number between -1, 1
             or a probability distribution over the same range.
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.compare_real(first, second)
+        return self._preferences.compare_real(first, second)
 
-    def is_better(
-        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
-    ) -> Optional[bool]:
+    def is_better(self, first: "Outcome", second: "Outcome") -> Optional[bool]:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
         Args:
             first: First outcome to be compared
             second: Second outcome to be compared
-            epsilon: comparison threshold. If the utility difference within the range [-epsilon, epsilon] the two
-                     outcomes are assumed to be compatible
 
         Returns:
             True if utility(first) > utility(second) + epsilon
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.is_better(first, second, epsilon)
+        return self._preferences.is_better(first, second)
 
 
 class BinaryComparatorMixin:
@@ -980,16 +959,16 @@ class BinaryComparatorMixin:
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_ufun:
-            return None
-        return self._utility_function.is_better(first, second, epsilon)
+        if not self.has_preferences:
+            raise ValueError("Cannot compare outcomes without a ufun")
+        return self._preferences.is_better(first, second)
 
 
 class NLevelsComparatorMixin:
     def init(self):
         self.capabilities["compare-nlevels"] = True
         self.capabilities["compare-binary"] = True
-        self.__ufun_thresholds = None
+        self.__preferences_thresholds = None
 
     @classmethod
     def generate_thresholds(
@@ -1025,20 +1004,24 @@ class NLevelsComparatorMixin:
 
     @classmethod
     def equiprobable_thresholds(
-        cls, n: int, ufun: "UtilityFunction", issues: List[Issue], n_samples: int = 1000
+        cls,
+        n: int,
+        preferences: "Preferences",
+        issues: List[Issue],
+        n_samples: int = 1000,
     ) -> List[float]:
         """
         Generates thresholds for the n given levels where levels are equally likely approximately
 
         Args:
             n: Number of scale levels (one side)
-            ufun: The utility function to use
+            preferences: The utility function to use
             issues: The issues to generate the thresholds for
             n_samples: The number of samples to use during the process
 
         """
         samples = list(
-            Issue.sample(
+            sample_issues(
                 issues, n_samples, with_replacement=False, fail_if_not_enough=False
             )
         )
@@ -1047,7 +1030,7 @@ class NLevelsComparatorMixin:
         for i, first in enumerate(samples):
             n_diffs = min(10, n_samples - i - 1)
             for second in sample(samples[i + 1 :], k=n_diffs):
-                diffs.append(abs(ufun.compare_real(first, second)))
+                diffs.append(abs(preferences.compare_real(first, second)))
         diffs = np.array(diffs)
         _, edges = np.histogram(diffs, bins=n + 1)
         return edges[1:-1].tolist()
@@ -1055,11 +1038,11 @@ class NLevelsComparatorMixin:
     @property
     def thresholds(self) -> Optional[List[float]]:
         """Returns the internal thresholds and None if they do  not exist"""
-        return self.__ufun_thresholds
+        return self.__preferences_thresholds
 
     @thresholds.setter
     def thresholds(self, thresholds: List[float]) -> None:
-        self.__ufun_thresholds = thresholds
+        self.__preferences_thresholds = thresholds
 
     def compare_nlevels(
         self, first: "Outcome", second: "Outcome", n: int = 2
@@ -1087,7 +1070,7 @@ class NLevelsComparatorMixin:
             - n must be <= the length of the internal thresholds array. If n > that length, a ValueError will be raised.
               If n < the length of the internal thresholds array, the first n values of the array will be used
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
         if self.thresholds is None:
             raise ValueError(
@@ -1099,7 +1082,7 @@ class NLevelsComparatorMixin:
                 f"Internal thresholds array is only of length {len(self.thresholds)}. It cannot be used"
                 f" to compare outcomes with {n} levels. len(self.thresholds) MUST be >= {n}"
             )
-        diff = self._utility_function(first) - self._utility_function(second)
+        diff = self._preferences(first) - self._preferences(second)
         sign = 1 if diff > 0.0 else -1
         for i, th in enumerate(self.thresholds):
             if diff < th:
@@ -1123,9 +1106,9 @@ class NLevelsComparatorMixin:
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.is_better(first, second, epsilon)
+        return self._preferences.is_better(first, second)
 
 
 class RankerWithWeightsMixin:
@@ -1149,9 +1132,9 @@ class RankerWithWeightsMixin:
             - The list is sorted by weights descendingly
 
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.rank_with_weights(outcomes, descending)
+        return self._preferences.rank_with_weights(outcomes, descending)
 
     def is_better(
         self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
@@ -1170,9 +1153,9 @@ class RankerWithWeightsMixin:
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.is_better(first, second, epsilon)
+        return self._preferences.is_better(first, second)
 
 
 class RankerMixin:
@@ -1191,9 +1174,9 @@ class RankerMixin:
             - A list of integers in the specified order of utility values of outcomes
 
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.rank(outcomes, descending)
+        return self._preferences.rank(outcomes, descending)
 
     def is_better(
         self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
@@ -1212,9 +1195,9 @@ class RankerMixin:
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        return self._utility_function.is_better(first, second, epsilon)
+        return self._preferences.is_better(first, second)
 
 
 class SorterMixin:
@@ -1230,13 +1213,13 @@ class SorterMixin:
         Returns:
 
             - The outcomes are sorted IN PLACE.
-            - There is no way to know if the ufun is not defined from the return value. Use `has_ufun` to check for
+            - There is no way to know if the ufun is not defined from the return value. Use `has_preferences` to check for
               the availability of the ufun
 
         """
-        if not self.has_ufun:
+        if not self.has_preferences:
             return None
-        self._utility_function.sort(outcomes, descending)
+        self._preferences.sort(outcomes, descending)
 
 
 class EvaluatorNegotiator(EvaluatorMixin, Negotiator):

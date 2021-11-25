@@ -12,7 +12,7 @@ from negmas import (
     SAOMechanism,
     ToughNegotiator,
 )
-from negmas.utilities import RandomUtilityFunction
+from negmas.preferences import RandomUtilityFunction
 
 random.seed(0)
 np.random.seed(0)
@@ -24,9 +24,9 @@ def test_tough_asp_negotiator():
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
-    neg = SAOMechanism(outcomes=outcomes, n_steps=100, outcome_type=tuple)
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=100)
+    neg.add(a1, preferences=u1)
+    neg.add(a2, preferences=u2)
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
@@ -42,9 +42,9 @@ def test_tough_tit_for_tat_negotiator():
     outcomes = [(_,) for _ in range(10)]
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
-    neg = SAOMechanism(outcomes=outcomes, n_steps=100, outcome_type=tuple)
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
+    neg = SAOMechanism(outcomes=outcomes, n_steps=100)
+    neg.add(a1, preferences=u1)
+    neg.add(a2, preferences=u2)
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
@@ -63,8 +63,8 @@ def test_asp_negotaitor():
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
     neg = SAOMechanism(outcomes=outcomes, n_steps=100)
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
+    neg.add(a1, preferences=u1)
+    neg.add(a2, preferences=u2)
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
@@ -85,8 +85,8 @@ def test_tit_for_tat_negotiators():
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
     neg = SAOMechanism(outcomes=outcomes, n_steps=100, avoid_ultimatum=False)
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
+    neg.add(a1, preferences=u1)
+    neg.add(a2, preferences=u2)
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
@@ -108,7 +108,7 @@ class TestTitForTatNegotiator:
         a1 = NaiveTitForTatNegotiator(name="a1", initial_concession="min")
         u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
-        neg.add(a1, ufun=u1)
+        neg.add(a1, preferences=u1)
 
         proposal = a1.propose_(neg.state)
         assert proposal == (0,), "Proposes top first"
@@ -118,7 +118,7 @@ class TestTitForTatNegotiator:
         a1 = NaiveTitForTatNegotiator(name="a1")
         u1 = [50.0] * 3 + (22 - np.linspace(10.0, 22.0, len(outcomes) - 3)).tolist()
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
-        neg.add(a1, ufun=u1)
+        neg.add(a1, preferences=u1)
 
         proposal = a1.propose_(neg.state)
         assert proposal == (0,), "Proposes top first"
@@ -137,8 +137,8 @@ def test_tit_for_tat_against_asp_negotiators():
     neg = SAOMechanism(
         outcomes=outcomes, n_steps=10, avoid_ultimatum=False, time_limit=None
     )
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
+    neg.add(a1, preferences=u1)
+    neg.add(a2, preferences=u2)
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
@@ -159,8 +159,8 @@ def test_best_only_asp_negotiator():
     u1 = np.linspace(0.0, 1.0, len(outcomes))
     u2 = 1.0 - u1
     neg = SAOMechanism(outcomes=outcomes, n_steps=200)
-    neg.add(a1, ufun=u1)
-    neg.add(a2, ufun=u2)
+    neg.add(a1, preferences=u1)
+    neg.add(a2, preferences=u2)
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
@@ -183,10 +183,11 @@ def test_controller():
     for session in sessions:
         session.add(
             AspirationNegotiator(aspiration_type="conceder"),
-            ufun=RandomUtilityFunction(outcomes=session.outcomes),
+            preferences=RandomUtilityFunction(outcomes=session.outcomes),
         )
         session.add(
-            c.create_negotiator(), ufun=RandomUtilityFunction(outcomes=session.outcomes)
+            c.create_negotiator(),
+            preferences=RandomUtilityFunction(outcomes=session.outcomes),
         )
     completed: List[int] = []
     while len(completed) < n_sessions:

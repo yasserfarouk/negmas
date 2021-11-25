@@ -90,10 +90,7 @@ class VetoSTMechanism(Mechanism):
 
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(
-                neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon)
-                is not False
-            )
+            responses.append(neg.is_better(new_offer, self.current_offer) is not False)
             if time.perf_counter() - strt > self.ami.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 
@@ -150,8 +147,8 @@ class VetoSTMechanism(Mechanism):
                     "current_offer": offer,
                     "relative_time": state.relative_time,
                     "step": state.step,
-                    "u0": visible_negotiators[0].utility_function(offer),
-                    "u1": visible_negotiators[1].utility_function(offer),
+                    "u0": visible_negotiators[0].ufun(offer),
+                    "u1": visible_negotiators[1].ufun(offer),
                 }
             )
         history = pd.DataFrame(data=history)
@@ -159,7 +156,7 @@ class VetoSTMechanism(Mechanism):
         has_front = 1
         # n_negotiators = len(self.negotiators)
         n_agents = len(visible_negotiators)
-        ufuns = self._get_ufuns()
+        ufuns = self._get_preferencess()
         outcomes = self.outcomes
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
         agent_names = [a.name for a in visible_negotiators]
@@ -269,7 +266,6 @@ class HillClimbingSTMechanism(VetoSTMechanism):
     """
 
     def __init__(self, *args, **kwargs):
-        kwargs["outcome_type"] = dict
         super().__init__(*args, **kwargs)
 
         for issue in self.issues:
@@ -311,10 +307,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         responses = []
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(
-                neg.is_better(new_offer, self.current_offer, epsilon=self.epsilon)
-                is not False
-            )
+            responses.append(neg.is_better(new_offer, self.current_offer) is not False)
             if time.perf_counter() - strt > self.ami.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 
@@ -333,25 +326,25 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         """
 
         neighbors = []
-        for issue in self.issues:
+        for i, issue in enumerate(self.issues):
             values = []
             if isinstance(issue.values, List):
                 values = issue.values
             if isinstance(issue.values, int):
                 values = [
-                    max(0, outcome[issue.name] - 1),
-                    min(outcome[issue.name] + 1, issue.values),
+                    max(0, outcome[i] - 1),
+                    min(outcome[i] + 1, issue.values),
                 ]
             if isinstance(issue.values, Tuple):
                 delta = random.random(issue.values[0] - issue.values[0])
-                values.append(max(issue.values[0], outcome[issue.name] - delta))
-                values.append(min(outcome[issue.name] + delta, issue.values[0]))
+                values.append(max(issue.values[0], outcome[i] - delta))
+                values.append(min(outcome[i] + delta, issue.values[0]))
 
             for value in values:
-                neighbor = deepcopy(outcome)
-                if neighbor[issue.name] == value:
+                neighbor = list(deepcopy(outcome))
+                if neighbor[i] == value:
                     continue
-                neighbor[issue.name] = value
-                neighbors.append(neighbor)
+                neighbor[i] = value
+                neighbors.append(tuple(neighbor))
 
         return neighbors

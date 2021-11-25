@@ -30,7 +30,6 @@ class GAMechanism(Mechanism):
         self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
     ):
         kwargs["state_factory"] = GAState
-        kwargs["outcome_type"] = dict
         super().__init__(*args, **kwargs)
 
         self.n_population = n_population
@@ -51,12 +50,12 @@ class GAMechanism(Mechanism):
 
     def crossover(self, outcome1: "Outcome", outcome2: "Outcome") -> "Outcome":
         """Uniform crossover"""
-        outcome = copy.deepcopy(outcome1)
-        for issue in self.issues:
+        outcome = list(copy.deepcopy(outcome1))
+        for i in range(len(self.issues)):
             if bool(random.getrandbits(1)):
-                outcome[issue.name] = outcome2[issue.name]
+                outcome[i] = outcome2[i]
 
-        return outcome
+        return tuple(outcome)
 
     def mutate(self, outcome: "Outcome") -> "Outcome":
         """Uniform crossover with random outcome"""

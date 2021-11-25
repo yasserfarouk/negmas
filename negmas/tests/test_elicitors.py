@@ -18,8 +18,12 @@ from negmas.elicitation import (
 )
 from negmas.helpers import instantiate
 from negmas.outcomes import Issue
+from negmas.preferences import (
+    IPUtilityFunction,
+    MappingUtilityFunction,
+    pareto_frontier,
+)
 from negmas.sao import AspirationNegotiator, LimitedOutcomesNegotiator, SAOMechanism
-from negmas.utilities import IPUtilityFunction, MappingUtilityFunction, pareto_frontier
 
 try:
     from blist import sortedlist
@@ -67,7 +71,7 @@ def strategy(neg: SAOMechanism) -> EStrategy:
 
 @pytest.fixture
 def user() -> User:
-    return User(ufun=ufun, cost=cost)
+    return User(preferences=ufun, cost=cost)
 
 
 @pytest.fixture
@@ -78,7 +82,7 @@ def true_utilities():
 @pytest.fixture
 def master(true_utilities, strategy_name="titration-0.05"):
     user = User(
-        ufun=MappingUtilityFunction(
+        preferences=MappingUtilityFunction(
             dict(zip([(_,) for _ in range(n_outcomes)], true_utilities)),
             reserved_value=0.0,
         ),
@@ -90,7 +94,7 @@ def master(true_utilities, strategy_name="titration-0.05"):
 
 class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_initializable(self):
-        user = User(ufun=ufun, cost=cost)
+        user = User(preferences=ufun, cost=cost)
         assert user.total_cost == 0.0, "total cost is not initialized to zero"
 
     def test_countable_outcmoes_user_can_enter(self, user):
@@ -371,7 +375,7 @@ class TestCountableOutcomesUser:
             "pingpong0.5",
             "dpingpong0.5",
         ):
-            user = User(ufun=ufun, cost=cost)
+            user = User(preferences=ufun, cost=cost)
             strategy = EStrategy(strategy=s)
             strategy.on_enter(neg.ami)
             q = possible_queries(ami=neg.ami, strategy=strategy, user=user)
@@ -389,7 +393,7 @@ class TestCountableOutcomesUser:
             "dtitration-0.05",
         ):
             strategy = EStrategy(strategy=s)
-            user = User(ufun=ufun, cost=cost)
+            user = User(preferences=ufun, cost=cost)
             strategy.on_enter(neg.ami)
             q = next_query(strategy=strategy, user=user)
             # print(f'{strategy} Strategy:\n---------------')
@@ -398,7 +402,7 @@ class TestCountableOutcomesUser:
 
     def test_elicit_until(self, neg):
         for s in ("bisection", "titration+0.05", "titration-0.05", "pingpong"):
-            user = User(ufun=ufun, cost=cost)
+            user = User(preferences=ufun, cost=cost)
             stretegy = EStrategy(strategy=s, resolution=1e-3)
             stretegy.on_enter(neg.ami)
             outcome, query, qcost = next_query(
@@ -429,7 +433,7 @@ class TestCountableOutcomesElicitor:
         )
         elicitor = DummyElicitor(user=user)
         neg.add(opponent)
-        neg.add(elicitor, ufun=u0(neg))
+        neg.add(elicitor, preferences=u0(neg))
         neg.run()
         # print(
         #     f'Got {elicitor.ufun(neg.agreement)} with elicitation cost {elicitor.elicitation_cost}'
@@ -449,7 +453,7 @@ class TestCountableOutcomesElicitor:
         )
         elicitor = FullKnowledgeElicitor(user=user)
         neg.add(opponent)
-        neg.add(elicitor, ufun=u0(neg))
+        neg.add(elicitor, preferences=u0(neg))
         neg.run()
         # print(
         #     f'Got {elicitor.ufun(neg.agreement)} with elicitation cost {elicitor.elicitation_cost}'
@@ -491,7 +495,7 @@ class TestCountableOutcomesElicitor:
         )
         if neg.agreement is not None:
             assert (
-                elicitor.user_ufun(neg.agreement)
+                elicitor.user_preferences(neg.agreement)
                 == true_utilities[neg.agreement[0]] - elicitor.elicitation_cost
             )
         if hasattr(elicitor, "each_outcome_once") and elicitor.each_outcome_once:
@@ -537,14 +541,10 @@ class TestCountableOutcomesElicitor:
                 MappingUtilityFunction(
                     lambda o: elicitor_utilities[o[0]],
                     reserved_value=reserved_value,
-                    outcome_type=tuple,
-                    issue_names=["0"],
                 ),
                 MappingUtilityFunction(
                     lambda o: opponent_utilities[o[0]],
                     reserved_value=reserved_value,
-                    outcome_type=tuple,
-                    issue_names=["0"],
                 ),
             ],
             outcomes=outcomes,
@@ -555,7 +555,7 @@ class TestCountableOutcomesElicitor:
         ).tolist()
         # print(f'frontier: {frontier}\nmax. welfare: {max(welfare)} at outcome: ({welfare.index(max(welfare))},)')
         # print(f'frontier_locs: frontier_locs')
-        neg = SAOMechanism(outcomes=n_outcomes, n_steps=10, outcome_type=tuple)
+        neg = SAOMechanism(outcomes=n_outcomes, n_steps=10)
         opponent = LimitedOutcomesNegotiator(
             acceptable_outcomes=accepted,
             acceptance_probabilities=[1.0] * len(accepted),
@@ -563,9 +563,8 @@ class TestCountableOutcomesElicitor:
         eufun = MappingUtilityFunction(
             dict(zip(outcomes, elicitor_utilities)),
             reserved_value=reserved_value,
-            outcome_type=tuple,
         )
-        user = User(ufun=eufun, cost=cost)
+        user = User(preferences=eufun, cost=cost)
         strategy = EStrategy(strategy=strategy)
         strategy.on_enter(ami=neg.ami)
         elicitor = FullKnowledgeElicitor(strategy=strategy, user=user)
@@ -578,78 +577,62 @@ class TestCountableOutcomesElicitor:
         assert [_[0] for _ in f2_outcomes] == frontier_locs
 
     def test_loading_laptop(self, data_folder):
-        domain, agents_info, issues = load_genius_domain_from_folder(
-            os.path.join(data_folder, "Laptop"),
-            force_single_issue=True,
-            keep_issue_names=False,
-            keep_value_names=False,
-            agent_factories=lambda: AspirationNegotiator(),
-            normalize_utilities=True,
+        d = (
+            load_genius_domain_from_folder(os.path.join(data_folder, "Laptop"))
+            .normalize()
+            .to_single_issue()
         )
-        # [domain.add(LimitedOutcomesNegotiator(outcomes=n_outcomes)
-        #            , ufun=_['ufun']) for _ in agents_info]
-        front, locs = domain.pareto_frontier(sort_by_welfare=True)
-        assert front == [
-            (0.7715533992081258, 0.8450562871935449),
-            (0.5775524426410947, 1.0),
-            (1.0, 0.5136317604069089),
-            (0.8059990434329689, 0.6685754732133642),
-        ]
-
-    def test_loading_laptop_no_names(self, data_folder):
-        domain, agents_info, issues = load_genius_domain_from_folder(
-            os.path.join(data_folder, "Laptop"),
-            force_single_issue=True,
-            keep_issue_names=False,
-            keep_value_names=False,
-            agent_factories=lambda: AspirationNegotiator(),
-            normalize_utilities=True,
-        )
-        # [domain.add(LimitedOutcomesNegotiator(outcomes=n_outcomes)
-        #            , ufun=_['ufun']) for _ in agents_info]
+        domain = d.make_session(AspirationNegotiator, n_steps=100, time_limit=30)
         front, _ = domain.pareto_frontier(sort_by_welfare=True)
-        assert front == [
-            (0.7715533992081258, 0.8450562871935449),
-            (0.5775524426410947, 1.0),
-            (1.0, 0.5136317604069089),
-            (0.8059990434329689, 0.6685754732133642),
-        ]
+        assert (
+            np.max(
+                np.asarray(front)
+                - np.asarray(
+                    [
+                        (0.7715533992081258, 0.8450562871935449),
+                        (0.5775524426410947, 1.0),
+                        (1.0, 0.5136317604069089),
+                        (0.8059990434329689, 0.6685754732133642),
+                    ]
+                )
+            )
+            < 1e-3
+        )
 
     def test_elicitor_can_get_frontier(self, data_folder):
-        domain, agents_info, issues = load_genius_domain_from_folder(
-            os.path.join(data_folder, "Laptop"),
-            force_single_issue=True,
-            keep_issue_names=False,
-            keep_value_names=False,
-            normalize_utilities=True,
+        d = (
+            load_genius_domain_from_folder(os.path.join(data_folder, "Laptop"))
+            .normalize()
+            .to_single_issue()
         )
+        domain = d.make_session(n_steps=100, time_limit=30)
+        issues = d.issues
         assert len(issues) == 1
-        assert len(agents_info) == 2
-        domain.add(LimitedOutcomesNegotiator(), ufun=agents_info[0]["ufun"])
-        user = User(ufun=agents_info[0]["ufun"], cost=cost)
+        assert len(d.ufuns) == 2
+        domain.add(LimitedOutcomesNegotiator(), preferences=d.ufuns[0])
+        user = User(preferences=d.ufuns[0], cost=cost)
         strategy = EStrategy(strategy="titration-0.5")
         strategy.on_enter(ami=domain.ami)
         elicitor = FullKnowledgeElicitor(strategy=strategy, user=user)
         domain.add(elicitor)
         front, _ = domain.pareto_frontier()
         assert front == [(1.0, 1.0)]
+        assert np.max(np.asarray(front) - np.asarray([(1.0, 1.0)])) < 1e-3
 
     def test_elicitor_can_run_from_genius_domain(self, data_folder):
-        domain, agents_info, issues = load_genius_domain_from_folder(
-            os.path.join(data_folder, "Laptop"),
-            force_single_issue=True,
-            keep_issue_names=False,
-            keep_value_names=False,
-            normalize_utilities=True,
+        d = (
+            load_genius_domain_from_folder(os.path.join(data_folder, "Laptop"))
+            .normalize()
+            .to_single_issue()
         )
-        domain.add(LimitedOutcomesNegotiator(), ufun=agents_info[0]["ufun"])
+        domain = d.make_session(AspirationNegotiator, n_steps=100, time_limit=30)
+        domain.add(LimitedOutcomesNegotiator(), preferences=d.ufuns[0])
         # domain.n_steps = 10
-        user = User(ufun=agents_info[0]["ufun"], cost=0.2)
+        user = User(preferences=d.ufuns[0], cost=0.2)
         strategy = EStrategy(strategy="titration-0.5")
         strategy.on_enter(ami=domain.ami)
         elicitor = PandoraElicitor(strategy=strategy, user=user)
         domain.add(elicitor)
-        front, _ = domain.pareto_frontier()
         domain.run()
         assert len(domain.history) > 0
 

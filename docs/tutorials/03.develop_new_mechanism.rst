@@ -70,12 +70,12 @@ negotiators is less than or equal to one:
             self,
             negotiator: "Negotiator",
             *,
-            ufun: Optional["UtilityFunction"] = None,
+            preferences: Optional["Preferences"] = None,
             **kwargs,
         ) -> Optional[bool]:
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
             if added:
-                self.ufuns.append(self.negotiators[-1].utility_function)
+                self.ufuns.append(self.negotiators[-1].ufun)
 
         def is_feasible(self, outcome: Tuple[float]):
             """Tests feasibility of outcomes.
@@ -439,7 +439,7 @@ discounting) and otherwise returns a random apportionment of the pie.
     class RandomRubinsteinNegotiator(RubinsteinNegotiator):
 
         def propose(self, state: RubinsteinMechanismState)-> Outcome:
-            if self.utility_function((1.0, 1.0)) < 0.0:
+            if self.ufun((1.0, 1.0)) < 0.0:
                 return None
             r = random()
             return r, 1 - r
@@ -505,7 +505,7 @@ other agent’s
             AspirationMixin.aspiration_init(self, aspiration_type=aspiration_type, max_aspiration=max_aspiration)
 
         def propose(self, state: RubinsteinMechanismState)-> Outcome:
-            if self.utility_function((1.0, 1.0)) < 0.0:
+            if self.ufun((1.0, 1.0)) < 0.0:
                 return None
             r = self.aspiration(state.relative_time)
             return  (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)

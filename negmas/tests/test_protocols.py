@@ -190,8 +190,8 @@ def test_dynamic_entry(static_mechanism: Mechanism):
     assert static_mechanism.can_enter(a)
     assert not static_mechanism.can_leave(a)
 
-    static_mechanism.add(a, ufun=lambda x: 5.0)
-    static_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
+    static_mechanism.add(a, preferences=lambda x: 5.0)
+    static_mechanism.add(RandomNegotiator(), preferences=lambda x: 5.0)
 
 
 def test_mechanism_fails_on_less_than_two_agents(static_mechanism):
@@ -218,8 +218,8 @@ def test_mechanisms_get_some_rounds():
     lengths = []
     for _ in range(10):
         p = MyMechanism(dynamic_entry=False)
-        p.add(RandomNegotiator(), ufun=lambda x: 5.0)
-        p.add(RandomNegotiator(), ufun=lambda x: 5.0)
+        p.add(RandomNegotiator(), preferences=lambda x: 5.0)
+        p.add(RandomNegotiator(), preferences=lambda x: 5.0)
         p.run()
         lengths.append(len(p.history))
 
@@ -232,8 +232,8 @@ def test_mechanisms_get_some_rounds():
 #     to_be_accepted = [(2,)]
 #     a1 = LimitedOutcomesNegotiator(acceptable_outcomes=to_be_offered, outcomes=10)
 #     a2 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_accepted, outcomes=10)
-#     p.add(a1, ufun=MappingUtilityFunction(lambda x: x[0]+1.0))
-#     p.add(a2, ufun=MappingUtilityFunction(lambda x: x[0] + 1.0))
+#     p.add(a1, preferences=MappingUtilityFunction(lambda x: x[0]+1.0))
+#     p.add(a2, preferences=MappingUtilityFunction(lambda x: x[0] + 1.0))
 #     p.run()
 #     a1offers = [s.current_offer for s in p.history if s.current_proposer == a1.id]
 #     a2offers = [s.current_offer for s in p.history if s.current_proposer == a2.id]
@@ -255,8 +255,8 @@ def test_alternating_offers_mechanism_fails_on_no_offerer():
     to_be_accepted = [(2,)]
     a1 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_offered)
     a2 = LimitedOutcomesAcceptor(acceptable_outcomes=to_be_accepted)
-    p.add(a1, ufun=MappingUtilityFunction(lambda x: x[0] + 1.0))
-    p.add(a2, ufun=MappingUtilityFunction(lambda x: x[0] + 1.0))
+    p.add(a1, preferences=MappingUtilityFunction(lambda x: x[0] + 1.0))
+    p.add(a2, preferences=MappingUtilityFunction(lambda x: x[0] + 1.0))
     try:
         p.run()
     except RuntimeError:

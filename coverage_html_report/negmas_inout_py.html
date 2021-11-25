@@ -924,7 +924,7 @@
 <p id="t317" class="pln"><span class="str">        >>> print(len(negotiators))</span><span class="strut">&nbsp;</span></p>
 <p id="t318" class="pln"><span class="str">        2</span><span class="strut">&nbsp;</span></p>
 <p id="t319" class="pln"><span class="str">        >>> print([type(a['ufun']) for a in negotiators])</span><span class="strut">&nbsp;</span></p>
-<p id="t320" class="pln"><span class="str">        [&lt;class 'negmas.utilities.HyperRectangleUtilityFunction'>, &lt;class 'negmas.utilities.HyperRectangleUtilityFunction'>]</span><span class="strut">&nbsp;</span></p>
+<p id="t320" class="pln"><span class="str">        [&lt;class 'negmas.preferences.HyperRectangleUtilityFunction'>, &lt;class 'negmas.preferences.HyperRectangleUtilityFunction'>]</span><span class="strut">&nbsp;</span></p>
 <p id="t321" class="pln"><span class="str">        >>> print(negotiators[0]['ufun'].outcome_ranges[0])</span><span class="strut">&nbsp;</span></p>
 <p id="t322" class="pln"><span class="str">        {1: (7.0, 9.0), 3: (2.0, 7.0), 5: (0.0, 8.0), 8: (0.0, 7.0)}</span><span class="strut">&nbsp;</span></p>
 <p id="t323" class="pln"><span class="str">        >>> print(negotiators[0]['ufun'].mappings[0])</span><span class="strut">&nbsp;</span></p>
@@ -953,7 +953,7 @@
 <p id="t346" class="pln"><span class="str">        (3, 2)</span><span class="strut">&nbsp;</span></p>
 <p id="t347" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t348" class="pln"><span class="str">        >>> [type(a['ufun']) for a in negotiators]</span><span class="strut">&nbsp;</span></p>
-<p id="t349" class="pln"><span class="str">        [&lt;class 'negmas.utilities.LinearUtilityAggregationFunction'>, &lt;class 'negmas.utilities.LinearUtilityAggregationFunction'>]</span><span class="strut">&nbsp;</span></p>
+<p id="t349" class="pln"><span class="str">        [&lt;class 'negmas.preferences.LinearUtilityAggregationFunction'>, &lt;class 'negmas.preferences.LinearUtilityAggregationFunction'>]</span><span class="strut">&nbsp;</span></p>
 <p id="t350" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t351" class="pln"><span class="str">        >>> mechanism, negotiators, issues = load_genius_domain_from_folder(</span><span class="strut">&nbsp;</span></p>
 <p id="t352" class="pln"><span class="str">        ...                             pkg_resources.resource_filename('negmas', resource_name='tests/data/Laptop')</span><span class="strut">&nbsp;</span></p>
@@ -962,7 +962,7 @@
 <p id="t355" class="pln"><span class="str">        >>> len(issues), len(negotiators)</span><span class="strut">&nbsp;</span></p>
 <p id="t356" class="pln"><span class="str">        (1, 2)</span><span class="strut">&nbsp;</span></p>
 <p id="t357" class="pln"><span class="str">        >>> [type(a['ufun']) for a in negotiators]</span><span class="strut">&nbsp;</span></p>
-<p id="t358" class="pln"><span class="str">        [&lt;class 'negmas.utilities.MappingUtilityFunction'>, &lt;class 'negmas.utilities.MappingUtilityFunction'>]</span><span class="strut">&nbsp;</span></p>
+<p id="t358" class="pln"><span class="str">        [&lt;class 'negmas.preferences.MappingUtilityFunction'>, &lt;class 'negmas.preferences.MappingUtilityFunction'>]</span><span class="strut">&nbsp;</span></p>
 <p id="t359" class="pln"><span class="strut">&nbsp;</span></p>
 <p id="t360" class="pln"><span class="str">    """</span><span class="strut">&nbsp;</span></p>
 <p id="t361" class="stm run hide_run">    <span class="nam">folder_name</span> <span class="op">=</span> <span class="nam">str</span><span class="op">(</span><span class="nam">folder_name</span><span class="op">)</span><span class="strut">&nbsp;</span></p>

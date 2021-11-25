@@ -148,7 +148,7 @@ def test_can_run_from_checkpoint(
     for i in range(n_negotiators):
         mechanism.add(
             AspirationNegotiator(name=f"agent{i}"),
-            ufun=ufuns[i],
+            preferences=ufuns[i],
             aspiration_type="conceder",
         )
 

@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from ..common import MechanismState
 from ..outcomes import Outcome
-from ..utilities import UtilityValue
+from ..preferences import Value
 from .base import BaseElicitor
 
 __all__ = ["DummyElicitor", "FullKnowledgeElicitor"]
@@ -14,9 +14,7 @@ class DummyElicitor(BaseElicitor):
     A dummy elicitation algorithm that does not do any elicitation.
     """
 
-    def utility_on_rejection(
-        self, outcome: "Outcome", state: MechanismState
-    ) -> UtilityValue:
+    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         return self.reserved_value
 
     def can_elicit(self) -> bool:
@@ -27,10 +25,10 @@ class DummyElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         **kwargs,
     ):
-        super().init_elicitation(ufun=ufun, **kwargs)
+        super().init_elicitation(preferences=preferences, **kwargs)
         strt_time = time.perf_counter()
         self.offerable_outcomes = self._ami.outcomes
         self._elicitation_time += time.perf_counter() - strt_time
@@ -42,9 +40,7 @@ class FullKnowledgeElicitor(BaseElicitor):
     to the user ufun.
     """
 
-    def utility_on_rejection(
-        self, outcome: "Outcome", state: MechanismState
-    ) -> UtilityValue:
+    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         return self.reserved_value
 
     def can_elicit(self) -> bool:
@@ -55,10 +51,10 @@ class FullKnowledgeElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        ufun: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
         **kwargs,
     ):
-        super().init_elicitation(ufun=self.user.ufun)
+        super().init_elicitation(preferences=self.user.ufun)
         strt_time = time.perf_counter()
         self.offerable_outcomes = self._ami.outcomes
         self._elicitation_time += time.perf_counter() - strt_time

@@ -4,11 +4,12 @@ from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from ..common import AgentMechanismInterface
+from ..common import NegotiatorMechanismInterface
 from ..mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from ..negotiators import Negotiator
-from ..outcomes import Outcome, ResponseType
-from ..utilities import UtilityFunction
+from ..outcomes import Outcome
+from ..preferences import Preferences
+from ..sao import ResponseType
 
 __all__ = [
     "ChainNegotiationsMechanism",
@@ -32,7 +33,7 @@ Agreement = namedtuple("Agreement", ["outcome", "negotiators", "level"])
 """Defines an agreement for a multi-channel mechanism"""
 
 
-class ChainAMI(AgentMechanismInterface):
+class ChainAMI(NegotiatorMechanismInterface):
     def __init__(
         self,
         *args,
@@ -59,13 +60,13 @@ class ChainNegotiator(Negotiator, ABC):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        to_join = super().join(ami, state, ufun=ufun, role=role)
+        to_join = super().join(ami, state, preferences=preferences, role=role)
         if to_join:
             self.__level = int(role)
         return to_join
@@ -134,13 +135,13 @@ class MultiChainNegotiator(Negotiator, ABC):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        to_join = super().join(ami, state, ufun=ufun, role=role)
+        to_join = super().join(ami, state, preferences=preferences, role=role)
         if to_join:
             self.__level = int(role)
         return to_join
@@ -216,7 +217,9 @@ class ChainNegotiationsMechanism(Mechanism):
         self.__agreements: Dict[int, Outcome] = defaultdict(lambda: None)
         self.__temp_agreements: Dict[int, Outcome] = defaultdict(lambda: None)
 
-    def _get_ami(self, negotiator: Negotiator, role: str) -> AgentMechanismInterface:
+    def _get_ami(
+        self, negotiator: Negotiator, role: str
+    ) -> NegotiatorMechanismInterface:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -247,7 +250,7 @@ class ChainNegotiationsMechanism(Mechanism):
         self,
         negotiator: "Negotiator",
         *,
-        ufun: Optional[UtilityFunction] = None,
+        preferences: Optional[Preferences] = None,
         role: Optional[str] = None,
         **kwargs,
     ) -> Optional[bool]:
@@ -256,7 +259,7 @@ class ChainNegotiationsMechanism(Mechanism):
                 "You cannot join this protocol without specifying the role. "
                 "Possible roles are integers >= -1 "
             )
-        added = super().add(negotiator, ufun=ufun, role=role, **kwargs)
+        added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
         if not added:
             return added
         level = int(role) + 1
@@ -392,7 +395,9 @@ class MultiChainNegotiationsMechanism(Mechanism):
         self.__level: Dict[str, int] = {}
         self.__number: Dict[str, int] = {}
 
-    def _get_ami(self, negotiator: Negotiator, role: str) -> AgentMechanismInterface:
+    def _get_ami(
+        self, negotiator: Negotiator, role: str
+    ) -> NegotiatorMechanismInterface:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -423,7 +428,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
         self,
         negotiator: "Negotiator",
         *,
-        ufun: Optional[UtilityFunction] = None,
+        preferences: Optional[Preferences] = None,
         role: Optional[str] = None,
         **kwargs,
     ) -> Optional[bool]:
@@ -432,7 +437,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
                 "You cannot join this protocol without specifying the role. "
                 "Possible roles are integers >= -1 "
             )
-        added = super().add(negotiator, ufun=ufun, role=role, **kwargs)
+        added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
         if not added:
             return added
         level = int(role) + 1

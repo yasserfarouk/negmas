@@ -4,8 +4,12 @@ import pkg_resources
 import pytest
 from pytest import mark
 
-from negmas.outcomes import Issue, outcome_as_tuple
-from negmas.utilities import (
+from negmas.inout import Domain
+from negmas.outcomes import Issue, dict2outcome, enumerate_issues, issues_from_xml_str
+from negmas.outcomes.issue_ops import issues_from_genius
+from negmas.outcomes.outcome_ops import outcome2dict
+from negmas.outcomes.outcome_space import OutcomeSpace
+from negmas.preferences import (
     HyperRectangleUtilityFunction,
     LinearUtilityAggregationFunction,
     LinearUtilityFunction,
@@ -14,10 +18,11 @@ from negmas.utilities import (
     pareto_frontier,
     utility_range,
 )
+from negmas.preferences.ops import normalize
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
-def test_ufun_range_linear(n_issues):
+def test_preferences_range_linear(n_issues):
     issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0)
@@ -29,12 +34,11 @@ def test_ufun_range_linear(n_issues):
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
-def test_ufun_range_general(n_issues):
+def test_preferences_range_general(n_issues):
     issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = MappingUtilityFunction(
-        mapping=lambda x: sum(r * v for r, v in zip(rs, outcome_as_tuple(x, issues))),
-        outcome_type=tuple,
+        mapping=lambda x: sum(r * v for r, v in zip(rs, x)),
     )
     assert ufun([0.0] * n_issues) == 0.0
     assert ufun([1.0] * n_issues) == sum(rs)
@@ -85,12 +89,30 @@ def test_linear_utility():
             "cost": lambda x: -x,
             "number of items": lambda x: 0.5 * x,
             "delivery": {"delivered": 10.0, "not delivered": -2.0},
-        }
+        },
+        issues=["cost", "number of items", "delivery"],
     )
-    assert (
-        buyer_utility({"cost": 1.0, "number of items": 3, "delivery": "not delivered"})
-        == -1.0 + 1.5 - 2.0
+    assert buyer_utility((1.0, 3, "not delivered")) == -1.0 + 0.5 * 3 - 2.0
+
+
+def test_linear_utility_construction():
+    buyer_utility = LinearUtilityAggregationFunction(
+        {
+            "cost": lambda x: -x,
+            "number of items": lambda x: 0.5 * x,
+            "delivery": {"delivered": 10.0, "not delivered": -2.0},
+        },
+        issues=["cost", "number of items", "delivery"],
     )
+    assert isinstance(buyer_utility, LinearUtilityAggregationFunction)
+    with pytest.raises(ValueError):
+        LinearUtilityAggregationFunction(
+            {
+                "cost": lambda x: -x,
+                "number of items": lambda x: 0.5 * x,
+                "delivery": {"delivered": 10.0, "not delivered": -2.0},
+            },
+        )
 
 
 def test_hypervolume_utility():
@@ -188,17 +210,25 @@ def test_hypervolume_utility():
 
 def test_normalization():
 
+    os = OutcomeSpace.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+            ),
+        ).read(),
+    )
+    issues = os.issues
+    outcomes = os.discrete_outcomes()
     u, _ = UtilityFunction.from_xml_str(
         open(
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
         ).read(),
-        force_single_issue=True,
-        normalize_utility=False,
+        issues=issues,
     )
-    assert abs(u(("Dell+60 Gb+19'' LCD",)) - 21.987727736172488) < 0.000001
-    assert abs(u(("HP+80 Gb+20'' LCD",)) - 22.68559475583014) < 0.000001
+    assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
+    assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
 
     gt_max = {
         ("Dell", "60 Gb", "19'' LCD"): 0.7328862913051053,
@@ -264,12 +294,10 @@ def test_normalization():
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
         ).read(),
-        force_single_issue=False,
-        normalize_utility=True,
-        normalize_max_only=False,
-        keep_issue_names=True,
-        keep_value_names=True,
+        # normalize_utility=True,
+        # normalize_max_only=False,
     )
+    u = normalize(u, outcomes=outcomes)
 
     for k, v in gt_range.items():
         assert abs(v - u(k)) < 1e-3, (k, v, u(k))
@@ -280,108 +308,13 @@ def test_normalization():
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
         ).read(),
-        force_single_issue=False,
-        normalize_utility=True,
-        normalize_max_only=True,
-        keep_issue_names=True,
-        keep_value_names=True,
+        # normalize_utility=True,
+        # normalize_max_only=True,
     )
+    u = normalize(u, outcomes=outcomes, rng=(None, 1.0))
 
     for k, v in gt_max.items():
         assert abs(v - u(k)) < 1e-3, (k, v, u(k))
-
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        force_single_issue=True,
-        keep_issue_names=False,
-        keep_value_names=False,
-        normalize_utility=False,
-    )
-    assert abs(u((0,)) - 21.987727736172488) < 0.000001
-
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        force_single_issue=False,
-        normalize_utility=False,
-    )
-    assert (
-        abs(
-            u({"Laptop": "Dell", "Harddisk": "60 Gb", "External Monitor": "19'' LCD"})
-            - 21.987727736172488
-        )
-        < 0.000001
-    )
-    assert (
-        abs(
-            u({"Laptop": "HP", "Harddisk": "80 Gb", "External Monitor": "20'' LCD"})
-            - 22.68559475583014
-        )
-        < 0.000001
-    )
-
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        force_single_issue=True,
-        normalize_utility=True,
-    )
-    assert abs(u(("Dell+60 Gb+19'' LCD",)) - 0.599329436957658) < 0.1
-    assert abs(u(("HP+80 Gb+20'' LCD",)) - 0.6342209804130308) < 0.01
-
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        force_single_issue=True,
-        keep_issue_names=False,
-        keep_value_names=False,
-        normalize_utility=True,
-    )
-    assert abs(u((0,)) - 0.599329436957658) < 0.1
-
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        force_single_issue=False,
-        normalize_utility=True,
-    )
-    assert (
-        abs(
-            u({"Laptop": "Dell", "Harddisk": "60 Gb", "External Monitor": "19'' LCD"})
-            - 0.599329436957658
-        )
-        < 0.1
-    )
-    assert (
-        abs(
-            u({"Laptop": "HP", "Harddisk": "80 Gb", "External Monitor": "20'' LCD"})
-            - 0.6342209804130308
-        )
-        < 0.01
-    )
-    assert (
-        abs(
-            u({"Laptop": "HP", "Harddisk": "60 Gb", "External Monitor": "19'' LCD"})
-            - 1.0
-        )
-        < 0.0001
-    )
 
 
 @mark.parametrize("utype", (LinearUtilityFunction, LinearUtilityAggregationFunction))
@@ -390,13 +323,13 @@ def test_dict_conversion(utype):
     u = utype.random(issues, normalized=False)
     d = u.to_dict()
     u2 = utype.from_dict(d)
-    for o in Issue.enumerate(issues):
+    for o in enumerate_issues(issues):
         assert abs(u(o) - u2(o)) < 1e-3
 
 
 @mark.parametrize(["normalize"], [(True,), (False,)])
 def test_inverse_genius_domain(normalize):
-    issues, _ = Issue.from_xml_str(
+    issues, _ = issues_from_xml_str(
         open(
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
@@ -409,8 +342,7 @@ def test_inverse_genius_domain(normalize):
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
         ).read(),
-        force_single_issue=False,
-        normalize_utility=normalize,
+        # normalize_utility=normalize,
     )
     u.init_inverse(issues=issues)
     for i in range(100):
@@ -419,19 +351,20 @@ def test_inverse_genius_domain(normalize):
 
 
 def test_random_linear_utils_is_normalized():
-    from negmas.utilities import LinearUtilityAggregationFunction as U1
-    from negmas.utilities import LinearUtilityFunction as U2
+    from negmas.preferences import LinearUtilityAggregationFunction as U2
+    from negmas.preferences import LinearUtilityFunction as U1
 
     eps = 1e-6
     issues = [Issue(10), Issue(5), Issue(2)]
 
     for U in (U1, U2):
         u = U.random(issues=issues, normalized=True)
-        if U == U1:
-            assert 1 - eps <= sum(u.weights.values()) <= 1 + eps
+        if U == U2:
+            assert 1 - eps <= sum(u.weights) <= 1 + eps
         else:
             assert sum(u.weights) <= 1 + eps
-        for w in Issue.enumerate(issues):
+        outcomes = enumerate_issues(issues)
+        for w in outcomes:
             assert -1e-6 <= u(w) <= 1 + 1e-6, f"{str(u.to_dict())}"
 
 

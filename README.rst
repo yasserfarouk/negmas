@@ -134,7 +134,7 @@ Using the package for negotiation can be as simple as the following code snippet
     negotiators = [AspirationNegotiator(name=f"a{_}") for _ in range(5)]
     for negotiator in negotiators:
         session.add(
-            negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0])
+            negotiator, preferences=MappingUtilityFunction(lambda x: random.random() * x[0])
         )
     session.run()
 
