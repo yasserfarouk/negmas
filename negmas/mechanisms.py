@@ -1,11 +1,12 @@
 """
 Provides interfaces for defining negotiation mechanisms.
 """
+from __future__ import annotations
+
 import pprint
 import random
 import time
 import uuid
-import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
@@ -24,26 +25,15 @@ from typing import (
 )
 
 from negmas.checkpoints import CheckpointMixin
-from negmas.common import (
-    AgentMechanismInterface,
-    MechanismState,
-    NamedObject,
-    NegotiatorInfo,
-)
+from negmas.common import MechanismState, NegotiatorInfo, NegotiatorMechanismInterface
 from negmas.events import Event, EventSource
 from negmas.generics import ikeys
 from negmas.genius import DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-    enumerate_outcomes,
-    outcome_as_dict,
-    outcome_as_tuple,
-    outcome_is_valid,
-)
-from negmas.utilities import MappingUtilityFunction, UtilityFunction, pareto_frontier
+from negmas.outcomes import Issue, Outcome, enumerate_discrete_issues, sample_issues
+from negmas.preferences import MappingUtilityFunction, UtilityFunction, pareto_frontier
+from negmas.types import NamedObject
 
 __all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
 
@@ -86,7 +76,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         dynamic_entry: Allow agents to enter/leave negotiations between rounds
         cache_outcomes: If true, a list of all possible outcomes will be cached
         max_n_outcomes: The maximum allowed number of outcomes in the cached set
-        keep_issue_names: DEPRICATED. Use `outcome_type` instead. If True, dicts with issue names will be used for outcomes otherwise tuples
         annotation: Arbitrary annotation
         state_factory: A callable that receives an arbitrary set of key-value pairs and return a MechanismState
                       descendant object
@@ -99,7 +88,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                                a dictionary with string keys
         exist_ok: IF true, checkpoints override existing checkpoints with the same filename.
         name: Name of the mechanism session. Should be unique. If not given, it will be generated.
-        outcome_type: The type used for representing outcomes. Can be tuple, dict or any `OutcomeType`
         genius_port: the port used to connect to Genius for all negotiators in this mechanism (0 means any).
         id: An optional system-wide unique identifier. You should not change
             the default value except in special circumstances like during
@@ -120,7 +108,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         dynamic_entry=False,
         cache_outcomes=True,
         max_n_outcomes: int = 1000000,
-        keep_issue_names=None,
         annotation: Optional[Dict[str, Any]] = None,
         state_factory=MechanismState,
         enable_callbacks=False,
@@ -131,7 +118,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         single_checkpoint: bool = True,
         exist_ok: bool = True,
         name=None,
-        outcome_type=tuple,
         genius_port: int = DEFAULT_JAVA_PORT,
         id: str = None,
     ):
@@ -155,15 +141,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             negotiator_time_limit if negotiator_time_limit is not None else float("inf")
         )
 
-        if keep_issue_names is not None:
-            warnings.warn(
-                "keep_issue_names is depricated. Use outcome_type instead.\n"
-                "keep_issue_names=True <--> outcome_type=dict\n"
-                "keep_issue_names=False <--> outcome_type=tuple\n",
-                DeprecationWarning,
-            )
-            outcome_type = dict if keep_issue_names else tuple
-        keep_issue_names = not issubclass(outcome_type, tuple)
+        keep_issue_names = False
         # parameters fixed for all runs
         if issues is None:
             if outcomes is None:
@@ -198,7 +176,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                             if n_outcomes > max_n_outcomes:
                                 break
                         else:
-                            outcomes = enumerate_outcomes(__issues, astype=outcome_type)
+                            outcomes = enumerate_discrete_issues(__issues)
 
                 except ValueError:
                     pass
@@ -228,19 +206,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.__outcomes is not None and cache_outcomes:
             self.outcome_indices = range(len(self.__outcomes))
             self.__outcome_index = dict(
-                zip(
-                    (
-                        outcome_as_tuple(o, __issues) if not isinstance(o, tuple) else o
-                        for o in self.__outcomes
-                    ),
-                    range(len(self.__outcomes)),
-                )
+                zip(self.__outcomes, range(len(self.__outcomes)))
             )
 
         self.id = str(uuid.uuid4())
         _imap = dict(zip((_.name for _ in __issues), range(len(__issues))))
         _imap.update(dict(zip(range(len(__issues)), (_.name for _ in __issues))))
-        self.ami = AgentMechanismInterface(
+        self.ami = NegotiatorMechanismInterface(
             id=self.id,
             n_outcomes=None if outcomes is None else len(outcomes),
             issues=__issues,
@@ -252,7 +224,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             dynamic_entry=dynamic_entry,
             max_n_agents=max_n_agents,
             annotation=annotation,
-            outcome_type=dict if keep_issue_names else tuple,
             imap=_imap,
         )
         self.ami._mechanism = self
@@ -325,56 +296,46 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         return outcome_is_valid(outcome, self.ami.issues)
 
-    def discrete_outcomes(
-        self, n_max: int = None, astype: Type["Outcome"] = None
-    ) -> List["Outcome"]:
+    def discrete_outcomes(self, n_max: int = None) -> List["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
         Args:
             n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
             and *100* if any of the issues was continuous
-            astype: A type to cast the resulting outcomes to.
 
         Returns:
 
             List[Outcome]: List of `n` or less outcomes
 
         """
-        if astype is None:
-            astype = self.ami.outcome_type
         if self.outcomes is not None:
             return self.outcomes
         if self.__discrete_outcomes is None:
             if all(issue.is_countable() for issue in self.issues):
-                self.__discrete_outcomes = Issue.sample(
+                self.__discrete_outcomes = sample_issues(
                     issues=self.issues,
                     n_outcomes=n_max,
-                    astype=astype,
                     with_replacement=False,
                     fail_if_not_enough=False,
                 )
             else:
-                self.__discrete_outcomes = Issue.sample(
+                self.__discrete_outcomes = sample_issues(
                     issues=self.issues,
                     n_outcomes=n_max if n_max is not None else 100,
-                    astype=astype,
                     with_replacement=False,
                     fail_if_not_enough=False,
                 )
         return self.__discrete_outcomes
 
-    def random_outcomes(
-        self, n: int = 1, astype: Type[Outcome] = None
-    ) -> List["Outcome"]:
+    def random_outcomes(self, n: int = 1) -> List["Outcome"]:
         """Returns random offers.
 
         Args:
               n: Number of outcomes to generate
-              astype: The type to use for the generated outcomes
 
         Returns:
-              A list of outcomes (in the type specified using `astype`) of at most n outcomes.
+              A list of outcomes of at most n outcomes.
 
         Remarks:
 
@@ -382,14 +343,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 - Sampling is done without replacement (i.e. returned outcomes are unique).
 
         """
-        if astype is None:
-            astype = self.ami.outcome_type
         if self.ami.issues is None or len(self.ami.issues) == 0:
             raise ValueError("I do not have any issues to generate offers from")
-        return Issue.sample(
+        return sample_issues(
             issues=self.issues,
             n_outcomes=n,
-            astype=astype,
             with_replacement=False,
             fail_if_not_enough=False,
         )
@@ -442,7 +400,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self,
         negotiator: "Negotiator",
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: Optional[str] = None,
         **kwargs,
     ) -> Optional[bool]:
@@ -451,7 +409,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         Args:
 
             negotiator: The agent to be added.
-            ufun: The utility function to use. If None, then the agent must already have a stored
+            preferences: The utility function to use. If None, then the agent must already have a stored
                   utility function otherwise it will fail to enter the negotiation.
             role: The role the agent plays in the negotiation mechanism. It is expected that mechanisms inheriting from
                   this class will check this parameter to ensure that the role is a valid role and is still possible for
@@ -472,19 +430,24 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if negotiator in self._negotiators:
             return False
 
-        if isinstance(ufun, Iterable) and not isinstance(ufun, UtilityFunction):
-            if isinstance(ufun, dict):
-                ufun = MappingUtilityFunction(mapping=ufun, ami=self.ami)
+        if isinstance(preferences, Iterable) and not isinstance(
+            preferences, UtilityFunction
+        ):
+            if isinstance(preferences, dict):
+                preferences = MappingUtilityFunction(mapping=preferences, ami=self.ami)
             else:
-                ufun = MappingUtilityFunction(
-                    mapping=dict(zip(self.outcomes, ufun)), ami=self.ami
+                preferences = MappingUtilityFunction(
+                    mapping=dict(zip(self.outcomes, preferences)), ami=self.ami
                 )
 
         if role is None:
             role = "agent"
 
         if negotiator.join(
-            ami=self._get_ami(negotiator, role), state=self.state, ufun=ufun, role=role
+            ami=self._get_ami(negotiator, role),
+            state=self.state,
+            preferences=preferences,
+            role=role,
         ):
             self._negotiators.append(negotiator)
             self._negotiator_map[negotiator.id] = negotiator
@@ -802,9 +765,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         state4history = self.state4history
 
         # end with a timeout if condition is met
-        if (self.time > self.time_limit) or (
-            self.ami.n_steps and self._step >= self.ami.n_steps
-        ) or self.time > self._hidden_time_limit:
+        if (
+            (self.time > self.time_limit)
+            or (self.ami.n_steps and self._step >= self.ami.n_steps)
+            or self.time > self._hidden_time_limit
+        ):
             self._running, self._broken, self._timedout = False, False, True
             self.on_negotiation_end()
             return self.state
@@ -1088,7 +1053,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def pareto_frontier(
         self, n_max=None, sort_by_welfare=True
     ) -> Tuple[List[Tuple[float]], List["Outcome"]]:
-        ufuns = self._get_ufuns()
+        ufuns = self._get_preferencess()
         if any(_ is None for _ in ufuns):
             return [], []
         frontier, indices = pareto_frontier(
@@ -1105,11 +1070,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     __repr__ = __str__
 
-    def _get_ufuns(self):
-        ufuns = []
+    def _get_preferencess(self):
+        preferences = []
         for a in self.negotiators:
-            ufuns.append(a.utility_function)
-        return ufuns
+            preferences.append(a.preferences)
+        return preferences
 
     def plot(self, **kwargs):
         """A method for plotting a negotiation session"""
@@ -1130,91 +1095,15 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return dict()
 
-    def _get_ami(self, negotiator: Negotiator, role: str) -> AgentMechanismInterface:
+    def _get_ami(
+        self, negotiator: Negotiator, role: str
+    ) -> NegotiatorMechanismInterface:
         return self.ami
-
-    def cast_outcome(self, outcome):
-        """Converts an outcome to the outcome-type used in this negotiation"""
-        if issubclass(self.ami.outcome_type, tuple) and not isinstance(outcome, tuple):
-            return self.as_tuple(outcome)
-        if issubclass(self.ami.outcome_type, dict) and not isinstance(outcome, tuple):
-            return outcome_as_dict(outcome, self.issues)
-        return outcome
-
-    def as_tuple(self, outcome):
-        """
-        Converts the outcome to a tuple
-        """
-        if outcome is None:
-            return outcome
-        if isinstance(outcome, tuple):
-            return outcome
-        return outcome_as_tuple(outcome, self.issue_names)
 
     @property
     def issue_names(self):
         """Returns issue names"""
         return [_.name for _ in self.issues]
-
-
-# @dataclass
-# class MechanismSequenceState(MechanismState):
-#     current_mechanism_ami: AgentMechanismInterfacea = None
-#     current_mechanism_state: MechanismState = None
-#
-#
-# def safemin(a, b):
-#     """Returns the minimum assuming None is larger than anything"""
-#     if a is None:
-#         return b
-#     if b is None:
-#         return a
-#     return min(a, b)
-#
-# class MechanismSequence(Mechanism):
-#     """Represents a sequence of mechanisms with the agreements of one of them as the starting point of the next"""
-#
-#     def __init__(self, mechanisms: List[Mechanism],
-#                  one_round_per_mechanism = True,
-#                  issues: List["Issue"] = None,
-#                  outcomes: Union[int, List["Outcome"]] = None,
-#                  n_steps: int = None,
-#                  time_limit: float = None,
-#                  step_time_limit: float = None,
-#                  max_n_agents: int = None,
-#                  dynamic_entry=False,
-#                  cache_outcomes=True,
-#                  max_n_outcomes: int = 1000000,
-#                  keep_issue_names=True,
-#                  annotation: Optional[Dict[str, Any]] = None,
-#                  state_factory=MechanismState,
-#                  enable_callbacks=False,
-#                  name=None,
-#                  ):
-#         super().__init__(issues=issues, outcomes=outcomes, n_steps=n_steps, time_limit=time_limit
-#                          , step_time_limit=step_time_limit, max_n_agents=max_n_agents, dynamic_entry=dynamic_entry
-#                          , cache_outcomes=cache_outcomes, max_n_outcomes=max_n_outcomes, keep_issue_names=keep_issue_names
-#                          , annotation=annotation, state_factory=state_factory, enable_callbacks=enable_callbacks
-#                          , name=name)
-#         self.mechanisms = list(mechanisms)
-#         for mechanism in mechanisms:
-#             if mechanism.state.started:
-#                 raise ValueError(f'Mechanism {mechanism.id} of type {mechanism.__class__.__name__} is already started. '
-#                                  f'Cannot create a mechanism sequence with a mechanism that is already started.')
-#             mechanism.ami.time_limit = safemin(mechanism.ami.time_limit, self.time_limit)
-#             mechanism.ami.step_time_limit = safemin(mechanism.ami.step_time_limit, self.step_time_limit)
-#             if not one_round_per_mechanism:
-#                 mechanism.ami.n_steps = safemin(mechanism.ami.n_steps, n_steps)
-#             mechanism.ami.dynamic_entry = self.dynamic_entry if not self.dynamic_entry else mechanism.ami.dynamic_entry
-#         self._current_mechanism = self.mechanisms[0]
-#         self._current_mechanism_index = 0
-#         self._current_mechanism.outcomes = self.outcomes
-#         self.one_round_per_mechanism = one_round_per_mechanism
-#
-#     def round(self) -> MechanismRoundResult:
-#         if self.one_round_per_mechanism:
-#
-#
 
 
 Protocol = Mechanism

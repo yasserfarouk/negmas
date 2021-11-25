@@ -26,8 +26,8 @@
       <issue index="5" vtype="discrete" etype="discrete" type="discrete" name="intensity">
         <item index="1" value="light"></item>
         <item index="2" value="moderate"></item>
-        <item index="3" value="as training">				</item>
-        <item index="4" value="as boot-camp">				</item>
+        <item index="3" value="as training"></item>
+        <item index="4" value="as boot-camp"></item>
       </issue>
       <issue index="6" vtype="discrete" etype="discrete" type="discrete" name="Price($)">
         <item index="1" value="0"></item>

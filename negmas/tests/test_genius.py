@@ -11,15 +11,16 @@ from negmas import (
     load_genius_domain_from_folder,
 )
 from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
+from negmas.genius.gnegotiators import AgentK
 
-dom_folder = pathlib.Path(
+DOMAIN_FOLDER = pathlib.Path(
     pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/scenarios/anac/y2010/Travel"
     )
 )
-dom = dom_folder / "travel_domain.xml"
-util1 = dom_folder / "travel_chox.xml"
-util2 = dom_folder / "travel_fanny.xml"
+DOMAIN_FILE = DOMAIN_FOLDER / "travel_domain.xml"
+UTIL1 = DOMAIN_FOLDER / "travel_chox.xml"
+UTIL2 = DOMAIN_FOLDER / "travel_fanny.xml"
 
 
 SKIP_IF_NO_BRIDGE = True
@@ -35,23 +36,70 @@ def init_genius():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent(init_genius):
-    p, _, issues = load_genius_domain_from_folder(
-        dom_folder,
-        agent_factories=[
-            lambda: GeniusNegotiator(
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER)
+    p = domain.make_session(
+        [
+            GeniusNegotiator(
                 java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-                domain_file_name=dom,
-                utility_file_name=util1,
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL1,
             ),
-            lambda: GeniusNegotiator(
+            GeniusNegotiator(
                 java_class_name="agents.anac.y2015.AgentX.AgentX",
-                domain_file_name=dom,
-                utility_file_name=util2,
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL2,
             ),
         ],
-        keep_issue_names=True,
-        keep_value_names=True,
         time_limit=120,
+        n_steps=None,
+    )
+    issues = domain.issues
+    assert len(p.negotiators) > 1
+    issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
+    assert issue_list == [
+        "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)'"
+        ", 'Liveliness', 'Turistic activities', 'Hospitality']",
+        "1:Amusement: ['Nightlife and entertainment', 'Nightclubs', 'Excursion', 'Casinos', 'Zoo', 'Festivals'"
+        ", 'Amusement park']",
+        "2:Culinary: ['Local cuisine', 'Lunch facilities', 'International cuisine', 'Cooking workshops']",
+        "3:Shopping: ['Shopping malls', 'Markets', 'Streets', 'Small boutiques']",
+        "4:Culture: ['Museum', 'Music hall', 'Theater', 'Art gallery', 'Cinema', 'Congress center']",
+        "5:Sport: ['Bike tours', 'Hiking', 'Indoor activities', 'Outdoor activities', 'Adventure']",
+        "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.', 'Monuments'"
+        ", 'Special streets', 'Palace', 'Landscape and nature']",
+    ]
+    first, second = p.negotiators[0], p.negotiators[1]
+    p.run()
+    # print(f'{len(p.history)} bids exchanged')
+    u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
+    welfare = u1 + u2
+    # print(
+    #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
+    #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
+    # print(p.state)
+    assert len(u1) > 0
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_genius_agent_top2016_caduceus_first(init_genius):
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER)
+    issues = domain.issues
+    p = domain.make_session(
+        [
+            Caduceus(
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL1,
+            ),
+            AgentX(
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL2,
+            ),
+        ],
+        time_limit=20,
         n_steps=None,
     )
     assert len(p.negotiators) > 1
@@ -71,56 +119,8 @@ def test_genius_agent(init_genius):
     first, second = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
-    # print(
-    #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
-    #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
-    # print(p.state)
-    assert len(u1) > 0
-
-
-@pytest.mark.skipif(
-    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_genius_agent_top2016_caduceus_first(init_genius):
-    p, _, issues = load_genius_domain_from_folder(
-        dom_folder,
-        agent_factories=[
-            lambda: Caduceus(
-                domain_file_name=dom,
-                utility_file_name=util1,
-            ),
-            lambda: AgentX(
-                domain_file_name=dom,
-                utility_file_name=util2,
-            ),
-        ],
-        keep_issue_names=True,
-        keep_value_names=True,
-        time_limit=20,
-    )
-    assert len(p.negotiators) > 1
-    issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
-    assert issue_list == [
-        "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)'"
-        ", 'Liveliness', 'Turistic activities', 'Hospitality']",
-        "1:Amusement: ['Nightlife and entertainment', 'Nightclubs', 'Excursion', 'Casinos', 'Zoo', 'Festivals'"
-        ", 'Amusement park']",
-        "2:Culinary: ['Local cuisine', 'Lunch facilities', 'International cuisine', 'Cooking workshops']",
-        "3:Shopping: ['Shopping malls', 'Markets', 'Streets', 'Small boutiques']",
-        "4:Culture: ['Museum', 'Music hall', 'Theater', 'Art gallery', 'Cinema', 'Congress center']",
-        "5:Sport: ['Bike tours', 'Hiking', 'Indoor activities', 'Outdoor activities', 'Adventure']",
-        "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.', 'Monuments'"
-        ", 'Special streets', 'Palace', 'Landscape and nature']",
-    ]
-    first, second = p.negotiators[0], p.negotiators[1]
-    p.run()
-    # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
+    u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -130,15 +130,15 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
 
 
 def do_run(first_type, second_type):
-    p, _, issues = load_genius_domain_from_folder(
-        dom_folder,
-        agent_factories=[
-            lambda: first_type(domain_file_name=dom, utility_file_name=util1),
-            lambda: second_type(domain_file_name=dom, utility_file_name=util2),
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER)
+    issues = domain.issues
+    p = domain.make_session(
+        [
+            first_type(domain_file_name=DOMAIN_FILE, utility_file_name=UTIL1),
+            second_type(domain_file_name=DOMAIN_FILE, utility_file_name=UTIL2),
         ],
-        keep_issue_names=True,
-        keep_value_names=True,
         time_limit=20,
+        n_steps=None,
     )
     assert len(p.negotiators) > 1
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
@@ -157,8 +157,8 @@ def do_run(first_type, second_type):
     first, second = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
+    u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
     # welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -181,23 +181,23 @@ def test_genius_agent_top2016_yx_second_classes(init_genius, first_type, second_
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_top2016_yx_second(init_genius):
-    p, _, issues = load_genius_domain_from_folder(
-        dom_folder,
-        agent_factories=[
-            lambda: GeniusNegotiator(
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER)
+    issues = domain.issues
+    p = domain.make_session(
+        [
+            GeniusNegotiator(
                 java_class_name="agents.anac.y2016.yxagent.YXAgent",
-                domain_file_name=dom,
-                utility_file_name=util1,
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL1,
             ),
-            lambda: GeniusNegotiator(
+            GeniusNegotiator(
                 java_class_name="agents.anac.y2015.AgentX.AgentX",
-                domain_file_name=dom,
-                utility_file_name=util2,
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL2,
             ),
         ],
-        keep_issue_names=True,
-        keep_value_names=True,
         time_limit=20,
+        n_steps=None,
     )
     assert len(p.negotiators) > 1
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
@@ -216,8 +216,8 @@ def test_genius_agent_top2016_yx_second(init_genius):
     first, second = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(first.utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(second.utility_function(s.current_offer)) for s in p.history])
+    u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
+    u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -231,24 +231,23 @@ def test_genius_agent_top2016_yx_second(init_genius):
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_step_limit(init_genius):
-    p, _, issues = load_genius_domain_from_folder(
-        dom_folder,
-        agent_factories=[
-            lambda: GeniusNegotiator(
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER)
+    issues = domain.issues
+    p = domain.make_session(
+        [
+            GeniusNegotiator(
                 java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-                domain_file_name=dom,
-                utility_file_name=util1,
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL1,
             ),
-            lambda: GeniusNegotiator(
+            GeniusNegotiator(
                 java_class_name="agents.anac.y2015.AgentX.AgentX",
-                domain_file_name=dom,
-                utility_file_name=util2,
+                domain_file_name=DOMAIN_FILE,
+                utility_file_name=UTIL2,
             ),
         ],
-        keep_issue_names=True,
-        keep_value_names=True,
-        n_steps=20,
         time_limit=None,
+        n_steps=20,
     )
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
     assert issue_list == [
@@ -263,8 +262,8 @@ def test_genius_agent_step_limit(init_genius):
     atlas3, agentx = p.negotiators[0], p.negotiators[1]
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(atlas3.utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(agentx.utility_function(s.current_offer)) for s in p.history])
+    u1 = np.array([float(atlas3.ufun(s.current_offer)) for s in p.history])
+    u2 = np.array([float(agentx.ufun(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -279,22 +278,17 @@ def test_genius_agent_step_limit(init_genius):
 def test_genius_agent_step_long_session(init_genius):
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-        domain_file_name=dom,
-        utility_file_name=util1,
+        domain_file_name=DOMAIN_FILE,
+        utility_file_name=UTIL1,
     )
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-        domain_file_name=dom,
-        utility_file_name=util2,
+        domain_file_name=DOMAIN_FILE,
+        utility_file_name=UTIL2,
     )
-    p, _, issues = load_genius_domain(
-        dom,
-        keep_issue_names=True,
-        keep_value_names=True,
-        n_steps=20,
-        time_limit=None,
-        normalize_utilities=True,
-    )
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER).normalize()
+    issues = domain.issues
+    p = domain.make_session([a1, a2], time_limit=None, n_steps=20)
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
     assert issue_list == [
         "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)', 'Liveliness', 'Turistic activities', 'Hospitality']",
@@ -309,8 +303,8 @@ def test_genius_agent_step_long_session(init_genius):
     p.add(a2)
     p.run()
     # print(f'{len(p.history)} bids exchanged')
-    u1 = np.array([float(a1._utility_function(s.current_offer)) for s in p.history])
-    u2 = np.array([float(a2._utility_function(s.current_offer)) for s in p.history])
+    u1 = np.array([float(a1._preferences(s.current_offer)) for s in p.history])
+    u2 = np.array([float(a2._preferences(s.current_offer)) for s in p.history])
     welfare = u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
@@ -323,16 +317,12 @@ def test_genius_agent_step_long_session(init_genius):
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_genius_agent_same_utility():
+def test_genius_agent_same_utility_with_normalization():
     from negmas import load_genius_domain_from_folder
 
-    p, ufuns, issues = load_genius_domain_from_folder(
-        dom_folder,
-        keep_issue_names=True,
-        keep_value_names=True,
-        time_limit=300000,
-        normalize_utilities=True,
-    )
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER).normalize()
+    issues = domain.issues
+    p = domain.make_session(time_limit=300, n_steps=None)
     assert p is not None, "Could not create a mechanism"
     issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
     assert issue_list == [
@@ -347,13 +337,52 @@ def test_genius_agent_same_utility():
         "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.'"
         ", 'Monuments', 'Special streets', 'Palace', 'Landscape and nature']",
     ]
-    a1 = AgentX(ufun=ufuns[0]["ufun"])
-    a2 = Atlas3(ufun=ufuns[0]["ufun"])
+    a1 = AgentK(ufun=domain.ufuns[0])
+    a2 = Atlas3(ufun=domain.ufuns[0])
     p.add(a1)
     p.add(a2)
     final = p.run()
-    u1 = [float(a1.utility_function(o)) for o in p.offers]
-    u2 = [float(a2.utility_function(o)) for o in p.offers]
+    u1 = [float(a1.preferences(o)) for o in p.offers]
+    u2 = [float(a2.preferences(o)) for o in p.offers]
+    assert len(u1) >= 1 or len(u2) >= 1
+    u1, u2 = a1.ufun(final.agreement), a2.ufun(final.agreement)
+    welfare = u1 + u2
+    assert p.state.agreement is not None
+    assert p.state.broken is False
+    assert welfare > 1
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_genius_agent_same_utility():
+    from negmas import load_genius_domain_from_folder
+
+    domain = load_genius_domain_from_folder(DOMAIN_FOLDER)
+    issues = domain.issues
+    p = domain.make_session(time_limit=300, n_steps=None)
+    assert p is not None, "Could not create a mechanism"
+    issue_list = [f"{k}:{v}" for k, v in enumerate(issues)]
+    assert issue_list == [
+        "0:Atmosphere: ['Cultural heritage', 'Local traditions', 'Political stability', 'Security (personal)'"
+        ", 'Liveliness', 'Turistic activities', 'Hospitality']",
+        "1:Amusement: ['Nightlife and entertainment', 'Nightclubs', 'Excursion', 'Casinos', 'Zoo'"
+        ", 'Festivals', 'Amusement park']",
+        "2:Culinary: ['Local cuisine', 'Lunch facilities', 'International cuisine', 'Cooking workshops']",
+        "3:Shopping: ['Shopping malls', 'Markets', 'Streets', 'Small boutiques']",
+        "4:Culture: ['Museum', 'Music hall', 'Theater', 'Art gallery', 'Cinema', 'Congress center']",
+        "5:Sport: ['Bike tours', 'Hiking', 'Indoor activities', 'Outdoor activities', 'Adventure']",
+        "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.'"
+        ", 'Monuments', 'Special streets', 'Palace', 'Landscape and nature']",
+    ]
+    a1 = AgentK(ufun=domain.ufuns[0])
+    a2 = Atlas3(ufun=domain.ufuns[0])
+    p.add(a1)
+    p.add(a2)
+    final = p.run()
+    u1 = [float(a1.preferences(o)) for o in p.offers]
+    u2 = [float(a2.preferences(o)) for o in p.offers]
     assert len(u1) >= 1 or len(u2) >= 1
     u1, u2 = a1.ufun(final.agreement), a2.ufun(final.agreement)
     welfare = u1 + u2
@@ -392,22 +421,17 @@ class TestGeniusAgentSessions:
             base_folder = dst
         else:
             base_folder = src
-        neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder,
-            normalize_utilities=True,
-            keep_issue_names=keep_issue_names,
-            keep_value_names=keep_value_names,
-        )
-        # atlas = GeniusNegotiator.random_negotiator(
+        domain = load_genius_domain_from_folder(base_folder).normalize()
         atlas = GeniusNegotiator(
             java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-            ufun=agent_info[utils[0]]["ufun"],
+            ufun=domain.ufuns[utils[0]],
         )
         # agentx = GeniusNegotiator.random_negotiator(
         agentx = GeniusNegotiator(
             java_class_name="agents.anac.y2015.AgentX.AgentX",
-            ufun=agent_info[utils[1]]["ufun"],
+            ufun=domain.ufuns[utils[1]],
         )
+        neg = domain.make_session(n_steps=100)
         neg.add(atlas)
         neg.add(agentx)
         return neg
@@ -416,7 +440,9 @@ class TestGeniusAgentSessions:
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
-    def test_genius_agents_can_run_on_converted_single_issue_ufun1(self, init_genius):
+    def test_genius_agents_can_run_on_converted_single_issue_preferences1(
+        self, init_genius
+    ):
         neg = self.prepare(utils=(0, 0), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
             # (30.001554125152623, 30.001554125152623)
@@ -434,7 +460,9 @@ class TestGeniusAgentSessions:
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
-    def test_genius_agents_can_run_on_converted_single_issue_ufun2(self, init_genius):
+    def test_genius_agents_can_run_on_converted_single_issue_preferences2(
+        self, init_genius
+    ):
         neg = self.prepare(utils=(1, 1), single_issue=True)
         assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(1.0, 1.0)]
         state = neg.run()
@@ -541,29 +569,21 @@ class TestGeniusAgentSessions:
             base_folder = dst
         else:
             base_folder = src
-        neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder,
-            keep_issue_names=keep_issue_names,
-            keep_value_names=keep_value_names,
-        )
+        domain = load_genius_domain_from_folder(base_folder)
         # atlas = GeniusNegotiator.random_negotiator(
         atlas = GeniusNegotiator(
             java_class_name=agent_name1,
-            domain_file_name=base_folder + "/Laptop-C-domain.xml",
-            utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
-            keep_issue_names=keep_issue_names,
-            keep_value_names=keep_value_names,
+            domain_file_name=domain.agenda.name,
+            utility_file_name=domain.ufuns[0].name,
         )
         agentx = GeniusNegotiator(
             java_class_name=agent_name2,
-            domain_file_name=base_folder + "/Laptop-C-domain.xml",
-            utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
-            keep_issue_names=keep_issue_names,
-            keep_value_names=keep_value_names,
+            domain_file_name=domain.agenda.name,
+            utility_file_name=domain.ufuns[1].name,
         )
+        neg = domain.make_session(n_steps=100)
         neg.add(atlas)
         neg.add(agentx)
-        # print(agent_name1, agent_name2, neg.run(timeout=1))
 
 
 if __name__ == "__main__":

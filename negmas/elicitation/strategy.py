@@ -1,8 +1,8 @@
 from typing import List, Optional, Tuple, Union
 
-from ..common import AgentMechanismInterface
-from ..outcomes import Outcome, outcome_as_tuple
-from ..utilities import IPUtilityFunction, UtilityDistribution, UtilityValue
+from ..common import NegotiatorMechanismInterface
+from ..outcomes import Outcome, dict2outcome
+from ..preferences import Distribution, IPUtilityFunction, Value
 from .common import _loc, _upper
 from .queries import Answer, Query, RangeConstraint
 
@@ -56,7 +56,7 @@ class EStrategy:
 
     def apply(
         self, user: "User", outcome: "Outcome"
-    ) -> Tuple[Optional[UtilityValue], Optional["QResponse"]]:
+    ) -> Tuple[Optional[Value], Optional["QResponse"]]:
         """Do the elicitation and incur the cost.
 
         Remarks:
@@ -68,7 +68,7 @@ class EStrategy:
         """
 
         lower, upper, _ = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome_as_tuple(outcome, None)]
+        index = self.indices[outcome]
         lower, upper = lower[index], upper[index]
         epsilon = self.resolution
 
@@ -84,9 +84,7 @@ class EStrategy:
             reply = user.ask(query)
             if reply is None or reply.answer is None:
                 return (
-                    UtilityDistribution(
-                        dtype="uniform", loc=lower, scale=upper - lower
-                    ),
+                    Distribution(type="uniform", loc=lower, scale=upper - lower),
                     None,
                 )
             lower_new, upper_new = (
@@ -102,12 +100,12 @@ class EStrategy:
         elif abs(upper - lower) < epsilon or query is None:
             u = (upper + lower) / 2
         else:
-            u = UtilityDistribution(dtype="uniform", loc=lower, scale=upper - lower)
+            u = Distribution(type="uniform", loc=lower, scale=upper - lower)
         return u, reply
 
     def next_query(self, outcome: "Outcome") -> Optional[Query]:
         lower, upper, outcomes = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome_as_tuple(outcome, None)]
+        index = self.indices[outcome]
         lower, upper = lower[index], upper[index]
 
         if abs(upper - lower) < self.resolution:
@@ -256,20 +254,20 @@ class EStrategy:
 
         return query
 
-    def utility_estimate(self, outcome: "Outcome") -> UtilityValue:
+    def utility_estimate(self, outcome: "Outcome") -> Value:
         """Gets a probability distribution of the Negotiator for this outcome without elicitation. Costs nothing"""
-        indx = self.indices[outcome_as_tuple(outcome, None)]
+        indx = self.indices[outcome]
         scale = self.upper[indx] - self.lower[indx]
         if scale < self.resolution:
             return self.lower[indx]
-        return UtilityDistribution(dtype="uniform", loc=self.lower[indx], scale=scale)
+        return Distribution(type="uniform", loc=self.lower[indx], scale=scale)
 
     def until(
         self,
         outcome: "Outcome",
         user: "User",
-        dist: Union[List[UtilityValue], UtilityValue],
-    ) -> UtilityValue:
+        dist: Union[List[Value], Value],
+    ) -> Value:
         if isinstance(dist, list):
             targets = [
                 (_ - self.resolution, _ + self.resolution)
@@ -301,17 +299,13 @@ class EStrategy:
         return u
 
     def on_enter(
-        self, ami: AgentMechanismInterface, ufun: IPUtilityFunction = None
+        self, ami: NegotiatorMechanismInterface, preferences: IPUtilityFunction = None
     ) -> None:
         self.lower = [0.0] * ami.n_outcomes
         self.upper = [1.0] * ami.n_outcomes
-        self.indices = dict(
-            zip(
-                (outcome_as_tuple(_, None) for _ in ami.outcomes), range(ami.n_outcomes)
-            )
-        )
-        if ufun is not None:
-            distributions = list(ufun.distributions.values())
+        self.indices = dict(zip(ami.outcomes, range(ami.n_outcomes)))
+        if preferences is not None:
+            distributions = list(preferences.distributions.values())
             for i, dist in enumerate(distributions):
                 self.lower[i] = _loc(dist)
                 self.upper[i] = _upper(dist)

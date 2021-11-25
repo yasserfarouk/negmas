@@ -1,3 +1,3 @@
-.. automodapi:: negmas.utilities
+.. automodapi:: negmas.preferences
       :members:
       :show-inheritance:

@@ -67,11 +67,12 @@ from negmas import (
 )
 from negmas.genius import GeniusBridge, get_anac_agents
 from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
+from negmas.inout import Domain
 
 TIMELIMIT = 120
 STEPLIMIT = 1000
 
-AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = tuple()
+AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
 SKIP_IF_NO_BRIDGE = True
 
@@ -137,26 +138,24 @@ def test_genius_does_not_freeze():
     from pathlib import Path
 
     from negmas.genius import GeniusNegotiator
-    from negmas.inout import load_genius_domain_from_folder
 
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    mechanism, ufuns, issues = load_genius_domain_from_folder(
-        folder_name, n_steps=None, time_limit=TIMELIMIT
-    )
+    domain = Domain.from_genius_folder(folder_name)
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
-        domain_file_name=f"{folder_name}/{mechanism.name}.xml",
-        utility_file_name=ufuns[0]["ufun_name"],
+        domain_file_name=domain.agenda.name,
+        utility_file_name=domain.ufuns[0].name,
     )
 
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2016.yxagent.YXAgent",
-        domain_file_name=f"{folder_name}/{mechanism.name}.xml",
-        utility_file_name=ufuns[1]["ufun_name"],
+        domain_file_name=domain.agenda.name,
+        utility_file_name=domain.ufuns[1].name,
     )
 
+    mechanism = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
     mechanism.add(a1)
     mechanism.add(a2)
     mechanism.run()
@@ -177,23 +176,20 @@ def test_old_agent():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    mechanism, ufuns, issues = load_genius_domain_from_folder(
-        folder_name, n_steps=None, time_limit=TIMELIMIT
-    )
+    domain = Domain.from_genius_folder(folder_name)
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2012.AgentLG.AgentLG",
-        domain_file_name=f"{folder_name}/{mechanism.name}.xml",
-        utility_file_name=ufuns[0]["ufun_name"],
+        domain_file_name=domain.agenda.name,
+        utility_file_name=domain.ufuns[0].name,
     )
 
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2016.yxagent.YXAgent",
-        domain_file_name=f"{folder_name}/{mechanism.name}.xml",
-        utility_file_name=ufuns[1]["ufun_name"],
+        domain_file_name=domain.agenda.name,
+        utility_file_name=domain.ufuns[1].name,
     )
 
-    mechanism.add(a1)
-    mechanism.add(a2)
+    mechanism = domain.make_session([a1, a2], n_steps=None, time_limit=TIMELIMIT)
     mechanism.run()
     # print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
     GeniusBridge.clean()
@@ -214,60 +210,33 @@ def test_old_agent():
     agent_name1=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     agent_name2=st.sampled_from(GeniusNegotiator.robust_negotiators()),
     single_issue=st.booleans(),
-    keep_issue_names=st.booleans(),
-    keep_value_names=st.booleans(),
 )
 def test_genius_agents_run_using_hypothesis(
     agent_name1,
     agent_name2,
     single_issue,
-    keep_issue_names,
-    keep_value_names,
 ):
     from negmas import convert_genius_domain_from_folder
 
     # TODO remove this limitation.
-    if keep_issue_names != keep_value_names:
-        return
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     dst = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/LaptopConv1D"
     )
-    if single_issue:
-        assert convert_genius_domain_from_folder(
-            src_folder_name=src,
-            dst_folder_name=dst,
-            force_single_issue=True,
-            cache_and_discretize_outcomes=True,
-            n_discretization=10,
-        )
-        base_folder = dst
-    else:
-        base_folder = src
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
-        keep_issue_names=keep_issue_names,
-        keep_value_names=keep_value_names,
-        time_limit=None,
-        n_steps=STEPLIMIT,
-    )
-    if neg is None:
-        raise ValueError(f"Failed to lead domain from {base_folder}")
+    base_folder = dst if single_issue else src
+    domain = Domain.from_genius_folder(base_folder)
     a1 = GeniusNegotiator(
         java_class_name=agent_name1,
-        ufun=agent_info[0]["ufun"],
-        keep_issue_names=keep_issue_names,
-        keep_value_names=keep_value_names,
+        ufun=domain.ufuns[0],
     )
     a2 = GeniusNegotiator(
         java_class_name=agent_name2,
-        ufun=agent_info[1]["ufun"],
-        keep_issue_names=keep_issue_names,
-        keep_value_names=keep_value_names,
+        ufun=domain.ufuns[1],
     )
+    neg = domain.make_session([a1, a2], n_steps=STEPLIMIT, time_limit=None)
+    if neg is None:
+        raise ValueError(f"Failed to lead domain from {base_folder}")
     neg._enable_callbacks = True
-    neg.add(a1)
-    neg.add(a2)
     neg.run()
     GeniusBridge.clean()
 
@@ -276,39 +245,30 @@ def test_genius_agents_run_using_hypothesis(
     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_genius_agent_gets_ufun():
+def test_genius_agent_gets_preferences():
     agents = ["agents.anac.y2015.Atlas3.Atlas3", "agents.anac.y2015.AgentX.AgentX"]
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
-        keep_issue_names=True,
-        keep_value_names=True,
-        n_steps=None,
-        time_limit=TIMELIMIT,
-    )
+    domain = Domain.from_genius_folder(base_folder)
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
         utility_file_name=base_folder + f"/Laptop-C-prof1.xml",
-        keep_issue_names=True,
-        keep_value_names=True,
     )
     assert a1.ufun is not None
-    assert not a1._temp_ufun_file
+    assert not a1._temp_preferences_file
     assert not a1._temp_domain_file
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
-        ufun=agent_info[0]["ufun"],
-        keep_issue_names=True,
-        keep_value_names=True,
+        ufun=domain.ufuns[0],
     )
+    neg = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
     neg.add(a1)
     neg.add(a2)
     assert a2.ufun is not None
-    assert a2._temp_ufun_file
+    assert a2._temp_preferences_file
     assert not a2._temp_domain_file
     neg.run()
     GeniusBridge.clean()
@@ -331,29 +291,20 @@ def test_genius_agents_run_example():
         base_folder = pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop"
         )
-        neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder,
-            keep_issue_names=True,
-            keep_value_names=True,
-            n_steps=None,
-            time_limit=TIMELIMIT,
-        )
-        if neg is None:
-            raise ValueError(f"Failed to lead domain from {base_folder}")
+        domain = Domain.from_genius_folder(base_folder)
         atlas = GeniusNegotiator(
             java_class_name=agent_name1,
             domain_file_name=base_folder + "/Laptop-C-domain.xml",
             utility_file_name=base_folder + f"/Laptop-C-prof{utils[0]}.xml",
-            keep_issue_names=True,
-            keep_value_names=True,
         )
         agentx = GeniusNegotiator(
             java_class_name=agent_name2,
             domain_file_name=base_folder + "/Laptop-C-domain.xml",
             utility_file_name=base_folder + f"/Laptop-C-prof{utils[1]}.xml",
-            keep_issue_names=True,
-            keep_value_names=True,
         )
+        neg = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
+        if neg is None:
+            raise ValueError(f"Failed to lead domain from {base_folder}")
         neg.add(atlas)
         neg.add(agentx)
         neg.run()
@@ -371,20 +322,18 @@ def test_agentk_perceives_time():
         "negmas", resource_name="tests/data/Laptop"
     )
 
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
+    domain = Domain.from_genius_folder(base_folder)
+    gagent = AgentK()
+    neg = domain.make_session(
+        [gagent, AspirationNegotiator()],
         n_steps=n_steps,
         time_limit=float("inf"),
+        avoid_ultimatum=True,
     )
-    neg._avoid_ultimatum = True
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
-    gagent = AgentK(ufun=agent_info[1]["ufun"])
-    neg.add(AspirationNegotiator(ufun=agent_info[0]["ufun"]))
-    neg.add(gagent)
     current_time = 0
     for _ in range(n_steps):
-        print(f"{_}\n")
         assert (
             gagent.relative_time >= current_time
         ), f"Failed to get time before step {_}"
@@ -468,20 +417,18 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
         "negmas", resource_name="tests/data/Car-A-domain"
     )
 
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
-        n_steps=n_steps,
-        time_limit=time_limit,
+    domain = Domain.from_genius_folder(base_folder)
+    neg = domain.make_session(
+        n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=True
     )
-    neg._avoid_ultimatum = False
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     neg.add(
-        GeniusNegotiator(java_class_name=a1, strict=True, ufun=agent_info[0]["ufun"]),
+        GeniusNegotiator(java_class_name=a1, strict=True, ufun=domain.ufuns[0]),
         strict=True,
     )
     neg.add(
-        GeniusNegotiator(java_class_name=a2, strict=True, ufun=agent_info[1]["ufun"]),
+        GeniusNegotiator(java_class_name=a2, strict=True, ufun=domain.ufuns[1]),
         strict=True,
     )
     neg.run()
@@ -497,16 +444,14 @@ def test_caudacius_caudacius():
         "negmas", resource_name="tests/data/Car-A-domain"
     )
 
-    neg, agent_info, issues = load_genius_domain_from_folder(
-        base_folder,
-        n_steps=n_steps,
-        time_limit=float("inf"),
+    domain = Domain.from_genius_folder(base_folder)
+    neg = domain.make_session(
+        n_steps=n_steps, time_limit=float("inf"), avoid_ultimatum=True
     )
-    neg._avoid_ultimatum = False
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
-    neg.add(Caduceus(ufun=agent_info[0]["ufun"]), strict=True)
-    neg.add(Caduceus(ufun=agent_info[1]["ufun"]), strict=True)
+    neg.add(Caduceus(ufun=domain.ufuns[0]), strict=True)
+    neg.add(Caduceus(ufun=domain.ufuns[1]), strict=True)
     for _ in range(n_steps):
         neg.step()
         if neg.state.agreement is not None:
@@ -517,10 +462,7 @@ def test_caudacius_caudacius():
         ), f"failed at {neg.current_step}: {new_offers}"
 
     assert not all(
-        [
-            len(set(neg.negotiator_offers(neg.as_tuple(_)))) == 1
-            for _ in neg.negotiator_ids
-        ]
+        [len(set(neg.negotiator_offers(_))) == 1 for _ in neg.negotiator_ids]
     ), f"None of the agents conceeded: {neg.trace}"
 
 

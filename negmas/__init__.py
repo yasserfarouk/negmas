@@ -5,6 +5,7 @@ __email__ = "yasserfarouk@gmail.com"
 __version__ = "0.8.9"
 
 from .common import *
+from .types import *
 from .config import *
 from .genius import *
 from .inout import *
@@ -15,13 +16,14 @@ from .outcomes import *
 from .sao import *
 from .situated import *
 from .st import *
-from .utilities import *
+from .preferences import *
 
 __all__ = (
     config.__all__
+    + types.__all__
     + common.__all__
     + outcomes.__all__
-    + utilities.__all__
+    + preferences.__all__
     + negotiators.__all__
     + mechanisms.__all__
     + sao.__all__

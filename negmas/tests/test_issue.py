@@ -1,6 +1,7 @@
 import pytest
 
 from negmas import Issue
+from negmas.outcomes import generate_issues, num_outcomes
 
 from .fixtures import *
 
@@ -35,10 +36,10 @@ def test_cartinatlity(cissue, dissue, hamlet):
 
 
 def test_n_outcomes(cissue, dissue, hamlet):
-    assert Issue.num_outcomes([cissue, dissue, hamlet]) == float("inf")
-    assert Issue.num_outcomes([dissue, hamlet]) == 50
-    assert Issue.num_outcomes([dissue]) == 10
-    assert Issue.num_outcomes([]) == 1
+    assert num_outcomes([cissue, dissue, hamlet]) == float("inf")
+    assert num_outcomes([dissue, hamlet]) == 50
+    assert num_outcomes([dissue]) == 10
+    assert num_outcomes([]) == 1
 
 
 def test_rand(cissue, dissue, hamlet, bissue):
@@ -67,7 +68,7 @@ def test_possibilities(cissue, dissue, hamlet, bissue):
 
 def test_issue_generation_defaults():
     options = ["a", "b", "c"]
-    issues = Issue.generate([(0.0, 1.0), options, 5])
+    issues = generate_issues([(0.0, 1.0), options, 5])
     assert len(issues) == 3
     assert (
         issues[0].is_continuous()
@@ -82,7 +83,7 @@ def test_issue_generation_defaults():
 
 
 def test_issue_generation_multiples():
-    issues_ = Issue.generate([5], [10])
+    issues_ = generate_issues([5], [10])
     assert len(issues_) == 10
     for i, issue in enumerate(issues_):
         assert issue.name.startswith(str(i))

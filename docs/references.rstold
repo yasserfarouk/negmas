@@ -32,7 +32,7 @@ Reference
     :include-all-objects:
     :noindex:
 
-.. automodapi:: negmas.utilities
+.. automodapi:: negmas.preferences
     :include-all-objects:
     :noindex:
 

@@ -12,24 +12,25 @@ import time
 import uuid
 import warnings
 from collections import defaultdict
-from pprint import pformat
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from ..common import AgentMechanismInterface, MechanismState
+from ..common import MechanismState, NegotiatorMechanismInterface
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismRoundResult
-from ..outcomes import (
-    Outcome,
-    ResponseType,
-    cast_outcome,
+from ..outcomes.common import Outcome
+from ..outcomes.outcome_ops import (
+    cast_value_types,
     outcome_is_complete,
     outcome_types_are_ok,
 )
-from ..utilities.ops import nash_point
-from .common import SAOResponse, SAOState
+from ..preferences.ops import nash_point
+from .common import ResponseType, SAOResponse, SAOState
+
+if TYPE_CHECKING:
+    from negmas.preferences import Preferences
 
 __all__ = [
     "SAOMechanism",
@@ -53,10 +54,6 @@ class SAOMechanism(Mechanism):
         step_time_limit: The maximum wall-time allowed for a single negotiation round.
         max_n_agents: The maximum number of negotiators allowed to join the negotiation.
         dynamic_entry: Whether it is allowed for negotiators to join the negotiation after it starts
-        keep_issue_names: DEPRICATED (use `outcome_type` instead). If true, `outcomes` and `discrete_outcomes` will be
-                          dictionaries otherwise they will be tuples
-        outcome_type: The outcome type to use for `outcomes` and `distrete_outcomes`. It can be `tuple`, `dict` or any
-                      `OutcomeType`
         cache_outcomes: If true, the mechnism will catch `outcomes` and a discrete version (`discrete_outcomes`) that
                         can be accessed by any negotiator through their AMI.
         max_n_outcomes: Maximum number or outcomes to use when disctetizing the outcome-space
@@ -76,8 +73,6 @@ class SAOMechanism(Mechanism):
         enforce_issue_types: If True, the type of each issue is enforced depending on the value of `cast_offers`
         cast_offers: If true, each issue value is cast using the issue's type otherwise an incorrect type will be considered an invalid offer. See `check_offers`. Only
                      used if `enforce_issue_types`
-        enforce_outcome_type: If True, the outcomes sent by the negotiators are forced to the outcome type of the negotiation. Only
-                              checker if `check_offers`
         ignore_negotiator_exceptions: just silently ignore negotiator exceptions and consider them no-responses.
         offering_is_accepting: Offering an outcome implies accepting it. If not, the agent who proposed an offer will
                                be asked to respond to it after all other agents.
@@ -105,8 +100,6 @@ class SAOMechanism(Mechanism):
         step_time_limit=None,
         max_n_agents=None,
         dynamic_entry=False,
-        keep_issue_names=None,
-        outcome_type=tuple,
         cache_outcomes=True,
         max_n_outcomes: int = 1_000_000,
         annotation: Optional[Dict[str, Any]] = None,
@@ -118,7 +111,6 @@ class SAOMechanism(Mechanism):
         check_offers=True,
         enforce_issue_types=False,
         cast_offers=False,
-        enforce_outcome_type=False,
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
@@ -137,8 +129,6 @@ class SAOMechanism(Mechanism):
             else float("inf"),
             max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
-            keep_issue_names=keep_issue_names,
-            outcome_type=outcome_type,
             cache_outcomes=cache_outcomes,
             max_n_outcomes=max_n_outcomes,
             annotation=annotation,
@@ -162,7 +152,6 @@ class SAOMechanism(Mechanism):
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
         self.params["enforce_issue_types"] = enforce_issue_types
-        self.params["enforce_outcome_type"] = enforce_outcome_type
         self.params["cast_offers"] = cast_offers
         self.params[
             "allow_offering_just_rejected_outcome"
@@ -170,7 +159,6 @@ class SAOMechanism(Mechanism):
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
         self._enforce_issue_types = enforce_issue_types
-        self._enforce_outcome_type = enforce_outcome_type
         self._cast_offers = cast_offers
         self._current_offer = None
         self._current_proposer = None
@@ -197,13 +185,13 @@ class SAOMechanism(Mechanism):
         self,
         negotiator: "Negotiator",
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: Optional[str] = None,
         **kwargs,
     ) -> Optional[bool]:
         from ..genius.negotiator import GeniusNegotiator
 
-        added = super().add(negotiator, ufun=ufun, role=role, **kwargs)
+        added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
         if (
             added
             and isinstance(negotiator, GeniusNegotiator)
@@ -219,13 +207,13 @@ class SAOMechanism(Mechanism):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        if not super().join(ami, state, ufun=ufun, role=role):
+        if not super().join(ami, state, preferences=preferences, role=role):
             return False
         if not self.ami.dynamic_entry and not any(
             [a.capabilities.get("propose", False) for a in self.negotiators]
@@ -263,7 +251,7 @@ class SAOMechanism(Mechanism):
             current_proposer_agent=current_proposer_agent,
             n_acceptances=self._n_accepting if self.publish_n_acceptances else 0,
             new_offerer_agents=new_offerer_agents,
-            last_negotiator=self.negotiators[self._last_checked_negotiator]
+            last_negotiator=self.negotiators[self._last_checked_negotiator].name
             if self._last_checked_negotiator >= 0
             else "---",
         )
@@ -323,8 +311,8 @@ class SAOMechanism(Mechanism):
                         "offer_index": outcomes.index(o) if o is not None else None,
                         "relative_time": state.relative_time,
                         "step": state.step,
-                        "u0": vnegotiators[0].utility_function(o),
-                        "u1": vnegotiators[1].utility_function(o),
+                        "u0": vnegotiators[0].ufun(o),
+                        "u1": vnegotiators[1].ufun(o),
                     }
                 )
         history = pd.DataFrame(data=history)
@@ -332,7 +320,7 @@ class SAOMechanism(Mechanism):
         has_front = 1
         # n_negotiators = len(self.negotiators)
         n_agents = len(vnegotiators)
-        ufuns = self._get_ufuns()
+        ufuns = self._get_preferencess()
         utils = [tuple(f(o) for f in ufuns) for o in outcomes]
         xrange = max(_[0] for _ in utils) - min(_[0] for _ in utils)
         yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
@@ -467,7 +455,7 @@ class SAOMechanism(Mechanism):
                             pareto_distance = dist
                 txt = ""
                 if show_agreement:
-                    txt += f"Agreement:{pformat(self.agreement) if issubclass(self.ami.outcome_type, dict) else self.agreement}\n"
+                    txt += f"Agreement:{outcome_as_dict(self.agreement, self.issues)}\n"
                 if show_pareto_distance and self.agreement is not None:
                     txt += f"Pareto-distance={pareto_distance:5.2}\n"
                 if show_nash_distance and self.agreement is not None:
@@ -671,7 +659,7 @@ class SAOMechanism(Mechanism):
                 self.ami.negotiator_time_limit - times[negotiator.id],
                 self.ami.step_time_limit,
                 rem,
-                self._hidden_time_limit - self.time
+                self._hidden_time_limit - self.time,
             )
             if timeout is None or timeout == float("inf") or self._sync_calls:
                 __strt = time.perf_counter()
@@ -737,10 +725,6 @@ class SAOMechanism(Mechanism):
             ):
                 if not outcome_is_complete(response.outcome, self.issues):
                     return SAOResponse(response.response, None), False
-                if self._enforce_outcome_type:
-                    response = SAOResponse(
-                        response.response, self.cast_outcome(response.outcome)
-                    )
                 if self._enforce_issue_types:
                     if outcome_types_are_ok(response.outcome, self.issues):
                         return response, False
@@ -748,7 +732,7 @@ class SAOMechanism(Mechanism):
                         return (
                             SAOResponse(
                                 response.response,
-                                cast_outcome(response.outcome, self.issues),
+                                cast_value_types(response.outcome, self.issues),
                             ),
                             False,
                         )

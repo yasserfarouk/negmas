@@ -5,16 +5,11 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..common import AgentMechanismInterface, MechanismState
+from ..common import MechanismState, NegotiatorMechanismInterface
 from ..modeling import AdaptiveDiscreteAcceptanceModel
-from ..outcomes import Outcome, ResponseType
-from ..sao import AspirationNegotiator, SAONegotiator
-from ..utilities import (
-    IPUtilityFunction,
-    MappingUtilityFunction,
-    UtilityDistribution,
-    UtilityValue,
-)
+from ..outcomes import Outcome
+from ..preferences import Distribution, IPUtilityFunction, MappingUtilityFunction, Value
+from ..sao import AspirationNegotiator, ResponseType, SAONegotiator
 from .common import _locs, _uppers
 from .expectors import MeanExpector
 
@@ -29,7 +24,7 @@ class BaseElicitor(SAONegotiator):
         strategy: Optional["EStrategy"] = None,
         base_negotiator: SAONegotiator = AspirationNegotiator(),
         opponent_model_factory: Optional[
-            Callable[["AgentMechanismInterface"], "DiscreteAcceptanceModel"]
+            Callable[["NegotiatorMechanismInterface"], "DiscreteAcceptanceModel"]
         ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(ami=x),
         expector_factory: Union["Expector", Callable[[], "Expector"]] = MeanExpector,
         single_elicitation_per_round=False,
@@ -100,10 +95,10 @@ class BaseElicitor(SAONegotiator):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
         **kwargs,
     ) -> bool:
@@ -116,17 +111,17 @@ class BaseElicitor(SAONegotiator):
               result of the expector applied to the corresponding utility value.
             - The reserved value of the created ufun is set to -inf
         """
-        if ufun is None:
-            ufun = IPUtilityFunction(outcomes=ami.outcomes, reserved_value=0.0)
-        if not super().join(ami=ami, state=state, ufun=ufun, role=role):
+        if preferences is None:
+            preferences = IPUtilityFunction(outcomes=ami.outcomes, reserved_value=0.0)
+        if not super().join(ami=ami, state=state, preferences=preferences, role=role):
             return False
         self.expect = self.expector_factory(self._ami)
-        self.init_elicitation(ufun=ufun, **kwargs)
+        self.init_elicitation(preferences=preferences, **kwargs)
         self.base_negotiator.join(
             ami,
             state,
-            ufun=MappingUtilityFunction(
-                mapping=lambda x: self.expect(self.utility_function(x), state=state),
+            preferences=MappingUtilityFunction(
+                mapping=lambda x: self.expect(self.preferences(x), state=state),
                 reserved_value=float("-inf"),
             ),
         )
@@ -137,18 +132,18 @@ class BaseElicitor(SAONegotiator):
         base_negotiator."""
         self.base_negotiator.on_negotiation_start(state=state)
 
-    def utility_distributions(self) -> List[UtilityDistribution]:
+    def utility_distributions(self) -> List[Distribution]:
         """
         Returns a `UtilityDistribution` for every outcome
         """
-        if self.utility_function is None:
+        if self.preferences is None:
             return [None] * len(self._ami.outcomes)
-        if self.utility_function.base_type == "ip":
-            return list(self.utility_function.distributions.values())
+        if self.preferences.base_type == "ip":
+            return list(self.preferences.distributions.values())
         else:
-            return [self.utility_function(o) for o in self._ami.outcomes]
+            return [self.preferences(o) for o in self._ami.outcomes]
 
-    def user_ufun(self, outcome: Optional["Outcome"]) -> float:
+    def user_preferences(self, outcome: Optional["Outcome"]) -> float:
         """
         Finds the total utility obtained by the user for this outcome after
         discounting elicitation cost.
@@ -290,7 +285,7 @@ class BaseElicitor(SAONegotiator):
             and offer not in self.offerable_outcomes
         ):
             self.strategy.apply(user=self.user, outcome=offer)
-        offered_utility = self.utility_function(offer)
+        offered_utility = self.preferences(offer)
         if offered_utility is None:
             return self.base_negotiator.respond_(state=state, offer=offer)
         offered_utility = self.expect(offered_utility, state=state)
@@ -369,10 +364,8 @@ class BaseElicitor(SAONegotiator):
 
     def init_elicitation(
         self,
-        ufun: Optional[
-            Union[
-                "IPUtilityFunction", "UtilityDistribution", List["UtilityDistribution"]
-            ]
+        preferences: Optional[
+            Union["IPUtilityFunction", "Distribution", List["Distribution"]]
         ],
         **kwargs,
     ) -> None:
@@ -380,7 +373,7 @@ class BaseElicitor(SAONegotiator):
         Called once to initialize the elicitation process
 
         Args:
-            ufun: The probabilistic utility function
+            preferences: The probabilistic utility function
             **kwargs:
 
         Remarks:
@@ -404,31 +397,28 @@ class BaseElicitor(SAONegotiator):
             self.opponent_model = self.opponent_model_factory(ami)
             self.base_negotiator.opponent_model = self.opponent_model
         outcomes = ami.outcomes
-        if ufun is None:
-            dists = [
-                UtilityDistribution(dtype="uniform", loc=0.0, scale=1.0)
-                for _ in outcomes
-            ]
-            ufun = IPUtilityFunction(
+        if preferences is None:
+            dists = [Distribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes]
+            preferences = IPUtilityFunction(
                 outcomes=outcomes, distributions=dists, reserved_value=0.0
             )
-        elif isinstance(ufun, UtilityDistribution):
-            ufun = [copy.copy(ufun) for _ in outcomes]
-            ufun = IPUtilityFunction(
-                outcomes=outcomes, distributions=ufun, reserved_value=0.0
+        elif isinstance(preferences, Distribution):
+            preferences = [copy.copy(preferences) for _ in outcomes]
+            preferences = IPUtilityFunction(
+                outcomes=outcomes, distributions=preferences, reserved_value=0.0
             )
         elif (
-            isinstance(ufun, list)
-            and len(ufun) > 0
-            and isinstance(ufun[0], UtilityDistribution)
+            isinstance(preferences, list)
+            and len(preferences) > 0
+            and isinstance(preferences[0], Distribution)
         ):
-            ufun = IPUtilityFunction(
-                outcomes=outcomes, distributions=ufun, reserved_value=0.0
+            preferences = IPUtilityFunction(
+                outcomes=outcomes, distributions=preferences, reserved_value=0.0
             )
-        self.utility_function = ufun
-        self.initial_utility_priors = copy.copy(ufun)
+        self.preferences = preferences
+        self.initial_utility_priors = copy.copy(preferences)
 
-    def offering_utility(self, outcome, state) -> UtilityValue:
+    def offering_utility(self, outcome, state) -> Value:
         """
         returns expected utlity of offering `outcome` in `state`
 
@@ -447,8 +437,8 @@ class BaseElicitor(SAONegotiator):
               a `UtilityDistribution` not a real number.
         """
         if self.opponent_model is None:
-            return self.utility_function(outcome)
-        u = self.utility_function(outcome)
+            return self.preferences(outcome)
+        u = self.preferences(outcome)
         p = self.opponent_model.probability_of_acceptance(outcome)
         return p * u + (1 - p) * self.utility_on_rejection(outcome, state=state)
 
@@ -468,13 +458,13 @@ class BaseElicitor(SAONegotiator):
         """
         us = np.asarray(self.utility_distributions())
         ps = np.asarray(self.opponent_model.acceptance_probabilities())
-        return ps * us + (1 - ps) * np.asarray(self.utilities_on_rejection(state=state))
+        return ps * us + (1 - ps) * np.asarray(self.preferences(state=state))
 
-    def utility_on_acceptance(self, outcome: "Outcome") -> UtilityValue:
+    def utility_on_acceptance(self, outcome: "Outcome") -> Value:
         """
         The utility of acceptance which is simply the utility function applied to `outcome`.
         """
-        return self.utility_function(outcome)
+        return self.preferences(outcome)
 
     def best_offer(self, state: "MechanismState") -> Tuple[Optional["Outcome"], float]:
         """The outcome with maximum expected utility given the expector and its utility
@@ -507,9 +497,7 @@ class BaseElicitor(SAONegotiator):
                 best, best_utility, bsf = outcome, utilitiy, expected_utility
         return best, self.expect(best_utility, state=state)
 
-    def utility_on_rejection(
-        self, outcome: "Outcome", state: MechanismState
-    ) -> UtilityValue:
+    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         """Estimated utility if this outcome rejected at this state.
 
         Args:
@@ -523,7 +511,7 @@ class BaseElicitor(SAONegotiator):
             f"Must override utility_on_rejection in {self.__class__.__name__}"
         )
 
-    def utilities_on_rejection(self, state: MechanismState) -> List[UtilityValue]:
+    def utilities_on_rejection(self, state: MechanismState) -> List[Value]:
         """Finds the utility of rejection for all outputs.
 
         Remarks:

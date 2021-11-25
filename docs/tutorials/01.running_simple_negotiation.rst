@@ -1,9 +1,9 @@
 Running a Negotiation
 ---------------------
 
-NegMAS has several built-in negotiation ``Mechanism`` s (``Protocol``
-s), negotiation agents (``Negotiator`` s), and ``UtilityFunction`` s.
-You can use these to run negotiations as follows:
+NegMAS has several built-in negotiation ``Mechanism`` s, negotiation
+agents (``Negotiator`` s), and ``UtilityFunction`` s. You can use these
+to run negotiations as follows:
 
 .. code:: ipython3
 
@@ -15,9 +15,9 @@ You can use these to run negotiations as follows:
     session = SAOMechanism(outcomes=10, n_steps=100)
     negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
     for negotiator in negotiators:
-        session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
+        session.add(negotiator, preferences=MappingUtilityFunction(lambda x: random.random() * x[0]))
 
-    pprint(session.run().__dict__)
+    pprint(vars(session.run()))
 
 
 .. parsed-literal::
@@ -25,69 +25,105 @@ You can use these to run negotiations as follows:
     {'agreement': (9,),
      'broken': False,
      'current_offer': (9,),
-     'current_proposer': 'a3-079be4c1-5322-4ef5-b664-307337d4e252',
+     'current_proposer': 'a2-bb589c3b-9c39-480f-a31b-4e82831f53da',
+     'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
+     'last_negotiator': <negmas.sao.negotiators.AspirationNegotiator object at 0x10fb68880>,
      'n_acceptances': 0,
      'n_negotiators': 5,
+     'new_offerer_agents': [],
      'new_offers': [],
-     'relative_time': 0.09,
+     'relative_time': 0.297029702970297,
      'results': None,
      'running': False,
      'started': True,
-     'step': 8,
-     'time': 0.004660927999999842,
+     'step': 29,
+     'time': 0.006957488000001177,
      'timedout': False,
      'waiting': False}
 
 
 Negotations end with a status that shows you what happens. In the above
 example, we can see that the negotiation was not broken and did not
-time-out. The agreement was on outcome ``(4,)`` of the *10* possible
+time-out. The agreement was on outcome ``(9,)`` of the *10* possible
 outcomes of this negotiation. That offer was offered by negotiator
-``a0`` (the rest of the agent *ID* is always a random value to ensure no
-name repetitions) which was accepted by all of the other *4*
-negotiators.
+``a3`` (the rest of the agent *ID* is always a random value to ensure no
+name repetitions) in the ``9``\ th round of the negotiation
+(rounds/steps start at ``0``) and was accepted by all of the other *4*
+negotiators. The whole negotiation took ``4.66`` ms.
 
-It is possible to run the same negotiation using a ``Protocol`` object
-instead of a ``Mechanism`` object
+Let’s look at this code example line-by-line:
 
-.. code:: ipython3
+.. code:: python
 
-    random.seed(0) # for reproducibility
-    from negmas import SAOProtocol
+   session = SAOMechanism(outcomes=10, n_steps=100)
 
-    session = SAOProtocol(outcomes=10, n_steps=100)
-    negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
-    for negotiator in negotiators:
-        session.add(negotiator, ufun=MappingUtilityFunction(lambda x: random.random() * x[0]))
+The negotiation protocol in NegMAS is handled by a ``Mechanism`` object.
+Here we instantiate an ``SAOMechanism`` which implements the `Stacked
+Alternating Offers
+Protocol <https://ii.tudelft.nl/~catholijn/publications/sites/default/files/Aydogan2017_Chapter_AlternatingOffersProtocolsForM.pdf>`__.
+In this protocol, negotiators exchange offers until an offer is accepted
+by all negotiators, a negotiators leaves the table ending the
+negotiation or a time-out condition is met. In the example above, we use
+a limit on the number of rounds (defined by a number of offers equal to
+the number of negotiators) of ``100`` (a step of a mechanism is an
+executed round). Another possibility here is to pass a wall-time
+constraint using something like ``time_limit=10`` which limits the
+negotiation to ``10`` seconds.
 
-    pprint(session.run().__dict__)
+The negotiation agenda can be specified in two ways:
 
+1. You can pass ``outcomes=x`` to create a negotiation agenda with a
+   single issue of ``x`` values. In this example we use this approach to
+   create a single issue negotiation with ``10`` outcomes. These
+   outcomes will be tuples of one item each ranging from ``(0,)`` to
+   ``(9,)``.
+2. You can pass ``issues=x`` to create a multi-issue negotiation as we
+   will see later in this tutorial. We can use this approach to achieve
+   the same result as above by replacing ``outcomes=10`` with
+   ``issues=[Issue(10)]`` in the sample code above.
 
-.. parsed-literal::
+.. code:: python
 
-    {'agreement': (9,),
-     'broken': False,
-     'current_offer': (9,),
-     'current_proposer': 'a3-107c35bf-283d-49b2-8b1b-650e253df20c',
-     'error_details': '',
-     'has_error': False,
-     'n_acceptances': 0,
-     'n_negotiators': 5,
-     'new_offers': [],
-     'relative_time': 0.09,
-     'results': None,
-     'running': False,
-     'started': True,
-     'step': 8,
-     'time': 0.005280838000000898,
-     'timedout': False,
-     'waiting': False}
+   negotiators = [AspirationNegotiator(name=f"a{_}") for _ in range(5)]
 
+This line creates ``5`` negotiators of the type ``AspirationNegotiator``
+which implements a simple time-based negotiation strategy. It starts by
+offering the outcome with maximum utility for itself and then concedes
+(i.e. offers outcomes with lower utility) based on the relative time of
+the negotiation.
 
-As you can see, we got the same output.\ ``Protocol`` is an alias of
-``Mechanism`` in NegMAS.
+.. code:: python
+
+   for negotiator in negotiators:
+       session.add(
+           negotiator, preferences=MappingUtilityFunction(lambda x: random.random() * x[0])
+       )
+
+This loop *adds* the negotiators to the negotiation session (the
+``SAOMechanism`` we created earlier). Most negotiators need access to a
+utility function that defines its preferences over different outcomes.
+Here we use a ``MappintUtilityFunction`` which is passed any python
+callable (i.e. a function, lambda expression, a class implementing
+``__call__``, …) and uses it to calculate the utility of a given
+outcome.
+
+The lambda expression used here (``lambda x: random.random() * x[0]``)
+extracts the first value of the outcome (which will be an integer from
+``0`` to ``9``) and multiplies it with a random number *each time it is
+called*. This means that calling this utility function twice with the
+same outcome results in two different values. This may not be
+particularly useful but it shows that the utility function can *change*
+during the negotiation and NegMAS provides some support for this which
+we will discuss in later tutorials.
+
+Now the last line runs the negotiation using the ``run()`` method of the
+``SAOMechanism`` object, converts the result to a dictionary using
+``var`` and prints it.
+
+A simple bilateral negotiation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Let’s try a more meaningful situation: Assume we have a buyer and a
 seller who are negotiating about a business transaction in which the
@@ -100,25 +136,44 @@ This can be modeled in the following negotiation:
 .. code:: ipython3
 
     from negmas import Issue, SAOMechanism, AspirationNegotiator, normalize
-    from negmas.utilities import LinearUtilityAggregationFunction as LUFun
-    issues = [Issue(name='price', values=10), Issue(name='quantity', values=10)
-              , Issue(name='delivery_time', values=10)]
+    from negmas.preferences import LinearUtilityAggregationFunction as LUFun
+
+    # create negotiation agenda (issues)
+    issues = [
+        Issue(name='price', values=10),
+        Issue(name='quantity', values=(1, 11)),
+        Issue(name='delivery_time', values=10)
+    ]
+
+    # create the mechanism
     session = SAOMechanism(issues=issues, n_steps=20)
 
-    buyer_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: 9.0 - x
-                                           , 'quantity': lambda x: 0.2 * x
-                                           , 'delivery_time': lambda x: x})
-                             , outcomes=session.outcomes)
+    # define buyer and seller utilities
+    seller_utility =  LUFun(
+            issue_utilities=[
+                lambda x: x,
+                lambda x: 0.2 * x,
+                lambda x: 9.0 - x
+            ],
+        )
 
-    seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
-                                           , 'quantity': lambda x: 0.2 * x
-                                           , 'delivery_time': lambda x: 9.0 - x})
-                               , outcomes=session.outcomes)
+    buyer_utility = normalize(
+        LUFun(
+            issue_utilities={
+                'price': lambda x: 9.0 - x,
+                'quantity': lambda x: 0.2 * x,
+                'delivery_time': lambda x: x
+            },
+        ),
+        outcomes=session.outcomes,
+    )
 
-
+    # create and add buyer and seller negotiators
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
-    pprint(session.run().__dict__)
+
+    # run the negotiation and show the results
+    pprint(vars(session.run()))
 
 
 .. parsed-literal::
@@ -126,18 +181,21 @@ This can be modeled in the following negotiation:
     {'agreement': (9, 9, 8),
      'broken': False,
      'current_offer': (9, 9, 8),
-     'current_proposer': 'seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0',
+     'current_proposer': 'seller-94e49753-cca3-445c-88ee-6f1921064039',
+     'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
+     'last_negotiator': <negmas.sao.negotiators.AspirationNegotiator object at 0x10fb68fa0>,
      'n_acceptances': 0,
      'n_negotiators': 2,
+     'new_offerer_agents': [],
      'new_offers': [],
-     'relative_time': 0.9,
+     'relative_time': 0.9047619047619048,
      'results': None,
      'running': False,
      'started': True,
-     'step': 17,
-     'time': 0.003675460000000186,
+     'step': 18,
+     'time': 0.004228737000000038,
      'timedout': False,
      'waiting': False}
 
@@ -157,23 +215,24 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
-    001: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
-    002: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
-    003: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
-    004: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
-    005: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 0))]
-    006: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 8, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 8, 0))]
-    007: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 7, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 7, 0))]
-    008: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (0, 5, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 5, 0))]
-    009: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (1, 8, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 8, 1))]
-    010: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (1, 5, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 5, 1))]
-    011: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (2, 7, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 7, 2))]
-    012: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (3, 7, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 7, 3))]
-    013: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (4, 6, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 6, 4))]
-    014: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (6, 8, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 8, 6))]
-    015: [('buyer-521a6d50-9468-48ec-ae4d-548b52bd8849', (8, 9, 9)), ('seller-7ddbb9cf-1d27-47b0-98f5-66a480ba52b0', (9, 9, 8))]
-    016: []
+    000: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
+    001: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
+    002: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
+    003: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
+    004: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
+    005: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
+    006: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 10, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 10, 0))]
+    007: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 9, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 9, 0))]
+    008: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 8, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 8, 0))]
+    009: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (1, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 1))]
+    010: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (1, 9, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 9, 1))]
+    011: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (2, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 2))]
+    012: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (2, 7, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 7, 2))]
+    013: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (3, 7, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 7, 3))]
+    014: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (5, 10, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 10, 5))]
+    015: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (6, 8, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 8, 6))]
+    016: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (8, 9, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 9, 8))]
+    017: []
 
 
 We can even plot the complete negotiation history and visually see how
@@ -186,7 +245,7 @@ far from it).
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_10_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_9_0.png
 
 
 What happens if the seller was much more interested in delivery time.
@@ -200,7 +259,6 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. code:: ipython3
 
-    session = SAOMechanism(issues=issues, n_steps=50)
 
     seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
@@ -208,6 +266,7 @@ the delivery time and price to go down. Let’s see what happens:
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
                              , outcomes=session.outcomes)
 
+    session = SAOMechanism(issues=issues, n_steps=50)
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     pprint(session.run().__dict__)
@@ -215,21 +274,24 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. parsed-literal::
 
-    {'agreement': (5, 4, 5),
+    {'agreement': (5, 2, 5),
      'broken': False,
-     'current_offer': (5, 4, 5),
-     'current_proposer': 'seller-49534369-8d93-42b7-b34e-b3f33083bc6d',
+     'current_offer': (5, 2, 5),
+     'current_proposer': 'seller-88b019eb-da2a-4989-8e62-afc9a4bd48c7',
+     'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
+     'last_negotiator': <negmas.sao.negotiators.AspirationNegotiator object at 0x127545af0>,
      'n_acceptances': 0,
      'n_negotiators': 2,
+     'new_offerer_agents': [],
      'new_offers': [],
-     'relative_time': 0.9,
+     'relative_time': 0.9019607843137255,
      'results': None,
      'running': False,
      'started': True,
-     'step': 44,
-     'time': 0.010532425000000956,
+     'step': 45,
+     'time': 0.01624198899999918,
      'timedout': False,
      'waiting': False}
 
@@ -242,7 +304,7 @@ We can check it visually as well:
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_14_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_13_0.png
 
 
 It is clear that the new ufuns transformed the problem. Now we have a
@@ -269,7 +331,7 @@ What happens if we give them more time to negotiate:
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_16_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_15_0.png
 
 
 It did not help much! The two agents adjusted their concession to match
@@ -280,14 +342,13 @@ to *linear* instead of the default *boulware*:
 
 .. code:: ipython3
 
-    session = SAOMechanism(issues=issues, n_steps=5000)
-
     seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
                              , outcomes=session.outcomes)
 
+    session = SAOMechanism(issues=issues, n_steps=5000)
     session.add(AspirationNegotiator(name='buyer', aspiration_type="linear"), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
     session.run()
@@ -295,11 +356,24 @@ to *linear* instead of the default *boulware*:
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_18_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_17_0.png
 
 
 It is clear that longer negotiation time, and faster concession did not
 help the negotiators get to a point on the pareto-front.
+
+.. code:: ipython3
+
+    session = SAOMechanism(issues=issues, n_steps=5000)
+    session.add(AspirationNegotiator(name='buyer', aspiration_type="boulware"), ufun=buyer_utility)
+    session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
+    session.run()
+    session.plot(plot_outcomes=False)
+
+
+
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_19_0.png
+
 
 
 

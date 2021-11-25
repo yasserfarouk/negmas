@@ -6,12 +6,12 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 
 from negmas import (
-    AgentMechanismInterface,
     AspirationNegotiator,
     Issue,
     MappingUtilityFunction,
     MechanismState,
     Negotiator,
+    NegotiatorMechanismInterface,
     RenegotiationRequest,
     SAOMechanism,
 )
@@ -105,32 +105,34 @@ class DummyAgent(Agent):
         partners: List[str],
         issues: List[Issue],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         role: Optional[str],
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         negotiator = AspirationNegotiator(
-            ufun=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
+            preferences=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
         )
         return negotiator
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
         pass
 
-    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+    def on_neg_request_accepted(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
         pass
 
     def on_negotiation_failure(
         self,
         partners: List[str],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
         pass
 
     def on_negotiation_success(
-        self, contract: Contract, mechanism: AgentMechanismInterface
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
         pass
 
@@ -193,32 +195,34 @@ class ExceptionAgent(Agent):
         partners: List[str],
         issues: List[Issue],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         role: Optional[str],
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         negotiator = AspirationNegotiator(
-            ufun=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
+            preferences=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
         )
         return negotiator
 
     def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
         pass
 
-    def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+    def on_neg_request_accepted(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
         pass
 
     def on_negotiation_failure(
         self,
         partners: List[str],
         annotation: Dict[str, Any],
-        mechanism: AgentMechanismInterface,
+        mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
         pass
 
     def on_negotiation_success(
-        self, contract: Contract, mechanism: AgentMechanismInterface
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
     ) -> None:
         pass
 

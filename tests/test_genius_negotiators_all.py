@@ -84,17 +84,18 @@ from negmas import (
 )
 from negmas.genius import GeniusBridge
 from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
+from negmas.inout import Domain
 
 TIMELIMIT = 30
 STEPLIMIT = 50
 
-AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN = tuple()
+AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
 SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
 
 
 def do_test_genius_agent(
-    AgentClass, must_agree_if_same_ufun=True, java_class_name=None
+    AgentClass, must_agree_if_same_preferences=True, java_class_name=None
 ):
     if java_class_name is not None:
         AgentClass = lambda *args, **kwargs: GeniusNegotiator(
@@ -109,35 +110,27 @@ def do_test_genius_agent(
     )
 
     def do_run(
-        opponent_ufun,
-        agent_ufun,
+        opponent_preferences,
+        agent_preferences,
         agent_starts,
         opponent_type=AspirationNegotiator,
         n_steps=None,
         time_limit=TIMELIMIT,
-        outcome_type=dict,
-        must_agree_if_same_ufun=True,
+        must_agree_if_same_preferences=True,
     ):
-        neg, agent_info, issues = load_genius_domain_from_folder(
-            base_folder,
-            keep_issue_names=outcome_type == dict,
-            keep_value_names=outcome_type == dict,
-            time_limit=time_limit,
-            n_steps=n_steps,
-            outcome_type=outcome_type,
+        domain = Domain.from_genius_folder(base_folder)
+        neg = domain.make_session(
+            n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False
         )
-        neg._avoid_ultimatum = False
         if neg is None:
             raise ValueError(f"Failed to load domain from {base_folder}")
         if isinstance(opponent_type, GeniusNegotiator):
             opponent = opponent_type(
-                ufun=agent_info[opponent_ufun]["ufun"],
-                keep_issue_names=outcome_type == dict,
-                keep_issue_values=outcome_type == dict,
+                ufun=domain.ufuns[opponent_preferences],
             )
         else:
-            opponent = opponent_type(ufun=agent_info[opponent_ufun]["ufun"])
-        theagent = AgentClass(ufun=agent_info[agent_ufun]["ufun"])
+            opponent = opponent_type(ufun=domain.ufuns[opponent_preferences])
+        theagent = AgentClass(ufun=domain.ufuns[agent_preferences])
         if agent_starts:
             neg.add(theagent)
             neg.add(opponent)
@@ -147,36 +140,30 @@ def do_test_genius_agent(
         return neg.run()
 
     # check that it can run without errors with two different ufuns
-    for outcome_type in (tuple, dict):
-        for opponent_type in (AspirationNegotiator, Atlas3):
-            for starts in (False, True):
-                for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT)):
-                    for ufuns in ((1, 0), (0, 1)):
-                        try:
-                            result = do_run(
-                                ufuns[0],
-                                ufuns[1],
-                                starts,
-                                opponent_type,
-                                n_steps=n_steps,
-                                time_limit=time_limit,
-                                outcome_type=outcome_type,
-                            )
-                            # print(
-                            #     f"{AgentClass.__name__} SUCCEEDED against {opponent_type.__name__}"
-                            #     f" going {'first' if starts else 'last'} ({n_steps} steps with "
-                            #     f"{time_limit} limit taking ufun {ufuns[1]} type {outcome_type}) getting {str(result)}."
-                            # )
-                        except Exception as e:
-                            print(
-                                f"{agent_class_name} FAILED against {opponent_type.__name__}"
-                                f" going {'first' if starts else 'last'} ({n_steps} steps with "
-                                f"{time_limit} limit taking ufun {ufuns[1]} type {outcome_type})."
-                            )
-                            raise e
+    for opponent_type in (AspirationNegotiator, Atlas3):
+        for starts in (False, True):
+            for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT)):
+                for ufuns in ((1, 0), (0, 1)):
+                    try:
+                        result = do_run(
+                            ufuns[0],
+                            ufuns[1],
+                            starts,
+                            opponent_type,
+                            n_steps=n_steps,
+                            time_limit=time_limit,
+                        )
+                    except Exception as e:
+                        print(
+                            f"{agent_class_name} FAILED against {opponent_type.__name__}"
+                            f" going {'first' if starts else 'last'} ({n_steps} steps with "
+                            f"{time_limit} limit taking ufun {ufuns[1]}."
+                        )
+                        raise e
 
-    if not must_agree_if_same_ufun or (
-        java_class_name is None and AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_UFUN
+    if not must_agree_if_same_preferences or (
+        java_class_name is None
+        and AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences
     ):
         return
 

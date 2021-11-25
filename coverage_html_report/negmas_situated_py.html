@@ -3241,7 +3241,7 @@
 <p id="t66" class="stm run hide_run"><span class="key">from</span> <span class="nam">negmas</span><span class="op">.</span><span class="nam">events</span> <span class="key">import</span> <span class="nam">Event</span><span class="op">,</span> <span class="nam">EventSource</span><span class="op">,</span> <span class="nam">EventSink</span><span class="op">,</span> <span class="nam">Notifier</span><span class="strut">&nbsp;</span></p>
 <p id="t67" class="stm run hide_run"><span class="key">from</span> <span class="nam">negmas</span><span class="op">.</span><span class="nam">helpers</span> <span class="key">import</span> <span class="op">(</span><span class="strut">&nbsp;</span></p>
 <p id="t68" class="pln">    <span class="nam">ConfigReader</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
-<p id="t69" class="pln">    <span class="nam">instantiate</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
+<p id="t69" class="pln">    <span class="nam"> ninstantiate</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t70" class="pln">    <span class="nam">get_class</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t71" class="pln">    <span class="nam">unique_name</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
 <p id="t72" class="pln">    <span class="nam">snake_case</span><span class="op">,</span><span class="strut">&nbsp;</span></p>
@@ -3787,7 +3787,7 @@
 <p id="t612" class="stm mis">                        <span class="nam">record</span><span class="op">[</span><span class="str">f"reserved{i}"</span><span class="op">]</span> <span class="op">=</span> <span class="nam">_negotiator</span><span class="op">.</span><span class="nam">reserved_value</span><span class="strut">&nbsp;</span></p>
 <p id="t613" class="pln">                    <span class="key">else</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
 <p id="t614" class="stm mis">                        <span class="nam">record</span><span class="op">[</span><span class="str">f"reserved{i}"</span><span class="op">]</span> <span class="op">=</span> <span class="key">None</span><span class="strut">&nbsp;</span></p>
-<p id="t615" class="stm mis">                    <span class="key">if</span> <span class="nam">hasattr</span><span class="op">(</span><span class="nam">_negotiator</span><span class="op">,</span> <span class="str">"utility_function"</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
+<p id="t615" class="stm mis">                    <span class="key">if</span> <span class="nam">hasattr</span><span class="op">(</span><span class="nam">_negotiator</span><span class="op">,</span> <span class="str">"ufun"</span><span class="op">)</span><span class="op">:</span><span class="strut">&nbsp;</span></p>
 <p id="t616" class="stm mis">                        <span class="nam">record</span><span class="op">[</span><span class="str">f"u{i}"</span><span class="op">]</span> <span class="op">=</span> <span class="nam">_negotiator</span><span class="op">.</span><span class="nam">utility_function</span><span class="op">(</span><span class="strut">&nbsp;</span></p>
 <p id="t617" class="pln">                            <span class="nam">record</span><span class="op">[</span><span class="str">"outcome"</span><span class="op">]</span><span class="strut">&nbsp;</span></p>
 <p id="t618" class="pln">                        <span class="op">)</span><span class="strut">&nbsp;</span></p>
@@ -3983,7 +3983,7 @@
 <p id="t808" class="pln"><span class="str">        Args:</span><span class="strut">&nbsp;</span></p>
 <p id="t809" class="pln"><span class="str">            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.</span><span class="strut">&nbsp;</span></p>
 <p id="t810" class="pln"><span class="str">            negotiator: The negotiator to be used in the negotiation</span><span class="strut">&nbsp;</span></p>
-<p id="t811" class="pln"><span class="str">            ufun: The utility function. Only needed if the negotiator does not already know it</span><span class="strut">&nbsp;</span></p>
+<p id="t811" class="pln"><span class="str">            preferences: The utility function. Only needed if the negotiator does not already know it</span><span class="strut">&nbsp;</span></p>
 <p id="t812" class="pln"><span class="str">            caller_role: The role of the caller in the negotiation</span><span class="strut">&nbsp;</span></p>
 <p id="t813" class="pln"><span class="str">            issues: Negotiation issues</span><span class="strut">&nbsp;</span></p>
 <p id="t814" class="pln"><span class="str">            annotation: Extra information to be passed to the `partners` when asking them to join the negotiation</span><span class="strut">&nbsp;</span></p>
@@ -5025,7 +5025,7 @@
 <p id="t1850" class="pln"><span class="str">            caller: The agent requesting the negotiation</span><span class="strut">&nbsp;</span></p>
 <p id="t1851" class="pln"><span class="str">            partners: The list of partners that the agent wants to negotiate with. Roles will be determined by these agents.</span><span class="strut">&nbsp;</span></p>
 <p id="t1852" class="pln"><span class="str">            negotiator: The negotiator to be used in the negotiation</span><span class="strut">&nbsp;</span></p>
-<p id="t1853" class="pln"><span class="str">            ufun: The utility function. Only needed if the negotiator does not already know it</span><span class="strut">&nbsp;</span></p>
+<p id="t1853" class="pln"><span class="str">            preferences: The utility function. Only needed if the negotiator does not already know it</span><span class="strut">&nbsp;</span></p>
 <p id="t1854" class="pln"><span class="str">            caller_role: The role of the caller in the negotiation</span><span class="strut">&nbsp;</span></p>
 <p id="t1855" class="pln"><span class="str">            issues: Negotiation issues</span><span class="strut">&nbsp;</span></p>
 <p id="t1856" class="pln"><span class="str">            annotation: Extra information to be passed to the `partners` when asking them to join the negotiation</span><span class="strut">&nbsp;</span></p>

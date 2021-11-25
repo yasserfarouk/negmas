@@ -11,14 +11,16 @@ import tempfile
 import warnings
 from typing import List, Optional, Tuple, Union
 
-from ..common import AgentMechanismInterface, MechanismState
+from negmas.preferences.preferences import Preferences
+
+from ..common import MechanismState, NegotiatorMechanismInterface
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..inout import get_domain_issues
 from ..negotiators import Controller
-from ..outcomes import Issue, ResponseType
-from ..sao.common import SAOResponse
+from ..outcomes import issues_to_xml_str
+from ..preferences import UtilityFunction, make_discounted_ufun, normalize
+from ..sao.common import ResponseType, SAOResponse
 from ..sao.negotiators import SAONegotiator
-from ..utilities import UtilityFunction, make_discounted_ufun, normalize
 from .bridge import GeniusBridge
 from .common import (
     DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT,
@@ -40,7 +42,7 @@ class GeniusNegotiator(SAONegotiator):
 
     Args:
         assume_normalized: Assume that the utility function is already normalized (or do not need to be normalized)
-        ufun: The ufun of the negotiator [optional]
+        preferences: The ufun of the negotiator [optional]
         name: Negotiator name [optional]
         rational_proposal: If true, the negotiator will not offer anything less than their reserved-value
         parent: Parent `Controller`
@@ -48,8 +50,6 @@ class GeniusNegotiator(SAONegotiator):
         java_class_name: The java class name of the Geinus underlying agent
         domain_file_name: Optional domain file name (containing the negotiation issues or agenda)
         utility_file_name: Optional ufun file name (xml) from which a ufun will be loaded for the agent
-        keep_issue_names: When reading domainand utility files keep issue names
-        keep_value_names: When reading domainand utility files keep value names
         can_propose: The negotiator can propose
         normalize_utility: Normalize the ufun [0-1] if it is not already normalized and not assumed-normalized.
         normalize_max_only: Normalize the max to 1.0 but do not normalize the min.
@@ -66,7 +66,7 @@ class GeniusNegotiator(SAONegotiator):
     def __init__(
         self,
         assume_normalized=True,
-        ufun: Optional[UtilityFunction] = None,
+        preferences: Optional[Preferences] = None,
         name: str = None,
         rational_proposal=False,
         parent: Controller = None,
@@ -74,8 +74,6 @@ class GeniusNegotiator(SAONegotiator):
         java_class_name: str = None,
         domain_file_name: Union[str, pathlib.Path] = None,
         utility_file_name: Union[str, pathlib.Path] = None,
-        keep_issue_names: bool = True,
-        keep_value_names: bool = True,
         can_propose=True,
         normalize_utility: bool = False,
         normalize_max_only: bool = False,
@@ -87,7 +85,7 @@ class GeniusNegotiator(SAONegotiator):
         super().__init__(
             name=name,
             assume_normalized=assume_normalized,
-            ufun=None,
+            preferences=None,
             rational_proposal=rational_proposal,
             parent=parent,
             owner=owner,
@@ -117,31 +115,27 @@ class GeniusNegotiator(SAONegotiator):
         self.domain_file_name = str(domain_file_name) if domain_file_name else None
         self.utility_file_name = str(utility_file_name) if utility_file_name else None
         self._my_last_offer = None
-        self.keep_issue_names = keep_issue_names
-        self._utility_function, self.discount = None, None
+        self._preferences, self.discount = None, None
         self.issue_names = self.issues = self.issue_index = None
         self.auto_load_java = auto_load_java
         if domain_file_name is not None:
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
                 domain_file_name=domain_file_name,  # type: ignore
-                keep_issue_names=True,
-                keep_value_names=True,
             )
             self.issue_names = [_.name for _ in self.issues]  # type: ignore
             self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         self.discount = None
         if utility_file_name is not None:
-            self._utility_function, self.discount = UtilityFunction.from_genius(  # type: ignore
+            self._preferences, self.discount = UtilityFunction.from_genius(  # type: ignore
                 utility_file_name,
-                keep_issue_names=keep_issue_names,
-                keep_value_names=keep_value_names,
+                issues=self.issues,
             )
         # if ufun is not None:
-        #     self._utility_function = ufun
-        self.base_utility = self._utility_function
-        self.__ufun_received = ufun
-        self._temp_domain_file = self._temp_ufun_file = False
+        #     self._preferences = ufun
+        self.base_utility = self._preferences
+        self.__preferences_received = preferences
+        self._temp_domain_file = self._temp_preferences_file = False
         self.connected = False
 
     @property
@@ -198,8 +192,6 @@ class GeniusNegotiator(SAONegotiator):
         port: int = DEFAULT_JAVA_PORT,
         domain_file_name: str = None,
         utility_file_name: str = None,
-        keep_issue_names: bool = True,
-        keep_value_names: bool = True,
         auto_load_java: bool = False,
         can_propose=True,
         name: str = None,
@@ -211,8 +203,6 @@ class GeniusNegotiator(SAONegotiator):
             name: negotiator name
             can_propose: Can this negotiator propose?
             auto_load_java: load the JVM if needed
-            keep_value_names: Keep value names if values are strings
-            keep_issue_names: Use dictionaries instead of tuples for representing outcomes
             utility_file_name: Name of the utility xml file
             domain_file_name: Name of the domain XML file
             port: port number to use if the JVM is to be started
@@ -231,8 +221,6 @@ class GeniusNegotiator(SAONegotiator):
             port=port,
             domain_file_name=domain_file_name,
             utility_file_name=utility_file_name,
-            keep_issue_names=keep_issue_names,
-            keep_value_names=keep_value_names,
             auto_load_java=auto_load_java,
             can_propose=can_propose,
             name=name,
@@ -278,15 +266,15 @@ class GeniusNegotiator(SAONegotiator):
 
     def join(
         self,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        ufun: Optional["UtilityFunction"] = None,
+        preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        if ufun is None:
-            ufun = self.__ufun_received
-        result = super().join(ami=ami, state=state, ufun=ufun, role=role)
+        if preferences is None:
+            preferences = self.__preferences_received
+        result = super().join(ami=ami, state=state, preferences=preferences, role=role)
         if not result:
             return False
         # only connect to the JVM running genius-bridge if you are going to join a negotiation.
@@ -305,31 +293,30 @@ class GeniusNegotiator(SAONegotiator):
         self.java_uuid = self._create()
 
         if self._normalize_utility:
-            self._utility_function = normalize(
+            self._preferences = normalize(
                 self.ufun,  # type: ignore
                 outcomes=ami.discrete_outcomes,  # type: ignore
-                max_only=self._normalize_max_only,
+                rng=(None, 1.0) if self._normalize_max_only else (0.0, 1.0),
             )
         self.issue_names = [_.name for _ in ami.issues]
         self.issues = ami.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
-        self.keep_issue_names = self.keep_value_names = ami.outcome_type == dict
         if ami.issues is not None and self.domain_file_name is None:
             domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.domain_file_name = domain_file.name
-            domain_file.write(Issue.to_xml_str(ami.issues))
+            domain_file.write(issues_to_xml_str(ami.issues))
             domain_file.close()
             self._temp_domain_file = True
-        if ufun is not None and self.utility_file_name is None:
+        if preferences is not None and self.utility_file_name is None:
             utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
-                    ufun, issues=ami.issues, discount_factor=self.discount
+                    preferences, issues=ami.issues, discount_factor=self.discount
                 )
             )
             utility_file.close()
-            self._temp_ufun_file = True
+            self._temp_preferences_file = True
         return result
 
     def destroy_java_counterpart(self, state=None) -> None:
@@ -355,12 +342,12 @@ class GeniusNegotiator(SAONegotiator):
                 elif self._strict:
                     raise ValueError(f"{self._me()} failed to end the negotiation!!")
             self.__destroyed = True
-        if self._temp_ufun_file:
+        if self._temp_preferences_file:
             try:
                 os.unlink(self.utility_file_name)  # type: ignore
             except (FileNotFoundError, PermissionError):
                 pass
-            self._temp_ufun_file = False
+            self._temp_preferences_file = False
 
         if self._temp_domain_file:
             try:
@@ -381,23 +368,22 @@ class GeniusNegotiator(SAONegotiator):
             self._strict = self.ami.n_steps is not None and self.ami.n_steps != float(
                 "inf"
             )
-        if self._utility_function is not None and self.utility_file_name is None:
+        if self._preferences is not None and self.utility_file_name is None:
             utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
-                    self._utility_function,
+                    self._preferences,
                     issues=self.ami.issues,
                     discount_factor=self.discount,
                 )
             )
             utility_file.close()
-            self._temp_ufun_file = True
+            self._temp_preferences_file = True
         info = self._ami
         if self.discount is not None and self.discount != 1.0:
-            self._utility_function = make_discounted_ufun(
-                self._utility_function,
-                ami=info,
+            self._preferences = make_discounted_ufun(
+                self._preferences,
                 discount_per_round=self.discount,
                 power_per_round=1.0,
             )
@@ -423,7 +409,7 @@ class GeniusNegotiator(SAONegotiator):
             if n_steps < 0:
                 if self._strict:
                     raise ValueError(
-                    f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. Not allowed in strict mode"
+                        f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. Not allowed in strict mode"
                     )
                 warnings.warn(
                     f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. This may lead to an infinite negotiation"
@@ -548,37 +534,14 @@ class GeniusNegotiator(SAONegotiator):
 
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:
-                if self._ami.outcome_type == tuple:
-                    values = {
-                        _[0]: _[1]
-                        for _ in [
-                            _.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)
-                        ]
-                    }
-                    outcome = []
-                    for issue in issues:
-                        outcome.append(issue.value_type(values[issue.name]))
-                    outcome = tuple(outcome)
-                else:
-                    outcome = {
-                        _[0]: _[1]
-                        for _ in [
-                            _.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)
-                        ]
-                    }
-                    issue_map = {i.name: i for i in issues}
-                    for k, v in outcome.items():
-                        outcome[k] = issue_map[k].value_type(v)
-                    if self._ami.outcome_type != dict:
-                        outcome = self._ami.outcome_type(
-                            **{
-                                _[0]: _[1]
-                                for _ in [
-                                    _.split(INTERNAL_SEP)
-                                    for _ in bid_str.split(ENTRY_SEP)
-                                ]
-                            }
-                        )
+                values = {
+                    _[0]: _[1]
+                    for _ in [_.split(INTERNAL_SEP) for _ in bid_str.split(ENTRY_SEP)]
+                }
+                outcome = []
+                for issue in issues:
+                    outcome.append(issue.value_type(values[issue.name]))
+                outcome = tuple(outcome)
             except Exception as e:
                 if self._strict:
                     raise ValueError(
@@ -607,10 +570,7 @@ class GeniusNegotiator(SAONegotiator):
 
     def _outcome2str(self, outcome):
         output = ""
-        if not isinstance(outcome, dict):
-            outcome_dict = dict(zip(self.issue_names, outcome))
-        else:
-            outcome_dict = outcome
+        outcome_dict = dict(zip(self.issue_names, outcome))
         for i, v in outcome_dict.items():
             # todo check that the order here will be correct!!
             output += f"{i}{INTERNAL_SEP}{v}{ENTRY_SEP}"

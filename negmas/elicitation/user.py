@@ -4,8 +4,11 @@ from typing import List, Optional
 
 import numpy as np
 
+from negmas.preferences.preferences import Preferences
+from negmas.types.rational import Rational
+
 from ..outcomes import Outcome
-from ..utilities import MappingUtilityFunction, UtilityFunction
+from ..preferences import MappingUtilityFunction, UtilityFunction
 from .queries import Constraint, CostEvaluator, QResponse, Query
 
 np.seterr(all="raise")  # setting numpy to raise exceptions in case of errors
@@ -28,38 +31,35 @@ class ElicitationRecord:
     __repr__ = __str__
 
 
-class User:
+class User(Rational):
     """Abstract base class for all representations of users used for elicitation
 
     Args:
-        ufun: The real utility function of the user.
+        preferences: The real utility function of the user.
         cost: A cost to be added for every question asked to the user.
         ami: [Optional] The `AgentMechanismInterface` representing *the*
              negotiation session engaged in by this user using this `ufun`.
 
     """
 
-    def __init__(
-        self, ufun: Optional[UtilityFunction] = None, cost: float = 0.0, ami=None
-    ):
-        super().__init__()
-        self.utility_function = ufun
+    def __init__(self, cost: float = 0.0, ami=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.cost = cost
         self.total_cost = 0.0
         self._elicited_queries: List[ElicitationRecord] = []
         self.ami = ami
 
-    def set(self, ufun: Optional[UtilityFunction] = None, cost: float = None):
+    def set(self, preferences: Optional[Preferences] = None, cost: float = None):
         """
         Sets the ufun and/or cost for this user        <`0:desc`>
 
         Args:
-            ufun: The ufun if given
+            preferences: The ufun if given
             cost: The cost if given
         """
 
-        if ufun is not None:
-            self.utility_function = ufun
+        if preferences is not None:
+            self._preferences = preferences
         if cost is not None:
             self.cost = cost
 
@@ -67,8 +67,8 @@ class User:
     def ufun(self) -> UtilityFunction:
         """Gets a `UtilityFunction` representing the real utility_function of the user"""
         return (
-            self.utility_function
-            if self.utility_function is not None
+            self._preferences
+            if self._preferences is not None
             else MappingUtilityFunction(lambda x: None)
         )
 

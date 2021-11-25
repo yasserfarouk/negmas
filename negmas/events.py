@@ -8,9 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from .common import NamedObject
 from .outcomes import Issue
 from .serialization import serialize
+from .types import NamedObject
 
 __all__ = [
     "Event",

@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Collection, List, Union
 
 import numpy as np
 
-from negmas.common import AgentMechanismInterface
-from negmas.outcomes import Outcome, ResponseType
+from negmas.common import NegotiatorMechanismInterface
+from negmas.outcomes import Outcome
+from negmas.sao import ResponseType
 
 if TYPE_CHECKING:
     pass
@@ -127,7 +128,7 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     @classmethod
     def from_negotiation(
         cls,
-        ami: AgentMechanismInterface,
+        ami: NegotiatorMechanismInterface,
         prob: Union[float, list] = 0.5,
         end_prob=0.0,
         p_accept_after_reject=0.0,

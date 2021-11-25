@@ -13,6 +13,13 @@ from ..mechanisms import Mechanism
 from ..modeling import UncertainOpponentModel
 from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
+from ..preferences import (
+    Distribution,
+    IPUtilityFunction,
+    MappingUtilityFunction,
+    UtilityFunction,
+    Value,
+)
 from ..sao import (
     AspirationNegotiator,
     LimitedOutcomesAcceptor,
@@ -22,13 +29,6 @@ from ..sao import (
     SAOMechanism,
     SAOState,
     ToughNegotiator,
-)
-from ..utilities import (
-    IPUtilityFunction,
-    MappingUtilityFunction,
-    UtilityDistribution,
-    UtilityFunction,
-    UtilityValue,
 )
 from .baseline import DummyElicitor, FullKnowledgeElicitor
 from .expectors import BalancedExpector, MaxExpector, MinExpector
@@ -56,29 +56,29 @@ __all__ = ["SAOElicitingMechanism"]
 def uniform():
     loc = random.random()
     scale = random.random() * (1.0 - loc)
-    return UtilityDistribution(dtype="uniform", loc=loc, scale=scale)
+    return Distribution(type="uniform", loc=loc, scale=scale)
 
 
 def current_aspiration(
     elicitor: "AspirationMixin", outcome: "Outcome", negotiation: "Mechanism"
-) -> "UtilityValue":
+) -> "Value":
     return elicitor.aspiration(negotiation.relative_time)
 
 
 def create_negotiator(
-    negotiator_type, ufun, can_propose, outcomes, toughness, **kwargs
+    negotiator_type, preferences, can_propose, outcomes, toughness, **kwargs
 ):
     if negotiator_type == "limited_outcomes":
         if can_propose:
             negotiator = LimitedOutcomesNegotiator(
                 acceptable_outcomes=outcomes,
-                acceptance_probabilities=list(ufun.mapping.values()),
+                acceptance_probabilities=list(preferences.mapping.values()),
                 **kwargs,
             )
         else:
             negotiator = LimitedOutcomesAcceptor(
                 acceptable_outcomes=outcomes,
-                acceptance_probabilities=list(ufun.mapping.values()),
+                acceptance_probabilities=list(preferences.mapping.values()),
                 **kwargs,
             )
     elif negotiator_type == "random":
@@ -132,7 +132,7 @@ def create_negotiator(
                 keep_issue_names=False,
                 can_propose=can_propose,
             )
-        negotiator.utility_function = ufun
+        negotiator.preferences = preferences
     else:
         raise ValueError(f"Unknown opponents type {negotiator_type}")
     return negotiator
@@ -165,10 +165,10 @@ class SAOElicitingMechanism(SAOMechanism):
         cls,
         cost,
         n_outcomes: int = None,
-        rand_ufuns=True,
+        rand_preferencess=True,
         conflict: float = None,
         conflict_delta: float = None,
-        winwin=None,  # only if rand_ufuns is false
+        winwin=None,  # only if rand_preferencess is false
         genius_folder: str = None,
         n_steps=None,
         time_limit=None,
@@ -193,49 +193,48 @@ class SAOElicitingMechanism(SAOMechanism):
                 "Must specify a folder to run from or a number of outcomes"
             )
         if genius_folder is not None:
-            domain, agent_info, _ = load_genius_domain_from_folder(
-                folder_name=genius_folder,
-                force_single_issue=True,
-                keep_issue_names=False,
-                keep_value_names=False,
-                ignore_discount=True,
+            d = load_genius_domain_from_folder(
+                genius_folder,
+                force_numeric=True,
                 ignore_reserved=opponent_reserved_value is not None,
-            )
+                ignore_discount=True,
+            ).to_single_issue(numeric=True)
+            domain = d.make_session(time_limit=120)
+
             n_outcomes = domain.ami.n_outcomes
             outcomes = domain.outcomes
             elicitor_indx = 0 + int(random.random() <= 0.5)
             opponent_indx = 1 - elicitor_indx
-            ufun = agent_info[elicitor_indx]["ufun"]
-            ufun.reserved_value = own_reserved_value
-            opp_utility = agent_info[opponent_indx]["ufun"]
+            preferences = d.ufuns[elicitor_indx]
+            preferences.reserved_value = own_reserved_value
+            opp_utility = d.ufuns[opponent_indx]
             opp_utility.reserved_value = opponent_reserved_value
         else:
             outcomes = [(_,) for _ in range(n_outcomes)]
-            if rand_ufuns:
-                ufun, opp_utility = UtilityFunction.generate_random_bilateral(
+            if rand_preferencess:
+                preferences, opp_utility = UtilityFunction.generate_random_bilateral(
                     outcomes=outcomes
                 )
             else:
-                ufun, opp_utility = UtilityFunction.generate_bilateral(
+                preferences, opp_utility = UtilityFunction.generate_bilateral(
                     outcomes=outcomes,
                     conflict_level=opponent_toughness,
                     conflict_delta=conflict_delta,
                     win_win=winwin,
                 )
-            ufun.reserved_value = own_reserved_value
+            preferences.reserved_value = own_reserved_value
             domain = SAOMechanism(
                 outcomes=outcomes,
                 n_steps=n_steps,
                 time_limit=time_limit,
                 max_n_agents=2,
                 dynamic_entry=False,
-                outcome_type=tuple,
                 cache_outcomes=True,
             )
 
-        true_utilities = list(ufun.mapping.values())
-        priors = IPUtilityFunction.from_ufun(
-            ufun,
+        true_utilities = list(preferences.mapping.values())
+        priors = IPUtilityFunction.from_preferences(
+            preferences,
             uncertainty=own_utility_uncertainty,
             variability=own_uncertainty_variablility,
         )
@@ -245,7 +244,7 @@ class SAOElicitingMechanism(SAOMechanism):
         opponent = create_negotiator(
             negotiator_type=opponent_type,
             can_propose=opponent_proposes,
-            ufun=opp_utility,
+            preferences=opp_utility,
             outcomes=outcomes,
             toughness=opponent_toughness,
         )
@@ -307,7 +306,6 @@ class SAOElicitingMechanism(SAOMechanism):
             max_n_agents=2,
             dynamic_entry=False,
             name=name,
-            outcome_type=tuple,
             enable_callbacks=True,
         )
         if elicitor_reserved_value is None:
@@ -317,7 +315,7 @@ class SAOElicitingMechanism(SAOMechanism):
             screen_level=logging.DEBUG if screen_log else logging.ERROR,
         )
         user = User(
-            ufun=MappingUtilityFunction(
+            preferences=MappingUtilityFunction(
                 dict(zip(self.outcomes, self.U)), reserved_value=elicitor_reserved_value
             ),
             cost=cost,
@@ -329,12 +327,12 @@ class SAOElicitingMechanism(SAOMechanism):
             strategy = None
         else:
             strategy = EStrategy(strategy=elicitation_strategy, resolution=resolution)
-            strategy.on_enter(ami=self.ami, ufun=initial_priors)
+            strategy.on_enter(ami=self.ami, preferences=initial_priors)
 
         def create_elicitor(type_, strategy=strategy, opponent_model=opponent_model):
             base_negotiator = create_negotiator(
                 negotiator_type=base_agent,
-                ufun=None,
+                preferences=None,
                 can_propose=True,
                 outcomes=outcomes,
                 toughness=toughness,
@@ -480,8 +478,8 @@ class SAOElicitingMechanism(SAOMechanism):
             if n_steps is not None and time_limit is not None:
                 self.ami.n_steps = None
 
-        self.add(opponent, ufun=opp_utility)
-        self.add(elicitor, ufun=initial_priors)
+        self.add(opponent, preferences=opp_utility)
+        self.add(elicitor, preferences=initial_priors)
         if len(self.negotiators) != 2:
             raise ValueError(
                 f"I could not add the two negotiators {elicitor.__class__.__name__}, {opponent.__class__.__name__}"
@@ -591,9 +589,9 @@ class SAOElicitingMechanism(SAOMechanism):
                 history["relative_time"] = [_[0].relative_time for _ in self.history]
                 history["step"] = [_[0].step for _ in self.history]
                 history = history.loc[~history.offer.isnull(), :]
-                # ufuns = self._get_ufuns(consider_costs=consider_costs)
-                ufuns = self._get_ufuns()
-                elicitor_dist = self.negotiators[1].utility_function
+                # ufuns = self._get_preferencess(consider_costs=consider_costs)
+                ufuns = self._get_preferencess()
+                elicitor_dist = self.negotiators[1].ufun
                 outcomes = self.outcomes
 
                 utils = [tuple(f(o) for f in ufuns) for o in outcomes]
@@ -779,7 +777,7 @@ class SAOElicitingMechanism(SAOMechanism):
 
         if self.elicitation_state["agreed"]:
             self.elicitation_state["utils"] = [
-                a.user_ufun(self.state.agreement)
+                a.user_preferences(self.state.agreement)
                 if isinstance(a, BaseElicitor)
                 else a.ufun(self.state.agreement)
                 for a in self.negotiators

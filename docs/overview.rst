@@ -1,9 +1,10 @@
 Overview
 ========
 
-negmas was designed mainly to support multi-strand multilateral
-multi-issue negotiations with complex utility functions. This section
-gives an introduction to the main concepts of the public interface.
+negmas was designed mainly as a research and educational tool with
+special emphasis on supporting multi-strand multilateral multi-issue
+negotiations with complex utility functions. This section gives an
+introduction to the main concepts of the public interface.
 
 In order to use the library you will need to import it as follows
 (assuming that you followed the instructions in the installation section
@@ -12,6 +13,22 @@ of this document):
 .. code:: ipython3
 
     import negmas
+
+To simplify the use of this platform, all classes and functions from all
+base modules are aliased in the root package (except generics and
+helpers). This is an example of importing just ``Outcome`` which is
+defined in the ``outcomes`` package
+
+.. code:: ipython3
+
+    from negmas import Outcome
+
+It is possible *but not recommended* to just import everything in the
+package using:
+
+.. code:: ipython3
+
+    from negmas import *
 
 Organization
 ------------
@@ -106,42 +123,177 @@ specific modules, advanced and helper modules.
    -  **visualizers** [Under development] Supports visualization of
       world simulation, negotiation sessions, negotiators, and agents.
 
-To simplify the use of this platform, all classes and functions from all
-base modules are aliased in the root package (except generics and
-helpers). This is an example of importing just ``Outcome`` which is
-defined in the ``outcomes`` package
+A (not very) brief introduction to NegMAS
+-----------------------------------------
 
-.. code:: ipython3
+This figure shows the main active components of a simulation in a NegMAS
+world: |NegMAS world|
 
-    from negmas import Outcome
+The simulation is run using a **World** object which defines what
+happens in every simulation **step**, provides a **BulletinBoard**
+object containing all public information about the game, calls various
+callbacks defined in the **Agent** object representing each agent in the
+environment, takes care of running negotiations and keeps track of
+agreement signing and the resulting **Contract**\ s. The **World**
+object also controls logging, event management, serialization,
+visualization, etc. Refer to the
+`World <http://www.yasserm.com/negmas/api/negmas.situated.World.html>`__
+documentation for more details (*you need to do that only if you are
+implementing new world simulations*).
 
-It is possible to just import everything in the package using:
+The designer of the game implements a **World** class by overriding few
+abstract methods in the base **World** class.
 
-.. code:: ipython3
+The logic of an agent is NegMAS is implemented in an **Agent** object.
+The designer of the simulation, should provide a base class for its
+specific world inherited from NegMAS’s **Agent** class. Refer to the
+`Agent <http://www.yasserm.com/negmas/api/negmas.situated.Agent.html>`__
+documentation for more details about general NegMAS agents.
 
-    from negmas import *
+So now we have the **World** and the **Agent** objects, and we already
+said that the agent does not directly interact with the world. How does
+these two types of entities interact then?
 
-As usual you can just import everything in a separate namespace using:
+-  When the **World** wants to interact with the **Agent**, it calls
+   some method in it. For example, to instruct the agent to *initialize*
+   itself, the world calls the **init()** method defined by the
+   **Agent**. To inform the agent that a negotiation it is involved in
+   is concluded with success, the **World** calls the method
+   **on_negotiation_success()** defined by the agent.
+-  When the **Agent** wants to interact with the **World**, it accesses
+   an interface object called an **AgentWorldInterface** or **AWI** for
+   short which provides all the services available to the **Agent**. For
+   example, to request a negotiation with another agent, the **Agent**
+   object needs to call **request_negotiation()** defined in the
+   **AWI**.
 
-.. code:: ipython3
+The world designer usually defines an AWI for its world that inherits
+NegMAS’s **AgentWorldInterface** class and provides any special services
+for agents interacting in this world. You can find all the services
+available to your agent through the AgentWorldInterface
+`here <http://www.yasserm.com/negmas/api/negmas.situated.AgentWorldInterface.html>`__.
+These methods and properties are still available for your agent in SCML.
+Nevertheless, in many cases, more convenient ways to access some of the
+information (e.g. the bulletin board) is provided in the specific AWIs
+implemented in the SCML package to be described now.
 
-    import negmas
+Now that we know how worlds and agents work and interact, we can look at
+how negotiation is managed in NegMAS. **Note that you can create
+negotiations that do not belong to any world**
+
+A negotiation is controlled by a **Mechanism** object which implements
+the negotiation protocol (e.g. the alternating offers protocol). NegMAS
+provides several mediated and unmediated negotiation protocols (as well
+as auction mechanisms). The specific **Mechanism** that is used in SCML
+is the **SAOMechanism** which implements the bargaining protocol.
+
+Negotiation strategies are implemented in a **Negotiator** object which
+usually inherits some base negotiator-class corresponding to the
+mechanism(s) it supports.
+
+The interaction between **Mechanism** and **Negotiator** objects mirrors
+the interaction between **World** and **Agent** objects. **Mechanism**
+objects call methods in **Negotiator** objects directly but
+**Negotiator** objects can only access services provided by the
+**Mechanism** object through a **AgentMechanismInterface** (AMI). Note
+that it is an AMI not a NMI (for historical reasons). You can find more
+details about the general NegMAS AMI
+`here <http://www.yasserm.com/negmas/api/negmas.common.AgentMechanismInterface.html>`__.
+
+Each specific **Mechanism** defines a corresponding specific
+**AgentMechanismInterface** class (in the same way that **World**
+classes define their own AWI).
+
+To negotiate effectively, negotiators employ a **UtilityFunction** (or
+any other form of **Preferences** objects) to represent their
+preferences over different possible **Outcome**\ s of the negotiation
+(where an outcome is a full assignment of values to all negotiated
+**Issue**\ s). NegMAS provides an extensive set of preferences types,
+utility functions, and issue types. Please refer to this
+`overview <http://www.yasserm.com/negmas/overview.html>`__ and
+`tutorials <http://www.yasserm.com/negmas/tutorials.html>`__ for more
+details. NegMAS also provides some basic **SAONegotiator**\ s for the
+**SAOMechanism** (Check the class diagram
+`here <http://www.yasserm.com/negmas/modules/sao.html>`__). Moreover,
+you can access almost all `Genius <http://ii.tudelft.nl/genius/>`__
+agents using NegMAS’s
+`GeniusNegotiator <http://www.yasserm.com/negmas/api/negmas.genius.GeniusNegotiator.html>`__
+including all finalists and winners of all past ANAC competitions.
+
+Now we understand how agents interact with worlds through AWIs and
+negotiators interact with mechanisms through AMIs. We know that the
+general simulation is controlled by the world while each negotiation is
+controlled by a mechanism within that world. **We need now to connect
+these two triplets of objects**
+
+As the figure above shows: **Negotiator** objects can be created and
+controlled by **Agent** objects for the purpose of negotiating with
+other **Agent** objects. The standard flow of operations is something
+like this:
+
+1. **Agent** A uses its AWI to *request_negotiation()* with Agent B
+   passing a **Negotiator** to be used in this negotiation. Usually
+   Agent A will also create a **UtilityFunction** and attach it to the
+   **Negotiator** it just created (by setting its *ufun* attribute).
+2. The **World** calls Agent B’s *respond_to_negotiation_request()*
+   asking it to provide its own **Negotiator** to negotiate with Agent
+   A’s Negotiator. It can also just reject the negotiation request by
+   returning no negotiators.
+3. The **World** will then create a **Mechanism** and ask both
+   **Negotiator**\ s to *join* it. If all goes well, the negotiation
+   starts (at a time defined by the simulation rules) and runs until
+   either an agreement or disagreement is reached.
+4. The **World** class will then inform **Agent**\ s A and B about the
+   results of the negotiation using their *on_negotiation_success* and
+   *on_negotiation_failure* callbacks.
+5. Successful negotiations lead to **Agreement**\ s but are still not
+   binding in general until signed by all agents involved (A and B in
+   this case). **Agent**\ ’s ’\ *sign_all_contracts* is used for this.
+6. Signed agreements become *Contract*\ s and are executed (as specified
+   in the simulation rules) by the **World**.
+
+When negotiations are independent, these are all the objects needed.
+Nevertheless, in many cases, negotiations are inter-dependent. This
+means that what is *good* in one negotiation depends on other
+concurrently running negotiations (or on expectations of future
+negotiations). NegMAS provides two ways to support this case shown in
+the following figure:
+
+.. figure:: controllers.jpg
+   :alt: controllers
+
+   controllers
+
+1. Let **Negotiator**\ s use **UtilityFunction**\ s that depend on some
+   common state. That is what is happening in the left two negotiations.
+2. Have multiple **Negotiator**\ s be controlled by a single
+   **Controller** object with its own utility function that depends on
+   what is happening on all the negotiations controlled.
+
+The **Negotiator**\ s connected to a controller lost their autonomy and
+just pass control to their *owning* **Controller**.
+
+This concludes our introduction to NegMAS and different objects you need
+to know about to develop your agent.
+
+.. |NegMAS world| image:: world.png
+
+Issues and Outcome Spaces
+-------------------------
 
 Negotiations are conducted between multiple agents with the goal of
 achieving an *agreement* (usually called a contract) on one of several
-possible outcomes. Each *outcome* is in general an assignment to some
+possible outcomes. Each *outcome* is in general an assignment of some
 value to a set of issues. Each *issue* is a variable that can take one
 of a – probably infinite – set of values from some predefined *domain*.
 
-The classes and functions supporting management of issues, outcomes and
-responses are combined in the ``outcomes`` module.
+The classes and functions supporting management of issues,
+outcome-spaces and outcomes are implemented in the ``outcomes`` module.
 
-Issues
-------
+Issues are represented in ``negmas`` using the ``Issue`` class. An issue
+is defined by a set of ``values`` and a ``name``.
 
-Issues are represented in ``negmas`` using the issue class. An issue is
-defined by a set of ``values`` and a ``name``. It can be created as
-follows:
+NegMAS supports a variety of ``Issue`` types.
 
 -  Using a set of strings:
 
@@ -283,7 +435,7 @@ generators so both are memory efficient.
 
 
 Outcomes
---------
+~~~~~~~~
 
 Now that we know how to define issues, defining outcomes from a
 negotiation is even simpler. An outcome can be any python ``mapping`` or
@@ -387,69 +539,8 @@ in the given set of issues. This can be done using the
 
 
 
-It is sometimes difficult to keep track of issue names in dictionaries.
-For this reason, the library provides a type called *OutcomeType*.
-Inheriting your dataclass from an OutcomeType will allow it to act both
-as a dict and a normal dot accessible object:
-
-.. code:: ipython3
-
-    from dataclasses import dataclass
-    @dataclass
-    class MyOutcome(OutcomeType):
-        problem: bool
-        price: float
-        quantity: int
-
-Now you can use objects of MyOutcome as normal outcomes
-
-.. code:: ipython3
-
-    issues = [
-        Issue(['to be', 'not to be'], name='problem'),
-        Issue((0.0, 3.0), name='price'),
-        Issue(5, name='quantity')
-    ]
-
-.. code:: ipython3
-
-    outcomes = Issue.sample(issues, n_outcomes = 5, astype=MyOutcome)
-    for _ in outcomes:
-        print(_)
-
-
-
-.. parsed-literal::
-
-    MyOutcome(problem='not to be', price=1.9292429442563561, quantity=0)
-    MyOutcome(problem='not to be', price=1.2168605028020283, quantity=4)
-    MyOutcome(problem='to be', price=0.5504030900242165, quantity=1)
-    MyOutcome(problem='to be', price=0.9922145014554281, quantity=2)
-    MyOutcome(problem='not to be', price=1.4245542660733643, quantity=1)
-
-
-The *sample* function created objects of type MyOutcome that can be
-accessed using either the dot notation or as a dict
-
-.. code:: ipython3
-
-    print(outcomes[0].price)
-    print(outcomes[0]['price'])
-    print(outcomes[0].get('price', None))
-
-
-.. parsed-literal::
-
-    1.9292429442563561
-    1.9292429442563561
-    1.9292429442563561
-
-
-OutcomeType is intended to be used as a syntactic sugar around your
-outcome objects but it provides almost no functionality above a dict.
-
 Outcome Ranges and constraints
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Sometimes, it is important to represent not only a single outcome but a
 range of outcomes. This can be represented using an ``OutcomeRange``.
@@ -503,8 +594,8 @@ the constraint:
 -  **list of tuples** The outcome must fall within one of the ranges
    specified by the tuples.
 
-Utilities
----------
+Utilities and Preferences
+-------------------------
 
 Agents engage in negotiations to maximize their utility. That is the
 central dogma in negotiation research. ``negmas`` allows the user to
@@ -1004,7 +1095,7 @@ module for more details
 .. code:: ipython3
 
     from pprint import pprint
-    pprint(list(_ for _ in negmas.utilities.__all__ if _.endswith("n")))
+    pprint(list(_ for _ in negmas.preferences.__all__ if _.endswith("n")))
 
 
 .. parsed-literal::

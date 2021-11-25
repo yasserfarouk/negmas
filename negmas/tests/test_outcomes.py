@@ -1,6 +1,12 @@
 import pytest
 
-from negmas import Issue, Issues, outcome_in_range, outcome_is_valid
+from negmas import (
+    Issue,
+    enumerate_issues,
+    issues_from_outcomes,
+    outcome_in_range,
+    outcome_is_valid,
+)
 from negmas.tests.fixtures import *
 
 
@@ -39,57 +45,31 @@ def test_outcome_in_verious_ranges():
     assert not outcome_in_range({"price": 11}, or1)
 
 
-def test_issues_construction():
-    issues = Issues(price=(0.0, 1.0), cost=[1, 2, 3], delivery=["yes", "no"])
-    assert len(issues.issues) == 3
-    assert str(issues) == "price: (0.0, 1.0)\ncost: [1, 2, 3]\ndelivery: ['yes', 'no']"
-    assert issues.is_infinite()
-    assert not issues.is_finite()
-    assert all(
-        a == b for a, b in zip(issues.types, ["continuous", "discrete", "discrete"])
-    )
-
-    issues = Issues.from_single_issue(Issue(10, "issue"))
-    assert len(issues.issues) == 1
-    assert str(issues) == "issue: (0, 9)"
-
-    issues = Issues(price=[2, 3], cost=[1, 2, 3], delivery=["yes", "no"])
-    assert issues.is_finite()
-    assert not issues.is_infinite()
-    assert issues.cardinality == issues.num_outcomes == 2 * 3 * 2
-
-    valid = issues.rand_valid()
-    invalid = issues.rand_invalid()
-    assert outcome_in_range(valid, issues.outcome_range)
-    assert outcome_in_range(invalid, issues.outcome_range)
-
-
-def test_outcome_constraint():
-    r1 = {
-        "price": [(0.0, 1.0), (3.0, 4.0)],
-        "quantity": [1, 2, 4, 5],
-        "delivery": "yes",
-    }
-
-    notr1 = {"price": [(3.01, 3.99), (4.01, 10.0)], "quantity": 3, "delivery": "no"}
-
-    r2 = {"price": (3.01, 10.0), "quantity": [2, 3], "delivery": ["yes", "no"]}
-
-    # r = OutcomeSpace(r1)
-
-
 def test_from_outcomes():
-    issues = Issues(price=[2, 3], cost=[1, 2, 3], delivery=["yes", "no"])
-    found = Issue.from_outcomes(Issue.enumerate(issues.issues))
-    for i, f in zip(issues.issues, found):
+
+    issues = [
+        Issue([2, 3], "price"),
+        Issue([1, 2, 3], "cost"),
+        Issue(["yes", "no"], "delivery"),
+    ]
+    found = issues_from_outcomes(
+        enumerate_issues(issues), issue_names=["price", "cost", "delivery"]
+    )
+    for i, f in zip(issues, found):
         assert i.name == f.name
         assert all(a == b for a, b in zip(sorted(i.values), f._values))
 
-    issues = Issues(price=(1, 7), cost=(0, 5), delivery=["yes", "no"])
-    found = Issue.from_outcomes(
-        Issue.enumerate(issues.issues, max_n_outcomes=1000), numeric_as_ranges=True
+    issues = [
+        Issue((1, 7), "price"),
+        Issue((0, 5), "cost"),
+        Issue(["yes", "no"], "delivery"),
+    ]
+    found = issues_from_outcomes(
+        enumerate_issues(issues, max_n_outcomes=1000),
+        numeric_as_ranges=True,
+        issue_names=["price", "cost", "delivery"],
     )
-    for i, f in zip(issues.issues, found):
+    for i, f in zip(issues, found):
         v = sorted(i.values)
         assert i.name == f.name
         assert f._values[0] >= v[0] and f._values[1] <= v[1]
