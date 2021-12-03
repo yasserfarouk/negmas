@@ -25,7 +25,9 @@ class CallableIssue(Issue):
     def is_continuous(self) -> bool:
         return False
 
-    def alli(self, n: int | None = 10) -> Generator:
+    def value_generator(
+        self, n: int | None = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator:
         if n is None:
             raise ValueError("Real valued issue with no discretization value")
         yield from (self._values() for _ in range(n))

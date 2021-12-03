@@ -65,7 +65,7 @@ def neg() -> SAOMechanism:
 @pytest.fixture
 def strategy(neg: SAOMechanism) -> EStrategy:
     s = EStrategy(strategy="exact")
-    s.on_enter(ami=neg.ami)
+    s.on_enter(nmi=neg.nmi)
     return s
 
 
@@ -111,7 +111,7 @@ class TestCountableOutcomesUser:
 
     def test_countable_outcmoes_user_can_elicit_bisection(self, neg, user):
         strategy = EStrategy(strategy="bisection", resolution=1e-4)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -144,7 +144,7 @@ class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_can_elicit_titration_up(self, neg, user):
         step = 0.05
         strategy = EStrategy(strategy=f"titration+{step}", resolution=1e-4)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -181,7 +181,7 @@ class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_can_elicit_titration_up_no_step(self, neg, user):
         step = 0.01
         strategy = EStrategy(strategy=f"titration", resolution=step)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -222,7 +222,7 @@ class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_can_elicit_titration_down(self, neg, user):
         step = -0.05
         strategy = EStrategy(strategy=f"titration{step}", resolution=1e-4)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -250,7 +250,7 @@ class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_can_elicit_dtitration_up(self, neg, user):
         step = 0.05
         strategy = EStrategy(strategy=f"dtitration+{step}", resolution=1e-4)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -274,7 +274,7 @@ class TestCountableOutcomesUser:
     def test_countable_outcmoes_user_can_elicit_dtitration_down(self, neg, user):
         step = -0.05
         strategy = EStrategy(strategy=f"dtitration{step}", resolution=1e-4)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -301,7 +301,7 @@ class TestCountableOutcomesUser:
 
     def test_countable_outcmoes_user_stops_eliciting_at_cost(self, neg, user):
         strategy = EStrategy(strategy="bisection", resolution=1e-4, stop_at_cost=True)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -334,7 +334,7 @@ class TestCountableOutcomesUser:
 
     def test_countable_outcmoes_user_elicits_non_exact(self, neg, user):
         strategy = EStrategy(strategy="bisection", resolution=1e-2)
-        strategy.on_enter(neg.ami)
+        strategy.on_enter(neg.nmi)
         elicited = []
         estimated = []
         total_cost = 0.0
@@ -377,8 +377,8 @@ class TestCountableOutcomesUser:
         ):
             user = User(preferences=ufun, cost=cost)
             strategy = EStrategy(strategy=s)
-            strategy.on_enter(neg.ami)
-            q = possible_queries(ami=neg.ami, strategy=strategy, user=user)
+            strategy.on_enter(neg.nmi)
+            q = possible_queries(nmi=neg.nmi, strategy=strategy, user=user)
             assert (
                 len(q) > 0 and s != "exact" or len(q) == 0 and s == "exact"
             ), "returns some queries"
@@ -394,7 +394,7 @@ class TestCountableOutcomesUser:
         ):
             strategy = EStrategy(strategy=s)
             user = User(preferences=ufun, cost=cost)
-            strategy.on_enter(neg.ami)
+            strategy.on_enter(neg.nmi)
             q = next_query(strategy=strategy, user=user)
             # print(f'{strategy} Strategy:\n---------------')
             # pprint.pprint(q)
@@ -404,7 +404,7 @@ class TestCountableOutcomesUser:
         for s in ("bisection", "titration+0.05", "titration-0.05", "pingpong"):
             user = User(preferences=ufun, cost=cost)
             stretegy = EStrategy(strategy=s, resolution=1e-3)
-            stretegy.on_enter(neg.ami)
+            stretegy.on_enter(neg.nmi)
             outcome, query, qcost = next_query(
                 strategy=stretegy, outcome=(0,), user=user
             )[0]
@@ -474,7 +474,7 @@ class TestCountableOutcomesElicitor:
             acceptable_outcomes=accepted,
             acceptance_probabilities=[1.0] * len(accepted),
         )
-        strategy.on_enter(ami=neg.ami)
+        strategy.on_enter(nmi=neg.nmi)
         if isinstance(elicitor, str):
             elicitor = f"negmas.elicitation.{elicitor}"
             if "VOI" in elicitor:
@@ -566,7 +566,7 @@ class TestCountableOutcomesElicitor:
         )
         user = User(preferences=eufun, cost=cost)
         strategy = EStrategy(strategy=strategy)
-        strategy.on_enter(ami=neg.ami)
+        strategy.on_enter(nmi=neg.nmi)
         elicitor = FullKnowledgeElicitor(strategy=strategy, user=user)
         neg.add(opponent)
         neg.add(elicitor)
@@ -612,7 +612,7 @@ class TestCountableOutcomesElicitor:
         domain.add(LimitedOutcomesNegotiator(), preferences=d.ufuns[0])
         user = User(preferences=d.ufuns[0], cost=cost)
         strategy = EStrategy(strategy="titration-0.5")
-        strategy.on_enter(ami=domain.ami)
+        strategy.on_enter(nmi=domain.nmi)
         elicitor = FullKnowledgeElicitor(strategy=strategy, user=user)
         domain.add(elicitor)
         front, _ = domain.pareto_frontier()
@@ -630,7 +630,7 @@ class TestCountableOutcomesElicitor:
         # domain.n_steps = 10
         user = User(preferences=d.ufuns[0], cost=0.2)
         strategy = EStrategy(strategy="titration-0.5")
-        strategy.on_enter(ami=domain.ami)
+        strategy.on_enter(nmi=domain.nmi)
         elicitor = PandoraElicitor(strategy=strategy, user=user)
         domain.add(elicitor)
         domain.run()

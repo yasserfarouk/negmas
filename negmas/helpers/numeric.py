@@ -19,6 +19,7 @@ __all__ = [
     "get_one_int",
     "make_range",
     "truncated_mean",
+    "sample",
 ]
 
 
@@ -142,3 +143,42 @@ def truncated_mean(
         return tm if not return_limits else (tm, limits)
     except ValueError:
         return float("nan") if not return_limits else (float("nan"), limits)
+
+
+def sample(n, k, grid=False, compact=True, endpoints=True):
+    """
+    Samples `k` items from `n` in the range (0, `n`-1) optionally explring them
+
+    Args:
+        n: The number of items to sample (assumed to range from index 0 to n-1)
+        k: The number of samples to take
+        grid: Sample on a grid (equally distanced as much as possible)
+        compact: If True, the samples will be choosen near each other (see endpoints though)
+        endpoints: If given, the first and last index are guaranteed to be in the samples
+    """
+    if k is None:
+        return range(n)
+    if n == 0:
+        return []
+    if k == 1:
+        return (0,) if n else []
+    if n < 2:
+        return (0,) if k else []
+    if k > n:
+        return range(n)
+    if endpoints:
+        pre, post = [0], [n - 1]
+        return (
+            pre + [_ + 1 for _ in sample(n - 2, k - 2, grid, compact, endpoints)] + post
+        )
+    if grid:
+        step = n // k
+        if step < 1:
+            step = 1
+        l = 1 + step * ((n - 1) // step)
+        l = min(l, n - 1)
+        return range(step, l, step)
+    if compact:
+        before = (n - k) // 2
+        return range(before, min(n, before + k))
+    return random.sample(range(n), k)

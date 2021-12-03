@@ -25,7 +25,7 @@ class BaseElicitor(SAONegotiator):
         base_negotiator: SAONegotiator = AspirationNegotiator(),
         opponent_model_factory: Optional[
             Callable[["NegotiatorMechanismInterface"], "DiscreteAcceptanceModel"]
-        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(ami=x),
+        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
         expector_factory: Union["Expector", Callable[[], "Expector"]] = MeanExpector,
         single_elicitation_per_round=False,
         continue_eliciting_past_reserved_val=False,
@@ -95,7 +95,7 @@ class BaseElicitor(SAONegotiator):
 
     def join(
         self,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -112,13 +112,13 @@ class BaseElicitor(SAONegotiator):
             - The reserved value of the created ufun is set to -inf
         """
         if preferences is None:
-            preferences = IPUtilityFunction(outcomes=ami.outcomes, reserved_value=0.0)
-        if not super().join(ami=ami, state=state, preferences=preferences, role=role):
+            preferences = IPUtilityFunction(outcomes=nmi.outcomes, reserved_value=0.0)
+        if not super().join(nmi=nmi, state=state, preferences=preferences, role=role):
             return False
-        self.expect = self.expector_factory(self._ami)
+        self.expect = self.expector_factory(self._nmi)
         self.init_elicitation(preferences=preferences, **kwargs)
         self.base_negotiator.join(
-            ami,
+            nmi,
             state,
             preferences=MappingUtilityFunction(
                 mapping=lambda x: self.expect(self.preferences(x), state=state),
@@ -137,11 +137,11 @@ class BaseElicitor(SAONegotiator):
         Returns a `UtilityDistribution` for every outcome
         """
         if self.preferences is None:
-            return [None] * len(self._ami.outcomes)
+            return [None] * len(self._nmi.outcomes)
         if self.preferences.base_type == "ip":
             return list(self.preferences.distributions.values())
         else:
-            return [self.preferences(o) for o in self._ami.outcomes]
+            return [self.preferences(o) for o in self._nmi.outcomes]
 
     def user_preferences(self, outcome: Optional["Outcome"]) -> float:
         """
@@ -386,17 +386,17 @@ class BaseElicitor(SAONegotiator):
             - The opponent model
 
         """
-        ami = self._ami
+        nmi = self._nmi
         self.elicitation_history = []
-        self.indices = dict(zip(ami.outcomes, range(ami.n_outcomes)))
+        self.indices = dict(zip(nmi.outcomes, range(nmi.n_outcomes)))
         self.offerable_outcomes = []
         self._elicitation_time = 0.0
         if self.opponent_model_factory is None:
             self.opponent_model = None
         else:
-            self.opponent_model = self.opponent_model_factory(ami)
+            self.opponent_model = self.opponent_model_factory(nmi)
             self.base_negotiator.opponent_model = self.opponent_model
-        outcomes = ami.outcomes
+        outcomes = nmi.outcomes
         if preferences is None:
             dists = [Distribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes]
             preferences = IPUtilityFunction(
@@ -520,7 +520,7 @@ class BaseElicitor(SAONegotiator):
         """
         return [
             self.utility_on_rejection(outcome=outcome, state=state)
-            for outcome in self._ami.outcomes
+            for outcome in self._nmi.outcomes
         ]
 
     def on_opponent_model_updated(

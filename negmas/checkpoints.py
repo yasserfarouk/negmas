@@ -1,6 +1,7 @@
 """Implements Checkpoint functionality for easy dumping and restoration of any `NamedObject` in negmas."""
 
 import shutil
+from os import PathLike
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
@@ -17,7 +18,7 @@ class CheckpointMixin:
         self,
         step_attrib: str = "current_step",
         every: int = 1,
-        folder: Optional[Union[str, Path]] = None,
+        folder: Optional[PathLike] = None,
         filename: str = None,
         info: Dict[str, Any] = None,
         exist_ok: bool = True,

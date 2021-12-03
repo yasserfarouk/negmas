@@ -1,37 +1,28 @@
 import random
-from typing import List, Optional, Type
+from typing import List
 
-import numpy as np
-
-from negmas.common import NegotiatorMechanismInterface
 from negmas.helpers import get_full_type_name, make_range
 from negmas.outcomes import Issue, Outcome
+from negmas.preferences.protocols import IndIssues, StationaryUFun
+from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 from .base import UtilityValue
-from .base_crisp import UtilityFunction
-from .static import StaticPreferences
+from .ufun import UtilityFunction
 
-__all__ = [
-    "ConstUFun",
-]
+__all__ = ["ConstUFun"]
 
 
-class ConstUFun(StaticPreferences, UtilityFunction):
+class ConstUFun(IndIssues, UtilityFunction, XmlSerializable, StationaryUFun):
     def __init__(
         self,
-        value: float,
-        name=None,
-        reserved_value: UtilityValue = float("-inf"),
-        ami: NegotiatorMechanismInterface = None,
+        value: UtilityValue,
+        *,
+        reserved_value: float = float("-inf"),
         **kwargs,
     ):
-        super().__init__(
-            name=name,
-            reserved_value=reserved_value,
-            ami=ami,
-            **kwargs,
-        )
+        super().__init__(**kwargs)
+        self.reserved_value = reserved_value
         self.value = value
 
     def to_dict(self):
@@ -50,7 +41,6 @@ class ConstUFun(StaticPreferences, UtilityFunction):
             value=d.get("value", None),
             name=d.get("name", None),
             reserved_value=d.get("reserved_value", None),
-            ami=d.get("ami", None),
         )
 
     def eval(self, offer: "Outcome") -> UtilityValue:
@@ -59,7 +49,15 @@ class ConstUFun(StaticPreferences, UtilityFunction):
         return self.value
 
     def xml(self, issues: List[Issue]) -> str:
-        pass
+        from negmas.preferences.linear import LinearUtilityFunction
+
+        return LinearUtilityFunction(
+            [0.0] * len(issues),
+            float(self.value),
+            issues=self.issues,
+            name=self.name,
+            id=self.id,
+        ).xml(issues)
 
     def __str__(self):
         return str(self.value)
@@ -72,13 +70,16 @@ class ConstUFun(StaticPreferences, UtilityFunction):
         normalized=True,
         value_range=(0.0, 1.0),
         **kwargs,
-    ) -> "ExpDiscountedUFun":
+    ) -> "ConstUFun":
         """Generates a random ufun of the given type"""
         reserved_value = make_range(reserved_value)
         value_range = make_range(value_range)
-        kwargs["value"] = (
-            random.random() * (value_range[1] - value_range[0]) + value_range[0]
-        )
+        if normalized:
+            kwargs["value"] = 1.0
+        else:
+            kwargs["value"] = (
+                random.random() * (value_range[1] - value_range[0]) + value_range[0]
+            )
         kwargs["reserved_value"] = (
             random.random() * (reserved_value[1] - reserved_value[0])
             + reserved_value[0]

@@ -278,7 +278,7 @@ Release 0.6.10
 --------------
 
 * [base] Refactoring to allow Negotiators, Controllers and Agents to have UFuns. Introduced the Rational type wich is a NamedObject with a ufun. Now Negotiators, Controllers, and Agents are all Rational types. This makes it easier to define ufuns for any of these objects.
-  on_ufun_changed is now called immediately when the ufun is set but if an AMI is not found, the _ufun_modified flag is set and the rational object is responsible of calling on_ufun_changed after the ami is defined. For Negotiators, this happen automatically
+  on_ufun_changed is now called immediately when the ufun is set but if an AMI is not found, the _ufun_modified flag is set and the rational object is responsible of calling on_ufun_changed after the nmi is defined. For Negotiators, this happen automatically
 * [situated] Making negotiation requests with an empty output-space fail
 * [testing] Correcting some testing edge casease
 * [base] converting outcome_type in UtilityFunction to a property. To allow complex ufuns to set the outcome_type of their children
@@ -389,7 +389,7 @@ Release 0.6.0
 -------------
 
 - [situated] adding negotiation quotas and setting negotiator owner
-- [base] adding accessor to negotiator's ami and a setter for the owner
+- [base] adding accessor to negotiator's nmi and a setter for the owner
 - [sao] removing deadlocks in SAOSyncController
 - [tournament] allowing round-robin tournaments to have zero stage winners (which will resolve to one winner)
 - [tournament] making median the default metric

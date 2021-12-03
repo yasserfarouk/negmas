@@ -1,14 +1,15 @@
 import random
 
+import hypothesis.strategies as st
+import numpy as np
 import pkg_resources
 import pytest
+from hypothesis import example, given
+from hypothesis.strategies._internal.numbers import floats
 from pytest import mark
 
-from negmas.inout import Domain
-from negmas.outcomes import Issue, dict2outcome, enumerate_issues, issues_from_xml_str
-from negmas.outcomes.issue_ops import issues_from_genius
-from negmas.outcomes.outcome_ops import outcome2dict
-from negmas.outcomes.outcome_space import OutcomeSpace
+from negmas.outcomes import Issue, enumerate_issues, issues_from_xml_str
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.preferences import (
     HyperRectangleUtilityFunction,
     LinearUtilityAggregationFunction,
@@ -18,12 +19,13 @@ from negmas.preferences import (
     pareto_frontier,
     utility_range,
 )
+from negmas.preferences.const import ConstUFun
 from negmas.preferences.ops import normalize
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
 def test_preferences_range_linear(n_issues):
-    issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0)
     assert ufun([0.0] * n_issues) == 0.0
@@ -35,7 +37,7 @@ def test_preferences_range_linear(n_issues):
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
 def test_preferences_range_general(n_issues):
-    issues = [Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = MappingUtilityFunction(
         mapping=lambda x: sum(r * v for r, v in zip(rs, x)),
@@ -210,7 +212,7 @@ def test_hypervolume_utility():
 
 def test_normalization():
 
-    os = OutcomeSpace.from_xml_str(
+    os = CartesianOutcomeSpace.from_xml_str(
         open(
             pkg_resources.resource_filename(
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
@@ -319,7 +321,7 @@ def test_normalization():
 
 @mark.parametrize("utype", (LinearUtilityFunction, LinearUtilityAggregationFunction))
 def test_dict_conversion(utype):
-    issues = [Issue(10)]
+    issues = [make_issue(10)]
     u = utype.random(issues, normalized=False)
     d = u.to_dict()
     u2 = utype.from_dict(d)
@@ -355,7 +357,7 @@ def test_random_linear_utils_is_normalized():
     from negmas.preferences import LinearUtilityFunction as U1
 
     eps = 1e-6
-    issues = [Issue(10), Issue(5), Issue(2)]
+    issues = [make_issue(10), make_issue(5), make_issue(2)]
 
     for U in (U1, U2):
         u = U.random(issues=issues, normalized=True)
@@ -366,6 +368,96 @@ def test_random_linear_utils_is_normalized():
         outcomes = enumerate_issues(issues)
         for w in outcomes:
             assert -1e-6 <= u(w) <= 1 + 1e-6, f"{str(u.to_dict())}"
+
+
+def _order(u: list[float]):
+    return tuple(_[1] for _ in sorted(zip(u, range(len(u)))))
+
+
+def _check_order(u: list[float]):
+    for a, b in zip(u[1:], u[:-1]):
+        assert a <= b
+
+
+def _relative_fraction(u: list[float]):
+    return np.asarray([a / b if b > 1e-3 else 0 for a, b in zip(u[1:], u[:-1])])
+
+
+rngs = [
+    (0.0, 1.0),
+    (float("-inf"), 1.0),
+    (0.0, float("inf")),
+    (float("-inf"), float("inf")),
+    # (1.0, 2.0),
+    (float("-inf"), 2.0),
+    (1.0, float("inf")),
+]
+
+
+@given(
+    weights=st.lists(st.integers(-10, 10), min_size=2, max_size=2),
+    bias=st.floats(min_value=-5.0, max_value=5.0),
+    rng=st.sampled_from(rngs),
+)
+def test_can_normalize_linear_ufun(weights, bias, rng):
+    issues = [make_issue(10), make_issue(5)]
+    ufun = LinearUtilityFunction(weights=weights, bias=bias, issues=issues)
+    outcomes = enumerate_issues(issues)
+    u1 = [ufun(w) for w in outcomes]
+
+    if (sum(weights) > 1e-6 and rng == (0.0, float("inf"))) or (
+        sum(weights) < 1e-6
+        and rng[1] > rng[0] + 1e-6
+        and rng[0] != float("-inf")
+        and rng[1] != float("inf")
+    ):
+        with pytest.raises(ValueError):
+            nfun = ufun.normalize(rng=rng)
+        return
+    try:
+        nfun = ufun.normalize(rng=rng)
+    except ValueError as e:
+        # todo if the scale is negative, we should raise this exception. I do not now how to expect that correctl yet
+        if "scale" in str(e):
+            return
+        raise e
+
+    assert isinstance(ufun, LinearUtilityFunction) or isinstance(
+        ufun, ConstUFun
+    ), f"Normalization of ufun of type "
+    f"LinearUtilityFunction should generate an IndependentIssuesUFun but we got {type(nfun).__name__}"
+    u2 = [nfun(w) for w in outcomes]
+
+    assert (
+        max(u2) < rng[1] + 1e-3 and min(u2) > rng[0] - 1e-3
+    ), f"Limits are not correct\n{u1}\n{u2}"
+
+    if rng[0] == float("-inf") and rng[1] == float("inf"):
+        assert ufun is nfun, "Normalizing with an infinite range should do nothing"
+
+    if bias == 0.0 and rng[0] == 0.0 and sum(weights) > 1e-5:
+        scale = [a / b for a, b in zip(u1, u2) if b != 0 and a != 0]
+        for a, b in zip(u1, u2):
+            assert (
+                abs(a - b) < 1e-5 or abs(b) > 1e-5
+            ), f"zero values are mapped to zero values"
+            assert (
+                abs(a - b) < 1e-5 or abs(a) > 1e-5
+            ), f"zero values are mapped to zero values"
+        assert max(scale) - min(scale) < 1e-3, f"ufun did not scale uniformly"
+    # order1, order2 = _order(u1), _order(u2)
+    # assert order1 == order2, f"normalization changed the order of outcomes\n{u1[37:41]}\n{u2[37:41]}"
+
+    if (
+        (rng[1] == float("inf") or rng[0] == float("-inf"))
+        and abs(bias) < 1e-3
+        and sum(weights) > 1e-5
+    ):
+        relative1 = _relative_fraction(u1)
+        relative2 = _relative_fraction(u2)
+        assert (
+            np.abs(relative1 - relative2).max() < 1e-3
+        ), f"One side normalization should not change the result of dividing outcomes\n{u1}\n{u2}"
 
 
 if __name__ == "__main__":

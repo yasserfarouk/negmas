@@ -1,9 +1,13 @@
-from typing import List, Optional, Type
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 
-from negmas.outcomes import Outcome
-from negmas.preferences.nonlinear import MappingUtilityFunction
+from .mapping import MappingUtilityFunction
+
+if TYPE_CHECKING:
+    from negmas.outcomes import Outcome
 
 __all__ = ["RandomUtilityFunction"]
 

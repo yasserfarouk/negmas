@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import random
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type
+from typing import Any, Callable, Dict, Iterable, Optional
 
-from negmas.common import NegotiatorMechanismInterface
-from negmas.helpers import get_full_type_name, make_range
-from negmas.outcomes import Issue, Outcome
+from negmas.helpers import get_full_type_name
+from negmas.outcomes import Outcome
+from negmas.preferences.protocols import IndIssues, StationaryCrisp
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import UtilityValue
-from .base_crisp import UtilityFunction
-from .static import StaticPreferences
+from .ufun import UtilityFunction
 
-__all__ = [
-    "ComplexWeightedUtilityFunction",
-    "ComplexNonlinearUtilityFunction",
-]
+__all__ = ["ComplexWeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
 
 
-class ComplexWeightedUtilityFunction(StaticPreferences, UtilityFunction):
+class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp):
     """A utility function composed of linear aggregation of other utility functions
 
     Args:
@@ -35,20 +30,13 @@ class ComplexWeightedUtilityFunction(StaticPreferences, UtilityFunction):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.ufuns = list(ufuns)
+        self.values: list[UtilityFunction] = list(ufuns)
         if weights is None:
-            weights = [1.0] * len(self.ufuns)
+            weights = [1.0] * len(self.values)
         self.weights = list(weights)
 
-    def is_dymanic(self) -> bool:
-        return any(_.is_dymanic() for _ in self.ufuns)
-
-    @UtilityFunction.ami.setter
-    def ami(self, value):
-        UtilityFunction.ami.fset(self, value)
-        for ufun in self.ufuns:
-            if hasattr(ufun, "ami"):
-                ufun.ami = value
+    def is_stationary(self) -> bool:
+        return any(_.is_stationary() for _ in self.values)
 
     def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
@@ -69,29 +57,17 @@ class ComplexWeightedUtilityFunction(StaticPreferences, UtilityFunction):
         if offer is None:
             return self.reserved_value
         u = float(0.0)
-        failure = False
-        for f, w in zip(self.ufuns, self.weights):
+        for f, w in zip(self.values, self.weights):
             util = f(offer)
             if util is not None:
                 u += w * util
             else:
-                failure = True
-        return u if not failure else None
-
-    def xml(self, issues: List[Issue]) -> str:
-        output = ""
-        # @todo implement weights. Here I assume they are always 1.0
-        for f, _ in zip(self.ufuns, self.weights):
-            this_output = f.xml(issues)
-            if this_output:
-                output += this_output
-            else:
-                output += str(vars(f))
-        return output
+                raise ValueError(f"Cannot calculate ufility for {offer}")
+        return u
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "ufuns": [serialize(_) for _ in self.ufuns],
+            "ufuns": [serialize(_) for _ in self.values],
             "weights": self.weights,
             "id": self.id,
             "name": self.name,
@@ -106,7 +82,7 @@ class ComplexWeightedUtilityFunction(StaticPreferences, UtilityFunction):
         return cls(**d)
 
 
-class ComplexNonlinearUtilityFunction(UtilityFunction):
+class ComplexNonlinearUtilityFunction(UtilityFunction, StationaryCrisp):
     """A utility function composed of nonlinear aggregation of other utility functions
 
     Args:
@@ -122,20 +98,18 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
         name=None,
         reserved_value: UtilityValue = float("-inf"),
-        ami: NegotiatorMechanismInterface = None,
         id: str = None,
     ):
         super().__init__(
             name=name,
             reserved_value=reserved_value,
-            ami=ami,
             id=id,
         )
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
-    def is_dymanic(self) -> bool:
-        return any(_.is_dymanic() for _ in self.ufuns)
+    def is_stationary(self) -> bool:
+        return any(_.is_stationary() for _ in self.ufuns)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -153,13 +127,6 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
         d["combination_function"] = deserialize(d["combination_function"])
         return cls(**d)
-
-    @UtilityFunction.ami.setter
-    def ami(self, value):
-        UtilityFunction.ami.fset(self, value)
-        for ufun in self.ufuns:
-            if hasattr(ufun, "ami"):
-                ufun.ami = value
 
     def eval(self, offer: "Outcome") -> UtilityValue:
         """Calculate the utility_function value for a given outcome.
@@ -180,6 +147,3 @@ class ComplexNonlinearUtilityFunction(UtilityFunction):
         if offer is None:
             return self.reserved_value
         return self.combination_function([f(offer) for f in self.ufuns])
-
-    def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")

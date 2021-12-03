@@ -1,7 +1,8 @@
 import pytest
 
 from negmas import Issue
-from negmas.outcomes import generate_issues, num_outcomes
+from negmas.outcomes import generate_issues
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 
 from .fixtures import *
 
@@ -36,10 +37,10 @@ def test_cartinatlity(cissue, dissue, hamlet):
 
 
 def test_n_outcomes(cissue, dissue, hamlet):
-    assert num_outcomes([cissue, dissue, hamlet]) == float("inf")
-    assert num_outcomes([dissue, hamlet]) == 50
-    assert num_outcomes([dissue]) == 10
-    assert num_outcomes([]) == 1
+    assert CartesianOutcomeSpace([cissue, dissue, hamlet]).cardinality == float("inf")
+    assert CartesianOutcomeSpace([dissue, hamlet]).cardinality == 50
+    assert CartesianOutcomeSpace([dissue]).cardinality == 10
+    assert CartesianOutcomeSpace([]).cardinality == 1
 
 
 def test_rand(cissue, dissue, hamlet, bissue):

@@ -338,7 +338,7 @@ def test_agentk_perceives_time():
             gagent.relative_time >= current_time
         ), f"Failed to get time before step {_}"
         neg.step()
-        if neg.ami.state.ended:
+        if neg.nmi.state.ended:
             break
         if _ == n_steps - 1:
             assert gagent.relative_time is None, f"Got a time after the last step"
@@ -346,7 +346,7 @@ def test_agentk_perceives_time():
             assert (
                 gagent.relative_time > current_time
             ), f"Failed to get time after step {_}"
-        if neg.ami.state.ended:
+        if neg.nmi.state.ended:
             break
         current_time = gagent.relative_time
 

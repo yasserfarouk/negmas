@@ -1,45 +1,42 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Type
+from functools import reduce
+from operator import mul
+from typing import Iterable
 
-import numpy as np
+from negmas.helpers import unique_name
+from negmas.outcomes.outcome_ops import outcome_is_valid
 
-from negmas.helpers import PATH, unique_name
-from negmas.outcomes.ordinal_issue import OrdinalIssue
-
-from .base_issue import DiscreteIssue, Issue, RangeIssue
+from ..protocols import XmlSerializable
+from .base_issue import DiscreteIssue, Issue
 from .categorical_issue import CategoricalIssue
 from .common import Outcome
 from .contiguous_issue import ContiguousIssue
 from .issue_ops import (
-    combine_issues,
-    discretize_and_enumerate_issues,
     enumerate_discrete_issues,
-    enumerate_issues,
-    generate_issues,
-    issues_from_genius,
     issues_from_outcomes,
     issues_from_xml_str,
-    issues_to_genius,
     issues_to_xml_str,
-    num_outcomes,
     sample_issues,
-    sample_outcomes,
 )
+from .protocols import DiscreteOutcomeSpace, OutcomeSpace
+from .range_issue import RangeIssue
 
-__all__ = ["OutcomeSpace"]
+__all__ = ["CartesianOutcomeSpace", "DiscreteCartesianOutcomeSpace"]
 
 
-@dataclass
-class OutcomeSpace:
-    issues: list[Issue]
-    name: str | None = None
-    _cached_outcomes: list["Outcome"] | None = field(init=False, default=None)
+def make_os(issues: tuple[Issue, ...], name: str = None) -> CartesianOutcomeSpace:
+    if all(_.is_discrete() for _ in issues):
+        return DiscreteCartesianOutcomeSpace(issues, name=name)
+    return CartesianOutcomeSpace(issues, name=name)
 
-    def __post_init__(self):
-        if self.name is None:
-            self.name = unique_name("os", add_time=False, sep=".")
+
+class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
+    def __init__(self, issues: tuple[Issue, ...], name: str | None = None):
+        if name is None:
+            name = unique_name("os", add_time=False, sep=".")
+        self.name = name
+        self.issues = issues
 
     @property
     def issue_names(self) -> list[str]:
@@ -49,43 +46,145 @@ class OutcomeSpace:
     @property
     def cardinality(self) -> int | float:
         """The space cardinality = the number of outcomes"""
-        n = self.num_outcomes()
-        if n is None:
-            return float("inf")
-        return n
+        return reduce(mul, [_.cardinality for _ in self.issues], initial=1)
 
-    @property
-    def is_finite(self) -> bool:
-        """Checks whether the space is finite"""
-        n = self.num_outcomes()
-        return isinstance(n, int)
-
-    @property
     def is_compact(self) -> bool:
         """Checks whether all issues are complete ranges"""
         return all(isinstance(_, RangeIssue) for _ in self.issues)
 
-    @property
     def is_discrete(self) -> bool:
         """Checks whether all issues are discrete"""
         return all(isinstance(_, DiscreteIssue) for _ in self.issues)
 
-    @property
     def is_numeric(self) -> bool:
         """Checks whether all issues are numeric"""
         return all(_.is_numeric() for _ in self.issues)
 
-    @property
     def is_integer(self) -> bool:
         """Checks whether all issues are integer"""
         return all(_.is_integer() for _ in self.issues)
 
-    @property
     def is_float(self) -> bool:
         """Checks whether all issues are real"""
         return all(_.is_float() for _ in self.issues)
 
-    def to_single_issue(self, numeric=False, stringify=False) -> "OutcomeSpace":
+    def to_single_issue(
+        self,
+        numeric=False,
+        stringify=False,
+        levels: int = 5,
+        max_cardinality: int | float = float("inf"),
+    ) -> "DiscreteCartesianOutcomeSpace":
+        """
+        Creates a new outcome space that is a single-issue version of this one discretizing it as needed
+
+        Args:
+            numeric: If given, the output issue will be a `ContiguousIssue` otberwise it will be a `CategoricalIssue`
+            stringify:  If given, the output issue will have string values. Checked only if `numeric` is `False`
+            levels: Number of levels to discretize any continuous issue
+
+        Remarks:
+            - Will discretize inifinte outcome spaces
+        """
+        dos = self.to_discrete(levels, max_cardinality)
+        return dos.to_single_issue(numeric, stringify)
+
+    def __hash__(self) -> int:
+        return hash((tuple(self.issues), self.name))
+
+    def to_discrete(
+        self, levels: int = 10, max_cardinality: int | float = float("inf")
+    ) -> "CartesianOutcomeSpace":
+        """
+        Discretizes the outcome space by sampling `levels` values for each continuous issue.
+
+        The result of the discretization is stable in the sense that repeated calls will return the same output.
+        """
+        if max_cardinality != float("inf"):
+            c = reduce(
+                mul,
+                [_.cardinality if _.is_discrete() else levels for _ in self.issues],
+                initial=1,
+            )
+            if c > max_cardinality:
+                raise ValueError(
+                    f"Cannot convert OutcomeSpace to a discrete OutcomeSpace with at most {max_cardinality} (at least {c} outcomes are required)"
+                )
+        issues: tuple[DiscreteIssue, ...] = tuple(
+            issue.to_discrete(
+                levels if issue.is_continuous() else None,
+                compact=False,
+                grid=True,
+                endpoints=True,
+            )
+            for issue in self.issues
+        )
+        return DiscreteCartesianOutcomeSpace(issues=issues, name=self.name)
+
+    @classmethod
+    def from_xml_str(
+        cls, xml_str: str, safe_parsing=True, name=None
+    ) -> "CartesianOutcomeSpace":
+        issues, _ = issues_from_xml_str(
+            xml_str,
+            force_single_issue=False,
+            force_numeric=False,
+            keep_value_names=True,
+            keep_issue_names=True,
+            safe_parsing=safe_parsing,
+            n_discretization=None,
+        )
+        if not issues:
+            raise ValueError(f"Failed to read an issue space from an xml string")
+        if all(isinstance(_, DiscreteIssue) for _ in issues):
+            return DiscreteCartesianOutcomeSpace(issues, name=name)  # type: ignore
+        return cls(issues, name=name)
+
+    @staticmethod
+    def from_outcomes(
+        outcomes: list[Outcome],
+        numeric_as_ranges: bool = False,
+        issue_names: list[str] | None = None,
+        name: str = None,
+    ) -> "DiscreteCartesianOutcomeSpace":
+        return DiscreteCartesianOutcomeSpace(
+            issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name
+        )
+
+    def sample(
+        self,
+        n_outcomes: int,
+        with_replacement: bool = True,
+        fail_if_not_enough=True,
+    ) -> Iterable[Outcome]:
+        return sample_issues(
+            self.issues, n_outcomes, with_replacement, fail_if_not_enough
+        )
+
+    def to_xml_str(self, enumerate_integer: bool = False) -> str:
+        return issues_to_xml_str(self.issues, enumerate_integer)
+
+    def is_valid(self, outcome: Outcome) -> bool:
+        return outcome_is_valid(outcome, self.issues)
+
+
+class DiscreteCartesianOutcomeSpace(DiscreteOutcomeSpace, CartesianOutcomeSpace):
+    # issues: list[DiscreteIssue]
+
+    def __init__(self, issues: tuple[Issue, ...], name: str | None = None):
+        self.issues = tuple(
+            _.to_discrete(n=None if _.is_discrete() else int(_.cardinality))
+            for _ in issues
+        )
+        self.name = name
+
+    def is_discrete(self) -> bool:
+        """Checks whether all issues are discrete"""
+        return True
+
+    def to_single_issue(
+        self, numeric=False, stringify=False
+    ) -> "CartesianOutcomeSpace":
         """
         Creates a new outcome space that is a single-issue version of this one
 
@@ -97,11 +196,7 @@ class OutcomeSpace:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
-        if not self.is_finite:
-            raise ValueError(
-                f"Cannot convert an infinite outcome space to a single issue"
-            )
-        outcomes = self.enumerate_discrete()
+        outcomes = list(self.enumerate())
         values = (
             range(len(outcomes))
             if numeric
@@ -109,188 +204,79 @@ class OutcomeSpace:
             if stringify
             else outcomes
         )
-        return OutcomeSpace(
-            issues=[
-                ContiguousIssue(len(outcomes), name="-".join(self.issue_names))
-                if numeric
-                else CategoricalIssue(values, name="-".join(self.issue_names))
-            ],
+        issue = (
+            ContiguousIssue(len(outcomes), name="-".join(self.issue_names))
+            if numeric
+            else CategoricalIssue(values, name="-".join(self.issue_names))
+        )
+        return CartesianOutcomeSpace(
+            issues=(issue,),
             name=self.name,
         )
 
     def __hash__(self) -> int:
         return hash((self.issues, self.name))
 
-    def discrete_outcomes(
-        self, levels: int = 10, max_n_outcomes: int | None = None
-    ) -> list[Outcome]:
-        """
-        Returns a **stable** set of discrete outcomes covering the outcome-space
-
-        Args:
-            levels: Number of discretization levels per outcome
-            max_n_outcomes: Maximum allowed number of outcomes to return (None for no limit)
-
-        Returns:
-            A list of at most `max_n_outcomes` valid outcomes
-
-        Remarks:
-            - Uses LRU caching to return the same outcomes for the same inputs.
-        """
-        if self._cached_outcomes is None:
-            self._cached_outcomes = self.discretize_and_enumerate(
-                n_discretization=levels, max_n_outcomes=max_n_outcomes
-            )
-        return self._cached_outcomes
-
-    def discretize(self, levels: int = 10, inplace=True) -> "OutcomeSpace":
-        """
-        Discretizes the outcome space by sampling `levels` values for each continuous issue
-        """
-        issues = [
-            OrdinalIssue(
-                values=issue.alli(levels) if issue.is_uncountable() else issue.all,
-                name=issue.name,
-            )
-            if issue.is_continuous()
-            else issue
-            for issue in self.issues
-        ]
-        if inplace:
-            self.issues = issues
-            return self
-        return OutcomeSpace(issues=issues, name=self.name)
-
-    @staticmethod
-    def from_genius(
-        file_name: PATH,
-        force_single_issue=False,
-        force_numeric=False,
-        keep_value_names=True,
-        keep_issue_names=True,
-        safe_parsing=True,
-        n_discretization: int | None = None,
-        max_n_outcomes: int = 1_000_000,
-        name: str = None,
-    ) -> "OutcomeSpace":
-        issues, _ = issues_from_genius(
-            file_name,
-            force_single_issue,
-            force_numeric,
-            keep_value_names,
-            keep_issue_names,
-            safe_parsing,
-            n_discretization,
-            max_n_outcomes,
-        )
-        return OutcomeSpace(issues, name=name)
-
-    @staticmethod
-    def from_xml_str(
-        xml_str: str,
-        force_single_issue=False,
-        force_numeric=False,
-        keep_value_names=True,
-        keep_issue_names=True,
-        safe_parsing=True,
-        n_discretization: int | None = None,
-        max_n_outcomes: int = 1_000_000,
-        name=None,
-    ) -> "OutcomeSpace":
-        issues, _ = issues_from_xml_str(
-            xml_str,
-            force_single_issue,
-            force_numeric,
-            keep_value_names,
-            keep_issue_names,
-            safe_parsing,
-            n_discretization,
-            max_n_outcomes,
-        )
-        return OutcomeSpace(issues, name=name)
-
-    @staticmethod
-    def from_outcomes(
-        outcomes: list[Outcome], numeric_as_ranges: bool = False, name: str = None
-    ) -> "OutcomeSpace":
-        return Outcomespace(
-            issues_from_outcomes(outcomes, numeric_as_ranges), name=name
-        )
-
-    @staticmethod
-    def generate(
-        params: list[int | list[str] | tuple[int, int] | tuple[float, float]],
-        counts: list[int] | None = None,
-        names: list[str] | None = None,
-        name: str = None,
-    ) -> "OutcomeSpace":
-        return OutcomeSpace(generate_issues(params, counts, names), name=name)
-
-    def num_outcomes(self) -> int | None:
-        return num_outcomes(self.issues)
-
-    def enumerate(
-        self,
-        max_n_outcomes: int = None,
-    ) -> list[Outcome]:
-        return enumerate_issues(self.issues, max_n_outcomes)
-
-    def enumerate_discrete(self) -> list[Outcome]:
+    def enumerate(self) -> Iterable[Outcome]:
         return enumerate_discrete_issues(self.issues)
 
-    def discretize_and_enumerate(
+    def limit_cardinality(
         self,
-        n_discretization: int = 10,
-        max_n_outcomes: int = None,
-    ) -> list[Outcome]:
-        return discretize_and_enumerate_issues(
-            self.issues, n_discretization, max_n_outcomes
+        max_cardinality: int | float = float("inf"),
+        levels: int | float = float("inf"),
+    ) -> "DiscreteOutcomeSpace":
+        """
+        Limits the cardinality of the outcome space to the given maximum (or the number of levels for each issue to `levels`)
+
+        Args:
+            max_cardinality: The maximum number of outcomes in the resulting space
+            levels: The maximum number of levels for each issue/subissue
+        """
+        if self.cardinality <= max_cardinality or all(
+            _.cardinality < levels for _ in self.issues
+        ):
+            return self
+        new_levels = [_.cardinality for _ in self.issues]  # type: ignore will be corrected the next line
+        new_levels = [int(_) if _ < levels else int(levels) for _ in new_levels]
+        new_cardinality = reduce(mul, new_levels, 1)
+
+        def _reduce_total_cardinality(new_levels, max_cardinality, new_cardinality):
+            sort = reversed(sorted([(_, i) for i, _ in enumerate(new_levels)]))
+            sorted_levels = [_[0] for _ in sort]
+            indices = [_[1] for _ in sort]
+            needed = new_cardinality - max_cardinality
+            current = 0
+            n = len(sorted_levels)
+            while needed > 0 and current < n:
+                nxt = n - 1
+                v = sorted_levels[current]
+                if v == 1:
+                    continue
+                for i in range(current + 1, n - 1):
+                    if v == sorted_levels[i]:
+                        continue
+                    nxt = i
+                    break
+                diff = v - sorted_levels[nxt]
+                if not diff:
+                    diff = 1
+                new_levels[indices[current]] -= 1
+                max_cardinality = (max_cardinality // v) * (v - 1)
+                sort = reversed(sorted([(_, i) for i, _ in enumerate(new_levels)]))
+                sorted_levels = [_[0] for _ in sort]
+                current = 0
+                needed = new_cardinality - max_cardinality
+            return new_levels
+
+        if new_cardinality > max_cardinality:
+            new_levels: list[int] = _reduce_total_cardinality(
+                new_levels, max_cardinality, new_cardinality
+            )
+        issues: list[Issue] = []
+        for j, i, issue in zip(
+            new_levels, (_.cardinality for _ in self.issues), self.issues
+        ):
+            issues.append(issue if j >= i else issue.to_discrete(j, compact=True))
+        return DiscreteCartesianOutcomeSpace(
+            tuple(issues), name=self.name + f"-{max_cardinality}"
         )
-
-    def sample_outcomes(
-        self,
-        n_outcomes: int | None = None,
-        keep_issue_names=None,
-        min_per_dim=5,
-        expansion_policy=None,
-    ) -> list[Outcome] | None:
-        return sample_outcomes(
-            self.issues,
-            n_outcomes,
-            keep_issue_names,
-            min_per_dim,
-            expansion_policy,
-        )
-
-    def sample(
-        self,
-        n_outcomes: int,
-        with_replacement: bool = True,
-        fail_if_not_enough=True,
-    ) -> list[Outcome]:
-        return sample_issues(
-            self.issues, n_outcomes, with_replacement, fail_if_not_enough
-        )
-
-    def combine(
-        self,
-        issue_name="combined",
-        keep_issue_names=True,
-        keep_value_names=True,
-        issue_sep="_",
-        value_sep="-",
-    ) -> Issue | None:
-        return combine_issues(
-            self.issues,
-            issue_name,
-            keep_issue_names,
-            keep_value_names,
-            issue_sep,
-            value_sep,
-        )
-
-    def to_xml_str(self, enumerate_integer: bool = False) -> str:
-        return issues_to_xml_str(self.issues, enumerate_integer)
-
-    def to_genius(self, file_name: PATH, enumerate_integer: bool = False) -> None:
-        return issues_to_genius(self.issues, file_name, enumerate_integer)

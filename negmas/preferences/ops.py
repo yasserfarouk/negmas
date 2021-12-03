@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import math
+import warnings
 from typing import TYPE_CHECKING, Collection, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
+from numpy.ma.core import sqrt
 
 from negmas.common import NegotiatorMechanismInterface
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
+from negmas.outcomes.issue_ops import enumerate_issues
 
-from .base import UtilityValue
-from .base_crisp import UtilityFunction
+from .ufun import UtilityFunction
 
 __all__ = [
     "pareto_frontier",
@@ -234,7 +236,7 @@ def pareto_frontier(
             return [], []
         outcomes = discretize_and_enumerate_issues(issues, n_discretization)
         # outcomes = itertools.product(
-        #     *[issue.alli(n=n_discretization) for issue in issues]
+        #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
     points = [[ufun(outcome) for ufun in ufuns] for outcome in outcomes]
     return _pareto_frontier(points, sort_by_welfare=sort_by_welfare)
@@ -260,76 +262,7 @@ def normalize(
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
 
     """
-    if rng[0] is None and rng[1] is None:
-        return ufun
-    max_only = rng[0] is None
-    min_only = rng[1] is None
-    # todo check that I normalize the reserved value as well
-    from negmas.preferences.complex import (
-        ComplexNonlinearUtilityFunction,
-        ComplexWeightedUtilityFunction,
-    )
-    from negmas.preferences.const import ConstUFun
-
-    u = [ufun(o) for o in outcomes]
-    u = [float(_) for _ in u if _ is not None]
-    u = [_ for _ in u if math.isfinite(_)]
-    if math.isfinite(infeasible_cutoff):
-        u = [_ for _ in u if _ > infeasible_cutoff]
-    u = [_ for _ in u if _ != float("-inf")]
-    if len(u) == 0:
-        return ufun
-    mx, mn = rng[1] if min_only else max(u), rng[0] if max_only else min(u)
-    if abs(mx - 1.0) < epsilon and abs(mn) < epsilon:
-        return ufun
-    if mx == mn:
-        if -epsilon <= mn <= 1 + epsilon:
-            return ufun
-        else:
-            r = float(ufun.reserved_value) / mn if mn != 0.0 else 0.0
-            if math.isfinite(infeasible_cutoff):
-                return ComplexNonlinearUtilityFunction(
-                    ufuns=[ufun],
-                    combination_function=lambda x: infeasible_cutoff
-                    if x[0] is None
-                    else x[0]
-                    if x[0] < infeasible_cutoff
-                    else 0.5 * x[0] / mn,
-                )
-            else:
-                return ComplexWeightedUtilityFunction(
-                    ufuns=[ufun],
-                    weights=[0.5 / mn],
-                    name=ufun.name + "-normalized",
-                    reserved_value=r,
-                    ami=ufun.ami,
-                )
-    if max_only:
-        scale = rng[1] / mx
-    elif min_only:
-        scale = rng[0] / mn
-    else:
-        scale = (rng[1] - rng[0]) / (mx - mn)
-    r = scale * (ufun.reserved_value - mn)
-    # if abs(mn - rng[0] / scale) < epsilon:
-    #     return ufun
-    if math.isfinite(infeasible_cutoff):
-        return ComplexNonlinearUtilityFunction(
-            ufuns=[ufun],
-            combination_function=lambda x: infeasible_cutoff
-            if x[0] is None
-            else x[0]
-            if x[0] < infeasible_cutoff
-            else scale * (x[0] - mn) + rng[0],
-        )
-    else:
-        return ComplexWeightedUtilityFunction(
-            ufuns=[ufun, ConstUFun(-mn + rng[0] / scale)],
-            weights=[scale, scale],
-            name=ufun.name,
-            reserved_value=r,
-            ami=ufun.ami,
-        )
+    ufun.normalize(outcomes, rng, infeasible_cutoff, epsilon)
 
 
 def sample_outcome_with_utility(
@@ -357,18 +290,42 @@ def sample_outcome_with_utility(
     return ufun.sample_outcome_with_utility(rng, issues, outcomes, n_trials)
 
 
+def extreme_outcomes(
+    ufun: UtilityFunction,
+    issues: list[Issue] = None,
+    outcomes: list[Outcome] = None,
+    infeasible_cutoff: float = float("-inf"),
+    max_cardinality=1000,
+) -> tuple[Outcome, Outcome]:
+    """
+    Finds the best and worst outcomes
+
+    Args:
+        ufun: The utility function
+        issues: List of issues (optional)
+        outcomes: A collection of outcomes (optional)
+        infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
+        max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
+                        given)
+    Returns:
+        Outcomes with minumum utility, maximum utility
+
+    """
+    return ufun.extreme_outcomes(
+        issues=issues,
+        outcomes=outcomes,
+        infeasible_cutoff=infeasible_cutoff,
+        max_cardinality=max_cardinality,
+    )
+
+
 def utility_range(
     ufun: UtilityFunction,
-    issues: List[Issue] = None,
-    outcomes: Collection[Outcome] = None,
-    infeasible_cutoff: Optional[float] = None,
-    return_outcomes=False,
-    max_n_outcomes=1000,
-    ami: Optional["NegotiatorMechanismInterface"] = None,
-) -> Union[
-    Tuple[UtilityValue, UtilityValue],
-    Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
-]:
+    issues: list[Issue] = None,
+    outcomes: list[Outcome] = None,
+    infeasible_cutoff: float = float("-inf"),
+    max_cardinality=1000,
+) -> Tuple[float, float]:
     """Finds the range of the given utility function for the given outcomes
 
     Args:
@@ -376,14 +333,200 @@ def utility_range(
         issues: List of issues (optional)
         outcomes: A collection of outcomes (optional)
         infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
-        return_outcomes: If true, returns an outcome with the min and another with the max utility
-        max_n_outcomes: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
+        max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                         given)
-        ami: Optional AMI to use (if not given the internal AMI can be used)
     Returns:
-        Minumum utility, maximum utility (and if return_outcomes, an outcome at each)
+        Minumum utility, maximum utility
 
     """
-    return ufun.utility_range(
-        issues, outcomes, infeasible_cutoff, return_outcomes, max_n_outcomes, ami
-    )
+    return ufun.utility_range(issues, outcomes, infeasible_cutoff, max_cardinality)
+
+
+def opposition_level(
+    ufuns=List["UtilityFunction"],
+    max_utils: Union[float, Tuple[float, float]] = 1.0,  # type: ignore
+    outcomes: Union[int, List[Outcome]] = None,
+    issues: List["Issue"] = None,
+    max_tests: int = 10000,
+) -> float:
+    """
+    Finds the opposition level of the two ufuns defined as the minimum distance to outcome (1, 1)
+
+    Args:
+        ufuns: A list of utility functions to use.
+        max_utils: A list of maximum utility value for each ufun (or a single number if they are equal).
+        outcomes: A list of outcomes (should be the complete issue space) or an integer giving the number
+                 of outcomes. In the later case, ufuns should expect a tuple of a single integer.
+        issues: The issues (only used if outcomes is None).
+        max_tests: The maximum number of outcomes to use. Only used if issues is given and has more
+                   outcomes than this value.
+
+
+    Examples:
+
+
+        - Opposition level of the same ufun repeated is always 0
+        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.ops import opposition_level
+        >>> u1, u2 = lambda x: x[0], lambda x: x[0]
+        >>> opposition_level([u1, u2], outcomes=10, max_utils=9)
+        0.0
+
+        - Opposition level of two ufuns that are zero-sum
+        >>> u1, u2 = MappingUtilityFunction(lambda x: x[0]), MappingUtilityFunction(lambda x: 9 - x[0])
+        >>> opposition_level([u1, u2], outcomes=10, max_utils=9)
+        0.7114582486036499
+
+    """
+    if outcomes is None:
+        if issues is None:
+            raise ValueError("You must either give outcomes or issues")
+        outcomes = enumerate_issues(issues, max_cardinality=max_tests)
+    if isinstance(outcomes, int):
+        outcomes = [(_,) for _ in range(outcomes)]
+    if not isinstance(max_utils, Iterable):
+        max_utils: Iterable[float] = [max_utils] * len(ufuns)
+    if len(ufuns) != len(max_utils):
+        raise ValueError(
+            f"Cannot use {len(ufuns)} ufuns with only {len(max_utils)} max. utility values"
+        )
+
+    nearest_val = float("inf")
+    assert not any(abs(_) < 1e-7 for _ in max_utils), f"max-utils : {max_utils}"
+    for outcome in outcomes:
+        v = sum(
+            (1.0 - float(u(outcome)) / max_util) ** 2
+            for max_util, u in zip(max_utils, ufuns)
+        )
+        if v == float("inf"):
+            warnings.warn(
+                f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils"
+            )
+        if v < nearest_val:
+            nearest_val = v
+    return sqrt(nearest_val)
+
+
+def conflict_level(
+    u1: "UtilityFunction",
+    u2: "UtilityFunction",
+    outcomes: Union[int, List[Outcome]],
+    max_tests: int = 10000,
+) -> float:
+    """
+    Finds the conflict level in these two ufuns
+
+    Args:
+        u1: first utility function
+        u2: second utility function
+
+    Examples:
+        - A nonlinear strictly zero sum case
+        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences import conflict_level
+        >>> outcomes = [(_,) for _ in range(10)]
+        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+        ... np.random.random(len(outcomes)))))
+        >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
+        ... 1.0 - np.array(list(u1.mapping.values())))))
+        >>> print(conflict_level(u1=u1, u2=u2, outcomes=outcomes))
+        1.0
+
+        - The same ufun
+        >>> print(conflict_level(u1=u1, u2=u1, outcomes=outcomes))
+        0.0
+
+        - A linear strictly zero sum case
+        >>> outcomes = [(i,) for i in range(10)]
+        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+        ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
+        >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
+        ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+        >>> print(conflict_level(u1=u1, u2=u2, outcomes=outcomes))
+        1.0
+    """
+    if isinstance(outcomes, int):
+        outcomes = [(_,) for _ in range(outcomes)]
+    n_outcomes = len(outcomes)
+    points = np.array([[u1(o), u2(o)] for o in outcomes])
+    order = np.random.permutation(np.array(range(n_outcomes)))
+    p1, p2 = points[order, 0], points[order, 1]
+    signs = []
+    trial = 0
+    for i in range(n_outcomes - 1):
+        for j in range(i + 1, n_outcomes):
+            if trial >= max_tests:
+                break
+            trial += 1
+            o11, o12 = p1[i], p1[j]
+            o21, o22 = p2[i], p2[j]
+            if o12 == o11 and o21 == o22:
+                continue
+            signs.append(int((o12 > o11 and o21 > o22) or (o12 < o11 and o21 < o22)))
+    signs = np.array(signs)
+    if len(signs) == 0:
+        raise ValueError("Could not calculate any signs")
+    return signs.mean()
+
+
+def winwin_level(
+    u1: "UtilityFunction",
+    u2: "UtilityFunction",
+    outcomes: Union[int, List[Outcome]],
+    max_tests: int = 10000,
+) -> float:
+    """
+    Finds the win-win level in these two ufuns
+
+    Args:
+        u1: first utility function
+        u2: second utility function
+
+    Examples:
+        - A nonlinear same ufun case
+        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> outcomes = [(_,) for _ in range(10)]
+        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+        ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+
+        - A linear strictly zero sum case
+        >>> outcomes = [(_,) for _ in range(10)]
+        >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
+        ... np.linspace(0.0, 1.0, len(outcomes), endpoint=True))))
+        >>> u2 = MappingUtilityFunction(dict(zip(outcomes,
+        ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))
+
+
+    """
+    if isinstance(outcomes, int):
+        outcomes = [(_,) for _ in range(outcomes)]
+    n_outcomes = len(outcomes)
+    points = np.array([[u1(o), u2(o)] for o in outcomes])
+    order = np.random.permutation(np.array(range(n_outcomes)))
+    p1, p2 = points[order, 0], points[order, 1]
+    signed_diffs = []
+    for trial, (i, j) in enumerate(zip(range(n_outcomes - 1), range(1, n_outcomes))):
+        if trial >= max_tests:
+            break
+        o11, o12 = p1[i], p1[j]
+        o21, o22 = p2[i], p2[j]
+        if o11 == o12:
+            if o21 == o22:
+                continue
+            else:
+                win = abs(o22 - o21)
+        elif o11 < o12:
+            if o21 == o22:
+                win = o12 - o11
+            else:
+                win = (o12 - o11) + (o22 - o21)
+        else:
+            if o21 == o22:
+                win = o11 - o12
+            else:
+                win = (o11 - o12) + (o22 - o21)
+        signed_diffs.append(win)
+    signed_diffs = np.array(signed_diffs)
+    if len(signed_diffs) == 0:
+        raise ValueError("Could not calculate any signs")
+    return signed_diffs.mean()

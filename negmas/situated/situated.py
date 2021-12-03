@@ -123,7 +123,8 @@ from negmas.helpers import (
 )
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
-from negmas.outcomes import Issue, Outcome, num_outcomes, outcome2dict
+from negmas.outcomes import Issue, Outcome, outcome2dict
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.preferences import Preferences
 from negmas.serialization import serialize, to_flat_dict
 from negmas.types import NamedObject, Rational
@@ -765,11 +766,11 @@ class MechanismFactory:
         partners: List["Agent"],
     ) -> Mechanism:
         if self.neg_n_steps is not None:
-            mechanism.ami.n_steps = self.neg_n_steps
+            mechanism.nmi.n_steps = self.neg_n_steps
         if self.neg_time_limit is not None:
-            mechanism.ami.time_limit = self.neg_time_limit
+            mechanism.nmi.time_limit = self.neg_time_limit
         if self.neg_step_time_limit is not None:
-            mechanism.ami.step_time_limit = self.neg_step_time_limit
+            mechanism.nmi.step_time_limit = self.neg_step_time_limit
         for partner in partners:
             mechanism.register_listener(event_type="negotiation_end", listener=partner)
 
@@ -890,7 +891,7 @@ class MechanismFactory:
                 issues=issues,
                 annotation=annotation,
                 role=role,
-                mechanism=mechanism.ami,
+                mechanism=mechanism.nmi,
                 req_id=req_id if partner == caller else None,
             )
             for role, partner in zip(roles, partners)
@@ -947,7 +948,7 @@ class MechanismFactory:
             caller,
             caller.on_neg_request_accepted_,
             req_id=req_id,
-            mechanism=mechanism.ami,
+            mechanism=mechanism.nmi,
         )
         for partner, response in zip(partners, responses):
             if partner.id != caller.id:
@@ -1070,7 +1071,7 @@ class AgentWorldInterface:
 
         Returns:
 
-            A Tuple of a contract and the ami of the mechanism used to get it in case of success. None otherwise
+            A Tuple of a contract and the nmi of the mechanism used to get it in case of success. None otherwise
 
         """
         return self._world.run_negotiation(
@@ -1128,7 +1129,7 @@ class AgentWorldInterface:
 
         Returns:
 
-             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info [None if the
+             A list of tuples each with two values: contract (None for failure) and nmi (The mechanism info [None if the
              corresponding partner refused to negotiation])
 
         """
@@ -3013,10 +3014,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if agreement is not None or not is_running:
             negotiation = self._negotiations.get(mechanism.id, None)
             if agreement is None:
-                self._register_failed_negotiation(mechanism.ami, negotiation)
+                self._register_failed_negotiation(mechanism.nmi, negotiation)
             else:
                 contract = self._register_contract(
-                    mechanism.ami,
+                    mechanism.nmi,
                     negotiation,
                     self._tobe_signed_at(agreement, force_immediate_signing),
                 )
@@ -3691,8 +3692,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.neg_requests_sent[caller.id] += 1
         for partner in partners:
             self.neg_requests_received[partner.id] += 1
-        n_outcomes_ = num_outcomes(issues)
-        if n_outcomes_ is None or n_outcomes_ < 1:
+        n_outcomes_ = CartesianOutcomeSpace(issues).cardinality
+        if n_outcomes_ < 1:
             self.logwarning(
                 f"A negotiation with no outcomes is requested by {caller.name}",
                 event=Event(
@@ -3924,7 +3925,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         Returns:
 
-            A Tuple of a contract and the ami of the mechanism used to get it in case of success. None otherwise
+            A Tuple of a contract and the nmi of the mechanism used to get it in case of success. None otherwise
 
         """
         if roles is None:
@@ -3976,7 +3977,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             run_to_completion=True,
         )
         if contract is not None:
-            return contract, mechanism.ami
+            return contract, mechanism.nmi
         if neg and neg.mechanism:
             mechanism = neg.mechanism
             if negotiator is not None:
@@ -3985,13 +3986,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if mechanism.agreement is None:
                 contract = None
                 self._register_failed_negotiation(
-                    mechanism=mechanism.ami, negotiation=neg
+                    mechanism=mechanism.nmi, negotiation=neg
                 )
             else:
                 contract = self._register_contract(
-                    mechanism.ami, neg, self._tobe_signed_at(mechanism.agreement, True)
+                    mechanism.nmi, neg, self._tobe_signed_at(mechanism.agreement, True)
                 )
-            return contract, mechanism.ami
+            return contract, mechanism.nmi
         return None, None
 
     def run_negotiations(
@@ -4038,7 +4039,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         Returns:
 
-             A list of tuples each with two values: contract (None for failure) and ami (The mechanism info [None if
+             A list of tuples each with two values: contract (None for failure) and nmi (The mechanism info [None if
              the partner refused the negotiation])
 
         """
@@ -4164,7 +4165,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         for i, loc in enumerate(locs):
             contracts[loc] = cs[i]
             completed[loc] = not rs[i]
-            amis[i] = negs[i].mechanism.ami
+            amis[i] = negs[i].mechanism.nmi
         return list(zip(contracts, amis))
 
     def _log_header(self):

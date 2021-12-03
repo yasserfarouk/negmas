@@ -13,200 +13,17 @@ from typing import (
 from negmas.common import NegotiatorMechanismInterface
 from negmas.generics import GenericMapping, ienumerate, iget, ivalues
 from negmas.helpers import get_full_type_name, gmap, ikeys
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-    OutcomeRange,
-    dict2outcome,
-    enumerate_issues,
-    num_outcomes,
-    outcome_in_range,
-    sample_issues,
-)
+from negmas.outcomes import Issue, Outcome, OutcomeRange, outcome_in_range
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .base import OutcomeUtilityMapping, UtilityValue
-from .base_crisp import UtilityFunction
+from .base import OutcomeUtilityMapping
+from .ufun import UtilityFunction
 
 __all__ = [
-    "MappingUtilityFunction",
     "NonLinearUtilityAggregationFunction",
     "HyperRectangleUtilityFunction",
     "NonlinearHyperRectangleUtilityFunction",
 ]
-
-
-class MappingUtilityFunction(UtilityFunction):
-    """Outcome mapping utility function.
-
-    This is the simplest possible utility function and it just maps a set of `Outcome`s to a set of
-    `UtilityValue`(s). It is only usable with single-issue negotiations. It can be constructed with wither a mapping
-    (e.g. a dict) or a callable function.
-
-    Args:
-            mapping: Either a callable or a mapping from `Outcome` to `UtilityValue`.
-            default: value returned for outcomes causing exception (e.g. invalid outcomes).
-            name: name of the utility function. If None a random name will be generated.
-            reserved_value: The reserved value (utility of not getting an agreement = utility(None) )
-            ami: an `AgentMechnismInterface` that is used mostly for setting the outcome-type in methods returning
-                 outcomes.
-
-    Examples:
-
-        Single issue outcome case:
-
-        >>> issue =Issue(values=['to be', 'not to be'], name='THE problem')
-        >>> print(str(issue))
-        THE problem: ['to be', 'not to be']
-        >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
-        >>> print(list(map(f, ['to be', 'not to be'])))
-        [10.0, 0.0]
-        >>> f = MappingUtilityFunction(mapping={'to be':-10.0, 'not to be':10.0})
-        >>> print(list(map(f, ['to be', 'not to be'])))
-        [-10.0, 10.0]
-        >>> f = MappingUtilityFunction(lambda x: float(len(x)))
-        >>> print(list(map(f, ['to be', 'not to be'])))
-        [5.0, 9.0]
-
-        Multi issue case:
-
-        >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
-        ...           , Issue(5, 'quality')]
-        >>> print(list(map(str, issues)))
-        ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
-        >>> f = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0)
-        >>> g = MappingUtilityFunction(lambda x: x['price'] if x['delivery'] == 'delivered' else -1.0
-        ...     , default=-1000 )
-        >>> f({'price': 16.0}) is None
-        True
-        >>> g({'price': 16.0})
-        -1000
-        >>> f({'price': 16.0, 'delivery':  'delivered'})
-        16.0
-        >>> f({'price': 16.0, 'delivery':  'not delivered'})
-        -1.0
-
-    Remarks:
-        - If the mapping used failed on the outcome (for example because it is not a valid outcome), then the
-        ``default`` value given to the constructor (which defaults to None) will be returned.
-
-    """
-
-    def __init__(
-        self,
-        mapping: OutcomeUtilityMapping,
-        default=None,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.mapping = mapping
-        self.default = default
-
-    def to_dict(self):
-        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
-        return dict(
-            **d,
-            mapping=self.mapping,
-            default=self.default,
-            name=self.name,
-            reserved_value=self.reserved_value,
-        )
-
-    @classmethod
-    def from_dict(cls, d):
-        d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(
-            mapping=d.get("mapping", None),
-            default=d.get("default", None),
-            name=d.get("name", None),
-            reserved_value=d.get("reserved_value", None),
-            ami=d.get("ami", None),
-            id=d.get("id", None),
-        )
-
-    def eval(self, offer: Optional[Outcome]) -> Optional[UtilityValue]:
-        # noinspection PyBroadException
-        if offer is None:
-            return self.reserved_value
-        try:
-            m = gmap(self.mapping, offer)
-        except Exception:
-            return self.default
-
-        return m
-
-    def xml(self, issues: List[Issue]) -> str:
-        """
-
-        Examples:
-
-            >>> issue =Issue(values=['to be', 'not to be'], name='THE problem')
-            >>> print(str(issue))
-            THE problem: ['to be', 'not to be']
-            >>> f = MappingUtilityFunction({'to be':10.0, 'not to be':0.0})
-            >>> print(list(map(f, ['to be', 'not to be'])))
-            [10.0, 0.0]
-            >>> print(f.xml([issue]))
-            <issue index="1" etype="discrete" type="discrete" vtype="discrete" name="THE problem">
-                <item index="1" value="to be"  cost="0"  evaluation="10.0" description="to be">
-                </item>
-                <item index="2" value="not to be"  cost="0"  evaluation="0.0" description="not to be">
-                </item>
-            </issue>
-            <weight index="1" value="1.0">
-            </weight>
-            <BLANKLINE>
-        """
-        if len(issues) > 1:
-            raise ValueError(
-                "Cannot call xml() on a mapping utility function with more than one issue"
-            )
-        if issues is not None:
-            issue_names = [_.name for _ in issues]
-            key = issue_names[0]
-        else:
-            key = "0"
-        output = f'<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="{key}">\n'
-        if isinstance(self.mapping, Callable):
-            for i, k in enumerate(issues[key].all):
-                if isinstance(k, tuple) or isinstance(k, list):
-                    k = "-".join([str(_) for _ in k])
-                output += (
-                    f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{self(k)}" description="{k}">\n'
-                    f"    </item>\n"
-                )
-        else:
-            for i, (k, v) in enumerate(ienumerate(self.mapping)):
-                if isinstance(k, tuple) or isinstance(k, list):
-                    k = "-".join([str(_) for _ in k])
-                output += (
-                    f'    <item index="{i+1}" value="{k}"  cost="0"  evaluation="{v}" description="{k}">\n'
-                    f"    </item>\n"
-                )
-        output += "</issue>\n"
-        output += '<weight index="1" value="1.0">\n</weight>\n'
-        return output
-
-    def __str__(self) -> str:
-        return f"mapping: {self.mapping}\ndefault: {self.default}"
-
-    @classmethod
-    def random(
-        cls,
-        issues: List["Issue"],
-        reserved_value=(0.0, 1.0),
-        normalized=True,
-        max_n_outcomes: int = 10000,
-    ):
-        outcomes = (
-            enumerate_issues(issues)
-            if num_outcomes(issues) <= max_n_outcomes
-            else sample_issues(
-                issues, max_n_outcomes, with_replacement=False, fail_if_not_enough=False
-            )
-        )
-        return UtilityFunction.generate_random(1, outcomes)[0]
 
 
 class NonLinearUtilityAggregationFunction(UtilityFunction):
@@ -233,8 +50,8 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
 
 
     Examples:
-        >>> issues = [Issue((10.0, 20.0), 'price'), Issue(['delivered', 'not delivered'], 'delivery')
-        ...           , Issue(5, 'quality')]
+        >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
+        ...           , make_issue(5, 'quality')]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
         >>> g = NonLinearUtilityAggregationFunction({ 'price': lambda x: 2.0*x
@@ -257,7 +74,7 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
     def __init__(
         self,
         issue_utilities: MutableMapping[Any, GenericMapping],
-        f: Callable[[Dict[Any, UtilityValue]], UtilityValue],
+        f: Callable[[Dict[Any, float]], float],
         *args,
         **kwargs,
     ) -> None:
@@ -283,11 +100,10 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
             f=deserialize(d.get("f", None)),
             name=d.get("name", None),
             reserved_value=d.get("reserved_value", None),
-            ami=d.get("ami", None),
             id=d.get("id", None),
         )
 
-    def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
+    def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
         if offer is None:
             return self.reserved_value
         if self.issue_utilities is None:
@@ -300,18 +116,6 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
             v = iget(offer, k)
             u[k] = gmap(iget(self.issue_utilities, k), v)
         return self.f(u)
-
-    @UtilityFunction.ami.setter
-    def ami(self, value: NegotiatorMechanismInterface):
-        UtilityFunction.ami.fset(self, value)
-        if isinstance(self.issue_utilities, dict):
-            for k, v in self.issue_utilities.items():
-                if isinstance(v, UtilityFunction):
-                    v.ami = value
-        else:
-            for v in self.issue_utilities:
-                if isinstance(v, UtilityFunction):
-                    v.ami = value
 
 
 class HyperRectangleUtilityFunction(UtilityFunction):
@@ -332,7 +136,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
      Examples:
          We will use the following issue space of cardinality :math:`10 \times 5 \times 4`:
 
-         >>> issues = [Issue(10), Issue(5), Issue(4)]
+         >>> issues = [make_issue(10), make_issue(5), make_issue(4)]
 
          Now create the utility function with
 
@@ -397,8 +201,8 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             ...                                        {0: (1.0, 2.0), 1: (1.0, 2.0)},
             ...                                        {0: (1.4, 2.0), 2: (2.0, 3.0)}]
             ...                                , utilities= [2.0, 9.0 + 4.0])
-            >>> print(f.xml([Issue((0.0, 4.0), name='0'), Issue((0.0, 9.0), name='1')
-            ... , Issue((0.0, 9.0), name='2')]).strip())
+            >>> print(f.xml([make_issue((0.0, 4.0), name='0'), make_issue((0.0, 9.0), name='1')
+            ... , make_issue((0.0, 9.0), name='2')]).strip())
             <issue index="1" name="0" vtype="real" type="real" etype="real">
                 <range lowerbound="0.0" upperbound="4.0"></range>
             </issue><issue index="2" name="1" vtype="real" type="real" etype="real">
@@ -490,7 +294,6 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             ignore_failing_range_utilities=self.ignore_failing_range_utilities,
             name=self.name,
             reserved_value=self.reserved_value,
-            ami=self.ami,
             id=self.id,
         )
 
@@ -513,7 +316,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         if self.weights is None:
             self.weights = [1.0] * len(self.outcome_ranges)
 
-    def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
+    def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
         if offer is None:
             return self.reserved_value
         u = float(0.0)
@@ -565,16 +368,14 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
         self,
         hypervolumes: Iterable[OutcomeRange],
         mappings: List[OutcomeUtilityMapping],
-        f: Callable[[List[UtilityValue]], UtilityValue],
+        f: Callable[[List[float]], float],
         name: Optional[str] = None,
-        reserved_value: UtilityValue = float("-inf"),
-        ami: NegotiatorMechanismInterface = None,
+        reserved_value: float = float("-inf"),
         id=None,
     ) -> None:
         super().__init__(
             name=name,
             reserved_value=reserved_value,
-            ami=ami,
             id=id,
         )
         self.hypervolumes = hypervolumes
@@ -590,7 +391,6 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
             f=serialize(self.f),
             name=self.name,
             reserved_value=self.reserved_value,
-            ami=self.ami,
             id=self.id,
         )
 
@@ -603,11 +403,10 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
             f=deserialize(d.get("f", None)),
             name=d.get("name", None),
             reserved_value=d.get("reserved_value", None),
-            ami=d.get("ami", None),
             id=d.get("id", None),
         )
 
-    def eval(self, offer: Optional["Outcome"]) -> Optional[UtilityValue]:
+    def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
         if offer is None:
             return self.reserved_value
         if not isinstance(self.hypervolumes, Iterable):

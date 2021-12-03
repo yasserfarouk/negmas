@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import random
 from typing import Generator
 
 import numpy as np
 
 from negmas.java import PYTHON_CLASS_IDENTIFIER
-from negmas.outcomes.base_issue import RangeIssue
+from negmas.outcomes.range_issue import RangeIssue
 
 __all__ = ["ContinuousIssue"]
 
@@ -33,11 +35,30 @@ class ContinuousIssue(RangeIssue):
             random.random() * (self._values[1] - self._values[0]) + self._values[0]
         )  # type: ignore
 
-    def alli(self, n: int = 10) -> Generator:
+    def value_generator(
+        self, n: int | None = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator:
+        yield from self.ordered_value_generator(
+            n, grid=grid, compact=compact, endpoints=endpoints
+        )
+
+    def ordered_value_generator(
+        self, n: int = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator:
         if n is None:
             raise ValueError("Real valued issue with no discretization value")
-        yield from np.linspace(
-            self._values[0], self._values[1], num=n, endpoint=True
+        if grid:
+            yield from np.linspace(
+                self._values[0], self._values[1], num=n, endpoint=endpoints
+            ).tolist()
+            return
+        if endpoints:
+            yield from [self._values[0]] + (
+                (self._values[1] - self._values[0]) * np.random.rand(n - 2)
+                + self._values[0]
+            ).tolist() + [self._values[1]]
+        yield from (
+            (self._values[1] - self._values[0]) * np.random.rand(n) + self._values[0]
         ).tolist()
 
     def rand_outcomes(

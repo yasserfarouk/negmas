@@ -299,16 +299,16 @@ class EStrategy:
         return u
 
     def on_enter(
-        self, ami: NegotiatorMechanismInterface, preferences: IPUtilityFunction = None
+        self, nmi: NegotiatorMechanismInterface, preferences: IPUtilityFunction = None
     ) -> None:
-        self.lower = [0.0] * ami.n_outcomes
-        self.upper = [1.0] * ami.n_outcomes
-        self.indices = dict(zip(ami.outcomes, range(ami.n_outcomes)))
+        self.lower = [0.0] * nmi.n_outcomes
+        self.upper = [1.0] * nmi.n_outcomes
+        self.indices = dict(zip(nmi.outcomes, range(nmi.n_outcomes)))
         if preferences is not None:
             distributions = list(preferences.distributions.values())
             for i, dist in enumerate(distributions):
                 self.lower[i] = _loc(dist)
                 self.upper[i] = _upper(dist)
-        self.outcomes = ami.outcomes
+        self.outcomes = nmi.outcomes
         self._total_cost = 0.0
         self._elicited_queries = []

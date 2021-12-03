@@ -7,10 +7,12 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
+from negmas.preferences.ops import extreme_outcomes
+from negmas.preferences.protocols import UFun
+
 from ..common import MechanismState, NegotiatorMechanismInterface
 from ..negotiators import AspirationMixin, Controller
 from ..outcomes import Outcome, outcome_is_valid
-from ..preferences import utility_range
 from .common import ResponseType, SAOResponse, SAOState
 from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
 
@@ -58,7 +60,7 @@ class SAOController(Controller):
     def before_join(
         self,
         negotiator_id: str,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -69,7 +71,7 @@ class SAOController(Controller):
 
         Args:
             negotiator_id: The negotiator ID
-            ami  (AgentMechanismInterface): The negotiation.
+            nmi  (NegotiatorMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -84,7 +86,7 @@ class SAOController(Controller):
     def after_join(
         self,
         negotiator_id: str,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -96,7 +98,7 @@ class SAOController(Controller):
 
         Args:
             negotiator_id: The negotiator ID
-            ami  (AgentMechanismInterface): The negotiation.
+            nmi  (NegotiatorMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -143,9 +145,9 @@ class SAORandomController(SAOController):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        if negotiator.ami is None:
+        if negotiator.nmi is None:
             return None
-        return negotiator.ami.random_outcomes(1)[0]
+        return negotiator.nmi.random_outcomes(1)[0]
 
     def respond(
         self, negotiator_id: str, state: MechanismState, offer: "Outcome"
@@ -298,17 +300,12 @@ class SAOSyncController(SAOController):
             defined for the negotiator. If neither exists, the first offer will be None.
         """
         negotiator, _ = self.negotiators.get(negotiator_id, (None, None))
-        if negotiator is None or negotiator.ami is None:
+        if negotiator is None or negotiator.nmi is None:
             return None
         # if the controller has a ufun, use it otherwise use the negotiator's
         ufun = self.ufun if self.ufun is not None else negotiator.ufun
-        if ufun is not None:
-            _, _, _, best = utility_range(
-                ufun,
-                issues=negotiator.ami.issues,
-                return_outcomes=True,
-                ami=negotiator.ami,
-            )
+        if isinstance(ufun, UFun):
+            _, best = extreme_outcomes(ufun, issues=negotiator.nmi.issues)
         else:
             best = None
         return best
@@ -381,7 +378,7 @@ class SAORandomSyncController(SAOSyncController):
             response = self.make_response()
             if response == ResponseType.REJECT_OFFER:
                 result[negotiator] = SAOResponse(
-                    response, self.negotiators[negotiator][0].ami.random_outcomes(1)[0]
+                    response, self.negotiators[negotiator][0].nmi.random_outcomes(1)[0]
                 )
             else:
                 result[negotiator] = SAOResponse(response, None)
@@ -391,7 +388,7 @@ class SAORandomSyncController(SAOSyncController):
         return dict(
             zip(
                 self.negotiators.keys(),
-                [n[0].ami.random_outcomes(1)[0] for n in self.negotiators.values()],
+                [n[0].nmi.random_outcomes(1)[0] for n in self.negotiators.values()],
             )
         )
 
@@ -581,9 +578,9 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
         return self._best_outcomes[negotiator][0]
 
-    def after_join(self, negotiator_id, ami, state, *, preferences=None, role="agent"):
+    def after_join(self, negotiator_id, nmi, state, *, preferences=None, role="agent"):
         super().after_join(
-            negotiator_id, ami, state, preferences=preferences, role=role
+            negotiator_id, nmi, state, preferences=preferences, role=role
         )
         self._best_outcomes[negotiator_id] = self.best_outcome(negotiator_id)
 
@@ -613,16 +610,14 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         neg = self.negotiators[negotiator][0]
         if neg is None:
             return None
-        if neg.ami is None:
+        if neg.nmi is None:
             return None
         ufun = neg.ufun
         if ufun is None and hasattr(self, "ufun"):
             ufun = self.ufun
         if ufun is None:
             return None
-        _, _, _, top_outcome = ufun.utility_range(
-            issues=neg.ami.issues, return_outcomes=True, ami=neg.ami
-        )
+        _, top_outcome = ufun.extreme_outcomes(outcome_space=neg.nmi.issues)
         return top_outcome
 
     def make_offer(
@@ -654,10 +649,10 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         current_best = self.best_outcome(negotiator, state)
         if negotiator == best_from:
             return current_best
-        ami = self.negotiators[negotiator][0].ami
-        if ami is None:
+        nmi = self.negotiators[negotiator][0].nmi
+        if nmi is None:
             return None
-        if best_offer is not None and outcome_is_valid(best_offer, ami.issues):
+        if best_offer is not None and outcome_is_valid(best_offer, nmi.issues):
             if self.is_better(best_offer, current_best, negotiator, state):
                 return best_offer
             return current_best
@@ -739,7 +734,7 @@ class SAOMetaNegotiatorController(SAOController):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        self.meta_negotiator._ami = negotiator.ami
+        self.meta_negotiator._nmi = negotiator.nmi
         return self.meta_negotiator.propose(state)
 
     def respond(
@@ -749,7 +744,7 @@ class SAOMetaNegotiatorController(SAOController):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        self.meta_negotiator._ami = negotiator.ami
+        self.meta_negotiator._nmi = negotiator.nmi
         return self.meta_negotiator.respond(state=state, offer=offer)
 
 
@@ -833,7 +828,7 @@ class SAOSingleAgreementAspirationController(
                 else self.ufun(super().best_outcome(negotiator, None)),
                 None,
             ),
-            issues=self.negotiators[negotiator][0].ami.issues,
+            issues=self.negotiators[negotiator][0].nmi.issues,
         )
         if outcome is None:
             return self._best_outcomes.get(negotiator, None)

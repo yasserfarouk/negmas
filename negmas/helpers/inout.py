@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import warnings
+from os import PathLike
 from pathlib import Path
 from typing import Any, Iterable, Optional, Union
 
@@ -23,7 +24,7 @@ import yaml
 
 from negmas.config import NEGMAS_CONFIG
 
-from .types import PATH, TYPE_START, get_class, get_full_type_name, is_jsonable
+from .types import TYPE_START, get_class, get_full_type_name, is_jsonable
 
 __all__ = [
     "is_nonzero_file",
@@ -42,7 +43,7 @@ PATH_START = "__PATH__:"
 DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get("default_dump_extension", "json")
 
 
-def is_nonzero_file(fpath: PATH) -> bool:
+def is_nonzero_file(fpath: PathLike) -> bool:
     """Whether or not the path is for an existing nonzero file.
 
     Args:

@@ -300,10 +300,10 @@ NegMAS supports a variety of ``Issue`` types.
 .. code:: ipython3
 
     # an issue with randomly assigned name
-    issue1 = Issue(values=['to be', 'not to be'])
+    issue1 = make_issue(values=['to be', 'not to be'])
     print(issue1)
     # an issue with given name:
-    issue2 = Issue(values=['to be', 'not to be'], name='The Problem')
+    issue2 = make_issue(values=['to be', 'not to be'], name='The Problem')
     print(issue2)
 
 
@@ -318,7 +318,7 @@ NegMAS supports a variety of ``Issue`` types.
 
 .. code:: ipython3
 
-    issue3 = Issue(values=10, name='number of items')
+    issue3 = make_issue(values=10, name='number of items')
     print(issue3)
 
 
@@ -333,7 +333,7 @@ NegMAS supports a variety of ``Issue`` types.
 
 .. code:: ipython3
 
-    issue4 = Issue(values=(0.0, 1.0), name='cost')
+    issue4 = make_issue(values=(0.0, 1.0), name='cost')
     print(issue4)
 
 
@@ -378,8 +378,8 @@ It is possible to check the total cardinality for a set of issues:
 
 .. code:: ipython3
 
-    [Issue.num_outcomes([issue1, issue2, issue3, issue4]), # expected inf
-     Issue.num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 10
+    [num_outcomes([issue1, issue2, issue3, issue4]), # expected inf
+     num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 10
 
 
 

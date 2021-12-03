@@ -326,6 +326,7 @@ class NegWorld(NoContractExecutionMixin, World):
         self._partner_utility: Dict[str, List[float]] = defaultdict(list)
         self._success: Dict[str, bool] = defaultdict(bool)
         self._received_advantage: Dict[str, List[float]] = defaultdict(list)
+        self._n_agreements_per_cometitor: Dict[str, List[int]] = defaultdict(list)
         self._partner_advantage: Dict[str, List[float]] = defaultdict(list)
         self._competitors: Dict[str, NegAgent] = dict()
         self._partners: Dict[str, NegAgent] = dict()
@@ -410,6 +411,7 @@ class NegWorld(NoContractExecutionMixin, World):
             )
             r = unormalize(float(ufun.reserved_value), self._domain.index)
             self._received_utility[aid].append(u)
+            self._n_agreements_per_cometitor[aid].append(int(mechanism is not None))
             self._received_advantage[aid].append(u - r)
             pufuns = [
                 (partners.index(pid), p.awi.get_preferences(partners.index(pid)))
@@ -430,6 +432,11 @@ class NegWorld(NoContractExecutionMixin, World):
         return sum(
             self._received_utility.get(aid, [0])
         ) / self._n_negs_per_copmetitor.get(aid, 0)
+
+    def agreement_rate(self, aid: str):
+        return sum(
+            self._n_agreements_per_cometitor.get(aid, [0])
+        ) / self._n_negs_per_agent.get(aid, 0)
 
     def partner_utility(self, aid: str):
         return sum(
@@ -463,6 +470,9 @@ class NegWorld(NoContractExecutionMixin, World):
             self._stats[f"partner_utility_{aid}"].append(self._partner_utility[aid][-1])
             self._stats[f"received_advantage_{aid}"].append(
                 self._received_advantage[aid][-1]
+            )
+            self._stats[f"agrement_rate_{aid}"].append(
+                self._n_agreements_per_cometitor[aid][-1]
             )
             self._stats[f"partner_advantage_{aid}"].append(
                 self._partner_advantage[aid][-1]

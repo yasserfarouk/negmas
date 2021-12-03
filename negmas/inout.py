@@ -7,23 +7,17 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from functools import reduce
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence, Tuple, Type, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Type
 
-from _pytest.mark.structures import normalize_mark_list
-from networkx.algorithms import operators
-
-from negmas.helpers.timeout import force_single_thread
 from negmas.outcomes.categorical_issue import CategoricalIssue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
-from negmas.preferences.nonlinear import MappingUtilityFunction
+from negmas.preferences.mapping import MappingUtilityFunction
 
-from .helpers import PATH
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
-from .outcomes import Issue, OutcomeSpace, issues_from_genius, issues_to_genius
+from .outcomes import CartesianOutcomeSpace, Issue, issues_from_genius
 from .preferences import (
     DiscountedUtilityFunction,
     UtilityFunction,
@@ -49,7 +43,7 @@ class Domain:
     A class representing a negotiation domain
     """
 
-    agenda: OutcomeSpace
+    agenda: CartesianOutcomeSpace
     ufuns: tuple[UtilityFunction, ...]
     mechanism_type: Type[Mechanism] | None
     mechanism_params: dict
@@ -110,25 +104,9 @@ class Domain:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
-        if not self.agenda.is_finite:
-            raise ValueError(
-                f"Cannot convert an infinite outcome space to a single issue"
-            )
-        outcomes = self.agenda.enumerate_discrete()
-        values = (
-            range(len(outcomes))
-            if numeric
-            else [str(_) for _ in outcomes]
-            if stringify
-            else outcomes
-        )
-        self.agenda.issues = [
-            ContiguousIssue(len(outcomes), name="-".join(self.issue_names))
-            if numeric
-            else CategoricalIssue(values, name="-".join(self.issue_names))
-        ]
-        if numeric or stringify:
-            values = [(_,) for _ in values]
+        sos = self.agenda.to_single_issue(numeric, stringify)
+        sos.name = self.agenda.name
+        values = sos.enumerate()
         ufuns = []
         for u in self.ufuns:
             if isinstance(u, DiscountedUtilityFunction):
@@ -137,7 +115,7 @@ class Domain:
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
                 u.ufun = MappingUtilityFunction(
-                    mapping=dict(zip(((_,) for _ in values), [v(_) for _ in outcomes])),
+                    mapping=dict(zip(values, [v(_) for _ in values])),
                     reserved_value=v.reserved_value,
                     name=v.name,
                 )
@@ -145,12 +123,13 @@ class Domain:
                 continue
             ufuns.append(
                 MappingUtilityFunction(
-                    mapping=dict(zip(((_,) for _ in values), [u(_) for _ in outcomes])),
+                    mapping=dict(zip(values, [u(_) for _ in values])),
                     reserved_value=u.reserved_value,
                     name=u.name,
                 )
             )
         self.ufuns = tuple(ufuns)
+        self.agenda = sos
         return self
 
     def make_session(
@@ -226,7 +205,7 @@ class Domain:
 
     def discretize(self, levels: int = 10):
         """Discretize all issues"""
-        self.agenda.discretize(levels, inplace=True)
+        self.agenda = self.agenda.to_discrete(levels)
         return self
 
     def remove_discounting(self):
@@ -284,7 +263,7 @@ class Domain:
 
 def get_domain_issues(
     domain_file_name: str,
-    max_n_outcomes: int = 1_000_000,
+    max_cardinality: int = 1_000_000,
     n_discretization: Optional[int] = None,
     safe_parsing=False,
 ) -> List[Issue]:
@@ -294,7 +273,7 @@ def get_domain_issues(
     Args:
         domain_file_name: Name of the file
         n_discretization: Number of discrete levels per continuous variable.
-        max_n_outcomes: Maximum number of outcomes in the outcome space after discretization. Used only if `n_discretization` is given.
+        max_cardinality: Maximum number of outcomes in the outcome space after discretization. Used only if `n_discretization` is given.
         safe_parsing: Apply more checks while parsing
 
     Returns:
@@ -313,7 +292,7 @@ def get_domain_issues(
 
 
 def load_genius_domain(
-    domain_file_name: PATH,
+    domain_file_name: PathLike,
     utility_file_names: Optional[List[str]] = None,
     force_numeric=False,
     ignore_discount=False,
@@ -387,7 +366,7 @@ def load_genius_domain(
                 )
 
     return Domain(
-        agenda=OutcomeSpace(issues, name=domain_file_name),
+        agenda=CartesianOutcomeSpace(issues, name=domain_file_name),
         ufuns=[_["ufun"] for _ in agent_info],
         mechanism_type=SAOMechanism,
         mechanism_params=kwargs,
@@ -497,7 +476,9 @@ def load_genius_domain_from_folder(
     )
 
 
-def find_domain_and_utility_files(folder_name) -> Tuple[Optional[PATH], List[PATH]]:
+def find_domain_and_utility_files(
+    folder_name,
+) -> Tuple[Optional[PathLike], List[PathLike]]:
     """Finds the domain and utility_function files in a folder"""
     files = sorted(listdir(folder_name))
     domain_file_name = None
@@ -517,12 +498,12 @@ def find_domain_and_utility_files(folder_name) -> Tuple[Optional[PATH], List[PAT
 
 
 def convert_genius_domain(
-    src_domain_file_name: Optional[PATH],
-    dst_domain_file_name: Optional[PATH],
-    src_utility_file_names: Sequence[PATH] = tuple(),
-    dst_utility_file_names: Sequence[PATH] = tuple(),
+    src_domain_file_name: Optional[PathLike],
+    dst_domain_file_name: Optional[PathLike],
+    src_utility_file_names: Sequence[PathLike] = tuple(),
+    dst_utility_file_names: Sequence[PathLike] = tuple(),
     cache_and_discretize_outcomes=False,
-    max_n_outcomes: int = 1_000_000,
+    max_cardinality: int = 1_000_000,
     n_discretization: Optional[int] = None,
     normalize_utilities=False,
     normalize_max_only=False,
@@ -547,13 +528,12 @@ def convert_genius_domain(
         if not n_discretization:
             return False
         cardinalities = [
-            _.cardinality if _.is_countable() else n_discretization
-            for _ in domain.issues
+            _.cardinality if _.is_finite() else n_discretization for _ in domain.issues
         ]
         n = 1
         for c in cardinalities:
             n *= c
-        if n > max_n_outcomes:
+        if n > max_cardinality:
             return False
         domain.discretize()
     if force_single_issue:
@@ -567,8 +547,8 @@ def convert_genius_domain(
 
 
 def convert_genius_domain_from_folder(
-    src_folder_name: PATH,
-    dst_folder_name: PATH,
+    src_folder_name: PathLike,
+    dst_folder_name: PathLike,
     **kwargs,
 ) -> bool:
     """

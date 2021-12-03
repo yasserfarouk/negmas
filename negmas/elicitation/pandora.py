@@ -89,8 +89,8 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         base_negotiator: SAONegotiator = AspirationNegotiator(),
         deep_elicitation: bool,
         opponent_model_factory: Optional[
-            Callable[["AgentMechanismInterface"], "DiscreteAcceptanceModel"]
-        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(ami=x),
+            Callable[["NegotiatorMechanismInterface"], "DiscreteAcceptanceModel"]
+        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
         expector_factory: Union["Expector", Callable[[], "Expector"]] = MeanExpector,
         single_elicitation_per_round=False,
         continue_eliciting_past_reserved_val=False,
@@ -193,7 +193,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             return False
         if best_index is None:
             return self.continue_eliciting_past_reserved_val
-        outcome = self._ami.outcomes[best_index]
+        outcome = self._nmi.outcomes[best_index]
         u = self.do_elicit(outcome, None)
         self.preferences.distributions[outcome] = u
         expected_value = self.offering_utility(outcome, state=state)
@@ -332,8 +332,8 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         Args:
             updated_outcomes: A list of the outcomes with updated utility values.
         """
-        n_outcomes = self._ami.n_outcomes
-        outcomes = self._ami.outcomes
+        n_outcomes = self._nmi.n_outcomes
+        outcomes = self._nmi.outcomes
         unknown = self.unknown
         if unknown is None:
             unknown = [(-self.reserved_value, _) for _ in range(n_outcomes)]
@@ -451,10 +451,10 @@ class FullElicitor(BasePandoraElicitor):
 
     def elicit(self, state: MechanismState):
         if not self.elicited:
-            outcomes = self._ami.outcomes
+            outcomes = self._nmi.outcomes
             utilities = [
                 self.expect(self.do_elicit(outcome, state=state), state=state)
-                for outcome in self._ami.outcomes
+                for outcome in self._nmi.outcomes
             ]
             self.offerable_outcomes = list(outcomes)
             self.elicitation_history = [zip(outcomes, utilities)]
@@ -478,8 +478,8 @@ class RandomElicitor(BasePandoraElicitor):
         true_utility_on_zero_cost=False,
         base_negotiator: SAONegotiator = AspirationNegotiator(),
         opponent_model_factory: Optional[
-            Callable[["AgentMechanismInterface"], "DiscreteAcceptanceModel"]
-        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(ami=x),
+            Callable[["NegotiatorMechanismInterface"], "DiscreteAcceptanceModel"]
+        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
         single_elicitation_per_round=False,
         **kwargs,
     ) -> None:
@@ -496,7 +496,7 @@ class RandomElicitor(BasePandoraElicitor):
         )
 
     def init_unknowns(self) -> None:
-        n = self._ami.n_outcomes
+        n = self._nmi.n_outcomes
         z: List[Tuple[float, Optional[int]]] = list(
             zip((-random.random() for _ in range(n + 1)), range(n + 1))
         )
@@ -591,7 +591,7 @@ class PandoraElicitor(BasePandoraElicitor):
             dict(
                 base_negotiator=AspirationNegotiator(),
                 opponent_model_factory=lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(
-                    ami=x
+                    nmi=x
                 ),
                 expector_factory=MeanExpector,
                 deep_elicitation=True,
@@ -705,7 +705,7 @@ class AspiringElicitor(OptimalIncrementalElicitor):
                 expector_factory=lambda: AspiringExpector(
                     max_aspiration=max_aspiration,
                     aspiration_type=aspiration_type,
-                    ami=self._ami,
+                    nmi=self._nmi,
                 )
             )
         )

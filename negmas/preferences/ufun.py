@@ -1,59 +1,71 @@
 from __future__ import annotations
 
 import itertools
-import numbers
+import math
 import random
-import warnings
 import xml.etree.ElementTree as ET
-from abc import ABC, abstractmethod
 from functools import reduce
-from math import sqrt
 from operator import mul
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
 from negmas.generics import ienumerate, ivalues
-from negmas.helpers import PATH, ikeys
-from negmas.outcomes import (
-    Issue,
-    Outcome,
-    discretize_and_enumerate_issues,
-    enumerate_issues,
-    num_outcomes,
-    outcome_is_valid,
-    sample_issues,
+from negmas.helpers import PathLike, ikeys
+from negmas.outcomes import Issue, Outcome, outcome_is_valid
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+
+from .preferences import Preferences
+from .protocols import (
+    HasRange,
+    HasReservedValue,
+    InverseUFun,
+    MultiInverseUFun,
+    PartiallyNormalizable,
+    PartiallyScalable,
+    Randomizable,
+    UFun,
+    XmlSerializableUFun,
 )
 
-from .base_probabilistic import ProbUtilityFunction
-from .preferences import CardinalPreferences
-
-__all__ = [
-    "UtilityFunction",
-]
+__all__ = ["UtilityFunction"]
 
 
-class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
-    def normalize(
+class UtilityFunction(
+    XmlSerializableUFun,
+    Randomizable,
+    PartiallyNormalizable,
+    PartiallyScalable,
+    HasRange,
+    HasReservedValue,
+    UFun,
+    Preferences,
+):
+    def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reserved_value = reserved_value
+
+    def scale_min_for(
         self,
+        to: float,
+        outcome_space: CartesianOutcomeSpace | None,
+        outcomes: list[Outcome] | None,
+    ) -> "UtilityFunction":
+        return self.normalize_for((to, float("inf")), outcome_space, outcomes)
+
+    def scale_max_for(
+        self,
+        to: float,
+        outcome_space: CartesianOutcomeSpace | None,
+        outcomes: list[Outcome] | None,
+    ) -> "UtilityFunction":
+        return self.normalize_for((float("-inf"), to), outcome_space, outcomes)
+
+    def normalize_for(
+        self,
+        to: Tuple[float, float] = (0.0, 1.0),
+        outcome_space: CartesianOutcomeSpace | None = None,
         outcomes: list[Outcome] | None = None,
-        rng: Tuple[float | None, float | None] = (0.0, 1.0),
-        infeasible_cutoff: float = float("-inf"),
-        epsilon: float = 1e-6,
     ) -> "UtilityFunction":
         """
         Creates a new utility function that is normalized based on input conditions.
@@ -67,17 +79,89 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             infeasible_cutoff: outcomes with utility value less than or equal to this value will not
                                be considered during normalization
             epsilon: A small allowed error in normalization
+            max_cardinality: Maximum ufun evaluations to conduct
         """
-        from .ops import normalize as gnormalize
+        infeasible_cutoff: float = float("-inf")
+        epsilon: float = 1e-6
+        max_cardinality: int = 1000
+        if not outcome_space:
+            outcome_space = self.outcome_space
+        if to[0] is None and to[1] is None:
+            return self
+        max_only = to[0] == float("-inf")
+        min_only = to[1] == float("inf")
+        # todo check that I normalize the reserved value as well
+        from negmas.preferences.complex import (
+            ComplexNonlinearUtilityFunction,
+            ComplexWeightedUtilityFunction,
+        )
+        from negmas.preferences.const import ConstUFun
 
-        if outcomes is None:
-            raise ValueError(
-                f"Cannot normalize ufun of type {self.__class__.__name__} without passing `outcomes` to consider"
+        mn, mx = self.utility_range(
+            outcome_space, outcomes, infeasible_cutoff, max_cardinality
+        )
+
+        if min_only:
+            to = (to[0], mx)
+        if max_only:
+            to = (mn, to[1])
+        if abs(mx - to[1]) < epsilon and abs(mn - to[0]) < epsilon:
+            return self
+        if mx == mn:
+            if -epsilon <= mn <= 1 + epsilon:
+                return self
+            else:
+                if self.reserved_value is None:
+                    r = None
+                else:
+                    r = self.reserved_value / mn if mn != 0.0 else self.reserved_value
+                if math.isfinite(infeasible_cutoff):
+                    return ComplexNonlinearUtilityFunction(
+                        ufuns=[self],
+                        combination_function=lambda x: infeasible_cutoff
+                        if x[0] is None
+                        else x[0]
+                        if x[0] < infeasible_cutoff
+                        else 0.5 * x[0] / mn,
+                        name=self.name,
+                    )
+                else:
+                    return ComplexWeightedUtilityFunction(
+                        ufuns=[self],
+                        weights=[0.5 / mn],
+                        name=self.name,
+                        reserved_value=r,
+                    )
+        if max_only:
+            scale = to[1] / mx
+        elif min_only:
+            scale = to[0] / mn
+        else:
+            scale = (to[1] - to[0]) / (mx - mn)
+        r = scale * (self.reserved_value - mn)
+        # if abs(mn - rng[0] / scale) < epsilon:
+        #     return self
+        if math.isfinite(infeasible_cutoff):
+            return ComplexNonlinearUtilityFunction(
+                ufuns=[self],
+                combination_function=lambda x: infeasible_cutoff
+                if x[0] is None
+                else x[0]
+                if x[0] < infeasible_cutoff
+                else scale * (x[0] - mn) + to[0],
+                name=self.name,
             )
-        return gnormalize(self, outcomes, rng, epsilon, infeasible_cutoff)
+        return ComplexWeightedUtilityFunction(
+            ufuns=[self, ConstUFun(-mn + to[0] / scale)],
+            weights=[scale, scale],
+            name=self.name,
+            reserved_value=r,
+        )
 
     @classmethod
-    def from_genius(cls, file_name: PATH, **kwargs) -> Tuple["UtilityFunction", float]:
+    def from_genius(
+        cls, file_name: PathLike, **kwargs
+    ) -> Tuple["UtilityFunction" | None, float | None]:
         """Imports a utility function from a GENIUS XML file.
 
         Args:
@@ -115,7 +199,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             xml_str = f.read()
             return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
-    def to_genius(self, file_name: PATH, issues: List[Issue] = None, **kwargs):
+    def to_genius(self, file_name: PathLike, issues: List[Issue] = None, **kwargs):
         """Exports a utility function to a GENIUS XML file.
 
         Args:
@@ -136,7 +220,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             >>> import pkg_resources
             >>> domain = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
             ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u, discount = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
+            >>> u = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
             ...                                             , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
             ...                                             , issues=domain.issues)
             >>> u.to_genius(discount_factor=discount
@@ -149,12 +233,16 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
 
         """
         with open(file_name, "w") as f:
-            f.write(self.to_xml_str(issues=issues, **kwargs))
+            f.write(self.to_xml_str(outcome_space=outcome_space, **kwargs))
 
     def to_xml_str(self, issues: List[Issue] = None, discount_factor=None) -> str:
         """Exports a utility function to a well formatted string"""
+        if not hasattr(self, "xml"):
+            raise ValueError(
+                "ufun has no xml() member and cannot be saved to XML string"
+            )
         if issues is None:
-            issues = self.issues
+            issues = self.outcome_space
 
         if issues is not None:
             n_issues = len(issues)
@@ -165,7 +253,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             f'<objective index="1" etype="objective" type="objective" description="" name="any">\n'
         )
 
-        output += self.xml(issues=issues)
+        output += self.xml(issues=issues)  # type: ignore
         if "</objective>" not in output:
             output += "</objective>\n"
             if discount_factor is not None:
@@ -186,7 +274,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
         ignore_discount=False,
         ignore_reserved=False,
         name: str = None,
-    ) -> Tuple["UtilityFunction", float]:
+    ) -> Tuple["UtilityFunction" | None, float | None]:
         """Imports a utility function from a GENIUS XML string.
 
         Args:
@@ -225,29 +313,27 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             LinearUtilityAggregationFunction,
             LinearUtilityFunction,
         )
-        from negmas.preferences.nonlinear import (
-            HyperRectangleUtilityFunction,
-            MappingUtilityFunction,
-        )
+        from negmas.preferences.mapping import MappingUtilityFunction
+        from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
 
         # keep_issue_names = True
         keep_value_names = True
         force_single_issue = False
         normalize_utility = False
         normalize_max_only = False
-        max_n_outcomes: int = 1_000_000
+        max_cardinality: int = 1_000_000
 
         root = ET.fromstring(xml_str)
         if safe_parsing and root.tag != "utility_space":
             raise ValueError(f"Root tag is {root.tag}: Expected utility_space")
 
-        ordered_issues = []
+        ordered_issues: list[str] = []
         issue_order_passed = False
         domain_issues: Optional[Dict[str, Issue]] = None
         if issues is not None:
             if isinstance(issues, list):
                 issue_order_passed = True
-                ordered_issues = [_ for _ in issues]
+                ordered_issues = [_.name for _ in issues]
                 domain_issues = dict(zip([_.name for _ in issues], issues))
             elif isinstance(issues, Issue) and force_single_issue:
                 domain_issues = dict(zip([issues.name], [issues]))
@@ -294,7 +380,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                     rect_utils.append(util * uweight)
                     for r in rect:
                         ii = int(r.attrib["index"]) - 1
-                        key = issue_keys[ii]
+                        # key = issue_keys[ii]
                         ranges[ii] = (
                             utiltype(r.attrib["min"]),
                             utiltype(r.attrib["max"]),
@@ -382,7 +468,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 f"Got a {mytype} issue but expected a continuous valued issue"
                             )
                         # found_issues[indx]['items'] = {}
-                        lower, upper = int(lower), int(upper)
+                        lower, upper = int(lower), int(upper)  # type: ignore
                         for i in range(lower, upper + 1):
                             if domain_issues is not None and not outcome_is_valid(
                                 (i,), [domain_issues[myname]]
@@ -395,10 +481,10 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 i if keep_value_names else i - lower
                             )
                     else:
-                        lower, upper = float(lower), float(upper)
+                        lower, upper = float(lower), float(upper)  # type: ignore
                         if (
                             domain_issues is not None
-                            and not domain_issues[myname].is_uncountable()
+                            and not domain_issues[myname].is_continuous()
                         ):
                             n_steps = domain_issues[myname].cardinality
                             delta = (n_steps - 1) / (upper - lower)
@@ -406,7 +492,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                             value_scale = delta
                             lower, upper = 0, n_steps - 1
                             found_issues[issue_key] = {}
-                            for i in range(lower, upper + 1):
+                            for i in range(lower, upper + 1):  # type: ignore
                                 found_issues[issue_key][i] = (
                                     str(i) if keep_value_names else i - lower
                                 )
@@ -425,7 +511,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                     f"cannot specify item utilities for real type"
                                 )
                             item_indx = int(item.attrib["index"]) - 1
-                            item_name: str = item.attrib.get("value", None)
+                            item_name: str = item.attrib.get("value", None)  # type: ignore
                             if item_name is None:
                                 continue
                             item_key = (
@@ -436,7 +522,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 else item_indx
                             )
                             if domain_issues is not None:
-                                domain_all = list(domain_issues[myname].all)
+                                domain_all = list(domain_issues[myname].all)  # type: ignore
                                 if len(domain_all) > 0 and isinstance(
                                     domain_all[0], int
                                 ):
@@ -444,7 +530,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 if len(domain_all) > 0 and isinstance(
                                     domain_all[0], int
                                 ):
-                                    item_name = int(item_name)
+                                    item_name: int = int(item_name)  # type: ignore
                                 if item_name not in domain_all:
                                     raise ValueError(
                                         f"Value {item_name} is not in the domain issue values: "
@@ -453,7 +539,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 if len(domain_all) > 0 and isinstance(
                                     domain_all[0], int
                                 ):
-                                    item_name = str(item_name)
+                                    item_name: int = str(item_name)  # type: ignore
                             # TODO check that this casting is correct
                             if mytype == "integer":
                                 item_key = int(item_key)
@@ -476,7 +562,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 if value_scale is not None:
                                     offset += value_shift * slope
                                     slope *= value_scale * slope
-                                fun = lambda x: offset + slope * float(x)
+                                fun = lambda x: offset + slope * float(x)  # type: ignore
                                 linear_issues[issue_key] = dict(
                                     type="linear", slope=slope, offset=offset
                                 )
@@ -498,10 +584,10 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                     slope2 *= value_scale
                                 fun = (
                                     lambda x: offset1
-                                    + slope1 * (value_scale * float(x) + value_shift)
+                                    + slope1 * (value_scale * float(x) + value_shift)  # type: ignore
                                     if x < middle
                                     else offset2
-                                    + slope2 * (value_scale * float(x) + value_shift)
+                                    + slope2 * (value_scale * float(x) + value_shift)  # type: ignore
                                 )
                             else:
                                 raise ValueError(
@@ -555,10 +641,10 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                         for item_key in ikeys(issue):
                             issue[item_key] *= w
                 n_outcomes = None
-                if max_n_outcomes is not None:
+                if max_cardinality is not None:
                     n_items = [len(_) for _ in ivalues(found_issues)]
                     n_outcomes = reduce(mul, n_items, 1)
-                    if n_outcomes > max_n_outcomes:
+                    if n_outcomes > max_cardinality:
                         return None, discount_factor
                 if keep_value_names:
                     names = itertools.product(
@@ -567,9 +653,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 str(item_key).replace("&", "-")
                                 for item_key in ikeys(items)
                             ]
-                            for issue_key, items in zip(
-                                ikeys(found_issues), ivalues(found_issues)
-                            )
+                            for items in ivalues(found_issues)
                         )
                     )
                     names = map(lambda items: ("+".join(items),), names)
@@ -581,9 +665,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                 utils = itertools.product(
                     *(
                         [item_utility for item_utility in ivalues(items)]
-                        for issue_key, items in zip(
-                            ikeys(found_issues), ivalues(found_issues)
-                        )
+                        for items in ivalues(found_issues)
                     )
                 )
                 utils = map(lambda vals: sum(vals), utils)
@@ -624,7 +706,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                         wsum = len(found_issues)
 
                     utils = list(map(sum, utils))
-                    umax, umin = max(utils), (0.0 if normalize_max_only else min(utils))
+                    umax, umin = max(utils), (0.0 if normalize_max_only else min(utils))  # type: ignore
                     factor = umax - umin
                     if factor > 1e-8:
                         offset = umin / (wsum * factor)
@@ -657,7 +739,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                         )
                     else:
                         u = LinearUtilityAggregationFunction(
-                            issue_utilities=found_issues,
+                            values=found_issues,
                             weights=ws,
                             issues=ordered_issues,
                         )
@@ -705,7 +787,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                                 endpoint=True,
                             )
                         ]
-                        for key, issue in zip(ikeys(real_issues), ivalues(real_issues))
+                        for issue in ivalues(real_issues)
                     )
                 )
                 if len(weights) > 0:
@@ -731,9 +813,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
                 for key, issue in real_issues.items():
                     issue["fun_final"] = lambda x: w * issue["fun"](x) / factor - offset
             u_real = LinearUtilityAggregationFunction(
-                issue_utilities={
-                    _["key"]: _["fun_final"] for _ in real_issues.values()
-                },
+                values={_["key"]: _["fun_final"] for _ in real_issues.values()},
                 issues=ordered_issues,
             )
             if u is None:
@@ -767,22 +847,6 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
         u.name = name
         return u, discount_factor
 
-    def utility_difference(self, o1: Outcome, o2: Outcome) -> float:
-        """
-        Compares the two outcomes and returns a measure of the difference
-        between their utilities.
-
-        Args:
-            o1: First outcome
-            o2: Second outcome
-        """
-        u1, u2 = self(o1), self(o2)
-        return u1 - u2
-
-    @abstractmethod
-    def eval(self, offer: Outcome) -> float:
-        ...
-
     def __call__(self, offer: Outcome | None) -> float:
         """Calculate the utility_function value for a given outcome.
 
@@ -801,8 +865,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             - Return the reserved value if the offer was None
 
         Returns:
-            UtilityValue: The utility_function value which may be a distribution. If `None` it means the
-                          utility_function value cannot be calculated.
+            The utility of the given outcome
         """
         if offer is None:
             return self.reserved_value
@@ -818,7 +881,6 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
         outcomes: Union[int, List[Outcome]],
         conflict_level: float = 0.5,
         conflict_delta=0.005,
-        win_win=0.5,
     ) -> Tuple["UtilityFunction", "UtilityFunction"]:
         """Generates a couple of utility functions
 
@@ -828,7 +890,6 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             conflict_level: How conflicting are the two ufuns to generate.
                             1.0 means maximum conflict.
             conflict_delta: How variable is the conflict at different outcomes.
-            win_win: How much are their opportunities for win-win situations.
 
         Examples:
 
@@ -849,7 +910,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
 
 
         """
-        from negmas.preferences.nonlinear import MappingUtilityFunction
+        from negmas.preferences.mapping import MappingUtilityFunction
 
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
@@ -895,7 +956,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
 
 
         """
-        from negmas.preferences.nonlinear import MappingUtilityFunction
+        from negmas.preferences.mapping import MappingUtilityFunction
 
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
@@ -924,7 +985,7 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
 
 
         """
-        from negmas.preferences.nonlinear import MappingUtilityFunction
+        from negmas.preferences.mapping import MappingUtilityFunction
 
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
@@ -938,171 +999,34 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1))))
         return ufuns
 
-    def sample_outcome_with_utility(
-        self,
-        rng: Tuple[Optional[float], Optional[float]],
-        issues: List[Issue] = None,
-        outcomes: List[Outcome] = None,
-        n_trials: int = 100,
-    ) -> Optional[Outcome]:
-        """
-        Gets one outcome within the given utility range or None on failure
 
-        Args:
-            self: The utility function
-            rng: The utility range
-            issues: The issues the utility function is defined on
-            outcomes: The outcomes to sample from
-            n_trials: The maximum number of trials
+class InverseUtilityFunction(MultiInverseUFun, InverseUFun):
+    def __init__(self, ufun: UtilityFunction, max_cache_size: int = 10_000):
+        self._ufun = ufun
+        self.max_cache_size = max_cache_size
+        if ufun.is_stationary():
+            self.init()
 
-        Returns:
-
-            - Either issues, or outcomes should be given but not both
-
-        """
-        if outcomes is None:
-            if issues is None:
-                issues = self.issues
-            outcomes = sample_issues(
-                issues=issues,
-                n_outcomes=n_trials,
-                with_replacement=False,
-                fail_if_not_enough=False,
-            )
-        n = min(len(outcomes), n_trials)
-        mn, mx = rng
-        if mn is None:
-            mn = float("-inf")
-        if mx is None:
-            mx = float("inf")
-        for i in range(n):
-            o = outcomes[i]
-            if mn <= self(o) <= mx:
-                return o
-        return None
-
-    def utility_range(
-        self,
-        issues: List[Issue] = None,
-        outcomes: Collection[Outcome] = None,
-        infeasible_cutoff: Optional[float] = None,
-        return_outcomes=False,
-        max_n_outcomes=1000,
-        ami: Optional["AgentMechnismInterface"] = None,
-    ) -> Union[
-        Tuple[UtilityValue, UtilityValue],
-        Tuple[UtilityValue, UtilityValue, Outcome, Outcome],
-    ]:
-        """Finds the range of the given utility function for the given outcomes
-
-        Args:
-            self: The utility function
-            issues: List of issues (optional)
-            outcomes: A collection of outcomes (optional)
-            infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
-            return_outcomes: If true, will also return an outcome for min and max utils
-            max_n_outcomes: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
-                            given)
-            ami: Optional AMI to use
-
-        Returns:
-            UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
-
-        """
-
-        if outcomes is None:
-            outcomes = sample_issues(
-                issues,
-                n_outcomes=max_n_outcomes,
-                with_replacement=True,
-                fail_if_not_enough=False,
-            )
-        outcomes = [_ for _ in outcomes if _ is not None]
-        utils = [self(o) for o in outcomes]
-        errors = [i for i, u in enumerate(utils) if u is None]
-        if len(errors) > 0:
-            raise ValueError(
-                f"UFun returnd None for {len(errors) / len(utils):03%} outcomes\n"
-                # f"outcomes {[outcomes[e] for e in errors]}\n"
-            )
-        # if there are no outcomes return zeros for utils
-        if len(utils) == 0:
-            if return_outcomes:
-                return 0.0, 0.0, None, None
-            return 0.0, 0.0
-
-        # make sure the utility value is converted to float
-        utils = [float(_) for _ in utils]
-
-        # if there is an infeasible_cutoff, apply it
-        if infeasible_cutoff is not None:
-            if return_outcomes:
-                outcomes = [o for o, _ in zip(outcomes, utils) if _ > infeasible_cutoff]
-            utils = np.array([_ for _ in utils if _ > infeasible_cutoff])
-
-        if return_outcomes:
-            minloc, maxloc = np.argmin(utils), np.argmax(utils)
-            return (
-                utils[minloc],
-                utils[maxloc],
-                outcomes[minloc],
-                outcomes[maxloc],
-            )
-        return float(np.min(utils)), float(np.max(utils))
-
-    def init_inverse(
-        self,
-        issues: Optional[List["Issue"]] = None,
-        outcomes: Optional[List[Outcome]] = None,
-        n_trials: int = 10000,
-        max_cache_size: int = 10000,
-    ) -> None:
-        """
-        Initializes the inverse ufun used to map utilities to outcomes.
-
-        Args:
-            issues: The issue space to be searched for inverse. If not given, the issue space of the mechanism may be used.
-            outcomes: The outcomes to consider. This takes precedence over `issues`
-            n_trials: Used for constraining computation if necessary
-            max_cache_size: The maximum allowed number of outcomes to cache
-
-        """
-        if issues is None:
-            issues = self.issues
-        self._min, self._max, self._worst, self._best = self.utility_range(
-            issues, outcomes, return_outcomes=True, max_n_outcomes=n_trials
-        )
+    def init(self):
+        outcome_space = self._ufun.outcome_space
+        if outcome_space is None:
+            raise ValueError("Cannot find the outcome space.")
+        self._worst, self._best = self._ufun.extreme_outcomes()
+        self._min, self._max = self._ufun(self._worst), self._ufun(self._best)
         self._range = self._max - self._min
         self._offset = self._min / self._range if self._range > 1e-5 else self._min
-        if self._issues and num_outcomes(issues) < max_cache_size:
-            outcomes = enumerate_issues(issues)
-        if not outcomes:
-            outcomes = discretize_and_enumerate_issues(
-                issues, n_discretization=2, max_n_outcomes=max_cache_size
-            )
-            n = max_cache_size - len(outcomes)
-            if n > 0:
-                outcomes += sample_issues(
-                    issues,
-                    n,
-                    with_replacement=False,
-                    fail_if_not_enough=False,
-                )
-        utils = self.eval_all(outcomes)
+        os = outcome_space.to_discrete(levels=2, max_cardinality=self.max_cache_size)
+        if os.cardinality <= self.max_cache_size:
+            outcomes = list(os.sample(self.max_cache_size, False, False))
+        else:
+            outcomes = list(os.enumerate())[: self.max_cache_size]
+        utils = [self._ufun(_) for _ in outcomes]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
-        self.inverse_initialized = True
 
-    def inverse(
+    def some(
         self,
-        u: float,
-        eps: Union[float, Tuple[float, float]] = (1e-3, 0.2),
-        assume_normalized=True,
-        issues: Optional[List["Issue"]] = None,
-        outcomes: Optional[List[Outcome]] = None,
-        n_trials: int = 10000,
-        return_all_in_range=False,
-        max_n_outcomes=10000,
-    ) -> Union[Optional[Outcome], Tuple[List[Outcome], List[UtilityValue]]]:
+        rng: float | tuple[float, float],
+    ) -> list[Outcome]:
         """
         Finds an outcmoe with the given utility value
 
@@ -1114,8 +1038,8 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             outcomes: If given the outcomes to search (not recommended)
             assume_normalized: If true, the ufun will be assumed normalized between 0 and 1 (faster)
             return_all_in_range: If given all outcomes in the given range (or samples of them) will be returned up
-                                 to `max_n_outcomes`
-            max_n_outcomes: Only used if return_all_in_range is given and gives the maximum number of outcomes to return
+                                 to `max_cardinality`
+            max_cardinality: Only used if return_all_in_range is given and gives the maximum number of outcomes to return
 
         Returns:
             - if return_all_in_range:
@@ -1127,33 +1051,28 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             - If issues or outcomes are not None, then init_inverse will be called first
 
         """
-        if not isinstance(eps, Iterable):
-            mn, mx = u - eps, u + eps
-        else:
-            mn, mx = u - eps[0], u + eps[1]
-        if not assume_normalized:
-            if self._range > 1e-5:
-                mn = mn / self._range + self._offset
-                mx = mx / self._range + self._offset
-            else:
-                mn = mn + self._offset
-                mx = mx + self._offset
-        if (not self.inverse_initialized) or issues or outcomes:
-            self.init_inverse(issues, outcomes, n_trials, n_trials)
+        if not self._ufun.is_stationary():
+            self.init()
+        if not isinstance(rng, Iterable):
+            rng = (rng, rng)
+        mn, mx = rng
         # todo use bisection
-        if return_all_in_range:
-            results = []
-            utils = []
-            for i, (util, w) in enumerate(self._ordered_outcomes):
-                if utils > mx:
-                    continue
-                if util < mn or len(results) >= max_n_outcomes:
-                    break
-                results.append(w)
-                utils.append(util)
-            return results, utils
+        results = []
+        for util, w in self._ordered_outcomes:
+            if util > mx:
+                continue
+            if util < mn:
+                break
+            results.append(w)
+        return results
 
-        for i, (util, w) in enumerate(self._ordered_outcomes):
+    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+        if not self._ufun.is_stationary():
+            self.init()
+        if not isinstance(rng, Iterable):
+            rng = (rng, rng)
+        mn, mx = rng
+        for i, (util, _) in enumerate(self._ordered_outcomes):
             if util >= mn:
                 continue
             ubefore, wbefore = self._ordered_outcomes[i - 1 if i > 0 else 0]
@@ -1165,9 +1084,21 @@ class UtilityFunction(CardinalPreferences, ProbUtilityFunction):
             return None
         return wbefore
 
-    @property
-    def is_inverse_initialized(self):
-        return self.inverse_initialized
+    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+        if not self._ufun.is_stationary():
+            self.init()
+        if not isinstance(rng, Iterable):
+            rng = (rng, rng)
+        mn, mx = rng
+        for util, w in self._ordered_outcomes:
+            if util <= mx:
+                if util < mn:
+                    return None
+                return w
+        return None
 
-    def uninialize_inverse(self):
-        self.inverse_initialized = False
+    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+        lst = self.some(rng)
+        if not lst:
+            return None
+        return lst[random.randint(0, len(lst) - 1)]

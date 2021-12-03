@@ -3,34 +3,21 @@ from __future__ import annotations
 import copy
 import itertools
 import numbers
-import random
 import sys
-import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from functools import reduce
 from operator import mul
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Optional, Union
+
+if TYPE_CHECKING:
+    from .common import Outcome
 
 import numpy as np
 
-from negmas.generics import ikeys, ivalues
-from negmas.helpers import PATH
+from negmas.helpers import PathLike
 
-from .base_issue import Issue
+from .base_issue import DiscreteIssue, Issue, make_issue
 from .outcome_ops import outcome2dict
 
 __all__ = [
@@ -50,10 +37,9 @@ __all__ = [
 ]
 
 
-def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
+def num_outcomes(issues: tuple[Issue, ...]) -> int | float:
     """
     Returns the total number of outcomes in a set of issues.
-    `-1` indicates infinity
     """
 
     n = 1
@@ -65,37 +51,40 @@ def num_outcomes(issues: Collection[Issue]) -> Optional[int]:
 
 
 def enumerate_issues(
-    issues: Collection["Issue"],
-    max_n_outcomes: int = None,
-) -> List["Outcome"]:
+    issues: tuple[Issue, ...],
+    max_cardinality: int | None = None,
+) -> Iterable[Outcome]:
     """
     Enumerates the outcomes of a list of issues.
 
     Args:
         issues: The list of issues.
-        max_n_outcomes: The maximum number of outcomes to return
+        max_cardinality: The maximum number of outcomes to return
     Returns:
-        List of outcomes of the given type.
+        list of outcomes of the given type.
     """
     n = num_outcomes(issues)
 
     if n is None or n == float("inf"):
+        if max_cardinality is None:
+            raise ValueError(
+                "Cannot enumerate continuous issues without specifying `max_cardinality`"
+            )
         return sample_issues(
             issues=issues,
-            n_outcomes=max_n_outcomes,
+            n_outcomes=max_cardinality,
             fail_if_not_enough=False,
             with_replacement=False,
         )
 
-    if max_n_outcomes is not None and n > max_n_outcomes:
-        values = sample_outcomes(issues=issues, n_outcomes=max_n_outcomes)
+    if max_cardinality is not None and n > max_cardinality:
+        return sample_outcomes(issues=issues, n_outcomes=max_cardinality)
     else:
-        values = enumerate_discrete_issues(issues)
-    return values
+        return list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
 
 
-def enumerate_discrete_issues(issues: Iterable[Issue]) -> List["Outcome"]:
-    """Enumerates all outcomes of this set of issues if possible
+def enumerate_discrete_issues(issues: tuple[DiscreteIssue, ...]) -> list[Outcome]:
+    """Enumerates all outcomes of this set of discrete issues if possible
 
     Args:
         issues: A list of issues
@@ -103,14 +92,14 @@ def enumerate_discrete_issues(issues: Iterable[Issue]) -> List["Outcome"]:
     Returns:
         list of outcomes
     """
-    return list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
+    return itertools.product(*(_.all for _ in issues))
 
 
 def issues_from_outcomes(
-    outcomes: List["Outcome"],
-    issue_names: list[str] | None = None,
+    outcomes: list["Outcome"],
     numeric_as_ranges: bool = False,
-) -> List["Issue"]:
+    issue_names: list[str] | None = None,
+) -> tuple["DiscreteIssue", ...]:
     """
     Create a set of issues given some outcomes
 
@@ -200,22 +189,24 @@ def issues_from_outcomes(
 
     if numeric_as_ranges:
         return [
-            Issue(values=(v[0], v[-1]), name=n)
+            make_issue(values=(v[0], v[-1]), name=n)
             if len(v) > 0 and (isinstance(v[0], numbers.Number))
-            else Issue(values=v, name=n)
+            else make_issue(values=v, name=n)
             for n, v in values.items()
         ]
     else:
-        return [Issue(values=v, name=n) for n, v in values.items()]
+        return [make_issue(values=v, name=n) for n, v in values.items()]
 
 
-def issues_to_xml_str(issues: List["Issue"], enumerate_integer: bool = False) -> str:
+def issues_to_xml_str(
+    issues: tuple[Issue, ...], enumerate_integer: bool = False
+) -> str:
     """Converts the list of issues into a well-formed xml string
 
     Examples:
 
-        >>> issues = [Issue(values=10, name='i1'), Issue(values=['a', 'b', 'c'], name='i2'),
-        ... Issue(values=(2.5, 3.5), name='i3')]
+        >>> issues = [make_issue(values=10, name='i1'), make_issue(values=['a', 'b', 'c'], name='i2'),
+        ... make_issue(values=(2.5, 3.5), name='i3')]
         >>> s = issues_to_xml_str(issues)
         >>> print(s.strip())
         <negotiation_template>
@@ -283,7 +274,7 @@ def issues_to_xml_str(issues: List["Issue"], enumerate_integer: bool = False) ->
 
 
 def issues_to_genius(
-    issues: Iterable["Issue"], file_name: PATH, enumerate_integer: bool = False
+    issues: tuple[Issue, ...], file_name: PathLike, enumerate_integer: bool = False
 ) -> None:
     """Exports a the domain issues to a GENIUS XML file.
 
@@ -294,7 +285,7 @@ def issues_to_genius(
 
     Returns:
 
-        A List[Issue] or Dict[Issue]
+        A tuple[Issue, ...] or dict[Issue]
 
 
     Examples:
@@ -348,8 +339,8 @@ def issues_from_xml_str(
     keep_issue_names=True,
     safe_parsing=True,
     n_discretization: int | None = None,
-    max_n_outcomes: int = 1_000_000,
-) -> tuple[list["Issue"] | None, list[dict] | None]:
+    max_cardinality: int = 1_000_000,
+) -> tuple[tuple[Issue, ...] | None, list[dict] | None]:
     """Exports a list/dict of issues from a GENIUS XML file.
 
     Args:
@@ -362,12 +353,12 @@ def issues_from_xml_str(
         safe_parsing (bool): Turn on extra checks
         n_discretization (Optional[int]): If not None, real valued issues are discretized with the given
         number of values
-        max_n_outcomes (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
+        max_cardinality (int): Maximum number of outcomes allowed (effective only if force_single_issue is True)
 
     Returns:
 
-        - List[Issue] The issues (note that issue names will be stored in the name attribute of each issue if keep_issue_names)
-        - List[dict] A list of agent information dicts each contains 'agent', 'class', 'utility_file_name'
+        - tuple[Issue, ...] The issues (note that issue names will be stored in the name attribute of each issue if keep_issue_names)
+        - list[dict] A list of agent information dicts each contains 'agent', 'class', 'utility_file_name'
 
     Examples:
 
@@ -478,7 +469,7 @@ def issues_from_xml_str(
         if safe_parsing:
             raise ValueError(f"No objective child was found in the root")
         utility_space = root
-    issues_dict: Dict[Union[int, str], Any] = {}
+    issues_dict: dict[int | str, Any] = {}
     issue_info = {}
     all_discrete = True
 
@@ -568,7 +559,7 @@ def issues_from_xml_str(
             raise ValueError(f"Unknown child for objective: {child.tag}")
 
     for key, value in issues_dict.items():
-        issues_dict[key] = Issue(
+        issues_dict[key] = make_issue(
             values=value,
             name=issue_info[key]["name"]
             if keep_issue_names
@@ -582,30 +573,34 @@ def issues_from_xml_str(
         if all_discrete or n_discretization is not None:
             n_outcomes = None
 
-            if max_n_outcomes is not None:
-                n_items = [len(list(_.alli(n=n_discretization))) for _ in issues]
+            if max_cardinality is not None:
+                n_items = [
+                    len(list(_.value_generator(n=n_discretization))) for _ in issues
+                ]
                 n_outcomes = reduce(mul, n_items, 1)
 
-                if n_outcomes > max_n_outcomes:
+                if n_outcomes > max_cardinality:
                     return None, None
 
             if keep_value_names:
                 if len(issues) > 1:
                     all_values = itertools.product(
                         *(
-                            [str(_) for _ in issue.alli(n=n_discretization)]
+                            [str(_) for _ in issue.value_generator(n=n_discretization)]
                             for issue_key, issue in zip(range(len(issues)), issues)
                         )
                     )
                     all_values = list(map(lambda items: "+".join(items), all_values))
                 else:
-                    all_values = [str(_) for _ in issues[0].alli(n=n_discretization)]
-                issues = [Issue(values=all_values, name=issue_name_)]
+                    all_values = [
+                        str(_) for _ in issues[0].value_generator(n=n_discretization)
+                    ]
+                issues = [make_issue(values=all_values, name=issue_name_)]
             else:
                 if n_outcomes is None:
                     n_items = [_.cardinality for _ in issues]
                     n_outcomes = reduce(mul, n_items, 1)
-                issues = [Issue(values=n_outcomes, name=issue_name_)]
+                issues = [make_issue(values=n_outcomes, name=issue_name_)]
         else:
             return None, None
 
@@ -613,15 +608,15 @@ def issues_from_xml_str(
 
 
 def issues_from_genius(
-    file_name: PATH,
+    file_name: PathLike,
     force_single_issue=False,
     force_numeric=False,
     keep_value_names=True,
     keep_issue_names=True,
     safe_parsing=True,
-    n_discretization: Optional[int] = None,
-    max_n_outcomes: int = 1_000_000,
-) -> Tuple[Optional[List["Issue"]], Optional[List[str]]]:
+    n_discretization: int | None = None,
+    max_cardinality: int = 1_000_000,
+) -> tuple[tuple[Issue, ...] | None, list[str] | None]:
     """Imports a the domain issues from a GENIUS XML file.
 
     Args:
@@ -633,7 +628,7 @@ def issues_from_genius(
         keep_value_names: keep value names in case of strings
         safe_parsing: Add more checks to parsing
         n_discretization: Number of discretization levels per issue
-        max_n_outcomes: Maximum number of outcomes to allow. If more the outcomespace
+        max_cardinality: Maximum number of outcomes to allow. If more the outcomespace
                         has more outcomes, the function will fail returning
                         (None, None)
 
@@ -641,8 +636,8 @@ def issues_from_genius(
 
         A tuple of two optional lists:
 
-            - List[Issue] containing the issues
-            - List[str] containing agent names (that are sometimes stored in the genius domain)
+            - tuple[Issue, ...] containing the issues
+            - list[str] containing agent names (that are sometimes stored in the genius domain)
 
 
     Examples:
@@ -667,29 +662,27 @@ def issues_from_genius(
             keep_issue_names=keep_issue_names,
             safe_parsing=safe_parsing,
             n_discretization=n_discretization,
-            max_n_outcomes=max_n_outcomes,
+            max_cardinality=max_cardinality,
             force_numeric=force_numeric,
         )
 
 
 def generate_issues(
-    params: Sequence[
-        Union[int, List[str], Tuple[int, int], Callable, Tuple[float, float]]
-    ],
-    counts: Optional[Sequence[int]] = None,
-    names: Optional[Sequence[str]] = None,
-) -> List["Issue"]:
+    params: list[Union[int, list[str], tuple[int, int], Callable, tuple[float, float]]],
+    counts: Optional[list[int]] = None,
+    names: Optional[list[str]] = None,
+) -> tuple[Issue, ...]:
     """Generates a set of issues with given parameters. Each is optionally repeated
 
     Args:
 
-        issues: The parameters of the issues
+        params: The parameters of the issues
         counts: The number of times to repeat each of the `issues`
         names: The names to assign to the issues. If None, then string representations of integers
                starting from zero will be used.
 
     Returns:
-        List['Issue']: The list of issues with given conditions
+        list['Issue']: The list of issues with given conditions
 
     """
     one_each = counts is None
@@ -705,38 +698,40 @@ def generate_issues(
             # if count > 1:
             #    name = name + f' {j}'
             nxt += 1
-            result.append(Issue(values=issue, name=name))
+            result.append(make_issue(values=issue, name=name))
 
     return result
 
 
 def discretize_and_enumerate_issues(
-    issues: Collection["Issue"],
+    issues: tuple[Issue, ...],
     n_discretization: int = 10,
-    max_n_outcomes: int = None,
-) -> List["Outcome"]:
+    max_cardinality: int = None,
+) -> list["Outcome"]:
     """
     Enumerates the outcomes of a list of issues.
 
     Args:
         issues: The list of issues.
-        max_n_outcomes: The maximum number of outcomes to return
+        max_cardinality: The maximum number of outcomes to return
     Returns:
-        List of outcomes of the given type.
+        list of outcomes of the given type.
     """
     issues = [
-        _ if _.is_countable() else Issue(values=_.alli(n_discretization), name=_.name)
+        _
+        if _.is_finite()
+        else make_issue(values=_.value_generator(n_discretization), name=_.name)
         for _ in issues
     ]
-    return enumerate_issues(issues, max_n_outcomes=max_n_outcomes)
+    return enumerate_issues(issues, max_cardinality=max_cardinality)
 
 
 def sample_outcomes(
-    issues: Iterable["Issue"],
+    issues: tuple[Issue, ...],
     n_outcomes: Optional[int] = None,
     min_per_dim=5,
     expansion_policy=None,
-) -> Optional[List[Optional["Outcome"]]]:
+) -> Optional[list["Outcome"]]:
     """Discretizes the issue space and returns either a predefined number of outcomes or uniform samples
 
     Args:
@@ -749,21 +744,21 @@ def sample_outcomes(
         n_outcomes: If 'null' then expansion will be with None values
 
     Returns:
-        List of outcomes
+        list of outcomes
 
     Examples:
 
         enumberate the whole space
 
-        >>> from negmas.outcomes import Issue
-        >>> issues = [Issue(values=(0.0, 1.0), name='Price'), Issue(values=['a', 'b'], name='Name')]
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
         >>> sample_outcomes(issues=issues)
         [(0.0, 'a'), (0.0, 'b'), (0.25, 'a'), (0.25, 'b'), (0.5, 'a'), (0.5, 'b'), (0.75, 'a'), (0.75, 'b'), (1.0, 'a'), (1.0, 'b')]
 
         enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
 
-        >>> from negmas.outcomes import Issue
-        >>> issues = [Issue(values=(0.0, 1.0), name='Price'), Issue(values=['a', 'b'], name='Name')]
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
         >>> issues[0].is_continuous()
         True
         >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
@@ -772,8 +767,8 @@ def sample_outcomes(
         >>> len(set(sampled))
         5
 
-        >>> from negmas.outcomes import Issue
-        >>> issues = [Issue(values=(0, 1), name='Price'), Issue(values=['a', 'b'], name='Name')]
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(values=(0, 1), name='Price'), make_issue(values=['a', 'b'], name='Name')]
         >>> issues[0].is_continuous()
         False
         >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
@@ -797,9 +792,6 @@ def sample_outcomes(
         if issue.is_continuous():
             continuous.append(issue)
             indx.append(i)
-        elif issue.is_uncountable():
-            uncountable.append(issue)
-            uindx.append(i)
         else:
             discrete.append(issue)
             n_disc += issue.cardinality
@@ -811,24 +803,13 @@ def sample_outcomes(
             n_per_issue = min_per_dim
 
         for i, issue in enumerate(continuous):
-            issues[indx[i]] = Issue(
+            issues[indx[i]] = make_issue(
                 name=issue.name,
                 values=list(
                     np.linspace(
                         issue.min_value, issue.max_value, num=n_per_issue, endpoint=True
                     ).tolist()
                 ),
-            )
-
-    if len(uncountable) > 0:
-        if n_outcomes is not None:
-            n_per_issue = max(min_per_dim, (n_outcomes - n_disc) / len(uncountable))
-        else:
-            n_per_issue = min_per_dim
-
-        for i, issue in enumerate(uncountable):
-            issues[uindx[i]] = Issue(
-                name=issue.name, values=[issue.values() for _ in range(n_per_issue)]
             )
 
     cardinality = 1
@@ -878,17 +859,17 @@ def sample_outcomes(
 
 
 def sample_issues(
-    issues: Collection["Issue"],
+    issues: tuple[Issue, ...],
     n_outcomes: int,
     with_replacement: bool = True,
     fail_if_not_enough=True,
-) -> List["Outcome"]:
+) -> Iterable["Outcome"]:
     """
     Samples some outcomes from the outcome space defined by the list of issues
 
     Args:
 
-        issues: List of issues to sample from
+        issues: list of issues to sample from
         n_outcomes: The number of outcomes required
         with_replacement: Whether sampling is with replacement (allowing repetition)
         fail_if_not_enough: IF given then an exception is raised if not enough outcomes are available
@@ -899,8 +880,8 @@ def sample_issues(
 
     Examples:
 
-        >>> from negmas.outcomes import Issue
-        >>> issues = [Issue(name='price', values=(0.0, 3.0)), Issue(name='quantity', values=10)]
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(name='price', values=(0.0, 3.0)), make_issue(name='quantity', values=10)]
 
         Sampling outcomes as tuples
 
@@ -946,7 +927,7 @@ def sample_issues(
         for i in range(n_outcomes):
             values.append([s[i] for s in samples])
 
-        if not with_replacement and not any(i.is_uncountable() for i in issues):
+        if not with_replacement and not any(i.is_continuous() for i in issues):
             tmp_values = []
 
             for value in values:
@@ -969,11 +950,11 @@ def sample_issues(
                 i += 1
             values = list(tmp_values)
 
-    return [tuple(_) for _ in values]
+    return (tuple(_) for _ in values)
 
 
 def combine_issues(
-    issues: Iterable["Issue"],
+    issues: tuple[Issue, ...],
     name: str | None = None,
     keep_value_names=True,
     issue_sep="_",
@@ -1007,4 +988,4 @@ def combine_issues(
         ]
     else:
         values = n_outcomes
-    return Issue(name=name, values=values)
+    return make_issue(name=name, values=values)

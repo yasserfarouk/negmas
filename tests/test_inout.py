@@ -9,8 +9,6 @@ from negmas import load_genius_domain_from_folder
 from negmas.genius import genius_bridge_is_running
 from negmas.inout import Domain
 from negmas.outcomes import enumerate_issues
-from negmas.outcomes.issue_ops import issues_to_genius
-from negmas.preferences.base_crisp import UtilityFunction
 from negmas.preferences.discounted import DiscountedUtilityFunction
 from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
 from negmas.sao import AspirationNegotiator
@@ -34,7 +32,6 @@ def get_all_scenarios():
 
 
 def test_reading_writing_linear_preferences(tmp_path):
-    from negmas.outcomes import Issue
     from negmas.preferences import LinearUtilityAggregationFunction, UtilityFunction
 
     base_folder = pkg_resources.resource_filename(

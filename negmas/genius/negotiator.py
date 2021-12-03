@@ -11,13 +11,11 @@ import tempfile
 import warnings
 from typing import List, Optional, Tuple, Union
 
-from negmas.preferences.preferences import Preferences
-
 from ..common import MechanismState, NegotiatorMechanismInterface
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..inout import get_domain_issues
 from ..negotiators import Controller
-from ..outcomes import issues_to_xml_str
+from ..outcomes import Outcome, issues_to_xml_str
 from ..preferences import UtilityFunction, make_discounted_ufun, normalize
 from ..sao.common import ResponseType, SAOResponse
 from ..sao.negotiators import SAONegotiator
@@ -66,7 +64,7 @@ class GeniusNegotiator(SAONegotiator):
     def __init__(
         self,
         assume_normalized=True,
-        preferences: Optional[Preferences] = None,
+        preferences: Optional[UtilityFunction] = None,
         name: str = None,
         rational_proposal=False,
         parent: Controller = None,
@@ -266,20 +264,20 @@ class GeniusNegotiator(SAONegotiator):
 
     def join(
         self,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Optional["UtilityFunction"] = None,
         role: str = "agent",
     ) -> bool:
         if preferences is None:
             preferences = self.__preferences_received
-        result = super().join(ami=ami, state=state, preferences=preferences, role=role)
+        result = super().join(nmi=nmi, state=state, preferences=preferences, role=role)
         if not result:
             return False
         # only connect to the JVM running genius-bridge if you are going to join a negotiation.
         if not self.is_connected:
-            mechanism_port = ami.params.get("genius_port", 0)
+            mechanism_port: int = nmi.params.get("genius_port", 0)
             if mechanism_port > 0:
                 self.port = mechanism_port
             self.connected = self._connect(
@@ -295,16 +293,16 @@ class GeniusNegotiator(SAONegotiator):
         if self._normalize_utility:
             self._preferences = normalize(
                 self.ufun,  # type: ignore
-                outcomes=ami.discrete_outcomes,  # type: ignore
+                outcomes=nmi.discrete_outcomes,  # type: ignore
                 rng=(None, 1.0) if self._normalize_max_only else (0.0, 1.0),
             )
-        self.issue_names = [_.name for _ in ami.issues]
-        self.issues = ami.issues
+        self.issue_names = [_.name for _ in nmi.outcome_space]
+        self.issues = nmi.outcome_space
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
-        if ami.issues is not None and self.domain_file_name is None:
+        if nmi.outcome_space is not None and self.domain_file_name is None:
             domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.domain_file_name = domain_file.name
-            domain_file.write(issues_to_xml_str(ami.issues))
+            domain_file.write(issues_to_xml_str(nmi.outcome_space))
             domain_file.close()
             self._temp_domain_file = True
         if preferences is not None and self.utility_file_name is None:
@@ -312,7 +310,7 @@ class GeniusNegotiator(SAONegotiator):
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
-                    preferences, issues=ami.issues, discount_factor=self.discount
+                    preferences, issues=nmi.outcome_space, discount_factor=self.discount
                 )
             )
             utility_file.close()
@@ -334,7 +332,7 @@ class GeniusNegotiator(SAONegotiator):
                     else None,
                 )
                 if result in (OK, TIMEOUT):
-                    results = self.java.destroy_agent(self.java_uuid)
+                    result = self.java.destroy_agent(self.java_uuid)
                     if result in (FAILED, TIMEOUT) and self._strict:
                         raise ValueError(
                             f"{self._me()} ended the negotiation but failed to destroy the agent. A possible memory leak"
@@ -365,7 +363,7 @@ class GeniusNegotiator(SAONegotiator):
         """Called when the info starts. Connects to the JVM."""
         super().on_negotiation_start(state=state)
         if self._strict is None:
-            self._strict = self.ami.n_steps is not None and self.ami.n_steps != float(
+            self._strict = self.nmi.n_steps is not None and self.nmi.n_steps != float(
                 "inf"
             )
         if self._preferences is not None and self.utility_file_name is None:
@@ -374,14 +372,14 @@ class GeniusNegotiator(SAONegotiator):
             utility_file.write(
                 UtilityFunction.to_xml_str(
                     self._preferences,
-                    issues=self.ami.issues,
+                    issues=self.nmi.outcome_space,
                     discount_factor=self.discount,
                 )
             )
             utility_file.close()
             self._temp_preferences_file = True
-        info = self._ami
-        if self.discount is not None and self.discount != 1.0:
+        info = self._nmi
+        if self.discount is not None and self.discount != 1.0 and self._preferences:
             self._preferences = make_discounted_ufun(
                 self._preferences,
                 discount_per_round=self.discount,
@@ -448,9 +446,9 @@ class GeniusNegotiator(SAONegotiator):
 
     @property
     def relative_time(self) -> Optional[float]:
-        if self.ami is None or not self.ami.state.started:
+        if self.nmi is None or not self.nmi.state.started:
             return 0
-        if self.ami is not None and self.ami.state.ended:
+        if self.nmi is not None and self.nmi.state.ended:
             return self.__frozen_relative_time
         t = self.java.get_relative_time(self.java_uuid)
         if t < 0:
@@ -525,12 +523,12 @@ class GeniusNegotiator(SAONegotiator):
                 f"{self._me()} sent an action that cannot be parsed ({action})"
             )
         elif typ_ == TIMEOUT:
-            if self.ami.state.relative_time < 1.0:
+            if self.nmi.state.relative_time < 1.0:
                 raise ValueError(
-                    f"{self._me()} indicated that it timedout at relative time ({self.ami.state.relative_time})"
+                    f"{self._me()} indicated that it timedout at relative time ({self.nmi.state.relative_time})"
                 )
 
-        issues = self._ami.issues
+        issues = self._nmi.outcome_space
 
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:
