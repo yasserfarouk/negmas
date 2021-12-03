@@ -6,15 +6,15 @@ Datatypes that do not directly relate to negotiation.
 """
 import importlib
 import json
-import pathlib
 from enum import Enum
+from os import PathLike
 from types import FunctionType, LambdaType
 from typing import Any, Callable, Type, Union
 
 import stringcase
 
 __all__ = [
-    "PATH",
+    "PathLike",
     "TYPE_START",
     "ReturnCause",
     "get_class",
@@ -28,7 +28,6 @@ __all__ = [
 ]
 
 TYPE_START = "__TYPE__:"
-PATH = Union[pathlib.Path, str]
 
 
 class ReturnCause(Enum):

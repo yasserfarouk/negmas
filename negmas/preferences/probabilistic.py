@@ -1,24 +1,20 @@
 import pprint
-from typing import Dict, Iterable, List, Optional, Tuple, Type
+from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 
-from negmas.common import NegotiatorMechanismInterface
 from negmas.generics import iget, ivalues
 from negmas.helpers import Distribution, ikeys
 from negmas.outcomes import Issue, Outcome
 
-from .base import Distribution, UtilityValue
-from .base_crisp import UtilityFunction
-from .base_probabilistic import ProbUtilityFunction
-from .nonlinear import MappingUtilityFunction
+from ..helpers.prob import Distribution
+from .mapping import MappingUtilityFunction
+from .ufun import UtilityFunction
 
-__all__ = [
-    "IPUtilityFunction",
-]
+__all__ = ["IPUtilityFunction", "ILSUtilityFunction", "UniformUtilityFunction"]
 
 
-class IPUtilityFunction(ProbUtilityFunction):
+class IPUtilityFunction(UtilityFunction):
     """Independent Probabilistic Utility Function.
 
     Args:
@@ -82,7 +78,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             ]
         self.distributions = dict(zip(outcomes, distributions))
 
-    def distribution(self, outcome: "Outcome") -> "UtilityValue":
+    def distribution(self, outcome: "Outcome") -> Distribution:
         """
         Returns the distributon associated with a specific outcome
         Args:
@@ -283,7 +279,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             return outcome
         return tuple(outcome.get(_, None) for _ in self.issue_names)
 
-    def eval(self, offer: "Outcome") -> UtilityValue:
+    def eval(self, offer: "Outcome") -> Distribution:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -292,12 +288,9 @@ class IPUtilityFunction(ProbUtilityFunction):
 
         Remarks:
             - You cannot return None from overriden apply() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
-            - Return A UtilityValue not a float for real-valued utilities for the benefit of inspection code.
+              not possible to calculate the Distribution.
+            - Return A Distribution not a float for real-valued utilities for the benefit of inspection code.
 
-        Returns:
-            UtilityValue: The utility_function value which may be a distribution. If `None` it means the utility_function value cannot be
-            calculated.
         """
         if offer is None:
             return self.reserved_value
@@ -309,7 +302,7 @@ class IPUtilityFunction(ProbUtilityFunction):
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
 
-class ILSUtilityFunction(ProbUtilityFunction):
+class ILSUtilityFunction(UtilityFunction):
     """
     A utility function which represents the loc and scale deviations as any crisp ufun
     """

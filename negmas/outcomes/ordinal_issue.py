@@ -1,16 +1,34 @@
+from __future__ import annotations
+
 import random
+import warnings
 from typing import Generator
 
-from negmas.helpers import unique_name
+from negmas.helpers import sample, unique_name
 from negmas.outcomes.base_issue import DiscreteIssue
 
 __all__ = ["OrdinalIssue"]
 
 
+def generate_values(n: int) -> str:
+    if n > 1000_000:
+        warnings.warn(
+            f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible"
+        )
+    width = len(str(n))
+    return list(f"{_:0{width}n}" for _ in range(n))
+
+
 class OrdinalIssue(DiscreteIssue):
     def __init__(self, values, name=None, id=None) -> None:
+        """
+        `values` can be an integer and in this case, values will be strings
+        """
         super().__init__(values, name, id)
-        values = list(values)
+        if isinstance(values, int):
+            values = generate_values(values)
+        else:
+            values = list(values)
         types = set(type(_) for _ in values)
         if len(types) != 1:
             raise ValueError(
@@ -44,3 +62,27 @@ class OrdinalIssue(DiscreteIssue):
             return random.randint(self.max_value + 1, self.max_value * 2)
 
         return unique_name("") + str(random.choice(self._values)) + unique_name("")
+
+    def ordered_value_generator(
+        self, n: int = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator:
+        """
+        A generator that generates at most `n` values (in order)
+
+        Remarks:
+            - This function returns a generator for the case when the number of values is very large.
+            - If you need a list then use something like:
+
+            >>> from negmas.outcomes import make_issue
+            >>> list(make_issue(5).value_generator())
+            [0, 1, 2, 3, 4]
+            >>> list(int(10 * _) for _ in make_issue((0.0, 1.0)).value_generator(11))
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        """
+        yield from (
+            self._values[_]
+            for _ in sample(
+                self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints
+            )
+        )

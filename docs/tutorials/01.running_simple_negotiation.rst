@@ -82,7 +82,7 @@ The negotiation agenda can be specified in two ways:
 2. You can pass ``issues=x`` to create a multi-issue negotiation as we
    will see later in this tutorial. We can use this approach to achieve
    the same result as above by replacing ``outcomes=10`` with
-   ``issues=[Issue(10)]`` in the sample code above.
+   ``issues=[make_issue(10)]`` in the sample code above.
 
 .. code:: python
 
@@ -135,14 +135,14 @@ This can be modeled in the following negotiation:
 
 .. code:: ipython3
 
-    from negmas import Issue, SAOMechanism, AspirationNegotiator, normalize
+    from negmas import make_issue, SAOMechanism, AspirationNegotiator, normalize
     from negmas.preferences import LinearUtilityAggregationFunction as LUFun
 
     # create negotiation agenda (issues)
     issues = [
-        Issue(name='price', values=10),
-        Issue(name='quantity', values=(1, 11)),
-        Issue(name='delivery_time', values=10)
+        make_issue(name='price', values=10),
+        make_issue(name='quantity', values=(1, 11)),
+        make_issue(name='delivery_time', values=10)
     ]
 
     # create the mechanism

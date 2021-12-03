@@ -11,7 +11,7 @@ from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Type, 
 
 from negmas.helpers import get_class, unique_name
 from negmas.negotiators import Negotiator
-from negmas.outcomes import Issue
+from negmas.outcomes import Issue, make_issue
 from negmas.preferences.linear import LinearUtilityFunction
 from negmas.serialization import deserialize, serialize
 from negmas.situated import Agent
@@ -353,7 +353,7 @@ def random_discrete_domains(
 
     while True:
         current_issues = [
-            _ if isinstance(_, Issue) else Issue(values=intin(_), name=f"i{i}")
+            _ if isinstance(_, Issue) else make_issue(values=intin(_), name=f"i{i}")
             for i, _ in enumerate(issues)
         ]
         ufuns = [

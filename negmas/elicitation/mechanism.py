@@ -61,7 +61,7 @@ def uniform():
 
 def current_aspiration(
     elicitor: "AspirationMixin", outcome: "Outcome", negotiation: "Mechanism"
-) -> "Value":
+) -> float:
     return elicitor.aspiration(negotiation.relative_time)
 
 
@@ -201,7 +201,7 @@ class SAOElicitingMechanism(SAOMechanism):
             ).to_single_issue(numeric=True)
             domain = d.make_session(time_limit=120)
 
-            n_outcomes = domain.ami.n_outcomes
+            n_outcomes = domain.nmi.n_outcomes
             outcomes = domain.outcomes
             elicitor_indx = 0 + int(random.random() <= 0.5)
             opponent_indx = 1 - elicitor_indx
@@ -239,7 +239,7 @@ class SAOElicitingMechanism(SAOMechanism):
             variability=own_uncertainty_variablility,
         )
 
-        outcomes = domain.ami.outcomes
+        outcomes = domain.nmi.outcomes
 
         opponent = create_negotiator(
             negotiator_type=opponent_type,
@@ -319,7 +319,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 dict(zip(self.outcomes, self.U)), reserved_value=elicitor_reserved_value
             ),
             cost=cost,
-            ami=self.ami,
+            nmi=self.nmi,
         )
         if resolution is None:
             resolution = max(elicitor_reserved_value / 4, 0.025)
@@ -327,7 +327,7 @@ class SAOElicitingMechanism(SAOMechanism):
             strategy = None
         else:
             strategy = EStrategy(strategy=elicitation_strategy, resolution=resolution)
-            strategy.on_enter(ami=self.ami, preferences=initial_priors)
+            strategy.on_enter(nmi=self.nmi, preferences=initial_priors)
 
         def create_elicitor(type_, strategy=strategy, opponent_model=opponent_model):
             base_negotiator = create_negotiator(
@@ -476,7 +476,7 @@ class SAOElicitingMechanism(SAOMechanism):
 
         if isinstance(opponent, GeniusNegotiator):
             if n_steps is not None and time_limit is not None:
-                self.ami.n_steps = None
+                self.nmi.n_steps = None
 
         self.add(opponent, preferences=opp_utility)
         self.add(elicitor, preferences=initial_priors)
@@ -487,7 +487,7 @@ class SAOElicitingMechanism(SAOMechanism):
         self.total_time = 0.0
 
     def loginfo(self, s: str) -> None:
-        """logs ami-level information
+        """logs nmi-level information
 
         Args:
             s (str): The string to log

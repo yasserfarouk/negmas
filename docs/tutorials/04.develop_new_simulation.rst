@@ -201,9 +201,9 @@ specific information you need to keep. Here is the full implementation:
 
     class TripsWorld(World):
         ISSUES = [
-            Issue((0.0, 1.0), "cost"),
-            Issue(2, "active"),
-            Issue((1, 7), "duration"),
+            make_issue((0.0, 1.0), "cost"),
+            make_issue(2, "active"),
+            make_issue((1, 7), "duration"),
         ]
 
         def __init__(self, *args, **kwargs):

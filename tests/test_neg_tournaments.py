@@ -1,5 +1,5 @@
 from negmas.genius import Atlas3, NiceTitForTat, genius_bridge_is_running
-from negmas.outcomes import Issue
+from negmas.outcomes import make_issue
 from negmas.preferences import LinearUtilityFunction as U
 from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
 from negmas.situated.neg import NegDomain
@@ -7,7 +7,7 @@ from negmas.tournaments.neg import domains_from_list, neg_tournament
 
 
 def test_can_run_world():
-    issues = [Issue(10, "quantity"), Issue(5, "price")]
+    issues = [make_issue(10, "quantity"), make_issue(5, "price")]
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
         competitors += [Atlas3, NiceTitForTat]
@@ -42,7 +42,7 @@ def test_can_run_world():
 
 
 def test_can_run_tournament():
-    issues = [Issue(10, "quantity"), Issue(5, "price")]
+    issues = [make_issue(10, "quantity"), make_issue(5, "price")]
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
         competitors += [Atlas3, NiceTitForTat]

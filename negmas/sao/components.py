@@ -113,7 +113,7 @@ class RandomProposalMixin:
             and self._offerable_outcomes is not None
         ):
             return random.sample(self._offerable_outcomes, 1)[0]
-        return self._ami.random_outcomes(1)[0]
+        return self._nmi.random_outcomes(1)[0]
 
 
 class LimitedOutcomesAcceptorMixin:
@@ -154,13 +154,13 @@ class LimitedOutcomesAcceptorMixin:
         if not super().join(*args, **kwargs):
             return False
 
-        self._make_preferences(self.ami.issues)
+        self._make_preferences(self.nmi.issues)
         return True
 
     def _make_preferences(self, issues):
         """Generates a ufun that maps acceptance probability to the utility"""
         if self.acceptable_outcomes is None:
-            self.acceptable_outcomes = self.ami.discrete_outcomes()
+            self.acceptable_outcomes = self.nmi.discrete_outcomes()
 
         # self.acceptable_outcomes = [
         #     dict2outcome(_, issues) for _ in self.acceptable_outcomes
@@ -189,7 +189,7 @@ class LimitedOutcomesAcceptorMixin:
 
         """
         if not hasattr(self, "mapping"):
-            self._make_preferences(self.ami.issues)
+            self._make_preferences(self.nmi.issues)
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
@@ -231,7 +231,7 @@ class LimitedOutcomesProposerMixin:
     def propose(self, state: MechanismState) -> Optional["Outcome"]:
         """Proposes one of the proposable_outcomes"""
         if self._offerable_outcomes is None:
-            return self._ami.random_outcomes(1)[0]
+            return self._nmi.random_outcomes(1)[0]
         else:
             return random.sample(self._offerable_outcomes, 1)[0]
 

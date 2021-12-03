@@ -12,23 +12,19 @@ import numpy as np
 import scipy.stats as stats
 
 __all__ = [
-    "DistributionProtocol",  # THe interface of a distribution class
-    "Distribution",  # A probability distribution
-    "Value",
+    "DistributionLike",  # THe interface of a distribution class
+    "Distribution",  # A probability distribution using scipy stats
 ]
 
-Value = float
-"""Crisp values are real numbers"""
 
-
-class DistributionProtocol(Protocol):
+class DistributionLike(Protocol):
     @classmethod
-    def around(
+    def uniform_around(
         cls,
         value: float = 0.5,
         range: tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
-    ) -> "Distribution":
+    ) -> "DistributionLike":
         """
         Generates a uniform distribution around the input value in the given range with given uncertainty
 
@@ -38,7 +34,7 @@ class DistributionProtocol(Protocol):
             uncertainty: The uncertainty level required. 0.0 means no uncertainty and 1.0 means full uncertainty
 
         Returns:
-            Distribution A uniform distribution around `value` with uncertainty (scale) `uncertainty`
+            DistributionLike A uniform distribution around `value` with uncertainty (scale) `uncertainty`
         """
 
     def mean(self) -> float:
@@ -119,7 +115,7 @@ class DistributionProtocol(Protocol):
         """Returns the distribution for the divition of samples of `self` and `other`"""
 
 
-class Distribution:
+class Distribution(DistributionLike):
     """
     Any distribution from scipy.stats with overloading of addition and multiplication.
 

@@ -60,13 +60,13 @@ class ChainNegotiator(Negotiator, ABC):
 
     def join(
         self,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        to_join = super().join(ami, state, preferences=preferences, role=role)
+        to_join = super().join(nmi, state, preferences=preferences, role=role)
         if to_join:
             self.__level = int(role)
         return to_join
@@ -81,7 +81,7 @@ class ChainNegotiator(Negotiator, ABC):
         Returns:
 
         """
-        self._ami.confirm(left)
+        self._nmi.confirm(left)
 
     @abstractmethod
     def on_acceptance(self, state: MechanismState, offer: Offer) -> Offer:
@@ -135,13 +135,13 @@ class MultiChainNegotiator(Negotiator, ABC):
 
     def join(
         self,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        to_join = super().join(ami, state, preferences=preferences, role=role)
+        to_join = super().join(nmi, state, preferences=preferences, role=role)
         if to_join:
             self.__level = int(role)
         return to_join
@@ -156,7 +156,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         Returns:
 
         """
-        self._ami.confirm(left)
+        self._nmi.confirm(left)
 
     @abstractmethod
     def on_acceptance(self, state: MechanismState, offer: Offer) -> Offer:
@@ -232,15 +232,15 @@ class ChainNegotiationsMechanism(Mechanism):
         """
         return ChainAMI(
             id=self.id,
-            n_outcomes=self.ami.n_outcomes,
-            issues=self.ami.issues,
-            outcomes=self.ami.outcomes,
-            time_limit=self.ami.time_limit,
-            step_time_limit=self.ami.step_time_limit,
-            n_steps=self.ami.n_steps,
-            dynamic_entry=self.ami.dynamic_entry,
-            max_n_agents=self.ami.max_n_agents,
-            annotation=self.ami.annotation,
+            n_outcomes=self.nmi.n_outcomes,
+            issues=self.nmi.outcome_space,
+            outcomes=self.nmi.outcomes,
+            time_limit=self.nmi.time_limit,
+            step_time_limit=self.nmi.step_time_limit,
+            n_steps=self.nmi.n_steps,
+            dynamic_entry=self.nmi.dynamic_entry,
+            max_n_agents=self.nmi.max_n_agents,
+            annotation=self.nmi.annotation,
             parent=self,
             negotiator=negotiator,
             level=int(role) + 1,
@@ -410,15 +410,15 @@ class MultiChainNegotiationsMechanism(Mechanism):
         """
         return ChainAMI(
             id=self.id,
-            n_outcomes=self.ami.n_outcomes,
-            issues=self.ami.issues,
-            outcomes=self.ami.outcomes,
-            time_limit=self.ami.time_limit,
-            step_time_limit=self.ami.step_time_limit,
-            n_steps=self.ami.n_steps,
-            dynamic_entry=self.ami.dynamic_entry,
-            max_n_agents=self.ami.max_n_agents,
-            annotation=self.ami.annotation,
+            n_outcomes=self.nmi.n_outcomes,
+            issues=self.nmi.outcome_space,
+            outcomes=self.nmi.outcomes,
+            time_limit=self.nmi.time_limit,
+            step_time_limit=self.nmi.step_time_limit,
+            n_steps=self.nmi.n_steps,
+            dynamic_entry=self.nmi.dynamic_entry,
+            max_n_agents=self.nmi.max_n_agents,
+            annotation=self.nmi.annotation,
             parent=self,
             negotiator=negotiator,
             level=int(role) + 1,

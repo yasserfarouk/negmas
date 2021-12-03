@@ -17,6 +17,7 @@ from negmas import (
 )
 from negmas.events import Event, EventSink, EventSource
 from negmas.helpers import unique_name
+from negmas.outcomes import make_issue
 from negmas.situated import Action, Agent, Breach, Contract, World
 
 results = []  # will keep results not to use printing
@@ -176,7 +177,7 @@ class DummyAgent(Agent):
         if (self.__current_step == 2 and self.name.endswith("1")) or (
             self.__current_step == 4 and self.name.endswith("2")
         ):
-            issues = [Issue(10, name="i1")]
+            issues = [make_issue(10, name="i1")]
             partners = self.awi.state["partners"]
             self._request_negotiation(
                 partners=[_.name for _ in partners] + [self.name], issues=issues
@@ -266,7 +267,7 @@ class ExceptionAgent(Agent):
         if (self.__current_step == 2 and self.name.endswith("1")) or (
             self.__current_step == 4 and self.name.endswith("2")
         ):
-            issues = [Issue(10, name="i1")]
+            issues = [make_issue(10, name="i1")]
             partners = self.awi.state["partners"]
             self._request_negotiation(
                 partners=[_.name for _ in partners] + [self.name], issues=issues
@@ -519,9 +520,10 @@ def test_cannot_start_a_neg_with_no_outcomes():
     a, b = DummyAgent(name="a"), DummyAgent(name="b")
     world.join(a)
     world.join(b)
-    assert not a.awi.request_negotiation_about(
-        issues=[Issue((1, 0))], partners=[a.id, b.id], req_id="1234"
-    )
+    with pytest.raises(ValueError):
+        a.awi.request_negotiation_about(
+            issues=[make_issue((1, 0))], partners=[a.id, b.id], req_id="1234"
+        )
 
 
 def test_world_monitor():

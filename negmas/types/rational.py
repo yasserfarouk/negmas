@@ -7,11 +7,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from negmas.preferences.protocols import CrispUFun, ProbUFun, UFun
+
+from ..preferences import Preferences, UtilityFunction
 from .named import NamedObject
 
 if TYPE_CHECKING:
     from ..outcomes import Outcome
-    from ..preferences import Preferences
 
 __all__ = ["Rational"]
 
@@ -56,8 +58,40 @@ class Rational(NamedObject):
         self._preferences_modified = True
         self.on_preferences_changed()
 
-    ufun = preferences
-    """An alias to preferences"""
+    @property
+    def crisp_ufun(self) -> CrispUFun | None:
+        """Returns the preferences if it is a CrispUtilityFunction else None"""
+        return self._preferences if isinstance(self._preferences, CrispUFun) else None
+
+    @crisp_ufun.setter
+    def crisp_ufun(self, v: CrispUFun):
+        if not isinstance(v, CrispUFun):
+            raise ValueError(f"Cannot assign a {type(v)} to crisp_ufun")
+        self._preferences = v
+
+    @property
+    def prob_ufun(self) -> ProbUFun | None:
+        """Returns the preferences if it is a ProbUtilityFunction else None"""
+        return self._preferences if isinstance(self._preferences, ProbUFun) else None
+
+    @prob_ufun.setter
+    def prob_ufun(self, v: ProbUFun):
+        if not isinstance(v, ProbUFun):
+            raise ValueError(f"Cannot assign a {type(v)} to prob_ufun")
+        self._preferences = v
+
+    @property
+    def ufun(self) -> UtilityFunction | None:
+        """Returns the preferences if it is a UtilityFunction else None"""
+        return (
+            self._preferences
+            if isinstance(self._preferences, UtilityFunction)
+            else None
+        )
+
+    @ufun.setter
+    def ufun(self, v: UtilityFunction):
+        self._preferences = v
 
     @property
     def has_preferences(self) -> bool:
@@ -67,11 +101,9 @@ class Rational(NamedObject):
     @property
     def has_cardinal_preferences(self) -> bool:
         """Does the entity has an associated ufun?"""
-        from negmas.preferences import CardinalPreferences
+        from negmas.preferences.protocols import Cardinal
 
-        return self._preferences is not None and isinstance(
-            self._preferences, CardinalPreferences
-        )
+        return self._preferences is not None and isinstance(self._preferences, Cardinal)
 
     @property
     def reserved_outcome(self) -> Outcome | None:

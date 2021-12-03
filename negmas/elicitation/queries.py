@@ -319,7 +319,7 @@ class QResponse:
 
 
 def possible_queries(
-    ami: NegotiatorMechanismInterface,
+    nmi: NegotiatorMechanismInterface,
     strategy: "EStrategy",
     user: "User",
     outcome: "Outcome" = None,
@@ -333,7 +333,7 @@ def possible_queries(
     user = copy.deepcopy(user)
     strategy = copy.deepcopy(strategy)
 
-    def _possible_queries(outcome, strategy=strategy, ami=ami):
+    def _possible_queries(outcome, strategy=strategy, nmi=nmi):
         queries_before = user.elicited_queries()
         utility_before = strategy.utility_estimate(outcome)
         lower_before, upper_before = _loc(utility_before), _upper(utility_before)
@@ -368,7 +368,7 @@ def possible_queries(
 
     if outcome is None:
         queries = []
-        for outcome in ami.outcomes:
+        for outcome in nmi.outcomes:
             queries += _possible_queries(outcome)
     else:
         queries = _possible_queries(outcome)

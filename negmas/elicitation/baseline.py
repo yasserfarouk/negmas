@@ -30,7 +30,7 @@ class DummyElicitor(BaseElicitor):
     ):
         super().init_elicitation(preferences=preferences, **kwargs)
         strt_time = time.perf_counter()
-        self.offerable_outcomes = self._ami.outcomes
+        self.offerable_outcomes = self._nmi.outcomes
         self._elicitation_time += time.perf_counter() - strt_time
 
 
@@ -56,5 +56,5 @@ class FullKnowledgeElicitor(BaseElicitor):
     ):
         super().init_elicitation(preferences=self.user.ufun)
         strt_time = time.perf_counter()
-        self.offerable_outcomes = self._ami.outcomes
+        self.offerable_outcomes = self._nmi.outcomes
         self._elicitation_time += time.perf_counter() - strt_time

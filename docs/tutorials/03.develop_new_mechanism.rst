@@ -338,7 +338,7 @@ We can then define the mechanism class itself:
             **kwargs,
         ) -> Optional[bool]:
             weights = [1, 0] if len(self.negotiators) == 0 else [0, 1]
-            ufun = ExpDiscountedUFun(LinearUtilityFunction(weights), discount=discount, ami=self.ami)
+            ufun = ExpDiscountedUFun(LinearUtilityFunction(weights), discount=discount, nmi=self.nmi)
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
             if added:
                 self.discounts.append(discount)

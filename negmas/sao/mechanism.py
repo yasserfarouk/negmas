@@ -56,7 +56,7 @@ class SAOMechanism(Mechanism):
         dynamic_entry: Whether it is allowed for negotiators to join the negotiation after it starts
         cache_outcomes: If true, the mechnism will catch `outcomes` and a discrete version (`discrete_outcomes`) that
                         can be accessed by any negotiator through their AMI.
-        max_n_outcomes: Maximum number or outcomes to use when disctetizing the outcome-space
+        max_cardinality: Maximum number or outcomes to use when disctetizing the outcome-space
         annotation: A key-value mapping to keep around. Accessible through the AMI but not used by the mechanism.
         end_on_no_response: End the negotiation if any negotiator returns NO_RESPONSE from `respond`/`counter` or returns
                             REJECT_OFFER then refuses to give an offer (by returning `None` from `proposee/`counter`).
@@ -101,7 +101,7 @@ class SAOMechanism(Mechanism):
         max_n_agents=None,
         dynamic_entry=False,
         cache_outcomes=True,
-        max_n_outcomes: int = 1_000_000,
+        max_cardinality: int = 1_000_000,
         annotation: Optional[Dict[str, Any]] = None,
         end_on_no_response=True,
         publish_proposer=True,
@@ -130,7 +130,7 @@ class SAOMechanism(Mechanism):
             max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
             cache_outcomes=cache_outcomes,
-            max_n_outcomes=max_n_outcomes,
+            max_cardinality=max_cardinality,
             annotation=annotation,
             state_factory=SAOState,
             enable_callbacks=enable_callbacks,
@@ -195,27 +195,27 @@ class SAOMechanism(Mechanism):
         if (
             added
             and isinstance(negotiator, GeniusNegotiator)
-            and self.ami.time_limit is not None
-            and self.ami.time_limit != float("inf")
-            and self.ami.n_steps is not None
+            and self.nmi.time_limit is not None
+            and self.nmi.time_limit != float("inf")
+            and self.nmi.n_steps is not None
         ):
             warnings.warn(
-                f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.ami.time_limit} seconds and a n_steps of {self.ami.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
+                f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds and a n_steps of {self.nmi.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
                 category=UserWarning,
             )
         return added
 
     def join(
         self,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
         role: str = "agent",
     ) -> bool:
-        if not super().join(ami, state, preferences=preferences, role=role):
+        if not super().join(nmi, state, preferences=preferences, role=role):
             return False
-        if not self.ami.dynamic_entry and not any(
+        if not self.nmi.dynamic_entry and not any(
             [a.capabilities.get("propose", False) for a in self.negotiators]
         ):
             self._current_proposer = None
@@ -656,8 +656,8 @@ class SAOMechanism(Mechanism):
             if rem is None:
                 rem = float("inf")
             timeout = min(
-                self.ami.negotiator_time_limit - times[negotiator.id],
-                self.ami.step_time_limit,
+                self.nmi.negotiator_time_limit - times[negotiator.id],
+                self.nmi.step_time_limit,
                 rem,
                 self._hidden_time_limit - self.time,
             )
@@ -842,7 +842,7 @@ class SAOMechanism(Mechanism):
                         times=times,
                         exceptions=exceptions,
                     )
-                if time.perf_counter() - strt > self.ami.step_time_limit:
+                if time.perf_counter() - strt > self.nmi.step_time_limit:
                     return MechanismRoundResult(
                         broken=False,
                         timedout=True,
@@ -969,7 +969,7 @@ class SAOMechanism(Mechanism):
                     times=times,
                     exceptions=exceptions,
                 )
-            if time.perf_counter() - strt > self.ami.step_time_limit:
+            if time.perf_counter() - strt > self.nmi.step_time_limit:
                 return MechanismRoundResult(
                     broken=False,
                     timedout=True,

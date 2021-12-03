@@ -89,14 +89,14 @@ class Negotiator(Rational, Notifiable, ABC):
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None
-        self._ami = None
+        self._nmi = None
         self._initial_state = None
         self._role = None
         self.__owner = owner
 
     @property
-    def ami(self):
-        return self._ami
+    def nmi(self):
+        return self._nmi
 
     @property
     def owner(self):
@@ -111,12 +111,12 @@ class Negotiator(Rational, Notifiable, ABC):
     @Rational.preferences.setter
     def preferences(self, value: "Preferences"):
         """Sets tha utility function."""
-        if self._ami is not None and self._ami.state.started:
+        if self._nmi is not None and self._nmi.state.started:
             warnings.warn(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
-        if self._ami is not None:
+        if self._nmi is not None:
             Rational.preferences.fset(self, value)
         else:
             self._preferences = value
@@ -133,7 +133,7 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def _dissociate(self):
         self._mechanism_id = None
-        self._ami = None
+        self._nmi = None
         self._preferences = self._init_preferences
         self._role = None
 
@@ -189,7 +189,7 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def join(
         self,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -199,7 +199,7 @@ class Negotiator(Rational, Notifiable, ABC):
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
 
         Args:
-            ami  (AgentMechanismInterface): The negotiation.
+            nmi  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -212,13 +212,12 @@ class Negotiator(Rational, Notifiable, ABC):
         if self._mechanism_id is not None:
             return False
         self._role = role
-        self._mechanism_id = ami.id
-        self._ami = ami
+        self._mechanism_id = nmi.id
+        self._nmi = nmi
         self._initial_state = state
         if preferences is not None and preferences != self.preferences:
             self.preferences = preferences
         if self._preferences:
-            self._preferences.ami = ami
             if self._preferences_modified:
                 self.on_preferences_changed()
         return True
@@ -464,8 +463,8 @@ class Controller(Rational):
         return {
             k: v
             for k, v in self._negotiators.items()
-            if v[0].ami is not None
-            and (v[0].ami.state.running or not v[0].ami.state.started)
+            if v[0].nmi is not None
+            and (v[0].nmi.state.running or not v[0].nmi.state.started)
         }
 
     @property
@@ -474,7 +473,7 @@ class Controller(Rational):
         return dict(
             zip(
                 self._negotiators.keys(),
-                (self._negotiators[k][0]._ami.state for k in self._negotiators.keys()),
+                (self._negotiators[k][0]._nmi.state for k in self._negotiators.keys()),
             )
         )
 
@@ -606,9 +605,9 @@ class Controller(Rational):
             negotiator_id: Our negotiator ID
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.ami:
+        if not negotiator or not negotiator.nmi:
             return None
-        return [_ for _ in negotiator.ami.negotiator_ids if _ != negotiator_id]
+        return [_ for _ in negotiator.nmi.negotiator_ids if _ != negotiator_id]
 
     def partner_negotiator_names(self, negotiator_id: str) -> Optional[List[str]]:
         """
@@ -619,9 +618,9 @@ class Controller(Rational):
             negotiator_id: Our negotiator ID
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.ami:
+        if not negotiator or not negotiator.nmi:
             return None
-        return [_ for _ in negotiator.ami.negotiator_names if _ != negotiator.name]
+        return [_ for _ in negotiator.nmi.negotiator_names if _ != negotiator.name]
 
     def partner_agent_ids(self, negotiator_id: str) -> Optional[List[str]]:
         """
@@ -632,10 +631,10 @@ class Controller(Rational):
             negotiator_id: Our negotiator ID
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.ami:
+        if not negotiator or not negotiator.nmi:
             return None
         me = negotiator.owner.id if negotiator.owner else ""
-        return [_ for _ in negotiator.ami.agent_ids if _ and _ != me]
+        return [_ for _ in negotiator.nmi.agent_ids if _ and _ != me]
 
     def partner_agent_names(self, negotiator_id: str) -> Optional[List[str]]:
         """
@@ -646,15 +645,15 @@ class Controller(Rational):
             negotiator_id: Our negotiator ID
         """
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not negotiator.ami:
+        if not negotiator or not negotiator.nmi:
             return None
         me = negotiator.owner.name if negotiator.owner else ""
-        return [_ for _ in negotiator.ami.agent_names if _ and _ != me]
+        return [_ for _ in negotiator.nmi.agent_names if _ and _ != me]
 
     def before_join(
         self,
         negotiator_id: str,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -665,7 +664,7 @@ class Controller(Rational):
 
         Args:
             negotiator_id: The negotiator ID
-            ami  (AgentMechanismInterface): The negotiation.
+            nmi  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             preferences (UtilityFunction): The prefrences to use before any discounting.
             role (str): role of the agent.
@@ -680,7 +679,7 @@ class Controller(Rational):
     def after_join(
         self,
         negotiator_id: str,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -692,7 +691,7 @@ class Controller(Rational):
 
         Args:
             negotiator_id: The negotiator ID
-            ami  (AgentMechanismInterface): The negotiation.
+            nmi  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             preferences (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -701,7 +700,7 @@ class Controller(Rational):
     def join(
         self,
         negotiator_id: str,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
@@ -712,7 +711,7 @@ class Controller(Rational):
 
         Args:
             negotiator_id: The negotiator ID
-            ami  (AgentMechanismInterface): The negotiation.
+            nmi  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
             preferences (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
@@ -726,14 +725,14 @@ class Controller(Rational):
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         permission = self.before_join(
-            negotiator, ami, state, preferences=preferences, role=role
+            negotiator, nmi, state, preferences=preferences, role=role
         )
         if not permission:
             return False
         if hasattr(negotiator, "join") and self.call(
-            negotiator, "join", ami=ami, state=state, preferences=preferences, role=role
+            negotiator, "join", nmi=nmi, state=state, preferences=preferences, role=role
         ):
-            self.after_join(negotiator, ami, state, preferences=preferences, role=role)
+            self.after_join(negotiator, nmi, state, preferences=preferences, role=role)
             return True
         return False
 

@@ -6,14 +6,15 @@ from typing import Generator
 
 import numpy as np
 
+from negmas.helpers.numeric import sample
 from negmas.java import PYTHON_CLASS_IDENTIFIER
-from negmas.outcomes.base_issue import RangeIssue
-from negmas.outcomes.ordinal_issue import OrdinalIssue
+from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.range_issue import RangeIssue
 
 __all__ = ["ContiguousIssue"]
 
 
-class ContiguousIssue(RangeIssue, OrdinalIssue):
+class ContiguousIssue(RangeIssue):
     def __init__(
         self,
         values: int | tuple[int, int],
@@ -23,7 +24,11 @@ class ContiguousIssue(RangeIssue, OrdinalIssue):
         if isinstance(values, numbers.Integral):
             values = (0, int(values) - 1)
         super().__init__(values, name, id)
-        self._n_values = values[1] - values[0] + 1
+        self._n_values = values[1] - values[0] + 1  # type: ignore
+
+    @property
+    def cardinality(self) -> int:
+        return self.max_value - self.min_value + 1
 
     def _to_xml_str(self, indx, enumerate_integer=False):
         if not enumerate_integer:
@@ -42,8 +47,33 @@ class ContiguousIssue(RangeIssue, OrdinalIssue):
     def all(self) -> Generator:
         yield from range(self._values[0], self._values[1] + 1)
 
-    def alli(self, n: int | None = 10) -> Generator:
-        yield from range(self._values[0], self._values[1] + 1)
+    def value_generator(
+        self, n: int | None = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator:
+        yield from self.ordered_value_generator(
+            n, grid=grid, compact=compact, endpoints=endpoints
+        )
+
+    def ordered_value_generator(self, n: int | None = None, grid=True, compact=False, endpoints=True) -> Generator:  # type: ignore
+        yield from (
+            _ + self._values[0]
+            for _ in sample(
+                self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints
+            )
+        )
+
+    def to_discrete(
+        self, n: int | None, grid=True, compact=False, endpoints=True
+    ) -> DiscreteIssue:
+        if n is None or self.cardinality < n:
+            return self
+        if not compact:
+            return super().to_discrete(
+                n, grid=grid, compact=compact, endpoints=endpoints
+            )
+
+        beg = (self.cardinality - n) // 2
+        return ContiguousIssue((beg, beg + n), name=self.name + f"{n}")
 
     def rand(self) -> int:
         """Picks a random valid value."""

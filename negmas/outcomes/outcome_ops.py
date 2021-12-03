@@ -3,17 +3,13 @@ Functions for handling outcome spaces
 """
 from __future__ import annotations
 
-import copy
-import itertools
 import numbers
-import random
-import warnings
 from typing import TYPE_CHECKING, Any, Collection, List, Optional, Union
 
 import numpy as np
 
 from negmas.generics import ienumerate, iget, ikeys
-from negmas.outcomes.base_issue import RangeIssue
+from negmas.outcomes.range_issue import RangeIssue
 
 from .base_issue import Issue
 
@@ -43,9 +39,9 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
 
     Examples:
 
-        >>> from negmas.outcomes import Issue
-        >>> issues = [Issue((0.5, 2.0), 'price'), Issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')\
-                , Issue(20, 'count')]
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue((0.5, 2.0), 'price'), make_issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')\
+                , make_issue(20, 'count')]
         >>> for _ in issues: print(_)
         price: (0.5, 2.0)
         date: ['2018.10.1', '2018.10.2', '2018.10.3']
@@ -126,9 +122,9 @@ def outcome_is_complete(outcome: "Outcome", issues: Collection["Issue"]) -> bool
 
     Examples:
 
-        >>> from negmas.outcomes import Issue
-        >>> issues = [Issue((0.5, 2.0), 'price'), Issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')\
-                , Issue(20, 'count')]
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue((0.5, 2.0), 'price'), make_issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')\
+                , make_issue(20, 'count')]
         >>> for _ in issues: print(_)
         price: (0.5, 2.0)
         date: ['2018.10.1', '2018.10.2', '2018.10.3']
@@ -336,8 +332,8 @@ def outcome2dict(outcome: "Outcome", issues: list[str | "Issue"]) -> dict[str, A
 
     Examples:
 
-        >>> from negmas import Issue
-        >>> issues = [Issue(10, "price"), Issue(5, "quantity")]
+        >>> from negmas import make_issue
+        >>> issues = [make_issue(10, "price"), make_issue(5, "quantity")]
         >>> outcome2dict((3, 4), issues=issues)
         {'price': 3, 'quantity': 4}
 

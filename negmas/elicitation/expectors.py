@@ -14,8 +14,8 @@ class Expector(ABC):
     reduction method that receives a utility value and return a real number.
     """
 
-    def __init__(self, ami: Optional[NegotiatorMechanismInterface] = None):
-        self.ami = ami
+    def __init__(self, nmi: Optional[NegotiatorMechanismInterface] = None):
+        self.nmi = nmi
 
     @abstractmethod
     def is_dependent_on_negotiation_info(self) -> bool:
@@ -57,7 +57,7 @@ class BalancedExpector(Expector):
 
     def __call__(self, u: Value, state: MechanismState = None) -> float:
         if state is None:
-            state = self.ami.state
+            state = self.nmi.state
         if isinstance(u, float):
             return u
         else:
@@ -69,11 +69,11 @@ class BalancedExpector(Expector):
 class AspiringExpector(Expector, AspirationMixin):
     def __init__(
         self,
-        ami: Optional[NegotiatorMechanismInterface] = None,
+        nmi: Optional[NegotiatorMechanismInterface] = None,
         max_aspiration=1.0,
         aspiration_type: Union[str, int, float] = "linear",
     ) -> bool:
-        Expector.__init__(self, ami=ami)
+        Expector.__init__(self, nmi=nmi)
         self.aspiration_init(
             max_aspiration=max_aspiration,
             aspiration_type=aspiration_type,
@@ -85,7 +85,7 @@ class AspiringExpector(Expector, AspirationMixin):
 
     def __call__(self, u: Value, state: MechanismState = None) -> float:
         if state is None:
-            state = self.ami.state
+            state = self.nmi.state
         if isinstance(u, float):
             return u
         else:

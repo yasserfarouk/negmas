@@ -1,36 +1,36 @@
 from pytest import fixture
 
-from negmas.outcomes import Issue, generate_issues
+from negmas.outcomes import generate_issues, make_issue
 
 
 @fixture()
 def bissue():
-    return Issue(["be", "not b"], name="binary")
+    return make_issue(["be", "not b"], name="binary")
 
 
 @fixture()
 def hamlet():
-    return Issue([f"val {_}" for _ in range(5)], name="THE problem")
+    return make_issue([f"val {_}" for _ in range(5)], name="THE problem")
 
 
 @fixture()
 def uissue():
-    return Issue([f"val {_}" for _ in range(5)])
+    return make_issue([f"val {_}" for _ in range(5)])
 
 
 @fixture()
 def cissue():
-    return Issue((0.0, 1.0), name="c")
+    return make_issue((0.0, 1.0), name="c")
 
 
 @fixture()
 def dissue():
-    return Issue(10, name="d")
+    return make_issue(10, name="d")
 
 
 @fixture()
 def sissue():
-    return Issue([f"val {_}" for _ in range(5)], name="s")
+    return make_issue([f"val {_}" for _ in range(5)], name="s")
 
 
 @fixture()

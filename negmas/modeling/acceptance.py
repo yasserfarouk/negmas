@@ -128,19 +128,19 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     @classmethod
     def from_negotiation(
         cls,
-        ami: NegotiatorMechanismInterface,
+        nmi: NegotiatorMechanismInterface,
         prob: Union[float, list] = 0.5,
         end_prob=0.0,
         p_accept_after_reject=0.0,
         p_reject_after_accept=0.0,
     ) -> "AdaptiveDiscreteAcceptanceModel":
-        if not ami.n_outcomes or ami.outcomes is None:
+        if not nmi.n_outcomes or nmi.outcomes is None:
             raise ValueError(
                 "Cannot initialize this simple opponents model for a negotiation with uncountable outcomes"
             )
         return cls(
-            outcomes=ami.outcomes,
-            n_negotiators=ami.n_negotiators,
+            outcomes=nmi.outcomes,
+            n_negotiators=nmi.n_negotiators,
             prob=prob,
             end_prob=end_prob,
             p_accept_after_reject=p_accept_after_reject,
@@ -226,10 +226,10 @@ class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         for opponent in self.opponents:
             if opponent is self:
                 continue
-            if opponent._ami is None:
+            if opponent._nmi is None:
                 response = ResponseType.REJECT_OFFER
             else:
-                response = opponent.respond_(state=opponent._ami.state, offer=outcome)
+                response = opponent.respond_(state=opponent._nmi.state, offer=outcome)
             if response != ResponseType.ACCEPT_OFFER:
                 return 0.0
         return 1.0

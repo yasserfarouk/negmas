@@ -98,7 +98,7 @@ class VetoMTMechanism(Mechanism):
                     neg.is_better(new_offer, current_offer, epsilon=self.epsilon)
                     is not False
                 )
-                if time.perf_counter() - strt > self.ami.step_time_limit:
+                if time.perf_counter() - strt > self.nmi.step_time_limit:
                     return MechanismRoundResult(
                         broken=False, timedout=True, agreement=None
                     )

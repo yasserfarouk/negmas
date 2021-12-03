@@ -21,33 +21,31 @@ Notes:
 
 """
 from .base import *
+from .protocols import *
 from .preferences import *
-from .base_probabilistic import *
-from .base_crisp import *
+from .ufun import *
 from .complex import *
 from .discounted import *
-from .java import *
+from .mapping import *
 from .linear import *
 from .nonlinear import *
 from .ops import *
 from .probabilistic import *
-from .random import *
-from .static import *
+from .random_ufun import *
 from .const import *
 
 __all__ = (
     base.__all__
+    + protocols.__all__
     + preferences.__all__
-    + base_probabilistic.__all__
-    + base_crisp.__all__
-    + static.__all__
-    + ops.__all__
-    + static.__all__
+    + ufun.__all__
+    + complex.__all__
     + discounted.__all__
+    + mapping.__all__
     + linear.__all__
     + nonlinear.__all__
-    + complex.__all__
+    + ops.__all__
     + probabilistic.__all__
-    + java.__all__
-    + random.__all__
+    + random_ufun.__all__
+    + const.__all__
 )

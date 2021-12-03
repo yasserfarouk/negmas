@@ -1,9 +1,9 @@
 import pytest
 
 from negmas import (
-    Issue,
     enumerate_issues,
     issues_from_outcomes,
+    make_issue,
     outcome_in_range,
     outcome_is_valid,
 )
@@ -48,9 +48,9 @@ def test_outcome_in_verious_ranges():
 def test_from_outcomes():
 
     issues = [
-        Issue([2, 3], "price"),
-        Issue([1, 2, 3], "cost"),
-        Issue(["yes", "no"], "delivery"),
+        make_issue([2, 3], "price"),
+        make_issue([1, 2, 3], "cost"),
+        make_issue(["yes", "no"], "delivery"),
     ]
     found = issues_from_outcomes(
         enumerate_issues(issues), issue_names=["price", "cost", "delivery"]
@@ -60,12 +60,12 @@ def test_from_outcomes():
         assert all(a == b for a, b in zip(sorted(i.values), f._values))
 
     issues = [
-        Issue((1, 7), "price"),
-        Issue((0, 5), "cost"),
-        Issue(["yes", "no"], "delivery"),
+        make_issue((1, 7), "price"),
+        make_issue((0, 5), "cost"),
+        make_issue(["yes", "no"], "delivery"),
     ]
     found = issues_from_outcomes(
-        enumerate_issues(issues, max_n_outcomes=1000),
+        enumerate_issues(issues, max_cardinality=1000),
         numeric_as_ranges=True,
         issue_names=["price", "cost", "delivery"],
     )

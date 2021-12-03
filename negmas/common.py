@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterable
 
 from .java import to_dict, to_java
 
@@ -15,7 +15,7 @@ from .java import to_dict, to_java
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
-    from .outcomes import Issue, Outcome
+    from .outcomes import Issue, Outcome, OutcomeSpace
 
 
 __all__ = [
@@ -60,9 +60,9 @@ class MechanismState:
     """True if the negotiation was timedout"""
     agreement: "Outcome" | None = None
     """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
-    results: "Outcome" | list["Outcome"] | list["Issue"] | None = None
+    results: "Outcome" | "OutcomeSpace" | None = None
     """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
-    outcomes or even a list of negotiation issues for future negotiations.
+    outcomes or even a complete outcome space.
     """
     n_negotiators: int = 0
     """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports
@@ -121,26 +121,22 @@ class NegotiatorMechanismInterface:
 
     id: str
     """Mechanism session ID. That is unique for all mechanisms"""
-    n_outcomes: int | None
-    """Number of outcomes which may be None indicating infinity"""
-    issues: list["Issue"]
-    """Negotiation issues as a list of `Issue` objects"""
-    outcomes: list["Outcome"] | None
-    """A lit of *all possible* outcomes for a negotiation. None if the number of outcomes is uncountable"""
+    n_outcomes: int | float
+    """Number of outcomes which may be `float('inf')` indicating infinity"""
+    outcome_space: OutcomeSpace
+    """Negotiation agenda as as an `OutcomeSpace` object. The most common type is `CartesianOutcomeSpace` which represents the cartesian product of a list of issues"""
     time_limit: float
     """The time limit in seconds for this negotiation session. None indicates infinity"""
     step_time_limit: float
-    """The time limit in seconds for each step of this negotiation session. None indicates infinity"""
+    """The time limit in seconds for each step of ;this negotiation session. None indicates infinity"""
     negotiator_time_limit: float
     """The time limit in seconds to wait for negotiator responses of this negotiation session. None indicates infinity"""
-    n_steps: int
+    n_steps: int | None
     """The allowed number of steps for this negotiation. None indicates infinity"""
     dynamic_entry: bool
     """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
-    max_n_agents: int
+    max_n_agents: int | None
     """Maximum allowed number of agents in the session. None indicates no limit"""
-    imap: dict[str | int, str | int]
-    """A map that translates issue names to indices and issue indices to names"""
     annotation: dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
     _mechanism: "Mechanism" | None = None
@@ -148,7 +144,7 @@ class NegotiatorMechanismInterface:
     @property
     def issue_names(self):
         """Returns issue names"""
-        return [_.name for _ in self.issues]
+        return [_.name for _ in self.outcome_space]
 
     @property
     def params(self):
@@ -157,7 +153,7 @@ class NegotiatorMechanismInterface:
 
     def random_outcomes(self, n: int = 1) -> list["Outcome"]:
         """
-        A set of random outcomes from the issues of this negotiation
+        A set of random outcomes from the outcome-space of this negotiation
 
         Args:
             n: number of outcomes requested
@@ -169,19 +165,19 @@ class NegotiatorMechanismInterface:
         """
         return self._mechanism.random_outcomes(n=n)
 
-    def discrete_outcomes(self, n_max: int = None) -> list["Outcome"]:
+    def discrete_outcomes(self, max_cardinality: int = float("inf")) -> Iterable["Outcome"]:  # type: ignore
         """
         A discrete set of outcomes that spans the outcome space
 
         Args:
-            n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
+            n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete outcome-spaces
 
         Returns:
 
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self._mechanism.discrete_outcomes(n_max=n_max)
+        return self._mechanism.discrete_outcomes(n_max=max_cardinality)
 
     def outcome_index(self, outcome: "Outcome") -> int | None:
         """
@@ -296,7 +292,7 @@ class _ShadowAgentMechanismInterface:
         return to_java(self.shadow.random_outcomes(n))
 
     def discreteOutcomes(self, nMax: int):
-        return to_java(self.shadow.discrete_outcomes(n_max=nMax))
+        return to_java(self.shadow.discrete_outcomes(max_cardinality=nMax))
 
     def outcomeIndex(self, outcome):
         return to_java(self.shadow.outcome_index(outcome))
@@ -316,8 +312,8 @@ class _ShadowAgentMechanismInterface:
     def getNNegotiators(self):
         return self.shadow.n_negotiators
 
-    def __init__(self, ami: NegotiatorMechanismInterface):
-        self.shadow = ami
+    def __init__(self, nmi: NegotiatorMechanismInterface):
+        self.shadow = nmi
 
     def to_java(self):
         return to_dict(self.shadow)

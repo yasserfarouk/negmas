@@ -37,17 +37,17 @@ class User(Rational):
     Args:
         preferences: The real utility function of the user.
         cost: A cost to be added for every question asked to the user.
-        ami: [Optional] The `AgentMechanismInterface` representing *the*
+        nmi: [Optional] The `AgentMechanismInterface` representing *the*
              negotiation session engaged in by this user using this `ufun`.
 
     """
 
-    def __init__(self, cost: float = 0.0, ami=None, *args, **kwargs):
+    def __init__(self, cost: float = 0.0, nmi=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cost = cost
         self.total_cost = 0.0
         self._elicited_queries: List[ElicitationRecord] = []
-        self.ami = ami
+        self.nmi = nmi
 
     def set(self, preferences: Optional[Preferences] = None, cost: float = None):
         """
@@ -85,7 +85,7 @@ class User(Rational):
                         query=q,
                         cost=self.cost + q.cost + reply.cost,
                         answer_index=i,
-                        step=self.ami.state.step if self.ami else None,
+                        step=self.nmi.state.step if self.nmi else None,
                     )
                 )
                 return QResponse(

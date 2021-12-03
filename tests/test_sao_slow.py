@@ -17,7 +17,7 @@ from pytest import mark
 
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
-from negmas.outcomes import Issue, Outcome, enumerate_issues
+from negmas.outcomes import Outcome, enumerate_issues, make_issue
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
 from negmas.sao import (
     AspirationNegotiator,
@@ -70,7 +70,7 @@ class MySyncController(SAOSyncController):
             sleep(s)
         self.n_counter_all_calls += 1
         responses = [
-            self.negotiators[_][0].ami.random_outcomes(1)[0] for _ in states.keys()
+            self.negotiators[_][0].nmi.random_outcomes(1)[0] for _ in states.keys()
         ]
         assert all(_ is not None for _ in responses)
         responses = dict(
@@ -100,7 +100,7 @@ class MySyncController(SAOSyncController):
         return responses
 
     def first_offer(self, negotiator_id: str):
-        return self.negotiators[negotiator_id][0].ami.random_outcomes(1)[0]
+        return self.negotiators[negotiator_id][0].nmi.random_outcomes(1)[0]
 
     def __init__(
         self,
@@ -169,7 +169,7 @@ class TimeWaster(RandomNegotiator):
 
     def counter(self, state, offer):
         if self.waited < self.n_waits and (
-            state.step > 0 or not self.ami.params["avoid_ultimatum"]
+            state.step > 0 or not self.nmi.params["avoid_ultimatum"]
         ):
             self.waited += 1
             return SAOResponse(ResponseType.WAIT, None)
@@ -189,7 +189,7 @@ class TimeWaster(RandomNegotiator):
         assert state.step not in self.my_offers
         assert state.step not in self.my_responses
         self.received_offers[state.step] = offer
-        outcome = self.ami.random_outcomes(1)[0]
+        outcome = self.nmi.random_outcomes(1)[0]
         response = SAOResponse(ResponseType.REJECT_OFFER, outcome)
         assert response.outcome is not None
         self.my_offers[state.step] = response.outcome
@@ -568,7 +568,7 @@ def test_sync_controller_gets_all_offers(n_negs):
 
     c = MyController()
     negs = [
-        SAOMechanism(issues=[Issue((0.0, 1.0), "price")], n_steps=20)
+        SAOMechanism(issues=[make_issue((0.0, 1.0), "price")], n_steps=20)
         for _ in range(n_negs)
     ]
     for neg in negs:
@@ -589,7 +589,7 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
     c = SAOSingleAgreementRandomController(strict=strict)
     negs = [
         SAOMechanism(
-            issues=[Issue((0.0, 1.0), "price")],
+            issues=[make_issue((0.0, 1.0), "price")],
             n_steps=50,
             end_on_no_response=False,
         )
@@ -642,17 +642,17 @@ def test_loops_are_broken(keep_order):
 
     n1 = SAOMechanism(
         name="ab",
-        issues=[Issue((0.0, 1.0), "price")],
+        issues=[make_issue((0.0, 1.0), "price")],
         n_steps=50,
     )
     n2 = SAOMechanism(
         name="ac",
-        issues=[Issue((0.0, 1.0), "price")],
+        issues=[make_issue((0.0, 1.0), "price")],
         n_steps=50,
     )
     n3 = SAOMechanism(
         name="bc",
-        issues=[Issue((0.0, 1.0), "price")],
+        issues=[make_issue((0.0, 1.0), "price")],
         n_steps=50,
         end_on_no_response=False,
     )
@@ -674,8 +674,8 @@ def test_loops_are_broken(keep_order):
 def test_can_create_all_negotiator_types():
     from negmas.helpers import instantiate
 
-    issues = [Issue((0.0, 1.0), name="price"), Issue(10, name="quantity")]
-    outcomes = enumerate_issues(issues, max_n_outcomes=100)
+    issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
+    outcomes = enumerate_issues(issues, max_cardinality=100)
     neg_types = [
         (
             "RandomNegotiator",
@@ -743,9 +743,9 @@ def test_can_create_all_negotiator_types():
 def test_can_run_all_negotiators():
     from negmas.helpers import instantiate
 
-    issues = [Issue((0.0, 1.0), name="price"), Issue(10, name="quantity")]
+    issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
     weights = (1.0, 1.0)
-    outcomes = enumerate_issues(issues, max_n_outcomes=100)
+    outcomes = enumerate_issues(issues, max_cardinality=100)
     neg_types = [
         (
             "RandomNegotiator",
@@ -819,7 +819,7 @@ class MyNegotiator(SAONegotiator):
 
 
 def test_cast_offers_tuple():
-    issues = [Issue(10), Issue(5), Issue(3)]
+    issues = [make_issue(10), make_issue(5), make_issue(3)]
     m = SAOMechanism(
         issues,
         check_offers=True,
@@ -838,7 +838,7 @@ def test_cast_offers_tuple():
 
 
 def test_fail_on_incorrect_types_tuple_or_dict():
-    issues = [Issue(10), Issue(5), Issue(3)]
+    issues = [make_issue(10), make_issue(5), make_issue(3)]
     m = SAOMechanism(
         issues,
         check_offers=True,
@@ -854,7 +854,7 @@ def test_fail_on_incorrect_types_tuple_or_dict():
 
 
 def test_no_check_offers_tuple():
-    issues = [Issue(10), Issue(5), Issue(3)]
+    issues = [make_issue(10), make_issue(5), make_issue(3)]
     for a, b in ((True, False), (False, False), (False, True), (True, True)):
         m = SAOMechanism(
             issues,
@@ -1177,7 +1177,9 @@ def test_aspiration_continuous_issues(
 ):
     for _ in range(5):
         mechanism = SAOMechanism(
-            issues=[Issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)],
+            issues=[
+                make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)
+            ],
             n_steps=10,
         )
         ufuns = [

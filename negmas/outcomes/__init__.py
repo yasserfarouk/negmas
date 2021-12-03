@@ -12,8 +12,8 @@ Examples:
 
   Different ways to create issues:
 
-  >>> issues = [Issue((0.5, 2.0), 'price'), Issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')
-  ...           , Issue(20, 'count')]
+  >>> issues = [make_issue((0.5, 2.0), 'price'), make_issue(['2018.10.'+ str(_) for _ in range(1, 4)], 'date')
+  ...           , make_issue(20, 'count')]
   >>> for _ in issues: print(_)
   price: (0.5, 2.0)
   date: ['2018.10.1', '2018.10.2', '2018.10.3']
@@ -26,24 +26,32 @@ Examples:
 """
 
 from .common import *
+from .protocols import *
 from .base_issue import *
 from .callable_issue import *
 from .categorical_issue import *
 from .contiguous_issue import *
 from .continuous_issue import *
 from .ordinal_issue import *
+from .range_issue import *
+from .cardinal_issue import *
+from .infinite import *
 from .issue_ops import *
 from .outcome_ops import *
 from .outcome_space import *
 
 __all__ = (
     common.__all__
+    + protocols.__all__
     + base_issue.__all__
     + callable_issue.__all__
     + categorical_issue.__all__
     + ordinal_issue.__all__
+    + range_issue.__all__
+    + cardinal_issue.__all__
     + contiguous_issue.__all__
     + continuous_issue.__all__
+    + infinite.__all__
     + issue_ops.__all__
     + outcome_ops.__all__
     + outcome_space.__all__

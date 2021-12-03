@@ -138,9 +138,9 @@ class BaseVOIElicitor(BaseElicitor):
         """
         super().init_elicitation(preferences=preferences)
         strt_time = time.perf_counter()
-        ami = self._ami
+        nmi = self._nmi
         self.eus = np.array([_.mean() for _ in self.utility_distributions()])
-        self.offerable_outcomes = ami.outcomes
+        self.offerable_outcomes = nmi.outcomes
         if self.dynamic_query_set and not isinstance(self.strategy, EStrategy):
             raise ValueError("The strategy must be a EStrategy for VOIElicitor")
         if not self.dynamic_query_set and self.strategy is not None:
@@ -161,7 +161,7 @@ class BaseVOIElicitor(BaseElicitor):
         if self.dynamic_query_set:
             self.queries = [
                 (outcome, self.strategy.next_query(outcome), 0.0)
-                for outcome in ami.outcomes
+                for outcome in nmi.outcomes
             ]
         else:
             if self.update_related_queries:
@@ -197,9 +197,9 @@ class BaseVOIElicitor(BaseElicitor):
         if self.eus[outcome_index] < self.reserved_value:
             return None, self.reserved_value
         return (
-            self._ami.outcomes[outcome_index],
+            self._nmi.outcomes[outcome_index],
             self.expect(
-                self.preferences(self._ami.outcomes[outcome_index]), state=state
+                self.preferences(self._nmi.outcomes[outcome_index]), state=state
             ),
         )
 
@@ -457,9 +457,9 @@ class VOIElicitor(BaseVOIElicitor):
 
     def init_optimal_policy(self) -> None:
         """Gets the optimal policy given Negotiator utility_priors"""
-        ami = self._ami
-        n_outcomes = ami.n_outcomes
-        # remaining_steps = ami.remaining_steps if ami.remaining_steps is not None else ami.n_outcomes
+        nmi = self._nmi
+        n_outcomes = nmi.n_outcomes
+        # remaining_steps = nmi.remaining_steps if nmi.remaining_steps is not None else nmi.n_outcomes
         D = n_outcomes
         indices = set(list(range(n_outcomes)))
         p = self.opponent_model.acceptance_probabilities()
@@ -530,8 +530,8 @@ class VOIFastElicitor(BaseVOIElicitor):
 
     def init_optimal_policy(self) -> None:
         """Gets the optimal policy given Negotiator utility_priors"""
-        ami = self._ami
-        n_outcomes = ami.n_outcomes
+        nmi = self._nmi
+        n_outcomes = nmi.n_outcomes
         eus = -self.eus
         eu_policy = sortedlist(zip(eus, range(n_outcomes)))
         policy = np.array([_[1] for _ in eu_policy])
@@ -653,8 +653,8 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
 
     def init_optimal_policy(self) -> None:
         """Gets the optimal policy given Negotiator utility_priors"""
-        ami = self._ami
-        n_outcomes = ami.n_outcomes
+        nmi = self._nmi
+        n_outcomes = nmi.n_outcomes
         p = self.opponent_model.acceptance_probabilities()
         eus = -self.eus * p
         eu_policy = sortedlist(zip(eus, range(n_outcomes)))
@@ -717,8 +717,8 @@ class VOIOptimalElicitor(BaseElicitor):
         update_related_queries=True,
         prune=True,
         opponent_model_factory: Optional[
-            Callable[["AgentMechanismInterface"], "DiscreteAcceptanceModel"]
-        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(ami=x),
+            Callable[["NegotiatorMechanismInterface"], "DiscreteAcceptanceModel"]
+        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
     ) -> None:
         super().__init__(
             strategy=None,
@@ -759,9 +759,9 @@ class VOIOptimalElicitor(BaseElicitor):
                 f"self.__class__.__name__ does not allow the user to specify queries"
             )
         strt_time = time.perf_counter()
-        ami = self._ami
+        nmi = self._nmi
         self.eus = np.array([_.mean() for _ in self.utility_distributions()])
-        self.offerable_outcomes = ami.outcomes
+        self.offerable_outcomes = nmi.outcomes
         self.init_optimal_policy()
         self.init_query_eeus()
         self._elicitation_time += time.perf_counter() - strt_time
@@ -782,9 +782,9 @@ class VOIOptimalElicitor(BaseElicitor):
         if self.eus[outcome_index] < self.reserved_value:
             return None, self.reserved_value
         return (
-            self._ami.outcomes[outcome_index],
+            self._nmi.outcomes[outcome_index],
             self.expect(
-                self.preferences(self._ami.outcomes[outcome_index]), state=state
+                self.preferences(self._nmi.outcomes[outcome_index]), state=state
             ),
         )
 
@@ -875,7 +875,7 @@ class VOIOptimalElicitor(BaseElicitor):
             outcome=outcome,
             s=self.s,
             p=self.p,
-            n=self._ami.n_outcomes,
+            n=self._nmi.n_outcomes,
             eeu=self.current_eeu,
             eus=[-_[0] for _ in self.eu_policy],
         )
@@ -979,7 +979,7 @@ class VOIOptimalElicitor(BaseElicitor):
     def init_query_eeus(self) -> None:
         """Updates the heap eeu_query which has records of (-EEU, quesion)"""
         # todo code for creating the optimal queries
-        outcomes = self._ami.outcomes
+        outcomes = self._nmi.outcomes
         policy = [_[1] for _ in self.eu_policy]
         eus = [-_[0] for _ in self.eu_policy]
         n = len(outcomes)
@@ -1002,8 +1002,8 @@ class VOIOptimalElicitor(BaseElicitor):
 
     def init_optimal_policy(self) -> None:
         """Gets the optimal policy given Negotiator utility_priors"""
-        ami = self._ami
-        n_outcomes = ami.n_outcomes
+        nmi = self._nmi
+        n_outcomes = nmi.n_outcomes
         eus = -self.eus
         eu_policy = sortedlist(zip(eus, range(n_outcomes)))
         policy = np.array([_[1] for _ in eu_policy])
