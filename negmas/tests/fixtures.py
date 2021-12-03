@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pytest import fixture
 
 from negmas.outcomes import generate_issues, make_issue

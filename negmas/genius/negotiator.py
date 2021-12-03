@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms

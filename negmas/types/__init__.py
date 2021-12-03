@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements basice data types used to construct different entities in NegMAS
 """

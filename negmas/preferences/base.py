@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, Mapping, Union
 
 from negmas.helpers import DistributionLike

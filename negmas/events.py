@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Implements Event management"""
 import json
 import random

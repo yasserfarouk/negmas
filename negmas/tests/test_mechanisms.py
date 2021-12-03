@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from negmas.mechanisms import Mechanism
 from negmas.outcomes import Issue
 

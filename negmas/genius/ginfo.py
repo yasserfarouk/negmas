@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Keeps information about ANAC competitions and Genius Agents
 """

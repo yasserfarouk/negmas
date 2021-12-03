@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """
 Implements Stacked Alternating Offers (SAO) mechanism and basic negotiators.

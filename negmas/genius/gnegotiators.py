@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .negotiator import GeniusNegotiator
 
 __all__ = [

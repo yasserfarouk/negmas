@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements all Value-of-Information based elicitation methods.
 
