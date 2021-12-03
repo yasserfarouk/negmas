@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements basic components that can be used by `SAONegotiator` s.
 """

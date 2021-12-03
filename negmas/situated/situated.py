@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 This module defines the base classes for worlds within which multiple agents engage in situated negotiations
 

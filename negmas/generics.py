@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 r"""A set of generic classes and corresponding functions to iterate and index them.
 
 

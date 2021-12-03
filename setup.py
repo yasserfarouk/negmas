@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """A setuptools based setup module.
 See:
 https://packaging.python.org/en/latest/distributing.html

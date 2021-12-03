@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """
 Manages connections to Genius allowing NegMAS users to run Genius agents as negotiators.

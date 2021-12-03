@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Implements single text negotiation mechanisms"""
 import math
 import random

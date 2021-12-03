@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Defines basic config for NEGMAS"""
 import json
 import pathlib

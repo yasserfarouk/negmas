@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements GeniusBridge which manages connections to Genius through Py4J.
 

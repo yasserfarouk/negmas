@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements negotiators for the SAO mechanism.
 """

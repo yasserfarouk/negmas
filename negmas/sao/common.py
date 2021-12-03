@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Common data-structures for supporting the Stacked Alternating Offers Protocol
 """

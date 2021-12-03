@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements controllers for the SAO mechanism.
 """

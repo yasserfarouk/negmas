@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Implements Checkpoint functionality for easy dumping and restoration of any `NamedObject` in negmas."""
 
 import shutil

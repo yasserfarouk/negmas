@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements Java interoperability allowing parts of negmas to work smoothly
 with their Java counterparts in jnegmas

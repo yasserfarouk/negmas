@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pytest import mark
 
 from negmas import BinaryComparatorNegotiator, MappingUtilityFunction

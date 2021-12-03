@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Defines basic concepts related to outcomes
 

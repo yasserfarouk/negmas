@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Modeling self's future prospects in the negotiation.
 """
 __all__ = ["FutureUtilityRegressor"]

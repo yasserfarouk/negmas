@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # -*- coding: utf-8 -*-
 """Implements Concurrent Negotiation Mechanisms and their agents"""
 

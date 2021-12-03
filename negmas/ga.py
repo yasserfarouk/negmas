@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Implements GA-based negotiation mechanisms"""
 
 import copy

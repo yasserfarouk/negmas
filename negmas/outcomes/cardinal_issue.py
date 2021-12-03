@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from negmas.outcomes.ordinal_issue import OrdinalIssue
 
 __all__ = ["CardinalIssue"]

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Implements Stacked Alternating Offers (SAO) mechanism.
 """
