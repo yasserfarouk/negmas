@@ -54,7 +54,7 @@ class CallableIssue(Issue):
             f"Cannot generate invalid outcomes because values is given as a callable"
         )
 
-    def to_java(self):
+    def to_dict(self):
         raise ValueError("Cannot convert issues created by a callable to JAVA")
 
     def is_valid(self):

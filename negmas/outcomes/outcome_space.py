@@ -25,18 +25,19 @@ from .range_issue import RangeIssue
 __all__ = ["CartesianOutcomeSpace", "DiscreteCartesianOutcomeSpace"]
 
 
-def make_os(issues: tuple[Issue, ...], name: str = None) -> CartesianOutcomeSpace:
+def make_os(issues: Iterable[Issue], name: str = None) -> CartesianOutcomeSpace:
+    issues = tuple(issues)
     if all(_.is_discrete() for _ in issues):
         return DiscreteCartesianOutcomeSpace(issues, name=name)
     return CartesianOutcomeSpace(issues, name=name)
 
 
 class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
-    def __init__(self, issues: tuple[Issue, ...], name: str | None = None):
+    def __init__(self, issues: Iterable[Issue], name: str | None = None):
         if name is None:
             name = unique_name("os", add_time=False, sep=".")
         self.name = name
-        self.issues = issues
+        self.issues = tuple(issues)
 
     @property
     def issue_names(self) -> list[str]:
@@ -94,7 +95,7 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
 
     def to_discrete(
         self, levels: int = 10, max_cardinality: int | float = float("inf")
-    ) -> "CartesianOutcomeSpace":
+    ) -> "DiscreteCartesianOutcomeSpace":
         """
         Discretizes the outcome space by sampling `levels` values for each continuous issue.
 
@@ -171,10 +172,9 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
 class DiscreteCartesianOutcomeSpace(DiscreteOutcomeSpace, CartesianOutcomeSpace):
     # issues: list[DiscreteIssue]
 
-    def __init__(self, issues: tuple[Issue, ...], name: str | None = None):
+    def __init__(self, issues: Iterable[Issue], name: str | None = None):
         self.issues = tuple(
-            _.to_discrete(n=None if _.is_discrete() else int(_.cardinality))
-            for _ in issues
+            _.to_discrete(n=None if _.is_discrete() else 10) for _ in issues
         )
         self.name = name
 

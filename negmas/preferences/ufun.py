@@ -14,6 +14,7 @@ from negmas.generics import ienumerate, ivalues
 from negmas.helpers import PathLike, ikeys
 from negmas.outcomes import Issue, Outcome, outcome_is_valid
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 
 from .preferences import Preferences
 from .protocols import (
@@ -24,22 +25,23 @@ from .protocols import (
     PartiallyNormalizable,
     PartiallyScalable,
     Randomizable,
+    StarionaryConvertible,
+    StationaryUFun,
     UFun,
-    XmlSerializableUFun,
 )
 
-__all__ = ["UtilityFunction"]
+__all__ = ["UtilityFunction", "StationaryUtilityFunction", "InverseUtilityFunction"]
 
 
 class UtilityFunction(
-    XmlSerializableUFun,
+    Preferences,
     Randomizable,
     PartiallyNormalizable,
     PartiallyScalable,
     HasRange,
     HasReservedValue,
+    StarionaryConvertible,
     UFun,
-    Preferences,
 ):
     def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
         super().__init__(*args, **kwargs)
@@ -48,7 +50,7 @@ class UtilityFunction(
     def scale_min_for(
         self,
         to: float,
-        outcome_space: CartesianOutcomeSpace | None,
+        outcome_space: OutcomeSpace | None,
         outcomes: list[Outcome] | None,
     ) -> "UtilityFunction":
         return self.normalize_for((to, float("inf")), outcome_space, outcomes)
@@ -56,7 +58,7 @@ class UtilityFunction(
     def scale_max_for(
         self,
         to: float,
-        outcome_space: CartesianOutcomeSpace | None,
+        outcome_space: OutcomeSpace | None,
         outcomes: list[Outcome] | None,
     ) -> "UtilityFunction":
         return self.normalize_for((float("-inf"), to), outcome_space, outcomes)
@@ -64,7 +66,7 @@ class UtilityFunction(
     def normalize_for(
         self,
         to: Tuple[float, float] = (0.0, 1.0),
-        outcome_space: CartesianOutcomeSpace | None = None,
+        outcome_space: OutcomeSpace | None = None,
         outcomes: list[Outcome] | None = None,
     ) -> "UtilityFunction":
         """
@@ -199,7 +201,7 @@ class UtilityFunction(
             xml_str = f.read()
             return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
-    def to_genius(self, file_name: PathLike, issues: List[Issue] = None, **kwargs):
+    def to_genius(self, file_name: PathLike, issues: Iterable[Issue] = None, **kwargs):
         """Exports a utility function to a GENIUS XML file.
 
         Args:
@@ -233,7 +235,7 @@ class UtilityFunction(
 
         """
         with open(file_name, "w") as f:
-            f.write(self.to_xml_str(outcome_space=outcome_space, **kwargs))
+            f.write(self.to_xml_str(issues=issues, **kwargs))
 
     def to_xml_str(self, issues: List[Issue] = None, discount_factor=None) -> str:
         """Exports a utility function to a well formatted string"""
@@ -242,7 +244,11 @@ class UtilityFunction(
                 "ufun has no xml() member and cannot be saved to XML string"
             )
         if issues is None:
-            issues = self.outcome_space
+            if not isinstance(self.outcome_space, IndependentIssuesOS):
+                raise ValueError(
+                    f"Cannot convert to xml because the outcome-space of the ufun is not a cartesian outcome space"
+                )
+            issues = self.outcome_space.issues
 
         if issues is not None:
             n_issues = len(issues)
@@ -675,7 +681,9 @@ class UtilityFunction(
                     if umax != umin:
                         utils = [(_ - umin) / (umax - umin) for _ in utils]
                 u = MappingUtilityFunction(
-                    dict(zip(names, utils)), name=name, issues=ordered_issues
+                    dict(zip(names, utils)),
+                    name=name,
+                    outcome_space=CartesianOutcomeSpace(ordered_issues),
                 )
             else:
                 utils = None
@@ -735,13 +743,15 @@ class UtilityFunction(
                     if len(found_issues) == len(linear_issues):
                         # todo correct this
                         u = LinearUtilityFunction(
-                            weights=ws, issues=ordered_issues, biases=None
+                            weights=ws,
+                            outcome_space=CartesianOutcomeSpace(ordered_issues),
+                            biases=None,
                         )
                     else:
                         u = LinearUtilityAggregationFunction(
                             values=found_issues,
                             weights=ws,
-                            issues=ordered_issues,
+                            outcome_space=CartesianOutcomeSpace(ordered_issues),
                         )
                 else:
                     if len(weights) > 0:
@@ -762,7 +772,7 @@ class UtilityFunction(
                             zip([(_,) for _ in ikeys(found_issues[first_key])], utils)
                         ),
                         name=name,
-                        issues=ordered_issues,
+                        outcome_space=CartesianOutcomeSpace(ordered_issues),
                     )
 
         # add real_valued issues
@@ -814,7 +824,7 @@ class UtilityFunction(
                     issue["fun_final"] = lambda x: w * issue["fun"](x) / factor - offset
             u_real = LinearUtilityAggregationFunction(
                 values={_["key"]: _["fun_final"] for _ in real_issues.values()},
-                issues=ordered_issues,
+                outcome_space=CartesianOutcomeSpace(ordered_issues),
             )
             if u is None:
                 u = u_real
@@ -998,6 +1008,23 @@ class UtilityFunction(
                 u1 /= u1.max()
             ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1))))
         return ufuns
+
+    def is_stationary(self) -> bool:
+        return False
+
+    def is_non_stationary(self) -> bool:
+        return False
+
+
+class StationaryUtilityFunction(UtilityFunction, StationaryUFun):
+    def is_stationary(self) -> bool:
+        return False
+
+    def is_non_stationary(self) -> bool:
+        return False
+
+    def to_stationary(self):
+        return self
 
 
 class InverseUtilityFunction(MultiInverseUFun, InverseUFun):

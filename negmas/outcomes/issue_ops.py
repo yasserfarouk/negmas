@@ -340,7 +340,7 @@ def issues_from_xml_str(
     safe_parsing=True,
     n_discretization: int | None = None,
     max_cardinality: int = 1_000_000,
-) -> tuple[tuple[Issue, ...] | None, list[dict] | None]:
+) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
     """Exports a list/dict of issues from a GENIUS XML file.
 
     Args:
@@ -616,7 +616,7 @@ def issues_from_genius(
     safe_parsing=True,
     n_discretization: int | None = None,
     max_cardinality: int = 1_000_000,
-) -> tuple[tuple[Issue, ...] | None, list[str] | None]:
+) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
     """Imports a the domain issues from a GENIUS XML file.
 
     Args:

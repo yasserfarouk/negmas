@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, Iterable
 
-from .java import to_dict, to_java
+from negmas.outcomes.protocols import DiscreteOutcomeSpace
 
 # from .actors.thread_actors import ThreadProxy
 
@@ -22,7 +22,6 @@ __all__ = [
     "NegotiatorInfo",
     "NegotiatorMechanismInterface",
     "MechanismState",
-    "_ShadowAgentMechanismInterface",
 ]
 
 
@@ -142,16 +141,11 @@ class NegotiatorMechanismInterface:
     _mechanism: "Mechanism" | None = None
 
     @property
-    def issue_names(self):
-        """Returns issue names"""
-        return [_.name for _ in self.outcome_space]
-
-    @property
     def params(self):
         """Returns the parameters used to initialize the mechanism."""
         return self._mechanism.params
 
-    def random_outcomes(self, n: int = 1) -> list["Outcome"]:
+    def random_outcomes(self, n: int = 1) -> Iterable["Outcome"]:
         """
         A set of random outcomes from the outcome-space of this negotiation
 
@@ -179,18 +173,21 @@ class NegotiatorMechanismInterface:
         """
         return self._mechanism.discrete_outcomes(n_max=max_cardinality)
 
-    def outcome_index(self, outcome: "Outcome") -> int | None:
-        """
-        The index of an outcome
+    @property
+    def issues(self) -> tuple[Issue] | None:
+        os = self._mechanism.outcome_space
+        if hasattr(os, "issues"):
+            return os.issues  # type: ignore
+        return None
 
-        Args:
-            outcome: The outcome asked about
-
-        Returns:
-
-            int: The index of this outcome in the list of outcomes. Only valid if n_outcomes is finite and not None.
-        """
-        return self._mechanism.outcome_index(outcome)
+    @property
+    def outcomes(self) -> Iterable[Outcome] | None:
+        """All outcomes for discrete outcome spaces or None for continuous outcome spaces. See `discrete_outcomes`"""
+        return (
+            self._mechanism.outcome_space.enumerate()
+            if isinstance(self._mechanism.outcome_space, DiscreteOutcomeSpace)
+            else None
+        )
 
     @property
     def participants(self) -> list[NegotiatorInfo]:
@@ -283,40 +280,3 @@ class NegotiatorMechanismInterface:
     def asdict(self):
         """Converts the object to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
-
-
-class _ShadowAgentMechanismInterface:
-    """Used to represent an AMI to Java."""
-
-    def randomOutcomes(self, n: int):
-        return to_java(self.shadow.random_outcomes(n))
-
-    def discreteOutcomes(self, nMax: int):
-        return to_java(self.shadow.discrete_outcomes(max_cardinality=nMax))
-
-    def outcomeIndex(self, outcome):
-        return to_java(self.shadow.outcome_index(outcome))
-
-    def getParticipants(self):
-        return to_java(self.shadow.participants)
-
-    def getOutcomes(self):
-        return to_java(self.shadow.outcomes)
-
-    def getState(self):
-        return to_java(self.shadow.state)
-
-    def getRequirements(self):
-        return to_java(self.shadow.requirements)
-
-    def getNNegotiators(self):
-        return self.shadow.n_negotiators
-
-    def __init__(self, nmi: NegotiatorMechanismInterface):
-        self.shadow = nmi
-
-    def to_java(self):
-        return to_dict(self.shadow)
-
-    class Java:
-        implements = ["jnegmas.common.AgentMechanismInterface"]

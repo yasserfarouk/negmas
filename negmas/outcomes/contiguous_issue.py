@@ -104,7 +104,7 @@ class ContiguousIssue(RangeIssue):
 
         return random.randint(self.max_value + 1, 2 * self.max_value)
 
-    def to_java(self):
+    def to_dict(self):
         if self._values is None:
             return None
 

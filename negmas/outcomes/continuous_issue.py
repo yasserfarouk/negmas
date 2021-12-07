@@ -80,7 +80,7 @@ class ContinuousIssue(RangeIssue):
             random.random() * (self.max_value - self.min_value) + self.max_value * 1.1
         )
 
-    def to_java(self):
+    def to_dict(self):
         if self._values is None:
             return None
 

@@ -860,3 +860,4 @@ class HasRange(StationaryCrisp, Protocol):
 class IndIssues(BasePref, Protocol):
     values: list[UFun]
     weights: list[float]
+    issues: list[Issue]
