@@ -244,7 +244,7 @@ def pareto_frontier(
 
 def normalize(
     ufun: UtilityFunction,
-    outcomes: Collection[Outcome],
+    outcomes: Iterable[Outcome],
     rng: Tuple[float | None, float | None] = (0.0, 1.0),
     epsilon: float = 1e-6,
     infeasible_cutoff: float = float("-inf"),

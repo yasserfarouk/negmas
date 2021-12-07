@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Implements Checkpoint functionality for easy dumping and restoration of any `NamedObject` in negmas."""
+
+from __future__ import annotations
 
 import shutil
 from os import PathLike
@@ -120,7 +120,7 @@ class CheckpointRunner:
         )
         self.__sorted_steps = sorted(list(self.__files.keys()))
         self._step_index = -1
-        self.__object: NamedObject = None
+        self.__object: NamedObject | None = None
         self.__object_type = object_type
         self.__callbacks = []
         if callback is not None:
@@ -253,7 +253,7 @@ class CheckpointRunner:
 
         """
         if step is None:
-            return
+            return None
         step_index = np.searchsorted(self.__sorted_steps, step, side="left")
         if step_index > 0 and self.__sorted_steps[step_index - 1] == step:
             step_index -= 1

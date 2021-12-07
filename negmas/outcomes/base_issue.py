@@ -221,7 +221,7 @@ class Issue(NamedObject):
         )
 
     @abstractmethod
-    def to_java(self):
+    def to_dict(self):
         ...
 
     @abstractmethod
@@ -353,7 +353,7 @@ class DiscreteIssue(Issue):
             replace=with_replacement,
         ).tolist()
 
-    def to_java(self):
+    def to_dict(self):
         if self._values is None:
             return None
 

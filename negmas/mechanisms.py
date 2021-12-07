@@ -11,23 +11,23 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from os import PathLike
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Collection, Iterable, Optional, Set, Union
 
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import MechanismState, NegotiatorInfo, NegotiatorMechanismInterface
 from negmas.events import Event, EventSource
-from negmas.generics import ikeys
 from negmas.genius import DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
-from negmas.outcomes import Outcome, sample_issues
-from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.outcomes import Outcome
 from negmas.outcomes.protocols import OutcomeSpace
-from negmas.preferences import MappingUtilityFunction, UtilityFunction, pareto_frontier
+from negmas.preferences import pareto_frontier
 from negmas.types import NamedObject
 
-__all__ = ["Mechanism", "Protocol", "MechanismRoundResult"]
+if TYPE_CHECKING:
+    from negmas.preferences import Preferences
+
+__all__ = ["Mechanism", "MechanismRoundResult"]
 
 
 @dataclass
@@ -59,7 +59,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     Override the `round` function of this class to implement a round of your mechanism
 
     Args:
-        issues: list of issues to use (optional as you can pass `outcomes`)
+        outcome_space: The negotiation agenda
         outcomes: list of outcomes (optional as you can pass `issues`). If an int then it is the number of outcomes
         n_steps: Number of rounds allowed (None means infinity)
         time_limit: Number of real seconds allowed (None means infinity)
@@ -129,7 +129,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         negotiator_time_limit = (
             negotiator_time_limit if negotiator_time_limit is not None else float("inf")
         )
-        self.outcome_space = outcome_space
 
         # parameters fixed for all runs
 
@@ -175,7 +174,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._error = False
         self._error_details = ""
         self._waiting = False
-        self.__discrete_os = outcome_space.to_discrete(max_cardinality=100_000)
+        self.__discrete_os = None
+        self.__discrete_outcomes = None
         self._enable_callbacks = enable_callbacks
 
         self.agents_of_role = defaultdict(list)
@@ -204,13 +204,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Checks whether the outcome is valid given the issues"""
         return outcome in self.nmi.outcome_space
 
-    def discrete_outcomes(self, n_max: int = None) -> Iterable["Outcome"]:
+    def discrete_outcomes(self, n_max: int = None) -> list["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
         Args:
             n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
-            and *100* if any of the issues was continuous
+            and *10_000* if any of the issues was continuous
 
         Returns:
 
@@ -218,19 +218,16 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         """
         if self.outcomes is not None:
-            return self.outcomes
-        if self.__discrete_outcomes is not None:
+            return list(self.outcomes)
+        if self.__discrete_outcomes:
             return self.__discrete_outcomes
-        if n_max is None or self.outcome_space.cardinality <= n_max:
-            return self.outcome_space.enumerate_or_sample(max_cardinality=n_max)
-        self.__discrete_outcomes = self.outcome_space.sample(
-            n_outcomes=n_max if n_max else 10_000,
-            with_replacement=False,
-            fail_if_not_enough=False,
+        self.__discrete_os = self.outcome_space.to_discrete(
+            levels=5, max_cardinality=n_max if n_max else float("inf")
         )
+        self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
         return self.__discrete_outcomes
 
-    def random_outcomes(self, n: int = 1) -> list["Outcome"]:
+    def random_outcomes(self, n: int = 1) -> Iterable["Outcome"]:
         """Returns random offers.
 
         Args:
@@ -245,13 +242,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 - Sampling is done without replacement (i.e. returned outcomes are unique).
 
         """
-        if self.nmi.outcome_space is None or len(self.nmi.outcome_space) == 0:
-            raise ValueError("I do not have any issues to generate offers from")
-        return sample_issues(
-            issues=self.issues,
-            n_outcomes=n,
-            with_replacement=False,
-            fail_if_not_enough=False,
+        return self.outcome_space.sample(
+            n, with_replacement=False, fail_if_not_enough=False
         )
 
     @property
@@ -267,6 +259,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns remaining time in seconds. None if no time limit is given."""
         if self.nmi.time_limit == float("+inf"):
             return None
+        if not self._start_time:
+            return self.nmi.time_limit
 
         limit = self.nmi.time_limit - (time.perf_counter() - self._start_time)
         if limit < 0.0:
@@ -332,21 +326,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if negotiator in self._negotiators:
             return False
 
-        if isinstance(preferences, Iterable) and not isinstance(
-            preferences, UtilityFunction
-        ):
-            if isinstance(preferences, dict):
-                preferences = MappingUtilityFunction(mapping=preferences, nmi=self.nmi)
-            else:
-                preferences = MappingUtilityFunction(
-                    mapping=dict(zip(self.outcomes, preferences)), nmi=self.nmi
-                )
-
         if role is None:
             role = "agent"
 
         if negotiator.join(
-            nmi=self._get_ami(negotiator, role),
+            nmi=self._get_nmi(negotiator, role),
             state=self.state,
             preferences=preferences,
             role=role,
@@ -357,13 +341,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._roles.append(role)
             self.role_of_agent[negotiator.uuid] = role
             self.agents_of_role[role].append(negotiator)
-            if negotiator.ufun is not None:
-                if hasattr(negotiator.ufun, "nmi"):
-                    negotiator.ufun.nmi = self.nmi
             return True
         return None
 
-    def get_negotiator(self, nid: str) -> Optional["SAONegotiator"]:
+    def get_negotiator(self, nid: str) -> Optional["Negotiator"]:
         """Returns the negotiator with the given ID if present in the negotiation"""
         return self._negotiator_map.get(nid, None)
 
@@ -387,7 +368,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._negotiator_map.pop(negotiator.id)
         self._negotiator_index.pop(negotiator.id)
         if self._enable_callbacks:
-            negotiator.on_leave(self.nmi, **kwargs)
+            negotiator.on_leave(self.nmi.state)
         return True
 
     def add_requirements(self, requirements: dict) -> None:
@@ -555,7 +536,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self.nmi.n_outcomes
 
     @property
-    def issues(self):
+    def outcome_space(self):
         return self.nmi.outcome_space
 
     @property
@@ -792,7 +773,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @classmethod
     def runall(
         cls, mechanisms: list["Mechanism"], keep_order=True, method="serial"
-    ) -> list[MechanismState]:
+    ) -> list[MechanismState | None]:
         """
         Runs all mechanisms
 
@@ -804,10 +785,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         Returns:
             - list of states of all mechanisms after completion
+            - None for any such states indicates disagreements
 
         """
         completed = [_ is None for _ in mechanisms]
-        states = [None] * len(mechanisms)
+        states: list[MechanismState | None] = [None] * len(mechanisms)
         indices = list(range(len(list(mechanisms))))
         if method == "serial":
             while not all(completed):
@@ -997,16 +979,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return dict()
 
-    def _get_ami(
+    def _get_nmi(
         self, negotiator: Negotiator, role: str
     ) -> NegotiatorMechanismInterface:
         return self.nmi
-
-    @property
-    def issue_names(self):
-        """Returns issue names"""
-        return [_.name for _ in self.issues]
-
-
-Protocol = Mechanism
-"""An alias for `Mechanism`"""

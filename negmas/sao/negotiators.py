@@ -1066,31 +1066,5 @@ class PassThroughSAONegotiator(SAONegotiator):
         return False
 
 
-def _to_java_response(response: ResponseType) -> int:
-    if response == ResponseType.ACCEPT_OFFER:
-        return 0
-    if response == ResponseType.REJECT_OFFER:
-        return 1
-    if response == ResponseType.END_NEGOTIATION:
-        return 2
-    if response == ResponseType.NO_RESPONSE:
-        return 3
-    raise ValueError(f"Unknown response{response}")
-
-
-def _from_java_response(response: int) -> ResponseType:
-    if response == 0:
-        return ResponseType.ACCEPT_OFFER
-    if response == 1:
-        return ResponseType.REJECT_OFFER
-    if response == 2:
-        return ResponseType.END_NEGOTIATION
-    if response == 3:
-        return ResponseType.NO_RESPONSE
-    raise ValueError(
-        f"Unknown response type {response} returned from the Java underlying negotiator"
-    )
-
-
 SimpleTitForTatNegotiator = NaiveTitForTatNegotiator
 """A simple tit-for-tat negotiator"""

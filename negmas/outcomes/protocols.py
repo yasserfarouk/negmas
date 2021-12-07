@@ -2,15 +2,29 @@ from __future__ import annotations
 
 import random
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Collection, Container, Iterable, Protocol
+from typing import (
+    TYPE_CHECKING,
+    Collection,
+    Container,
+    Iterable,
+    Protocol,
+    runtime_checkable,
+)
 
 if TYPE_CHECKING:
+    from .base_issue import DiscreteIssue, Issue
     from .common import Outcome
     from .outcome_space import CartesianOutcomeSpace
 
-__all__ = ["OutcomeSpace", "DiscreteOutcomeSpace"]
+__all__ = [
+    "OutcomeSpace",
+    "DiscreteOutcomeSpace",
+    "IndependentIssuesOS",
+    "IndependentDiscreteIssuesOS",
+]
 
 
+@runtime_checkable
 class OutcomeSpace(Container, Protocol):
     """
     The base protocol for all outcome spaces.
@@ -27,10 +41,6 @@ class OutcomeSpace(Container, Protocol):
     @abstractmethod
     def cardinality(self) -> int | float:
         """The space cardinality = the number of outcomes"""
-
-    @abstractmethod
-    def is_discrete(self) -> bool:
-        """Checks whether there are no continua components of the space"""
 
     @abstractmethod
     def is_numeric(self) -> bool:
@@ -98,10 +108,15 @@ class OutcomeSpace(Container, Protocol):
         """Checks whether the space is finite"""
         return self.is_discrete()
 
+    def is_discrete(self) -> bool:
+        """Checks whether there are no continua components of the space"""
+        return isinstance(self, DiscreteOutcomeSpace)
+
     def __hash__(self) -> int:
         """All outcome spaces must be hashable"""
 
 
+@runtime_checkable
 class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
     """
     The base protocol for all outcome spaces with a finite number of items.
@@ -196,3 +211,13 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
             max_cardinality: The maximum number of outcomes in the resulting space
             kwargs: Any extra agruments to limit individual issues for example (must have a default doing nothing)
         """
+
+
+@runtime_checkable
+class IndependentIssuesOS(Protocol):
+    issues: tuple[Issue]
+
+
+@runtime_checkable
+class IndependentDiscreteIssuesOS(Protocol):
+    issues: tuple[DiscreteIssue]

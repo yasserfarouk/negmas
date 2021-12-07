@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from os import PathLike
 from pathlib import Path
 from typing import Any
 
@@ -143,7 +144,7 @@ class NamedObject:
 
     def checkpoint(
         self,
-        path: Path | str,
+        path: PathLike,
         file_name: str = None,
         info: dict[str, Any] = None,
         exist_ok: bool = False,

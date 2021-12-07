@@ -8,6 +8,12 @@ from negmas.generics import GenericMapping
 from negmas.helpers import get_full_type_name, make_range
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.outcomes.protocols import (
+    IndependentDiscreteIssuesOS,
+    IndependentIssuesOS,
+    OutcomeSpace,
+)
 from negmas.outcomes.range_issue import RangeIssue
 from negmas.preferences.mapping import MappingUtilityFunction
 from negmas.preferences.protocols import (
@@ -19,7 +25,7 @@ from negmas.preferences.protocols import (
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .ufun import UtilityFunction
+from .ufun import StationaryUtilityFunction, UtilityFunction
 
 __all__ = ["LinearUtilityAggregationFunction", "LinearUtilityFunction"]
 
@@ -51,7 +57,12 @@ def _random_mapping(issue: "Issue", normalized=False):
 
 
 class LinearUtilityFunction(
-    UtilityFunction, IndIssues, XmlSerializable, Scalable, Normalizable, StationaryCrisp
+    StationaryUtilityFunction,
+    IndIssues,
+    XmlSerializable,
+    Scalable,
+    Normalizable,
+    StationaryCrisp,
 ):
     r"""
     A linear utility function for multi-issue negotiations.
@@ -96,9 +107,15 @@ class LinearUtilityFunction(
         self,
         weights: dict[str, float] | list[float] | None = None,
         bias: float = 0,
+        *args,
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.outcome_space, IndependentDiscreteIssuesOS):
+            raise ValueError(
+                f"Cannot create {self.type} ufun with an outcomespace without indpendent issues"
+            )
+        self.issues = self.outcome_space.issues
         if weights is None:
             if not self.issues:
                 raise ValueError(
@@ -262,13 +279,9 @@ class LinearUtilityFunction(
 
         Args:
             to: The value to scale to
-            issues: The outcome space in which to do the scaling. If not given
-                    the whole outcmoe space of the ufun is used
-            outcomes: A set of outcomes to limit our attention to. If not given,
-                      the whole ufun is scaled
         """
         issues = self.issues
-        mn, _ = self.utility_range(issues)
+        mn, _ = self.utility_range(self.outcome_space)
         if abs(mn) < 1e-10:
             if abs(to) < 1e-10:
                 return self
@@ -291,13 +304,9 @@ class LinearUtilityFunction(
 
         Args:
             to: The value to scale to
-            issues: The outcome space in which to do the scaling. If not given
-                    the whole outcmoe space of the ufun is used
-            outcomes: A set of outcomes to limit our attention to. If not given,
-                      the whole ufun is scaled
         """
         issues = self.issues
-        _, mx = self.utility_range(issues)
+        _, mx = self.utility_range(self.outcome_space)
         if abs(mx) < 1e-10:
             if abs(to) < 1e-10:
                 return self
@@ -314,7 +323,7 @@ class LinearUtilityFunction(
     def normalize_for(
         self,
         to: tuple[float, float] = (0.0, 1.0),
-        issues: list[Issue] | None = None,
+        outcome_space: OutcomeSpace | None = None,
         outcomes: list[Outcome] | None = None,
     ) -> "IndIssues":
         """
@@ -334,8 +343,8 @@ class LinearUtilityFunction(
         infeasible_cutoff: float = float("-inf")
         epsilon: float = 1e-6
         max_cardinality: int = 1000
-        if not issues:
-            issues = self.issues
+        if not outcome_space:
+            outcome_space = self.outcome_space
         if to[0] is None and to[1] is None:
             return self
 
@@ -344,7 +353,7 @@ class LinearUtilityFunction(
         if max_only and min_only:
             return self
         mn, mx = self.utility_range(
-            issues, outcomes, infeasible_cutoff, max_cardinality
+            outcome_space, outcomes, infeasible_cutoff, max_cardinality
         )
         if mn < infeasible_cutoff:
             warnings.warn(
@@ -400,7 +409,9 @@ class LinearUtilityFunction(
                 from negmas.preferences.const import ConstUFun
 
                 return ConstUFun(
-                    to[1] if not min_only else to[0], issues=issues, name=self.name
+                    to[1] if not min_only else to[0],
+                    outcome_space=outcome_space,
+                    name=self.name,
                 )
             else:
                 scale = (to[1] - to[0]) / (mx - mn)
@@ -410,11 +421,13 @@ class LinearUtilityFunction(
             )
         bias = to[1] - scale * mx + self.bias * scale
         weights = [_ * scale for _ in self.weights]
-        return LinearUtilityFunction(weights, bias, issues=issues, name=self.name)
+        return LinearUtilityFunction(
+            weights, bias, outcome_space=outcome_space, name=self.name
+        )
 
     def extreme_outcomes(
         self,
-        issues: list[Issue] = None,
+        outcome_space: OutcomeSpace = None,
         outcomes: list[Outcome] = None,
         infeasible_cutoff: float = float("-inf"),
         max_cardinality=1000,
@@ -435,17 +448,23 @@ class LinearUtilityFunction(
         # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
 
         # TODO test this method and add other methods for utility operations
-        if issues is None:
-            issue = self.issues
-        if issues is not None:
+        if outcome_space is None:
+            outcome_space = self.outcome_space
+
+        if outcome_space is not None:
+            if not isinstance(outcome_space, IndependentIssuesOS):
+                return super().extreme_outcomes(
+                    outcome_space, outcomes, infeasible_cutoff, max_cardinality
+                )
             if outcomes is not None:
                 warnings.warn(
                     f"Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them"
                 )
                 super().extreme_outcomes(
-                    issues, outcomes, infeasible_cutoff, max_cardinality
+                    outcome_space, outcomes, infeasible_cutoff, max_cardinality  # type: ignore
                 )
             uranges = []
+            issues = self.issues
             for issue in issues:
                 mx, mn = float("-inf"), float("inf")
                 for v in issue.value_generator(n=max_cardinality):
@@ -467,11 +486,18 @@ class LinearUtilityFunction(
             return tuple(worst_outcome), tuple(best_outcome)
 
         return super().extreme_outcomes(
-            issues, outcomes, infeasible_cutoff, max_cardinality
+            outcome_space, outcomes, infeasible_cutoff, max_cardinality
         )
 
 
-class LinearUtilityAggregationFunction(UtilityFunction):
+class LinearUtilityAggregationFunction(
+    StationaryUtilityFunction,
+    IndIssues,
+    XmlSerializable,
+    Scalable,
+    Normalizable,
+    StationaryCrisp,
+):
     r"""A linear aggregation utility function for multi-issue negotiations.
 
     Models a linear utility function using predefined weights:\.
@@ -537,11 +563,17 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         self,
         values: Union[MutableMapping[Any, GenericMapping], Sequence[GenericMapping]],
         weights: Optional[Union[Mapping[Any, float], Sequence[float]]] = None,
+        *args,
         **kwargs,
     ) -> None:
         from negmas.preferences.mapping import MappingUtilityFunction
 
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.outcome_space, IndependentIssuesOS):
+            raise ValueError(
+                f"Cannot create {self.type} ufun with an outcomespace without indpendent issues"
+            )
+        self.issues = self.outcome_space.issues
         if weights is None:
             weights = [1.0] * len(values)
         if isinstance(values, dict):
@@ -563,12 +595,12 @@ class LinearUtilityAggregationFunction(UtilityFunction):
                 for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
             ]
         self.values = [
-            MappingUtilityFunction(_, issues=[i])
+            MappingUtilityFunction(_, outcome_space=CartesianOutcomeSpace([i]))
             if not isinstance(_, UtilityFunction)
             else _
             for _, i in zip(values, self.issues)
         ]
-        self.weights = weights
+        self.weights = weights  # type: ignore
 
     def eval(self, offer: Optional["Outcome"]) -> float | None:
         if offer is None:
@@ -683,7 +715,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
 
     def extreme_outcomes(
         self,
-        issues: list[Issue] = None,
+        outcome_space: OutcomeSpace = None,
         outcomes: list[Outcome] = None,
         infeasible_cutoff: float = float("-inf"),
         max_cardinality=1000,
@@ -704,17 +736,25 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         # The minimum and maximum must be at one of the edges of the outcome space. Just enumerate them
 
         # TODO test this method and add other methods for utility operations
-        if issues is None:
-            issue = self.issues
-        if issues is not None:
+        if outcome_space is None:
+            outcome_space = self.outcome_space
+        if outcome_space is not None:
+            if not isinstance(outcome_space, IndependentIssuesOS):
+                return super().extreme_outcomes(
+                    outcome_space, outcomes, infeasible_cutoff, max_cardinality
+                )
             if outcomes is not None:
                 warnings.warn(
                     f"Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them"
                 )
                 super().extreme_outcomes(
-                    issues, outcomes, infeasible_cutoff, max_cardinality
+                    outcome_space,
+                    outcomes,
+                    infeasible_cutoff,
+                    max_cardinality,  # type:ignore
                 )
             uranges, vranges = [], []
+            issues = outcome_space.issues
             for i, issue in enumerate(issues):
                 u = self.values[i]
                 mx, mn = float("-inf"), float("inf")
@@ -745,7 +785,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
             return tuple(worst_outcome), tuple(best_outcome)
 
         return super().extreme_outcomes(
-            issues, outcomes, infeasible_cutoff, max_cardinality
+            outcome_space, outcomes, infeasible_cutoff, max_cardinality
         )
 
     @classmethod
@@ -779,7 +819,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
     def normalize_for(
         self,
         to: tuple[float, float] = (0.0, 1.0),
-        issues: list[Issue] | None = None,
+        outcome_space: OutcomeSpace | None = None,
         outcomes: list[Outcome] | None = None,
         normalize_weights: bool = True,
         change_weights: bool = False,
@@ -787,8 +827,8 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         infeasible_cutoff = float("-inf")
         max_cardinality = 10_000
         epsilon = 1e-6
-        if not issues:
-            issues = self.issues
+        if not outcome_space:
+            outcome_space = self.outcome_space
         if not isinstance(to, Iterable):
             to = (to, to)
         if to[0] is None and to[1] is None:
@@ -796,7 +836,7 @@ class LinearUtilityAggregationFunction(UtilityFunction):
         max_only = to[0] is None or to[0] == float("-inf")
         min_only = to[1] is None or to[1] == float("inf")
         mn, mx = self.utility_range(
-            issues, outcomes, infeasible_cutoff, max_cardinality
+            outcome_space, outcomes, infeasible_cutoff, max_cardinality
         )
         if mn < infeasible_cutoff:
             warnings.warn(

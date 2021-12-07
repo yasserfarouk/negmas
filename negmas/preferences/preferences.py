@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 
 from negmas.helpers import snake_case
 from negmas.outcomes import Outcome
-from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.outcomes.base_issue import Issue
+from negmas.outcomes.outcome_space import make_os
+from negmas.outcomes.protocols import OutcomeSpace
 from negmas.types import NamedObject
 
 from .protocols import BasePref, HasReservedOutcome
@@ -19,14 +21,17 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
 
     def __init__(
         self,
-        outcome_space: CartesianOutcomeSpace,
         *args,
+        outcome_space: OutcomeSpace = None,
+        issues: tuple[Issue] = None,
         reserved_outcome: Outcome = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.reserved_outocme = reserved_outcome
-        self.outcome_space = outcome_space
+        self.outcome_space: OutcomeSpace | None = (
+            outcome_space if issues is None else make_os(issues, name=self.name)
+        )
 
     @property
     def type(self) -> str:

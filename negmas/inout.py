@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence, Tuple, Type
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Type
 
 from negmas.outcomes.categorical_issue import CategoricalIssue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
@@ -85,7 +85,7 @@ class Domain:
         return len(self.agenda.issues)
 
     @property
-    def issues(self) -> list[Issue]:
+    def issues(self) -> tuple[Issue, ...]:
         return self.agenda.issues
 
     @property
@@ -151,19 +151,22 @@ class Domain:
         args = self.mechanism_params
         args.update(kwargs)
         m = self.mechanism_type(
-            issues=self.agenda.issues, n_steps=n_steps, time_limit=time_limit, **args
+            outcome_space=self.agenda, n_steps=n_steps, time_limit=time_limit, **args
         )
         if not negotiators:
             return m
-        if isinstance(negotiators, Callable):
-            negotiators = [negotiators() for _ in range(self.n_negotiators)]
-        if len(self.ufuns) != len(negotiators) or len(negotiators) < 1:
+        negs: list[Negotiator]
+        if not isinstance(negotiators, Iterable):
+            negs = [negotiators() for _ in range(self.n_negotiators)]
+        else:
+            negs = list(negotiators)
+        if len(self.ufuns) != len(negs) or len(negs) < 1:
             raise ValueError(
-                f"Invalid ufuns ({self.ufuns}) or negotiators ({self.negotiators})"
+                f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})"
             )
         if not roles:
-            roles = ["agent"] * len(negotiators)
-        for n, r, u in zip(negotiators, roles, self.ufuns):
+            roles = ["agent"] * len(negs)
+        for n, r, u in zip(negs, roles, self.ufuns):
             m.add(n, preferences=u, role=r)
         return m
 
@@ -182,10 +185,11 @@ class Domain:
             epsilon: A small number specifying the resolution
             infeasible_cutoff: A value under which any utility is considered infeasible and is not used in normalization
         """
+        da = self.agenda.to_discrete(levels=10, max_cardinality=100_000)
         for _ in self.ufuns:
             _ = normalize(
                 _,
-                outcomes=self.agenda.discrete_outcomes(),
+                outcomes=da.enumerate(),
                 rng=rng,
                 infeasible_cutoff=infeasible_cutoff,
                 epsilon=epsilon,
@@ -194,7 +198,7 @@ class Domain:
         self.ufuns = tuple(
             normalize(
                 _,
-                outcomes=self.agenda.discrete_outcomes(),
+                outcomes=da.enumerate(),
                 rng=rng,
                 infeasible_cutoff=infeasible_cutoff,
                 epsilon=epsilon,
@@ -226,7 +230,7 @@ class Domain:
 
     @staticmethod
     def from_genius_folder(
-        path: PathLike | str,
+        path: PathLike,
         force_numeric=False,
         ignore_discount=False,
         ignore_reserved=False,
@@ -242,8 +246,8 @@ class Domain:
 
     @staticmethod
     def from_genius_files(
-        domain: PathLike | str,
-        ufuns: List[PathLike | str],
+        domain: PathLike,
+        ufuns: Iterable[PathLike],
         force_numeric=False,
         ignore_discount=False,
         ignore_reserved=False,
@@ -251,7 +255,7 @@ class Domain:
     ) -> "Domain" | None:
         return load_genius_domain(
             domain,
-            [str(_) for _ in ufuns],
+            [_ for _ in ufuns],
             force_numeric=force_numeric,
             safe_parsing=safe_parsing,
             ignore_discount=ignore_discount,
@@ -262,11 +266,10 @@ class Domain:
 
 
 def get_domain_issues(
-    domain_file_name: str,
-    max_cardinality: int = 1_000_000,
+    domain_file_name: PathLike,
     n_discretization: Optional[int] = None,
     safe_parsing=False,
-) -> List[Issue]:
+) -> tuple[Issue, ...] | None:
     """
     Returns the issues of a given XML domain (Genius Format)
 
@@ -280,9 +283,8 @@ def get_domain_issues(
         List of issues
 
     """
-    issues, issues_details = None, None
+    issues = None
     if domain_file_name is not None:
-        domain_file_name = str(domain_file_name)
         issues, _ = issues_from_genius(
             domain_file_name,
             safe_parsing=safe_parsing,
@@ -293,7 +295,7 @@ def get_domain_issues(
 
 def load_genius_domain(
     domain_file_name: PathLike,
-    utility_file_names: Optional[List[str]] = None,
+    utility_file_names: Optional[Iterable[PathLike]] = None,
     force_numeric=False,
     ignore_discount=False,
     ignore_reserved=False,
@@ -318,7 +320,6 @@ def load_genius_domain(
 
     issues = None
     if domain_file_name is not None:
-        domain_file_name = str(domain_file_name)
         issues, _ = issues_from_genius(
             domain_file_name,
             safe_parsing=safe_parsing,
@@ -328,7 +329,6 @@ def load_genius_domain(
     agent_info = []
     if utility_file_names is None:
         utility_file_names = []
-    utility_file_names = [str(_) for _ in utility_file_names]
     for ufname in utility_file_names:
         utility, discount_factor = UtilityFunction.from_genius(
             file_name=ufname,
@@ -364,10 +364,12 @@ def load_genius_domain(
                         power_per_round=1.0,
                     )
                 )
+    if issues is None:
+        raise ValueError(f"Could not load domain {domain_file_name}")
 
     return Domain(
-        agenda=CartesianOutcomeSpace(issues, name=domain_file_name),
-        ufuns=[_["ufun"] for _ in agent_info],
+        agenda=CartesianOutcomeSpace(issues, name=str(domain_file_name)),
+        ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
         mechanism_type=SAOMechanism,
         mechanism_params=kwargs,
     )
@@ -460,7 +462,7 @@ def load_genius_domain_from_folder(
         root = ET.parse(full_name).getroot()
 
         if root.tag == "negotiation_template":
-            domain_file_name = full_name
+            domain_file_name = Path(full_name)
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
     if domain_file_name is None:
@@ -494,7 +496,7 @@ def find_domain_and_utility_files(
             domain_file_name = full_name
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
-    return domain_file_name, utility_file_names
+    return domain_file_name, utility_file_names  # type: ignore
 
 
 def convert_genius_domain(

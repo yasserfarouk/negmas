@@ -4,7 +4,7 @@ from abc import abstractmethod
 from os import PathLike
 from typing import Any, Protocol, Type, TypeVar
 
-__all__ = ["XmlSerializable", "DictSerializable", "JavaSerializable"]
+__all__ = ["XmlSerializable", "DictSerializable"]
 
 X = TypeVar("X", bound="XmlSerializable")
 
@@ -70,16 +70,4 @@ class DictSerializable(Protocol):
 
     @classmethod
     def from_dict(cls: Type[D], v: dict[str, Any]) -> D:
-        ...
-
-
-J = TypeVar("J", bound="DictSerializable")
-
-
-class JavaSerializable(Protocol):
-    def to_java(self) -> str:
-        ...
-
-    @classmethod
-    def from_java(cls: Type[J], v: dict[str, Any]) -> J:
         ...
