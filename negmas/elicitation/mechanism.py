@@ -10,18 +10,13 @@ import pandas as pd
 
 from ..genius import GeniusNegotiator
 from ..helpers import create_loggers, instantiate
+from ..helpers.prob import Distribution
 from ..inout import load_genius_domain_from_folder
 from ..mechanisms import Mechanism
 from ..modeling import UncertainOpponentModel
 from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
-from ..preferences import (
-    Distribution,
-    IPUtilityFunction,
-    MappingUtilityFunction,
-    UtilityFunction,
-    Value,
-)
+from ..preferences import IPUtilityFunction, MappingUtilityFunction, UtilityFunction
 from ..sao import (
     AspirationNegotiator,
     LimitedOutcomesAcceptor,
@@ -197,13 +192,12 @@ class SAOElicitingMechanism(SAOMechanism):
         if genius_folder is not None:
             d = load_genius_domain_from_folder(
                 genius_folder,
-                force_numeric=True,
                 ignore_reserved=opponent_reserved_value is not None,
                 ignore_discount=True,
             ).to_single_issue(numeric=True)
             domain = d.make_session(time_limit=120)
 
-            n_outcomes = domain.nmi.n_outcomes
+            n_outcomes = domain.nmi.n_outcomes  # type: ignore
             outcomes = domain.outcomes
             elicitor_indx = 0 + int(random.random() <= 0.5)
             opponent_indx = 1 - elicitor_indx
@@ -571,7 +565,7 @@ class SAOElicitingMechanism(SAOMechanism):
         visible_negotiators=(0, 1),
         plot_utils=True,
         plot_outcomes=False,
-        utility_range=None,
+        minmax=None,
         consider_costs=False,
     ):
         try:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable, Mapping, Union
 
 from negmas.helpers import DistributionLike
-from negmas.outcomes import Outcome
+from negmas.outcomes.common import Outcome
 
 __all__ = ["INVALID_UTILITY", "DistributionLike", "UtilityValue"]
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 This module defines the base classes for worlds within which multiple agents engage in situated negotiations
 
@@ -70,6 +68,8 @@ dropped-contract                     contract: `Contract`
 =================================   ===============================================================================
 
 """
+from __future__ import annotations
+
 import copy
 import itertools
 import json
@@ -127,6 +127,7 @@ from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome, outcome2dict
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences import Preferences
 from negmas.serialization import serialize, to_flat_dict
 from negmas.types import NamedObject, Rational
@@ -215,6 +216,18 @@ EDGE_COLORS = {
     "contracts-executed": "black",
 }
 
+
+class BreachProcessing(Enum):
+    """The way breaches are to be handled"""
+
+    NONE = 0
+    """The breach should always be reported in the breach list and no re-negotiation is allowed."""
+    VICTIM_THEN_PERPETRATOR = 1
+    """The victim is asked to set the re-negotiation agenda then the perpetrator."""
+    META_NEGOTIATION = 2
+    """A meta negotiation is instantiated between victim and perpetrator to set re-negotiation issues."""
+
+
 RunningNegotiationInfo = namedtuple(
     "RunningNegotiationInfo",
     ["negotiator", "annotation", "uuid", "extra", "my_request"],
@@ -280,13 +293,6 @@ def show_edge_colors():
     plt.show()
 
 
-try:
-    # disable a warning in yaml 1b1 version
-    yaml.warnings({"YAMLLoadWarning": False})
-except:
-    pass
-
-
 @dataclass
 class Action:
     """An action that an `Agent` can execute in a `World` through the `Simulator`."""
@@ -306,7 +312,7 @@ class Contract:
 
     partners: List[str] = field(default_factory=list)
     """The partners"""
-    agreement: Outcome = None
+    agreement: Outcome | OutcomeSpace | None = None
     """The actual agreement of the negotiation in the form of an `Outcome` in the `Issue` space defined by `issues`"""
     annotation: Dict[str, Any] = field(default_factory=dict)
     """Misc. information to be kept with the agreement."""
@@ -391,17 +397,6 @@ class Breach:
 
     class Java:
         implements = ["jnegmas.situated.Breach"]
-
-
-class BreachProcessing(Enum):
-    """The way breaches are to be handled"""
-
-    NONE = 0
-    """The breach should always be reported in the breach list and no re-negotiation is allowed."""
-    VICTIM_THEN_PERPETRATOR = 1
-    """The victim is asked to set the re-negotiation agenda then the perpetrator."""
-    META_NEGOTIATION = 2
-    """A meta negotiation is instantiated between victim and perpetrator to set re-negotiation issues."""
 
 
 @dataclass

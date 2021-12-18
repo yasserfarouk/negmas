@@ -57,7 +57,7 @@ Release 0.8.6
 -------------
 
 * [core] Adding to_dict/from_dict to all ufun types
-* [core] Better random LinearUtilityAggregationFunction
+* [core] Better random LinearAdditiveUtilityFunction
 * [core] better implementation of stepall and runall
 * [core] implementing keep_order=False for stepall()
 * [tournaments] Adding negotiation tournaments.
@@ -136,7 +136,7 @@ Release 0.7.4
 * [core] making the core SAONegotiator robust to missing ufuns.
 * [core] allowing controllers to control the ID of negotiators
 * [core] adding reset_timer to EventLogger and logging time
-* [core] passing AMI to utility_range [situated] reversing adapter and adapted
+* [core] passing AMI to minmax [situated] reversing adapter and adapted
          names in Adapter to make sure that split(".")[-1] still gets the
          adapted name not the adapter name.
 * [core] making Controller.negotiators return NegotiatorInfo
@@ -292,7 +292,7 @@ Release 0.6.9
 -------------
 
 - [sao] always calculating best outcome in AspirationNegotiator
-- [utilities] making the calculation of utility ranges in utility_range more robust
+- [utilities] making the calculation of utility ranges in minmax more robust
 - [sao] Making SyncController default to the outcome with maximum utility in the first round instead of sending no response.
 - [chain] moved to relative imports
 - [negotiators] Removed the outcomes/reserved_value parameters when constructing RandomNegotiator
@@ -433,7 +433,7 @@ Release 0.4.4
 - [documentation] improving the structure of module documentation
 - [core] Defaulting reserved_value to -inf instead of None and removing unnecessary tests that it is not None
 - [core] default __call__ of UtilityFunction now raises an exception if there is an error in evaluating the utility value of an offer instead or returning None
-- [core] Adding utility_range and outcome_with_utility as members of UtilityFuction. Global functions of the same name are still there for backward compatibility
+- [core] Adding minmax and outcome_with_utility as members of UtilityFuction. Global functions of the same name are still there for backward compatibility
 - [CLI] improving path management for windows environments.
 - black formatting
 
@@ -516,7 +516,7 @@ Release 0.3.6
 
 - Documentation Update.
 - Adding LinearUtilityFunction as a simple way to implement linear utility functions without the need to use
-  LinearUtilityAggregationFunction.
+  LinearAdditiveUtilityFunction.
 - [Setup] Removing dash dependency to get TravisCI to work
 - [Core] Correcting the implementation of the aspiration equation to match Baarslag's equation.
 - updating the requirements in setup.py

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from negmas.preferences.protocols import CrispUFun, ProbUFun, UFun
+from negmas.preferences.protocols import UFunCrisp, UFunProb
 
 from ..preferences import Preferences, UtilityFunction
 from .named import NamedObject
@@ -59,24 +59,24 @@ class Rational(NamedObject):
         self.on_preferences_changed()
 
     @property
-    def crisp_ufun(self) -> CrispUFun | None:
+    def crisp_ufun(self) -> UFunCrisp | None:
         """Returns the preferences if it is a CrispUtilityFunction else None"""
-        return self._preferences if isinstance(self._preferences, CrispUFun) else None
+        return self._preferences if isinstance(self._preferences, UFunCrisp) else None
 
     @crisp_ufun.setter
-    def crisp_ufun(self, v: CrispUFun):
-        if not isinstance(v, CrispUFun):
+    def crisp_ufun(self, v: UFunCrisp):
+        if not isinstance(v, UFunCrisp):
             raise ValueError(f"Cannot assign a {type(v)} to crisp_ufun")
         self._preferences = v
 
     @property
-    def prob_ufun(self) -> ProbUFun | None:
+    def prob_ufun(self) -> UFunProb | None:
         """Returns the preferences if it is a ProbUtilityFunction else None"""
-        return self._preferences if isinstance(self._preferences, ProbUFun) else None
+        return self._preferences if isinstance(self._preferences, UFunProb) else None
 
     @prob_ufun.setter
-    def prob_ufun(self, v: ProbUFun):
-        if not isinstance(v, ProbUFun):
+    def prob_ufun(self, v: UFunProb):
+        if not isinstance(v, UFunProb):
             raise ValueError(f"Cannot assign a {type(v)} to prob_ufun")
         self._preferences = v
 
@@ -101,9 +101,11 @@ class Rational(NamedObject):
     @property
     def has_cardinal_preferences(self) -> bool:
         """Does the entity has an associated ufun?"""
-        from negmas.preferences.protocols import Cardinal
+        from negmas.preferences.protocols import CardinalCrisp
 
-        return self._preferences is not None and isinstance(self._preferences, Cardinal)
+        return self._preferences is not None and isinstance(
+            self._preferences, CardinalCrisp
+        )
 
     @property
     def reserved_outcome(self) -> Outcome | None:
@@ -118,13 +120,13 @@ class Rational(NamedObject):
             `reserved_value`
 
         """
-        from negmas.preferences import CardinalPreferences
+        from negmas.preferences import HasReservedOutcome
 
-        if self._preferences is None or isinstance(
-            self._preferences, CardinalPreferences
+        if self._preferences is None or not isinstance(
+            self._preferences, HasReservedOutcome
         ):
             return None
-        return self._preferences.reserved_outocme
+        return self._preferences.reserved_outcome
 
     @property
     def reserved_value(self) -> float:
@@ -135,10 +137,10 @@ class Rational(NamedObject):
         for `None` outcome.
 
         """
-        from negmas.preferences import CardinalPreferences
+        from negmas.preferences import HasReservedValue
 
         if self._preferences is None or not isinstance(
-            self._preferences, CardinalPreferences
+            self._preferences, HasReservedValue
         ):
             return float("nan")
         return self._preferences.reserved_value

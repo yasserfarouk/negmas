@@ -42,9 +42,6 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         self._n_values = float("inf")
         self.min_value, self.max_value = values
 
-    def is_countable(self) -> bool:
-        return True
-
     def is_continuous(self) -> bool:
         return False
 
@@ -61,6 +58,9 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         if self._values[0] == -INFINITE_INT:
             return random.randint(self._values[1] + 1, INFINITE_INT)
         return random.randint(-INFINITE_INT, self._values[0] - 1)
+
+    def value_at(self, index: int):
+        raise ValueError("Cannot index an infinite issue")
 
 
 class ContinuousInfiniteIssue(ContinuousIssue, InfiniteIssue):

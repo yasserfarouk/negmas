@@ -3,9 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
-from ..common import MechanismState, NegotiatorMechanismInterface
+from ..common import MechanismState, NegotiatorMechanismInterface, Value
 from ..negotiators import AspirationMixin
-from ..preferences import Value
 
 
 class Expector(ABC):

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple, Union
 
-from ..common import NegotiatorMechanismInterface
-from ..outcomes import Outcome, dict2outcome
-from ..preferences import Distribution, IPUtilityFunction, Value
+from ..common import NegotiatorMechanismInterface, Value
+from ..helpers.prob import Distribution
+from ..preferences import IPUtilityFunction
 from .common import _loc, _upper
 from .queries import Answer, Query, RangeConstraint
 

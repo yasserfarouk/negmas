@@ -3,11 +3,20 @@ from __future__ import annotations
 import random
 from abc import abstractmethod
 from os import PathLike
-from typing import TYPE_CHECKING, Protocol, Type, TypeVar, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Protocol,
+    Type,
+    TypeVar,
+    runtime_checkable,
+)
 
-from negmas.helpers.prob import Distribution, DistributionLike
+from negmas.common import Value
+from negmas.helpers.prob import Distribution, DistributionLike, Real
 from negmas.outcomes import Outcome, OutcomeSpace
-from negmas.protocols import XmlSerializable
+from negmas.protocols import HasMinMax, XmlSerializable
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState
@@ -17,10 +26,10 @@ __all__ = [
     "BasePref",
     "Ordinal",
     "CardinalProb",
-    "Cardinal",
+    "CardinalCrisp",
     "UFun",
-    "CrispUFun",
-    "ProbUFun",
+    "UFunCrisp",
+    "UFunProb",
     "NonStationaryOrdinal",
     "NonStationaryCardinalProb",
     "NonStationaryCardinal",
@@ -48,6 +57,8 @@ __all__ = [
     "MultiInverseUFun",
     "IndIssues",
     "XmlSerializableUFun",
+    "SingleIssueFun",
+    "MultiIssueFun",
 ]
 
 X = TypeVar("X", bound="XmlSerializable")
@@ -68,7 +79,7 @@ class XmlSerializableUFun(XmlSerializable, Protocol):
 
 @runtime_checkable
 class BasePref(Protocol):
-    outcome_space: OutcomeSpace
+    outcome_space: OutcomeSpace | None
 
     @property
     def type(self) -> str:
@@ -87,83 +98,6 @@ class BasePref(Protocol):
         """Is the ufun stationary (i.e. utility value of an outcome is a constant)?"""
 
 
-S = TypeVar("S", bound="Scalable")
-
-
-@runtime_checkable
-class Scalable(Protocol):
-    @abstractmethod
-    def scale_min(self: S, to: float) -> S:
-        ...
-
-    @abstractmethod
-    def scale_max(self: S, to: float) -> S:
-        ...
-
-
-@runtime_checkable
-class PartiallyScalable(BasePref, Protocol):
-    @abstractmethod
-    def scale_min_for(
-        self,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        outcomes: list[Outcome] | None = None,
-    ) -> BasePref:
-        ...
-
-    @abstractmethod
-    def scale_max_for(
-        self,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        outcomes: list[Outcome] | None = None,
-    ) -> BasePref:
-        ...
-
-    def scale_min(self, to: float) -> BasePref:
-        return self.scale_min_for(to, outcome_space=self.outcome_space, outcomes=None)
-
-    def scale_max(self, to: float) -> BasePref:
-        return self.scale_max_for(to, outcome_space=self.outcome_space, outcomes=None)
-
-
-N = TypeVar("N", bound="Normalizable")
-
-
-@runtime_checkable
-class Normalizable(Protocol):
-    @abstractmethod
-    def normalize(self: N, to: tuple[float, float] = (0.0, 1.0)) -> N:
-        ...
-
-
-@runtime_checkable
-class PartiallyNormalizable(BasePref, Protocol):
-    def normalize(self, to: tuple[float, float] = (0.0, 1.0), **kwargs) -> BasePref:
-        return self.normalize_for(
-            to, outcome_space=self.outcome_space, outcomes=None, **kwargs
-        )
-
-    def normalize_for(
-        self,
-        to: tuple[float, float] = (0.0, 1.0),
-        outcome_space: OutcomeSpace | None = None,
-        outcomes: list[Outcome] | None = None,
-        **kwargs,
-    ) -> BasePref:
-        ...
-
-
-@runtime_checkable
-class Randomizable(Protocol):
-    @classmethod
-    def random(
-        cls, outcome_space, reserved_value, normalized=True, **kwargs
-    ) -> "Randomizable":
-        """Generates a random ufun of the given type"""
-
-
 @runtime_checkable
 class HasReservedDistribution(Protocol):
     reserved_distribution: DistributionLike
@@ -180,7 +114,7 @@ class HasReservedValue(Protocol):
 
 @runtime_checkable
 class HasReservedOutcome(Protocol):
-    reserved_outcome: float
+    reserved_outcome: Outcome
 
 
 @runtime_checkable
@@ -279,8 +213,17 @@ class Ordinal(Protocol):
 @runtime_checkable
 class CardinalProb(Ordinal, Protocol):
     """
-    Differences between outcomes are meaningfull but probabilistic
+    Differences between outcomes are meaningfull but probabilistic.
+
+    Remarks:
+        Inheriting from this class adds `is_not_worse` implementation that is
+        extremely conservative. It declares that `first` is not worse than `second`
+        only if any sample form `first` is ALWAYS not worse than any sample from
+        `second`.
     """
+
+    def is_not_worse(self, first: Outcome, second: Outcome, **kwargs) -> bool:
+        return self.difference_prob(first, second, **kwargs) >= 0.0
 
     @abstractmethod
     def difference_prob(
@@ -292,7 +235,7 @@ class CardinalProb(Ordinal, Protocol):
 
 
 @runtime_checkable
-class Cardinal(Ordinal, Protocol):
+class CardinalCrisp(CardinalProb, Protocol):
     """
     Differences between outcomes are meaningfull
     """
@@ -307,7 +250,7 @@ class Cardinal(Ordinal, Protocol):
         Returns a numeric difference between the utility of the two given outcomes
         """
         return Distribution(
-            type="uniform", loc=self.difference(first, second, **kwargs), scale=0.0
+            loc=self.difference(first, second, **kwargs), scale=0.0, type="uniform"
         )
 
     @abstractmethod
@@ -615,16 +558,36 @@ class StationaryCardinal(StationaryOrdinal, Protocol):
 
 
 @runtime_checkable
-class UFun(Protocol):
-    def __call__(self, offer: Outcome | None, **kwargs) -> DistributionLike | float:
+class UFun(CardinalProb, Protocol):
+    def __call__(self, offer: Outcome | None, **kwargs) -> Value:
         ...
 
-    def eval(self, offer: Outcome, **kwargs) -> DistributionLike | float:
+    def eval(self, offer: Outcome, **kwargs) -> Value:
         ...
+
+    def difference(self, first: Outcome, second: Outcome, **kwargs) -> Value:
+        u1 = self(first)
+        u2 = self(second)
+        if isinstance(u1, float):
+            u1 = Real(u1)
+        if isinstance(u2, float):
+            u2 = Real(u2)
+        return u1 - u2  # type: ignore
+
+    def difference_prob(
+        self, first: Outcome, second: Outcome, **kwargs
+    ) -> DistributionLike:
+        u1 = self(first)
+        u2 = self(second)
+        if isinstance(u1, float):
+            u1 = Real(u1)
+        if isinstance(u2, float):
+            u2 = Real(u2)
+        return u1 - u2  # type: ignore
 
 
 @runtime_checkable
-class CrispUFun(Protocol):
+class UFunCrisp(UFun, Protocol):
     def __call__(self, offer: Outcome | None, **kwargs) -> float:
         ...
 
@@ -633,7 +596,7 @@ class CrispUFun(Protocol):
 
 
 @runtime_checkable
-class ProbUFun(Protocol):
+class UFunProb(UFun, Protocol):
     def __call__(self, offer: Outcome | None, **kwargs) -> DistributionLike:
         ...
 
@@ -744,8 +707,18 @@ class OrdinalRanking(Protocol):
     """
 
     def rank(
-        self, outcomes: tuple[tuple[Outcome | None]], descending=True
-    ) -> list[list[int]]:
+        self, outcomes: list[Outcome | None], descending=True
+    ) -> list[list[Outcome | None]]:
+        """Ranks the given list of outcomes with weights. None stands for the null outcome.
+
+        Returns:
+            A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
+
+        """
+
+    def argrank(
+        self, outcomes: list[Outcome | None], descending=True
+    ) -> list[list[int | None]]:
         """Ranks the given list of outcomes with weights. None stands for the null outcome.
 
         Returns:
@@ -762,7 +735,22 @@ class CardinalRanking(Protocol):
 
     def rank_with_weights(
         self, outcomes: list[Outcome | None], descending=True
-    ) -> list[tuple[tuple[int], float]]:
+    ) -> list[tuple[tuple[Outcome | None], float]]:
+        """
+        Ranks the given list of outcomes with weights. None stands for the null outcome.
+
+        Returns:
+
+            - A list of tuples each with two values:
+                - an list of integers giving the index in the input array (outcomes) of an outcome (at the given utility level)
+                - the weight of that outcome
+            - The list is sorted by weights descendingly
+
+        """
+
+    def argrank_with_weights(
+        self, outcomes: list[Outcome | None], descending=True
+    ) -> list[tuple[tuple[Outcome | None], float]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
 
@@ -807,12 +795,12 @@ class InverseUFun(Protocol):
 
 
 @runtime_checkable
-class HasRange(StationaryCrisp, Protocol):
-    def utility_range(
+class HasRange(HasMinMax, UFun, Protocol):
+    def minmax(
         self,
-        outcome_space: OutcomeSpace = None,
-        outcomes: list[Outcome] = None,
-        infeasible_cutoff: float = float("-inf"),
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | int | None = None,
         max_cardinality=1000,
     ) -> tuple[float, float]:
         """Finds the range of the given utility function for the given outcomes
@@ -821,7 +809,6 @@ class HasRange(StationaryCrisp, Protocol):
             self: The utility function
             issues: List of issues (optional)
             outcomes: A collection of outcomes (optional)
-            infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
             max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                             given)
 
@@ -830,15 +817,18 @@ class HasRange(StationaryCrisp, Protocol):
 
         """
         (worst, best) = self.extreme_outcomes(
-            outcome_space, outcomes, infeasible_cutoff, max_cardinality
+            outcome_space, issues, outcomes, max_cardinality
         )
-        return self(worst), self(best)
+        if isinstance(self, UFunCrisp):
+            return self(worst), self(best)
+        return self(worst).min(), self(best).max()
 
+    @abstractmethod
     def extreme_outcomes(
         self,
-        outcome_space: OutcomeSpace = None,
-        outcomes: list[Outcome] = None,
-        infeasible_cutoff: float = float("-inf"),
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | int | None = None,
         max_cardinality=1000,
     ) -> tuple[Outcome, Outcome]:
         """Finds the best and worst outcomes
@@ -847,7 +837,6 @@ class HasRange(StationaryCrisp, Protocol):
             ufun: The utility function
             issues: list of issues (optional)
             outcomes: A collection of outcomes (optional)
-            infeasible_cutoff: A value under which any utility is considered infeasible and is not used in calculation
             max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                             given)
         Returns:
@@ -855,9 +844,212 @@ class HasRange(StationaryCrisp, Protocol):
 
         """
 
+    @property
+    def max_value(self):
+        _, mx = self.minmax()
+        return mx
+
+    @property
+    def min_value(self):
+        mn, _ = self.minmax()
+        return mn
+
 
 @runtime_checkable
 class IndIssues(BasePref, Protocol):
-    values: list[UFun]
+    values: list[Callable[[Any], float]]
     weights: list[float]
     issues: list[Issue]
+
+
+@runtime_checkable
+class Fun(Protocol):
+    def __call__(self, x) -> float:
+        ...
+
+    @property
+    def dim(self) -> int:
+        ...
+
+    def minmax(self, input) -> tuple[float, float]:
+        ...
+
+    @abstractmethod
+    def shift_by(self, offset: float) -> Fun:
+        ...
+
+    @abstractmethod
+    def scale_by(self, scale: float) -> Fun:
+        ...
+
+
+@runtime_checkable
+class SingleIssueFun(Fun, Protocol):
+    @property
+    def dim(self) -> int:
+        return 1
+
+    def minmax(self, input: Issue) -> tuple[float, float]:
+        ...
+
+    def shift_by(self, offset: float) -> Fun:
+        ...
+
+    def scale_by(self, scale: float) -> Fun:
+        ...
+
+
+@runtime_checkable
+class MultiIssueFun(Fun, Protocol):
+    def __call__(self, x: tuple) -> float:
+        ...
+
+    @property
+    def dim(self) -> int:
+        ...
+
+    def minmax(self, input: tuple[Issue]) -> tuple[float, float]:
+        ...
+
+    def shift_by(self, offset: float, change_bias: bool = False) -> MultiIssueFun:
+        ...
+
+    def scale_by(self, scale: float) -> MultiIssueFun:
+        ...
+
+
+@runtime_checkable
+class Shiftable(CardinalProb, Protocol):
+    @abstractmethod
+    def shift_by(self, offset: float, shift_reserved=True) -> Shiftable:
+        ...
+
+    @abstractmethod
+    def shift_min(self, to: float, rng: tuple[float, float] | None = None) -> Shiftable:
+        ...
+
+    @abstractmethod
+    def shift_max(self, to: float, rng: tuple[float, float] | None = None) -> Shiftable:
+        ...
+
+
+@runtime_checkable
+class Scalable(UFun, Protocol):
+    @abstractmethod
+    def scale_by(self, scale: float, scale_reserved=True) -> Scalable:
+        ...
+
+    @abstractmethod
+    def scale_min(self, to: float, rng: tuple[float, float] | None = None) -> Scalable:
+        ...
+
+    @abstractmethod
+    def scale_max(self, to: float, rng: tuple[float, float] | None = None) -> Scalable:
+        ...
+
+
+@runtime_checkable
+class PartiallyShiftable(Scalable, Protocol):
+    @abstractmethod
+    def shift_min_for(
+        self,
+        to,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> PartiallyScalable:
+        ...
+
+    @abstractmethod
+    def shift_max_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> PartiallyScalable:
+        ...
+
+
+@runtime_checkable
+class PartiallyScalable(Scalable, BasePref, Protocol):
+    @abstractmethod
+    def scale_min_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> PartiallyScalable:
+        ...
+
+    @abstractmethod
+    def scale_max_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> PartiallyScalable:
+        ...
+
+    def scale_min(
+        self, to: float, rng: tuple[float, float] | None = None
+    ) -> PartiallyScalable:
+        return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)
+
+    def scale_max(
+        self, to: float, rng: tuple[float, float] | None = None
+    ) -> PartiallyScalable:
+        return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)
+
+
+N = TypeVar("N", bound="Normalizable")
+
+
+@runtime_checkable
+class Normalizable(Shiftable, Scalable, Protocol):
+    @abstractmethod
+    def normalize(
+        self: N,
+        to: tuple[float, float] = (0.0, 1.0),
+        minmax: tuple[float, float] | None = None,
+    ) -> N:
+        ...
+
+
+@runtime_checkable
+class PartiallyNormalizable(PartiallyScalable, PartiallyShiftable, Protocol):
+    def normalize(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        minmax: tuple[float, float] | None = None,
+        **kwargs,
+    ) -> HasRange:
+        return self.normalize_for(
+            to, outcome_space=self.outcome_space, minmax=minmax, **kwargs
+        )
+
+    def normalize_for(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | int | None = None,
+        minmax: tuple[float, float] | None = None,
+        **kwargs,
+    ) -> HasRange:
+        ...
+
+
+@runtime_checkable
+class Randomizable(Protocol):
+    @classmethod
+    def random(
+        cls, outcome_space, reserved_value, normalized=True, **kwargs
+    ) -> "Randomizable":
+        """Generates a random ufun of the given type"""

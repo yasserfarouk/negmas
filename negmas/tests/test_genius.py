@@ -339,8 +339,8 @@ def test_genius_agent_same_utility_with_normalization():
         "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.'"
         ", 'Monuments', 'Special streets', 'Palace', 'Landscape and nature']",
     ]
-    a1 = AgentK(ufun=domain.ufuns[0])
-    a2 = Atlas3(ufun=domain.ufuns[0])
+    a1 = AgentK(preferences=domain.ufuns[0])
+    a2 = Atlas3(preferences=domain.ufuns[0])
     p.add(a1)
     p.add(a2)
     final = p.run()
@@ -398,32 +398,15 @@ class TestGeniusAgentSessions:
         self,
         utils=(0, 0),
         single_issue=True,
-        keep_issue_names=True,
-        keep_value_names=True,
     ):
-        from negmas import convert_genius_domain_from_folder
 
-        src = pkg_resources.resource_filename(
+        base_folder = pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop"
         )
-        dst = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/LaptopConv1D"
-        )
-        if single_issue:
-            assert convert_genius_domain_from_folder(
-                src_folder_name=src,
-                dst_folder_name=dst,
-                force_single_issue=True,
-                cache_and_discretize_outcomes=True,
-                n_discretization=10,
-                keep_issue_names=keep_issue_names,
-                keep_value_names=keep_value_names,
-                normalize_utilities=True,
-            )
-            base_folder = dst
-        else:
-            base_folder = src
+
         domain = load_genius_domain_from_folder(base_folder).normalize()
+        if single_issue:
+            domain = domain.to_single_issue()
         atlas = GeniusNegotiator(
             java_class_name="agents.anac.y2015.Atlas3.Atlas3",
             ufun=domain.ufuns[utils[0]],
@@ -549,29 +532,13 @@ class TestGeniusAgentSessions:
         agent_name1 = "agents.anac.y2015.Atlas3.Atlas3"
         agent_name2 = "agents.anac.y2015.Atlas3.Atlas3"
         single_issue = False
-        keep_issue_names, keep_value_names = False, False
-        utils = (1, 1)
 
-        from negmas import convert_genius_domain_from_folder
-
-        src = pkg_resources.resource_filename(
+        base_folder = pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop"
         )
-        dst = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/LaptopConv1D"
-        )
-        if single_issue:
-            assert convert_genius_domain_from_folder(
-                src_folder_name=src,
-                dst_folder_name=dst,
-                force_single_issue=True,
-                cache_and_discretize_outcomes=True,
-                n_discretization=10,
-            )
-            base_folder = dst
-        else:
-            base_folder = src
         domain = load_genius_domain_from_folder(base_folder)
+        if single_issue:
+            domain = domain.to_single_issue()
         # atlas = GeniusNegotiator.random_negotiator(
         atlas = GeniusNegotiator(
             java_class_name=agent_name1,

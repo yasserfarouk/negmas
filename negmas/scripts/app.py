@@ -19,8 +19,7 @@ from tabulate import tabulate
 
 import negmas
 from negmas.genius.common import DEFAULT_JAVA_PORT
-from negmas.helpers import humanize_time, load, truncated_mean, unique_name
-from negmas.java import init_jnegmas_bridge, jnegmas_bridge_is_running
+from negmas.helpers import humanize_time, load, unique_name
 from negmas.tournaments import (
     combine_tournament_results,
     combine_tournament_stats,

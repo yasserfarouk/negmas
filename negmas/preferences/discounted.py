@@ -57,17 +57,50 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
 
+    def minmax(
+        self, outcome_space=None, issues=None, outcomes=None, max_cardinality=10_000
+    ) -> tuple[float, float]:
+        return self.ufun.minmax(outcome_space, issues, outcomes, max_cardinality)
+
+    def shift_by(
+        self, offset: float, shift_reserved: bool = True
+    ) -> "ExpDiscountedUFun":
+        return ExpDiscountedUFun(
+            outcome_space=self.outcome_space,
+            ufun=self.ufun.shift_by(offset, shift_reserved),
+            discount=self.discount,
+            factor=self.factor,
+            name=self.name,
+            reserved_value=self.reserved_value + offset
+            if shift_reserved
+            else self.reserved_value,
+            dynamic_reservation=self.dynamic_reservation,
+        )
+
+    def scale_by(
+        self, scale: float, scale_reserved: bool = True
+    ) -> "ExpDiscountedUFun":
+        return ExpDiscountedUFun(
+            outcome_space=self.outcome_space,
+            ufun=self.ufun.scale_by(scale, scale_reserved),
+            discount=self.discount,
+            factor=self.factor,
+            name=self.name,
+            reserved_value=self.reserved_value + scale
+            if scale_reserved
+            else self.reserved_value,
+            dynamic_reservation=self.dynamic_reservation,
+        )
+
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "ufun": serialize(self.ufun),
-            "discount": self.discount,
-            "factor": self.factor,
-            "dynamic_reservation": self.dynamic_reservation,
-            "id": self.id,
-            "name": self.name,
-            "reserved_value": self.reserved_value,
-            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
-        }
+        d = super().to_dict()
+        return dict(
+            **d,
+            ufun=serialize(self.ufun),
+            discount=self.discount,
+            factor=self.factor,
+            dynamic_reservation=self.dynamic_reservation,
+        )
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
@@ -84,7 +117,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         discount_range=(0.8, 1.0),
         base_preferences_type: Union[
             str, Type[UtilityFunction]
-        ] = "negmas.LinearUtilityAggregationFunction",
+        ] = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
     ) -> "ExpDiscountedUFun":
         """Generates a random ufun of the given type"""
@@ -105,11 +138,11 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             **kwargs,
         )
 
-    def eval(self, offer: "Outcome", state: "MechanismState") -> UtilityValue:
+    def eval(self, offer: "Outcome", state: "MechanismState" = None) -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
-        if not self.discount or self.discount == 1.0 or u is None or self.nmi is None:
+        if not self.discount or self.discount == 1.0 or state is None:
             return u
         if isinstance(self.factor, str):
             factor = getattr(state, self.factor)
@@ -184,17 +217,15 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         self.dynamic_reservation = dynamic_reservation
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "ufun": serialize(self.ufun),
-            "cost": self.cost,
-            "power": self.power,
-            "factor": self.factor,
-            "dynamic_reservation": self.dynamic_reservation,
-            "id": self.id,
-            "name": self.name,
-            "reserved_value": self.reserved_value,
-            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
-        }
+        d = super().to_dict()
+        return dict(
+            **d,
+            ufun=serialize(self.ufun),
+            cost=self.cost,
+            power=self.power,
+            factor=self.factor,
+            dynamic_reservation=self.dynamic_reservation,
+        )
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
@@ -202,11 +233,11 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
 
-    def eval(self, offer: "Outcome", state: "MechanismState") -> UtilityValue:
+    def eval(self, offer: "Outcome", state: "MechanismState" = None) -> UtilityValue:
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
-        if not self.cost or self.cost == 0.0:
+        if not self.cost or self.cost == 0.0 or state is None:
             return u
         if isinstance(self.factor, str):
             factor = getattr(state, self.factor)
@@ -257,7 +288,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         cost_range=(0.8, 1.0),
         power_range=(0.0, 1.0),
         base_preferences_type: Type[UtilityFunction]
-        | str = "negmas.LinearUtilityAggregationFunction",
+        | str = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
     ) -> "LinDiscountedUFun":
         """Generates a random ufun of the given type"""

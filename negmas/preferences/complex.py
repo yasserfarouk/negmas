@@ -38,7 +38,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
     def is_stationary(self) -> bool:
         return any(_.is_stationary() for _ in self.values)
 
-    def eval(self, offer: "Outcome") -> UtilityValue:
+    def eval(self, offer: "Outcome") -> float:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -66,14 +66,13 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
         return u
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "ufuns": [serialize(_) for _ in self.values],
-            "weights": self.weights,
-            "id": self.id,
-            "name": self.name,
-            "reserved_value": self.reserved_value,
-            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
-        }
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d.update(super().to_dict())
+        return dict(
+            **d,
+            ufuns=[serialize(_) for _ in self.values],
+            weights=self.weights,
+        )
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
@@ -97,7 +96,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction, StationaryCrisp):
         ufuns: Iterable[UtilityFunction],
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
         name=None,
-        reserved_value: UtilityValue = float("-inf"),
+        reserved_value: float = float("-inf"),
         id: str = None,
     ):
         super().__init__(
@@ -112,19 +111,17 @@ class ComplexNonlinearUtilityFunction(UtilityFunction, StationaryCrisp):
         return any(_.is_stationary() for _ in self.ufuns)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "ufuns": [serialize(_) for _ in self.ufuns],
-            "combination_function": serialize(self.combination_function),
-            "id": self.id,
-            "name": self.name,
-            "reserved_value": self.reserved_value,
-            PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self)),
-        }
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d.update(super().to_dict())
+        return dict(
+            ufuns=serialize(self.ufuns),
+            combination_function=serialize(self.combination_function),
+        )
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
+        d["ufuns"] = deserialize(d["ufuns"])
         d["combination_function"] = deserialize(d["combination_function"])
         return cls(**d)
 

@@ -9,7 +9,7 @@ from negmas.helpers import DistributionLike, get_full_type_name, gmap
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.protocols import DiscreteOutcomeSpace, OutcomeSpace
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import OutcomeUtilityMapping
 from .ufun import UtilityFunction
@@ -85,24 +85,18 @@ class MappingUtilityFunction(UtilityFunction):
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d.update(super().to_dict())
         return dict(
             **d,
-            mapping=self.mapping,
+            mapping=serialize(self.mapping),
             default=self.default,
-            name=self.name,
-            reserved_value=self.reserved_value,
         )
 
     @classmethod
     def from_dict(cls, d):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(
-            mapping=d.get("mapping", None),
-            default=d.get("default", None),
-            name=d.get("name", None),
-            reserved_value=d.get("reserved_value", None),
-            id=d.get("id", None),
-        )
+        d["mapping"] = deserialize(d["mapping"])
+        return cls(**d)
 
     def eval(self, offer: Optional[Outcome]) -> Optional[DistributionLike | float]:
         # noinspection PyBroadException
@@ -175,12 +169,12 @@ class MappingUtilityFunction(UtilityFunction):
         normalized=True,
         max_cardinality: int = 10000,
     ):
+        # todo: corrrect this for continuous outcome-spaces
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)
-        if not outcome_space.is_discrete():
-            os = outcome_space.to_discrete(max_cardinality=max_cardinality)
-        else:
-            os: DiscreteOutcomeSpace = outcome_space  # type: ignore
+        os = outcome_space.to_largest_discrete(
+            levels=10, max_cardinality=max_cardinality
+        )
         mn, rng = 0.0, 1.0
         if not normalized:
             mn = 4 * random.random()

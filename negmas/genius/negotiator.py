@@ -296,15 +296,15 @@ class GeniusNegotiator(SAONegotiator):
             self._preferences = normalize(
                 self.ufun,  # type: ignore
                 outcomes=nmi.discrete_outcomes,  # type: ignore
-                rng=(None, 1.0) if self._normalize_max_only else (0.0, 1.0),
+                to=(None, 1.0) if self._normalize_max_only else (0.0, 1.0),
             )
-        self.issue_names = [_.name for _ in nmi.outcome_space]
-        self.issues = nmi.outcome_space
+        self.issue_names = [_.name for _ in nmi.outcome_space.issues]
+        self.issues = nmi.outcome_space.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         if nmi.outcome_space is not None and self.domain_file_name is None:
             domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.domain_file_name = domain_file.name
-            domain_file.write(issues_to_xml_str(nmi.outcome_space))
+            domain_file.write(issues_to_xml_str(nmi.outcome_space.issues))
             domain_file.close()
             self._temp_domain_file = True
         if preferences is not None and self.utility_file_name is None:
@@ -312,7 +312,9 @@ class GeniusNegotiator(SAONegotiator):
             self.utility_file_name = utility_file.name
             utility_file.write(
                 UtilityFunction.to_xml_str(
-                    preferences, issues=nmi.outcome_space, discount_factor=self.discount
+                    preferences,
+                    issues=nmi.outcome_space.issues,
+                    discount_factor=self.discount,
                 )
             )
             utility_file.close()
@@ -374,7 +376,7 @@ class GeniusNegotiator(SAONegotiator):
             utility_file.write(
                 UtilityFunction.to_xml_str(
                     self._preferences,
-                    issues=self.nmi.outcome_space,
+                    issues=self.nmi.outcome_space.issues,
                     discount_factor=self.discount,
                 )
             )
@@ -530,7 +532,7 @@ class GeniusNegotiator(SAONegotiator):
                     f"{self._me()} indicated that it timedout at relative time ({self.nmi.state.relative_time})"
                 )
 
-        issues = self._nmi.outcome_space
+        issues = self._nmi.outcome_space.issues
 
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:

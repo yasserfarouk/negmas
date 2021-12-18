@@ -7,10 +7,11 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..common import MechanismState, NegotiatorMechanismInterface
+from ..common import MechanismState, NegotiatorMechanismInterface, Value
+from ..helpers.prob import Distribution
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
-from ..preferences import Distribution, IPUtilityFunction, MappingUtilityFunction, Value
+from ..preferences import IPUtilityFunction, MappingUtilityFunction
 from ..sao import AspirationNegotiator, ResponseType, SAONegotiator
 from .common import _locs, _uppers
 from .expectors import MeanExpector

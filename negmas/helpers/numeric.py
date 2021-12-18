@@ -37,7 +37,7 @@ def get_one_float(rng: float | tuple[float, float]):
 
 def make_range(x: T | tuple[T, T]) -> tuple[T, T]:
     if isinstance(x, Iterable):
-        return x
+        return x  # type: ignore
     return (x, x)
 
 
@@ -101,7 +101,7 @@ def truncated_mean(
         limits = (np.quantile(scores, 0.25), np.quantile(scores, 0.75))
         high = np.sort(scores[scores > limits[1]])
         low = np.sort(scores[scores < limits[0]])
-        limits = (
+        limits = (  # type: ignore
             low[int((len(low) - 1) * bottom_limit)] if len(low) > 0 else None,
             high[int((len(high) - 1) * (1 - top_limit))] if len(high) > 0 else None,
         )
@@ -166,19 +166,22 @@ def sample(n, k, grid=False, compact=True, endpoints=True):
         return (0,) if k else []
     if k > n:
         return range(n)
+    pre, post = [], []
     if endpoints:
         pre, post = [0], [n - 1]
-        return (
-            pre + [_ + 1 for _ in sample(n - 2, k - 2, grid, compact, endpoints)] + post
-        )
+        n, k = n - 2, k - 2
     if grid:
-        step = n // k
+        step = int(n // k)
         if step < 1:
             step = 1
         l = 1 + step * ((n - 1) // step)
         l = min(l, n - 1)
-        return range(step, l, step)
-    if compact:
+        rng = range(step, l, step)
+    elif compact:
         before = (n - k) // 2
-        return range(before, min(n, before + k))
-    return random.sample(range(n), k)
+        rng = range(before, min(n, before + k))
+    else:
+        rng = random.sample(range(n), k)
+    if not endpoints:
+        return rng
+    return pre + list(rng) + post

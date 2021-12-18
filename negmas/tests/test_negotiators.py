@@ -14,7 +14,7 @@ from negmas import (
     SAOMechanism,
     ToughNegotiator,
 )
-from negmas.preferences import RandomUtilityFunction
+from negmas.preferences import MappingUtilityFunction, RandomUtilityFunction
 
 random.seed(0)
 np.random.seed(0)
@@ -24,8 +24,14 @@ def test_tough_asp_negotiator():
     a1 = ToughNegotiator()
     a2 = AspirationNegotiator(aspiration_type="conceder")
     outcomes = [(_,) for _ in range(10)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
     neg = SAOMechanism(outcomes=outcomes, n_steps=100)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
@@ -42,8 +48,14 @@ def test_tough_tit_for_tat_negotiator():
     a1 = ToughNegotiator()
     a2 = NaiveTitForTatNegotiator()
     outcomes = [(_,) for _ in range(10)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
     neg = SAOMechanism(outcomes=outcomes, n_steps=100)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
@@ -62,8 +74,14 @@ def test_asp_negotaitor():
     a1 = AspirationNegotiator(assume_normalized=True, name="a1")
     a2 = AspirationNegotiator(assume_normalized=False, name="a2")
     outcomes = [(_,) for _ in range(10)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
     neg = SAOMechanism(outcomes=outcomes, n_steps=100)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
@@ -84,8 +102,14 @@ def test_tit_for_tat_negotiators():
     a1 = NaiveTitForTatNegotiator(name="a1")
     a2 = NaiveTitForTatNegotiator(name="a2")
     outcomes = [(_,) for _ in range(10)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
     neg = SAOMechanism(outcomes=outcomes, n_steps=100, avoid_ultimatum=False)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
@@ -134,8 +158,14 @@ def test_tit_for_tat_against_asp_negotiators():
     a1 = NaiveTitForTatNegotiator(name="a1")
     a2 = AspirationNegotiator(name="a2")
     outcomes = [(_,) for _ in range(10)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
     neg = SAOMechanism(
         outcomes=outcomes, n_steps=10, avoid_ultimatum=False, time_limit=None
     )
@@ -158,8 +188,14 @@ def test_best_only_asp_negotiator():
     a1 = OnlyBestNegotiator(min_utility=0.9, top_fraction=0.1)
     a2 = AspirationNegotiator(aspiration_type="conceder")
     outcomes = [(_,) for _ in range(20)]
-    u1 = np.linspace(0.0, 1.0, len(outcomes))
-    u2 = 1.0 - u1
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
     neg = SAOMechanism(outcomes=outcomes, n_steps=200)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
@@ -185,11 +221,11 @@ def test_controller():
     for session in sessions:
         session.add(
             AspirationNegotiator(aspiration_type="conceder"),
-            preferences=RandomUtilityFunction(outcomes=session.outcomes),
+            preferences=RandomUtilityFunction(outcomes=list(session.outcomes)),
         )
         session.add(
             c.create_negotiator(),
-            preferences=RandomUtilityFunction(outcomes=session.outcomes),
+            preferences=RandomUtilityFunction(outcomes=list(session.outcomes)),
         )
     completed: List[int] = []
     while len(completed) < n_sessions:

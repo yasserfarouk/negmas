@@ -44,6 +44,7 @@ accepted = [(0,), (2,)]
 ufun = MappingUtilityFunction(
     dict(zip([(_,) for _ in range(n_outcomes)], [utility] * n_outcomes)),
     reserved_value=0.0,
+    outcomes=n_outcomes,
 )
 
 import negmas.elicitation as elicitation

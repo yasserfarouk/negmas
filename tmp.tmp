@@ -1,0 +1,178 @@
+- negmas/inout.py:393 [doctest] negmas.inout.load_genius_domain_from_folder
+- negmas/outcomes/issue_ops.py:353 [doctest] negmas.outcomes.issue_ops.issues_from_xml_str
+- negmas/outcomes/issue_ops.py:317 [doctest] negmas.outcomes.issue_ops.issues_to_genius
+- negmas/outcomes/issue_ops.py:215 [doctest] negmas.outcomes.issue_ops.issues_to_xml_str
+- negmas/outcomes/issue_ops.py:804 [doctest] negmas.outcomes.issue_ops.sample_issues
+- negmas/preferences/linear.py:509 [doctest] negmas.preferences.linear.LinearAdditiveUtilityFunction
+- negmas/preferences/linear.py:616 [doctest] negmas.preferences.linear.LinearAdditiveUtilityFunction.xml
+- negmas/preferences/linear.py:88 [doctest] negmas.preferences.linear.LinearUtilityFunction
+- negmas/preferences/linear.py:157 [doctest] negmas.preferences.linear.LinearUtilityFunction.xml
+- negmas/preferences/mapping.py:38 [doctest] negmas.preferences.mapping.MappingUtilityFunction
+- negmas/preferences/mapping.py:123 [doctest] negmas.preferences.mapping.MappingUtilityFunction.xml
+- negmas/preferences/nonlinear.py:141 [doctest] negmas.preferences.nonlinear.HyperRectangleUtilityFunction
+- negmas/preferences/nonlinear.py:206 [doctest] negmas.preferences.nonlinear.HyperRectangleUtilityFunction.xml
+- negmas/preferences/nonlinear.py:55 [doctest] negmas.preferences.nonlinear.NonLinearAdditiveUtilityFunction
+- negmas/preferences/ops.py:413 [doctest] negmas.preferences.ops.conflict_level
+- negmas/preferences/ops.py:362 [doctest] negmas.preferences.ops.opposition_level
+- negmas/preferences/ops.py:475 [doctest] negmas.preferences.ops.winwin_level
+- negmas/preferences/preferences.py:47 [doctest] negmas.preferences.preferences.Preferences.type
+- negmas/preferences/ufun.py:620 [doctest] negmas.preferences.ufun.UtilityFunction.generate_bilateral
+- negmas/preferences/ufun.py:226 [doctest] negmas.preferences.ufun.UtilityFunction.to_genius
+- negmas/tests/test_elicitors.py:114 TestCountableOutcomesUser.test_countable_outcmoes_user_can_elicit_bisection
+- negmas/tests/test_elicitors.py:146 TestCountableOutcomesUser.test_countable_outcmoes_user_can_elicit_titration_up
+- negmas/tests/test_elicitors.py:183 TestCountableOutcomesUser.test_countable_outcmoes_user_can_elicit_titration_up_no_step
+- negmas/tests/test_elicitors.py:224 TestCountableOutcomesUser.test_countable_outcmoes_user_can_elicit_titration_down
+- negmas/tests/test_elicitors.py:252 TestCountableOutcomesUser.test_countable_outcmoes_user_can_elicit_dtitration_up
+- negmas/tests/test_elicitors.py:276 TestCountableOutcomesUser.test_countable_outcmoes_user_can_elicit_dtitration_down
+- negmas/tests/test_elicitors.py:304 TestCountableOutcomesUser.test_countable_outcmoes_user_stops_eliciting_at_cost
+- negmas/tests/test_elicitors.py:337 TestCountableOutcomesUser.test_countable_outcmoes_user_elicits_non_exact
+- negmas/tests/test_elicitors.py:369 TestCountableOutcomesUser.test_countable_outcomes_user_can_return_all_queries
+- negmas/tests/test_elicitors.py:388 TestCountableOutcomesUser.test_countable_outcomes_user_can_return_next_queries
+- negmas/tests/test_elicitors.py:405 TestCountableOutcomesUser.test_elicit_until
+- negmas/tests/test_elicitors.py:428 TestCountableOutcomesElicitor.test_dummy
+- negmas/tests/test_elicitors.py:449 TestCountableOutcomesElicitor.test_full_knowledge
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[DummyElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[FullKnowledgeElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[PandoraElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[OptimalIncrementalElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[FullElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[RandomElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[FastElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[MeanElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[BalancedElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[AspiringElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[PessimisticElicitor]
+- negmas/tests/test_elicitors.py:469 TestCountableOutcomesElicitor.test_elicitor_runs[OptimisticElicitor]
+- negmas/tests/test_elicitors.py:518 TestCountableOutcomesElicitor.test_pareto_frontier_2
+- negmas/tests/test_elicitors.py:581 TestCountableOutcomesElicitor.test_loading_laptop
+- negmas/tests/test_elicitors.py:604 TestCountableOutcomesElicitor.test_elicitor_can_get_frontier
+- negmas/tests/test_elicitors.py:624 TestCountableOutcomesElicitor.test_elicitor_can_run_from_genius_domain
+- negmas/tests/test_elicitors.py:650 test_elicitation_run_with_no_conflict
+- negmas/tests/test_elicitors.py:671 test_alternating_offers_eliciting_mechanism
+- negmas/tests/test_elicitors.py:700 test_alternating_offers_eliciting_mechanism_voi
+- negmas/tests/test_elicitors.py:762 test_alternating_offers_eliciting_mechanism_full_knowledge
+- negmas/tests/test_elicitors.py:785 test_a_small_elicitation_session
+- negmas/tests/test_elicitors.py:797 test_a_typical_elicitation_session
+- negmas/tests/test_ga.py:9 test_ga_mechanism[2-10]
+- negmas/tests/test_ga.py:9 test_ga_mechanism[3-50]
+- negmas/tests/test_ga.py:9 test_ga_mechanism[2-50]
+- negmas/tests/test_ga.py:9 test_ga_mechanism[3-5]
+- negmas/tests/test_inout.py:23 test_simple_run_with_aspiration_agents
+- negmas/tests/test_integration.py:19 test_a_session
+- negmas/tests/test_issue.py:24 test_is_discrete
+- negmas/tests/test_mechanisms.py:12 test_imap_issues
+- negmas/tests/test_mechanisms.py:21 test_imap_outcomes
+- negmas/tests/test_negotiators.py:23 test_tough_asp_negotiator
+- negmas/tests/test_negotiators.py:41 test_tough_tit_for_tat_negotiator
+- negmas/tests/test_negotiators.py:61 test_asp_negotaitor
+- negmas/tests/test_negotiators.py:83 test_tit_for_tat_negotiators
+- negmas/tests/test_negotiators.py:108 TestTitForTatNegotiator.test_propose
+- negmas/tests/test_negotiators.py:133 test_tit_for_tat_against_asp_negotiators
+- negmas/tests/test_negotiators.py:157 test_best_only_asp_negotiator
+- negmas/tests/test_negotiators.py:178 test_controller
+- negmas/tests/test_protocols.py:181 test_can_accept_more_agents
+- negmas/tests/test_protocols.py:190 test_dynamic_entry
+- negmas/tests/test_protocols.py:199 test_mechanism_fails_on_less_than_two_agents
+- negmas/tests/test_protocols.py:208 test_mechanism_fails_on_less_than_two_agents_dynamic
+- negmas/tests/test_protocols.py:219 test_mechanisms_get_some_rounds
+- negmas/tests/test_protocols.py:274 test_alternating_offers_mechanism_with_one_agent_run
+- negmas/tests/test_protocols.py:289 test_same_utility_leads_to_agreement
+- negmas/tests/test_situated.py:282 test_world_has_times
+- negmas/tests/test_situated.py:317 test_world_runs_with_some_negs
+- negmas/tests/test_situated.py:531 test_world_monitor
+- negmas/tests/test_st.py:9 test_can_work[2-10000-300]
+- negmas/tests/test_st.py:9 test_can_work[3-50-3]
+- negmas/tests/test_st.py:9 test_can_work[2-50-3]
+- negmas/tests/test_st.py:9 test_can_work[3-5-3]
+- negmas/tests/test_st.py:28 test_hill_climbing_mechanism[2-10]
+- negmas/tests/test_st.py:28 test_hill_climbing_mechanism[3-50]
+- negmas/tests/test_st.py:28 test_hill_climbing_mechanism[2-50]
+- negmas/tests/test_st.py:28 test_hill_climbing_mechanism[3-5]
+- negmas/tests/test_utilities.py:28 test_preferences_range_linear[2]
+- negmas/tests/test_utilities.py:28 test_preferences_range_linear[3]
+- negmas/tests/test_utilities.py:40 test_preferences_range_general[2]
+- negmas/tests/test_utilities.py:40 test_preferences_range_general[3]
+- negmas/tests/test_utilities.py:90 test_linear_utility
+- negmas/tests/test_utilities.py:102 test_linear_utility_construction
+- negmas/tests/test_utilities.py:215 test_normalization
+- negmas/tests/test_utilities.py:324 test_dict_conversion[LinearUtilityFunction]
+- negmas/tests/test_utilities.py:324 test_dict_conversion[LinearAdditiveUtilityFunction]
+- negmas/tests/test_utilities.py:334 test_inverse_genius_domain[True]
+- negmas/tests/test_utilities.py:334 test_inverse_genius_domain[False]
+- negmas/tests/test_utilities.py:357 test_random_linear_utils_is_normalized
+- negmas/tests/test_utilities.py:399 test_can_normalize_linear_ufun
+- tests/test_base_issue.py:27 test_value_generation_ordinal
+- tests/test_checkpoints.py:106 test_can_run_from_checkpoint
+- tests/test_inout.py:61 test_simple_run_with_aspiration_agents
+- tests/test_inout.py:119 test_encoding_decoding_all_without_discounting[/Users/yasser/code/projects/negmas/tests/data/scenarios/other/IntegerDomain]
+- tests/test_inout.py:119 test_encoding_decoding_all_without_discounting[/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2016/AgentHp2]
+- tests/test_inout.py:142 test_encoding_decoding_all_with_discounting[/Users/yasser/code/projects/negmas/tests/data/scenarios/other/IntegerDomain]
+- tests/test_inout.py:142 test_encoding_decoding_all_with_discounting[/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2016/AgentHp2]
+- tests/test_neg_tournaments.py:9 test_can_run_world
+- tests/test_neg_tournaments.py:44 test_can_run_tournament
+- tests/test_neg_tournaments.py:77 test_can_run_tournament_from_generator
+- tests/test_sao_slow.py:200 test_hidden_time_limit_words
+- tests/test_sao_slow.py:221 test_neg_run_no_waiting
+- tests/test_sao_slow.py:244 test_neg_sync_loop[True]
+- tests/test_sao_slow.py:244 test_neg_sync_loop[False]
+- tests/test_sao_slow.py:284 test_neg_run_sync[1]
+- tests/test_sao_slow.py:284 test_neg_run_sync[2]
+- tests/test_sao_slow.py:284 test_neg_run_sync[3]
+- tests/test_sao_slow.py:330 test_exceptions_are_saved
+- tests/test_sao_slow.py:363 test_round_n_agents[2]
+- tests/test_sao_slow.py:363 test_round_n_agents[3]
+- tests/test_sao_slow.py:376 test_mechanism_can_run[2]
+- tests/test_sao_slow.py:376 test_mechanism_can_run[3]
+- tests/test_sao_slow.py:388 test_mechanism_runs_with_offering_not_accepting[2-True]
+- tests/test_sao_slow.py:388 test_mechanism_runs_with_offering_not_accepting[3-True]
+- tests/test_sao_slow.py:388 test_mechanism_runs_with_offering_not_accepting[2-False]
+- tests/test_sao_slow.py:388 test_mechanism_runs_with_offering_not_accepting[3-False]
+- tests/test_sao_slow.py:410 test_mechanism_runall[2-True]
+- tests/test_sao_slow.py:410 test_mechanism_runall[3-True]
+- tests/test_sao_slow.py:410 test_mechanism_runall[2-False]
+- tests/test_sao_slow.py:410 test_mechanism_runall[3-False]
+- tests/test_sao_slow.py:445 test_sync_controller[2-1-True]
+- tests/test_sao_slow.py:445 test_sync_controller[2-1-False]
+- tests/test_sao_slow.py:476 test_pickling_mechanism
+- tests/test_sao_slow.py:505 test_checkpointing_mechanism
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[1]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[2]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[3]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[4]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[5]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[6]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[7]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[8]
+- tests/test_sao_slow.py:557 test_sync_controller_gets_all_offers[9]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[1-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[2-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[3-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[4-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[5-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[6-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[7-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[8-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[9-True]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[1-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[2-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[3-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[4-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[5-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[6-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[7-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[8-False]
+- tests/test_sao_slow.py:582 test_single_agreement_gets_one_agreement[9-False]
+- tests/test_sao_slow.py:625 test_loops_are_broken[False]
+- tests/test_sao_slow.py:625 test_loops_are_broken[True]
+- tests/test_sao_slow.py:674 test_can_create_all_negotiator_types
+- tests/test_sao_slow.py:743 test_can_run_all_negotiators
+- tests/test_sao_slow.py:799 test_acceptable_outcomes
+- tests/test_sao_slow.py:821 test_cast_offers_tuple
+- tests/test_sao_slow.py:840 test_fail_on_incorrect_types_tuple_or_dict
+- tests/test_sao_slow.py:856 test_no_check_offers_tuple
+- tests/test_sao_slow.py:877 test_no_limits_raise_warning
+- tests/test_sao_slow.py:896 test_single_mechanism_history_with_waiting
+- tests/test_sao_slow.py:1039 test_neg_sync_loop_receives_all_offers
+- tests/test_sao_slow.py:1132 test_times_are_calculated
+- tests/test_sao_slow.py:1167 test_aspiration_continuous_issues
+- tests/test_sao_slow.py:1254 test_auto_checkpoint

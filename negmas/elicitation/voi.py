@@ -29,10 +29,9 @@ except ImportError:
     )
 from typing import Callable, List, Optional, Tuple, Union
 
-from ..common import MechanismState
+from ..common import MechanismState, Value
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
-from ..preferences import Value
 from ..sao import AspirationNegotiator, SAONegotiator
 from .base import BaseElicitor
 from .common import _scale, argmax

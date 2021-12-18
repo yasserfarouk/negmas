@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Implements Stacked Alternating Offers (SAO) mechanism.
 """
+from __future__ import annotations
+
 import functools
 import itertools
 import math
@@ -14,7 +14,7 @@ import time
 import uuid
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -34,6 +34,8 @@ from .common import ResponseType, SAOResponse, SAOState
 if TYPE_CHECKING:
     from negmas.preferences import Preferences
 
+    from .negotiators import SAONegotiator
+
 __all__ = [
     "SAOMechanism",
     "SAOProtocol",
@@ -45,12 +47,9 @@ class SAOMechanism(Mechanism):
     Implements Several variants of the Stacked Alternating Offers Protocol
 
     Args:
+        outcome_space: The negotiation agenda
         issues: A list of issues defining the outcome-space of the negotiation
-                (See `outcomes`).  Only one of `issues` and `outcomes` can be
-                passed (the other must be `None`)
         outcomes: A list of outcomes defining the outcome-space of the negotiation
-                  (See `issues`).  Only one of `issues` and `outcomes` can be
-                  passed (the other must be `None`)
         n_steps: The maximum number of negotiaion rounds (see `time_limit` )
         time_limit: The maximum wall-time allowed for the negotiation (see `n_steps`)
         step_time_limit: The maximum wall-time allowed for a single negotiation round.
@@ -83,6 +82,7 @@ class SAOMechanism(Mechanism):
 
     Remarks:
 
+        - One and only one of `outcome_space`, `issues`, `outcomes` can be given
         - If both `n_steps` and `time_limit` are passed, the negotiation ends when either of the limits is reached.
         - Negotiations may take longer than `time_limit` because negotiators are not interrupted while they are
           executing their `respond` or `propose` methods.
@@ -95,20 +95,11 @@ class SAOMechanism(Mechanism):
 
     def __init__(
         self,
-        issues=None,
-        outcomes=None,
-        n_steps=None,
-        time_limit=None,
-        step_time_limit=None,
-        max_n_agents=None,
         dynamic_entry=False,
-        cache_outcomes=True,
-        max_cardinality: int = 1_000_000,
-        annotation: Optional[Dict[str, Any]] = None,
+        enable_callbacks=False,
         end_on_no_response=True,
         publish_proposer=True,
         publish_n_acceptances=False,
-        enable_callbacks=False,
         avoid_ultimatum=False,
         check_offers=True,
         enforce_issue_types=False,
@@ -122,23 +113,13 @@ class SAOMechanism(Mechanism):
         **kwargs,
     ):
         super().__init__(
-            issues=issues,
-            outcomes=outcomes,
-            n_steps=n_steps,
-            time_limit=time_limit if time_limit is not None else float("inf"),
-            step_time_limit=step_time_limit
-            if step_time_limit is not None
-            else float("inf"),
-            max_n_agents=max_n_agents,
             dynamic_entry=dynamic_entry,
-            cache_outcomes=cache_outcomes,
-            max_cardinality=max_cardinality,
-            annotation=annotation,
             state_factory=SAOState,
             enable_callbacks=enable_callbacks,
             name=name,
             **kwargs,
         )
+        n_steps, time_limit = self.n_steps, self.time_limit
         if (n_steps is None or n_steps == float("inf")) and (
             time_limit is None or time_limit == float("inf")
         ):
@@ -158,6 +139,8 @@ class SAOMechanism(Mechanism):
         self.params[
             "allow_offering_just_rejected_outcome"
         ] = allow_offering_just_rejected_outcome
+        self._n_max_waits = max_wait if max_wait is not None else float("inf")
+        self.params["max_wait"] = self._n_max_waits
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
         self._enforce_issue_types = enforce_issue_types
@@ -177,15 +160,13 @@ class SAOMechanism(Mechanism):
         self._new_offers = []
         self._offering_is_accepting = offering_is_accepting
         self._n_waits = 0
-        self._n_max_waits = max_wait if max_wait is not None else float("inf")
-        self.params["max_wait"] = self._n_max_waits
         self._waiting_time: Dict[str, float] = defaultdict(float)
         self._waiting_start: Dict[str, float] = defaultdict(lambda: float("inf"))
         self._selected_first = 0
 
     def add(
         self,
-        negotiator: "Negotiator",
+        negotiator: "SAONegotiator",
         *,
         preferences: Optional["Preferences"] = None,
         role: Optional[str] = None,
@@ -263,7 +244,7 @@ class SAOMechanism(Mechanism):
         visible_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
         plot_utils=True,
         plot_outcomes=False,
-        utility_range: Optional[Tuple[float, float]] = None,
+        minmax: Optional[Tuple[float, float]] = None,
         save_fig: bool = False,
         path: str = None,
         fig_name: str = None,
@@ -413,8 +394,8 @@ class SAOMechanism(Mechanism):
                     label=vnegotiators[a].name + f" ({a})",
                     color=clrs[a],
                 )
-                if utility_range is not None:
-                    au.set_ylim(*utility_range)
+                if minmax is not None:
+                    au.set_ylim(*minmax)
                 au.set_ylabel(vnegotiators[a].name + f" ({a}) utility")
                 au.set_xlabel("relative time")
                 au.legend()
@@ -725,16 +706,21 @@ class SAOMechanism(Mechanism):
                 and response is not None
                 and response.outcome is not None
             ):
-                if not outcome_is_complete(response.outcome, self.issues):
+                if not self.outcome_space.is_valid(response.outcome):
                     return SAOResponse(response.response, None), False
+                # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
                 if self._enforce_issue_types:
-                    if outcome_types_are_ok(response.outcome, self.issues):
+                    if outcome_types_are_ok(
+                        response.outcome, self.outcome_space.issues
+                    ):
                         return response, False
                     elif self._cast_offers:
                         return (
                             SAOResponse(
                                 response.response,
-                                cast_value_types(response.outcome, self.issues),
+                                cast_value_types(
+                                    response.outcome, self.outcome_space.issues
+                                ),
                             ),
                             False,
                         )
@@ -1078,10 +1064,6 @@ class SAOMechanism(Mechanism):
             offers += [(state.step, n, o) for n, o in state.new_offers]
 
         def not_equal(a, b):
-            if isinstance(a, dict):
-                a = a.values()
-            if isinstance(b, dict):
-                b = b.values()
             return any(x != y for x, y in zip(a, b))
 
         self._history: List[SAOState]
