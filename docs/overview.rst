@@ -819,7 +819,7 @@ For example, the following utility function represents the utility of
 
 .. code:: ipython3
 
-    buyer_utility = LinearUtilityAggregationFunction({'price': lambda x: - x
+    buyer_utility = LinearAdditiveUtilityFunction({'price': lambda x: - x
                                , 'number of items': lambda x: 0.5 * x
                                , 'delivery': {'delivered': 1.0, 'not delivered': 0.0}})
 
@@ -880,7 +880,7 @@ For example, a seller’s utility can be defined as:
 
 .. code:: ipython3
 
-    seller_utility =NonLinearUtilityAggregationFunction({
+    seller_utility =NonLinearAdditiveUtilityFunction({
                                  'price': lambda x: x
                                , 'number of items': lambda x: 0.5 * x
                                , 'delivery': {'delivered': 1.0, 'not delivered': 0.0}}
@@ -1080,8 +1080,8 @@ simple weighted summation of local/global functions implemented in
 
 The relation between ``NoneLinearHyperVolumeUtilityFunction`` and
 ``HyperVolumeUtilityFunction`` is exactly the same as that between
-``NonLinearUtilityAggregationFunction`` and
-``LinearUtilityAggregationFunction``
+``NonLinearAdditiveUtilityFunction`` and
+``LinearAdditiveUtilityFunction``
 
 Other utility function types
 ----------------------------
@@ -1107,10 +1107,10 @@ module for more details
      'ConstUFun',
      'LinDiscountedUFun',
      'ExpDiscountedUFun',
-     'LinearUtilityAggregationFunction',
+     'LinearAdditiveUtilityFunction',
      'LinearUtilityFunction',
      'MappingUtilityFunction',
-     'NonLinearUtilityAggregationFunction',
+     'NonLinearAdditiveUtilityFunction',
      'HyperRectangleUtilityFunction',
      'NonlinearHyperRectangleUtilityFunction',
      'ComplexWeightedUtilityFunction',
@@ -1133,7 +1133,7 @@ while developing negotiation agents. These are some examples:
 -  **normalize** Normalizes a utility function within a given range.
 -  **outcome_with_utility** Finds an outcome with a utility within some
    range.
--  **utility_range** Finds the range of values of a utility function and
+-  **minmax** Finds the range of values of a utility function and
    outcomes with highest and lowest utilities.
 
 Responses

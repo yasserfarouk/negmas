@@ -6,6 +6,7 @@ in negmas.
 from __future__ import annotations
 
 import functools
+import itertools
 import math
 import warnings
 from abc import ABC
@@ -1218,7 +1219,8 @@ class SorterMixin:
         """
         if not self.has_preferences:
             return None
-        self._preferences.sort(outcomes, descending)
+        ranks = self._preferences.rank(outcomes, descending)
+        outcomes = itertools.chain(*tuple(ranks))
 
 
 class EvaluatorNegotiator(EvaluatorMixin, Negotiator):

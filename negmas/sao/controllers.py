@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
-from negmas.preferences.ops import extreme_outcomes
 from negmas.preferences.protocols import UFun
 
 from ..common import MechanismState, NegotiatorMechanismInterface
@@ -307,7 +306,7 @@ class SAOSyncController(SAOController):
         # if the controller has a ufun, use it otherwise use the negotiator's
         ufun = self.ufun if self.ufun is not None else negotiator.ufun
         if isinstance(ufun, UFun):
-            _, best = extreme_outcomes(ufun, issues=negotiator.nmi.issues)
+            _, best = ufun.extreme_outcomes()
         else:
             best = None
         return best
@@ -619,7 +618,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             ufun = self.ufun
         if ufun is None:
             return None
-        _, top_outcome = ufun.extreme_outcomes(outcome_space=neg.nmi.issues)
+        _, top_outcome = ufun.extreme_outcomes(outcome_space=neg.nmi.outcome_space)
         return top_outcome
 
     def make_offer(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from negmas.preferences.protocols import HasRange
+
 """
 Defines a world for running negotiations directly
 """
@@ -23,7 +25,7 @@ from negmas import MechanismState, NegotiatorMechanismInterface
 from negmas.helpers import get_class, get_full_type_name, instantiate
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
-from negmas.preferences import Preferences, utility_range
+from negmas.preferences import Preferences
 from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import (
     Action,
@@ -335,9 +337,11 @@ class NegWorld(NoContractExecutionMixin, World):
         self._n_negs_per_copmetitor = defaultdict(int)
         self._normalize_scores = normalize_scores
         self._preferences_ranges = None
+        if not all(isinstance(_, HasRange) for _ in domain.ufuns):
+            raise ValueError(f"Not all ufuns has a range!!!")
         if self._normalize_scores:
             self._preferences_ranges = [
-                utility_range(u, issues=domain.issues) for u in domain.ufuns
+                u.minmax() for u in domain.ufuns  # type: ignore We already check just above
             ]
         partner_types = domain.partner_types
         partner_params = domain.partner_params
@@ -524,7 +528,7 @@ class NegWorld(NoContractExecutionMixin, World):
 if __name__ == "__main__":
     from negmas.genius import genius_bridge_is_running
     from negmas.genius.gnegotiators import Atlas3, NiceTitForTat
-    from negmas.preferences import LinearUtilityAggregationFunction as U
+    from negmas.preferences import LinearAdditiveUtilityFunction as U
     from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
     from negmas.situated import save_stats
 

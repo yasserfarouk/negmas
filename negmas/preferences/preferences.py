@@ -1,37 +1,62 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
 
 from negmas.helpers import snake_case
+from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Outcome
-from negmas.outcomes.base_issue import Issue
-from negmas.outcomes.outcome_space import make_os
-from negmas.outcomes.protocols import OutcomeSpace
+from negmas.outcomes.common import check_one_at_most, os_or_none
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.types import NamedObject
 
 from .protocols import BasePref, HasReservedOutcome
 
 __all__ = ["Preferences"]
 
+if TYPE_CHECKING:
+    from negmas.outcomes.base_issue import Issue
+    from negmas.outcomes.common import Outcome
+    from negmas.outcomes.protocols import OutcomeSpace
+
 
 class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
     """
-    Base class for all preferences
+    Base class for all preferences.
+
+    Args:
+        outcome_space: The outcome-space over which the preferences are defined
     """
 
     def __init__(
         self,
         *args,
-        outcome_space: OutcomeSpace = None,
+        outcome_space: OutcomeSpace | None = None,
         issues: tuple[Issue] = None,
+        outcomes: tuple[Outcome] | int | None = None,
         reserved_outcome: Outcome = None,
         **kwargs,
     ) -> None:
+        check_one_at_most(outcome_space, issues, outcomes)
         super().__init__(*args, **kwargs)
         self.reserved_outocme = reserved_outcome
-        self.outcome_space: OutcomeSpace | None = (
-            outcome_space if issues is None else make_os(issues, name=self.name)
+        self.outcome_space = os_or_none(outcome_space, issues, outcomes)
+
+    def to_dict(self) -> dict[str, Any]:
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            outcome_space=serialize(self.outcome_space),
+            reserved_outcome=self.reserved_outcome,
+            name=self.name,
+            id=self.id,
         )
+
+    @classmethod
+    def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        d["outcome_space"] = deserialize(d.get("outcome_space", None))
+        return cls(**d)
 
     @property
     def type(self) -> str:
@@ -42,11 +67,11 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
 
         Examples:
             >>> from negmas.preferences import *
-            >>> print(LinearUtilityAggregationFunction((lambda x:x, lambda x:x)).type)
+            >>> print(LinearAdditiveUtilityFunction((lambda x:x, lambda x:x)).type)
             linear_aggregation
             >>> print(MappingUtilityFunction(lambda x: x).type)
             mapping
-            >>> print(NonLinearUtilityAggregationFunction([lambda x:x], f=lambda x: x).type)
+            >>> print(NonLinearAdditiveUtilityFunction([lambda x:x], f=lambda x: x).type)
             non_linear_aggregation
 
         Returns:

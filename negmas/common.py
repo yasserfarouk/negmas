@@ -9,9 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, Iterable
 
-from negmas.outcomes.protocols import DiscreteOutcomeSpace
-
-# from .actors.thread_actors import ThreadProxy
+from negmas.helpers.prob import DistributionLike
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
@@ -22,7 +20,10 @@ __all__ = [
     "NegotiatorInfo",
     "NegotiatorMechanismInterface",
     "MechanismState",
+    "Value",
 ]
+
+Value = DistributionLike
 
 
 @dataclass
@@ -145,7 +146,7 @@ class NegotiatorMechanismInterface:
         """Returns the parameters used to initialize the mechanism."""
         return self._mechanism.params
 
-    def random_outcomes(self, n: int = 1) -> Iterable["Outcome"]:
+    def random_outcomes(self, n: int = 1) -> list["Outcome"]:
         """
         A set of random outcomes from the outcome-space of this negotiation
 
@@ -183,6 +184,8 @@ class NegotiatorMechanismInterface:
     @property
     def outcomes(self) -> Iterable[Outcome] | None:
         """All outcomes for discrete outcome spaces or None for continuous outcome spaces. See `discrete_outcomes`"""
+        from negmas.outcomes.protocols import DiscreteOutcomeSpace
+
         return (
             self._mechanism.outcome_space.enumerate()
             if isinstance(self._mechanism.outcome_space, DiscreteOutcomeSpace)

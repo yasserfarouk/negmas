@@ -6,33 +6,44 @@ import hypothesis.strategies as st
 import numpy as np
 import pkg_resources
 import pytest
-from hypothesis import example, given
-from hypothesis.strategies._internal.numbers import floats
+from hypothesis import given
 from pytest import mark
 
-from negmas.outcomes import Issue, enumerate_issues, issues_from_xml_str
+from negmas.outcomes import enumerate_issues, issues_from_xml_str, make_issue
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.preferences import (
     HyperRectangleUtilityFunction,
-    LinearUtilityAggregationFunction,
+    LinearAdditiveUtilityFunction,
     LinearUtilityFunction,
     MappingUtilityFunction,
     UtilityFunction,
     pareto_frontier,
-    utility_range,
 )
-from negmas.preferences.const import ConstUFun
-from negmas.preferences.ops import normalize
+from negmas.preferences.const import ConstUtilityFunction
+from negmas.preferences.ops import normalize, scale_max
+from negmas.preferences.ufun import InverseUtilityFunction
+
+
+@mark.parametrize(["n_issues"], [(2,), (3,)])
+def test_preferences_range_linear_late_issues(n_issues):
+    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    rs = [(i + 1.0) * random.random() for i in range(n_issues)]
+    ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0, issues=issues)
+    assert ufun([0.0] * n_issues) == 0.0
+    assert ufun([1.0] * n_issues) == sum(rs)
+    rng = ufun.minmax(issues=issues)
+    assert rng[0] >= 0.0
+    assert rng[1] <= sum(rs)
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
 def test_preferences_range_linear(n_issues):
     issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
-    ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0)
+    ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0, issues=issues)
     assert ufun([0.0] * n_issues) == 0.0
     assert ufun([1.0] * n_issues) == sum(rs)
-    rng = utility_range(ufun, issues=issues)
+    rng = ufun.minmax()
     assert rng[0] >= 0.0
     assert rng[1] <= sum(rs)
 
@@ -46,7 +57,7 @@ def test_preferences_range_general(n_issues):
     )
     assert ufun([0.0] * n_issues) == 0.0
     assert ufun([1.0] * n_issues) == sum(rs)
-    rng = utility_range(ufun, issues=issues)
+    rng = ufun.minmax(issues=issues)
     assert rng[0] >= 0.0
     assert rng[1] <= sum(rs)
 
@@ -88,29 +99,37 @@ def test_pareto_frontier_does_not_depend_on_order():
 
 
 def test_linear_utility():
-    buyer_utility = LinearUtilityAggregationFunction(
+    buyer_utility = LinearAdditiveUtilityFunction(
         {
             "cost": lambda x: -x,
             "number of items": lambda x: 0.5 * x,
             "delivery": {"delivered": 10.0, "not delivered": -2.0},
         },
-        issues=["cost", "number of items", "delivery"],
+        issues=[
+            make_issue((0.0, 1.0), "cost"),
+            make_issue(10, "number of items"),
+            make_issue(["delivered", "not delivered"], "delivery"),
+        ],
     )
     assert buyer_utility((1.0, 3, "not delivered")) == -1.0 + 0.5 * 3 - 2.0
 
 
 def test_linear_utility_construction():
-    buyer_utility = LinearUtilityAggregationFunction(
+    buyer_utility = LinearAdditiveUtilityFunction(
         {
             "cost": lambda x: -x,
             "number of items": lambda x: 0.5 * x,
             "delivery": {"delivered": 10.0, "not delivered": -2.0},
         },
-        issues=["cost", "number of items", "delivery"],
+        issues=[
+            make_issue((0.0, 1.0), "cost"),
+            make_issue(10, "number of items"),
+            make_issue(["delivered", "not delivered"], "delivery"),
+        ],
     )
-    assert isinstance(buyer_utility, LinearUtilityAggregationFunction)
+    assert isinstance(buyer_utility, LinearAdditiveUtilityFunction)
     with pytest.raises(ValueError):
-        LinearUtilityAggregationFunction(
+        LinearAdditiveUtilityFunction(
             {
                 "cost": lambda x: -x,
                 "number of items": lambda x: 0.5 * x,
@@ -212,127 +231,19 @@ def test_hypervolume_utility():
             assert u == e
 
 
-def test_normalization():
-
-    os = CartesianOutcomeSpace.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ),
-        ).read(),
-    )
-    issues = os.issues
-    outcomes = os.discrete_outcomes()
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        issues=issues,
-    )
-    assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
-    assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
-
-    gt_max = {
-        ("Dell", "60 Gb", "19'' LCD"): 0.7328862913051053,
-        ("Dell", "60 Gb", "20'' LCD"): 0.6150545888614856,
-        ("Dell", "60 Gb", "23'' LCD"): 0.6739704400832954,
-        ("Dell", "80 Gb", "19'' LCD"): 0.6068653140240788,
-        ("Dell", "80 Gb", "20'' LCD"): 0.48903361158045916,
-        ("Dell", "80 Gb", "23'' LCD"): 0.547949462802269,
-        ("Dell", "120 Gb", "19'' LCD"): 0.4682422390149499,
-        ("Dell", "120 Gb", "20'' LCD"): 0.3504105365713301,
-        ("Dell", "120 Gb", "23'' LCD"): 0.40932638779313996,
-        ("Macintosh", "60 Gb", "19'' LCD"): 0.851603495169503,
-        ("Macintosh", "60 Gb", "20'' LCD"): 0.7337717927258832,
-        ("Macintosh", "60 Gb", "23'' LCD"): 0.7926876439476931,
-        ("Macintosh", "80 Gb", "19'' LCD"): 0.7255825178884765,
-        ("Macintosh", "80 Gb", "20'' LCD"): 0.6077508154448569,
-        ("Macintosh", "80 Gb", "23'' LCD"): 0.6666666666666666,
-        ("Macintosh", "120 Gb", "19'' LCD"): 0.5869594428793475,
-        ("Macintosh", "120 Gb", "20'' LCD"): 0.4691277404357278,
-        ("Macintosh", "120 Gb", "23'' LCD"): 0.5280435916575378,
-        ("HP", "60 Gb", "19'' LCD"): 1.0,
-        ("HP", "60 Gb", "20'' LCD"): 0.8821682975563803,
-        ("HP", "60 Gb", "23'' LCD"): 0.9410841487781901,
-        ("HP", "80 Gb", "19'' LCD"): 0.8739790227189735,
-        ("HP", "80 Gb", "20'' LCD"): 0.7561473202753539,
-        ("HP", "80 Gb", "23'' LCD"): 0.8150631714971638,
-        ("HP", "120 Gb", "19'' LCD"): 0.7353559477098447,
-        ("HP", "120 Gb", "20'' LCD"): 0.6175242452662248,
-        ("HP", "120 Gb", "23'' LCD"): 0.6764400964880347,
-    }
-    gt_range = {
-        ("Dell", "60 Gb", "19'' LCD"): 0.5887961185746265,
-        ("Dell", "60 Gb", "20'' LCD"): 0.40740200879076527,
-        ("Dell", "60 Gb", "23'' LCD"): 0.4980990636826959,
-        ("Dell", "80 Gb", "19'' LCD"): 0.39479516200759546,
-        ("Dell", "80 Gb", "20'' LCD"): 0.21340105222373418,
-        ("Dell", "80 Gb", "23'' LCD"): 0.3040981071156648,
-        ("Dell", "120 Gb", "19'' LCD"): 0.1813941097838614,
-        ("Dell", "120 Gb", "20'' LCD"): 0.0,
-        ("Dell", "120 Gb", "23'' LCD"): 0.09069705489193064,
-        ("Macintosh", "60 Gb", "19'' LCD"): 0.7715533992081258,
-        ("Macintosh", "60 Gb", "20'' LCD"): 0.5901592894242645,
-        ("Macintosh", "60 Gb", "23'' LCD"): 0.6808563443161952,
-        ("Macintosh", "80 Gb", "19'' LCD"): 0.5775524426410947,
-        ("Macintosh", "80 Gb", "20'' LCD"): 0.3961583328572335,
-        ("Macintosh", "80 Gb", "23'' LCD"): 0.48685538774916415,
-        ("Macintosh", "120 Gb", "19'' LCD"): 0.3641513904173608,
-        ("Macintosh", "120 Gb", "20'' LCD"): 0.18275728063349939,
-        ("Macintosh", "120 Gb", "23'' LCD"): 0.27345433552543014,
-        ("HP", "60 Gb", "19'' LCD"): 1.0,
-        ("HP", "60 Gb", "20'' LCD"): 0.8186058902161387,
-        ("HP", "60 Gb", "23'' LCD"): 0.9093029451080693,
-        ("HP", "80 Gb", "19'' LCD"): 0.8059990434329689,
-        ("HP", "80 Gb", "20'' LCD"): 0.6246049336491076,
-        ("HP", "80 Gb", "23'' LCD"): 0.7153019885410383,
-        ("HP", "120 Gb", "19'' LCD"): 0.592597991209235,
-        ("HP", "120 Gb", "20'' LCD"): 0.41120388142537345,
-        ("HP", "120 Gb", "23'' LCD"): 0.501900936317304,
-    }
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        # normalize_utility=True,
-        # normalize_max_only=False,
-    )
-    u = normalize(u, outcomes=outcomes)
-
-    for k, v in gt_range.items():
-        assert abs(v - u(k)) < 1e-3, (k, v, u(k))
-
-    u, _ = UtilityFunction.from_xml_str(
-        open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
-        ).read(),
-        # normalize_utility=True,
-        # normalize_max_only=True,
-    )
-    u = normalize(u, outcomes=outcomes, rng=(None, 1.0))
-
-    for k, v in gt_max.items():
-        assert abs(v - u(k)) < 1e-3, (k, v, u(k))
-
-
-@mark.parametrize("utype", (LinearUtilityFunction, LinearUtilityAggregationFunction))
+@mark.parametrize("utype", (LinearUtilityFunction, LinearAdditiveUtilityFunction))
 def test_dict_conversion(utype):
+    # def test_dict_conversion():
+    #     utype = LinearUtilityFunction
     issues = [make_issue(10)]
-    u = utype.random(issues, normalized=False)
+    u = utype.random(issues=issues, normalized=False)
     d = u.to_dict()
     u2 = utype.from_dict(d)
     for o in enumerate_issues(issues):
         assert abs(u(o) - u2(o)) < 1e-3
 
 
-@mark.parametrize(["normalize"], [(True,), (False,)])
-def test_inverse_genius_domain(normalize):
+def test_inverse_genius_domain():
     issues, _ = issues_from_xml_str(
         open(
             pkg_resources.resource_filename(
@@ -346,16 +257,18 @@ def test_inverse_genius_domain(normalize):
                 "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
             ),
         ).read(),
-        # normalize_utility=normalize,
+        issues=issues,
     )
-    u.init_inverse(issues=issues)
+    assert u is not None
+    inv = InverseUtilityFunction(u)
+    inv.init()
     for i in range(100):
-        v = u(u.inverse(i / 100.0, eps=(0.001, 0.1), assume_normalized=normalize))
+        v = u(inv.one_in((i / 100.0, i / 100.0)))
         assert v - 1e-3 <= v <= v + 0.1
 
 
-def test_random_linear_utils_is_normalized():
-    from negmas.preferences import LinearUtilityAggregationFunction as U2
+def test_random_linear_utils_are_normalized():
+    from negmas.preferences import LinearAdditiveUtilityFunction as U2
     from negmas.preferences import LinearUtilityFunction as U1
 
     eps = 1e-6
@@ -369,7 +282,7 @@ def test_random_linear_utils_is_normalized():
             assert sum(u.weights) <= 1 + eps
         outcomes = enumerate_issues(issues)
         for w in outcomes:
-            assert -1e-6 <= u(w) <= 1 + 1e-6, f"{str(u.to_dict())}"
+            assert -1e-6 <= u(w) <= 1 + 1e-6, f"{str(u)}"
 
 
 def _order(u: list[float]):
@@ -387,12 +300,13 @@ def _relative_fraction(u: list[float]):
 
 rngs = [
     (0.0, 1.0),
-    (float("-inf"), 1.0),
-    (0.0, float("inf")),
-    (float("-inf"), float("inf")),
-    # (1.0, 2.0),
-    (float("-inf"), 2.0),
-    (1.0, float("inf")),
+    (1.0, 2.0),
+    # (float("-inf"), 1.0),
+    # (0.0, float("inf")),
+    # (float("-inf"), float("inf")),
+    # # (1.0, 2.0),
+    # (float("-inf"), 2.0),
+    # (1.0, float("inf")),
 ]
 
 
@@ -414,10 +328,10 @@ def test_can_normalize_linear_ufun(weights, bias, rng):
         and rng[1] != float("inf")
     ):
         with pytest.raises(ValueError):
-            nfun = ufun.normalize(rng=rng)
+            nfun = ufun.normalize(rng)
         return
     try:
-        nfun = ufun.normalize(rng=rng)
+        nfun = ufun.normalize(rng)
     except ValueError as e:
         # todo if the scale is negative, we should raise this exception. I do not now how to expect that correctl yet
         if "scale" in str(e):
@@ -425,7 +339,7 @@ def test_can_normalize_linear_ufun(weights, bias, rng):
         raise e
 
     assert isinstance(ufun, LinearUtilityFunction) or isinstance(
-        ufun, ConstUFun
+        ufun, ConstUtilityFunction
     ), f"Normalization of ufun of type "
     f"LinearUtilityFunction should generate an IndependentIssuesUFun but we got {type(nfun).__name__}"
     u2 = [nfun(w) for w in outcomes]
@@ -460,6 +374,67 @@ def test_can_normalize_linear_ufun(weights, bias, rng):
         assert (
             np.abs(relative1 - relative2).max() < 1e-3
         ), f"One side normalization should not change the result of dividing outcomes\n{u1}\n{u2}"
+
+
+def test_normalization():
+    os = CartesianOutcomeSpace.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
+            ),
+        ).read(),
+    )
+    issues = os.issues
+    outcomes = list(os.enumerate())
+    u, _ = UtilityFunction.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ),
+        ).read(),
+        issues=issues,
+    )
+    assert abs(u(("Dell", "60 Gb", "19'' LCD")) - 21.987727736172488) < 0.000001
+    assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
+    utils = [u(_) for _ in outcomes]
+    max_util, min_util = max(utils), min(utils)
+    gt_range = dict(
+        zip(outcomes, [(_ - min_util) / (max_util - min_util) for _ in utils])
+    )
+    gt_max = dict(zip(outcomes, [_ / max_util for _ in utils]))
+
+    u, _ = UtilityFunction.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ),
+        ).read(),
+        issues=issues,
+    )
+    u = normalize(u, to=(0.0, 1.0))
+    utils = [u(_) for _ in outcomes]
+    max_util, min_util = max(utils), min(utils)
+    assert abs(max_util - 1.0) < 0.001
+    assert abs(min_util) < 0.001
+
+    for k, v in gt_range.items():
+        assert abs(v - u(k)) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
+
+    u, _ = UtilityFunction.from_xml_str(
+        open(
+            pkg_resources.resource_filename(
+                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
+            ),
+        ).read(),
+        issues=issues,
+    )
+    u = scale_max(u, 1.0)
+    utils = [u(_) for _ in outcomes]
+    max_util, min_util = max(utils), min(utils)
+    assert abs(max_util - 1.0) < 0.001
+
+    for k, v in gt_max.items():
+        assert abs(v - u(k)) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
 
 
 if __name__ == "__main__":

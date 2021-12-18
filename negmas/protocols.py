@@ -71,3 +71,8 @@ class DictSerializable(Protocol):
     @classmethod
     def from_dict(cls: Type[D], v: dict[str, Any]) -> D:
         ...
+
+
+class HasMinMax(Protocol):
+    min_value: Any
+    max_value: Any

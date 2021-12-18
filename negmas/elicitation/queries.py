@@ -9,9 +9,10 @@ from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
 
 from negmas.preferences.preferences import Preferences
 
-from ..common import NegotiatorMechanismInterface
+from ..common import NegotiatorMechanismInterface, Value
+from ..helpers.prob import Distribution
 from ..outcomes import Outcome
-from ..preferences import Distribution, UtilityFunction, Value
+from ..preferences import UtilityFunction
 from .common import _loc, _upper
 
 __all__ = [

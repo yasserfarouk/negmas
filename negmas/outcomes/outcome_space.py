@@ -5,7 +5,13 @@ from operator import mul
 from typing import Iterable
 
 from negmas.helpers import unique_name
-from negmas.outcomes.outcome_ops import outcome_is_valid
+from negmas.helpers.types import get_full_type_name
+from negmas.outcomes.outcome_ops import (
+    cast_value_types,
+    outcome_is_valid,
+    outcome_types_are_ok,
+)
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..protocols import XmlSerializable
 from .base_issue import DiscreteIssue, Issue
@@ -19,25 +25,43 @@ from .issue_ops import (
     issues_to_xml_str,
     sample_issues,
 )
-from .protocols import DiscreteOutcomeSpace, OutcomeSpace
+from .protocols import (
+    DiscreteOutcomeSpace,
+    IndependentDiscreteIssuesOS,
+    IndependentIssuesOS,
+    OutcomeSpace,
+)
 from .range_issue import RangeIssue
 
 __all__ = ["CartesianOutcomeSpace", "DiscreteCartesianOutcomeSpace"]
 
+NLEVELS = 5
+
 
 def make_os(issues: Iterable[Issue], name: str = None) -> CartesianOutcomeSpace:
-    issues = tuple(issues)
     if all(_.is_discrete() for _ in issues):
         return DiscreteCartesianOutcomeSpace(issues, name=name)
     return CartesianOutcomeSpace(issues, name=name)
 
 
-class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
+class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
     def __init__(self, issues: Iterable[Issue], name: str | None = None):
         if name is None:
             name = unique_name("os", add_time=False, sep=".")
         self.name = name
         self.issues = tuple(issues)
+
+    def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        return dict(
+            **d,
+            name=self.name,
+            issues=serialize(self.issues),
+        )
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(**deserialize(d))
 
     @property
     def issue_names(self) -> list[str]:
@@ -47,15 +71,23 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
     @property
     def cardinality(self) -> int | float:
         """The space cardinality = the number of outcomes"""
-        return reduce(mul, [_.cardinality for _ in self.issues], initial=1)
+        return reduce(mul, [_.cardinality for _ in self.issues], 1)
 
     def is_compact(self) -> bool:
         """Checks whether all issues are complete ranges"""
         return all(isinstance(_, RangeIssue) for _ in self.issues)
 
+    def is_all_continuous(self) -> bool:
+        """Checks whether all issues are discrete"""
+        return all(_.is_continuous() for _ in self.issues)
+
+    def is_not_discrete(self) -> bool:
+        """Checks whether all issues are discrete"""
+        return any(_.is_continuous() for _ in self.issues)
+
     def is_discrete(self) -> bool:
         """Checks whether all issues are discrete"""
-        return all(isinstance(_, DiscreteIssue) for _ in self.issues)
+        return all(_.is_discrete() for _ in self.issues)
 
     def is_numeric(self) -> bool:
         """Checks whether all issues are numeric"""
@@ -73,7 +105,7 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
         self,
         numeric=False,
         stringify=False,
-        levels: int = 5,
+        levels: int = NLEVELS,
         max_cardinality: int | float = float("inf"),
     ) -> "DiscreteCartesianOutcomeSpace":
         """
@@ -93,6 +125,16 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
     def __hash__(self) -> int:
         return hash((tuple(self.issues), self.name))
 
+    def cardinality_if_discretized(
+        self, levels: int, max_cardinality: int | float = float("inf")
+    ) -> int:
+        c = reduce(
+            mul,
+            [_.cardinality if _.is_discrete() else levels for _ in self.issues],
+            1,
+        )
+        return min(c, max_cardinality)
+
     def to_discrete(
         self, levels: int = 10, max_cardinality: int | float = float("inf")
     ) -> "DiscreteCartesianOutcomeSpace":
@@ -105,13 +147,13 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
             c = reduce(
                 mul,
                 [_.cardinality if _.is_discrete() else levels for _ in self.issues],
-                initial=1,
+                1,
             )
             if c > max_cardinality:
                 raise ValueError(
                     f"Cannot convert OutcomeSpace to a discrete OutcomeSpace with at most {max_cardinality} (at least {c} outcomes are required)"
                 )
-        issues: tuple[DiscreteIssue, ...] = tuple(
+        issues = tuple(
             issue.to_discrete(
                 levels if issue.is_continuous() else None,
                 compact=False,
@@ -128,10 +170,6 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
     ) -> "CartesianOutcomeSpace":
         issues, _ = issues_from_xml_str(
             xml_str,
-            force_single_issue=False,
-            force_numeric=False,
-            keep_value_names=True,
-            keep_issue_names=True,
             safe_parsing=safe_parsing,
             n_discretization=None,
         )
@@ -168,15 +206,34 @@ class CartesianOutcomeSpace(OutcomeSpace, XmlSerializable):
     def is_valid(self, outcome: Outcome) -> bool:
         return outcome_is_valid(outcome, self.issues)
 
+    def are_types_ok(self, outcome: Outcome) -> bool:
+        """Checks if the type of each value in the outcome is correct for the given issue"""
+        return outcome_types_are_ok(outcome, self.issues)
 
-class DiscreteCartesianOutcomeSpace(DiscreteOutcomeSpace, CartesianOutcomeSpace):
+    def ensure_correct_types(self, outcome: Outcome) -> Outcome:
+        """Returns an outcome that is guaratneed to have correct types or raises an exception"""
+        return cast_value_types(outcome, self.issues)
+
+
+class DiscreteCartesianOutcomeSpace(
+    DiscreteOutcomeSpace, IndependentDiscreteIssuesOS, CartesianOutcomeSpace
+):
     # issues: list[DiscreteIssue]
 
     def __init__(self, issues: Iterable[Issue], name: str | None = None):
         self.issues = tuple(
-            _.to_discrete(n=None if _.is_discrete() else 10) for _ in issues
+            _.to_discrete(n=10) if not _.is_discrete() else _ for _ in issues
         )
         self.name = name
+
+    @property
+    def cardinality(self) -> int:
+        return reduce(mul, [_.cardinality for _ in self.issues], 1)
+
+    def cardinality_if_discretized(
+        self, levels: int, max_cardinality: int | float = float("inf")
+    ) -> int:
+        return self.cardinality
 
     def is_discrete(self) -> bool:
         """Checks whether all issues are discrete"""
@@ -184,7 +241,7 @@ class DiscreteCartesianOutcomeSpace(DiscreteOutcomeSpace, CartesianOutcomeSpace)
 
     def to_single_issue(
         self, numeric=False, stringify=False
-    ) -> "CartesianOutcomeSpace":
+    ) -> "DiscreteCartesianOutcomeSpace":
         """
         Creates a new outcome space that is a single-issue version of this one
 
@@ -209,7 +266,7 @@ class DiscreteCartesianOutcomeSpace(DiscreteOutcomeSpace, CartesianOutcomeSpace)
             if numeric
             else CategoricalIssue(values, name="-".join(self.issue_names))
         )
-        return CartesianOutcomeSpace(
+        return DiscreteCartesianOutcomeSpace(
             issues=(issue,),
             name=self.name,
         )

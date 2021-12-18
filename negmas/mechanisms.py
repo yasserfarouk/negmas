@@ -20,6 +20,7 @@ from negmas.genius import DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import snake_case
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Outcome
+from negmas.outcomes.common import check_one_and_only, ensure_os
 from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences import pareto_frontier
 from negmas.types import NamedObject
@@ -89,7 +90,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def __init__(
         self,
-        outcome_space: OutcomeSpace,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | int | None = None,
         n_steps: int = None,
         time_limit: float = None,
         hidden_time_limit: float = float("inf"),
@@ -110,6 +113,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         genius_port: int = DEFAULT_JAVA_PORT,
         id: str = None,
     ):
+        check_one_and_only(outcome_space, issues, outcomes)
+        outcome_space = ensure_os(outcome_space, issues, outcomes)
         super().__init__(name, id=id)
         CheckpointMixin.checkpoint_init(
             self,
@@ -227,7 +232,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
         return self.__discrete_outcomes
 
-    def random_outcomes(self, n: int = 1) -> Iterable["Outcome"]:
+    def random_outcomes(self, n: int = 1) -> list["Outcome"]:
         """Returns random offers.
 
         Args:
@@ -242,8 +247,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 - Sampling is done without replacement (i.e. returned outcomes are unique).
 
         """
-        return self.outcome_space.sample(
-            n, with_replacement=False, fail_if_not_enough=False
+        return list(
+            self.outcome_space.sample(
+                n, with_replacement=False, fail_if_not_enough=False
+            )
         )
 
     @property
@@ -538,6 +545,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @property
     def outcome_space(self):
         return self.nmi.outcome_space
+
+    @property
+    def issues(self):
+        if hasattr(self.nmi.outcome_space, "issues"):
+            return self.nmi.outcome_space.issues
+        return None
 
     @property
     def completed(self):

@@ -10,6 +10,8 @@ from functools import reduce
 from operator import mul
 from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Optional, Union
 
+from negmas.outcomes.contiguous_issue import ContiguousIssue
+
 if TYPE_CHECKING:
     from .common import Outcome
 
@@ -35,6 +37,9 @@ __all__ = [
     "sample_outcomes",
     "combine_issues",
 ]
+
+
+DUMMY_ISSUE_NAME = "DUMMY_ISSUE"
 
 
 def num_outcomes(issues: tuple[Issue, ...]) -> int | float:
@@ -309,16 +314,8 @@ def issues_to_genius(
         - Forcing Single outcome
 
         >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
-        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
-        ...     , force_single_issue=True, keep_value_names=False, keep_issue_names=False)
-        >>> print(list(issues[0].all))
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
-        >>> issues_to_genius(issues=issues, enumerate_integer=True
-        ...     , file_name = pkg_resources.resource_filename('negmas'
-        ...                                   , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-        >>> issues3, _ = issues_from_genius(file_name=pkg_resources.resource_filename('negmas'
-        ...                                    , resource_name='tests/data/LaptopConv/Laptop-C-domain.xml'))
-        >>> print([list(issue.all) for issue in issues3])
+        ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+        >>> print([list(issue.all) for issue in issues])
         [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26']]
 
     Remarks:
@@ -326,30 +323,19 @@ def issues_to_genius(
 
     """
     with open(file_name, "w") as f:
-        f.write(
-            issues_to_xml_str(issues=list(issues), enumerate_integer=enumerate_integer)
-        )
+        f.write(issues_to_xml_str(issues=issues, enumerate_integer=enumerate_integer))
 
 
 def issues_from_xml_str(
     xml_str: str,
-    force_single_issue=False,
-    force_numeric=False,
-    keep_value_names=True,
-    keep_issue_names=True,
     safe_parsing=True,
     n_discretization: int | None = None,
-    max_cardinality: int = 1_000_000,
 ) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
     """Exports a list/dict of issues from a GENIUS XML file.
 
     Args:
 
         xml_str (str): The string containing GENIUS style XML domain issue definitions
-        force_single_issue (bool): Tries to generate a MappingUtility function with a single issue which is the
-        product of all issues in the input
-        keep_value_names (bool): Keep names of values
-        keep_issue_names (bool): Keep names of issues
         safe_parsing (bool): Turn on extra checks
         n_discretization (Optional[int]): If not None, real valued issues are discretized with the given
         number of values
@@ -476,9 +462,8 @@ def issues_from_xml_str(
     for child in utility_space:
         if child.tag == "issue":
             indx = int(child.attrib["index"]) - 1
-            myname = str(child.attrib["name"])
-            issue_key: Union[int, str] = myname if keep_issue_names else indx
-            issue_info[issue_key] = {"name": myname, "index": indx}
+            issue_name = str(child.attrib["name"])
+            issue_info[issue_name] = {"name": issue_name, "index": indx}
             info = {"type": "discrete", "etype": "discrete", "vtype": "discrete"}
 
             for a in ("type", "etype", "vtype"):
@@ -486,27 +471,18 @@ def issues_from_xml_str(
             mytype = info["type"]
 
             if mytype == "discrete":
-                issues_dict[issue_key] = []
+                issues_dict[issue_name] = []
 
                 for item in child:
                     if item.tag == "item":
                         item_indx = int(item.attrib["index"]) - 1
                         item_name = item.attrib.get("value", None)
-                        item_key = (
-                            item_name
-                            if keep_value_names
-                            and item_name is not None
-                            and not force_numeric
-                            else item_indx
-                        )
 
                         if (
-                            item_key not in issues_dict[issue_key]
+                            item_name not in issues_dict[issue_name]
                         ):  # ignore repeated items
-                            issues_dict[issue_key].append(item_key)
+                            issues_dict[issue_name].append(item_name)
 
-                if not keep_value_names:
-                    issues_dict[issue_key] = len(issues_dict[issue_key])
             elif mytype in ("integer", "real"):
                 lower_, upper_ = (
                     child.attrib.get("lowerbound", None),
@@ -534,103 +510,50 @@ def issues_from_xml_str(
                     )
                 if mytype == "integer":
                     lower, upper = int(lower_), int(upper_)
-
-                    # if keep_value_names:
-                    #     if (upper + 1 - lower) > 1_000_000:
-                    #         warnings.warn(
-                    #             f"Issue {issue_key} has bounds ({lower}, {upper}) which means "
-                    #             f"{upper + 1 - lower} values. Consider NOT using keep_value_names"
-                    #             f" to reduce memory consumption"
-                    #         )
-                    #     issues_dict[issue_key] = list(range(lower, upper + 1))
-                    # else:
-                    issues_dict[issue_key] = lower, upper
+                    issues_dict[issue_name] = lower, upper
                 else:
                     lower, upper = float(lower_), float(upper_)
                     if n_discretization is None:
-                        all_discrete = False
-                        issues_dict[issue_key] = lower, upper
+                        issues_dict[issue_name] = lower, upper
                     else:
-                        issues_dict[issue_key] = n_discretization
+                        issues_dict[issue_name] = n_discretization
             else:
                 # I should add the real-valued issues_dict code here
                 raise ValueError(f"Unknown type: {mytype}")
         else:
             raise ValueError(f"Unknown child for objective: {child.tag}")
 
+    issues_by_index = dict()
     for key, value in issues_dict.items():
-        issues_dict[key] = make_issue(
-            values=value,
-            name=issue_info[key]["name"]
-            if keep_issue_names
-            else str(issue_info[key]["index"]),
-        )
-    issues = list(issues_dict.values())
+        indx = issue_info[key]["index"]
+        issues_by_index[indx] = make_issue(values=value, name=issue_info[key]["name"])
+    n_issues = max(issues_by_index.keys()) + 1
+    issues = []
+    for i in range(n_issues):
+        if i not in issues_by_index.keys():
+            if safe_parsing:
+                raise ValueError(
+                    f"No issue with index {i} is found even though we have issues with higher indices"
+                )
+            issues.append(ContiguousIssue((1, 1), name=DUMMY_ISSUE_NAME))
+            continue
+        issues.append(issues_by_index[i])
 
-    if force_single_issue:
-        issue_name_ = "-".join([_.name for _ in issues]) if keep_issue_names else "0"
-
-        if all_discrete or n_discretization is not None:
-            n_outcomes = None
-
-            if max_cardinality is not None:
-                n_items = [
-                    len(list(_.value_generator(n=n_discretization))) for _ in issues
-                ]
-                n_outcomes = reduce(mul, n_items, 1)
-
-                if n_outcomes > max_cardinality:
-                    return None, None
-
-            if keep_value_names:
-                if len(issues) > 1:
-                    all_values = itertools.product(
-                        *(
-                            [str(_) for _ in issue.value_generator(n=n_discretization)]
-                            for issue_key, issue in zip(range(len(issues)), issues)
-                        )
-                    )
-                    all_values = list(map(lambda items: "+".join(items), all_values))
-                else:
-                    all_values = [
-                        str(_) for _ in issues[0].value_generator(n=n_discretization)
-                    ]
-                issues = [make_issue(values=all_values, name=issue_name_)]
-            else:
-                if n_outcomes is None:
-                    n_items = [_.cardinality for _ in issues]
-                    n_outcomes = reduce(mul, n_items, 1)
-                issues = [make_issue(values=n_outcomes, name=issue_name_)]
-        else:
-            return None, None
-
-    return issues, agents
+    return tuple(issues), tuple(agents)
 
 
 def issues_from_genius(
     file_name: PathLike,
-    force_single_issue=False,
-    force_numeric=False,
-    keep_value_names=True,
-    keep_issue_names=True,
     safe_parsing=True,
     n_discretization: int | None = None,
-    max_cardinality: int = 1_000_000,
 ) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
     """Imports a the domain issues from a GENIUS XML file.
 
     Args:
 
         file_name (str): File name to import from
-        force_single_issue: Combine all issues into a single issue
-        force_numeric: Force the issue values to be numeric
-        keep_issue_names: Use dictionaries instead of tuples to represent outcomes
-        keep_value_names: keep value names in case of strings
         safe_parsing: Add more checks to parsing
         n_discretization: Number of discretization levels per issue
-        max_cardinality: Maximum number of outcomes to allow. If more the outcomespace
-                        has more outcomes, the function will fail returning
-                        (None, None)
 
     Returns:
 
@@ -657,13 +580,8 @@ def issues_from_genius(
 
         return issues_from_xml_str(
             xml_str=xml_str,
-            force_single_issue=force_single_issue,
-            keep_value_names=keep_value_names,
-            keep_issue_names=keep_issue_names,
             safe_parsing=safe_parsing,
             n_discretization=n_discretization,
-            max_cardinality=max_cardinality,
-            force_numeric=force_numeric,
         )
 
 
@@ -858,6 +776,61 @@ def sample_outcomes(
     return list(outcomes)[:n_outcomes]
 
 
+def _sample_issues(
+    issues: tuple[Issue, ...],
+    n: int,
+    with_replacement,
+    n_total,
+    old_values,
+    trial,
+    max_trials,
+) -> Iterable["Outcome"]:
+    if trial > max_trials:
+        return old_values
+
+    remaining = n - len(old_values)
+    if remaining < 0:
+        return set(list(old_values)[:n])
+    if remaining == 0:
+        return old_values
+
+    samples = []
+
+    for issue in issues:
+        samples.append(
+            issue.rand_outcomes(
+                n=remaining, with_replacement=True, fail_if_not_enough=True
+            )
+        )
+
+    _v = []
+
+    for i in range(remaining):
+        _v.append([s[i] for s in samples])
+
+    new_values = []
+    for value in _v:
+        new_values.append(tuple(value))
+    new_values = set(new_values)
+    values = old_values.union(new_values)
+    remaining = n - len(values)
+    if remaining < 0:
+        return set(list(values)[:n])
+    if remaining < 1:
+        return values
+    return values.union(
+        _sample_issues(
+            issues,
+            remaining,
+            with_replacement,
+            n_total,
+            values,
+            trial + 1,
+            max_trials,
+        )
+    )
+
+
 def sample_issues(
     issues: tuple[Issue, ...],
     n_outcomes: int,
@@ -908,49 +881,14 @@ def sample_issues(
         )
 
     if n_total is not None and n_total != float("inf") and n_outcomes is None:
-        values = enumerate_discrete_issues(issues=issues)
-    elif n_total is None and n_outcomes is None:
+        return enumerate_discrete_issues(issues=issues)
+    if n_total is None and n_outcomes is None:
         raise ValueError(
             f"Cannot sample unknown number of outcomes from continuous outcome spaces"
         )
-    else:
-        samples = []
-
-        for issue in issues:
-            samples.append(
-                issue.rand_outcomes(
-                    n=n_outcomes, with_replacement=True, fail_if_not_enough=True
-                )
-            )
-        values = []
-
-        for i in range(n_outcomes):
-            values.append([s[i] for s in samples])
-
-        if not with_replacement and not any(i.is_continuous() for i in issues):
-            tmp_values = []
-
-            for value in values:
-                tmp_values.append(tuple(value))
-            tmp_values = set(tmp_values)
-            remaining = n_outcomes - len(tmp_values)
-            n_max_trials, i = 10, 0
-
-            while remaining < 0 and i < n_max_trials:
-                tmp_values = tmp_values.union(
-                    set(
-                        sample_issues(
-                            issues=issues,
-                            n_outcomes=remaining,
-                            with_replacement=True,
-                            fail_if_not_enough=False,
-                        )
-                    )
-                )
-                i += 1
-            values = list(tmp_values)
-
-    return (tuple(_) for _ in values)
+    return list(
+        _sample_issues(issues, n_outcomes, with_replacement, n_total, set(), 0, 10)
+    )
 
 
 def combine_issues(

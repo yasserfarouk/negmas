@@ -136,7 +136,7 @@ This can be modeled in the following negotiation:
 .. code:: ipython3
 
     from negmas import make_issue, SAOMechanism, AspirationNegotiator, normalize
-    from negmas.preferences import LinearUtilityAggregationFunction as LUFun
+    from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
 
     # create negotiation agenda (issues)
     issues = [
@@ -150,7 +150,7 @@ This can be modeled in the following negotiation:
 
     # define buyer and seller utilities
     seller_utility =  LUFun(
-            issue_utilities=[
+            values=[
                 lambda x: x,
                 lambda x: 0.2 * x,
                 lambda x: 9.0 - x
@@ -159,7 +159,7 @@ This can be modeled in the following negotiation:
 
     buyer_utility = normalize(
         LUFun(
-            issue_utilities={
+            values={
                 'price': lambda x: 9.0 - x,
                 'quantity': lambda x: 0.2 * x,
                 'delivery_time': lambda x: x
@@ -260,7 +260,7 @@ the delivery time and price to go down. Let’s see what happens:
 .. code:: ipython3
 
 
-    seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
+    seller_utility = normalize(ufun=LUFun(values={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
@@ -318,7 +318,7 @@ What happens if we give them more time to negotiate:
 
     session = SAOMechanism(issues=issues, n_steps=5000)
 
-    seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
+    seller_utility = normalize(ufun=LUFun(values={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
@@ -342,7 +342,7 @@ to *linear* instead of the default *boulware*:
 
 .. code:: ipython3
 
-    seller_utility = normalize(ufun=LUFun(issue_utilities={'price': lambda x: x
+    seller_utility = normalize(ufun=LUFun(values={'price': lambda x: x
                                            , 'quantity': lambda x: 0.2 * x
                                            , 'delivery_time': lambda x: 9.0 - x}
                                          , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})

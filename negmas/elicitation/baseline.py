@@ -3,9 +3,9 @@ from __future__ import annotations
 import time
 from typing import Optional, Union
 
-from ..common import MechanismState
+from ..common import MechanismState, Value
+from ..helpers.prob import Distribution
 from ..outcomes import Outcome
-from ..preferences import Value
 from .base import BaseElicitor
 
 __all__ = ["DummyElicitor", "FullKnowledgeElicitor"]

@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import random
 import warnings
+from abc import ABC, abstractmethod
 from typing import Generator
 
 from negmas.helpers import sample, unique_name
-from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.base_issue import DiscreteIssue, Issue
 
-__all__ = ["OrdinalIssue"]
+__all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]
 
 
-def generate_values(n: int) -> str:
+def generate_values(n: int) -> list[str]:
     if n > 1000_000:
         warnings.warn(
             f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible"
@@ -19,7 +20,15 @@ def generate_values(n: int) -> str:
     return list(f"{_:0{width}n}" for _ in range(n))
 
 
-class OrdinalIssue(DiscreteIssue):
+class OrdinalIssue(Issue, ABC):
+    @abstractmethod
+    def ordered_value_generator(
+        self, n: int = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator:
+        ...
+
+
+class DiscreteOrdinalIssue(DiscreteIssue):
     def __init__(self, values, name=None, id=None) -> None:
         """
         `values` can be an integer and in this case, values will be strings

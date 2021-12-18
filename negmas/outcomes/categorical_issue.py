@@ -3,8 +3,6 @@ from __future__ import annotations
 import random
 from typing import Generator
 
-import numpy as np
-
 from negmas.helpers import unique_name
 from negmas.outcomes.base_issue import DiscreteIssue
 
@@ -22,6 +20,10 @@ class CategoricalIssue(DiscreteIssue):
         if self.is_numeric():
             self.min_value, self.max_value = min(values), max(values)
 
+    @property
+    def type(self) -> str:
+        return "categorical"
+
     def _to_xml_str(self, indx, enumerate_integer=False):
         output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
 
@@ -35,9 +37,6 @@ class CategoricalIssue(DiscreteIssue):
 
     def is_uncountable(self) -> bool:
         return False
-
-    def is_countable(self) -> bool:
-        return True
 
     @property
     def all(self) -> Generator:

@@ -1,23 +1,17 @@
 from __future__ import annotations
 
+import math
 import numbers
 import random
-from abc import abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Iterable,
-    Optional,
-    Union,
-)
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Callable, Generator, Iterable, Optional, Union
 
 import numpy as np
 
 from negmas.helpers.numeric import sample
-from negmas.java import PYTHON_CLASS_IDENTIFIER
+from negmas.helpers.types import get_full_type_name
+from negmas.protocols import HasMinMax
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.types import NamedObject
 
 if TYPE_CHECKING:
@@ -28,12 +22,12 @@ __all__ = ["make_issue", "Issue", "DiscreteIssue"]
 
 def make_issue(values, *args, **kwargs):
     from negmas.outcomes.callable_issue import CallableIssue
-    from negmas.outcomes.cardinal_issue import CardinalIssue
+    from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
     from negmas.outcomes.categorical_issue import CategoricalIssue
     from negmas.outcomes.contiguous_issue import ContiguousIssue
     from negmas.outcomes.continuous_issue import ContinuousIssue
     from negmas.outcomes.infinite import ContinuousInfiniteIssue, CountableInfiniteIssue
-    from negmas.outcomes.ordinal_issue import OrdinalIssue
+    from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue
 
     if isinstance(values, numbers.Integral):
         return ContiguousIssue(int(values), *args, **kwargs)
@@ -70,21 +64,19 @@ def make_issue(values, *args, **kwargs):
     if isinstance(values, Iterable) and all(
         isinstance(_, numbers.Integral) for _ in values
     ):
-        return CardinalIssue(values, *args, **kwargs)
+        return DiscreteCardinalIssue(values, *args, **kwargs)
     if isinstance(values, Iterable):
         values = list(values)
         try:
             for a, b in zip(values[1:], values[:-1]):
                 a - b
         except:
-            cls = CategoricalIssue
-        else:
-            cls = OrdinalIssue
-        return cls(values, *args, **kwargs)
+            return CategoricalIssue(values, *args, **kwargs)
+        return DiscreteOrdinalIssue(values, *args, **kwargs)
     return CategoricalIssue(values, *args, **kwargs)
 
 
-class Issue(NamedObject):
+class Issue(NamedObject, HasMinMax, Iterable, ABC):
     """
     A factory for creating issues based on `values` type as well as the base class of all issues
 
@@ -139,6 +131,12 @@ class Issue(NamedObject):
     def values(self):
         return self._values
 
+    def has_finite_limits(self) -> bool:
+        return self.has_limits() and math.isfinite(self.min_value) and math.isfinite(self.max_value)  # type: ignore
+
+    def has_limits(self) -> bool:
+        return self.min_value is not None and self.max_value is not None
+
     def is_numeric(self) -> bool:
         return issubclass(self._value_type, numbers.Number)
 
@@ -154,7 +152,7 @@ class Issue(NamedObject):
         return self.is_discrete()
 
     def is_discrete(self) -> bool:
-        return self.is_continuous()
+        return not self.is_continuous()
 
     @property
     def cardinality(self) -> Union[int, float]:
@@ -165,18 +163,9 @@ class Issue(NamedObject):
         return self.rand()
 
     @classmethod
-    def from_java(cls, d: Dict[str, Any], class_name: str) -> "Issue":
-        if class_name.endswith("ListIssue"):
-            return make_issue(name=d.get("name", None), values=d["values"])
-
-        if class_name.endswith("RangeIssue"):
-            return make_issue(name=d.get("name", None), values=(d["min"], d["max"]))
-        raise ValueError(
-            f"Unknown issue type: {class_name} with dict {d} received from Java"
-        )
-
-    @classmethod
     def from_dict(cls, d):
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        d["values"] = deserialize(d["values"])
         return cls(
             values=d.get("values", None),
             name=d.get("name", None),
@@ -184,11 +173,13 @@ class Issue(NamedObject):
         )
 
     def to_dict(self):
+        d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         return dict(
-            values=self._values,
-            n_values=self._n_values,
+            **d,
+            values=serialize(self.values),
             name=self.name,
             id=self.id,
+            n_values=self._n_values,
         )
 
     def __str__(self):
@@ -206,31 +197,41 @@ class Issue(NamedObject):
     def __copy__(self):
         return make_issue(name=self.name, values=self._values)
 
-    def __deepcopy__(self, memodict={}):
-        if isinstance(self._values, list):
-            return make_issue(name=self.name, values=[_ for _ in self._values])
+    def __len__(self):
+        return self.cardinality
 
+    def __iter__(self):
+        return self.value_generator().__iter__()
+
+    def __contains__(self, item):
+        return self.is_valid(item)
+
+    def __getitem__(self, indx):
+        return self.value_at(indx)
+
+    def __deepcopy__(self, memodict={}):
         return make_issue(name=self.name, values=self._values)
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__.lower().replace("issue", "")
 
     def to_discrete(
         self, n: int | None = 10, grid=True, compact=True, endpoints=True
     ) -> DiscreteIssue:
-        return DiscreteIssue(
-            list(self.value_generator(n, grid, compact, endpoints)),
-            name=self.name + f"-{n}",
-        )
+        from negmas.outcomes.categorical_issue import CategoricalIssue
 
-    @abstractmethod
-    def to_dict(self):
-        ...
+        return CategoricalIssue(
+            list(self.value_generator(n, grid, compact, endpoints)),
+            name=self.name,
+        )
 
     @abstractmethod
     def _to_xml_str(self, indx: int, enumerate_integer=True):
         ...
 
-    @property
     @abstractmethod
-    def type(self) -> str:
+    def value_at(self, index: int):
         ...
 
     @abstractmethod
@@ -292,15 +293,11 @@ class Issue(NamedObject):
         ...
 
 
-class DiscreteIssue(Issue):
+class DiscreteIssue(Issue, ABC):
     @property
     def cardinality(self) -> int:
         """The number of possible outcomes for the issue. Guaranteed to  be fininte"""
         return self._n_values  # type: ignore
-
-    @property
-    def type(self) -> str:
-        return "discrete"
 
     def is_continuous(self) -> bool:
         return False
@@ -330,6 +327,11 @@ class DiscreteIssue(Issue):
             )
         )
 
+    def value_at(self, index: int):
+        if index < 0 or index > self.cardinality - 1:
+            raise IndexError(index)
+        return self._values[index]
+
     def rand(self):
         """Picks a random valid value."""
         return random.choice(self._values)  # type: ignore
@@ -353,29 +355,8 @@ class DiscreteIssue(Issue):
             replace=with_replacement,
         ).tolist()
 
-    def to_dict(self):
-        if self._values is None:
-            return None
-
-        if self.is_integer():
-            return {
-                "name": self.name,
-                "values": [int(_) for _ in self._values],
-                PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntListIssue",
-            }
-
-        if self.is_float():
-            return {
-                "name": self.name,
-                "values": [float(_) for _ in self._values],
-                PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.DoubleListIssue",
-            }
-
-        return {
-            "name": self.name,
-            "values": [str(_) for _ in self._values],
-            PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.StringListIssue",
-        }
-
     def is_valid(self, v):
         return v in self._values
+
+    def __getitem__(self, indx):
+        return self.value(indx)

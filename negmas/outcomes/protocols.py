@@ -37,6 +37,14 @@ class OutcomeSpace(Container, Protocol):
     def is_valid(self, outcome: Outcome) -> bool:
         """Checks if the given outcome is valid for that outcome space"""
 
+    @abstractmethod
+    def are_types_ok(self, outcome: Outcome) -> bool:
+        """Checks if the type of each value in the outcome is correct for the given issue"""
+
+    @abstractmethod
+    def ensure_correct_types(self, outcome: Outcome) -> Outcome:
+        """Returns an outcome that is guaratneed to have correct types or raises an exception"""
+
     @property
     @abstractmethod
     def cardinality(self) -> int | float:
@@ -73,6 +81,30 @@ class OutcomeSpace(Container, Protocol):
         If called again, it should return the same discrete outcome space every time.
         """
 
+    def to_largest_discrete(
+        self, levels: int, max_cardinality: int | float = float("inf"), **kwargs
+    ) -> DiscreteOutcomeSpace:
+        for l in range(levels, 0, -1):
+            if self.cardinality_if_discretized(levels) < max_cardinality:
+                break
+        else:
+            raise ValueError(
+                f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality}"
+            )
+        return self.to_discrete(l, max_cardinality, **kwargs)
+
+    def cardinality_if_discretized(
+        self,
+        levels: int,
+        max_cardinality: int | float = float("inf"),
+        **kwargs,
+    ) -> int:
+        """
+        Returns the cardinality if discretized the given way.
+        """
+        dos = self.to_discrete(levels, max_cardinality, **kwargs)
+        return dos.cardinality
+
     @abstractmethod
     def sample(
         self,
@@ -96,12 +128,16 @@ class OutcomeSpace(Container, Protocol):
             raise ValueError(
                 "Cannot enumerate-or-sample an outcome space with infinite outcomes without specifying `levels` and/or `max_cardinality`"
             )
+        from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
 
-        dos = self.to_discrete(levels, max_cardinality)
-        return (
-            dos.sample(max_cardinality, False, False)
-            if isinstance(max_cardinality, int)
-            else dos.enumerate()
+        if isinstance(self, DiscreteCartesianOutcomeSpace):
+            return self.enumerate()  # type: ignore We know the outcome space is correct
+        if max_cardinality == float("inf"):
+            return self.to_discrete(
+                levels=levels, max_cardinality=max_cardinality
+            ).enumerate()
+        return self.sample(
+            int(max_cardinality), with_replacement=False, fail_if_not_enough=False
         )
 
     def is_finite(self) -> bool:
@@ -133,9 +169,10 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         return self.cardinality
 
     def __iter__(self):
-        return self.enumerate()
+        return self.enumerate().__iter__()
 
     @property
+    @abstractmethod
     def cardinality(self) -> int:
         """The space cardinality = the number of outcomes"""
 
@@ -147,7 +184,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
     def enumerate(self) -> Collection[Outcome]:
         """Enumerates the outcome space returning all its outcomes (or up to max_cardinality for infinite ones)"""
 
-    def to_discrete(self, **kwargs) -> DiscreteOutcomeSpace:
+    def to_discrete(self, *args, **kwargs) -> DiscreteOutcomeSpace:
         return self
 
     def to_single_issue(
@@ -215,9 +252,9 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
 
 @runtime_checkable
 class IndependentIssuesOS(Protocol):
-    issues: tuple[Issue]
+    issues: tuple[Issue, ...]
 
 
 @runtime_checkable
 class IndependentDiscreteIssuesOS(Protocol):
-    issues: tuple[DiscreteIssue]
+    issues: tuple[DiscreteIssue, ...]

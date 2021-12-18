@@ -4,7 +4,7 @@ Functions for handling outcome spaces
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING, Any, Collection, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Collection, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -14,7 +14,7 @@ from negmas.outcomes.range_issue import RangeIssue
 from .base_issue import Issue
 
 if TYPE_CHECKING:
-    from .common import Outcome, OutcomeRange, PartialOutcome
+    from .common import Outcome, OutcomeRange
 
 __all__ = [
     "dict2outcome",
@@ -34,7 +34,7 @@ def _is_single(x):
     return isinstance(x, str) or isinstance(x, numbers.Number)
 
 
-def outcome_is_valid(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
+def outcome_is_valid(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
     """Test validity of an outcome given a set of issues.
 
     Examples:
@@ -89,7 +89,7 @@ def outcome_is_valid(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
     return True
 
 
-def outcome_types_are_ok(outcome: "Outcome", issues: List["Issue"]) -> bool:
+def outcome_types_are_ok(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
     """
     Checks that the types of all issue values in the outcome are correct
     """
@@ -103,7 +103,7 @@ def outcome_types_are_ok(outcome: "Outcome", issues: List["Issue"]) -> bool:
     return True
 
 
-def cast_value_types(outcome: "Outcome", issues: List["Issue"]) -> "Outcome":
+def cast_value_types(outcome: "Outcome", issues: Iterable["Issue"]) -> "Outcome":
     """
     Casts the types of values in the outcomes to the value-type of each issue (if given)
     """
@@ -117,7 +117,7 @@ def cast_value_types(outcome: "Outcome", issues: List["Issue"]) -> "Outcome":
     return tuple(new_outcome)
 
 
-def outcome_is_complete(outcome: "Outcome", issues: Collection["Issue"]) -> bool:
+def outcome_is_complete(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
     """Tests that the outcome is valid and complete.
 
     Examples:

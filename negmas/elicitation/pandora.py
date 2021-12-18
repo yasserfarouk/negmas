@@ -10,11 +10,10 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 import scipy.optimize as opt
 
-from ..common import MechanismState
+from ..common import MechanismState, Value
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
-from ..preferences import Value
 from ..sao import AspirationNegotiator, SAONegotiator
 from .base import BaseElicitor
 from .common import _loc, _scale

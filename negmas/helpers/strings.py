@@ -263,7 +263,14 @@ def exception2str(limit=None, chain=True) -> str:
     return traceback.format_exc(limit=limit, chain=chain)
 
 
-def humanize_time(secs, align=False, always_show_all_units=False):
+def humanize_time(
+    secs,
+    align=False,
+    always_show_all_units=False,
+    show_us=False,
+    show_ms=False,
+    always_show_from="",
+):
     """
     Prints time that is given as seconds in human readable form. Useful only for times >=1sec.
 
@@ -271,11 +278,37 @@ def humanize_time(secs, align=False, always_show_all_units=False):
     :param align: bool, optional: whether to align outputs so that they all take the same size (not implemented)
     :param always_show_all_units: bool, optional: Whether to always show days, hours, and minutes even when they
                                 are zeros. default False
+    :param always_show_from: One of d,h,m,s,ms,u (day, hour, minute, second, milli-sec, micro-sec) to always show
+                             as well as everything shorter than it (i.e passing 'm' shows minutes, seconds, ... etc)
+    :param show_us: bool, if given microseconds and milliseconds will be shown
+    :param show_ms: bool, if given milliseconds will be shown
     :return: str: formated string with the humanized form
     """
-    units = [("d", 86400), ("h", 3600), ("m", 60), ("s", 1)]
+    if show_us:
+        secs *= 1_000_000
+        units = [
+            ("d", 86400_000_000),
+            ("h", 3600_000_000),
+            ("m", 60_000_000),
+            ("s", 1_000_000),
+            ("ms", 1000),
+            ("u", 1),
+        ]
+    elif show_ms:
+        secs *= 1_000
+        units = [
+            ("d", 86400_000),
+            ("h", 3600_000),
+            ("m", 60_000),
+            ("s", 1_000),
+            ("ms", 1),
+        ]
+    else:
+        units = [("d", 86400), ("h", 3600), ("m", 60), ("s", 1)]
     parts = []
     for unit, mul in units:
+        if unit == always_show_from:
+            always_show_all_units = True
         if secs / mul >= 1 or mul == 1 or always_show_all_units:
             if mul > 1:
                 n = int(math.floor(secs / mul))
@@ -286,4 +319,4 @@ def humanize_time(secs, align=False, always_show_all_units=False):
                 parts.append("%2d%s%s" % (n, unit, ""))
             else:
                 parts.append("%2d%s%s" % (n, unit, ""))
-    return ":".join(parts)
+    return "".join(parts)

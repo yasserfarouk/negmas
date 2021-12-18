@@ -4,70 +4,15 @@ import hypothesis.strategies as st
 import pkg_resources
 import pytest
 from hypothesis import given, settings
-from py4j.protocol import Py4JNetworkError
 
-from negmas import (
-    AgentBuyong,
-    AgentHP2,
-    AgentK,
-    AgentK2,
-    AgentLG,
-    AgentM,
-    AgentX,
-    AgentYK,
-    AgreeableAgent2018,
-    AspirationNegotiator,
-    Atlas3,
-    Atlas32016,
-    BetaOne,
-    BRAMAgent,
-    Caduceus,
-    CaduceusDC16,
-    CUHKAgent,
-    DoNA,
-    E2Agent,
-    Farma,
-    Gahboninho,
-    Gangster,
-    GeniusNegotiator,
-    GrandmaAgent,
-    Group2,
-    HardHeaded,
-    IAMhaggler,
-    IAMhaggler2011,
-    Kawaii,
-    KGAgent,
-    MengWan,
-    MetaAgent,
-    MyAgent,
-    Ngent,
-    NiceTitForTat,
-    Nozomi,
-    OMACagent,
-    ParsAgent,
-    ParsCat,
-    PhoenixParty,
-    PokerFace,
-    PonPokoAgent,
-    RandomDance,
-    Rubick,
-    Simpatico,
-    Terra,
-    TheFawkes,
-    TheNegotiator,
-    TheNegotiatorReloaded,
-    TMFAgent,
-    ValueModelAgent,
-    WhaleAgent,
-    XianFaAgent,
-    Yushu,
-    YXAgent,
-    genius_bridge_is_running,
-    load_genius_domain_from_folder,
-)
 from negmas.genius import GeniusBridge, get_anac_agents
+from negmas.genius.bridge import genius_bridge_is_running
 from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
+from negmas.genius.gnegotiators import AgentK, Caduceus
+from negmas.genius.negotiator import GeniusNegotiator
 from negmas.inout import Domain
+from negmas.sao.mechanism import SAOMechanism
+from negmas.sao.negotiators import AspirationNegotiator
 
 TIMELIMIT = 120
 STEPLIMIT = 1000
@@ -159,7 +104,7 @@ def test_genius_does_not_freeze():
     mechanism.add(a1)
     mechanism.add(a2)
     mechanism.run()
-    # print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+    # print(a1.preferences.__call__(mechanism.agreement), a2.preferences.__call__(mechanism.agreement))
     GeniusBridge.clean()
 
 
@@ -191,7 +136,7 @@ def test_old_agent():
 
     mechanism = domain.make_session([a1, a2], n_steps=None, time_limit=TIMELIMIT)
     mechanism.run()
-    # print(a1.ufun.__call__(mechanism.agreement), a2.ufun.__call__(mechanism.agreement))
+    # print(a1.preferences.__call__(mechanism.agreement), a2.preferences.__call__(mechanism.agreement))
     GeniusBridge.clean()
 
 
@@ -216,22 +161,19 @@ def test_genius_agents_run_using_hypothesis(
     agent_name2,
     single_issue,
 ):
-    from negmas import convert_genius_domain_from_folder
 
-    # TODO remove this limitation.
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    dst = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/LaptopConv1D"
-    )
-    base_folder = dst if single_issue else src
-    domain = Domain.from_genius_folder(base_folder)
+    base_folder = src
+    domain = Domain.from_genius_folder(Path(base_folder))
+    if single_issue:
+        domain = domain.to_single_issue()
     a1 = GeniusNegotiator(
         java_class_name=agent_name1,
-        ufun=domain.ufuns[0],
+        preferences=domain.ufuns[0],
     )
     a2 = GeniusNegotiator(
         java_class_name=agent_name2,
-        ufun=domain.ufuns[1],
+        preferences=domain.ufuns[1],
     )
     neg = domain.make_session([a1, a2], n_steps=STEPLIMIT, time_limit=None)
     if neg is None:
@@ -256,18 +198,18 @@ def test_genius_agent_gets_preferences():
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
         utility_file_name=base_folder + f"/Laptop-C-prof1.xml",
     )
-    assert a1.ufun is not None
+    assert a1.preferences is not None
     assert not a1._temp_preferences_file
     assert not a1._temp_domain_file
     a2 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
-        ufun=domain.ufuns[0],
+        preferences=domain.ufuns[0],
     )
     neg = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
     neg.add(a1)
     neg.add(a2)
-    assert a2.ufun is not None
+    assert a2.preferences is not None
     assert a2._temp_preferences_file
     assert not a2._temp_domain_file
     neg.run()
@@ -413,8 +355,10 @@ def test_running_genius_mechanism_in_genius(tmp_path):
     ],
 )
 def test_2genius_together(a1, a2, n_steps, time_limit):
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Car-A-domain"
+    base_folder = Path(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Car-A-domain"
+        )
     )
 
     domain = Domain.from_genius_folder(base_folder)
@@ -424,11 +368,11 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     neg.add(
-        GeniusNegotiator(java_class_name=a1, strict=True, ufun=domain.ufuns[0]),
+        GeniusNegotiator(java_class_name=a1, strict=True, preferences=domain.ufuns[0]),
         strict=True,
     )
     neg.add(
-        GeniusNegotiator(java_class_name=a2, strict=True, ufun=domain.ufuns[1]),
+        GeniusNegotiator(java_class_name=a2, strict=True, preferences=domain.ufuns[1]),
         strict=True,
     )
     neg.run()
@@ -440,8 +384,10 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
 )
 def test_caudacius_caudacius():
     n_steps = 100
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Car-A-domain"
+    base_folder = Path(
+        pkg_resources.resource_filename(
+            "negmas", resource_name="tests/data/Car-A-domain"
+        )
     )
 
     domain = Domain.from_genius_folder(base_folder)
@@ -450,8 +396,10 @@ def test_caudacius_caudacius():
     )
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
-    neg.add(Caduceus(ufun=domain.ufuns[0]), strict=True)
-    neg.add(Caduceus(ufun=domain.ufuns[1]), strict=True)
+    if not isinstance(neg, SAOMechanism):
+        raise ValueError(f"Loading generated a domain that is not SAO {type(neg)}")
+    neg.add(Caduceus(preferences=domain.ufuns[0]), strict=True)
+    neg.add(Caduceus(preferences=domain.ufuns[1]), strict=True)
     for _ in range(n_steps):
         neg.step()
         if neg.state.agreement is not None:

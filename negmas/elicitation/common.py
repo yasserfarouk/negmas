@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Union
 
 import numpy as np
 
-from ..preferences import Value
+from ..common import Value
 
 np.seterr(all="raise")  # setting numpy to raise exceptions in case of errors
 

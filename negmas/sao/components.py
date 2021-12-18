@@ -5,7 +5,7 @@ Implements basic components that can be used by `SAONegotiator` s.
 """
 import random
 from collections import defaultdict
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, Iterator, List, Optional, Tuple, Union
 
 from ..common import MechanismState
 from ..negotiators import Negotiator

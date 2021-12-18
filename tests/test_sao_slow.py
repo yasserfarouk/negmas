@@ -18,6 +18,7 @@ from pytest import mark
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
 from negmas.outcomes import Outcome, enumerate_issues, make_issue
+from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
 from negmas.sao import (
     AspirationNegotiator,
@@ -586,10 +587,12 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
     from negmas.mechanisms import Mechanism
     from negmas.sao import AspirationNegotiator, SAOSingleAgreementRandomController
 
+    os = make_os([make_issue((0.0, 1.0), "price")])
     c = SAOSingleAgreementRandomController(strict=strict)
+
     negs = [
         SAOMechanism(
-            issues=[make_issue((0.0, 1.0), "price")],
+            outcome_space=os,
             n_steps=50,
             end_on_no_response=False,
         )
@@ -598,7 +601,7 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
     for i, neg in enumerate(negs):
         neg.add(
             AspirationNegotiator(aspiration_type="linear", name=f"opponent-{i}"),
-            preferences=LinearUtilityFunction(weights=[1.0]),
+            preferences=LinearUtilityFunction(weights=[1.0], outcome_space=os),
         )
         neg.add(c.create_negotiator(name=f"against-{i}"))
 
@@ -628,31 +631,36 @@ def test_loops_are_broken(keep_order):
     from negmas.mechanisms import Mechanism
     from negmas.sao import SAOSingleAgreementAspirationController
 
+    issues = [make_issue((0.0, 1.0), "price")]
+
     a, b, c = (
         SAOSingleAgreementAspirationController(
-            preferences=MappingUtilityFunction(lambda x: x[0]), strict=False
+            preferences=MappingUtilityFunction(lambda x: x[0], issues=issues),
+            strict=False,
         ),
         SAOSingleAgreementAspirationController(
-            preferences=MappingUtilityFunction(lambda x: x[0]), strict=False
+            preferences=MappingUtilityFunction(lambda x: x[0], issues=issues),
+            strict=False,
         ),
         SAOSingleAgreementAspirationController(
-            preferences=MappingUtilityFunction(lambda x: x[0]), strict=False
+            preferences=MappingUtilityFunction(lambda x: x[0], issues=issues),
+            strict=False,
         ),
     )
 
     n1 = SAOMechanism(
         name="ab",
-        issues=[make_issue((0.0, 1.0), "price")],
+        issues=issues,
         n_steps=50,
     )
     n2 = SAOMechanism(
         name="ac",
-        issues=[make_issue((0.0, 1.0), "price")],
+        issues=issues,
         n_steps=50,
     )
     n3 = SAOMechanism(
         name="bc",
-        issues=[make_issue((0.0, 1.0), "price")],
+        issues=issues,
         n_steps=50,
         end_on_no_response=False,
     )
@@ -675,7 +683,6 @@ def test_can_create_all_negotiator_types():
     from negmas.helpers import instantiate
 
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
-    outcomes = enumerate_issues(issues, max_cardinality=100)
     neg_types = [
         (
             "RandomNegotiator",
@@ -745,15 +752,14 @@ def test_can_run_all_negotiators():
 
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
     weights = (1.0, 1.0)
-    outcomes = enumerate_issues(issues, max_cardinality=100)
     neg_types = [
         (
             "RandomNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
         (
             "AspirationNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
         (
             "LimitedOutcomesNegotiator",
@@ -765,23 +771,23 @@ def test_can_run_all_negotiators():
         ),
         (
             "ToughNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
         (
             "OnlyBestNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
         (
             "NaiveTitForTatNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
         (
             "SimpleTitForTatNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
         (
             "NiceNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights)),
+            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
         ),
     ]
     for i, (neg_type, params) in enumerate(neg_types):
@@ -821,7 +827,7 @@ class MyNegotiator(SAONegotiator):
 def test_cast_offers_tuple():
     issues = [make_issue(10), make_issue(5), make_issue(3)]
     m = SAOMechanism(
-        issues,
+        issues=issues,
         check_offers=True,
         enforce_issue_types=True,
         cast_offers=True,
@@ -840,7 +846,7 @@ def test_cast_offers_tuple():
 def test_fail_on_incorrect_types_tuple_or_dict():
     issues = [make_issue(10), make_issue(5), make_issue(3)]
     m = SAOMechanism(
-        issues,
+        issues=issues,
         check_offers=True,
         enforce_issue_types=True,
         cast_offers=False,
@@ -857,7 +863,7 @@ def test_no_check_offers_tuple():
     issues = [make_issue(10), make_issue(5), make_issue(3)]
     for a, b in ((True, False), (False, False), (False, True), (True, True)):
         m = SAOMechanism(
-            issues,
+            issues=issues,
             check_offers=False,
             enforce_issue_types=a,
             cast_offers=b,
@@ -1175,15 +1181,15 @@ def test_times_are_calculated(n_outcomes, n_negotiators, n_steps):
 def test_aspiration_continuous_issues(
     n_negotiators, n_issues, presort, randomize_offers
 ):
+    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     for _ in range(5):
         mechanism = SAOMechanism(
-            issues=[
-                make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)
-            ],
+            issues=issues,
             n_steps=10,
         )
         ufuns = [
             LinearUtilityFunction(
+                issues=issues,
                 weights=[3.0 * random.random(), 2.0 * random.random()],
                 reserved_value=0.0,
             )
@@ -1196,7 +1202,7 @@ def test_aspiration_continuous_issues(
             AspirationNegotiator(
                 name=f"agent{i}",
                 presort=presort,
-                randomize_offer=randomize_offers,
+                stochastic=randomize_offers,
                 preferences=ufuns[i],
                 ufun_max=ufuns[i](best_outcome),
                 ufun_min=ufuns[i](worst_outcome),
@@ -1207,7 +1213,7 @@ def test_aspiration_continuous_issues(
                 AspirationNegotiator(
                     name=f"agent{i}",
                     presort=presort,
-                    randomize_offer=randomize_offers,
+                    stochastic=randomize_offers,
                     ufun_max=ufuns[i](best_outcome),
                     ufun_min=ufuns[i](worst_outcome),
                 ),

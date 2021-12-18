@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+
 """
 Implements negotiators for the SAO mechanism.
 """
@@ -11,18 +13,13 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-from negmas.preferences.ops import extreme_outcomes
 from negmas.preferences.preferences import Preferences
 
 from ..common import MechanismState, NegotiatorMechanismInterface
 from ..events import Notification
 from ..negotiators import AspirationMixin, Controller, Negotiator
 from ..outcomes import Outcome
-from ..preferences import (
-    LinearUtilityFunction,
-    MappingUtilityFunction,
-    sample_outcome_with_utility,
-)
+from ..preferences import LinearUtilityFunction, MappingUtilityFunction
 from .common import ResponseType, SAOResponse
 from .components import (
     LimitedOutcomesAcceptorMixin,
@@ -350,16 +347,22 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
         result = super().join(nmi, state, preferences=preferences, role=role)
         if not result:
             return False
-        if nmi.outcome_space is not None and any(
-            _.is_continuous() for _ in nmi.outcome_space
+        if nmi.outcome_space is None:
+            raise ValueError(
+                "Cannot generate a random ufun without knowing the issue space"
+            )
+        if nmi.outcome_space.is_numeric() and isinstance(
+            nmi.outcome_space, CartesianOutcomeSpace
         ):
             self._preferences = LinearUtilityFunction(
-                weights=np.random.random(len(nmi.outcome_space))
+                weights=np.random.random(len(nmi.outcome_space.issues)).tolist(),
+                outcome_space=nmi.outcome_space,
             )
         else:
-            outcomes = nmi.discrete_outcomes()
+            outcomes = list(nmi.discrete_outcomes())
             self._preferences = MappingUtilityFunction(
                 dict(zip(outcomes, np.random.rand(len(outcomes)))),
+                outcome_space=nmi.outcome_space,
             )
         return True
 
@@ -483,10 +486,10 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         max_aspiration=1.0,
         aspiration_type="boulware",
         dynamic_preferences=True,
-        randomize_offer=False,
+        stochastic=False,
         can_propose=True,
         assume_normalized=False,
-        ranking=False,
+        ranking_only=False,
         ufun_max=None,
         ufun_min=None,
         presort: bool = True,
@@ -496,7 +499,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self.ordered_outcomes = []
         self.ufun_max = ufun_max
         self.ufun_min = ufun_min
-        self.ranking = ranking
+        self.ranking = ranking_only
         self.tolerance = tolerance
         if assume_normalized:
             self.ufun_max, self.ufun_min = 1.0, 0.0
@@ -511,7 +514,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             warnings.warn(
                 "dynamic_preferences is deprecated. All Aspiration negotiators assume a dynamic ufun"
             )
-        self.randomize_offer = randomize_offer
+        self.randomize_offer = stochastic
         self._max_aspiration = self.max_aspiration
         self.best_outcome, self.worst_outcome = None, None
         self.presort = presort
@@ -536,17 +539,15 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         presort = self.presort
         if (
             not presort
-            and all(i.is_countable() for i in self._nmi.outcome_space)
+            and all(i.is_discrete() for i in self._nmi.outcome_space.issues)
             and self._nmi.outcome_space.cardinality >= self.n_outcomes_to_force_presort
         ):
             presort = True
         if presort:
             outcomes = self._nmi.discrete_outcomes()
-            uvals = self.preferences.eval_all(outcomes)
+            uvals = [self.ufun.eval(_) for _ in outcomes]
             uvals_outcomes = [
-                (u, o)
-                for u, o in zip(uvals, outcomes)
-                if u >= self.preferences.reserved_value
+                (u, o) for u, o in zip(uvals, outcomes) if u >= self.ufun.reserved_value
             ]
             self.ordered_outcomes = sorted(
                 uvals_outcomes,
@@ -556,7 +557,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             if self.assume_normalized:
                 self.ufun_min, self.ufun_max = 0.0, 1.0
             elif len(self.ordered_outcomes) < 1:
-                self.ufun_max = self.ufun_min = self.preferences.reserved_value
+                self.ufun_max = self.ufun_min = self.ufun.reserved_value
             else:
                 if self.ufun_max is None:
                     self.ufun_max = self.ordered_outcomes[0][0]
@@ -579,7 +580,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 or self.best_outcome is None
                 or self.worst_outcome is None
             ):
-                self.worst_outcome, self.best_outcome = extreme_outcomes(self.ufun)
+                self.worst_outcome, self.best_outcome = self.ufun.extreme_outcomes()
                 mn, mx = self.ufun(self.worst_outcome), self.ufun(self.best_outcome)
                 if self.ufun_min is None:
                     self.ufun_min = mn
@@ -646,19 +647,15 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             if asp >= 0.99999999999 and self.best_outcome is not None:
                 return self.best_outcome
             if self.randomize_offer:
-                return sample_outcome_with_utility(
-                    ufun=self.ufun,
-                    rng=(asp, float("inf")),
-                    issues=self._nmi.outcome_space,
+                return self.ufun.sample_outcome_with_utility(
+                    (asp, float("inf")), outcome_space=self._nmi.outcome_space
                 )
             tol = self.tolerance
             for _ in range(self.n_trials):
                 rng = self.ufun_max - self.ufun_min
                 mx = min(asp + tol * rng, self.__last_offer_util)
-                outcome = sample_outcome_with_utility(
-                    ufun=self.ufun,
-                    rng=(asp, mx),
-                    issues=self._nmi.outcome_space,
+                outcome = self.ufun.sample_outcome_with_utility(
+                    (asp, mx), outcome_space=self._nmi.outcome_space
                 )
                 if outcome is not None:
                     break
@@ -669,7 +666,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                     if self.__last_offer is None
                     else self.__last_offer
                 )
-            self.__last_offer_util = self.preferences(outcome)
+            self.__last_offer_util = self.ufun(outcome)
             self.__last_offer = outcome
             return outcome
 
@@ -744,7 +741,7 @@ class ToughNegotiator(SAONegotiator):
         super().on_preferences_changed()
         if self._preferences is None:
             return
-        _, self.best_outcome = self.ufun.extreme_outcomes(issues=self.nmi.outcome_space)
+        _, self.best_outcome = self.ufun.extreme_outcomes()
 
     def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
         if offer == self.best_outcome:
@@ -820,7 +817,7 @@ class OnlyBestNegotiator(SAONegotiator):
             if self._offerable_outcomes is None
             else self._offerable_outcomes
         )
-        eu_outcome = list(zip(self.preferences.eval_all(outcomes), outcomes))
+        eu_outcome = list(zip([self.ufun.eval(_) for _ in outcomes], outcomes))
         self.ordered_outcomes = sorted(eu_outcome, key=lambda x: x[0], reverse=True)
         if self.min_utility is None:
             selected, selected_utils = [], []

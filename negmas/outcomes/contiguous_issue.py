@@ -7,9 +7,9 @@ from typing import Generator
 import numpy as np
 
 from negmas.helpers.numeric import sample
-from negmas.java import PYTHON_CLASS_IDENTIFIER
 from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.range_issue import RangeIssue
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 __all__ = ["ContiguousIssue"]
 
@@ -104,13 +104,14 @@ class ContiguousIssue(RangeIssue):
 
         return random.randint(self.max_value + 1, 2 * self.max_value)
 
-    def to_dict(self):
-        if self._values is None:
-            return None
+    @property
+    def cardinality(self) -> int | float:
+        return self.max_value - self.min_value + 1
 
-        return {
-            "name": self.name,
-            "min": int(self._values[0]),
-            "max": int(self._values[0]),
-            PYTHON_CLASS_IDENTIFIER: "negmas.outcomes.IntRangeIssue",
-        }
+    def is_continuous(self) -> bool:
+        return False
+
+    def value_at(self, index: int):
+        if index < 0 or index > self.cardinality - 1:
+            raise IndexError(index)
+        return self.min_value + index

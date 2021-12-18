@@ -338,7 +338,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
                     min(outcome[i] + 1, issue.values),
                 ]
             if isinstance(issue.values, Tuple):
-                delta = random.random(issue.values[0] - issue.values[0])
+                delta = random.random() * (issue.values[0] - issue.values[0])
                 values.append(max(issue.values[0], outcome[i] - delta))
                 values.append(min(outcome[i] + delta, issue.values[0]))
 

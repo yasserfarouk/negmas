@@ -22,19 +22,19 @@ from .base import OutcomeUtilityMapping
 from .ufun import UtilityFunction
 
 __all__ = [
-    "NonLinearUtilityAggregationFunction",
+    "NonLinearAdditiveUtilityFunction",
     "HyperRectangleUtilityFunction",
     "NonlinearHyperRectangleUtilityFunction",
 ]
 
 
-class NonLinearUtilityAggregationFunction(UtilityFunction):
+class NonLinearAdditiveUtilityFunction(UtilityFunction):
     r"""A nonlinear utility function.
 
     Allows for the modeling of a single nonlinear utility function that combines the utilities of different issues.
 
     Args:
-        issue_utilities: A set of mappings from issue values to utility functions. These are generic mappings so
+        values: A set of mappings from issue values to utility functions. These are generic mappings so
                         \ `Callable`\ (s) and \ `Mapping`\ (s) are both accepted
         f: A nonlinear function mapping from a dict of utility_function-per-issue to a float
         name: name of the utility function. If None a random name will be generated.
@@ -56,13 +56,13 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
         ...           , make_issue(5, 'quality')]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
-        >>> g = NonLinearUtilityAggregationFunction({ 'price': lambda x: 2.0*x
+        >>> g = NonLinearAdditiveUtilityFunction({ 'price': lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}
         ...                                         , 'quality': MappingUtilityFunction(lambda x: x-3)}
         ...         , f=lambda u: u['price']  + 2.0 * u['quality'])
         >>> float(g({'quality': 2, 'price': 14.0, 'delivery': 'delivered'})) - ((2.0*14)+2.0*(2.0-3.0))
         0.0
-        >>> g = NonLinearUtilityAggregationFunction({'price'    : lambda x: 2.0*x
+        >>> g = NonLinearAdditiveUtilityFunction({'price'    : lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}}
         ...         , f=lambda u: 2.0 * u['price'] )
         >>> float(g({'price': 14.0, 'delivery': 'delivered'})) - (2.0*(2.0*14))
@@ -75,48 +75,42 @@ class NonLinearUtilityAggregationFunction(UtilityFunction):
 
     def __init__(
         self,
-        issue_utilities: MutableMapping[Any, GenericMapping],
+        values: MutableMapping[Any, GenericMapping],
         f: Callable[[Dict[Any, float]], float],
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.issue_utilities = issue_utilities
+        self.values = values
         self.f = f
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         return dict(
             **d,
-            issue_utilities=self.issue_utilities,
+            values=serialize(self.values),
             f=serialize(self.f),
-            name=self.name,
-            reserved_value=self.reserved_value,
         )
 
     @classmethod
     def from_dict(cls, d):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(
-            issue_utilities=d.get("issue_utilities", None),
-            f=deserialize(d.get("f", None)),
-            name=d.get("name", None),
-            reserved_value=d.get("reserved_value", None),
-            id=d.get("id", None),
-        )
+        for k in ("values", "f"):
+            d[k] = deserialize(d.get(k, None))
+        return cls(**d)
 
     def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
         if offer is None:
             return self.reserved_value
-        if self.issue_utilities is None:
+        if self.values is None:
             raise ValueError(
                 "No issue utilities were set. Call set_params() or use the constructor"
             )
 
         u = {}
-        for k in ikeys(self.issue_utilities):
+        for k in ikeys(self.values):
             v = iget(offer, k)
-            u[k] = gmap(iget(self.issue_utilities, k), v)
+            u[k] = gmap(iget(self.values, k), v)
         return self.f(u)
 
 
@@ -274,6 +268,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         weights: Optional[List[float]] = None,
         ignore_issues_not_in_input=False,
         ignore_failing_range_utilities=False,
+        bias: float = 0.0,
         *args,
         **kwargs,
     ) -> None:
@@ -283,36 +278,27 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         self.weights = weights
         self.ignore_issues_not_in_input = ignore_issues_not_in_input
         self.ignore_failing_range_utilities = ignore_failing_range_utilities
+        self.bias = bias
         self.adjust_params()
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d.update(super().to_dict())
         return dict(
             **d,
-            outcome_ranges=self.outcome_ranges,
-            utilities=self.mappings,
+            outcome_ranges=serialize(self.outcome_ranges),
+            utilities=serialize(self.mappings),
             weights=self.weights,
             ignore_issues_not_in_input=self.ignore_issues_not_in_input,
             ignore_failing_range_utilities=self.ignore_failing_range_utilities,
-            name=self.name,
-            reserved_value=self.reserved_value,
-            id=self.id,
         )
 
     @classmethod
     def from_dict(cls, d):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(
-            outcome_ranges=d.get("outcome_ranges", None),
-            utilities=d.get("utilities", None),
-            weights=d.get("weights", None),
-            ignore_issues_not_in_input=d.get("ignore_issues_not_in_input", None),
-            ignore_failing_range_utilities=d.get(
-                "ignore_failing_range_utilities", None
-            ),
-            name=d.get("name", None),
-            reserved_value=d.get("reserved_value", None),
-        )
+        for k in ("oucome_ranges", "utilities"):
+            d[k] = deserialize(d.get(k, None))
+        return cls(**d)
 
     def adjust_params(self):
         if self.weights is None:
@@ -321,7 +307,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
     def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
         if offer is None:
             return self.reserved_value
-        u = float(0.0)
+        u = self.bias
         for weight, outcome_range, mapping in zip(
             self.weights, self.outcome_ranges, self.mappings
         ):  # type: ignore
@@ -386,27 +372,20 @@ class NonlinearHyperRectangleUtilityFunction(UtilityFunction):
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
+        d.update(super().to_dict())
         return dict(
             **d,
-            hypervolumes=self.hypervolumes,
-            mappings=self.mappings,
+            hypervolumes=serialize(self.hypervolumes),
+            mappings=serialize(self.mappings),
             f=serialize(self.f),
-            name=self.name,
-            reserved_value=self.reserved_value,
-            id=self.id,
         )
 
     @classmethod
     def from_dict(cls, d):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(
-            hypervolumes=d.get("hypervolumes", None),
-            mappings=d.get("mappings", None),
-            f=deserialize(d.get("f", None)),
-            name=d.get("name", None),
-            reserved_value=d.get("reserved_value", None),
-            id=d.get("id", None),
-        )
+        for k in ("hypervolumes", "mapoints", "f"):
+            d[k] = deserialize(d.get(k, None))
+        return cls(**d)
 
     def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
         if offer is None:

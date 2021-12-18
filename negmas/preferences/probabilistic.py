@@ -11,12 +11,12 @@ from negmas.outcomes import Issue, Outcome
 
 from ..helpers.prob import Distribution
 from .mapping import MappingUtilityFunction
-from .ufun import UtilityFunction
+from .ufun import ProbUtilityFunction, UtilityFunction
 
 __all__ = ["IPUtilityFunction", "ILSUtilityFunction", "UniformUtilityFunction"]
 
 
-class IPUtilityFunction(UtilityFunction):
+class IPUtilityFunction(ProbUtilityFunction):
     """Independent Probabilistic Utility Function.
 
     Args:
@@ -50,10 +50,16 @@ class IPUtilityFunction(UtilityFunction):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        outcomes, distributions = (
-            list(outcomes),
-            (list(distributions) if distributions is not None else None),
+        outcomes = list(outcomes)
+        distributions = (
+            list(distributions)
+            if distributions is not None
+            else [
+                Distribution(type="uniform", loc=0.0, scale=1.0)
+                for _ in range(len(outcomes))
+            ]
         )
+
         if len(outcomes) < 1:
             raise ValueError(
                 "IPUtilityFunction cannot be initialized with zero outcomes"
@@ -73,11 +79,6 @@ class IPUtilityFunction(UtilityFunction):
                 tuple(iget(_, key, None) for key in self.issue_names) for _ in outcomes
             ]
             self.tupelized = True
-        if distributions is None:
-            distributions = [
-                Distribution(type="uniform", loc=0.0, scale=1.0)
-                for _ in range(len(outcomes))
-            ]
         self.distributions = dict(zip(outcomes, distributions))
 
     def distribution(self, outcome: "Outcome") -> Distribution:
@@ -140,8 +141,14 @@ class IPUtilityFunction(UtilityFunction):
                 variability=variability,
                 reserved_value=u.reserved_value,
             )
+        if not u.outcome_space.is_discrete():
+            raise ValueError(
+                "Cannot be constructed from a ufun with an infinite outcome space"
+            )
+        outcomes = u.outcome_space.enumerate()  # type: ignore (I know that it is a discrete space)
+        d = dict(zip(outcomes, (u(_) for _ in outcomes)))
         return cls.from_mapping(
-            dict(zip(ikeys(u.mapping), ivalues(u.mapping))),
+            d,
             range=range,
             uncertainty=uncertainty,
             variability=variability,
@@ -201,6 +208,7 @@ class IPUtilityFunction(UtilityFunction):
                 uncertainty
                 + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty
             ).tolist()
+
         return IPUtilityFunction(
             outcomes=outcomes,
             distributions=[
@@ -211,6 +219,9 @@ class IPUtilityFunction(UtilityFunction):
             ],
             reserved_value=reserved_value,
         )
+
+    def is_non_stationary(self):
+        return True
 
     def __str__(self):
         return pprint.pformat(self.distributions)
@@ -304,7 +315,7 @@ class IPUtilityFunction(UtilityFunction):
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
 
-class ILSUtilityFunction(UtilityFunction):
+class ILSUtilityFunction(ProbUtilityFunction):
     """
     A utility function which represents the loc and scale deviations as any crisp ufun
     """

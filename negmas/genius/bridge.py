@@ -413,7 +413,8 @@ class GeniusBridge:
         """
         Closes all open gateways.
         """
-        for p in cls.gateways.keys():
+        keys = list(cls.gateways.keys())
+        for p in keys:
             cls._close_gateway(p)
 
     @classmethod
