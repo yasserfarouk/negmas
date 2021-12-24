@@ -500,6 +500,8 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
             outcome_space = self.outcome_space
         if not outcome_space:
             raise ValueError("No outcome-space is given or defined for the ufun")
+        if outcome_space.cardinality < n_trials:
+            n_trials = outcome_space.cardinality
         for o in outcome_space.sample(n_trials, with_replacement=False):
             if o is None:
                 continue
