@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from distributed.utils import Any
+
+from negmas.outcomes.base_issue import Issue
+
 """
 Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
@@ -534,6 +538,11 @@ class GeniusNegotiator(SAONegotiator):
 
         issues = self._nmi.outcome_space.issues
 
+        def map_value(issue: Issue, val: str):
+            if issubclass(issue.value_type, tuple):
+                return eval(val)
+            return issue.value_type(val)
+
         if typ_ in ("Offer",) and (bid_str is not None and len(bid_str) > 0):
             try:
                 values = {
@@ -542,7 +551,7 @@ class GeniusNegotiator(SAONegotiator):
                 }
                 outcome = []
                 for issue in issues:
-                    outcome.append(issue.value_type(values[issue.name]))
+                    outcome.append(map_value(issue, values[issue.name]))
                 outcome = tuple(outcome)
             except Exception as e:
                 if self._strict:

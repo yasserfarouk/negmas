@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Tuple, Type
 
 from negmas.outcomes.outcome_space import make_os
+from negmas.preferences.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.mapping import MappingUtilityFunction
 
 from .mechanisms import Mechanism
@@ -20,6 +21,7 @@ from .preferences import (
     UtilityFunction,
     make_discounted_ufun,
 )
+from .preferences.value_fun import TableFun
 from .sao import SAOMechanism
 
 __all__ = [
@@ -107,17 +109,20 @@ class Domain:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
+        outcomes = list(self.agenda.enumerate_or_sample())
         sos = self.agenda.to_single_issue(numeric, stringify)
         sos.name = self.agenda.name
         ufuns = []
+        souts = list(sos.issues[0].all)
         for u in self.ufuns:
             if isinstance(u, DiscountedUtilityFunction):
                 usave = u
                 v = u.ufun
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
-                u.ufun = MappingUtilityFunction(
-                    mapping=lambda x, v=v: v(x[0]),
+                u.ufun = LinearAdditiveUtilityFunction(
+                    values=[TableFun(dict(zip(souts, [v(_) for _ in outcomes])))],
+                    bias=0.0,
                     reserved_value=v.reserved_value,
                     name=v.name,
                     outcome_space=sos,
@@ -125,8 +130,9 @@ class Domain:
                 ufuns.append(usave)
                 continue
             ufuns.append(
-                MappingUtilityFunction(
-                    mapping=lambda x, v=u: v(x[0]),
+                LinearAdditiveUtilityFunction(
+                    values=[TableFun(dict(zip(souts, [u(_) for _ in outcomes])))],
+                    bias=0.0,
                     reserved_value=u.reserved_value,
                     name=u.name,
                     outcome_space=sos,
