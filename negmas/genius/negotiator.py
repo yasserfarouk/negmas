@@ -411,6 +411,8 @@ class GeniusNegotiator(SAONegotiator):
         if timeout is None or math.isinf(timeout) or timeout < 0:
             timeout = DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT
 
+        timeout = min(timeout, self.nmi._mechanism._hidden_time_limit)
+
         if n_steps * n_seconds > 0:
             if n_steps < 0:
                 if self._strict:
