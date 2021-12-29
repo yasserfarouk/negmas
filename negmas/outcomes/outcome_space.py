@@ -119,8 +119,10 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
         Remarks:
             - Will discretize inifinte outcome spaces
         """
+        if isinstance(self, DiscreteCartesianOutcomeSpace) and len(self.issues) == 1:
+            return self
         dos = self.to_discrete(levels, max_cardinality)
-        return dos.to_single_issue(numeric, stringify)
+        return dos.to_single_issue(numeric, stringify)  # type: ignore
 
     def __hash__(self) -> int:
         return hash((tuple(self.issues), self.name))
@@ -257,7 +259,7 @@ class DiscreteCartesianOutcomeSpace(
         values = (
             range(len(outcomes))
             if numeric
-            else [str(_) for _ in outcomes]
+            else [f"v{_}" for _ in range(len(outcomes))]
             if stringify
             else outcomes
         )
