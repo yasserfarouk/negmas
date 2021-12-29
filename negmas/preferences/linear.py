@@ -184,37 +184,15 @@ class LinearUtilityFunction(
         output = ""
         if not issues:
             issues = self.issues
-        for i, issue in enumerate(issues):
+        for i, (issue, vfun, weight) in enumerate(
+            zip(issues, self.values, self.weights)
+        ):
             if not issue.is_numeric():
                 raise ValueError(
                     f"Issue {issue} is not numeric. Cannot  use a LinearUtilityFunction. Try a LinearAdditiveUtilityFunction"
                 )
-            issue_name = issue.name
-            bias = self.bias / self.weights[i] if self.weights[i] else 0.0
-            if issue.is_continuous():
-                output += f'<issue index="{i + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-                output += f'    <evaluator ftype="linear" parameter0="{bias}" parameter1="{1.0}"></evaluator>\n'
-            elif isinstance(issue, RangeIssue) and issue.is_integer():
-                output += f'<issue index="{i + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-                output += f'    <evaluator ftype="linear" parameter0="{bias}" parameter1="{1.0}"></evaluator>\n'
-            else:
-                # dtype = "integer" if issue.is_integer() else "real" if issue.is_float() else "discrete"
-                dtype = "discrete"
-                vtype = (
-                    "integer"
-                    if issue.is_integer()
-                    else "real"
-                    if issue.is_float()
-                    else "discrete"
-                )
-                output += f'<issue index="{i+1}" etype="{dtype}" type="{dtype}" vtype="{vtype}" name="{issue_name}">\n'
-                vals = issue.all  # type: ignore
-                for indx, u in enumerate(vals):
-                    uu = issue.value_type(u + bias)  # type: ignore
-                    output += (
-                        f'    <item index="{indx+1}" value="{u}" evaluation="{uu}" />\n'
-                    )
-            output += "</issue>\n"
+            bias = self.bias / weight if weight else 0.0
+            output += vfun.xml(i, issue, bias)
 
         for i, w in enumerate(self.weights):
             output += f'<weight index="{i+1}" value="{w}">\n</weight>\n'
@@ -629,36 +607,8 @@ class LinearAdditiveUtilityFunction(
         # <issue vtype="integer" lowerbound="1" upperbound="17" name="Charging Speed" index="3" etype="integer" type="integer">
         # <evaluator ftype="linear" offset="0.4" slope="0.0375">
         # </evaluator>
-        for i, issue in enumerate(issues):
-            issue_name = issue.name
-            fn = self.values[i]
-            dtype = (
-                "integer"
-                if issue.is_integer()
-                else "real"
-                if issue.is_float()
-                else "discrete"
-            )
-            if isinstance(fn, AffineFun):
-                output += f'<issue vtype="{dtype}" lowerbound="{issue.min_value}" upperbound="{issue.max_value}" name="{issue_name}" index="{i + 1}" etype="{dtype}" type="{dtype}">\n'
-                output += f'    <evaluator ftype="linear" parameter0="{fn.bias}" parameter1="{fn.slope}"></evaluator>\n'
-            elif isinstance(fn, LinearFun):
-                output += f'<issue vtype="{dtype}" lowerbound="{issue.min_value}" upperbound="{issue.max_value}" name="{issue_name}" index="{i + 1}" etype="{dtype}" type="{dtype}">\n'
-                output += f'    <evaluator ftype="linear" parameter0="0.0" parameter1="{fn.slope}"></evaluator>\n'
-            elif isinstance(fn, TriangularFun):
-                output += f'<issue vtype="{dtype}" lowerbound="{issue.min_value}" upperbound="{issue.max_value}" name="{issue_name}" index="{i + 1}" etype="{dtype}" type="{dtype}">\n'
-                output += f'    <evaluator ftype="triangular" parameter0="{fn.start}" parameter1="{fn.end}" parameter2="{fn.middle}"></evaluator>\n'
-            elif issue.is_continuous():
-                raise ValueError(
-                    f"Issue {issue} is continuous but it is not a linear or trianle map. We cannot save this"
-                )
-            else:
-                output += f'<issue index="{i+1}" etype="{dtype}" type="discrete" vtype="{dtype}" name="{issue_name}">\n'
-                vals = issue.all  # type: ignore (We know that the issue is discrete because we are in the else)
-                for indx, value in enumerate(vals):
-                    u = self.values[i](value)
-                    output += f'    <item index="{indx+1}" value="{value}" evaluation="{u}" />\n'
-            output += "</issue>\n"
+        for i, (issue, vfun) in enumerate(zip(issues, self.values)):
+            output += vfun.xml(i, issue, 0.0)
 
         for i, w in enumerate(self.weights):
             output += f'<weight index="{i+1}" value="{w}">\n</weight>\n'

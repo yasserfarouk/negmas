@@ -898,6 +898,9 @@ class SingleIssueFun(Fun, Protocol):
     def scale_by(self, scale: float) -> Fun:
         ...
 
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        ...
+
 
 @runtime_checkable
 class MultiIssueFun(Fun, Protocol):
@@ -915,6 +918,9 @@ class MultiIssueFun(Fun, Protocol):
         ...
 
     def scale_by(self, scale: float) -> MultiIssueFun:
+        ...
+
+    def xml(self, indx: int, issues: list[Issue], bias=0.0) -> str:
         ...
 
 
