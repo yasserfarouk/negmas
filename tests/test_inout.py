@@ -38,6 +38,8 @@ SCENARIOS_TO_IGNORE = [
     "30issuesDiscountedwithRV",
     "50issuesDiscountedwithRV",
     "AgentHp2",
+    "web_service",
+    "four_issues",
 ]
 
 
@@ -126,7 +128,7 @@ def compared_two_domains(domain, domain2):
         assert m is not None
         if not genius_bridge_is_running():
             continue
-        n1 = Atlas3(domain_file_name=m.name, ufun=ufun)
+        n1 = Atlas3(domain_file_name=m.name, preferences=ufun)
         n2 = AgentX(domain_file_name=m.name, utility_file_name=ufun.name)
         m.add(n1)
         m.add(n2)
