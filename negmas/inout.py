@@ -109,6 +109,8 @@ class Domain:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
+        if hasattr(self.agenda, "issues") and len(self.agenda.issues) == 1:
+            return self
         outcomes = list(self.agenda.enumerate_or_sample())
         sos = self.agenda.to_single_issue(numeric, stringify)
         sos.name = self.agenda.name
