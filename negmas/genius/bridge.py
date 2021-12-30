@@ -229,7 +229,7 @@ class GeniusBridge:
         force_timeout: bool = True,
         save_logs: bool = False,
         log_path: Optional[os.PathLike] = None,
-        die_on_exit: bool = True,
+        die_on_exit: bool = False,
         use_shell: bool = False,
     ) -> int:
         """Initializes a genius connection
