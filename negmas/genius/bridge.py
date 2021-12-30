@@ -229,7 +229,7 @@ class GeniusBridge:
         force_timeout: bool = True,
         save_logs: bool = False,
         log_path: Optional[os.PathLike] = None,
-        die_on_exit: bool = False,
+        die_on_exit: bool = True,
         use_shell: bool = False,
     ) -> int:
         """Initializes a genius connection
@@ -275,7 +275,7 @@ class GeniusBridge:
                 "You can find the jar at http://www.yasserm.com/scml/geniusbridge.jar"
             )
             return 0
-        path = pathlib.Path(path).expanduser().absolute()
+        path = pathlib.Path(path).expanduser().absolute()  # type: ignore
         if log_path is None or not log_path:
             log_path = (
                 pathlib.Path.home()
@@ -330,7 +330,7 @@ class GeniusBridge:
             cls.java_processes[port] = subprocess.Popen(
                 ["java", "-jar", str(path)] + params + [f"{port}"],
                 shell=use_shell,
-                cwd=path.parent,
+                cwd=path.parent,  # type: ignore
             )
         except (OSError, TimeoutError, RuntimeError, ValueError) as e:
             warnings.warn(str(e))
