@@ -57,3 +57,11 @@ def monotonic_multi_minmax(
     """Finds the limits of a function `f` for the input assuming that it is monotonic and each input has `min_value` and `max_value` members"""
     vals = [(i.min_value, i.max_value) for i in input]
     return nonmonotonic_minmax(itertools.product(*vals), f)
+
+
+def remove_qoutes(s: str) -> str:
+    return s.replace('"', "~`")
+
+
+def recover_qoutes(s: str) -> str:
+    return s.replace("~`", '"')

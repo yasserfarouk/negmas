@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping
 
+from negmas.outcomes.issue_ops import issues_from_outcomes
+
 __all__ = [
     "Outcome",
     "PartialOutcomeDict",
@@ -77,7 +79,7 @@ def os_or_none(outcome_space, issues, outcomes) -> "OutcomeSpace" | None:
         return make_os(issues)
     if not outcomes:
         return None
-    return make_os([make_issue(outcomes)])
+    return make_os(issues_from_outcomes(outcomes))
 
 
 def ensure_os(outcome_space, issues, outcomes) -> "OutcomeSpace":
@@ -102,4 +104,4 @@ def ensure_os(outcome_space, issues, outcomes) -> "OutcomeSpace":
         raise ValueError(
             "No way to create an outcome-space: outcome_space, issses, and outcomes are all None or empty"
         )
-    return make_os([make_issue(outcomes)])
+    return make_os(issues_from_outcomes(outcomes))

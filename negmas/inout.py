@@ -97,7 +97,7 @@ class Domain:
         """
         raise NotImplementedError()
 
-    def to_single_issue(self, numeric=False, stringify=False) -> "Domain":
+    def to_single_issue(self, numeric=False, stringify=True) -> "Domain":
         """
         Forces the domain to have a single issue with all possible outcomes
 
@@ -442,7 +442,8 @@ def load_genius_domain_from_folder(
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.mapping.MappingUtilityFunction'>, <class 'negmas.preferences.mapping.MappingUtilityFunction'>]
+        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
+
 
         Try loading a domain with nonlinear ufuns:
         >>> folder_name = pkg_resources.resource_filename('negmas', resource_name='tests/data/10issues')
@@ -460,7 +461,7 @@ def load_genius_domain_from_folder(
         >>> print(u.mappings[0])
         97.0
         >>> print(u([0.0] * domain.n_issues))
-        0.0
+        0
         >>> print(u([0.5] * domain.n_issues))
         186.0
     """

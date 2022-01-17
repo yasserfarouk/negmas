@@ -52,6 +52,9 @@ class NonLinearAdditiveUtilityFunction(UtilityFunction):
 
 
     Examples:
+
+        >>> from negmas.outcomes import make_issue
+        >>> from negmas.preferences.mapping import MappingUtilityFunction
         >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
         ...           , make_issue(5, 'quality')]
         >>> print(list(map(str, issues)))
@@ -59,12 +62,12 @@ class NonLinearAdditiveUtilityFunction(UtilityFunction):
         >>> g = NonLinearAdditiveUtilityFunction({ 'price': lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}
         ...                                         , 'quality': MappingUtilityFunction(lambda x: x-3)}
-        ...         , f=lambda u: u['price']  + 2.0 * u['quality'])
+        ...         , f=lambda u: u['price']  + 2.0 * u['quality'], issues=issues)
         >>> float(g({'quality': 2, 'price': 14.0, 'delivery': 'delivered'})) - ((2.0*14)+2.0*(2.0-3.0))
         0.0
         >>> g = NonLinearAdditiveUtilityFunction({'price'    : lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}}
-        ...         , f=lambda u: 2.0 * u['price'] )
+        ...         , f=lambda u: 2.0 * u['price'], issues=issues)
         >>> float(g({'price': 14.0, 'delivery': 'delivered'})) - (2.0*(2.0*14))
         0.0
 
@@ -132,6 +135,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
      Examples:
          We will use the following issue space of cardinality :math:`10 \times 5 \times 4`:
 
+         >>> from negmas.outcomes import make_issue
          >>> issues = [make_issue(10), make_issue(5), make_issue(4)]
 
          Now create the utility function with
@@ -193,6 +197,7 @@ class HyperRectangleUtilityFunction(UtilityFunction):
 
         Examples:
 
+            >>> from negmas.outcomes import make_issue
             >>> f = HyperRectangleUtilityFunction(outcome_ranges=[
             ...                                        {0: (1.0, 2.0), 1: (1.0, 2.0)},
             ...                                        {0: (1.4, 2.0), 2: (2.0, 3.0)}]
@@ -208,12 +213,12 @@ class HyperRectangleUtilityFunction(UtilityFunction):
             </issue><utility_function maxutility="-1.0">
                 <ufun type="PlainUfun" weight="1" aggregation="sum">
                     <hyperRectangle utility_function="2.0">
-                        <INCLUDES index="0" min="1.0" max="2.0" />
                         <INCLUDES index="1" min="1.0" max="2.0" />
+                        <INCLUDES index="2" min="1.0" max="2.0" />
                     </hyperRectangle>
                     <hyperRectangle utility_function="13.0">
-                        <INCLUDES index="0" min="1.4" max="2.0" />
-                        <INCLUDES index="2" min="2.0" max="3.0" />
+                        <INCLUDES index="1" min="1.4" max="2.0" />
+                        <INCLUDES index="3" min="2.0" max="3.0" />
                     </hyperRectangle>
                 </ufun>
             </utility_function>

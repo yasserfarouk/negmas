@@ -8,7 +8,7 @@ from negmas.preferences.protocols import IndIssues, StationaryCrisp
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import UtilityValue
-from .ufun import UtilityFunction
+from .ufun import BaseUtilityFunction, UtilityFunction
 
 __all__ = ["ComplexWeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
 
@@ -25,12 +25,12 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
 
     def __init__(
         self,
-        ufuns: Iterable[UtilityFunction],
+        ufuns: Iterable[BaseUtilityFunction],
         weights: Optional[Iterable[float]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.values: list[UtilityFunction] = list(ufuns)
+        self.values: list[BaseUtilityFunction] = list(ufuns)
         if weights is None:
             weights = [1.0] * len(self.values)
         self.weights = list(weights)
@@ -60,7 +60,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
         for f, w in zip(self.values, self.weights):
             util = f(offer)
             if util is not None:
-                u += w * util
+                u += util * w
             else:
                 raise ValueError(f"Cannot calculate ufility for {offer}")
         return u
@@ -93,7 +93,7 @@ class ComplexNonlinearUtilityFunction(UtilityFunction, StationaryCrisp):
 
     def __init__(
         self,
-        ufuns: Iterable[UtilityFunction],
+        ufuns: Iterable[BaseUtilityFunction],
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
         name=None,
         reserved_value: float = float("-inf"),

@@ -67,12 +67,11 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
 
         Examples:
             >>> from negmas.preferences import *
-            >>> print(LinearAdditiveUtilityFunction((lambda x:x, lambda x:x)).type)
-            linear_aggregation
-            >>> print(MappingUtilityFunction(lambda x: x).type)
+            >>> from negmas.outcomes import make_issue
+            >>> print(LinearAdditiveUtilityFunction((lambda x:x, lambda x:x), issues=[make_issue((0, 1), (0, 1))]).type)
+            linear_additive
+            >>> print(MappingUtilityFunction([lambda x: x], issues=[make_issue((0.0, 1.0))]).type)
             mapping
-            >>> print(NonLinearAdditiveUtilityFunction([lambda x:x], f=lambda x: x).type)
-            non_linear_aggregation
 
         Returns:
             str: utility_function type

@@ -1,13 +1,11 @@
 import os
-from pathlib import Path
 
-import hypothesis.strategies as st
 import pkg_resources
 import pytest
-from hypothesis import given, settings
-from py4j.protocol import Py4JNetworkError
 
-from negmas import (
+from negmas.genius import GeniusBridge
+from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
+from negmas.genius.gnegotiators import (
     ABMPAgent2,
     AgentBuyong,
     AgentHP2,
@@ -18,7 +16,6 @@ from negmas import (
     AgentX,
     AgentYK,
     AgreeableAgent2018,
-    AspirationNegotiator,
     Atlas3,
     Atlas32016,
     BayesianAgent,
@@ -79,19 +76,17 @@ from negmas import (
     XianFaAgent,
     Yushu,
     YXAgent,
-    genius_bridge_is_running,
-    load_genius_domain_from_folder,
 )
-from negmas.genius import GeniusBridge
-from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
 from negmas.inout import Domain
+from negmas.sao.negotiators import ToughNegotiator
 
 TIMELIMIT = 30
 STEPLIMIT = 50
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
-SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
+# SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
+SKIP_CONDITION = False
 
 
 def do_test_genius_agent(
@@ -113,7 +108,7 @@ def do_test_genius_agent(
         opponent_preferences,
         agent_preferences,
         agent_starts,
-        opponent_type=AspirationNegotiator,
+        opponent_type=ToughNegotiator,
         n_steps=None,
         time_limit=TIMELIMIT,
         must_agree_if_same_preferences=True,
@@ -126,11 +121,11 @@ def do_test_genius_agent(
             raise ValueError(f"Failed to load domain from {base_folder}")
         if isinstance(opponent_type, GeniusNegotiator):
             opponent = opponent_type(
-                ufun=domain.ufuns[opponent_preferences],
+                preferences=domain.ufuns[opponent_preferences],
             )
         else:
-            opponent = opponent_type(ufun=domain.ufuns[opponent_preferences])
-        theagent = AgentClass(ufun=domain.ufuns[agent_preferences])
+            opponent = opponent_type(preferences=domain.ufuns[opponent_preferences])
+        theagent = AgentClass(preferences=domain.ufuns[agent_preferences])
         if agent_starts:
             neg.add(theagent)
             neg.add(opponent)
@@ -140,7 +135,7 @@ def do_test_genius_agent(
         return neg.run()
 
     # check that it can run without errors with two different ufuns
-    for opponent_type in (AspirationNegotiator, Atlas3):
+    for opponent_type in (ToughNegotiator, Atlas3):
         for starts in (False, True):
             for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT)):
                 for ufuns in ((1, 0), (0, 1)):

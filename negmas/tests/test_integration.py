@@ -11,19 +11,16 @@ from negmas import (
     SAOMechanism,
 )
 
-start = time.perf_counter()
-
-print(f"Import took {time.perf_counter()-start}")
-
 
 def test_a_session():
-    start = time.perf_counter()
-    p = SAOMechanism(outcomes=50, n_steps=50)
+    time.perf_counter()
+    n = 50
+    p = SAOMechanism(outcomes=n, n_steps=50)
     for _ in range(4):
         p.add(
             LimitedOutcomesNegotiator(p_ending=0.01, name=f"agent {_}"),
             preferences=HyperRectangleUtilityFunction(
-                [None], [lambda x: x[0]], outcomes=50
+                [None], [lambda x: x[0]], outcomes=((_,) for _ in range(n))
             ),
         )
     p.run()

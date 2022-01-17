@@ -1140,6 +1140,7 @@ def test_neg_sync_loop_receives_all_offers(
     n_negotiators=st.integers(2, 4),
     n_steps=st.integers(1, 4),
 )
+@settings(deadline=None)
 def test_times_are_calculated(n_outcomes, n_negotiators, n_steps):
     mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=8)
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)

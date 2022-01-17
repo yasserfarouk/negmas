@@ -21,40 +21,35 @@ from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
-from negmas.outcomes.range_issue import RangeIssue
 from negmas.preferences.protocols import IndIssues, SingleIssueFun
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .ufun import StationaryUtilityFunction
-from .value_fun import (
-    AffineFun,
-    IdentityFun,
-    LambdaFun,
-    LinearFun,
-    TableFun,
-    TriangularFun,
-)
+from .value_fun import IdentityFun, LambdaFun, TableFun
 
 __all__ = ["LinearAdditiveUtilityFunction", "LinearUtilityFunction"]
 
 NLEVELS = 20
 
 
-def _rand_mapping(x):
-    return (random.random() - 0.5) * x
+def _rand_mapping(x, r):
+    return (r - 0.5) * x
 
 
-def _rand_mapping_normalized(x, mx, mn):
-    return random.random() * (x - mn) / (mx - mn)
+def _rand_mapping_normalized(x, mx, mn, r):
+    return r * (x - mn) / (mx - mn)
 
 
 def _random_mapping(issue: "Issue", normalized=False):
+    r = random.random()
     if issue.is_numeric():
         return (
-            partial(_rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value)
+            partial(
+                _rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value, r=r
+            )
             if normalized
-            else _rand_mapping
+            else partial(_rand_mapping, r=r)
         )
     if isinstance(issue, DiscreteIssue):
         return dict(
@@ -69,7 +64,7 @@ def _random_mapping(issue: "Issue", normalized=False):
     return (
         partial(_rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value)
         if normalized
-        else _rand_mapping
+        else partial(_rand_mapping, r=r)
     )
 
 
@@ -98,13 +93,14 @@ class LinearUtilityFunction(
 
     Examples:
 
+        >>> from negmas.outcomes import make_issue
         >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(5, 'quality')]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', 'quality: (0, 4)']
         >>> f = LinearUtilityFunction({'price': 1.0, 'quality': 4.0}, issues=issues)
         >>> f((2, 14.0)) -  (2 * 1.0 + 14.0 * 4)
         0.0
-        >>> f = LinearUtilityFunction([1.0, 2.0])
+        >>> f = LinearUtilityFunction([1.0, 2.0], issues=issues)
         >>> f((2, 14)) - (2 * 1.0 + 14 * 2.0)
         0.0
 
@@ -164,14 +160,15 @@ class LinearUtilityFunction(
 
         Examples:
 
+            >>> from negmas.outcomes import make_issue
             >>> issues = [make_issue(values=10, name='i1'), make_issue(values=4, name='i2')]
-            >>> f = LinearUtilityFunction(weights=[1.0, 4.0])
+            >>> f = LinearUtilityFunction(weights=[1.0, 4.0], issues=issues)
             >>> print(f.xml(issues))
             <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
-                <evaluator ftype="linear" offset="0.0" slope="1.0"></evaluator>
+                <evaluator ftype="linear" parameter0="0.0" parameter1="1.0"></evaluator>
             </issue>
             <issue index="2" etype="integer" type="integer" vtype="integer" name="i2">
-                <evaluator ftype="linear" offset="0.0" slope="1.0"></evaluator>
+                <evaluator ftype="linear" parameter0="0.0" parameter1="1.0"></evaluator>
             </issue>
             <weight index="1" value="1.0">
             </weight>
@@ -249,8 +246,13 @@ class LinearUtilityFunction(
         )
 
     @classmethod
-    def from_dict(cls, d):
-        return cls(**deserialize(d, deep=True, remove_type_field=True))  # type: ignore
+    def from_dict(cls, d: dict):
+        if isinstance(d, cls):
+            return d
+        d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
+        d = deserialize(d, deep=True, remove_type_field=True)
+        return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
     def shift_by(
         self, offset: float, shift_reserved: bool = True
@@ -287,7 +289,7 @@ class LinearUtilityFunction(
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
+        minmax: tuple[float, float] | None = None,
     ) -> "IndIssues":
         """
         Creates a new utility function that is normalized based on input conditions.
@@ -308,8 +310,8 @@ class LinearUtilityFunction(
         if to[0] is None and to[1] is None:
             return self
 
-        if rng is not None:
-            mn, mx = rng
+        if minmax is not None:
+            mn, mx = minmax
         else:
             mn, mx = self.minmax(outcome_space, issues, outcomes, max_cardinality)
 
@@ -435,7 +437,7 @@ class LinearAdditiveUtilityFunction(
 
     Examples:
 
-        >>> from negmas.outcomes import dict2outcome
+        >>> from negmas.outcomes import dict2outcome, make_issue
         >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
         ...           , make_issue(5, 'quality')]
         >>> print(list(map(str, issues)))
@@ -466,7 +468,7 @@ class LinearAdditiveUtilityFunction(
         ...         lambda x: 2.0*x
         ...          , {'delivered': 10, 'not delivered': -10}
         ...          , LambdaFun(lambda x: x-3)]
-        ...         , weights=[1.0, 2.0, 4.0])
+        ...         , weights=[1.0, 2.0, 4.0], issues=issues)
         >>> float(f((14.0, 'delivered', 2)))
         44.0
 
@@ -562,14 +564,15 @@ class LinearAdditiveUtilityFunction(
 
         Examples:
 
+            >>> from negmas.outcomes import make_issue
             >>> issues = [make_issue(values=10, name='i1'), make_issue(values=['delivered', 'not delivered'], name='i2')
             ...     , make_issue(values=4, name='i3')]
             >>> f = LinearAdditiveUtilityFunction([lambda x: 2.0*x
             ...                          , {'delivered': 10, 'not delivered': -10}
             ...                          , LambdaFun(lambda x: x-3)]
-            ...         , weights=[1.0, 2.0, 4.0])
+            ...         , weights=[1.0, 2.0, 4.0], issues=issues)
             >>> print(f.xml(issues))
-            <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
+            <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
                 <item index="1" value="0" evaluation="0.0" />
                 <item index="2" value="1" evaluation="2.0" />
                 <item index="3" value="2" evaluation="4.0" />
@@ -582,14 +585,14 @@ class LinearAdditiveUtilityFunction(
                 <item index="10" value="9" evaluation="18.0" />
             </issue>
             <issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
-                <item index="1" value="delivered" evaluation="10" />
-                <item index="2" value="not delivered" evaluation="-10" />
+                <item index="1" value="delivered" evaluation="10.0" />
+                <item index="2" value="not delivered" evaluation="-10.0" />
             </issue>
-            <issue index="3" etype="integer" type="integer" vtype="integer" name="i3">
-                <item index="1" value="0" evaluation="-3" />
-                <item index="2" value="1" evaluation="-2" />
-                <item index="3" value="2" evaluation="-1" />
-                <item index="4" value="3" evaluation="0" />
+            <issue index="3" etype="discrete" type="discrete" vtype="integer" name="i3">
+                <item index="1" value="0" evaluation="-3.0" />
+                <item index="2" value="1" evaluation="-2.0" />
+                <item index="3" value="2" evaluation="-1.0" />
+                <item index="4" value="3" evaluation="0.0" />
             </issue>
             <weight index="1" value="1.0">
             </weight>
@@ -630,7 +633,9 @@ class LinearAdditiveUtilityFunction(
         )
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict):
+        if isinstance(d, cls):
+            return d
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
         d = deserialize(d, deep=True, remove_type_field=True)

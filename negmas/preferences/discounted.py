@@ -200,7 +200,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         ufun: UtilityFunction,
         cost: Optional[float] = None,
         factor: Union[str, Callable[["MechanismState"], float]] = "current_step",
-        power: float = 1.0,
+        power: float | None = 1.0,
         name=None,
         reserved_value: UtilityValue = float("-inf"),
         dynamic_reservation=True,
@@ -210,6 +210,8 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         super().__init__(
             ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
         )
+        if power is None:
+            power = 1.0
         self.ufun = ufun
         self.cost = cost
         self.factor = factor

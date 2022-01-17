@@ -117,11 +117,11 @@ class Negotiator(Rational, Notifiable, ABC):
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
-        if self._nmi is not None:
-            Rational.preferences.fset(self, value)
-        else:
-            self._preferences = value
-            self._preferences_modified = True
+        Rational.preferences.fset(self, value)
+        # if self._nmi is not None:
+        # else:
+        #     self._preferences = value
+        #     self._preferences_modified = True
 
     @property
     def parent(self) -> "Controller":
@@ -216,9 +216,11 @@ class Negotiator(Rational, Notifiable, ABC):
         self._mechanism_id = nmi.id
         self._nmi = nmi
         self._initial_state = state
-        if preferences is not None and preferences != self.preferences:
+        if preferences is not None and (
+            self.preferences is None or id(preferences) != id(self.preferences)
+        ):
             self.preferences = preferences
-        if self._preferences:
+        if self._preferences and self._preferences_modified:
             if self._preferences_modified:
                 self.on_preferences_changed()
         return True

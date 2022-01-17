@@ -12,7 +12,7 @@ import numpy as np
 from negmas.common import Value
 from negmas.helpers import PathLike
 from negmas.helpers.numeric import get_one_float
-from negmas.helpers.prob import EPSILON, Distribution, DistributionLike, Real
+from negmas.helpers.prob import Distribution, DistributionLike
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
@@ -36,14 +36,7 @@ from .protocols import (
     UFunCrisp,
     UFunProb,
 )
-from .value_fun import (
-    MAX_CARINALITY,
-    AffineFun,
-    ConstFun,
-    LinearFun,
-    QuadraticFun,
-    TriangularFun,
-)
+from .value_fun import MAX_CARINALITY, AffineFun, LinearFun, QuadraticFun, TriangularFun
 
 if TYPE_CHECKING:
     from negmas.preferences import ComplexWeightedUtilityFunction
@@ -55,7 +48,7 @@ import functools
 
 def ignore_unhashable(func):
     uncached = func.__wrapped__
-    attributes = functools.WRAPPER_ASSIGNMENTS + ("cache_info", "cache_clear")
+    attributes = functools.WRAPPER_ASSIGNMENTS + ("cache_info", "cache_clear")  # type: ignore (not my code and I do not know what is happening here)
 
     @functools.wraps(func, assigned=attributes)
     def wrapper(*args, **kwargs):
@@ -85,6 +78,95 @@ class BaseUtilityFunction(
     def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
+
+    def scale_by(
+        self, scale: float, scale_reserved=True
+    ) -> "ComplexWeightedUtilityFunction":
+        if scale < 0:
+            raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
+        from negmas.preferences.complex import ComplexWeightedUtilityFunction
+
+        r = scale * self.reserved_value if scale_reserved else self.reserved_value
+        return ComplexWeightedUtilityFunction(
+            ufuns=[self],
+            weights=[scale],
+            name=self.name,
+            reserved_value=r,
+        )
+
+    def shift_by(
+        self, offset: float, shift_reserved=True
+    ) -> "ComplexWeightedUtilityFunction":
+        from negmas.preferences.complex import ComplexWeightedUtilityFunction
+        from negmas.preferences.const import ConstUtilityFunction
+
+        r = self.reserved_value + offset if shift_reserved else self.reserved_value
+        return ComplexWeightedUtilityFunction(
+            ufuns=[self, ConstUtilityFunction(offset)],
+            weights=[1, 1],
+            name=self.name,
+            reserved_value=r,
+        )
+
+    def shift_min_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> "UtilityFunction":
+        if rng is None:
+            mn, _ = self.minmax(outcome_space, issues, outcomes)
+        else:
+            mn, _ = rng
+        offset = to - mn
+        return self.shift_by(offset)
+
+    def scale_min_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> "UtilityFunction":
+        if rng is None:
+            mn, _ = self.minmax(outcome_space, issues, outcomes)
+        else:
+            mn, _ = rng
+        scale = to / mn
+        return self.scale_by(scale)
+
+    def shift_max_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> "UtilityFunction":
+        if rng is None:
+            _, mx = self.minmax(outcome_space, issues, outcomes)
+        else:
+            _, mx = rng
+        offset = to - mx
+        return self.shift_by(offset)
+
+    def scale_max_for(
+        self,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> "UtilityFunction":
+        if rng is None:
+            _, mx = self.minmax(outcome_space, issues, outcomes)
+        else:
+            _, mx = rng
+        scale = to / mx
+        return self.scale_by(scale)
 
     def argrank(
         self, outcomes: list[Outcome | None], descending=True
@@ -206,8 +288,8 @@ class BaseUtilityFunction(
     def is_non_stationary(self) -> bool:
         return False
 
-    @ignore_unhashable
-    @lru_cache
+    # @ignore_unhashable
+    # @lru_cache
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -290,19 +372,20 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
 
         Examples:
 
+            >>> from negmas.preferences import conflict_level
             >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.0
-            ...                                             , conflict_delta=0.0, win_win=0.0)
-            >>> print(UtilityFunction.conflict_level(u1, u2, outcomes=10))
+            ...                                             , conflict_delta=0.0)
+            >>> print(conflict_level(u1, u2, outcomes=10))
             0.0
 
             >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=1.0
-            ...                                             , conflict_delta=0.0, win_win=0.0)
-            >>> print(UtilityFunction.conflict_level(u1, u2, outcomes=10))
+            ...                                             , conflict_delta=0.0)
+            >>> print(conflict_level(u1, u2, outcomes=10))
             1.0
 
             >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.5
-            ...                                             , conflict_delta=0.0, win_win=1.0)
-            >>> 0.0 <= UtilityFunction.conflict_level(u1, u2, outcomes=10) <= 1.0
+            ...                                             , conflict_delta=0.0)
+            >>> 0.0 < conflict_level(u1, u2, outcomes=10) < 1.0
             True
 
 
@@ -398,95 +481,6 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
             ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1))))
         return ufuns
 
-    def scale_by(
-        self, scale: float, scale_reserved=True
-    ) -> "ComplexWeightedUtilityFunction":
-        if scale < 0:
-            raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
-        from negmas.preferences.complex import ComplexWeightedUtilityFunction
-
-        r = scale * self.reserved_value if scale_reserved else self.reserved_value
-        return ComplexWeightedUtilityFunction(
-            ufuns=[self],
-            weights=[scale],
-            name=self.name,
-            reserved_value=r,
-        )
-
-    def shift_by(
-        self, offset: float, shift_reserved=True
-    ) -> "ComplexWeightedUtilityFunction":
-        from negmas.preferences.complex import ComplexWeightedUtilityFunction
-        from negmas.preferences.const import ConstUtilityFunction
-
-        r = self.reserved_value + offset if shift_reserved else self.reserved_value
-        return ComplexWeightedUtilityFunction(
-            ufuns=[self, ConstUtilityFunction(offset)],
-            weights=[1, 1],
-            name=self.name,
-            reserved_value=r,
-        )
-
-    def shift_min_for(
-        self,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
-        if rng is None:
-            mn, _ = self.minmax(outcome_space, issues, outcomes)
-        else:
-            mn, _ = rng
-        offset = to - mn
-        return self.shift_by(offset)
-
-    def scale_min_for(
-        self,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
-        if rng is None:
-            mn, _ = self.minmax(outcome_space, issues, outcomes)
-        else:
-            mn, _ = rng
-        scale = to / mn
-        return self.scale_by(scale)
-
-    def shift_max_for(
-        self,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
-        if rng is None:
-            _, mx = self.minmax(outcome_space, issues, outcomes)
-        else:
-            _, mx = rng
-        offset = to - mx
-        return self.shift_by(offset)
-
-    def scale_max_for(
-        self,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
-        if rng is None:
-            _, mx = self.minmax(outcome_space, issues, outcomes)
-        else:
-            _, mx = rng
-        scale = to / mx
-        return self.scale_by(scale)
-
     def sample_outcome_with_utility(
         self,
         rng: Tuple[float, float],
@@ -501,7 +495,7 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
         if not outcome_space:
             raise ValueError("No outcome-space is given or defined for the ufun")
         if outcome_space.cardinality < n_trials:
-            n_trials = outcome_space.cardinality
+            n_trials = outcome_space.cardinality  # type: ignore I know that it is an int (see the if)
         for o in outcome_space.sample(n_trials, with_replacement=False):
             if o is None:
                 continue
@@ -614,10 +608,10 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
             >>> import pkg_resources
             >>> domain = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
             ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
+            >>> u, d = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
             ...                                             , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
             ...                                             , issues=domain.issues)
-            >>> u.to_genius(discount_factor=discount
+            >>> u.to_genius(discount_factor=d
             ...     , file_name = pkg_resources.resource_filename('negmas'
             ...                   , resource_name='tests/data/LaptopConv/Laptop-C-prof1.xml')
             ...     , issues=domain.issues)
@@ -1068,24 +1062,25 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
 
         Examples:
 
+            >>> from negmas.preferences import conflict_level
             >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.0
-            ...                                             , conflict_delta=0.0, win_win=0.0)
-            >>> print(UtilityFunction.conflict_level(u1, u2, outcomes=10))
+            ...                                             , conflict_delta=0.0)
+            >>> print(conflict_level(u1, u2, outcomes=10))
             0.0
 
             >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=1.0
-            ...                                             , conflict_delta=0.0, win_win=0.0)
-            >>> print(UtilityFunction.conflict_level(u1, u2, outcomes=10))
+            ...                                             , conflict_delta=0.0)
+            >>> print(conflict_level(u1, u2, outcomes=10))
             1.0
 
             >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.5
-            ...                                             , conflict_delta=0.0, win_win=1.0)
-            >>> 0.0 <= UtilityFunction.conflict_level(u1, u2, outcomes=10) <= 1.0
+            ...                                             , conflict_delta=0.0)
+            >>> 0.0 < conflict_level(u1, u2, outcomes=10) < 1.0
             True
 
 
         """
-        from negmas.preferences.mapping import MappingUtilityFunction
+        from negmas.preferences.mapping import ProbMappingUtilityFunction
 
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
@@ -1112,7 +1107,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
         if random.random() > 0.5:
             u1, u2 = u2, u1
         return (
-            MappingUtilityFunction(
+            ProbMappingUtilityFunction(
                 dict(
                     zip(
                         outcomes,
@@ -1125,7 +1120,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                     )
                 )
             ),
-            MappingUtilityFunction(
+            ProbMappingUtilityFunction(
                 dict(
                     zip(
                         outcomes,
@@ -1155,7 +1150,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
 
 
         """
-        from negmas.preferences.mapping import MappingUtilityFunction
+        from negmas.preferences.mapping import ProbMappingUtilityFunction
 
         if isinstance(outcomes, int):
             outcomes = [(_,) for _ in range(outcomes)]
@@ -1167,7 +1162,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
         u1 /= u1.max()
         u2 /= u2.max()
         return (
-            MappingUtilityFunction(
+            ProbMappingUtilityFunction(
                 dict(
                     zip(
                         outcomes,
@@ -1180,7 +1175,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                     )
                 )
             ),
-            MappingUtilityFunction(
+            ProbMappingUtilityFunction(
                 dict(
                     zip(
                         outcomes,

@@ -59,7 +59,8 @@ def test_from_outcomes():
     )
     for i, f in zip(issues, found):
         assert i.name == f.name
-        assert all(a == b for a, b in zip(sorted(i.values), f._values))
+        for a, b in zip(sorted(i.all), sorted(f.all)):
+            assert a == b
 
     issues = [
         make_issue((1, 7), "price"),

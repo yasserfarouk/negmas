@@ -188,7 +188,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         return self
 
     def to_single_issue(
-        self, numeric: bool = False, stringify: bool = False
+        self, numeric: bool = False, stringify: bool = True
     ) -> "CartesianOutcomeSpace":
         from negmas.outcomes import (
             CategoricalIssue,

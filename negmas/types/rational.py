@@ -145,6 +145,10 @@ class Rational(NamedObject):
             return float("nan")
         return self._preferences.reserved_value
 
+    def reset_preferences_changed_flag(self):
+        """Called to reset the internal preferences changed flag after processing a change"""
+        self._preferences_modified = False
+
     def on_preferences_changed(self):
         """
         Called to inform the entity that its ufun has changed.
@@ -154,4 +158,4 @@ class Rational(NamedObject):
             - You MUST call the super() version of this function either before or after your code when you are overriding
               it.
         """
-        self._preferences_modified = False
+        self.reset_preferences_changed_flag()

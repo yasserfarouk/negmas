@@ -101,8 +101,8 @@ def enumerate_discrete_issues(issues: tuple[DiscreteIssue, ...]) -> list[Outcome
 
 
 def issues_from_outcomes(
-    outcomes: list["Outcome"],
-    numeric_as_ranges: bool = False,
+    outcomes: list["Outcome"] | int,
+    numeric_as_ranges: bool = True,
     issue_names: list[str] | None = None,
 ) -> tuple["DiscreteIssue", ...]:
     """
@@ -110,7 +110,7 @@ def issues_from_outcomes(
 
     Args:
 
-        outcomes: A list of outcomes
+        outcomes: A list of outcomes or the number of outcomes
         issue_names: If given, will be used as issue names, otherwise random issue names will be used
         numeric_as_ranges: If True, all numeric issues generated will have ranges that are defined by the minimum
                            and maximum values of that issue in the given outcomes instead of a list of the values
@@ -126,6 +126,9 @@ def issues_from_outcomes(
           than the ones given
 
     """
+
+    if isinstance(outcomes, int):
+        outcomes = [(_,) for _ in range(outcomes)]
 
     def convert_type(v, old, values):
         if isinstance(v, numbers.Integral) and not isinstance(old, numbers.Integral):
@@ -217,28 +220,7 @@ def issues_to_xml_str(
         <negotiation_template>
         <utility_space number_of_issues="3">
         <objective description="" etype="objective" index="0" name="root" type="objective">
-            <issue etype="discrete" index="1" name="i1" type="discrete" vtype="discrete">
-                <item index="1" value="0" cost="0" description="0">
-                </item>
-                <item index="2" value="1" cost="0" description="1">
-                </item>
-                <item index="3" value="2" cost="0" description="2">
-                </item>
-                <item index="4" value="3" cost="0" description="3">
-                </item>
-                <item index="5" value="4" cost="0" description="4">
-                </item>
-                <item index="6" value="5" cost="0" description="5">
-                </item>
-                <item index="7" value="6" cost="0" description="6">
-                </item>
-                <item index="8" value="7" cost="0" description="7">
-                </item>
-                <item index="9" value="8" cost="0" description="8">
-                </item>
-                <item index="10" value="9" cost="0" description="9">
-                </item>
-            </issue>
+            <issue etype="integer" index="1" name="i1" type="integer" vtype="integer" lowerbound="0" upperbound="9" />
             <issue etype="discrete" index="2" name="i2" type="discrete" vtype="discrete">
                 <item index="1" value="a" cost="0" description="a">
                 </item>
@@ -256,15 +238,14 @@ def issues_to_xml_str(
 
         >>> issues2, _ = issues_from_xml_str(s)
         >>> print([_.__class__.__name__ for _ in issues2])
-        ['CategoricalIssue', 'CategoricalIssue', 'ContinuousIssue']
+        ['ContiguousIssue', 'CategoricalIssue', 'ContinuousIssue']
+
         >>> print(len(issues2))
         3
         >>> print([str(_) for _ in issues2])
-        ["i1: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']", "i2: ['a', 'b', 'c']", 'i3: (2.5, 3.5)']
+        ['i1: (0, 9)', "i2: ['a', 'b', 'c']", 'i3: (2.5, 3.5)']
         >>> print([_.values for _ in issues2])
-        [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], ['a', 'b', 'c'], (2.5, 3.5)]
-
-
+        [(0, 9), ['a', 'b', 'c'], (2.5, 3.5)]
     """
     output = (
         f'<negotiation_template>\n<utility_space number_of_issues="{len(issues)}">\n'
@@ -316,7 +297,7 @@ def issues_to_genius(
         >>> issues, _ = issues_from_genius(file_name = pkg_resources.resource_filename('negmas'
         ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
         >>> print([list(issue.all) for issue in issues])
-        [['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26']]
+        [['Dell', 'Macintosh', 'HP'], ['60 Gb', '80 Gb', '120 Gb'], ["19'' LCD", "20'' LCD", "23'' LCD"]]
 
     Remarks:
         See ``from_xml_str`` for all the parameters
@@ -351,81 +332,17 @@ def issues_from_xml_str(
         >>> import pkg_resources
         >>> domain_file_name = pkg_resources.resource_filename('negmas'
         ...                                      , resource_name='tests/data/Laptop/Laptop-C-domain.xml')
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=True)
-        >>> issue = issues[0]
-        >>> print(issue.cardinality)
-        27
-        >>> print(list(issue.all))
-        ["Dell+60 Gb+19'' LCD", "Dell+60 Gb+20'' LCD", "Dell+60 Gb+23'' LCD", "Dell+80 Gb+19'' LCD", "Dell+80 Gb+20'' LCD", "Dell+80 Gb+23'' LCD", "Dell+120 Gb+19'' LCD", "Dell+120 Gb+20'' LCD", "Dell+120 Gb+23'' LCD", "Macintosh+60 Gb+19'' LCD", "Macintosh+60 Gb+20'' LCD", "Macintosh+60 Gb+23'' LCD", "Macintosh+80 Gb+19'' LCD", "Macintosh+80 Gb+20'' LCD", "Macintosh+80 Gb+23'' LCD", "Macintosh+120 Gb+19'' LCD", "Macintosh+120 Gb+20'' LCD", "Macintosh+120 Gb+23'' LCD", "HP+60 Gb+19'' LCD", "HP+60 Gb+20'' LCD", "HP+60 Gb+23'' LCD", "HP+80 Gb+19'' LCD", "HP+80 Gb+20'' LCD", "HP+80 Gb+23'' LCD", "HP+120 Gb+19'' LCD", "HP+120 Gb+20'' LCD", "HP+120 Gb+23'' LCD"]
-
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=True, keep_value_names=False, keep_issue_names=True)
-        >>> print(issues[0].name)
-        Laptop-Harddisk-External Monitor
-        >>> print(len(issues))
-        1
-        >>> print(list(issues[0].all))
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
-
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=True, keep_value_names=True, keep_issue_names=False)
-        >>> issue = issues[0]
-        >>> print(issue.cardinality)
-        27
-        >>> print('\\n'.join(list(issue.all)[:5]))
-        Dell+60 Gb+19'' LCD
-        Dell+60 Gb+20'' LCD
-        Dell+60 Gb+23'' LCD
-        Dell+80 Gb+19'' LCD
-        Dell+80 Gb+20'' LCD
-
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=False, keep_issue_names=False, keep_value_names=True)
-        >>> type(issues)
-        <class 'list'>
-        >>> str(issues[0])
-        "0: ['Dell', 'Macintosh', 'HP']"
-        >>> print([_.cardinality for _ in issues])
-        [3, 3, 3]
-        >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
-        Dell Macintosh HP
-        60 Gb 80 Gb 120 Gb
-        19'' LCD 20'' LCD 23'' LCD
-
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=False, keep_issue_names=True, keep_value_names=True)
-        >>> len(issues)
-        3
-        >>> str(issues[0])
-        "Laptop: ['Dell', 'Macintosh', 'HP']"
-        >>> print([_.cardinality for _ in issues])
-        [3, 3, 3]
-        >>> print('\\n'.join([' '.join(list(issue.all)) for issue in issues]))
-        Dell Macintosh HP
-        60 Gb 80 Gb 120 Gb
-        19'' LCD 20'' LCD 23'' LCD
-
-
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
-        >>> len(issues)
-        3
-        >>> type(issues)
-        <class 'list'>
-        >>> str(issues[0]).split(': ')[-1]
-        '(0, 2)'
+        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read())
         >>> print([_.cardinality for _ in issues])
         [3, 3, 3]
 
         >>> domain_file_name = pkg_resources.resource_filename('negmas'
         ...                              , resource_name='tests/data/fuzzyagent/single_issue_domain.xml')
-        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read()
-        ... , force_single_issue=False, keep_issue_names=False, keep_value_names=False)
+        >>> issues, _ = issues_from_xml_str(open(domain_file_name, 'r').read())
         >>> len(issues)
         1
         >>> type(issues)
-        <class 'list'>
+        <class 'tuple'>
         >>> str(issues[0]).split(': ')[-1]
         '(10.0, 40.0)'
         >>> print([_.cardinality for _ in issues])

@@ -19,9 +19,8 @@ from .helpers import (
     get_class,
     get_full_type_name,
     is_jsonable,
-    is_lambda_function,
-    is_non_lambda_function,
-    is_type,
+    is_lambda_or_partial_function,
+    is_not_lambda_nor_partial_function,
     load,
 )
 
@@ -114,9 +113,9 @@ def serialize(
             return True
         if objmem and id(v) in objmem:
             return False
-        if ignore_methods and is_non_lambda_function(v):
+        if ignore_lambda and is_lambda_or_partial_function(v):
             return False
-        if ignore_lambda and is_lambda_function(v):
+        if ignore_methods and is_not_lambda_nor_partial_function(v):
             return False
         if not isinstance(k, str):
             return False
@@ -188,10 +187,10 @@ def serialize(
             )
         return value
 
-    if is_lambda_function(value):
+    if is_lambda_or_partial_function(value):
         return LAMBDA_START + cloudpickle.dumps(value)
 
-    if is_non_lambda_function(value):
+    if is_not_lambda_nor_partial_function(value):
         return FUNCTION_START + cloudpickle.dumps(value)
 
     if hasattr(value, "__dict__"):
@@ -294,7 +293,7 @@ def deserialize(
             python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
         else:
             python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
-        if python_class_name is not None:
+        if python_class_name is not None and python_class_name != "functools.partial":
             python_class = get_class(python_class_name)
             # we resolve sub-objects first from the dict if deep is specified before calling deserialize on the class
             if deep:
@@ -330,6 +329,6 @@ def deserialize(
         # if d.startswith(JSON_START):
         #     return json.loads(d[JSON_START:])
         return d
-    if isinstance(d, Iterable):
+    if isinstance(d, tuple) or isinstance(d, list):
         return type(d)(deserialize(_) for _ in d)
     return d

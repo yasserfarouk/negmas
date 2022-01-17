@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import hypothesis.strategies as st
@@ -19,7 +20,7 @@ STEPLIMIT = 1000
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
-SKIP_IF_NO_BRIDGE = True
+SKIP_IF_NO_BRIDGE = not os.environ.get("NEGMAS_LONG_TEST", False)
 
 
 @given(

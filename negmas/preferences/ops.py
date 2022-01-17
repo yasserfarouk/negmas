@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import math
 import warnings
-from typing import TYPE_CHECKING, Collection, Iterable, List, Optional, Tuple, Union
+from typing import Iterable, Optional, Union
 
 import numpy as np
 from numpy.ma.core import sqrt
 
-from negmas.common import NegotiatorMechanismInterface
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
-from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 
@@ -19,9 +16,14 @@ __all__ = [
     "pareto_frontier",
     "nash_point",
     "make_discounted_ufun",
+    "scale_max",
     "normalize",
     "sample_outcome_with_utility",
+    "extreme_outcomes",
     "minmax",
+    "conflict_level",
+    "opposition_level",
+    "winwin_level",
 ]
 
 
@@ -102,7 +104,7 @@ def make_discounted_ufun(
 
 def _pareto_frontier(
     points, eps=-1e-18, sort_by_welfare=False
-) -> Tuple[List[Tuple[float]], List[int]]:
+) -> tuple[list[tuple[float]], list[int]]:
     """Finds the pareto-frontier of a set of points
 
     Args:
@@ -161,11 +163,11 @@ def _pareto_frontier(
 
 def nash_point(
     ufuns: Iterable[UtilityFunction],
-    frontier: Iterable[Tuple[float]],
-    outcome_space: Optional[OutocmeSpace] = None,
-    issues: Optional[List[Issue]] = None,
-    outcomes: Optional[List[Outcome]] = None,
-) -> Tuple[Optional[Tuple[float]], Optional[int]]:
+    frontier: Iterable[tuple[float]],
+    outcome_space: Optional[OutcomeSpace] = None,
+    issues: Optional[list[Issue]] = None,
+    outcomes: Optional[list[Outcome]] = None,
+) -> tuple[Optional[tuple[float]], Optional[int]]:
     """
     Calculates the nash point on the pareto frontier of a negotiation
 
@@ -218,7 +220,7 @@ def pareto_frontier(
     issues: Iterable[Issue] = None,
     n_discretization: Optional[int] = 10,
     sort_by_welfare=False,
-) -> Tuple[List[Tuple[float]], List[int]]:
+) -> tuple[list[tuple[float]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
 
     Args:
@@ -302,10 +304,10 @@ def normalize(
 
 def sample_outcome_with_utility(
     ufun: UtilityFunction,
-    rng: Tuple[float, float],
+    rng: tuple[float, float],
     outcome_space: OutcomeSpace | None = None,
-    issues: List[Issue] | None = None,
-    outcomes: List[Outcome] | None = None,
+    issues: list[Issue] | None = None,
+    outcomes: list[Outcome] | None = None,
     n_trials: int = 100,
 ) -> Optional["Outcome"]:
     """
@@ -342,7 +344,7 @@ def extreme_outcomes(
     Args:
         ufun: The utility function
         outcome_space: An outcome-space to consider
-        issues: List of issues (optional)
+        issues: list of issues (optional)
         outcomes: A collection of outcomes (optional)
         max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                         given)
@@ -364,13 +366,13 @@ def minmax(
     issues: list[Issue] | None = None,
     outcomes: list[Outcome] | int | None = None,
     max_cardinality=1000,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Finds the range of the given utility function for the given outcomes
 
     Args:
         ufun: The utility function
         outcome_space: An outcome-space to consider
-        issues: List of issues (optional)
+        issues: list of issues (optional)
         outcomes: A collection of outcomes (optional)
         max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                         given)
@@ -382,10 +384,10 @@ def minmax(
 
 
 def opposition_level(
-    ufuns=List["UtilityFunction"],
-    max_utils: Union[float, Tuple[float, float]] = 1.0,  # type: ignore
-    outcomes: Union[int, List[Outcome]] = None,
-    issues: List["Issue"] = None,
+    ufuns=list["UtilityFunction"],
+    max_utils: Union[float, tuple[float, float]] = 1.0,  # type: ignore
+    outcomes: Union[int, list[Outcome]] = None,
+    issues: list["Issue"] = None,
     max_tests: int = 10000,
 ) -> float:
     """
@@ -405,7 +407,7 @@ def opposition_level(
 
 
         - Opposition level of the same ufun repeated is always 0
-        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.mapping import MappingUtilityFunction
         >>> from negmas.preferences.ops import opposition_level
         >>> u1, u2 = lambda x: x[0], lambda x: x[0]
         >>> opposition_level([u1, u2], outcomes=10, max_utils=9)
@@ -450,7 +452,7 @@ def opposition_level(
 def conflict_level(
     u1: "UtilityFunction",
     u2: "UtilityFunction",
-    outcomes: Union[int, List[Outcome]],
+    outcomes: Union[int, list[Outcome]],
     max_tests: int = 10000,
 ) -> float:
     """
@@ -462,7 +464,7 @@ def conflict_level(
 
     Examples:
         - A nonlinear strictly zero sum case
-        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.mapping import MappingUtilityFunction
         >>> from negmas.preferences import conflict_level
         >>> outcomes = [(_,) for _ in range(10)]
         >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
@@ -517,7 +519,7 @@ def conflict_level(
 def winwin_level(
     u1: "UtilityFunction",
     u2: "UtilityFunction",
-    outcomes: Union[int, List[Outcome]],
+    outcomes: Union[int, list[Outcome]],
     max_tests: int = 10000,
 ) -> float:
     """
@@ -529,7 +531,7 @@ def winwin_level(
 
     Examples:
         - A nonlinear same ufun case
-        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.mapping import MappingUtilityFunction
         >>> outcomes = [(_,) for _ in range(10)]
         >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
         ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))

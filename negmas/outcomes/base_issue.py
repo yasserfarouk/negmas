@@ -164,6 +164,8 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
 
     @classmethod
     def from_dict(cls, d):
+        if isinstance(d, cls):
+            return d
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["values"] = deserialize(d["values"])
         return cls(

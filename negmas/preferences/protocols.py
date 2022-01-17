@@ -17,6 +17,7 @@ from negmas.common import Value
 from negmas.helpers.prob import Distribution, DistributionLike, Real
 from negmas.outcomes import Outcome, OutcomeSpace
 from negmas.protocols import HasMinMax, XmlSerializable
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState
@@ -900,6 +901,16 @@ class SingleIssueFun(Fun, Protocol):
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         ...
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "SingleIssueFun":
+        if isinstance(d, cls):
+            return d
+        _ = d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(**deserialize(d))
+
+    def to_dict(self) -> dict[str, Any]:
+        return serialize(vars(self))
 
 
 @runtime_checkable

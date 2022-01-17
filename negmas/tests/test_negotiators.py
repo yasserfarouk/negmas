@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import List
+from typing import List, Mapping
 
 import numpy as np
 import pytest
@@ -134,7 +134,7 @@ class TestTitForTatNegotiator:
         a1 = NaiveTitForTatNegotiator(name="a1", initial_concession="min")
         u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
-        neg.add(a1, preferences=u1)
+        neg.add(a1, preferences=MappingUtilityFunction(dict(zip(outcomes, u1))))
 
         proposal = a1.propose_(neg.state)
         assert proposal == (0,), "Proposes top first"
@@ -144,7 +144,10 @@ class TestTitForTatNegotiator:
         a1 = NaiveTitForTatNegotiator(name="a1")
         u1 = [50.0] * 3 + (22 - np.linspace(10.0, 22.0, len(outcomes) - 3)).tolist()
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
-        neg.add(a1, preferences=u1)
+        neg.add(
+            a1,
+            preferences=MappingUtilityFunction(lambda x: u1[x[0]], outcomes=outcomes),
+        )
 
         proposal = a1.propose_(neg.state)
         assert proposal == (0,), "Proposes top first"
@@ -206,7 +209,7 @@ def test_best_only_asp_negotiator():
     if len(a1offers) > 0:
         assert (
             len(set(a1offers)) <= 2
-            and min(u1[_[0]] for _ in a1offers if _ is not None) >= 0.9
+            and min(u1(_) for _ in a1offers if _ is not None) >= 0.9
         )
     assert len(set(a2offers)) >= 1
 
@@ -221,11 +224,11 @@ def test_controller():
     for session in sessions:
         session.add(
             AspirationNegotiator(aspiration_type="conceder"),
-            preferences=RandomUtilityFunction(outcomes=list(session.outcomes)),
+            preferences=RandomUtilityFunction(outcomes=tuple(session.outcomes)),
         )
         session.add(
             c.create_negotiator(),
-            preferences=RandomUtilityFunction(outcomes=list(session.outcomes)),
+            preferences=RandomUtilityFunction(outcomes=tuple(session.outcomes)),
         )
     completed: List[int] = []
     while len(completed) < n_sessions:
@@ -235,7 +238,7 @@ def test_controller():
             state = session.step()
             if state.broken or state.timedout or state.agreement is not None:
                 completed.append(i)
-    # we are just asserting that the controller runs
+    # we are just checking that the controller runs. No need to assert anything
 
 
 def test_negotiator_checkpoint():

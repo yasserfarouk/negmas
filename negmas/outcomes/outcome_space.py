@@ -104,7 +104,7 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
     def to_single_issue(
         self,
         numeric=False,
-        stringify=False,
+        stringify=True,
         levels: int = NLEVELS,
         max_cardinality: int | float = float("inf"),
     ) -> "DiscreteCartesianOutcomeSpace":
@@ -242,7 +242,7 @@ class DiscreteCartesianOutcomeSpace(
         return True
 
     def to_single_issue(
-        self, numeric=False, stringify=False
+        self, numeric=False, stringify=True
     ) -> "DiscreteCartesianOutcomeSpace":
         """
         Creates a new outcome space that is a single-issue version of this one

@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from functools import lru_cache, reduce
-from math import cos, e, exp, log, pow, sin
+from math import e, log, pow
 from operator import add
 from typing import Any, Callable, Iterable
 
@@ -14,6 +14,7 @@ from negmas.helpers.misc import (
     nonmonotonic_minmax,
     nonmonotonic_multi_minmax,
 )
+from negmas.helpers.types import is_lambda_function
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 
@@ -190,6 +191,13 @@ class LambdaFun(SingleIssueFun):
     bias: float = 0
     min_value: float | None = None
     max_value: float | None = None
+
+    def __post_init__(self):
+        # we need to be sure that f is a lambda function so that it can
+        # correctly be serialized
+        if not is_lambda_function(self.f):
+            f = self.f
+            self.f = lambda x: f(x)
 
     def __call__(self, x: Any) -> float:
         return self.f(x) + self.bias

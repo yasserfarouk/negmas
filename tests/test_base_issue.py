@@ -28,7 +28,7 @@ def test_make_issue_generation():
 
 def test_value_generation_ordinal():
     for i, w in zip((5, 12, 343, 6445, 22345, 344323), range(1, 6)):
-        lst = generate_values(i)
+        lst = list(generate_values(i))
         assert len(lst) == i
         assert all(isinstance(_, str) for _ in lst)
         assert all(len(_) == w for _ in lst)
@@ -77,14 +77,16 @@ def test_contains_continuous():
 )
 def test_can_loop_over_discrete_issue(v):
     issue = make_issue(v)
-    assert len(issue) > 0
-    for i in issue:
+    assert issue.is_discrete()
+    assert len(issue) > 0  # type: ignore I know that this is a discrete issue and len is applicable to it
+    for _ in issue:
         pass
 
 
 def test_can_loop_over_continuous_issue():
     issue = make_issue((0.0, 1.0))
+    assert not issue.is_discrete()
     with pytest.raises(TypeError):
-        assert len(issue) > 0
-    for i in issue:
+        assert len(issue) > 0  # type: ignore I know that this is a discrete issue and len is applicable to it
+    for _ in issue:
         pass

@@ -9,7 +9,12 @@ from negmas.generics import iget, ivalues
 from negmas.helpers import Distribution, ikeys
 from negmas.outcomes import Issue, Outcome
 
-from ..helpers.prob import Distribution
+from ..helpers.prob import (
+    Distribution,
+    DistributionLike,
+    as_distribution,
+    uniform_around,
+)
 from .mapping import MappingUtilityFunction
 from .ufun import ProbUtilityFunction, UtilityFunction
 
@@ -27,25 +32,19 @@ class IPUtilityFunction(ProbUtilityFunction):
 
     Examples:
 
-        >>> f = IPUtilityFunction(outcomes=[('o1',), ('o2',)]
+        >>> outcomes = [('o1',), ('o2',)]
+        >>> f = IPUtilityFunction(outcomes=outcomes
         ...         , distributions=[Distribution(type='uniform', loc=0.0, scale=0.5)
         ...         , Distribution(type='uniform', loc=0.1, scale=0.5)])
-        >>> f(('o1',))
-        U(0.0, 0.5)
-
-        >>> f = IPUtilityFunction(outcomes=[{'cost': 10, 'dist': 20}, {'cost': 10, 'dist': 30}]
-        ...         , distributions=[Distribution(type='uniform', loc=0.0, scale=0.5)
-        ...         , Distribution(type='uniform', loc=0.1, scale=0.5)])
-        >>> f({'cost': 10, 'dist': 30})
-        U(0.1, 0.6)
-
+        >>> str(f(('o1',)))
+        'U(0.0, 0.5)'
 
     """
 
     def __init__(
         self,
-        outcomes: Iterable["Outcome"],
-        distributions: Iterable["Distribution"] = None,
+        outcomes: Iterable[Outcome],
+        distributions: Iterable[DistributionLike] = None,
         issue_names: Iterable[str] = None,
         **kwargs,
     ):
@@ -81,7 +80,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             self.tupelized = True
         self.distributions = dict(zip(outcomes, distributions))
 
-    def distribution(self, outcome: "Outcome") -> Distribution:
+    def distribution(self, outcome: "Outcome") -> DistributionLike:
         """
         Returns the distributon associated with a specific outcome
         Args:
@@ -113,7 +112,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             >>> u = MappingUtilityFunction(mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7])))
             >>> p = IPUtilityFunction.from_preferences(u, uncertainty=0.0)
             >>> print(p)
-            {('o1',): U(0.3, 0.3), ('o2',): U(0.7, 0.7)}
+            {('o1',): 0.3, ('o2',): 0.7}
 
             - Full uncertainty
             >>> u = MappingUtilityFunction(mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7])))
@@ -176,10 +175,10 @@ class IPUtilityFunction(ProbUtilityFunction):
         Examples:
 
             - No uncertainty
-            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> mapping = dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
             >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.0)
             >>> print(p)
-            {('o1',): U(0.3, 0.3), ('o2',): U(0.7, 0.7)}
+            {('o1',): 0.3, ('o2',): 0.7}
 
             - Full uncertainty
             >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
@@ -212,9 +211,7 @@ class IPUtilityFunction(ProbUtilityFunction):
         return IPUtilityFunction(
             outcomes=outcomes,
             distributions=[
-                Distribution.uniform_around(
-                    value=mapping[o], uncertainty=u, range=range
-                )
+                uniform_around(value=mapping[o], uncertainty=u, range=range)
                 for o, u in zip(outcomes, uncertainties)
             ],
             reserved_value=reserved_value,
@@ -248,7 +245,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             mapping={o: d.sample(1)[0] for o, d in self.distributions.items()}
         )
 
-    def key(self, outcome: "Outcome"):
+    def key(self, outcome: Outcome):
         """
         Returns the key of the given outcome in self.distributions.
 
@@ -258,41 +255,10 @@ class IPUtilityFunction(ProbUtilityFunction):
         Returns:
             tuple
 
-        Examples:
-
-        >>> from negmas.helpers.prob import Distribution
-        >>> f = IPUtilityFunction(outcomes=[('o1',), ('o2',)]
-        ...         , distributions=[Distribution(type='uniform', loc=0.0, scale=0.5)
-        ...         , Distribution(type='uniform', loc=0.1, scale=0.5)])
-        >>> f.key({0:'o1'})
-        ('o1',)
-        >>> f.key(('o1',))
-        ('o1',)
-        >>> f.distributions
-        {('o1',): U(0.0, 0.5), ('o2',): U(0.1, 0.6)}
-        >>> f.distribution(('o1',))
-        U(0.0, 0.5)
-
-        >>> f = IPUtilityFunction(outcomes=[{'cost': 10, 'dist': 20}, {'dist': 30, 'cost': 10}]
-        ...         , distributions=[Distribution(type='uniform', loc=0.0, scale=0.5)
-        ...         , Distribution(type='uniform', loc=0.1, scale=0.5)])
-        >>> f.key({'dist': 30, 'cost': 10})
-        (10, 30)
-        >>> f.key({'cost': 10, 'dist': 30})
-        (10, 30)
-        >>> f.distributions
-        {(10, 20): U(0.0, 0.5), (10, 30): U(0.1, 0.6)}
-        >>> f.distribution((10, 20.0))
-        U(0.0, 0.5)
-        >>> f.distribution({'cost': 10, 'dist': 20})
-        U(0.0, 0.5)
-
         """
-        if isinstance(outcome, tuple):
-            return outcome
-        return tuple(outcome.get(_, None) for _ in self.issue_names)
+        return outcome
 
-    def eval(self, offer: "Outcome") -> Distribution:
+    def eval(self, offer: "Outcome") -> DistributionLike:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -306,7 +272,7 @@ class IPUtilityFunction(ProbUtilityFunction):
 
         """
         if offer is None:
-            return self.reserved_value
+            return as_distribution(self.reserved_value)
         if self.tupelized and not isinstance(offer, tuple):
             offer = tuple(ivalues(offer))
         return self.distributions[offer]
