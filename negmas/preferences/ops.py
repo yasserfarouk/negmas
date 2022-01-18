@@ -384,7 +384,7 @@ def minmax(
 
 
 def opposition_level(
-    ufuns=list["UtilityFunction"],
+    ufuns: list["UtilityFunction"],
     max_utils: Union[float, tuple[float, float]] = 1.0,  # type: ignore
     outcomes: Union[int, list[Outcome]] = None,
     issues: list["Issue"] = None,
