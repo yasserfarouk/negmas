@@ -246,7 +246,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
         **kwargs,
     ):
         """
@@ -442,7 +442,7 @@ class FullElicitor(BasePandoraElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
         **kwargs,
     ):
         super().init_elicitation(preferences=preferences)

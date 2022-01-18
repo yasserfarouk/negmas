@@ -33,7 +33,7 @@ from .protocols import (
 )
 from .range_issue import RangeIssue
 
-__all__ = ["CartesianOutcomeSpace", "DiscreteCartesianOutcomeSpace"]
+__all__ = ["CartesianOutcomeSpace", "DiscreteCartesianOutcomeSpace", "make_os"]
 
 NLEVELS = 5
 

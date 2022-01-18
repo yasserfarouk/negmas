@@ -4,7 +4,7 @@ Functions for handling outcome spaces
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING, Any, Collection, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Union
 
 import numpy as np
 

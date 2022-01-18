@@ -128,7 +128,7 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome, outcome2dict
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import OutcomeSpace
-from negmas.preferences import Preferences
+from negmas.preferences import Preferences, UtilityFunction
 from negmas.serialization import serialize, to_flat_dict
 from negmas.types import NamedObject, Rational
 
@@ -1495,9 +1495,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         name: str = None,
         type_postfix: str = "",
         preferences: "Preferences" = None,
+        ufun: "UtilityFunction" = None,
     ):
         super().__init__(type_postfix=type_postfix)
-        Rational.__init__(self, name=name, preferences=preferences)
+        Rational.__init__(self, name=name, preferences=preferences, ufun=ufun)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
         self._accepted_requests: Dict[str, NegotiationRequestInfo] = {}

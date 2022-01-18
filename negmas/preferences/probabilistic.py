@@ -6,12 +6,12 @@ from typing import Dict, Iterable, List, Tuple
 import numpy as np
 
 from negmas.generics import iget, ivalues
-from negmas.helpers import Distribution, ikeys
+from negmas.helpers import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 
 from ..helpers.prob import (
     Distribution,
-    DistributionLike,
+    ScipyDistribution,
     as_distribution,
     uniform_around,
 )
@@ -44,7 +44,7 @@ class IPUtilityFunction(ProbUtilityFunction):
     def __init__(
         self,
         outcomes: Iterable[Outcome],
-        distributions: Iterable[DistributionLike] = None,
+        distributions: Iterable[Distribution] = None,
         issue_names: Iterable[str] = None,
         **kwargs,
     ):
@@ -54,7 +54,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             list(distributions)
             if distributions is not None
             else [
-                Distribution(type="uniform", loc=0.0, scale=1.0)
+                ScipyDistribution(type="uniform", loc=0.0, scale=1.0)
                 for _ in range(len(outcomes))
             ]
         )
@@ -80,7 +80,7 @@ class IPUtilityFunction(ProbUtilityFunction):
             self.tupelized = True
         self.distributions = dict(zip(outcomes, distributions))
 
-    def distribution(self, outcome: "Outcome") -> DistributionLike:
+    def distribution(self, outcome: "Outcome") -> Distribution:
         """
         Returns the distributon associated with a specific outcome
         Args:
@@ -258,7 +258,7 @@ class IPUtilityFunction(ProbUtilityFunction):
         """
         return outcome
 
-    def eval(self, offer: "Outcome") -> DistributionLike:
+    def eval(self, offer: "Outcome") -> Distribution:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -294,13 +294,13 @@ class ILSUtilityFunction(ProbUtilityFunction):
         self.loc = loc
         self.scale = scale
 
-    def eval(self, offer: Outcome) -> Distribution:
+    def eval(self, offer: Outcome) -> ScipyDistribution:
         loc, scale = self.loc(offer), self.scale(offer)
         if loc is None or scale is None:
             raise ValueError(
                 f"Cannot calculate loc ({loc}) or scale ({scale}) for offer {offer}"
             )
-        return Distribution(self._type, loc=loc, scale=scale)
+        return ScipyDistribution(self._type, loc=loc, scale=scale)
 
 
 class UniformUtilityFunction(ILSUtilityFunction):

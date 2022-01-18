@@ -119,7 +119,7 @@ class BaseVOIElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
         queries: Optional[List[Query]] = None,
         **kwargs,
     ) -> None:
@@ -751,7 +751,7 @@ class VOIOptimalElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
         queries: Optional[List[Query]] = None,
     ) -> None:
         super().init_elicitation(preferences=preferences)

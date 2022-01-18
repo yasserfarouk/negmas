@@ -4,7 +4,7 @@ import time
 from typing import Optional, Union
 
 from ..common import MechanismState, Value
-from ..helpers.prob import Distribution
+from ..helpers.prob import ScipyDistribution
 from ..outcomes import Outcome
 from .base import BaseElicitor
 
@@ -27,7 +27,7 @@ class DummyElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
         **kwargs,
     ):
         super().init_elicitation(preferences=preferences, **kwargs)
@@ -53,7 +53,7 @@ class FullKnowledgeElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "UtilityDistribution"]],
+        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
         **kwargs,
     ):
         super().init_elicitation(preferences=self.user.ufun)

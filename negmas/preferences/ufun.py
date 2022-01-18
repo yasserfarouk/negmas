@@ -12,7 +12,7 @@ import numpy as np
 from negmas.common import Value
 from negmas.helpers import PathLike
 from negmas.helpers.numeric import get_one_float
-from negmas.helpers.prob import Distribution, DistributionLike
+from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
@@ -237,6 +237,10 @@ class BaseUtilityFunction(
         """
         vals = zip(outcomes, (self(_) for _ in outcomes))
         return self._do_rank(vals, descending)
+
+    def eu(self, offer: Outcome | None) -> float:
+        """calculates the **expected** utility value of the input outcome"""
+        return float(self(offer))
 
     def __call__(self, offer: Outcome | None) -> Value:
         """Calculate the utility_function value for a given outcome.
@@ -1015,7 +1019,7 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
 class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
     """A probablistic utility function. One that returns a probability distribution when called"""
 
-    def __call__(self, offer: Outcome | None) -> DistributionLike:
+    def __call__(self, offer: Outcome | None) -> Distribution:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -1036,10 +1040,10 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
             The utility of the given outcome
         """
         if offer is None:
-            return Distribution("uniform", loc=self.reserved_value, scale=0.0)
+            return ScipyDistribution("uniform", loc=self.reserved_value, scale=0.0)
         return self.eval(offer)
 
-    def __getitem__(self, offer: Outcome | None) -> DistributionLike | None:
+    def __getitem__(self, offer: Outcome | None) -> Distribution | None:
         """Overrides [] operator to call the ufun allowing it to act as a mapping"""
         return self(offer)
 
@@ -1112,7 +1116,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                     zip(
                         outcomes,
                         (
-                            Distribution(
+                            ScipyDistribution(
                                 type="unifomr", loc=_, scale=get_one_float(scale)
                             )
                             for _ in u1
@@ -1125,7 +1129,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                     zip(
                         outcomes,
                         (
-                            Distribution(
+                            ScipyDistribution(
                                 type="unifomr", loc=_, scale=get_one_float(scale)
                             )
                             for _ in u2
@@ -1167,7 +1171,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                     zip(
                         outcomes,
                         (
-                            Distribution(
+                            ScipyDistribution(
                                 type="unifomr", loc=_, scale=get_one_float(scale)
                             )
                             for _ in u1
@@ -1180,7 +1184,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                     zip(
                         outcomes,
                         (
-                            Distribution(
+                            ScipyDistribution(
                                 type="unifomr", loc=_, scale=get_one_float(scale)
                             )
                             for _ in u2
@@ -1226,7 +1230,7 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
                         zip(
                             outcomes,
                             (
-                                Distribution(
+                                ScipyDistribution(
                                     type="unifomr", loc=_, scale=get_one_float(scale)
                                 )
                                 for _ in u1

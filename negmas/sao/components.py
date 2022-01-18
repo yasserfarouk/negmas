@@ -5,7 +5,7 @@ Implements basic components that can be used by `SAONegotiator` s.
 """
 import random
 from collections import defaultdict
-from typing import Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Iterable
 
 from ..common import MechanismState
 from ..negotiators import Negotiator
@@ -53,7 +53,7 @@ class RandomResponseMixin:
         self.p_acceptance = p_acceptance
         self.p_rejection = p_rejection
         self.p_ending = p_ending
-        self.wheel: List[Tuple[float, ResponseType]] = [(0.0, ResponseType.NO_RESPONSE)]
+        self.wheel: list[tuple[float, ResponseType]] = [(0.0, ResponseType.NO_RESPONSE)]
         if self.p_acceptance > 0.0:
             self.wheel.append(
                 (self.wheel[-1][0] + self.p_acceptance, ResponseType.ACCEPT_OFFER)
@@ -71,7 +71,7 @@ class RandomResponseMixin:
 
         self.wheel = self.wheel[1:]
 
-    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
+    def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
         r = random.random()
         for w in self.wheel:
             if w[0] >= r:
@@ -97,7 +97,7 @@ class RandomProposalMixin:
             }
         )
 
-    def propose(self, state: MechanismState) -> Optional["Outcome"]:
+    def propose(self, state: MechanismState) -> Outcome | None:
         """
         Proposes a random offer
 
@@ -125,9 +125,9 @@ class LimitedOutcomesAcceptorMixin:
 
     def init_limited_outcomes_acceptor(
         self,
-        acceptable_outcomes: Optional[Iterable["Outcome"]] = None,
-        acceptance_probabilities: Optional[List[float]] = None,
-        time_factor: Union[float, List[float]] = None,
+        acceptable_outcomes: Iterable[Outcome] | None = None,
+        acceptance_probabilities: list[float] | None = None,
+        time_factor: float | list[float] = None,
         p_ending: float = 0.05,
         p_no_response: float = 0.0,
     ) -> None:
@@ -180,7 +180,7 @@ class LimitedOutcomesAcceptorMixin:
         self.ufun = MappingUtilityFunction(self.mapping)
         self.on_preferences_changed()
 
-    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
+    def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
         """Respond to an offer.
 
         Args:
@@ -210,7 +210,7 @@ class LimitedOutcomesProposerMixin:
     """
 
     def init_limited_outcomes_proposer(
-        self: Negotiator, proposable_outcomes: Optional[List["Outcome"]] = None
+        self: Negotiator, proposable_outcomes: list[Outcome] | None = None
     ) -> None:
         """
         Initializes the mixin
@@ -230,7 +230,7 @@ class LimitedOutcomesProposerMixin:
         if proposable_outcomes is not None:
             self._offerable_outcomes = list(proposable_outcomes)
 
-    def propose(self, state: MechanismState) -> Optional["Outcome"]:
+    def propose(self, state: MechanismState) -> Outcome | None:
         """Proposes one of the proposable_outcomes"""
         if self._offerable_outcomes is None:
             return self._nmi.random_outcomes(1)[0]
@@ -245,9 +245,9 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
 
     def init_limited_outcomes(
         self,
-        acceptable_outcomes: Optional[Iterable["Outcome"]] = None,
-        acceptance_probabilities: Optional[Union[float, List[float]]] = None,
-        proposable_outcomes: Optional[Iterable["Outcome"]] = None,
+        acceptable_outcomes: Iterable[Outcome] | None = None,
+        acceptance_probabilities: float | list[float] | None = None,
+        proposable_outcomes: Iterable[Outcome] | None = None,
         p_ending=0.0,
         p_no_response=0.0,
     ) -> None:

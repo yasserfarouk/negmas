@@ -10,10 +10,9 @@ from .strings import *
 from .logging import *
 from .inout import *
 from .timeout import *
-from .generics import *
 from .misc import *
 
-__all__ = [
+__all__ = (
     types.__all__
     + prob.__all__
     + numeric.__all__
@@ -21,6 +20,5 @@ __all__ = [
     + logging.__all__
     + inout.__all__
     + timeout.__all__
-    + generics.__all__
     + misc.__all__
-]
+)

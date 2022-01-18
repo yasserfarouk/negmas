@@ -10,7 +10,7 @@ import pandas as pd
 
 from ..genius import GeniusNegotiator
 from ..helpers import create_loggers, instantiate
-from ..helpers.prob import Distribution
+from ..helpers.prob import ScipyDistribution
 from ..inout import load_genius_domain_from_folder
 from ..mechanisms import Mechanism
 from ..modeling import UncertainOpponentModel
@@ -53,7 +53,7 @@ __all__ = ["SAOElicitingMechanism"]
 def uniform():
     loc = random.random()
     scale = random.random() * (1.0 - loc)
-    return Distribution(type="uniform", loc=loc, scale=scale)
+    return ScipyDistribution(type="uniform", loc=loc, scale=scale)
 
 
 def current_aspiration(

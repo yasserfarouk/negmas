@@ -26,7 +26,9 @@ from negmas.preferences import pareto_frontier
 from negmas.types import NamedObject
 
 if TYPE_CHECKING:
+    from negmas.outcomes.base_issue import Issue
     from negmas.preferences import Preferences
+    from negmas.preferences.ufun import BaseUtilityFunction
 
 __all__ = ["Mechanism", "MechanismRoundResult"]
 
@@ -303,9 +305,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self,
         negotiator: "Negotiator",
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Optional[Preferences] = None,
         role: Optional[str] = None,
-        **kwargs,
+        ufun: Optional[BaseUtilityFunction] = None,
     ) -> Optional[bool]:
         """Add an agent to the negotiation.
 
@@ -314,6 +316,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             negotiator: The agent to be added.
             preferences: The utility function to use. If None, then the agent must already have a stored
                   utility function otherwise it will fail to enter the negotiation.
+            ufun: [depricated] same as preferences but must be a `UFun` object.
             role: The role the agent plays in the negotiation mechanism. It is expected that mechanisms inheriting from
                   this class will check this parameter to ensure that the role is a valid role and is still possible for
                   negotiators to join on that role. Roles may include things like moderator, representative etc based
@@ -327,6 +330,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             * None if the agent cannot be added.
 
         """
+        if ufun is not None:
+            preferences = ufun
         if not self.can_enter(negotiator):
             return None
 
@@ -337,7 +342,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             role = "agent"
 
         if negotiator.join(
-            nmi=self._get_nmi(negotiator, role),
+            nmi=self._get_nmi(negotiator),
             state=self.state,
             preferences=preferences,
             role=role,
@@ -355,7 +360,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns the negotiator with the given ID if present in the negotiation"""
         return self._negotiator_map.get(nid, None)
 
-    def remove(self, negotiator: "Negotiator", **kwargs) -> Optional[bool]:
+    def remove(self, negotiator: "Negotiator") -> Optional[bool]:
         """Remove the agent from the negotiation.
 
         Args:
@@ -547,9 +552,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self.nmi.outcome_space
 
     @property
-    def issues(self):
+    def issues(self) -> list[Issue] | None:
         if hasattr(self.nmi.outcome_space, "issues"):
-            return self.nmi.outcome_space.issues
+            return self.nmi.outcome_space.issues  # type: ignore
         return None
 
     @property
@@ -992,7 +997,5 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return dict()
 
-    def _get_nmi(
-        self, negotiator: Negotiator, role: str
-    ) -> NegotiatorMechanismInterface:
+    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
         return self.nmi

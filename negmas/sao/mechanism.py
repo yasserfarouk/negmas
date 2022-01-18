@@ -25,6 +25,7 @@ from ..mechanisms import Mechanism, MechanismRoundResult
 from ..outcomes.common import Outcome
 from ..outcomes.outcome_ops import (
     cast_value_types,
+    outcome2dict,
     outcome_is_complete,
     outcome_types_are_ok,
 )
@@ -314,7 +315,7 @@ class SAOMechanism(Mechanism):
                 for _ in history.current_offer
             ]
         frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
-        nash, _ = nash_point(ufuns, frontier, self.issues, self.outcomes)
+        nash, _ = nash_point(ufuns, frontier, outcome_space=self.outcome_space)
         if not nash:
             show_nash_distance = False
         frontier_indices = [
@@ -399,9 +400,7 @@ class SAOMechanism(Mechanism):
                 au.set_ylabel(vnegotiators[a].name + f" ({a}) utility")
                 au.set_xlabel("relative time")
                 au.legend()
-        agreement = (
-            self.agreement if self.agreement is not None else tuple(None for _ in ufuns)
-        )
+        agreement = self.agreement
         agreement_utility = tuple(u(agreement) for u in ufuns)
         unknown_agreement_utility = None in agreement_utility
         if unknown_agreement_utility:
@@ -438,7 +437,7 @@ class SAOMechanism(Mechanism):
                             pareto_distance = dist
                 txt = ""
                 if show_agreement:
-                    txt += f"Agreement:{outcome_as_dict(self.agreement, self.issues)}\n"
+                    txt += f"Agreement:{outcome2dict(self.agreement, issues=self.issues) if self.issues is not None else self.agreement}\n"
                 if show_pareto_distance and self.agreement is not None:
                     txt += f"Pareto-distance={pareto_distance:5.2}\n"
                 if show_nash_distance and self.agreement is not None:
@@ -450,7 +449,7 @@ class SAOMechanism(Mechanism):
                         txt += "Negotiation Timedout\n"
                     elif self.state.agreement is not None:
                         txt += "Negotiation Success\n"
-                    elif self.state.erred:
+                    elif self.state.has_error:
                         txt += "Negotiation ERROR\n"
                     elif self.state.agreement is not None:
                         txt += "Agreemend Reached\n"

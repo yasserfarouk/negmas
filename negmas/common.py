@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, Iterable
 
-from negmas.helpers.prob import DistributionLike
+from negmas.helpers.prob import Distribution
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
@@ -23,7 +23,7 @@ __all__ = [
     "Value",
 ]
 
-Value = DistributionLike
+Value = Distribution
 
 
 @dataclass

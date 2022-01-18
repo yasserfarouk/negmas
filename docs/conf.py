@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import os
-import typing
 
 import sphinx_rtd_theme
 
@@ -51,9 +50,9 @@ extensions = [
     "sphinx_automodapi.smart_resolver",
     "nb2plots",
     "sphinx.ext.mathjax",
-    # "sphinx_autodoc_typehints",
-    # "sphinxcontrib.fulltoc",
-    # "nbsphinx",
+    "sphinx_autodoc_typehints",
+    "sphinxcontrib.fulltoc",
+    "nbsphinx",
 ]
 
 intersphinx_mapping = {
@@ -144,7 +143,7 @@ html_theme_options = {
     #'logo_only':
     "display_version": True,
     "prev_next_buttons_location": "bottom",
-    "titles_only": False,
+    # "titles_only": False,
 }
 
 html_sidebars = {

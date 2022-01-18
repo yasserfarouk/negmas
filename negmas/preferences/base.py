@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Union
 
-from negmas.helpers import DistributionLike
+from negmas.helpers import Distribution
 from negmas.outcomes.common import Outcome
 
-__all__ = ["INVALID_UTILITY", "DistributionLike", "UtilityValue"]
+__all__ = ["INVALID_UTILITY", "Distribution", "UtilityValue"]
 
 INVALID_UTILITY = float("-inf")
 
 
-UtilityValue = Union[DistributionLike, float]
+UtilityValue = Union[Distribution, float]
 """
 Either a probability distribution or an exact value.
 """

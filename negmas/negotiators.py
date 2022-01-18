@@ -70,11 +70,17 @@ class Negotiator(Rational, Notifiable, ABC):
     Args:
 
            name: Negotiator name. If not given it is assigned by the system (unique 16 characters).
+           preferences: The preferences of the agent (pass either this or ufun)
+           ufun: The ufun of the agent (overrides preferences if given)
+           parent: The `Controller` that controls this neogtiator (if any)
+           owner: The `Agent` that own this negotiator (if any)
+           id: The unique ID of the negotiator
 
        Returns:
            bool: True if participating in the given negotiation (or any negotiation if it was None)
 
        Remarks:
+           - `ufun` overrides `preferences`. You need to pass only one of them
 
     """
 
@@ -82,11 +88,12 @@ class Negotiator(Rational, Notifiable, ABC):
         self,
         name: str = None,
         preferences: Preferences | None = None,
+        ufun: UtilityFunction | None = None,
         parent: "Controller" = None,
         owner: "Agent" = None,
         id: str = None,
     ) -> None:
-        super().__init__(name=name, preferences=preferences, id=id)
+        super().__init__(name=name, ufun=ufun, preferences=preferences, id=id)
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None

@@ -8,7 +8,7 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 
 from ..common import MechanismState, NegotiatorMechanismInterface, Value
-from ..helpers.prob import Distribution
+from ..helpers.prob import ScipyDistribution
 from ..modeling import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
 from ..preferences import IPUtilityFunction, MappingUtilityFunction
@@ -135,9 +135,9 @@ class BaseElicitor(SAONegotiator):
         base_negotiator."""
         self.base_negotiator.on_negotiation_start(state=state)
 
-    def utility_distributions(self) -> List[Distribution]:
+    def utility_distributions(self) -> List[ScipyDistribution]:
         """
-        Returns a `UtilityDistribution` for every outcome
+        Returns a `Distribution` for every outcome
         """
         if self.preferences is None:
             return [None] * len(self._nmi.outcomes)
@@ -368,7 +368,7 @@ class BaseElicitor(SAONegotiator):
     def init_elicitation(
         self,
         preferences: Optional[
-            Union["IPUtilityFunction", "Distribution", List["Distribution"]]
+            Union["IPUtilityFunction", "ScipyDistribution", List["ScipyDistribution"]]
         ],
         **kwargs,
     ) -> None:
@@ -382,9 +382,9 @@ class BaseElicitor(SAONegotiator):
         Remarks:
             - If no `ufun` is given one will be created with 0-1 uniform distributions and
               zero reserved value.
-            - If a single `UtilityDistribution` is given as `ufun`, it is repeated for all
+            - If a single `Distribution` is given as `ufun`, it is repeated for all
               outcomes (and the reserved value is set to zero).
-            - If a list of `UtilityDistribution` s is given, it must have the same length as
+            - If a list of `Distribution` s is given, it must have the same length as
               the list of outcomes of this negotiation and is used to set the `ufun`.
             - The opponent model
 
@@ -401,11 +401,13 @@ class BaseElicitor(SAONegotiator):
             self.base_negotiator.opponent_model = self.opponent_model
         outcomes = nmi.outcomes
         if preferences is None:
-            dists = [Distribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes]
+            dists = [
+                ScipyDistribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes
+            ]
             preferences = IPUtilityFunction(
                 outcomes=outcomes, distributions=dists, reserved_value=0.0
             )
-        elif isinstance(preferences, Distribution):
+        elif isinstance(preferences, ScipyDistribution):
             preferences = [copy.copy(preferences) for _ in outcomes]
             preferences = IPUtilityFunction(
                 outcomes=outcomes, distributions=preferences, reserved_value=0.0
@@ -413,7 +415,7 @@ class BaseElicitor(SAONegotiator):
         elif (
             isinstance(preferences, list)
             and len(preferences) > 0
-            and isinstance(preferences[0], Distribution)
+            and isinstance(preferences[0], ScipyDistribution)
         ):
             preferences = IPUtilityFunction(
                 outcomes=outcomes, distributions=preferences, reserved_value=0.0
@@ -436,8 +438,8 @@ class BaseElicitor(SAONegotiator):
             - returns $u(o) p(o) + ru(o) (1-p(o))$ where $p$ is the opponent model,
               $u$ is the utility function, and $r$ is the utility in case of rejections.
             - `state` is needed when calculating $r(o)$ by calling `utility_on_rejection`.
-            - Note that if $u$ or $r$ return a `UtilityDistribution`, this method will return
-              a `UtilityDistribution` not a real number.
+            - Note that if $u$ or $r$ return a `Distribution`, this method will return
+              a `Distribution` not a real number.
         """
         if self.opponent_model is None:
             return self.preferences(outcome)

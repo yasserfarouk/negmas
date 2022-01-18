@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import time
 
-# seed(0)
 import pytest
 
-from negmas import (
-    HyperRectangleUtilityFunction,
-    LimitedOutcomesNegotiator,
-    SAOMechanism,
-)
+from negmas.outcomes.base_issue import make_issue
+from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
+from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
+from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
+from negmas.sao.mechanism import SAOMechanism
+from negmas.sao.negotiators import AspirationNegotiator, NaiveTitForTatNegotiator
+from negmas.sao.negotiators.limited import LimitedOutcomesNegotiator
 
 
 def test_a_session():
@@ -27,6 +28,40 @@ def test_a_session():
     # print(f'{len(p.negotiators)} negotiators')
     assert len(p.history) > 0
     # print(f'Took {time.perf_counter()-start}')
+
+
+def test_buy_sell_session():
+    # create negotiation agenda (issues)
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
+    ]
+
+    # create the mechanism
+    session = SAOMechanism(issues=issues, n_steps=20)
+
+    # define buyer and seller utilities
+    seller_utility = LUFun(
+        values=[IdentityFun(), LinearFun(0.2), AffineFun(-1, bias=9.0)],
+        outcome_space=session.outcome_space,
+    )
+
+    buyer_utility = LUFun(
+        values={
+            "price": AffineFun(-1, bias=9.0),
+            "quantity": LinearFun(0.2),
+            "delivery_time": IdentityFun(),
+        },
+        outcome_space=session.outcome_space,
+    )
+
+    # create and add buyer and seller negotiators
+    session.add(NaiveTitForTatNegotiator(name="buyer"), preferences=buyer_utility)
+    session.add(AspirationNegotiator(name="seller"), preferences=seller_utility)
+
+    # run the negotiation and show the results
+    assert session.run().agreement is not None
 
 
 if __name__ == "__main__":

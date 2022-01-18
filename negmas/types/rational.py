@@ -26,6 +26,7 @@ class Rational(NamedObject):
     Args:
         name: Object name. Used for printing and logging but not internally by the system
         preferences: An optional preferences to attach to the object
+        ufun: An optinoal utility function (overrides preferences if given)
 
 
     Remarks:
@@ -39,9 +40,15 @@ class Rational(NamedObject):
     """
 
     def __init__(
-        self, name: str = None, preferences: Preferences | None = None, id: str = None
+        self,
+        name: str = None,
+        preferences: Preferences | None = None,
+        ufun: UtilityFunction | None = None,
+        id: str = None,
     ):
         super().__init__(name, id=id)
+        if ufun:
+            preferences = ufun
         self._preferences = preferences
         self._init_preferences = preferences
         self._preferences_modified = preferences is not None

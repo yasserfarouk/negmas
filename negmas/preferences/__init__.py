@@ -11,7 +11,7 @@ Notes:
     We try to allow for applications that do not necessary have these two assumptions in the following ways:
 
     * A utility_function *value* (\ `UtilityValue`\ ) can always represent represent a utility_function distribution over all
-      possible utility_function values (\ `UtilityDistribution`\ ) or a `KnownUtilityValue` which is a real number.
+      possible utility_function values (\ `Distribution`\ ) or a `KnownUtilityValue` which is a real number.
 
     * The base class of all utility_function *functions* is
       `UtilityFunction` and is assumed to map outcomes (\ `Outcome` objects) to the aforementioned generic utility *values*

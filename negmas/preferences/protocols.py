@@ -14,7 +14,7 @@ from typing import (
 )
 
 from negmas.common import Value
-from negmas.helpers.prob import Distribution, DistributionLike, Real
+from negmas.helpers.prob import Distribution, Real, ScipyDistribution
 from negmas.outcomes import Outcome, OutcomeSpace
 from negmas.protocols import HasMinMax, XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
@@ -50,6 +50,8 @@ __all__ = [
     "HasReservedDistribution",
     "Randomizable",
     "Scalable",
+    "Shiftable",
+    "PartiallyShiftable",
     "PartiallyScalable",
     "Normalizable",
     "PartiallyNormalizable",
@@ -101,7 +103,7 @@ class BasePref(Protocol):
 
 @runtime_checkable
 class HasReservedDistribution(Protocol):
-    reserved_distribution: DistributionLike
+    reserved_distribution: Distribution
 
 
 @runtime_checkable
@@ -109,8 +111,8 @@ class HasReservedValue(Protocol):
     reserved_value: float
 
     @property
-    def reserved_distribution(self) -> DistributionLike:
-        return Distribution(type="uniform", loc=self.reserved_value, scale=0.0)
+    def reserved_distribution(self) -> Distribution:
+        return ScipyDistribution(type="uniform", loc=self.reserved_value, scale=0.0)
 
 
 @runtime_checkable
@@ -229,7 +231,7 @@ class CardinalProb(Ordinal, Protocol):
     @abstractmethod
     def difference_prob(
         self, first: Outcome, second: Outcome, **kwargs
-    ) -> DistributionLike:
+    ) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
@@ -246,11 +248,11 @@ class CardinalCrisp(CardinalProb, Protocol):
 
     def difference_prob(
         self, first: Outcome, second: Outcome, **kwargs
-    ) -> DistributionLike:
+    ) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
-        return Distribution(
+        return ScipyDistribution(
             loc=self.difference(first, second, **kwargs), scale=0.0, type="uniform"
         )
 
@@ -379,7 +381,7 @@ class NonStationaryCardinalProb(NonStationaryOrdinal, Protocol):
     @abstractmethod
     def difference_prob(
         self, first: Outcome, second: Outcome, *, state: "MechanismState"
-    ) -> DistributionLike:
+    ) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
@@ -404,11 +406,11 @@ class NonStationaryCardinal(NonStationaryOrdinal, Protocol):
 
     def difference_prob(
         self, first: Outcome, second: Outcome, *, state: "MechanismState"
-    ) -> DistributionLike:
+    ) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
-        return Distribution(
+        return ScipyDistribution(
             type="uniform", loc=self.difference(first, second, state=state), scale=0.0
         )
 
@@ -522,7 +524,7 @@ class StationaryCardinalProb(StationaryOrdinal, Protocol):
         return False
 
     @abstractmethod
-    def difference_prob(self, first: Outcome, second: Outcome) -> DistributionLike:
+    def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
@@ -543,11 +545,11 @@ class StationaryCardinal(StationaryOrdinal, Protocol):
     def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
         return self.difference(first, second) > 0
 
-    def difference_prob(self, first: Outcome, second: Outcome) -> DistributionLike:
+    def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
-        return Distribution(
+        return ScipyDistribution(
             type="uniform", loc=self.difference(first, second), scale=0.0
         )
 
@@ -577,7 +579,7 @@ class UFun(CardinalProb, Protocol):
 
     def difference_prob(
         self, first: Outcome, second: Outcome, **kwargs
-    ) -> DistributionLike:
+    ) -> Distribution:
         u1 = self(first)
         u2 = self(second)
         if isinstance(u1, float):
@@ -598,10 +600,10 @@ class UFunCrisp(UFun, Protocol):
 
 @runtime_checkable
 class UFunProb(UFun, Protocol):
-    def __call__(self, offer: Outcome | None, **kwargs) -> DistributionLike:
+    def __call__(self, offer: Outcome | None, **kwargs) -> Distribution:
         ...
 
-    def eval(self, offer: Outcome, **kwargs) -> DistributionLike:
+    def eval(self, offer: Outcome, **kwargs) -> Distribution:
         ...
 
 
@@ -613,10 +615,10 @@ class StationaryUFun(Protocol):
     def is_non_stationary(self):
         return False
 
-    def __call__(self, offer: Outcome | None) -> DistributionLike | float:
+    def __call__(self, offer: Outcome | None) -> Distribution | float:
         ...
 
-    def eval(self, offer: Outcome) -> DistributionLike | float:
+    def eval(self, offer: Outcome) -> Distribution | float:
         ...
 
 
@@ -643,10 +645,10 @@ class StationaryProb(StationaryUFun, Protocol):
     def is_stationary(self):
         return True
 
-    def __call__(self, offer: Outcome | None) -> DistributionLike:
+    def __call__(self, offer: Outcome | None) -> Distribution:
         ...
 
-    def eval(self, offer: Outcome) -> DistributionLike:
+    def eval(self, offer: Outcome) -> Distribution:
         ...
 
 
@@ -660,12 +662,10 @@ class NonStationaryUFun(Protocol):
 
     def __call__(
         self, offer: Outcome | None, *, state: MechanismState
-    ) -> DistributionLike | float:
+    ) -> Distribution | float:
         ...
 
-    def eval(
-        self, offer: Outcome, *, state: MechanismState
-    ) -> DistributionLike | float:
+    def eval(self, offer: Outcome, *, state: MechanismState) -> Distribution | float:
         ...
 
 
@@ -692,12 +692,10 @@ class NonStationaryProb(NonStationaryUFun, Protocol):
     def is_non_stationary(self):
         return True
 
-    def __call__(
-        self, offer: Outcome | None, *, state: MechanismState
-    ) -> DistributionLike:
+    def __call__(self, offer: Outcome | None, *, state: MechanismState) -> Distribution:
         ...
 
-    def eval(self, offer: Outcome, *, state: MechanismState) -> DistributionLike:
+    def eval(self, offer: Outcome, *, state: MechanismState) -> Distribution:
         ...
 
 

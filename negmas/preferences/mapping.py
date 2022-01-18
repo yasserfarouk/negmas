@@ -5,12 +5,13 @@ from typing import Callable, Iterable, List, Optional
 
 import numpy as np
 
-from negmas.helpers import DistributionLike, get_full_type_name, gmap
-from negmas.helpers.prob import Distribution
+from negmas.generics import gmap
+from negmas.helpers import Distribution, get_full_type_name
+from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.common import os_or_none
-from negmas.outcomes.protocols import DiscreteOutcomeSpace, OutcomeSpace
+from negmas.outcomes.protocols import OutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import OutcomeUtilityMapping
@@ -101,7 +102,7 @@ class ProbMappingUtilityFunction(ProbUtilityFunction):
         d["mapping"] = deserialize(d["mapping"])
         return cls(**d)
 
-    def eval(self, offer: Optional[Outcome]) -> Optional[DistributionLike | float]:
+    def eval(self, offer: Optional[Outcome]) -> Optional[Distribution | float]:
         # noinspection PyBroadException
         if offer is None:
             return self.reserved_value
@@ -144,7 +145,7 @@ class ProbMappingUtilityFunction(ProbUtilityFunction):
                 zip(
                     os.enumerate(),
                     (
-                        Distribution(type=type, loc=l, scale=s)
+                        ScipyDistribution(type=type, loc=l, scale=s)
                         for l, s in zip(locs, scales)
                     ),
                 )
@@ -240,7 +241,7 @@ class MappingUtilityFunction(UtilityFunction):
         d["mapping"] = deserialize(d["mapping"])
         return cls(**d)
 
-    def eval(self, offer: Optional[Outcome]) -> Optional[DistributionLike | float]:
+    def eval(self, offer: Optional[Outcome]) -> Optional[Distribution | float]:
         # noinspection PyBroadException
         if offer is None:
             return self.reserved_value

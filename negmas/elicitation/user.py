@@ -37,7 +37,8 @@ class User(Rational):
     """Abstract base class for all representations of users used for elicitation
 
     Args:
-        preferences: The real utility function of the user.
+        preferences: The real utility function of the user (pass either ufun or preferences).
+        ufun: The real utility function of the user (pass either ufun or preferences).
         cost: A cost to be added for every question asked to the user.
         nmi: [Optional] The `AgentMechanismInterface` representing *the*
              negotiation session engaged in by this user using this `ufun`.

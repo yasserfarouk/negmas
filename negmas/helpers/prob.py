@@ -13,8 +13,10 @@ import numpy as np
 import scipy.stats as stats
 
 __all__ = [
-    "DistributionLike",  # THe interface of a distribution class
-    "Distribution",  # A probability distribution using scipy stats
+    "Distribution",  # THe interface of a distribution class
+    "ScipyDistribution",  # A probability distribution using scipy stats
+    "NormalDistribution",  # A probability distribution using scipy stats
+    "UniformDistribution",  # A probability distribution using scipy stats
     "Real",
     "as_distribution",
 ]
@@ -22,20 +24,20 @@ __all__ = [
 EPSILON = 1e-8
 
 
-def as_distribution(x: int | float | numbers.Real | DistributionLike):
-    """Ensures the output is `DistributionLike`
+def as_distribution(x: int | float | numbers.Real | Distribution):
+    """Ensures the output is `Distribution`
 
     Remarks:
-        The input can either be `DistributionLike` or a number
+        The input can either be `Distribution` or a number
 
     """
-    if not isinstance(x, DistributionLike):
+    if not isinstance(x, Distribution):
         return Real(x)
     return x
 
 
 @runtime_checkable
-class DistributionLike(Protocol):
+class Distribution(Protocol):
     def __init__(self, type: str, **kwargs):
         """Constructor"""
 
@@ -105,7 +107,7 @@ class DistributionLike(Protocol):
     def __lt__(self, other) -> bool:
         """Check that a sample from `self` is ALWAYS less than a sample from other `other`"""
         if isinstance(other, numbers.Real):
-            return self.max < other
+            return self.max < float(other)
         return self.max < other.min
 
     def __gt__(self, other) -> bool:
@@ -134,8 +136,8 @@ class DistributionLike(Protocol):
         """Returns true if this is a gaussian distribution"""
 
 
-class Real(DistributionLike):
-    """A real number implementing the `DistributionLike` interface"""
+class Real(Distribution):
+    """A real number implementing the `Distribution` interface"""
 
     def __init__(
         self,
@@ -217,7 +219,7 @@ class Real(DistributionLike):
 
     def __eq__(self, other):
         """Checks for equality of the two distributions"""
-        if isinstance(other, DistributionLike):
+        if isinstance(other, Distribution):
             return other.scale < EPSILON and abs(other.loc - self.loc) < EPSILON
         if isinstance(other, float):
             return abs(self.loc - other) < EPSILON
@@ -280,7 +282,7 @@ class Real(DistributionLike):
         return self.scale < EPSILON / 1000
 
 
-class Distribution(DistributionLike):
+class ScipyDistribution(Distribution):
     """
     Any distribution from scipy.stats with overloading of addition and multiplication.
 
@@ -390,7 +392,7 @@ class Distribution(DistributionLike):
         return result
 
     def __eq__(self, other):
-        if isinstance(other, Distribution):
+        if isinstance(other, ScipyDistribution):
             return (
                 self._type == other._type
                 and abs(self.loc - other.loc) < EPSILON
@@ -425,12 +427,30 @@ class Distribution(DistributionLike):
         return self._type == "uniform"
 
 
+class UniformDistribution(ScipyDistribution):
+    """A `ScipyDistribution` reprsenting a unifrom distribution"""
+
+    def __init__(
+        self, loc: float = 0.0, scale: float = 1.0, *, type: str = "uniform", **kwargs
+    ) -> None:
+        super().__init__(loc=loc, scale=scale, type="uniform", **kwargs)
+
+
+class NormalDistribution(ScipyDistribution):
+    """A `ScipyDistribution` reprsenting a unifrom distribution"""
+
+    def __init__(
+        self, loc: float = 0.0, scale: float = 1.0, *, type: str = "norm", **kwargs
+    ) -> None:
+        super().__init__(loc=loc, scale=scale, type="norm", **kwargs)
+
+
 def uniform_around(
     value: float = 0.5,
     range: tuple[float, float] = (0.0, 1.0),
     uncertainty: float = 0.5,
-    cls: Type[DistributionLike] = Distribution,
-) -> "DistributionLike":
+    cls: Type[Distribution] = ScipyDistribution,
+) -> "Distribution":
     """
     Generates a uniform distribution around the input value in the given range with given uncertainty
 
@@ -440,7 +460,7 @@ def uniform_around(
         uncertainty: The uncertainty level required. 0.0 means no uncertainty and 1.0 means full uncertainty
 
     Returns:
-        DistributionLike A uniform distribution around `value` with uncertainty (scale) `uncertainty`
+        Distribution A uniform distribution around `value` with uncertainty (scale) `uncertainty`
     """
     if uncertainty >= 1.0:
         return cls(type="uniform", loc=range[0], scale=range[1])

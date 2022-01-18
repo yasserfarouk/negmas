@@ -19,6 +19,8 @@ from .sao import *
 from .situated import *
 from .st import *
 from .preferences import *
+from .helpers import *
+
 
 __all__ = (
     config.__all__
@@ -34,5 +36,6 @@ __all__ = (
     + genius.__all__
     + situated.__all__
     + modeling.__all__
+    + helpers.prob.__all__
     + ["generics", "helpers", "events", "tournaments", "elicitation"]
 )
