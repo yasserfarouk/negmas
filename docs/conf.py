@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # negmas documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
 #
@@ -21,7 +19,14 @@ from __future__ import annotations
 
 import os
 
-import sphinx_rtd_theme
+# on_rtd is whether we are on readthedocs.org
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+if on_rtd:
+    import sphinx_rtd_theme
+else:
+    # import sphinx_rtd_theme
+    # import sphinx_press_theme
+    import groundwork_sphinx_theme
 
 import negmas
 
@@ -43,7 +48,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
     "sphinx.ext.graphviz",
-    "sphinx_autodoc_annotation",
     "sphinx.ext.autosummary",
     "sphinx_automodapi.automodapi",
     "sphinx.ext.intersphinx",
@@ -51,7 +55,8 @@ extensions = [
     "nb2plots",
     "sphinx.ext.mathjax",
     "sphinx_autodoc_typehints",
-    "sphinxcontrib.fulltoc",
+    "sphinx_autodoc_annotation",
+    # "sphinxcontrib.fulltoc",
     "nbsphinx",
 ]
 
@@ -120,31 +125,27 @@ todo_include_todos = False
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_context = {
-    "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
-}
+# html_context = {
+#     "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
+# }
 
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
-if not on_rtd:  # only set the theme if we're building docs locally
+if on_rtd:  # only set the theme if we're building docs locally
     html_theme = "sphinx_rtd_theme"
-
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-# theme options for sphinx_rtd_theme
-html_theme_options = {
-    # 'typekit_id': 'hiw1hhg',
-    #'canonical_url':
-    #'analytics_id':
-    "collapse_navigation": False,
-    "sticky_navigation": True,
-    "navigation_depth": 4,
-    "includehidden": True,
-    #'logo_only':
-    "display_version": True,
-    "prev_next_buttons_location": "bottom",
-    # "titles_only": False,
-}
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    # theme options for sphinx_rtd_theme
+    html_theme_options = {
+        "collapse_navigation": False,
+        "sticky_navigation": True,
+        "navigation_depth": 4,
+        "includehidden": True,
+        "display_version": True,
+        "prev_next_buttons_location": "bottom",
+        "titles_only": False,
+    }
+else:
+    # html_theme = "press"
+    html_theme = "groundwork"
 
 html_sidebars = {
     "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
@@ -193,6 +194,7 @@ graphviz_output_format = "svg"
 inheritance_graph_attrs = dict(
     randkir="TB", fontsize=11, size='""'
 )  # , size='"16.0, 20.0"')
+inheritance_node_attrs = dict(fontsize=11)  # , size='"16.0, 20.0"')
 
 # -- Options for manual page output ------------------------------------
 
@@ -226,9 +228,9 @@ imgmath_image_format = "png"
 # If false, no module index is generated.
 html_domain_indices = True
 
-automodsumm_inherited_members = False
+automodsumm_inherited_members = True
 
-# autodoc_typehints = "signature"
+autodoc_typehints = "signature"
 set_type_checking_flag = True
 
 

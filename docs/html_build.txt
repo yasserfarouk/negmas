@@ -123,7 +123,7 @@ cannot import name 'Line' from 'negmas.apps.scml' (/Users/yasser/code/projects/n
 ../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Mechanism': could be :py:class:`negmas.mechanisms.Mechanism` or :py:class:`negmas.Mechanism`
 ../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Protocol': could be :py:attr:`negmas.mechanisms.Protocol` or :py:attr:`negmas.Protocol`
 ../README.rst:127: WARNING: more than one target found for 'any' cross-reference 'Mechanism': could be :py:class:`negmas.mechanisms.Mechanism` or :py:class:`negmas.Mechanism`
-/Users/yasser/code/projects/negmas/docs/index.rst:: WARNING: toctree contains reference to nonexisting document 'api/negmas.preferences.UtilityDistribution'
+/Users/yasser/code/projects/negmas/docs/index.rst:: WARNING: toctree contains reference to nonexisting document 'api/negmas.preferences.Distribution'
 /Users/yasser/code/projects/negmas/negmas/common.py:docstring of negmas.AgentMechanismInterface.annotation:1: WARNING: 'any' reference target not found: Dict[str, Any]
 /Users/yasser/code/projects/negmas/negmas/common.py:docstring of negmas.AgentMechanismInterface.discrete_outcomes:8: WARNING: 'any' reference target not found: n
 /Users/yasser/code/projects/negmas/negmas/common.py:docstring of negmas.AgentMechanismInterface.random_outcomes:8: WARNING: 'any' reference target not found: n

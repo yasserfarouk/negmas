@@ -25,21 +25,21 @@ to run negotiations as follows:
     {'agreement': (9,),
      'broken': False,
      'current_offer': (9,),
-     'current_proposer': 'a2-bb589c3b-9c39-480f-a31b-4e82831f53da',
+     'current_proposer': 'a4-da8ca1af-b6ad-4328-a3bb-34b4a93c4410',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': <negmas.sao.negotiators.AspirationNegotiator object at 0x10fb68880>,
+     'last_negotiator': 'a3',
      'n_acceptances': 0,
      'n_negotiators': 5,
      'new_offerer_agents': [],
      'new_offers': [],
-     'relative_time': 0.297029702970297,
+     'relative_time': 0.1782178217821782,
      'results': None,
      'running': False,
      'started': True,
-     'step': 29,
-     'time': 0.006957488000001177,
+     'step': 17,
+     'time': 0.32351512100000024,
      'timedout': False,
      'waiting': False}
 
@@ -135,8 +135,9 @@ This can be modeled in the following negotiation:
 
 .. code:: ipython3
 
-    from negmas import make_issue, SAOMechanism, AspirationNegotiator, normalize
+    from negmas import make_issue, SAOMechanism, NaiveTitForTatNegotiator, AspirationNegotiator
     from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
+    from negmas.preferences.value_fun import LinearFun, IdentityFun, AffineFun
 
     # create negotiation agenda (issues)
     issues = [
@@ -151,26 +152,25 @@ This can be modeled in the following negotiation:
     # define buyer and seller utilities
     seller_utility =  LUFun(
             values=[
-                lambda x: x,
-                lambda x: 0.2 * x,
-                lambda x: 9.0 - x
+                IdentityFun(),
+                LinearFun(0.2),
+                AffineFun(-1, bias=9.0)
             ],
+            outcome_space=session.outcome_space
         )
 
-    buyer_utility = normalize(
-        LUFun(
+    buyer_utility = LUFun(
             values={
-                'price': lambda x: 9.0 - x,
-                'quantity': lambda x: 0.2 * x,
-                'delivery_time': lambda x: x
+                'price': AffineFun(-1, bias=9.0),
+                'quantity': LinearFun(0.2),
+                'delivery_time': IdentityFun()
             },
-        ),
-        outcomes=session.outcomes,
-    )
+            outcome_space=session.outcome_space
+        )
 
     # create and add buyer and seller negotiators
-    session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
+    session.add(AspirationNegotiator(name='buyer'), preferences=buyer_utility)
+    session.add(NaiveTitForTatNegotiator(name='seller'), ufun=seller_utility)
 
     # run the negotiation and show the results
     pprint(vars(session.run()))
@@ -178,24 +178,24 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': (9, 9, 8),
+    {'agreement': (8, 9, 9),
      'broken': False,
-     'current_offer': (9, 9, 8),
-     'current_proposer': 'seller-94e49753-cca3-445c-88ee-6f1921064039',
+     'current_offer': (8, 9, 9),
+     'current_proposer': 'buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': <negmas.sao.negotiators.AspirationNegotiator object at 0x10fb68fa0>,
+     'last_negotiator': 'seller',
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'new_offerer_agents': [],
-     'new_offers': [],
-     'relative_time': 0.9047619047619048,
+     'new_offerer_agents': [None],
+     'new_offers': [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (8, 9, 9))],
+     'relative_time': 0.8571428571428571,
      'results': None,
      'running': False,
      'started': True,
-     'step': 18,
-     'time': 0.004228737000000038,
+     'step': 17,
+     'time': 0.08566604600000005,
      'timedout': False,
      'waiting': False}
 
@@ -215,24 +215,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
-    001: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
-    002: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
-    003: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
-    004: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
-    005: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 0))]
-    006: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 10, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 10, 0))]
-    007: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 9, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 9, 0))]
-    008: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (0, 8, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 8, 0))]
-    009: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (1, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 1))]
-    010: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (1, 9, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 9, 1))]
-    011: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (2, 11, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 11, 2))]
-    012: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (2, 7, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 7, 2))]
-    013: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (3, 7, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 7, 3))]
-    014: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (5, 10, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 10, 5))]
-    015: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (6, 8, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 8, 6))]
-    016: [('buyer-14e96ed5-7752-4851-92a0-eedab09a73ab', (8, 9, 9)), ('seller-94e49753-cca3-445c-88ee-6f1921064039', (9, 9, 8))]
-    017: []
+    000: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 11, 0))]
+    001: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 10, 0))]
+    002: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 9, 0))]
+    003: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 8, 0))]
+    004: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 7, 0))]
+    005: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 11, 0))]
+    006: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 10, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 10, 0))]
+    007: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 9, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 9, 0))]
+    008: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 8, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 8, 0))]
+    009: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (1, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (6, 9, 0))]
+    010: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (1, 9, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (6, 8, 0))]
+    011: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (2, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (4, 11, 0))]
+    012: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (2, 7, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (4, 10, 0))]
+    013: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (3, 7, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (3, 9, 0))]
+    014: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (5, 10, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (0, 11, 0))]
+    015: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (6, 8, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (0, 7, 0))]
+    016: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (8, 9, 9))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -241,7 +240,7 @@ far from it).
 
 .. code:: ipython3
 
-    session.plot(plot_outcomes=False)
+    session.plot()
 
 
 
@@ -259,12 +258,9 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. code:: ipython3
 
-
-    seller_utility = normalize(ufun=LUFun(values={'price': lambda x: x
-                                           , 'quantity': lambda x: 0.2 * x
-                                           , 'delivery_time': lambda x: 9.0 - x}
-                                         , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
-                             , outcomes=session.outcomes)
+    seller_utility = LUFun(values={'price': IdentityFun() , 'quantity': LinearFun(0.2) , 'delivery_time': AffineFun(-1, bias=9)},
+                           weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0},
+                           outcome_space=session.outcome_space)
 
     session = SAOMechanism(issues=issues, n_steps=50)
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
@@ -277,11 +273,11 @@ the delivery time and price to go down. Let’s see what happens:
     {'agreement': (5, 2, 5),
      'broken': False,
      'current_offer': (5, 2, 5),
-     'current_proposer': 'seller-88b019eb-da2a-4989-8e62-afc9a4bd48c7',
+     'current_proposer': 'seller-5924263e-ed26-483b-ac77-16192e6139b1',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': <negmas.sao.negotiators.AspirationNegotiator object at 0x127545af0>,
+     'last_negotiator': 'buyer',
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [],
@@ -291,7 +287,7 @@ the delivery time and price to go down. Let’s see what happens:
      'running': False,
      'started': True,
      'step': 45,
-     'time': 0.01624198899999918,
+     'time': 0.34989592899999966,
      'timedout': False,
      'waiting': False}
 
@@ -300,17 +296,37 @@ We can check it visually as well:
 
 .. code:: ipython3
 
-    session.plot(plot_outcomes=False)
+    session.plot()
 
 
 
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_13_0.png
 
 
-It is clear that the new ufuns transformed the problem. Now we have a
-single outcome at the pareto front. Nevertheless, there is money on the
-table as the negotiators did not agree on an outcome on the pareto
-front.
+It is clear that the new ufuns transformed the problem. Now we have many
+outcomes that are far from the pareto-front in this case. Nevertheless,
+there is money on the table as the negotiators did not agree on an
+outcome on the pareto front.
+
+Inspecting the utility ranges of the seller and buyer we can see that
+the seller can get much higher utility than the buyer (100 comapred with
+20). This is a side effect of the ufun definitions and we can remove
+this difference by normalizing both ufuns and trying again:
+
+.. code:: ipython3
+
+    seller_utility = seller_utility.scale_max(1.0)
+    buyer_utility = buyer_utility.scale_max(1.0)
+    session = SAOMechanism(issues=issues, n_steps=50)
+    session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
+    session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
+    session.run()
+    session.plot()
+
+
+
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_15_0.png
+
 
 What happens if we give them more time to negotiate:
 
@@ -318,20 +334,14 @@ What happens if we give them more time to negotiate:
 
     session = SAOMechanism(issues=issues, n_steps=5000)
 
-    seller_utility = normalize(ufun=LUFun(values={'price': lambda x: x
-                                           , 'quantity': lambda x: 0.2 * x
-                                           , 'delivery_time': lambda x: 9.0 - x}
-                                         , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
-                             , outcomes=session.outcomes)
-
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     session.run()
-    session.plot(plot_outcomes=False)
+    session.plot()
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_15_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_17_0.png
 
 
 It did not help much! The two agents adjusted their concession to match
@@ -342,21 +352,15 @@ to *linear* instead of the default *boulware*:
 
 .. code:: ipython3
 
-    seller_utility = normalize(ufun=LUFun(values={'price': lambda x: x
-                                           , 'quantity': lambda x: 0.2 * x
-                                           , 'delivery_time': lambda x: 9.0 - x}
-                                         , weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0})
-                             , outcomes=session.outcomes)
-
     session = SAOMechanism(issues=issues, n_steps=5000)
     session.add(AspirationNegotiator(name='buyer', aspiration_type="linear"), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
     session.run()
-    session.plot(plot_outcomes=False)
+    session.plot()
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_17_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_19_0.png
 
 
 It is clear that longer negotiation time, and faster concession did not
@@ -368,11 +372,11 @@ help the negotiators get to a point on the pareto-front.
     session.add(AspirationNegotiator(name='buyer', aspiration_type="boulware"), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
     session.run()
-    session.plot(plot_outcomes=False)
+    session.plot()
 
 
 
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_19_0.png
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_21_0.png
 
 
 

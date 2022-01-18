@@ -32,7 +32,7 @@ code which is self explanatory this time.
             pass
 
         def respond_to_negotiation_request(
-            self, initiator: str, partners: List[str], mechanism: AgentMechanismInterface
+            self, initiator: str, partners: List[str], mechanism: NegotiatorMechanismInterface
         ) -> Optional[Negotiator]:
             # just us a random negotiator for everything
             return RandomNegotiator()
@@ -52,7 +52,7 @@ We can now start world simulations using our new world and agent
 
 .. parsed-literal::
 
-    100%|██████████| 10/10 [00:06<00:00,  1.50it/s]
+    100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:10<00:00,  1.08s/it]
 
 
 Let’s see what happened in this run. Firstly, how many negotiations were
@@ -203,7 +203,7 @@ attempt:
             pass
 
         def respond_to_negotiation_request(
-            self, initiator: str, partners: List[str], mechanism: AgentMechanismInterface
+            self, initiator: str, partners: List[str], mechanism
         ) -> Optional[Negotiator]:
             # just us a random negotiator for everything
             return self.negotiator_type(ufun=self.ufun, **self.negotiator_params)
@@ -229,7 +229,7 @@ Let’s try it
 
 .. parsed-literal::
 
-    100%|██████████| 40/40 [01:27<00:00,  2.20s/it]
+    100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [02:44<00:00,  4.12s/it]
 
 
 Let’s check how did our agent do

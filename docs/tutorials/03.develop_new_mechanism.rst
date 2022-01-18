@@ -62,7 +62,7 @@ negotiators is less than or equal to one:
 
         def __init__(self, **kwargs):
             kwargs.update(dict(n_steps=1, max_n_agents=2, dynamic_entry=False))
-            super().__init__(**kwargs)
+            super().__init__(**kwargs, issues=[make_issue((0.0, 1.0))])
             self.add_requirements(dict(propose_for_self = True))
             self.ufuns: List[UtilityFunction] = []
 
@@ -73,7 +73,7 @@ negotiators is less than or equal to one:
             preferences: Optional["Preferences"] = None,
             **kwargs,
         ) -> Optional[bool]:
-            added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
+            added = super().add(negotiator, preferences=preferences, role=None, **kwargs)
             if added:
                 self.ufuns.append(self.negotiators[-1].ufun)
 
@@ -166,8 +166,8 @@ Now let’s try our brand new mechanism and negotiator
 .. code:: ipython3
 
     m = NashBargainingGame()
-    u1 = LinearUtilityFunction([1, 0], reserved_value=0.0)
-    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
+    u1 = LinearUtilityFunction([1, 0], reserved_value=0.0, outcome_space=m.outcome_space)
+    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0, outcome_space=m.outcome_space)
     m.add(NashNegotiator(ufun=u1, name="a1"))
     m.add(NashNegotiator(ufun=u2, name="a2"))
     result = m.run()
@@ -176,7 +176,7 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.5000000028846202, 0.4999999969319606)
+    Agreement: (0.5000000026026895, 0.5000000031774752)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -190,10 +190,10 @@ example, how does the reservation value affect the outcome:
     u1values, u2values = np.zeros(101), np.zeros(101)
     a1values, a2values = np.zeros(101), np.zeros(101)
     values = np.linspace(0.0, 1.0, 101, endpoint=True)
-    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
     for i, r in enumerate(values):
         m = NashBargainingGame()
-        u1 = LinearUtilityFunction([1, 0], reserved_value=r)
+        u1 = LinearUtilityFunction([1, 0], reserved_value=r, outcome_space=m.outcome_space)
+        u2 = LinearUtilityFunction([0, 1], reserved_value=0.0, outcome_space=m.outcome_space)
         m.add(NashNegotiator(ufun=u1, name="a1"))
         m.add(NashNegotiator(ufun=u2, name="a2"))
         result = m.run()
@@ -237,10 +237,10 @@ What happens if the utility value of a negotiator had a different slope:
     u1values, u2values = np.zeros(101), np.zeros(101)
     a1values, a2values = np.zeros(101), np.zeros(101)
     slopes = np.linspace(0.0, 1.0, 101, endpoint=True)
-    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
     for i, s in enumerate(slopes):
         m = NashBargainingGame()
-        u1 = LinearUtilityFunction([s, 0.0], reserved_value=0.0)
+        u1 = LinearUtilityFunction([s, 0.0], reserved_value=0.0, outcome_space=m.outcome_space)
+        u2 = LinearUtilityFunction([0, 1], reserved_value=0.0, outcome_space=m.outcome_space)
         m.add(NashNegotiator(ufun=u1, name="a1"))
         m.add(NashNegotiator(ufun=u2, name="a2"))
         result = m.run()
@@ -316,11 +316,10 @@ We can then define the mechanism class itself:
     class RubinsteinMechanism(Mechanism):
         """Simplified Rubinstein's Mechanism with Exponential discounting"""
         def __init__(self, extended=False, **kwargs):
-            kwargs.update(dict(issues=[Issue(values=(0.0, 1.0), name="first")
-                                       , Issue(values=(0.0, 1.0), name="second")],
+            kwargs.update(dict(issues=[make_issue(values=(0.0, 1.0), name="first")
+                                       , make_issue(values=(0.0, 1.0), name="second")],
                                        max_n_agents=2, dynamic_entry=False,
-                               state_factory=RubinsteinMechanismState,
-                              keep_issue_names=False))
+                               state_factory=RubinsteinMechanismState))
             super().__init__(**kwargs)
             self.add_requirements(dict(propose=True, set_index=True))
             self.discounts: List[UtilityFunction] = []
@@ -338,7 +337,10 @@ We can then define the mechanism class itself:
             **kwargs,
         ) -> Optional[bool]:
             weights = [1, 0] if len(self.negotiators) == 0 else [0, 1]
-            ufun = ExpDiscountedUFun(LinearUtilityFunction(weights), discount=discount, nmi=self.nmi)
+            ufun = ExpDiscountedUFun(
+                LinearUtilityFunction(weights, outcome_space=self.outcome_space),
+                outcome_space=self.outcome_space, discount=discount
+            )
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
             if added:
                 self.discounts.append(discount)
@@ -457,7 +459,7 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.9201484771096927, 0.07985152289030728) after 569 steps
+    Agreed to: (0.03885361863411635, 0.9611463813658836) after 1606 steps
 
 
 
@@ -520,7 +522,7 @@ other agent’s
 
 .. parsed-literal::
 
-    Agreed to: (0.5, 0.5) in 50 steps
+    Agreed to: (0.49504950495049505, 0.49504950495049505) in 51 steps
 
 
 
@@ -540,7 +542,7 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 .. parsed-literal::
 
-    Agreed to: (0.27257284748717403, 0.72) in 28 steps
+    Agreed to: (0.27438013387778515, 0.7227722772277227) in 28 steps
 
 
 
