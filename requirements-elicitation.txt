@@ -1,1 +1,1 @@
-blist
+blist; python_version < "3.10"
