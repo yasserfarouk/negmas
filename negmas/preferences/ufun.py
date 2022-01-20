@@ -4,7 +4,6 @@ import random
 import warnings
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -41,7 +40,14 @@ from .value_fun import MAX_CARINALITY, AffineFun, LinearFun, QuadraticFun, Trian
 if TYPE_CHECKING:
     from negmas.preferences import ComplexWeightedUtilityFunction
 
-__all__ = ["UtilityFunction", "StationaryUtilityFunction", "InverseUtilityFunction"]
+__all__ = [
+    "BaseUtilityFunction",
+    "UtilityFunction",
+    "ProbUtilityFunction",
+    "StationaryUtilityFunction",
+    "PresortingInverseUtilityFunction",
+    "SamplingInverseUtilityFunction",
+]
 
 import functools
 
@@ -292,8 +298,6 @@ class BaseUtilityFunction(
     def is_non_stationary(self) -> bool:
         return False
 
-    # @ignore_unhashable
-    # @lru_cache
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -309,6 +313,8 @@ class BaseUtilityFunction(
             outcomes = outcome_space.enumerate_or_sample(
                 max_cardinality=max_cardinality
             )
+        if not outcomes:
+            raise ValueError("Cannot find outcomes to use for finding extremes")
         mn, mx = float("inf"), float("-inf")
         worst, best = None, None
         for o in outcomes:
@@ -1253,7 +1259,91 @@ class StationaryUtilityFunction(UtilityFunction, StationaryUFun):
         return self
 
 
-class InverseUtilityFunction(MultiInverseUFun, InverseUFun):
+class SamplingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
+    def __init__(self, ufun: UtilityFunction, max_samples_per_call: int = 10_000):
+        self._ufun = ufun
+        self.max_samples_per_call = max_samples_per_call
+
+    def init(self):
+        pass
+
+    def all(
+        self,
+        rng: float | tuple[float, float],
+    ) -> list[Outcome]:
+        """
+        Finds all outcomes with in the given utility value range
+
+        Args:
+            rng: The range. If a value, outcome utilities must match it exactly
+
+        Remarks:
+            - If issues or outcomes are not None, then init_inverse will be called first
+            - If the outcome-space is discrete, this method will return all outcomes in the given range
+
+        """
+        raise ValueError(
+            f"Cannot find all outcomes in a range using a SamplingInverseUtilityFunction. Try a PresortedInverseUtilityFunction"
+        )
+
+    def some(
+        self,
+        rng: float | tuple[float, float],
+        n: int | None = None,
+    ) -> list[Outcome]:
+        """
+        Finds some outcomes with the given utility value (if discrete, all)
+
+        Args:
+            rng: The range. If a value, outcome utilities must match it exactly
+            n: The maximum number of outcomes to return
+
+        Remarks:
+            - If issues or outcomes are not None, then init_inverse will be called first
+            - If the outcome-space is discrete, this method will return all outcomes in the given range
+
+        """
+        if not n:
+            n = self.max_samples_per_call
+        if not self._ufun.outcome_space:
+            return []
+        return list(self._ufun.outcome_space.sample(n, False, False))
+
+    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+        some = self.some(rng)
+        if not isinstance(rng, Iterable):
+            rng = (rng, rng)
+        worst_util, worst = float("inf"), None
+        for o in some:
+            util = self._ufun(o)
+            if util < worst_util:
+                worst_util, worst = util, o
+        return worst
+
+    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+        some = self.some(rng)
+        if not isinstance(rng, Iterable):
+            rng = (rng, rng)
+        best_util, best = float("-inf"), None
+        for o in some:
+            util = self._ufun(o)
+            if util < best_util:
+                best_util, best = util, o
+        return best
+
+    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+        if not self._ufun.outcome_space:
+            return None
+        if not isinstance(rng, Iterable):
+            rng = (rng, rng)
+        for _ in range(self.max_samples_per_call):
+            o = list(self._ufun.outcome_space.sample(1))[0]
+            if rng[0] + 1e-7 <= self._ufun(o) <= rng[1] - 1e-7:
+                return o
+        return None
+
+
+class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
     def __init__(
         self, ufun: UtilityFunction, levels: int = 10, max_cache_size: int = 10_000
     ):
@@ -1287,32 +1377,46 @@ class InverseUtilityFunction(MultiInverseUFun, InverseUFun):
         utils = [self._ufun(_) for _ in outcomes]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
 
-    def some(
+    def all(
         self,
         rng: float | tuple[float, float],
     ) -> list[Outcome]:
         """
-        Finds an outcmoe with the given utility value
+        Finds all outcomes with in the given utility value range
 
         Args:
-            u: the utility value to find an outcome for.
-            eps: An approximation error. If a number, it is mapped to (eps, eps)
-            n_trials: the number of time to try (used if random sampling is employed)
-            issues: If given the issue space to search (not recommended)
-            outcomes: If given the outcomes to search (not recommended)
-            assume_normalized: If true, the ufun will be assumed normalized between 0 and 1 (faster)
-            return_all_in_range: If given all outcomes in the given range (or samples of them) will be returned up
-                                 to `max_cardinality`
-            max_cardinality: Only used if return_all_in_range is given and gives the maximum number of outcomes to return
-
-        Returns:
-            - if return_all_in_range:
-               - A tuple with all outcomes in the given range (or samples thereof)
-               - A tuple of corresponding utility values
-            - Otherwise, An outcome with utility between u-eps[0] and u+eps[1] if found
+            rng: The range. If a value, outcome utilities must match it exactly
 
         Remarks:
             - If issues or outcomes are not None, then init_inverse will be called first
+            - If the outcome-space is discrete, this method will return all outcomes in the given range
+
+        """
+        os_ = self._ufun.outcome_space
+        if not os_:
+            raise ValueError(f"Unkonwn outcome space. Cannot invert the ufun")
+
+        if os_.is_discrete():
+            return self.some(rng)
+        raise ValueError(
+            f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
+        )
+
+    def some(
+        self,
+        rng: float | tuple[float, float],
+        n: int | None = None,
+    ) -> list[Outcome]:
+        """
+        Finds some outcomes with the given utility value (if discrete, all)
+
+        Args:
+            rng: The range. If a value, outcome utilities must match it exactly
+            n: The maximum number of outcomes to return
+
+        Remarks:
+            - If issues or outcomes are not None, then init_inverse will be called first
+            - If the outcome-space is discrete, this method will return all outcomes in the given range
 
         """
         if not self._ufun.is_stationary():
@@ -1328,6 +1432,8 @@ class InverseUtilityFunction(MultiInverseUFun, InverseUFun):
             if util < mn:
                 break
             results.append(w)
+            if n and len(results) >= n:
+                return results
         return results
 
     def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:

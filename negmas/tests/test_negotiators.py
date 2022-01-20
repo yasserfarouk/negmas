@@ -1,20 +1,30 @@
 from __future__ import annotations
 
 import random
-from typing import List, Mapping
+from random import choice
 
 import numpy as np
 import pytest
 
 from negmas import (
+    Aspiration,
     AspirationNegotiator,
     NaiveTitForTatNegotiator,
     OnlyBestNegotiator,
+    PresortingInverseUtilityFunction,
     SAOController,
     SAOMechanism,
     ToughNegotiator,
 )
+from negmas.negotiators.components import PolyAspiration
+from negmas.outcomes.base_issue import make_issue
 from negmas.preferences import MappingUtilityFunction, RandomUtilityFunction
+from negmas.preferences.linear import (
+    LinearAdditiveUtilityFunction,
+    LinearUtilityFunction,
+)
+from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
+from negmas.sao.negotiators.base import SAONegotiator
 
 random.seed(0)
 np.random.seed(0)
@@ -243,6 +253,82 @@ def test_controller():
 
 def test_negotiator_checkpoint():
     pass
+
+
+class SmartAspirationNegotiator(SAONegotiator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._asp = PolyAspiration(1.0, "boulware")
+        self._inv = None
+        self._partner_first = None
+        self._min = self._max = self._worst = self._best = None
+
+    def on_preferences_changed(self):
+        if not self.ufun:
+            self._inv = None
+            self._min = self._max = self._worst = self._best = None
+            return
+        self._inv = PresortingInverseUtilityFunction(self.ufun)
+        self._inv.init()
+        self._worst, self._best = self.ufun.extreme_outcomes()
+        self._min, self._max = self.ufun(self._worst), self.ufun(self._best)
+        super().on_preferences_changed()
+
+    def respond(self, state, offer):
+        if not self._partner_first:
+            self._partner_first = offer
+        return super().respond(state, offer)
+
+    def propose(self, state):
+        if not self._inv or not self._best or self._max is None or self._min is None:
+            raise ValueError("Asked to propose without knowing the ufun or its invrese")
+        a = (self._max - self._min) * self._asp.aspiration(state.step) + self._min
+        outcomes = self._inv.some((a, self._max))
+        if not outcomes:
+            return self._best
+        if not self._partner_first:
+            return choice(outcomes)
+        nearest, ndist = None, float("inf")
+        for o in outcomes:
+            d = sum((a - b) * (a - b) for a, b in zip(o, self._partner_first))
+            if d < ndist:
+                nearest, ndist = o, d
+        return nearest
+
+
+def test_smart_aspiration():
+    # create negotiation agenda (issues)
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
+    ]
+
+    # create the mechanism
+    session = SAOMechanism(issues=issues, n_steps=20)
+
+    # define ufuns
+    seller_utility = LinearAdditiveUtilityFunction(
+        values={
+            "price": IdentityFun(),
+            "quantity": LinearFun(0.2),
+            "delivery_time": AffineFun(-1, bias=9),
+        },
+        weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
+        outcome_space=session.outcome_space,
+    ).scale_max(1.0)
+    buyer_utility = LinearAdditiveUtilityFunction(
+        values={
+            "price": AffineFun(-1, bias=9.0),
+            "quantity": LinearFun(0.2),
+            "delivery_time": IdentityFun(),
+        },
+        outcome_space=session.outcome_space,
+    ).scale_max(1.0)
+
+    session.add(SmartAspirationNegotiator(name="buyer"), ufun=buyer_utility)
+    session.add(SmartAspirationNegotiator(name="seller"), ufun=seller_utility)
+    session.run()
 
 
 if __name__ == "__main__":

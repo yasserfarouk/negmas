@@ -604,10 +604,14 @@ class SAOMechanism(Mechanism):
             else:
                 pathlib.Path(path).mkdir(parents=True, exist_ok=True)
             if plot_utils:
-                fig_util.savefig(os.path.join(path, fig_name), bbox_inches="tight")
+                fig_util.savefig(
+                    os.path.join(path, fig_name), bbox_inches="tight", transparent=False
+                )
             if plot_outcomes:
                 fig_outcome.savefig(
-                    os.path.join(path, fig_name_outcomes), bbox_inches="tight"
+                    os.path.join(path, fig_name_outcomes),
+                    bbox_inches="tight",
+                    transparent=False,
                 )
         else:
             if plot_utils:

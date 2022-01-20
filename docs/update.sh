@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 rm ./tutorials.rst
 cp ./tutorials_template ./tutorials.rst
+echo "    " >> ./tutorials.rst
 jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst ../notebooks/overview.ipynb
 for notebook in `ls ../notebooks/tutorials/*.ipynb | sort -g` ; do
     jupyter nbconvert --TagRemovePreprocessor.remove_cell_tags='{"remove_cell"}' --to rst $notebook

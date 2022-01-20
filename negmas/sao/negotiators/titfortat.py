@@ -110,7 +110,7 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         if self.proposed_utility is None:
             return 0
         if len(self.received_utilities) < 2:
-            if isinstance(self.initial_concession, str) and self.initial_concession < 0:
+            if self.initial_concession < 0:
                 return self._outcome_just_below(ulevel=self.ordered_outcomes[0][0])
             else:
                 asp = self.ordered_outcomes[0][0] * (1.0 - self.initial_concession)

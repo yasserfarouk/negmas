@@ -39,8 +39,8 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
     ) -> None:
         check_one_at_most(outcome_space, issues, outcomes)
         super().__init__(*args, **kwargs)
-        self.reserved_outocme = reserved_outcome
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)
+        self.reserved_outcome = reserved_outcome  # type: ignore
 
     def to_dict(self) -> dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}

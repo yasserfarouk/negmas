@@ -4,6 +4,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING
 
 from negmas.preferences.preferences import Preferences
+from negmas.preferences.protocols import UFun
 
 from ...common import MechanismState
 from ...events import Notification
@@ -42,9 +43,9 @@ class SAONegotiator(Negotiator):
 
     def __init__(
         self,
-        assume_normalized=True,
+        assume_normalized=False,
         preferences: Preferences | None = None,
-        ufun: Preferences | None = None,
+        ufun: UFun | None = None,
         name: str | None = None,
         parent: Controller = None,
         owner: "Agent" = None,

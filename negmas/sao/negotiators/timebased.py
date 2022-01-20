@@ -5,7 +5,7 @@ import random
 import warnings
 
 from ...common import MechanismState
-from ...negotiators import AspirationMixin
+from ...negotiators.mixins import AspirationMixin
 from ...outcomes import Outcome
 from ..common import ResponseType
 from .base import SAONegotiator
@@ -25,7 +25,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         max_aspiration: The aspiration level to use for the first offer (or first acceptance decision).
         aspiration_type: The polynomial aspiration curve type. Here you can pass the exponent as a real value or
                          pass a string giving one of the predefined types: linear, conceder, boulware.
-        dynamic_preferences: If True, the utility function will be assumed to be changing over time. This is depricated.
         randomize_offer: If True, the agent will propose outcomes with utility >= the current aspiration level not
                          outcomes just above it.
         can_propose: If True, the agent is allowed to propose
@@ -41,7 +40,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                  very large (i.e. > 10000) and discrete, presort will be forced to be True. You can check if
                  presorting is active in realtime by checking the "presorted" attribute.
         tolerance: A tolerance used for sampling of outcomes when `presort` is set to False
-        assume_normalized: If true, the negotiator can assume that the ufun is normalized.
         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
                         reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
         owner: The `Agent` that owns the negotiator.
@@ -53,7 +51,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self,
         max_aspiration=1.0,
         aspiration_type="boulware",
-        dynamic_preferences=True,
         stochastic=False,
         can_propose=True,
         assume_normalized=False,
@@ -78,10 +75,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         self.aspiration_init(
             max_aspiration=max_aspiration, aspiration_type=aspiration_type
         )
-        if not dynamic_preferences:
-            warnings.warn(
-                "dynamic_preferences is deprecated. All Aspiration negotiators assume a dynamic ufun"
-            )
         self.randomize_offer = stochastic
         self._max_aspiration = self.max_aspiration
         self.best_outcome, self.worst_outcome = None, None

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from negmas.preferences.protocols import UFunCrisp, UFunProb
 
-from ..preferences import Preferences, UtilityFunction
+from ..preferences import BaseUtilityFunction, Preferences
 from .named import NamedObject
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class Rational(NamedObject):
         self,
         name: str = None,
         preferences: Preferences | None = None,
-        ufun: UtilityFunction | None = None,
+        ufun: BaseUtilityFunction | None = None,
         id: str = None,
     ):
         super().__init__(name, id=id)
@@ -88,16 +88,16 @@ class Rational(NamedObject):
         self._preferences = v
 
     @property
-    def ufun(self) -> UtilityFunction | None:
+    def ufun(self) -> BaseUtilityFunction | None:
         """Returns the preferences if it is a UtilityFunction else None"""
         return (
             self._preferences
-            if isinstance(self._preferences, UtilityFunction)
+            if isinstance(self._preferences, BaseUtilityFunction)
             else None
         )
 
     @ufun.setter
-    def ufun(self, v: UtilityFunction):
+    def ufun(self, v: BaseUtilityFunction):
         self._preferences = v
 
     @property

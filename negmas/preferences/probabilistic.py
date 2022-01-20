@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 
-from negmas.generics import iget, ivalues
+from negmas.generics import iget, ikeys, ivalues
 from negmas.helpers import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 
@@ -15,7 +15,7 @@ from ..helpers.prob import (
     as_distribution,
     uniform_around,
 )
-from .mapping import MappingUtilityFunction
+from .mapping import MappingUtilityFunction, ProbMappingUtilityFunction
 from .ufun import ProbUtilityFunction, UtilityFunction
 
 __all__ = ["IPUtilityFunction", "ILSUtilityFunction", "UniformUtilityFunction"]
@@ -94,7 +94,7 @@ class IPUtilityFunction(ProbUtilityFunction):
     @classmethod
     def from_preferences(
         cls,
-        u: MappingUtilityFunction,
+        u: ProbMappingUtilityFunction,
         range: Tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
@@ -140,6 +140,8 @@ class IPUtilityFunction(ProbUtilityFunction):
                 variability=variability,
                 reserved_value=u.reserved_value,
             )
+        if not u.outcome_space:
+            raise ValueError("Unknown outcome space")
         if not u.outcome_space.is_discrete():
             raise ValueError(
                 "Cannot be constructed from a ufun with an infinite outcome space"

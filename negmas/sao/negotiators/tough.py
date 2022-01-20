@@ -24,7 +24,6 @@ class ToughNegotiator(SAONegotiator):
     Args:
          name: Negotiator name
          parent: Parent controller if any
-         dynamic_preferences: If `True`, assumes a dynamic ufun that can change during the negotiation
          can_propose: If `False` the negotiator will never propose but can only accept
          preferences: The preferences of the negotiator
          ufun: The ufun of the negotiator (overrides preferences)
@@ -80,7 +79,6 @@ class OnlyBestNegotiator(SAONegotiator):
     Args:
          name: Negotiator name
          parent: Parent controller if any
-         dynamic_preferences: If `True`, assumes a dynamic ufun that can change during the negotiation
          can_propose: If `False` the negotiator will never propose but can only accept
          preferences: The preferences of the negotiator
          ufun: The ufun of the negotiator (overrides preferences)
@@ -97,7 +95,6 @@ class OnlyBestNegotiator(SAONegotiator):
         self,
         name=None,
         parent: Controller = None,
-        dynamic_preferences=True,
         min_utility=0.95,
         top_fraction=0.05,
         best_first=False,
@@ -116,10 +113,6 @@ class OnlyBestNegotiator(SAONegotiator):
         super().__init__(
             name=name, parent=parent, ufun=ufun, preferences=preferences, **kwargs
         )
-        if not dynamic_preferences:
-            warnings.warn(
-                "dynamic_preferences is deprecated. All Aspiration negotiators assume a dynamic ufun"
-            )
         self.top_fraction = top_fraction
         self.min_utility = min_utility
         self.best_first = best_first

@@ -776,6 +776,22 @@ class MultiInverseUFun(Protocol):
 
 @runtime_checkable
 class InverseUFun(Protocol):
+    @abstractmethod
+    def some(
+        self, rng: float | tuple[float, float], n: int | None = None
+    ) -> list[Outcome]:
+        """
+        Finds a list of outcomes with utilities in the given range.
+
+        Args:
+            rng: The range (or single value) of utility values to search for outcomes
+            n: The maximum number of outcomes to return
+
+        Remarks:
+            - If the ufun outcome space is continuous a sample of outcomes is returned
+            - If the ufun outcome space is discrete **all** outcomes in the range are returned
+        """
+
     def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
         """
         Finds an outcmoe with the given utility value

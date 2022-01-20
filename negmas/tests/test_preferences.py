@@ -21,7 +21,7 @@ from negmas.preferences import (
 )
 from negmas.preferences.const import ConstUtilityFunction
 from negmas.preferences.ops import normalize, scale_max
-from negmas.preferences.ufun import InverseUtilityFunction
+from negmas.preferences.ufun import PresortingInverseUtilityFunction
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
@@ -260,7 +260,7 @@ def test_inverse_genius_domain():
         issues=issues,
     )
     assert u is not None
-    inv = InverseUtilityFunction(u)
+    inv = PresortingInverseUtilityFunction(u)
     inv.init()
     for i in range(100):
         v = u(inv.one_in((i / 100.0, i / 100.0)))

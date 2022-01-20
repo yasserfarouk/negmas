@@ -397,7 +397,7 @@ def load_genius_domain_from_folder(
     ignore_discount=False,
     safe_parsing=False,
     **kwargs,
-) -> Domain | None:
+) -> Domain:
     """
     Loads a genius domain from a folder. See ``load_genius_domain`` for more details.
 
@@ -480,7 +480,7 @@ def load_genius_domain_from_folder(
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
     if domain_file_name is None:
-        return None
+        raise ValueError("Cannot find a domain file")
     return load_genius_domain(
         domain_file_name=domain_file_name,
         utility_file_names=utility_file_names,
