@@ -827,7 +827,7 @@ class SAOSingleAgreementAspirationController(
                 self.aspiration(state.relative_time)
                 if state is not None
                 else self.ufun(super().best_outcome(negotiator, None)),
-                None,
+                float("inf"),
             ),
             issues=self.negotiators[negotiator][0].nmi.issues,
         )

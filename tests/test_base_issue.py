@@ -28,10 +28,9 @@ def test_make_issue_generation():
 
 def test_value_generation_ordinal():
     for i, w in zip((5, 12, 343, 6445, 22345, 344323), range(1, 6)):
-        lst = list(generate_values(i))
+        lst = generate_values(i)
         assert len(lst) == i
         assert all(isinstance(_, str) for _ in lst)
-        assert all(len(_) == w for _ in lst)
         assert all(int(_) == v for _, v in zip(lst, range(len(lst))))
         assert all(a > b for a, b in zip(lst[1:], lst[:-1]))
 

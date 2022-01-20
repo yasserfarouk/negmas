@@ -25,14 +25,12 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         max_aspiration: The aspiration level to use for the first offer (or first acceptance decision).
         aspiration_type: The polynomial aspiration curve type. Here you can pass the exponent as a real value or
                          pass a string giving one of the predefined types: linear, conceder, boulware.
-        randomize_offer: If True, the agent will propose outcomes with utility >= the current aspiration level not
+        stochastic: If True, the agent will propose outcomes with utility >= the current aspiration level not
                          outcomes just above it.
         can_propose: If True, the agent is allowed to propose
         assume_normalized: If True, the ufun will just be assumed to have the range [0, 1] inclusive
         ranking: If True, the aspiration level will not be based on the utility value but the ranking of the outcome
                  within the presorted list. It is only effective when presort is set to True
-        ufun_max: The maximum utility value (used only when `presort` is True)
-        ufun_min: The minimum utility value (used only when `presort` is True)
         presort: If True, the negotiator will catch a list of outcomes, presort them and only use them for offers
                  and responses. This is much faster then other option for general continuous utility functions
                  but with the obvious problem of only exploring a discrete subset of the issue space (Decided by
@@ -61,7 +59,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
         tolerance: float = 0.01,
         **kwargs,
     ):
-        self.ordered_outcomes = []
         self.ufun_max = ufun_max
         self.ufun_min = ufun_min
         self.ranking = ranking_only
@@ -76,7 +73,6 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
             max_aspiration=max_aspiration, aspiration_type=aspiration_type
         )
         self.randomize_offer = stochastic
-        self._max_aspiration = self.max_aspiration
         self.best_outcome, self.worst_outcome = None, None
         self.presort = presort
         self.presorted = False

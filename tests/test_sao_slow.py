@@ -1294,9 +1294,11 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
     ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(
-            AspirationNegotiator(name=f"agent{i}"),
+            AspirationNegotiator(
+                name=f"agent{i}",
+                aspiration_type="conceder",
+            ),
             preferences=ufuns[i],
-            aspiration_type="conceder",
         )
 
     mechanism.run()

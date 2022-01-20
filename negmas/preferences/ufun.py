@@ -499,6 +499,10 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
         outcomes: List[Outcome] | None = None,
         n_trials: int = 100,
     ) -> Optional["Outcome"]:
+        if rng[0] is None:
+            rng = (float("-inf"), rng[1])
+        if rng[1] is None:
+            rng = (rng[0], float("inf"))
         outcome_space = os_or_none(outcome_space, issues, outcomes)
         if not outcome_space:
             outcome_space = self.outcome_space
@@ -509,7 +513,10 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
         for o in outcome_space.sample(n_trials, with_replacement=False):
             if o is None:
                 continue
-            if rng[0] <= self(o) <= rng[1]:
+            assert (
+                o in outcome_space
+            ), f"Sampled outcome {o} which is not in the outcome-space {outcome_space}"
+            if rng[0] - 1e-6 <= self(o) <= rng[1] + 1e-6:
                 return o
         return None
 

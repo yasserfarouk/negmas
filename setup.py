@@ -53,12 +53,10 @@ setup(
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
     ],  # Optional
     keywords=" ".join(
         ["negotiation", "mas", "multi-agent", "simulation", "AI"]
@@ -104,7 +102,7 @@ setup(
         "psutil",
     ],  # Optional
     extras_require={
-        "elicitation": ["blist"],
+        "elicitation": ["blist; python_version < '3.10'"],
         "visualization": ["flask", "dash", "dash-daq", "dash-bootstrap-components"],
         "gui": ["pyqt5"],
         "dask": ["dask[complete]"],

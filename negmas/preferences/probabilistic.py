@@ -34,8 +34,8 @@ class IPUtilityFunction(ProbUtilityFunction):
 
         >>> outcomes = [('o1',), ('o2',)]
         >>> f = IPUtilityFunction(outcomes=outcomes
-        ...         , distributions=[Distribution(type='uniform', loc=0.0, scale=0.5)
-        ...         , Distribution(type='uniform', loc=0.1, scale=0.5)])
+        ...         , distributions=[ScipyDistribution(type='uniform', loc=0.0, scale=0.5)
+        ...         , ScipyDistribution(type='uniform', loc=0.1, scale=0.5)])
         >>> str(f(('o1',)))
         'U(0.0, 0.5)'
 
@@ -233,8 +233,8 @@ class IPUtilityFunction(ProbUtilityFunction):
         Examples:
             >>> import random
             >>> f = IPUtilityFunction(outcomes=[('o1',), ('o2',)]
-            ...         , distributions=[Distribution(type='uniform', loc=0.0, scale=0.2)
-            ...         , Distribution(type='uniform', loc=0.4, scale=0.5)])
+            ...         , distributions=[ScipyDistribution(type='uniform', loc=0.0, scale=0.2)
+            ...         , ScipyDistribution(type='uniform', loc=0.4, scale=0.5)])
             >>> u = f.sample()
             >>> assert u(('o1',)) <= 0.2
             >>> assert 0.4 <= u(('o2',)) <= 0.9

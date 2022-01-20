@@ -17,7 +17,7 @@ def generate_values(n: int) -> list[str]:
             f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible"
         )
     width = len(str(n))
-    return list(f"{_:0{width}n}" for _ in range(n))
+    return list(f"{_:0{width}d}" for _ in range(n))
 
 
 class OrdinalIssue(Issue, ABC):
