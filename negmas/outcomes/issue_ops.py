@@ -6,9 +6,7 @@ import numbers
 import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from functools import reduce
-from operator import mul
-from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Union
 
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 
@@ -206,9 +204,7 @@ def issues_from_outcomes(
         return [make_issue(values=v, name=n) for n, v in values.items()]
 
 
-def issues_to_xml_str(
-    issues: tuple[Issue, ...], enumerate_integer: bool = False
-) -> str:
+def issues_to_xml_str(issues: tuple[Issue, ...]) -> str:
     """Converts the list of issues into a well-formed xml string
 
     Examples:
@@ -253,15 +249,13 @@ def issues_to_xml_str(
     )
 
     for indx, issue in enumerate(issues):
-        output += issue._to_xml_str(indx, enumerate_integer)
+        output += issue._to_xml_str(indx)
     output += f"</objective>\n</utility_space>\n</negotiation_template>"
 
     return output
 
 
-def issues_to_genius(
-    issues: tuple[Issue, ...], file_name: PathLike, enumerate_integer: bool = False
-) -> None:
+def issues_to_genius(issues: tuple[Issue, ...], file_name: PathLike) -> None:
     """Exports a the domain issues to a GENIUS XML file.
 
     Args:
@@ -304,7 +298,7 @@ def issues_to_genius(
 
     """
     with open(file_name, "w") as f:
-        f.write(issues_to_xml_str(issues=issues, enumerate_integer=enumerate_integer))
+        f.write(issues_to_xml_str(issues=issues))
 
 
 def issues_from_xml_str(

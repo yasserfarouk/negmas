@@ -4,7 +4,7 @@ Functions for handling outcome spaces
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, Sequence, overload
 
 import numpy as np
 
@@ -19,8 +19,6 @@ if TYPE_CHECKING:
 __all__ = [
     "dict2outcome",
     "outcome2dict",
-    "dict2partial_outcome",
-    "partial_outcome2dict",
     "outcome_in_range",
     "outcome_is_complete",
     "outcome_types_are_ok",
@@ -66,17 +64,17 @@ def outcome_is_valid(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
         Union[bool, Tuple[bool, str]]: If return_problem is True then a second return value contains a string with
                                       reason of failure
     """
-    outcome = outcome2dict(outcome, [_.name for _ in issues])
+    outcome_dict = outcome2dict(outcome, [_.name for _ in issues])
 
     for issue in issues:
-        for key in outcome.keys():
+        for key in outcome_dict.keys():
             if str(issue.name) == str(key):
                 break
 
         else:
             continue
 
-        value = iget(outcome, key)
+        value = iget(outcome_dict, key)
 
         if isinstance(issue, RangeIssue) and (
             isinstance(value, str) or not issue.min_value <= value <= issue.max_value
@@ -113,11 +111,11 @@ def cast_value_types(outcome: "Outcome", issues: Iterable["Issue"]) -> "Outcome"
     for indx, (v, i) in enumerate(zip(outcome, issues)):
         if i.value_type is None:
             continue
-        new_outcome[indx] = i.value_type(v)
+        new_outcome[indx] = i.value_type(v)  # type: ignore I know that value_type is callable
     return tuple(new_outcome)
 
 
-def outcome_is_complete(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
+def outcome_is_complete(outcome: "Outcome", issues: Sequence["Issue"]) -> bool:
     """Tests that the outcome is valid and complete.
 
     Examples:
@@ -155,7 +153,7 @@ def outcome_is_complete(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
 
     """
     try:
-        outcome = outcome2dict(outcome, issues)
+        outcome2dict(outcome, issues)
     except ValueError:
         return False
 
@@ -315,7 +313,19 @@ def outcome_in_range(
     return True
 
 
-def outcome2dict(outcome: "Outcome", issues: list[str | "Issue"]) -> dict[str, Any]:
+@overload
+def outcome2dict(outcome: None, issues: Sequence[str | "Issue"]) -> None:
+    ...
+
+
+@overload
+def outcome2dict(outcome: Outcome, issues: Sequence[str | "Issue"]) -> dict[str, Any]:
+    ...
+
+
+def outcome2dict(
+    outcome: Outcome | None, issues: Sequence[str | "Issue"]
+) -> dict[str, Any] | None:
     """
     Converts the outcome to a dict no matter what was its type.
 
@@ -369,58 +379,6 @@ def outcome2dict(outcome: "Outcome", issues: list[str | "Issue"]) -> dict[str, A
         return outcome
 
     return dict(zip([_ if isinstance(_, str) else _.name for _ in issues], outcome))
-
-
-def partial_outcome2dict(
-    outcome: "PartialOutcome", issues: list[str | "Issue"]
-) -> dict[str, Any]:
-    """Converts a partial outcome to a dict no matter what was its type"""
-
-    if outcome is None:
-        return None
-
-    if isinstance(outcome, dict):
-        return outcome
-
-    if isinstance(outcome, np.ndarray):
-        outcome = tuple(outcome.tolist())
-
-    return dict(
-        zip(
-            [
-                _ if isinstance(_, str) else _.name
-                for _ in [issues[j] for j in outcome.keys()]
-            ],
-            outcome.values(),
-        )
-    )
-
-
-def dict2partial_outcome(
-    d: dict[str, Any] | None, issues: Optional[List[Union[str, "Issue"]]]
-) -> PartialOutcome:
-    """
-    Converts the outcome to a tuple no matter what was its type
-
-    Args:
-        d: the dictionary to be converted
-        issues: A list of issues or issue names (as strings) to order the tuple
-
-    Remarks:
-        - If called with a tuple outcome, it will issue a warning
-
-    """
-
-    if d is None:
-        return None
-
-    vals = tuple(d.get(_ if isinstance(_, str) else _.name, None) for _ in issues)
-    outcome = dict()
-    for i, v in enumerate(vals):
-        if v is None:
-            continue
-        outcome[i] = v
-    return outcome
 
 
 def dict2outcome(

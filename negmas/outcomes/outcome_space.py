@@ -61,7 +61,7 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
 
     @classmethod
     def from_dict(cls, d):
-        return cls(**deserialize(d))
+        return cls(**deserialize(d))  # type: ignore
 
     @property
     def issue_names(self) -> list[str]:
@@ -202,8 +202,8 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
             self.issues, n_outcomes, with_replacement, fail_if_not_enough
         )
 
-    def to_xml_str(self, enumerate_integer: bool = False) -> str:
-        return issues_to_xml_str(self.issues, enumerate_integer)
+    def to_xml_str(self) -> str:
+        return issues_to_xml_str(self.issues)
 
     def is_valid(self, outcome: Outcome) -> bool:
         return outcome_is_valid(outcome, self.issues)
@@ -224,9 +224,9 @@ class DiscreteCartesianOutcomeSpace(
 
     def __init__(self, issues: Iterable[Issue], name: str | None = None):
         self.issues = tuple(
-            _.to_discrete(n=10) if not _.is_discrete() else _ for _ in issues
+            _.to_discrete(n=100) if not _.is_discrete() else _ for _ in issues
         )
-        self.name = name
+        self.name = name if name is not None else unique_name("ds", sep=".")
 
     @property
     def cardinality(self) -> int:

@@ -49,7 +49,7 @@ class DiscreteOrdinalIssue(DiscreteIssue):
         self._n_values = len(values)
         self.min_value, self.max_value = min(values), max(values)
 
-    def _to_xml_str(self, indx, enumerate_integer=False):
+    def _to_xml_str(self, indx):
         output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
 
         for i, v in enumerate(self._values):

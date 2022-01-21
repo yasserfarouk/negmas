@@ -25,7 +25,7 @@ from .preferences.value_fun import TableFun
 from .sao import SAOMechanism
 
 __all__ = [
-    "Domain",
+    "Scenario",
     "load_genius_domain",
     "load_genius_domain_from_folder",
     "find_domain_and_utility_files",
@@ -34,7 +34,7 @@ __all__ = [
 
 
 @dataclass
-class Domain:
+class Scenario:
     """
     A class representing a negotiation domain
     """
@@ -88,7 +88,7 @@ class Domain:
     def issue_names(self) -> list[str]:
         return self.agenda.issue_names
 
-    def to_numeric(self) -> "Domain":
+    def to_numeric(self) -> "Scenario":
         """
         Forces all issues in the domain to become numeric
 
@@ -97,7 +97,7 @@ class Domain:
         """
         raise NotImplementedError()
 
-    def to_single_issue(self, numeric=False, stringify=True) -> "Domain":
+    def to_single_issue(self, numeric=False, stringify=True) -> "Scenario":
         """
         Forces the domain to have a single issue with all possible outcomes
 
@@ -185,7 +185,7 @@ class Domain:
     def scale_min(
         self,
         to: float = 1.0,
-    ) -> "Domain":
+    ) -> "Scenario":
         """Normalizes a utility function to the given range
 
         Args:
@@ -201,7 +201,7 @@ class Domain:
     def scale_max(
         self,
         to: float = 1.0,
-    ) -> "Domain":
+    ) -> "Scenario":
         """Normalizes a utility function to the given range
 
         Args:
@@ -217,7 +217,7 @@ class Domain:
     def normalize(
         self,
         rng: Tuple[float, float] = (0.0, 1.0),
-    ) -> "Domain":
+    ) -> "Scenario":
         """Normalizes a utility function to the given range
 
         Args:
@@ -253,11 +253,11 @@ class Domain:
 
     @staticmethod
     def from_genius_folder(
-        path: PathLike,
+        path: PathLike | str,
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
-    ) -> "Domain" | None:
+    ) -> "Scenario" | None:
         return load_genius_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
@@ -272,7 +272,7 @@ class Domain:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
-    ) -> "Domain" | None:
+    ) -> "Scenario" | None:
         return load_genius_domain(
             domain,
             [_ for _ in ufuns],
@@ -319,7 +319,7 @@ def load_genius_domain(
     ignore_reserved=False,
     safe_parsing=True,
     **kwargs,
-) -> Domain:
+) -> Scenario:
     """
     Loads a genius domain, creates appropriate negotiators if necessary
 
@@ -383,7 +383,7 @@ def load_genius_domain(
     if issues is None:
         raise ValueError(f"Could not load domain {domain_file_name}")
 
-    return Domain(
+    return Scenario(
         agenda=make_os(issues, name=str(domain_file_name)),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
         mechanism_type=SAOMechanism,
@@ -397,7 +397,7 @@ def load_genius_domain_from_folder(
     ignore_discount=False,
     safe_parsing=False,
     **kwargs,
-) -> Domain:
+) -> Scenario:
     """
     Loads a genius domain from a folder. See ``load_genius_domain`` for more details.
 

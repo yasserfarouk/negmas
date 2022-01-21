@@ -357,7 +357,7 @@ def test_exceptions_are_saved():
 
 
 def test_on_negotiation_start():
-    mechanism = SAOMechanism(outcomes=10)
+    mechanism = SAOMechanism(outcomes=10, n_steps=10)
     assert mechanism.on_negotiation_start()
 
 

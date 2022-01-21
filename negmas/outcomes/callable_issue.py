@@ -12,7 +12,10 @@ class CallableIssue(Issue):
         super().__init__(values, name, id)
         self._value_type = object
 
-    def _to_xml_str(self, indx, enumerate_integer=False):
+    def _to_xml_str(
+        self,
+        indx,
+    ):
         raise NotImplementedError("CallableIssue cannot be saved to xml")
 
     @property

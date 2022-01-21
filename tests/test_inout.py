@@ -7,7 +7,7 @@ import pytest
 
 from negmas import load_genius_domain_from_folder
 from negmas.genius import genius_bridge_is_running
-from negmas.inout import Domain
+from negmas.inout import Scenario
 from negmas.outcomes import enumerate_issues
 from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
 from negmas.preferences.discounted import DiscountedUtilityFunction
@@ -86,7 +86,7 @@ def test_simple_run_with_aspiration_agents():
         "negmas", resource_name="tests/data/Laptop"
     )
     assert os.path.exists(file_name)
-    domain = Domain.from_genius_folder(Path(file_name))
+    domain = Scenario.from_genius_folder(Path(file_name))
     domain.to_single_issue()
     mechanism = domain.make_session(AspirationNegotiator, n_steps=100, time_limit=30)
     assert mechanism is not None
@@ -153,13 +153,13 @@ def test_encoding_decoding_all_without_discounting(tmp_path, folder_name):
     # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2012/FitnessB"
     # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2012/FitnessC"
     # folder_name = "/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2016/AgentHp2"
-    domain = Domain.from_genius_folder(
+    domain = Scenario.from_genius_folder(
         folder_name, safe_parsing=False
     ).remove_discounting()
     tmp = tmp_path / "tmp"
     print(f"{str(folder_name)}\n-> {str(tmp)}")
     domain.to_genius_folder(tmp)
-    domain2 = Domain.from_genius_folder(tmp).remove_discounting()
+    domain2 = Scenario.from_genius_folder(tmp).remove_discounting()
     compared_two_domains(domain, domain2)
 
 
@@ -167,11 +167,11 @@ def test_encoding_decoding_all_without_discounting(tmp_path, folder_name):
 def test_encoding_decoding_all_with_discounting(tmp_path, folder_name):
     # def test_encoding_decoding_all_with_discounting(tmp_path):
     # folder_name ="/Users/yasser/code/projects/negmas/tests/data/scenarios/anac/y2011/Grocery"
-    domain = Domain.from_genius_folder(folder_name, safe_parsing=False)
+    domain = Scenario.from_genius_folder(folder_name, safe_parsing=False)
     tmp = tmp_path / "tmp"
     print(f"{str(folder_name)}\n-> {str(tmp)}")
     domain.to_genius_folder(tmp)
-    domain2 = Domain.from_genius_folder(tmp)
+    domain2 = Scenario.from_genius_folder(tmp)
     compared_two_domains(domain, domain2)
 
 

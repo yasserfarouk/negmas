@@ -229,7 +229,7 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         )
 
     @abstractmethod
-    def _to_xml_str(self, indx: int, enumerate_integer=True):
+    def _to_xml_str(self, indx: int):
         ...
 
     @abstractmethod
@@ -361,4 +361,4 @@ class DiscreteIssue(Issue, ABC):
         return v in self._values
 
     def __getitem__(self, indx):
-        return self.value(indx)
+        return self.values(indx)

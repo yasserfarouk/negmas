@@ -148,8 +148,9 @@ class OutcomeSpace(Container, Protocol):
         """Checks whether there are no continua components of the space"""
         return isinstance(self, DiscreteOutcomeSpace)
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         """All outcome spaces must be hashable"""
+        return hash(vars(self))
 
 
 @runtime_checkable
@@ -238,6 +239,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         random.shuffle(outcomes)
         return outcomes[:n_outcomes]
 
+    @abstractmethod
     def limit_cardinality(
         self, max_cardinality: int | float = float("inf"), **kwargs
     ) -> "DiscreteOutcomeSpace":

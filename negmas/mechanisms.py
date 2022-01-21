@@ -22,7 +22,7 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import check_one_and_only, ensure_os
 from negmas.outcomes.protocols import OutcomeSpace
-from negmas.preferences import pareto_frontier
+from negmas.preferences import nash_point, pareto_frontier
 from negmas.types import NamedObject
 
 if TYPE_CHECKING:
@@ -193,7 +193,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # use that port.
         self.genius_port = genius_port if genius_port > 0 else get_free_tcp_port()
 
-        self.params = dict(
+        self.params: dict[str, Any] = dict(
             dynamic_entry=dynamic_entry,
             genius_port=genius_port,
             annotation=annotation,
@@ -954,17 +954,33 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def pareto_frontier(
         self, n_max=None, sort_by_welfare=True
-    ) -> tuple[list[tuple[float]], list["Outcome"]]:
+    ) -> tuple[list[tuple[float]], list[Outcome]]:
         ufuns = self._get_preferencess()
         if any(_ is None for _ in ufuns):
-            return [], []
+            raise ValueError(
+                "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
+            )
         frontier, indices = pareto_frontier(
             ufuns=ufuns,
             n_discretization=None,
             sort_by_welfare=sort_by_welfare,
             outcomes=self.discrete_outcomes(n_max=n_max),
         )
+        if frontier is None:
+            raise ValueError("Cound not find the pareto-frontier")
         return frontier, [self.discrete_outcomes(n_max=n_max)[_] for _ in indices]
+
+    def nash_point(
+        self, n_max=None, frontier: list[tuple[float]] | None = None
+    ) -> tuple[tuple[float], Outcome]:
+        ufuns = self._get_preferencess()
+        if not frontier:
+            frontier, _ = self.pareto_frontier(n_max)
+        outcomes = self.discrete_outcomes(n_max=n_max)
+        nash_utils, indx = nash_point(ufuns, frontier, outcomes=outcomes)
+        if not nash_utils or indx is None:
+            raise ValueError("Cannot find the nash-point")
+        return nash_utils, frontier[indx]
 
     def __str__(self):
         d = self.__dict__.copy()
@@ -996,6 +1012,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def extra_state(self) -> Optional[dict[str, Any]]:
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return dict()
+
+    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
+        warnings.warn(f"_get_ami is depricated. Use `get_nmi` instead of it")
+        return self.nmi
 
     def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
         return self.nmi

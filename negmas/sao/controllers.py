@@ -39,7 +39,8 @@ class SAOController(Controller):
          default_negotiator_params: Default paramters to pass to the default controller.
          auto_kill: Automatically kill the negotiator once its negotiation session is ended.
          name: Controller name
-         preferences: The ufun of the controller.
+         preferences: The preferences of the controller.
+         ufun: The ufun of the controller (overrides `preferences`).
     """
 
     def __init__(
@@ -49,13 +50,17 @@ class SAOController(Controller):
         auto_kill=False,
         name=None,
         preferences=None,
+        ufun=None,
     ):
+        if ufun is not None:
+            preferences = ufun
         super().__init__(
             default_negotiator_type=default_negotiator_type,
             default_negotiator_params=default_negotiator_params,
             auto_kill=auto_kill,
             name=name,
             preferences=preferences,
+            ufun=ufun,
         )
 
     def before_join(
@@ -167,7 +172,7 @@ class SAOSyncController(SAOController):
 
     Args:
 
-        global_preferences: If true, the controller assumes that the ufun is only
+        global_ufun: If true, the controller assumes that the ufun is only
                      defined globally for the complete set of negotiations
 
     Remarks:
@@ -179,7 +184,7 @@ class SAOSyncController(SAOController):
 
     """
 
-    def __init__(self, *args, global_preferences=False, **kwargs):
+    def __init__(self, *args, global_ufun=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.__offers: Dict[str, "Outcome"] = {}
         """Keeps the last offer received for each negotiation"""
@@ -191,7 +196,7 @@ class SAOSyncController(SAOController):
         """Keeps the last state received for each negotiation"""
         self.__n_waits: Dict[str, int] = defaultdict(int)
         """The number of contiguous waits sent for every partner"""
-        self.__global_preferences = global_preferences
+        self.__global_ufun = global_ufun
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
         # if there are no proposals yet, get first proposals
@@ -203,7 +208,7 @@ class SAOSyncController(SAOController):
             proposal = self.__proposals.pop(negotiator_id)
         else:
             # if there was no proposal, get one. Note that `None` is a valid proposal
-            if self.__global_preferences:
+            if self.__global_ufun:
                 self.__proposals = self.first_proposals()
                 proposal = self.__proposals.pop(negotiator_id)
             else:

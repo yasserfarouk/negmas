@@ -18,7 +18,7 @@ class ContinuousIssue(RangeIssue):
         self._n_levels = n_levels
         self.delta = (self.max_value - self.min_value) / self._n_levels
 
-    def _to_xml_str(self, indx, enumerate_integer=True):
+    def _to_xml_str(self, indx):
         return (
             f'    <issue etype="real" index="{indx + 1}" name="{self.name}" type="real" vtype="real">\n'
             f'        <range lowerbound="{self._values[0]}" upperbound="{self._values[1]}"></range>\n    </issue>\n'
@@ -58,7 +58,7 @@ class ContinuousIssue(RangeIssue):
         )
 
     def ordered_value_generator(
-        self, n: int = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
+        self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
     ) -> Generator:
         if n is None:
             raise ValueError("Real valued issue with no discretization value")

@@ -77,7 +77,7 @@ from negmas.genius.gnegotiators import (
     Yushu,
     YXAgent,
 )
-from negmas.inout import Domain
+from negmas.inout import Scenario
 from negmas.sao.negotiators import ToughNegotiator
 
 TIMELIMIT = 30
@@ -85,8 +85,8 @@ STEPLIMIT = 50
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
-SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
-# SKIP_CONDITION = False
+# SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
+SKIP_CONDITION = False
 
 
 def do_test_genius_agent(
@@ -113,7 +113,7 @@ def do_test_genius_agent(
         time_limit=TIMELIMIT,
         must_agree_if_same_preferences=True,
     ):
-        domain = Domain.from_genius_folder(base_folder)
+        domain = Scenario.from_genius_folder(base_folder)
         neg = domain.make_session(
             n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False
         )

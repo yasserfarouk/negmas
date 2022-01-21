@@ -189,25 +189,25 @@ class SAOMechanism(Mechanism):
             )
         return added
 
-    def join(
-        self,
-        nmi: NegotiatorMechanismInterface,
-        state: MechanismState,
-        *,
-        preferences: Optional["Preferences"] = None,
-        role: str = "agent",
-    ) -> bool:
-        if not super().join(nmi, state, preferences=preferences, role=role):
-            return False
-        if not self.nmi.dynamic_entry and not any(
-            [a.capabilities.get("propose", False) for a in self.negotiators]
-        ):
-            self._current_proposer = None
-            self._last_checked_negotiator = -1
-            self._current_offer = None
-            self._n_accepting = 0
-            return False
-        return True
+    # def join(
+    #     self,
+    #     nmi: NegotiatorMechanismInterface,
+    #     state: MechanismState,
+    #     *,
+    #     preferences: Optional["Preferences"] = None,
+    #     role: str = "agent",
+    # ) -> bool:
+    #     if not super().join(nmi, state, preferences=preferences, role=role):
+    #         return False
+    #     if not self.nmi.dynamic_entry and not any(
+    #         [a.capabilities.get("propose", False) for a in self.negotiators]
+    #     ):
+    #         self._current_proposer = None
+    #         self._last_checked_negotiator = -1
+    #         self._current_offer = None
+    #         self._n_accepting = 0
+    #         return False
+    #     return True
 
     def set_sync_call(self, v: bool):
         self._sync_call = v

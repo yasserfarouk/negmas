@@ -21,6 +21,7 @@ __all__ = [
     "NegotiatorMechanismInterface",
     "MechanismState",
     "Value",
+    "AgentMechanismInterface",
 ]
 
 Value = Distribution
@@ -283,3 +284,7 @@ class NegotiatorMechanismInterface:
     def asdict(self):
         """Converts the object to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
+
+
+AgentMechanismInterface = NegotiatorMechanismInterface
+"""An alias for `NegotiatorMechanismInterface`"""

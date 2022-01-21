@@ -28,7 +28,11 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from .ufun import StationaryUtilityFunction
 from .value_fun import IdentityFun, LambdaFun, TableFun
 
-__all__ = ["LinearAdditiveUtilityFunction", "LinearUtilityFunction"]
+__all__ = [
+    "LinearUtilityAggregationFunction",
+    "LinearAdditiveUtilityFunction",
+    "LinearUtilityFunction",
+]
 
 NLEVELS = 20
 
@@ -68,7 +72,7 @@ def _random_mapping(issue: "Issue", normalized=False):
     )
 
 
-class LinearUtilityFunction(
+class LinearUtilityFunction(  # type: ignore
     StationaryUtilityFunction,
     IndIssues,
     XmlSerializable,
@@ -412,7 +416,7 @@ class LinearUtilityFunction(
         return super().extreme_outcomes(original_os, issues, outcomes, max_cardinality)
 
 
-class LinearAdditiveUtilityFunction(
+class LinearAdditiveUtilityFunction(  # type: ignore
     StationaryUtilityFunction,
     IndIssues,
     XmlSerializable,
@@ -803,3 +807,7 @@ class LinearAdditiveUtilityFunction(
             else (self.reserved_value * wscale * scale),
             name=self.name,
         )
+
+
+LinearUtilityAggregationFunction = LinearAdditiveUtilityFunction
+"""An alias for `LinearAdditiveUtilityFunction`"""

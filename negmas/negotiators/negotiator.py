@@ -60,6 +60,13 @@ class Negotiator(Rational, Notifiable, ABC):
         self.__owner = owner
 
     @property
+    def ami(self):
+        warnings.warn(
+            "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
+        )
+        return self._nmi
+
+    @property
     def nmi(self):
         return self._nmi
 

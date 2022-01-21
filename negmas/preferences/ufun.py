@@ -35,7 +35,7 @@ from .protocols import (
     UFunCrisp,
     UFunProb,
 )
-from .value_fun import MAX_CARINALITY, AffineFun, LinearFun, QuadraticFun, TriangularFun
+from .value_fun import MAX_CARINALITY, make_fun_from_xml
 
 if TYPE_CHECKING:
     from negmas.preferences import ComplexWeightedUtilityFunction
@@ -69,7 +69,7 @@ def ignore_unhashable(func):
     return wrapper
 
 
-class BaseUtilityFunction(
+class BaseUtilityFunction(  # type: ignore I know that Preferences implement outcome_space!!
     Preferences,
     Randomizable,
     PartiallyNormalizable,
@@ -895,70 +895,9 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
                         found_values = True
                         issue_info[issue_key]["map_type"] = "dict"
                     elif item.tag == "evaluator":
-                        if item.attrib["ftype"] == "linear":
-                            offset = item.attrib.get(
-                                "offset",
-                                item.attrib.get(
-                                    "parameter0", item.attrib.get("offset", 0.0)
-                                ),
-                            )
-                            slope = item.attrib.get(
-                                "slope",
-                                item.attrib.get(
-                                    "parameter1", item.attrib.get("slope", 1.0)
-                                ),
-                            )
-                            offset, slope = float(offset), float(slope)
-                            found_issues[issue_key] = (
-                                AffineFun(bias=offset, slope=slope)
-                                if offset != 0
-                                else LinearFun(slope=slope)
-                            )
-                            issue_info[issue_key]["map_type"] = (
-                                "linear" if offset == 0 else "affine"
-                            )
-                        elif item.attrib["ftype"] == "quadratic":
-                            offset = float(
-                                item.attrib.get(
-                                    "parameter0", item.attrib.get("offset", 0.0)
-                                )
-                            )
-                            a1 = float(
-                                item.attrib.get(
-                                    "parameter1", item.attrib.get("a1", 1.0)
-                                )
-                            )
-                            a2 = float(
-                                item.attrib.get(
-                                    "parameter2", item.attrib.get("a2", 1.0)
-                                )
-                            )
-                            found_issues[issue_key] = QuadraticFun(
-                                a1=a1, a2=a2, bias=offset
-                            )
-                            issue_info[issue_key]["map_type"] = "quadratic"
-                        elif item.attrib["ftype"] == "triangular":
-                            strt = float(
-                                item.attrib.get(
-                                    "parameter0", item.attrib.get("start", 0.0)
-                                )
-                            )
-                            end = float(
-                                item.attrib.get(
-                                    "parameter1", item.attrib.get("end", 1.0)
-                                )
-                            )
-                            middle = float(
-                                item.attrib.get(
-                                    "parameter2", item.attrib.get("middle", 1.0)
-                                )
-                            )
-                            found_issues[issue_key] = TriangularFun(
-                                start=strt, end=end, middle=middle
-                            )
-                            issue_info[issue_key]["map_type"] = "triangular"
-                        else:
-                            raise ValueError(f'Unknown ftype {item.attrib["ftype"]}')
+                        _f, _name = make_fun_from_xml(item)
+                        found_issues[issue_key] = _f
+                        issue_info[issue_key]["map_type"] = _name
                         found_values = True
                 if not found_values and issue_key in found_issues.keys():
                     found_issues.pop(issue_key, None)

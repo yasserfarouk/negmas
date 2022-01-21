@@ -8,13 +8,13 @@ import numpy as np
 
 from negmas.helpers.numeric import sample
 from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
 from negmas.outcomes.range_issue import RangeIssue
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 __all__ = ["ContiguousIssue"]
 
 
-class ContiguousIssue(RangeIssue):
+class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
     def __init__(
         self,
         values: int | tuple[int, int],
@@ -26,22 +26,17 @@ class ContiguousIssue(RangeIssue):
         super().__init__(values, name, id)
         self._n_values = values[1] - values[0] + 1  # type: ignore
 
-    @property
-    def cardinality(self) -> int:
-        return self.max_value - self.min_value + 1
+    def _to_xml_str(self, indx):
+        return (
+            f'    <issue etype="integer" index="{indx + 1}" name="{self.name}" type="integer" vtype="integer"'
+            f' lowerbound="{self._values[0]}" upperbound="{self._values[1]}" />\n'
+        )
 
-    def _to_xml_str(self, indx, enumerate_integer=False):
-        if not enumerate_integer:
-            return (
-                f'    <issue etype="integer" index="{indx + 1}" name="{self.name}" type="integer" vtype="integer"'
-                f' lowerbound="{self._values[0]}" upperbound="{self._values[1]}" />\n'
-            )
-
-        output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="integer">\n'
-        for i, v in enumerate(range(self._values[0], self._values[1] + 1)):
-            output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
-        output += "    </issue>\n"
-        return output
+        # output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="integer">\n'
+        # for i, v in enumerate(range(self._values[0], self._values[1] + 1)):
+        #     output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
+        # output += "    </issue>\n"
+        # return output
 
     @property
     def all(self) -> Generator:
@@ -73,7 +68,7 @@ class ContiguousIssue(RangeIssue):
             )
 
         beg = (self.cardinality - n) // 2
-        return ContiguousIssue((beg, beg + n), name=self.name + f"{n}")
+        return ContiguousIssue((int(beg), int(beg + n)), name=self.name + f"{n}")
 
     def rand(self) -> int:
         """Picks a random valid value."""

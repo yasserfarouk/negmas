@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from functools import lru_cache, reduce
-from math import e, log, pow
+from math import cos, e, log, pow, sin
 from operator import add
 from typing import Any, Callable, Iterable
 
@@ -15,7 +15,7 @@ from negmas.helpers.misc import (
     nonmonotonic_multi_minmax,
 )
 from negmas.helpers.types import is_lambda_function
-from negmas.outcomes.base_issue import Issue
+from negmas.outcomes.base_issue import DiscreteIssue, Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 
 from .protocols import MultiIssueFun, SingleIssueFun
@@ -234,9 +234,13 @@ class LambdaFun(SingleIssueFun):
         )
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
-        values = list(issue.all)
-        return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
-            indx, issue, bias
+        if issue.is_discrete():
+            values = list(issue.all)
+            return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
+                indx, issue, bias
+            )
+        raise ValueError(
+            f"LambdaFun with a continuous issue cannot be converted to XML"
         )
 
 
@@ -307,7 +311,7 @@ class PolynomialFun(SingleIssueFun):
         return PolynomialFun(bias=self.bias + offset, a=self.a)
 
     def scale_by(self, scale: float) -> PolynomialFun:
-        return PolynomialFun(bias=self.bias * scale, a=[_ * scale for _ in self.a])
+        return PolynomialFun(bias=self.bias * scale, a=tuple(_ * scale for _ in self.a))
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
         issue_name = issue.name
@@ -425,13 +429,110 @@ class ExponentialFun(SingleIssueFun):
 
 
 @dataclass
+class CosFun(SingleIssueFun):
+    multiplier: float = 1.0
+    bias: float = 0.0
+    phase: float = 0.0
+    amplitude: float = 1.0
+
+    def __call__(self, x: float):
+        return self.amplitude * (cos(self.multiplier * x + self.phase)) + self.bias
+
+    @lru_cache
+    def minmax(self, input) -> tuple[float, float]:
+        # todo: implement this exactly without sampling
+        return nonmonotonic_minmax(input, self)
+
+    def shift_by(self, offset: float) -> CosFun:
+        return CosFun(
+            bias=self.bias + offset,
+            multiplier=self.multiplier,
+            phase=self.phase,
+            amplitude=self.amplitude,
+        )
+
+    def scale_by(self, scale: float) -> CosFun:
+        return CosFun(
+            amplitude=self.amplitude * scale,
+            bias=self.bias * scale,
+            multiplier=self.multiplier,
+            phase=self.phase,
+        )
+
+    def xml(self, indx: int, issue: Issue, bias) -> str:
+        issue_name = issue.name
+        if issue.is_continuous():
+            output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
+            output += f'    <evaluator ftype="cos" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+        elif isinstance(issue, ContiguousIssue):
+            output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
+            output += f'    <evaluator ftype="cos" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+        else:
+            vals = list(issue.all)  # type: ignore
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        output += "</issue>\n"
+        return output
+
+
+@dataclass
+class SinFun(SingleIssueFun):
+    multiplier: float = 1.0
+    bias: float = 0.0
+    phase: float = 0.0
+    amplitude: float = 1.0
+
+    def __call__(self, x: float):
+        return self.amplitude * (sin(self.multiplier * x + self.phase)) + self.bias
+
+    @lru_cache
+    def minmax(self, input) -> tuple[float, float]:
+        # todo: implement this exactly without sampling
+        return nonmonotonic_minmax(input, self)
+
+    def shift_by(self, offset: float) -> SinFun:
+        return SinFun(
+            bias=self.bias + offset,
+            multiplier=self.multiplier,
+            phase=self.phase,
+            amplitude=self.amplitude,
+        )
+
+    def scale_by(self, scale: float) -> SinFun:
+        return SinFun(
+            amplitude=self.amplitude * scale,
+            bias=self.bias * scale,
+            multiplier=self.multiplier,
+            phase=self.phase,
+        )
+
+    def xml(self, indx: int, issue: Issue, bias) -> str:
+        issue_name = issue.name
+        if issue.is_continuous():
+            output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
+            output += f'    <evaluator ftype="sin" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+        elif isinstance(issue, ContiguousIssue):
+            output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
+            output += f'    <evaluator ftype="sin" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
+        else:
+            vals = list(issue.all)  # type: ignore
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
+                indx, issue, bias
+            )
+        output += "</issue>\n"
+        return output
+
+
+@dataclass
 class LogFun(SingleIssueFun):
     tau: float
     bias: float = 0
     base: float = e
+    scale: float = 1.0
 
     def __call__(self, x: float):
-        return log(self.tau * x, base=self.base) + self.bias
+        return self.scale * log(self.tau * x, base=self.base) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -439,21 +540,26 @@ class LogFun(SingleIssueFun):
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> LogFun:
-        return LogFun(bias=self.bias + offset, tau=self.tau)
+        return LogFun(
+            bias=self.bias + offset, tau=self.tau, scale=self.scale, base=self.base
+        )
 
-    def scale_by(self, scale: float) -> LambdaFun:
-        return LambdaFun(
-            lambda x: log(self.tau * x, base=self.base) * scale, bias=self.bias * scale
+    def scale_by(self, scale: float) -> LogFun:
+        return LogFun(
+            bias=self.bias * scale,
+            tau=self.tau,
+            scale=self.scale * scale,
+            base=self.base,
         )
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
+            output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base} paramter3={self.scale}"></evaluator>\n'
         elif isinstance(issue, ContiguousIssue):
             output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
+            output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base} parameter3={self.scale}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
@@ -550,3 +656,34 @@ class LambdaMultiFun(MultiIssueFun):
         if self.max_value is not None:
             mx = min(mx, self.max_value)
         return mn, mx
+
+
+def make_fun_from_xml(item) -> tuple[SingleIssueFun, str]:
+
+    if item.attrib["ftype"] == "linear":
+        offset = item.attrib.get(
+            "offset",
+            item.attrib.get("parameter0", item.attrib.get("offset", 0.0)),
+        )
+        slope = item.attrib.get(
+            "slope",
+            item.attrib.get("parameter1", item.attrib.get("slope", 1.0)),
+        )
+        offset, slope = float(offset), float(slope)
+        if offset != 0:
+            return AffineFun(bias=offset, slope=slope), "affine"
+        else:
+            return LinearFun(slope=slope), "linear"
+    elif item.attrib["ftype"] == "quadratic":
+        offset = float(item.attrib.get("parameter0", item.attrib.get("offset", 0.0)))
+        a1 = float(item.attrib.get("parameter1", item.attrib.get("a1", 1.0)))
+        a2 = float(item.attrib.get("parameter2", item.attrib.get("a2", 1.0)))
+        return QuadraticFun(a1=a1, a2=a2, bias=offset), "quadratic"
+    elif item.attrib["ftype"] == "triangular":
+        strt = float(item.attrib.get("parameter0", item.attrib.get("start", 0.0)))
+        end = float(item.attrib.get("parameter1", item.attrib.get("end", 1.0)))
+        middle = float(item.attrib.get("parameter2", item.attrib.get("middle", 1.0)))
+        return TriangularFun(start=strt, end=end, middle=middle), "triangular"
+    else:
+        # todo: implement all other functions defined in value_fun.py
+        raise ValueError(f'Unknown ftype {item.attrib["ftype"]}')
