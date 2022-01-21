@@ -18,13 +18,17 @@ for fils in ../notebooks/tutorials/*_files ; do
     mv $fils ./tutorials
 done
 mv ../notebooks/overview.rst .
+mkdir ./figs
+for ext in png jpg pdf; do
+	cp ../notebooks/figs/*.$ext ./figs
+
 mkdir ./tutorials/notebooks
-for notebook in ../notebooks/tutorials/*.ipynb ; do
-    cp $notebook ./tutorials/notebooks
+for f in ../notebooks/tutorials/*.ipynb ; do
+    cp $f ./tutorials/notebooks
 done
 
-for notebook in ../notebooks/tutorials/*.gif ; do
-    cp $notebook ./tutorials/notebooks
+for f in ../notebooks/tutorials/*.gif ; do
+    cp $f ./tutorials/notebooks
 done
 for rstfile in ./tutorials/*.rst; do
     filename1=${rstfile##*/}
