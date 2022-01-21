@@ -112,8 +112,6 @@ specific modules, advanced and helper modules.
       the library including mixins for logging.
    -  **inout** Provides functions to load and store XML Genius domains
       and utility functions.
-   -  **java** [Depricated] Provides an interface to JNegMAS allowing
-      agents and negotiators to be developed in Java.
    -  **tournaments** Supports creating and running tournaments to
       compare agents and negotiators.
    -  **checkpoints** Supports saving and reloading world simulations
