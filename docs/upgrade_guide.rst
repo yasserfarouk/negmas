@@ -27,7 +27,7 @@ to_java                       to_dict                              Java interfac
 =================================  ===================================  ===================================================================
 import negmas.utilities            import negmas.preferences            If not done, a deprication warning will be issued.
 load_genius_domain_from_folder     Scenario.from_genius_folder          Some of the parameters are no longer supported. Check your use-case
-LinearAggregationUtilityFunction   LinearAdditiveUtilityFunction        The old class name is still provided.
+LinearUtilityAggregationFunction   LinearAdditiveUtilityFunction        The old class name is still provided.
 ami                                nmi                                  Member of all `Negotiator` objects
 AgentMechanismInterface            NegotiatorMechanismInterface         The class was renamed to better reflect its role. The old name still works but is depricated
 =================================  ===================================  ===================================================================
