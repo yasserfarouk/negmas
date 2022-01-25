@@ -1,3 +1,5 @@
+import pytest
+
 from negmas.genius import Atlas3, NiceTitForTat, genius_bridge_is_running
 from negmas.outcomes import make_issue
 from negmas.preferences import LinearUtilityFunction as U
@@ -41,6 +43,7 @@ def test_can_run_world():
     )
 
 
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_can_run_tournament():
     issues = [make_issue(10, "quantity"), make_issue(5, "price")]
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
@@ -74,6 +77,7 @@ def test_can_run_tournament():
     )
 
 
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_can_run_tournament_from_generator():
     from negmas.tournaments.neg import random_discrete_domains
 
