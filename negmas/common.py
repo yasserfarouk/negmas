@@ -112,9 +112,6 @@ class MechanismState:
         """Converts the outcome to a dict containing all fields"""
         return {_.name: self.__dict__[_.name] for _ in fields(self)}
 
-    class Java:
-        implements = ["jnegmas.common.MechanismState"]
-
 
 @dataclass
 class NegotiatorMechanismInterface:

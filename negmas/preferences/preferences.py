@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import TYPE_CHECKING, Any
 
 from negmas.helpers import snake_case
@@ -15,6 +15,7 @@ from .protocols import BasePref, HasReservedOutcome
 __all__ = ["Preferences"]
 
 if TYPE_CHECKING:
+    from negmas import Rational
     from negmas.outcomes.base_issue import Issue
     from negmas.outcomes.common import Outcome
     from negmas.outcomes.protocols import OutcomeSpace
@@ -28,6 +29,10 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
         outcome_space: The outcome-space over which the preferences are defined
     """
 
+    outcome_space: OutcomeSpace | None
+    reserved_outcome: Outcome
+    owner: Rational | None = None
+
     def __init__(
         self,
         *args,
@@ -37,6 +42,7 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
         reserved_outcome: Outcome = None,
         **kwargs,
     ) -> None:
+        self.owner = None
         check_one_at_most(outcome_space, issues, outcomes)
         super().__init__(*args, **kwargs)
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)
@@ -89,13 +95,3 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
         while isinstance(u, DiscountedUtilityFunction):
             u = u.ufun
         return self.type
-
-    @abstractmethod
-    def is_non_stationary(self):
-        """
-        Does the utiltiy of an outcome depend on the negotiation state?
-        """
-
-    @abstractmethod
-    def is_stationary(self) -> bool:
-        """Is the ufun stationary (i.e. utility value of an outcome is a constant)?"""

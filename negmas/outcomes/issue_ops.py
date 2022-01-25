@@ -87,7 +87,8 @@ def enumerate_issues(
 
 
 def enumerate_discrete_issues(issues: tuple[DiscreteIssue, ...]) -> list[Outcome]:
-    """Enumerates all outcomes of this set of discrete issues if possible
+    """
+    Enumerates all outcomes of this set of discrete issues if possible.
 
     Args:
         issues: A list of issues
@@ -99,12 +100,12 @@ def enumerate_discrete_issues(issues: tuple[DiscreteIssue, ...]) -> list[Outcome
 
 
 def issues_from_outcomes(
-    outcomes: list["Outcome"] | int,
+    outcomes: Iterable["Outcome"] | int,
     numeric_as_ranges: bool = True,
     issue_names: list[str] | None = None,
 ) -> tuple["DiscreteIssue", ...]:
     """
-    Create a set of issues given some outcomes
+    Create a set of issues given some outcomes.
 
     Args:
 
@@ -205,7 +206,8 @@ def issues_from_outcomes(
 
 
 def issues_to_xml_str(issues: tuple[Issue, ...]) -> str:
-    """Converts the list of issues into a well-formed xml string
+    """
+    Converts the list of issues into a well-formed xml string.
 
     Examples:
 
@@ -256,7 +258,8 @@ def issues_to_xml_str(issues: tuple[Issue, ...]) -> str:
 
 
 def issues_to_genius(issues: tuple[Issue, ...], file_name: PathLike) -> None:
-    """Exports a the domain issues to a GENIUS XML file.
+    """
+    Exports a the domain issues to a GENIUS XML file.
 
     Args:
 
@@ -306,7 +309,8 @@ def issues_from_xml_str(
     safe_parsing=True,
     n_discretization: int | None = None,
 ) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
-    """Exports a list/dict of issues from a GENIUS XML file.
+    """
+    Exports a list/dict of issues from a GENIUS XML file.
 
     Args:
 
@@ -458,7 +462,8 @@ def issues_from_genius(
     safe_parsing=True,
     n_discretization: int | None = None,
 ) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
-    """Imports a the domain issues from a GENIUS XML file.
+    """
+    Imports a the domain issues from a GENIUS XML file.
 
     Args:
 
@@ -501,7 +506,8 @@ def generate_issues(
     counts: Optional[list[int]] = None,
     names: Optional[list[str]] = None,
 ) -> tuple[Issue, ...]:
-    """Generates a set of issues with given parameters. Each is optionally repeated
+    """
+    Generates a set of issues with given parameters. Each is optionally repeated.
 
     Args:
 
@@ -534,7 +540,7 @@ def generate_issues(
 
 def discretize_and_enumerate_issues(
     issues: tuple[Issue, ...],
-    n_discretization: int = 10,
+    n_discretization: int | None = 10,
     max_cardinality: int = None,
 ) -> list["Outcome"]:
     """
@@ -561,7 +567,8 @@ def sample_outcomes(
     min_per_dim=5,
     expansion_policy=None,
 ) -> Optional[list["Outcome"]]:
-    """Discretizes the issue space and returns either a predefined number of outcomes or uniform samples
+    """
+    Discretizes the issue space and returns either a predefined number of outcomes or uniform samples.
 
     Args:
         issues: The issues describing the issue space to be discretized
@@ -749,7 +756,7 @@ def sample_issues(
     fail_if_not_enough=True,
 ) -> Iterable["Outcome"]:
     """
-    Samples some outcomes from the outcome space defined by the list of issues
+    Samples some outcomes from the outcome space defined by the list of issues.
 
     Args:
 
@@ -810,7 +817,7 @@ def combine_issues(
     value_sep="-",
 ) -> Optional["Issue"]:
     """
-    Combines multiple issues into a single issue
+    Combines multiple issues into a single issue.
 
     Args:
         issues: The issues to be combined

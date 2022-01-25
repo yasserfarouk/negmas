@@ -5,15 +5,15 @@ A rational agent is one that has some preferences.
 """
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING
 
-from negmas.preferences.protocols import UFunCrisp, UFunProb
-
-from ..preferences import BaseUtilityFunction, Preferences
 from .named import NamedObject
 
 if TYPE_CHECKING:
     from ..outcomes import Outcome
+    from ..preferences import BaseUtilityFunction, Preferences
+    from ..preferences.protocols import UFunCrisp, UFunProb
 
 __all__ = ["Rational"]
 
@@ -49,47 +49,73 @@ class Rational(NamedObject):
         super().__init__(name, id=id)
         if ufun:
             preferences = ufun
-        self._preferences = preferences
+        self._preferences: Preferences | None = preferences
         self._init_preferences = preferences
         self._preferences_modified = preferences is not None
+        self._set_pref_owner()
+
+    def _set_pref_owner(self):
+        if not self._preferences:
+            return
+        if self._preferences.owner is not None and self._preferences.owner is not self:
+            warnings.warn(
+                f"Entity {self.name} ({self.__class__.__name__}) is "
+                f"assigned preferences belonging to another agent "
+                f"({self._preferences.owner.name} of type {self.__class__.__name__})!!"
+            )
+
+        self._preferences.owner = self
 
     @property
-    def preferences(self):
+    def preferences(self) -> Preferences | None:
         """The utility function attached to that object"""
         return self._preferences
 
     @preferences.setter
     def preferences(self, value: Preferences):
         """Sets tha utility function."""
+        if value == self._preferences:
+            return
         self._preferences = value
+        self._set_pref_owner()
         self._preferences_modified = True
         self.on_preferences_changed()
 
     @property
     def crisp_ufun(self) -> UFunCrisp | None:
         """Returns the preferences if it is a CrispUtilityFunction else None"""
+        from negmas.preferences.protocols import UFunCrisp
+
         return self._preferences if isinstance(self._preferences, UFunCrisp) else None
 
     @crisp_ufun.setter
     def crisp_ufun(self, v: UFunCrisp):
+        from negmas.preferences.protocols import UFunCrisp
+
         if not isinstance(v, UFunCrisp):
             raise ValueError(f"Cannot assign a {type(v)} to crisp_ufun")
-        self._preferences = v
+        self.preferences = v  # type: ignore
 
     @property
     def prob_ufun(self) -> UFunProb | None:
         """Returns the preferences if it is a ProbUtilityFunction else None"""
+        from negmas.preferences.protocols import UFunProb
+
         return self._preferences if isinstance(self._preferences, UFunProb) else None
 
     @prob_ufun.setter
     def prob_ufun(self, v: UFunProb):
+        from negmas.preferences.protocols import UFunProb
+
         if not isinstance(v, UFunProb):
             raise ValueError(f"Cannot assign a {type(v)} to prob_ufun")
-        self._preferences = v
+        self.preferences = v  # type: ignore
 
     @property
     def ufun(self) -> BaseUtilityFunction | None:
         """Returns the preferences if it is a UtilityFunction else None"""
+        from ..preferences import BaseUtilityFunction
+
         return (
             self._preferences
             if isinstance(self._preferences, BaseUtilityFunction)
@@ -98,7 +124,7 @@ class Rational(NamedObject):
 
     @ufun.setter
     def ufun(self, v: BaseUtilityFunction):
-        self._preferences = v
+        self.preferences = v
 
     @property
     def has_preferences(self) -> bool:

@@ -17,7 +17,14 @@ class Aspiration(Protocol):
 
 
 class PolyAspiration(Aspiration):
-    """Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class."""
+    """
+    Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class.
+
+    Args:
+        max_aspiration: The aspiration level to start from (usually 1.0)
+        aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
+        above_reserved_value: If False, the lowest value for the aspiration curve will be set to zero instead of the reserved_value
+    """
 
     def __init__(
         self,
@@ -25,13 +32,6 @@ class PolyAspiration(Aspiration):
         aspiration_type: Union[str, int, float],
         above_reserved_value=True,
     ):
-        """
-
-        Args:
-            max_aspiration: The aspiration level to start from (usually 1.0)
-            aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
-            above_reserved_value: If False, the lowest value for the aspiration curve will be set to zero instead of the reserved_value
-        """
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
         self.exponent = 1.0

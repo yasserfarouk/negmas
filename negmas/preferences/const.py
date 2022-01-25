@@ -5,17 +5,16 @@ from typing import List
 
 from negmas.helpers import get_full_type_name, make_range
 from negmas.outcomes import Issue, Outcome
-from negmas.preferences.protocols import IndIssues, StationaryUFun
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 from .base import UtilityValue
-from .ufun import UtilityFunction
+from .ufun import StationaryUtilityFunction
 
 __all__ = ["ConstUtilityFunction"]
 
 
-class ConstUtilityFunction(IndIssues, UtilityFunction, XmlSerializable, StationaryUFun):
+class ConstUtilityFunction(StationaryUtilityFunction, XmlSerializable):
     def __init__(
         self,
         value: UtilityValue,
@@ -51,7 +50,7 @@ class ConstUtilityFunction(IndIssues, UtilityFunction, XmlSerializable, Stationa
         return LinearUtilityFunction(
             [0.0] * len(issues),
             float(self.value),
-            issues=self.issues,
+            issues=issues,
             name=self.name,
             id=self.id,
         ).xml(issues)

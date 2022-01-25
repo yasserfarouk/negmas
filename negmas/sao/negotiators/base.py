@@ -267,6 +267,3 @@ class SAONegotiator(Negotiator):
             - This function guarantees that no agents can propose something with a utility value
 
         """
-
-    class Java:
-        implements = ["jnegmas.sao.SAONegotiator"]

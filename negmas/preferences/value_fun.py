@@ -15,7 +15,7 @@ from negmas.helpers.misc import (
     nonmonotonic_multi_minmax,
 )
 from negmas.helpers.types import is_lambda_function
-from negmas.outcomes.base_issue import DiscreteIssue, Issue
+from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 
 from .protocols import MultiIssueFun, SingleIssueFun
@@ -235,7 +235,7 @@ class LambdaFun(SingleIssueFun):
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         if issue.is_discrete():
-            values = list(issue.all)
+            values = list(issue.all)  # type: ignore (I know it is discrete)
             return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
                 indx, issue, bias
             )

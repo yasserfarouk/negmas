@@ -8,6 +8,10 @@ __all__ = ["CallableIssue"]
 
 
 class CallableIssue(Issue):
+    """
+    An `Issue` with a callable for generating values. This is a very limited issue type and most operations are not supported on it.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         super().__init__(values, name, id)
         self._value_type = object

@@ -1,7 +1,8 @@
+"""
+Acceptance modeling.
+"""
 from __future__ import annotations
 
-"""Acceptance modeling.
-"""
 import random
 from abc import ABC, abstractmethod
 from enum import Enum

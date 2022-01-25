@@ -1,6 +1,8 @@
+"""
+Implements single text negotiation mechanisms
+"""
 from __future__ import annotations
 
-"""Implements single text negotiation mechanisms"""
 import time
 from copy import deepcopy
 from dataclasses import dataclass, field

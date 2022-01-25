@@ -1,6 +1,6 @@
 import pytest
 
-from negmas.outcomes import ContinuousInfiniteIssue, CountableInfiniteIssue
+from negmas.outcomes import ContinuousInfiniteIssue, CountableInfiniteIssue, make_os
 from negmas.outcomes.base_issue import make_issue
 from negmas.outcomes.callable_issue import CallableIssue
 from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
@@ -58,8 +58,7 @@ def test_contains_discrete():
         assert 0 in issue
         assert 11 not in issue
         assert 0.0 in issue
-        with pytest.raises(TypeError):
-            assert "abc" not in issue
+        assert "abc" not in issue
 
 
 def test_contains_continuous():
@@ -67,8 +66,7 @@ def test_contains_continuous():
     assert 0 in issue
     assert 11 not in issue
     assert 4.56227344383 in issue
-    with pytest.raises(TypeError):
-        assert "abc" not in issue
+    assert "abc" not in issue
 
 
 @pytest.mark.parametrize(
@@ -89,3 +87,57 @@ def test_can_loop_over_continuous_issue():
         assert len(issue) > 0  # type: ignore I know that this is a discrete issue and len is applicable to it
     for _ in issue:
         pass
+
+
+def test_values_contained_in_issues_contiguous():
+    i1, i2 = make_issue(10), make_issue(5)
+    i3 = make_issue([1, 3, 4, 7])
+    i4 = make_issue(["1", "2"])
+    i5 = make_issue((0, 10))
+    for v in i1:
+        assert v in i1
+
+    assert i2 in i1
+    assert not i1 in i2
+    assert i3 in i1
+    assert not i1 in i3
+    assert not i2 in i3
+    for ix in (i1, i2, i3):
+        assert not i4 in ix
+        assert not ix in i4
+
+    for ix in (i1, i2, i3):
+        assert ix in i5
+        assert i5 not in ix
+
+    assert i4 not in i5
+    assert i5 not in i4
+
+    for v in i2:
+        assert v in i1
+    for v in i3:
+        assert v in i1
+
+    for x in (i1, i2, i3, i4, i5):
+        assert x in x
+
+
+def test_values_contained_in_outcome_spaces():
+    a = make_os((make_issue(10), make_issue(list("abcdefg")), make_issue((1.0, 4.0))))
+    b = make_os((make_issue(10), make_issue(list("adefg")), make_issue((1.0, 3.0))))
+    c = make_os((make_issue(10), make_issue(list("adefgz")), make_issue((1.0, 3.0))))
+    assert (4, "d", 3.5) in a
+    assert (4, "d", 13.5) not in a
+
+    for x in (a, b, c):
+        assert x in x
+    assert b in a
+    assert not a in b
+    assert c not in a
+
+    assert not make_issue(10) in a
+    assert make_issue(10, name=a.issues[0].name) in a
+    for i in a.issues:
+        assert i in a
+        assert not i in b
+        assert i not in c

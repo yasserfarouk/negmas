@@ -7,7 +7,7 @@ from typing import Generator
 import numpy as np
 
 from negmas.helpers.numeric import sample
-from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.base_issue import DiscreteIssue, Issue
 from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
 from negmas.outcomes.range_issue import RangeIssue
 
@@ -15,6 +15,10 @@ __all__ = ["ContiguousIssue"]
 
 
 class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
+    """
+    A `RangeIssue` (also a `DiscreteCardinalIssue`) representing a contiguous range of integers.
+    """
+
     def __init__(
         self,
         values: int | tuple[int, int],
@@ -110,3 +114,11 @@ class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
         if index < 0 or index > self.cardinality - 1:
             raise IndexError(index)
         return self.min_value + index
+
+    def contains(self, issue: Issue) -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        return (
+            issubclass(issue.value_type, numbers.Integral)
+            and issue.min_value >= self.min_value
+            and issue.max_value <= self.max_value
+        )

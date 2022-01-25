@@ -10,7 +10,7 @@ from negmas.preferences import Preferences
 from negmas.types import Rational
 
 if TYPE_CHECKING:
-    from negmas.preferences import Preferences
+    from negmas.preferences import BaseUtilityFunction
     from negmas.situated import Agent
 
     from .negotiator import Negotiator
@@ -22,11 +22,14 @@ __all__ = [
 ]
 
 NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
-"""The return type of `negotiators` member of `Controller`."""
+"""
+The return type of `negotiators` member of `Controller`.
+"""
 
 
 class Controller(Rational):
-    """Controls the behavior of multiple negotiators in multiple negotiations
+    """
+    Controls the behavior of multiple negotiators in multiple negotiations.
 
     The controller class MUST implement any methods of the negotiator class it
     is controlling with one added argument negotiator_id (str) which represents
@@ -78,7 +81,7 @@ class Controller(Rational):
     def negotiators(self) -> Dict[str, NegotiatorInfo]:
         """
         Returns a dictionary mapping negotiator ID to the a tuple containing
-        the negotiator and its context
+        the negotiator and its context.
         """
         return self._negotiators
 
@@ -86,6 +89,7 @@ class Controller(Rational):
     def active_negotiators(self) -> Dict[str, NegotiatorInfo]:
         """
         Returns the negotiators whose negotiations are running.
+
         Returns a dictionary mapping negotiator ID to the a tuple containing the negotiator
         and its context
         """
@@ -98,7 +102,9 @@ class Controller(Rational):
 
     @property
     def states(self) -> Dict[str, MechanismState]:
-        """Gets the current states of all negotiations as a mapping from negotiator ID to mechanism"""
+        """
+        Gets the current states of all negotiations as a mapping from negotiator ID to mechanism.
+        """
         return dict(
             zip(
                 self._negotiators.keys(),
@@ -171,7 +177,7 @@ class Controller(Rational):
         cntxt: Any = None,
     ) -> None:
         """
-        Adds a negotiator to the controller
+        Adds a negotiator to the controller.
 
         Args:
             negotaitor: The negotaitor to add
@@ -333,6 +339,7 @@ class Controller(Rational):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
+        ufun: Optional["BaseUtilityFunction"] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -342,7 +349,8 @@ class Controller(Rational):
             negotiator_id: The negotiator ID
             nmi  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
-            preferences (UtilityFunction): The ufun function to use before any discounting.
+            preferences (Preferences): The preferences.
+            ufun (BaseUtilityFunction): The ufun function to use before any discounting (overrides preferences)
             role (str): role of the agent.
 
         Returns:
@@ -350,6 +358,8 @@ class Controller(Rational):
             negotiation.
 
         """
+        if ufun is not None:
+            preferences = ufun
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
@@ -380,7 +390,8 @@ class Controller(Rational):
         return self.call(negotiator, "on_negotiation_start", state=state)
 
     def on_round_start(self, negotiator_id: str, state: MechanismState) -> None:
-        """A call back called at each negotiation round start
+        """
+        A call back called at each negotiation round start
 
         Args:
             negotiator_id: The negotiator ID
@@ -422,7 +433,8 @@ class Controller(Rational):
         return self.call(negotiator, "on_round_end", state=state)
 
     def on_leave(self, negotiator_id: str, state: MechanismState) -> None:
-        """A call back called after leaving a negotiation.
+        """
+        A call back called after leaving a negotiation.
 
         Args:
             negotiator_id: The negotiator ID

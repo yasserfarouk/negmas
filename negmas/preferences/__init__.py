@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 # -*- coding: utf-8 -*-
 r"""Models basic types of utility functions.
 
@@ -22,7 +20,9 @@ Notes:
 
 
 """
+from __future__ import annotations
 from .base import *
+from .mixins import *
 from .protocols import *
 from .preferences import *
 from .ufun import *
@@ -50,4 +50,5 @@ __all__ = (
     + probabilistic.__all__
     + random_ufun.__all__
     + const.__all__
+    + mixins.__all__
 )

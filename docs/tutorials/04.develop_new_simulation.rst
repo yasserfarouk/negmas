@@ -1007,6 +1007,3 @@ and location using this set of parameters
 
 We can now continue to the next tutorials in which we will develop
 agents for your newly created world.
-
-
-Download :download:`Notebook<notebooks/04.develop_new_simulation.ipynb>`.

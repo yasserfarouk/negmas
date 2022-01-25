@@ -85,8 +85,8 @@ STEPLIMIT = 50
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
-# SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
-SKIP_CONDITION = False
+SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
+# SKIP_CONDITION = False
 
 
 def do_test_genius_agent(

@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """
 Tournament generation and management.
 
 """
+from __future__ import annotations
+
 import concurrent.futures as futures
 import copy
 import hashlib

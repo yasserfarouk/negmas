@@ -17,7 +17,8 @@ __all__ = [
 
 
 class EvaluatorNegotiator(EvaluatorMixin, Negotiator):
-    """A negotiator that can be asked to evaluate outcomes using its internal ufun.
+    """
+    A negotiator that can be asked to evaluate outcomes using its internal ufun.
 
     Th change the way it evaluates outcomes, override `evaluate`.
 
@@ -30,7 +31,8 @@ class EvaluatorNegotiator(EvaluatorMixin, Negotiator):
 
 
 class RealComparatorNegotiator(RealComparatorMixin, Negotiator):
-    """A negotiator that can be asked to evaluate outcomes using its internal ufun.
+    """
+    A negotiator that can be asked to evaluate outcomes using its internal ufun.
 
     Th change the way it evaluates outcomes, override `compare_real`
 
@@ -43,7 +45,8 @@ class RealComparatorNegotiator(RealComparatorMixin, Negotiator):
 
 
 class BinaryComparatorNegotiator(BinaryComparatorMixin, Negotiator):
-    """A negotiator that can be asked to compare two outcomes using is_better. By default is just consults the ufun.
+    """
+    A negotiator that can be asked to compare two outcomes using is_better. By default is just consults the ufun.
 
     To change that behavior, override `is_better`.
 
@@ -56,7 +59,8 @@ class BinaryComparatorNegotiator(BinaryComparatorMixin, Negotiator):
 
 
 class NLevelsComparatorNegotiator(NLevelsComparatorMixin, Negotiator):
-    """A negotiator that can be asked to compare two outcomes using compare_nlevels which returns the strength of
+    """
+    A negotiator that can be asked to compare two outcomes using compare_nlevels which returns the strength of
     the difference between two outcomes as an integer from [-n, n] in the C compare sense.
     By default is just consults the ufun.
 
@@ -73,7 +77,8 @@ class NLevelsComparatorNegotiator(NLevelsComparatorMixin, Negotiator):
 
 
 class RankerWithWeightsNegotiator(RankerWithWeightsMixin, Negotiator):
-    """A negotiator that can be asked to rank outcomes returning rank and weight. By default is just consults the ufun.
+    """
+    A negotiator that can be asked to rank outcomes returning rank and weight. By default is just consults the ufun.
 
     To change that behavior, override `rank_with_weights`.
 
@@ -87,7 +92,8 @@ class RankerWithWeightsNegotiator(RankerWithWeightsMixin, Negotiator):
 
 
 class RankerNegotiator(RankerMixin, Negotiator):
-    """A negotiator that can be asked to rank outcomes. By default is just consults the ufun.
+    """
+    A negotiator that can be asked to rank outcomes. By default is just consults the ufun.
 
     To change that behavior, override `rank`.
 
@@ -101,7 +107,8 @@ class RankerNegotiator(RankerMixin, Negotiator):
 
 
 class SorterNegotiator(SorterMixin, Negotiator):
-    """A negotiator that can be asked to rank outcomes returning rank without weight.
+    """
+    A negotiator that can be asked to rank outcomes returning rank without weight.
     By default is just consults the ufun.
 
     To change that behavior, override `sort`.

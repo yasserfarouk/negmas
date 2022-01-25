@@ -72,9 +72,8 @@ def _random_mapping(issue: "Issue", normalized=False):
     )
 
 
-class LinearUtilityFunction(  # type: ignore
+class LinearUtilityFunction(
     StationaryUtilityFunction,
-    IndIssues,
     XmlSerializable,
 ):
     r"""
@@ -123,13 +122,17 @@ class LinearUtilityFunction(  # type: ignore
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        if not isinstance(self.outcome_space, IndependentIssuesOS):
+        if self.outcome_space and not isinstance(
+            self.outcome_space, IndependentIssuesOS
+        ):
             raise ValueError(
                 f"Cannot create {self.type} ufun with an outcomespace without indpendent issues"
                 f".\n Given OS: {self.outcome_space} of type {type(self.outcome_space)}\n"
                 f"Given args {kwargs}"
             )
-        self.issues = self.outcome_space.issues
+        self.issues: list[Issue] | None = (
+            list(self.outcome_space.issues) if self.outcome_space else None
+        )
         if weights is None:
             if not self.issues:
                 raise ValueError(
@@ -149,7 +152,7 @@ class LinearUtilityFunction(  # type: ignore
 
         self.weights: list[float] = weights
         self.bias = bias
-        self.values = [IdentityFun() for _ in self.issues]
+        self.values = [IdentityFun() for _ in self.issues] if self.issues else []
 
     def eval(self, offer: Optional["Outcome"]) -> float | None:
         if offer is None:
@@ -184,7 +187,11 @@ class LinearUtilityFunction(  # type: ignore
         # todo save for continuous issues using evaluator ftype linear offset slope (see from_xml_str)
         output = ""
         if not issues:
-            issues = self.issues
+            if not self.issues:
+                raise ValueError(
+                    "Cannot convert the ufn to xml as its outcome-space is unknown"
+                )
+            issues = list(self.issues)
         for i, (issue, vfun, weight) in enumerate(
             zip(issues, self.values, self.weights)
         ):
@@ -255,7 +262,7 @@ class LinearUtilityFunction(  # type: ignore
             return d
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
-        d = deserialize(d, deep=True, remove_type_field=True)
+        d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
     def shift_by(
@@ -294,7 +301,7 @@ class LinearUtilityFunction(  # type: ignore
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | None = None,
         minmax: tuple[float, float] | None = None,
-    ) -> "IndIssues":
+    ) -> "ConstUtilityFunction" | "LinearUtilityFunction":  # type: ignore
         """
         Creates a new utility function that is normalized based on input conditions.
 
@@ -392,6 +399,10 @@ class LinearUtilityFunction(  # type: ignore
                     max_cardinality=max_cardinality,
                 )
             uranges = []
+            if not self.issues:
+                raise ValueError(
+                    "Cannot find extreme outcomes of a ufun without knowing its outcome-space"
+                )
             issues = self.issues
             for issue in issues:
                 mx, mn = float("-inf"), float("inf")
@@ -492,21 +503,24 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
         super().__init__(*args, **kwargs)
         self.bias = bias
-        if not isinstance(self.outcome_space, IndependentIssuesOS):
+        if self.outcome_space and not isinstance(
+            self.outcome_space, IndependentIssuesOS
+        ):
             raise ValueError(
                 f"Cannot create {self.type} ufun with an outcomespace without indpendent "
                 f"issues.\n Given OS: {self.outcome_space} of type "
                 f"{type(self.outcome_space)}\nGiven args {kwargs}"
             )
-        self.issues = self.outcome_space.issues
+        self.issues: list[Issue] | None = (
+            list(self.outcome_space.issues) if self.outcome_space else None
+        )
         if isinstance(values, dict):
             if self.issues is None:
                 raise ValueError(
                     "Must specify issues when passing `issue_utilties` or `weights` is a dict"
                 )
             values = [
-                values.get(_, IdentityFun())
-                # values[_]
+                values.get(_, IdentityFun())  # type: ignore
                 for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
             ]
         else:
@@ -524,7 +538,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                 for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
             ]
         self.values = []
-        for v in values:
+        for i, v in enumerate(values):
             if isinstance(v, SingleIssueFun):
                 self.values.append(v)
             elif isinstance(v, dict):
@@ -532,11 +546,16 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             elif isinstance(v, Callable):
                 self.values.append(LambdaFun(v))
             elif isinstance(v, Iterable):
-                if not self.issues[0].is_discrete():
+                if (
+                    not self.issues
+                    or len(self.issues) < i + 1
+                    or not self.issues[i].is_discrete()
+                ):
                     raise TypeError(
-                        f"When passing an iterable as the value function for an issue, the issue MUST be discrete"
+                        f"When passing an iterable as the value function for an issue, "
+                        f"the issue MUST be discrete"
                     )
-                d = dict(zip(self.issues[0].enumerate(), v))  # type: ignore We know the issue is discrete
+                d = dict(zip(self.issues[i].enumerate(), v))  # type: ignore We know the issue is discrete
                 self.values.append(TableFun(d))
             else:
                 raise TypeError(
@@ -610,6 +629,10 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         output = ""
         if not issues:
             issues = self.issues
+        if not issues:
+            raise ValueError(
+                "Cannot convert a ufun to xml() without konwing its outcome-space"
+            )
 
         # <issue vtype="integer" lowerbound="1" upperbound="17" name="Charging Speed" index="3" etype="integer" type="integer">
         # <evaluator ftype="linear" offset="0.4" slope="0.0375">
@@ -642,7 +665,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             return d
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         # d["values"]=deserialize(d["values"]),  # type: ignore (deserialize can return anything but it should be OK)
-        d = deserialize(d, deep=True, remove_type_field=True)
+        d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
     def extreme_outcomes(
@@ -738,7 +761,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
         ufun = cls(
             weights=weights,
-            values=values,
+            values=values,  # type: ignore
             issues=issues,
             reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
             + reserved_value[0],
@@ -751,7 +774,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     ) -> "LinearAdditiveUtilityFunction":
         if change_bias_only:
             return LinearAdditiveUtilityFunction(
-                values=self.values,
+                values=self.values,  # type: ignore
                 weights=self.weights,
                 name=self.name,
                 bias=self.bias + offset,
@@ -790,7 +813,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         if change_weights_only:
             wscale *= scale
             return LinearAdditiveUtilityFunction(
-                values=self.values,
+                values=self.values,  # type: ignore
                 weights=[wscale * _ for _ in self.weights],
                 outcome_space=self.outcome_space,
                 reserved_value=self.reserved_value

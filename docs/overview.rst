@@ -112,6 +112,8 @@ specific modules, advanced and helper modules.
       the library including mixins for logging.
    -  **inout** Provides functions to load and store XML Genius domains
       and utility functions.
+   -  **java** [Depricated] Provides an interface to JNegMAS allowing
+      agents and negotiators to be developed in Java.
    -  **tournaments** Supports creating and running tournaments to
       compare agents and negotiators.
    -  **checkpoints** Supports saving and reloading world simulations
@@ -257,7 +259,7 @@ concurrently running negotiations (or on expectations of future
 negotiations). NegMAS provides two ways to support this case shown in
 the following figure:
 
-.. figure:: controllers.jpg
+.. figure:: figs/controllers.jpg
    :alt: controllers
 
    controllers
@@ -274,7 +276,7 @@ just pass control to their *owning* **Controller**.
 This concludes our introduction to NegMAS and different objects you need
 to know about to develop your agent.
 
-.. |NegMAS world| image:: world.png
+.. |NegMAS world| image:: figs/world.png
 
 Outcomes, Issues and Outcome Spaces
 -----------------------------------
@@ -403,9 +405,10 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20220118H144854954775W1q6gdElto be20220118H1448549548113sAHogUt'],
-     [9, 12],
-     [0.6976970707821888, 1.303414685774959]]
+    [['not to be',
+      '20220121H150151228315PUaFX3FQnot to be20220121H150151228362w7VF0GTS'],
+     [4, 15],
+     [0.38864224283144744, 1.7576161999324909]]
 
 
 
@@ -604,13 +607,13 @@ set of issues and can be created using ``make_os`` function:
 
 .. code:: ipython3
 
-    myos = make_os(issues)
+    myos = make_os([issue1, issue2, issue3, issue4])
     print(type(myos))
 
 
 .. parsed-literal::
 
-    <class 'negmas.outcomes.outcome_space.DiscreteCartesianOutcomeSpace'>
+    <class 'negmas.outcomes.outcome_space.CartesianOutcomeSpace'>
 
 
 A special case of ``CartesianOutcomeSpace`` is a
@@ -1290,14 +1293,18 @@ module for more details
 
 .. parsed-literal::
 
-    ['UtilityFunction',
+    ['BaseUtilityFunction',
+     'UtilityFunction',
+     'ProbUtilityFunction',
      'StationaryUtilityFunction',
-     'InverseUtilityFunction',
+     'PresortingInverseUtilityFunction',
+     'SamplingInverseUtilityFunction',
      'ComplexWeightedUtilityFunction',
      'ComplexNonlinearUtilityFunction',
      'DiscountedUtilityFunction',
      'MappingUtilityFunction',
      'ProbMappingUtilityFunction',
+     'LinearUtilityAggregationFunction',
      'LinearAdditiveUtilityFunction',
      'LinearUtilityFunction',
      'NonLinearAdditiveUtilityFunction',
@@ -1656,7 +1663,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.001024</td>
+          <td>0.000725</td>
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
@@ -1672,7 +1679,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.002603</td>
+          <td>0.001474</td>
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>
@@ -1811,7 +1818,7 @@ to confirm that the current offer and its source are stored.
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
+          <td>(1,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1831,34 +1838,14 @@ to confirm that the current offer and its source are stored.
           <td>0.363636</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
+          <td>(1,)</td>
           <td>buyer</td>
         </tr>
         <tr>
           <th>4</th>
           <td>4</td>
-          <td>None</td>
-          <td>0.454545</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>5</th>
-          <td>5</td>
-          <td>None</td>
-          <td>0.545455</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>6</th>
-          <td>6</td>
           <td>(3,)</td>
-          <td>0.636364</td>
+          <td>0.454545</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1927,7 +1914,7 @@ acceptable outcomes in our case):
           <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1937,7 +1924,7 @@ acceptable outcomes in our case):
           <td>0.285714</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1947,7 +1934,7 @@ acceptable outcomes in our case):
           <td>0.428571</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1967,7 +1954,7 @@ acceptable outcomes in our case):
           <td>0.714286</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1977,7 +1964,7 @@ acceptable outcomes in our case):
           <td>0.857143</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(4,)</td>
           <td>buyer</td>
         </tr>
       </tbody>
@@ -2044,48 +2031,18 @@ agree upon:
           <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(0,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>0.285714</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
-          <td>None</td>
-          <td>0.428571</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(0,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
-          <td>None</td>
-          <td>0.571429</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(4,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>4</td>
           <td>(3,)</td>
-          <td>0.714286</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>seller</td>
+          <td>buyer</td>
         </tr>
       </tbody>
     </table>

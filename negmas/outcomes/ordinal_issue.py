@@ -21,6 +21,10 @@ def generate_values(n: int) -> list[str]:
 
 
 class OrdinalIssue(Issue, ABC):
+    """
+    An `Issue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
+    """
+
     @abstractmethod
     def ordered_value_generator(
         self, n: int = 10, grid=True, compact=False, endpoints=True
@@ -29,6 +33,10 @@ class OrdinalIssue(Issue, ABC):
 
 
 class DiscreteOrdinalIssue(DiscreteIssue):
+    """
+    A `DiscreteIssue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         """
         `values` can be an integer and in this case, values will be strings

@@ -550,7 +550,3 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 
 As expected, the agreement shifted toward the second agent.
-
-
-
-Download :download:`Notebook<notebooks/03.develop_new_mechanism.ipynb>`.

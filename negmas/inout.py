@@ -11,7 +11,6 @@ from typing import Callable, Iterable, List, Optional, Tuple, Type
 
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.linear import LinearAdditiveUtilityFunction
-from negmas.preferences.mapping import MappingUtilityFunction
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator

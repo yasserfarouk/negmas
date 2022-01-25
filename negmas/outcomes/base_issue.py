@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import numbers
 import random
+import warnings
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Generator, Iterable, Optional, Union
 
@@ -21,6 +22,20 @@ __all__ = ["make_issue", "Issue", "DiscreteIssue"]
 
 
 def make_issue(values, *args, **kwargs):
+    """
+    A factory for making issues.
+
+    Args:
+        values: Can be any valid choice for any `Issue` type. Examples include:
+
+          - An integer or a tuple of integers to create a `ContiguousIssue`
+          - A tuple of floats to create a `ContinuousIssue`
+          - A list of strings (or any hashable objects) to create an `OrdinalIssue`
+          - A list of objects that can be subtracted (i.e. ints) to create a `CardinalIssue`
+
+        name: Issue name
+        kwargs: Passed to the appropriate `Issue` type constructor
+    """
     from negmas.outcomes.callable_issue import CallableIssue
     from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
     from negmas.outcomes.categorical_issue import CategoricalIssue
@@ -206,13 +221,27 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         return self.value_generator().__iter__()
 
     def __contains__(self, item):
-        return self.is_valid(item)
+        try:
+            if isinstance(item, Issue):
+                return self.contains(item)
+            return self.is_valid(item)
+        except Exception as e:
+            warnings.warn(
+                f"Testing whether {item} is contained  in {self} threw an exception: {e}. continuing as if it is not"
+            )
+        return False
 
     def __getitem__(self, indx):
         return self.value_at(indx)
 
     def __deepcopy__(self, memodict={}):
         return make_issue(name=self.name, values=self._values)
+
+    def contains(self, issue: "Issue") -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        if isinstance(issue, DiscreteIssue):
+            return all(self.is_valid(_) for _ in issue.all)
+        return False
 
     @property
     def type(self) -> str:
@@ -296,6 +325,10 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
 
 
 class DiscreteIssue(Issue, ABC):
+    """
+    An `Issue` with a discrete set of values.
+    """
+
     @property
     def cardinality(self) -> int:
         """The number of possible outcomes for the issue. Guaranteed to  be fininte"""

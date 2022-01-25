@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Helper modueles
 """
+from __future__ import annotations
+
 from .types import *
 from .prob import *
 from .numeric import *

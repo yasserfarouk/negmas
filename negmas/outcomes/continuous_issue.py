@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import numbers
 import random
 from typing import Generator
 
 import numpy as np
 
+from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.range_issue import RangeIssue
 
 from .common import DEFAULT_LEVELS
@@ -13,6 +15,10 @@ __all__ = ["ContinuousIssue"]
 
 
 class ContinuousIssue(RangeIssue):
+    """
+    A `RangeIssue` representing a continous range of real numbers with finite limits.
+    """
+
     def __init__(self, values, name=None, id=None, n_levels=DEFAULT_LEVELS) -> None:
         super().__init__(values, name=name, id=id)
         self._n_levels = n_levels
@@ -104,3 +110,11 @@ class ContinuousIssue(RangeIssue):
         if v > self.max_value:
             return IndexError(index)
         return v
+
+    def contains(self, issue: Issue) -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        return (
+            issubclass(issue.value_type, numbers.Real)
+            and issue.min_value >= self.min_value
+            and issue.max_value <= self.max_value
+        )

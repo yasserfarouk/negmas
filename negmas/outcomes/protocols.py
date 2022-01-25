@@ -254,9 +254,17 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
 
 @runtime_checkable
 class IndependentIssuesOS(Protocol):
+    """
+    An Outcome-Space that is constructed from a tuple of `Issue` objects.
+    """
+
     issues: tuple[Issue, ...]
 
 
 @runtime_checkable
 class IndependentDiscreteIssuesOS(Protocol):
+    """
+    An Outcome-Space that is constructed from a tuple of `DiscreteIssue` objects.
+    """
+
     issues: tuple[DiscreteIssue, ...]

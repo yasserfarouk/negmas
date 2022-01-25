@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pprint
-from typing import Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Dict, Iterable, List, Tuple
 
 import numpy as np
 
@@ -17,6 +17,9 @@ from ..helpers.prob import (
 )
 from .mapping import MappingUtilityFunction, ProbMappingUtilityFunction
 from .ufun import ProbUtilityFunction, UtilityFunction
+
+if TYPE_CHECKING:
+    from .base import UtilityValue
 
 __all__ = ["IPUtilityFunction", "ILSUtilityFunction", "UniformUtilityFunction"]
 
@@ -79,6 +82,18 @@ class IPUtilityFunction(ProbUtilityFunction):
             ]
             self.tupelized = True
         self.distributions = dict(zip(outcomes, distributions))
+
+    @classmethod
+    def random(
+        cls,
+        outcome_space,
+        reserved_value,
+        normalized=True,
+        dist_limits=(0.0, 1.0),
+        **kwargs,
+    ) -> "IPUtilityFunction":
+        """Generates a random ufun of the given type"""
+        raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
 
     def distribution(self, outcome: "Outcome") -> Distribution:
         """
@@ -149,7 +164,7 @@ class IPUtilityFunction(ProbUtilityFunction):
         outcomes = u.outcome_space.enumerate()  # type: ignore (I know that it is a discrete space)
         d = dict(zip(outcomes, (u(_) for _ in outcomes)))
         return cls.from_mapping(
-            d,
+            d,  # type: ignore
             range=range,
             uncertainty=uncertainty,
             variability=variability,
@@ -159,7 +174,7 @@ class IPUtilityFunction(ProbUtilityFunction):
     @classmethod
     def from_mapping(
         cls,
-        mapping: Dict["Outcome", float],
+        mapping: Dict["Outcome", "UtilityValue"],
         range: Tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
@@ -213,13 +228,13 @@ class IPUtilityFunction(ProbUtilityFunction):
         return IPUtilityFunction(
             outcomes=outcomes,
             distributions=[
-                uniform_around(value=mapping[o], uncertainty=u, range=range)
+                uniform_around(value=float(mapping[o]), uncertainty=u, range=range)
                 for o, u in zip(outcomes, uncertainties)
             ],
             reserved_value=reserved_value,
         )
 
-    def is_non_stationary(self):
+    def is_state_dependent(self):
         return True
 
     def __str__(self):

@@ -5,7 +5,7 @@ Extra helpers
 from __future__ import annotations
 
 import itertools
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Sequence
 
 from ..protocols import HasMinMax
 
@@ -14,6 +14,7 @@ __all__ = [
     "monotonic_multi_minmax",
     "nonmonotonic_multi_minmax",
     "nonmonotonic_minmax",
+    "make_callable",
 ]
 
 
@@ -64,3 +65,26 @@ def remove_qoutes(s: str) -> str:
 
 def recover_qoutes(s: str) -> str:
     return s.replace("~`", '"')
+
+
+def make_callable(x: dict | Sequence | Callable | None) -> Callable:
+    """
+    Converts its input to a callable (i.e. can be called using () operator).
+
+
+    Examples:
+
+        >>> make_callable(lambda  x: 2 * x) (4)
+        8
+
+        >>> make_callable(dict(a=1, b=3))(a)
+        1
+
+        >>> make_callable((3, 4, 5))(1)
+        4
+    """
+    if x is None:
+        return lambda a: a
+    if isinstance(x, Callable):
+        return x
+    return lambda a: x[a]

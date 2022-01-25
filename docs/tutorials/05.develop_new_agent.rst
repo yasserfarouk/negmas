@@ -253,7 +253,3 @@ Let’s check how did our agent do
 
 
 Better.
-
-
-
-Download :download:`Notebook<notebooks/05.develop_new_agent.ipynb>`.

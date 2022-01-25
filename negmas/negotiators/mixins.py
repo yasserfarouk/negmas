@@ -39,6 +39,7 @@ class AspirationMixin:
         above_reserved_value=True,
     ):
         """
+        Initializes the mixin.
 
         Args:
             max_aspiration: The aspiration level to start from (usually 1.0)
@@ -63,7 +64,9 @@ class AspirationMixin:
 
 
 class EvaluatorMixin:
-    """A mixin that can be used to have the negotiator respond to evaluate messages from the server"""
+    """
+    A mixin that can be used to have the negotiator respond to evaluate messages from the server.
+    """
 
     def init(self):
         self.capabilities["evaluate"] = True

@@ -14,7 +14,7 @@ from negmas.outcomes.common import os_or_none
 from negmas.outcomes.protocols import OutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .base import OutcomeUtilityMapping
+from .base import OutcomeUtilityMapping, UtilityValue
 from .ufun import ProbUtilityFunction, UtilityFunction
 
 __all__ = ["MappingUtilityFunction", "ProbMappingUtilityFunction"]

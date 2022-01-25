@@ -167,7 +167,7 @@ def nash_point(
     outcome_space: Optional[OutcomeSpace] = None,
     issues: Optional[list[Issue]] = None,
     outcomes: Optional[list[Outcome]] = None,
-) -> tuple[Optional[tuple[float]], Optional[int]]:
+) -> tuple[Optional[tuple[float, ...]], Optional[int]]:
     """
     Calculates the nash point on the pareto frontier of a negotiation
 
@@ -220,7 +220,7 @@ def pareto_frontier(
     issues: Iterable[Issue] = None,
     n_discretization: Optional[int] = 10,
     sort_by_welfare=False,
-) -> tuple[list[tuple[float]], list[int]]:
+) -> tuple[list[tuple[float, ...]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
 
     Args:
@@ -236,11 +236,11 @@ def pareto_frontier(
 
     """
 
-    ufuns = list(ufuns)
+    ufuns = tuple(ufuns)
     if issues:
-        issues = list(issues)
+        issues = tuple(issues)
     if outcomes:
-        outcomes = list(outcomes)
+        outcomes = tuple(outcomes)
 
     # calculate all candidate outcomes
     if outcomes is None:
@@ -335,7 +335,7 @@ def extreme_outcomes(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | int | None = None,
+    outcomes: list[Outcome] | None = None,
     max_cardinality=1000,
 ) -> tuple[Outcome, Outcome]:
     """
@@ -364,7 +364,7 @@ def minmax(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | int | None = None,
+    outcomes: list[Outcome] | None = None,
     max_cardinality=1000,
 ) -> tuple[float, float]:
     """Finds the range of the given utility function for the given outcomes
@@ -380,7 +380,12 @@ def minmax(
         Minumum utility, maximum utility
 
     """
-    return ufun.minmax(issues, outcomes, max_cardinality)
+    return ufun.minmax(
+        outcome_space=outcome_space,
+        issues=issues,
+        outcomes=outcomes,
+        max_cardinality=max_cardinality,
+    )
 
 
 def opposition_level(
@@ -422,7 +427,7 @@ def opposition_level(
     if outcomes is None:
         if issues is None:
             raise ValueError("You must either give outcomes or issues")
-        outcomes = enumerate_issues(issues, max_cardinality=max_tests)
+        outcomes = list(enumerate_issues(tuple(issues), max_cardinality=max_tests))
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]
     if not isinstance(max_utils, Iterable):

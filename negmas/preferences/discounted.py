@@ -3,27 +3,29 @@ from __future__ import annotations
 import random
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from negmas.common import MechanismState
-from negmas.helpers import get_class, get_full_type_name, make_range
+from negmas.common import MechanismState, NegotiatorMechanismInterface
+from negmas.helpers import get_class, make_range
 from negmas.outcomes import Issue, Outcome
-from negmas.preferences.protocols import NonStationaryUFun
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import UtilityValue
+from .mixins import StateDependentUFunMixin
 from .ufun import UtilityFunction
 
 __all__ = ["LinDiscountedUFun", "ExpDiscountedUFun", "DiscountedUtilityFunction"]
 
 
-class DiscountedUtilityFunction(UtilityFunction, NonStationaryUFun, XmlSerializable):
+class DiscountedUtilityFunction(
+    StateDependentUFunMixin, UtilityFunction, XmlSerializable
+):
     """Base class for all discounted ufuns"""
 
     def __init__(self, ufun: UtilityFunction, **kwargs):
         super().__init__(**kwargs)
         self.ufun = ufun
 
-    def is_non_stationary(self):
+    def is_state_dependent(self):
         return True
 
 
@@ -138,7 +140,12 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             **kwargs,
         )
 
-    def eval(self, offer: "Outcome", state: "MechanismState" = None) -> UtilityValue:
+    def eval_on_state(
+        self,
+        offer: Outcome,
+        nmi: NegotiatorMechanismInterface | None = None,
+        state: MechanismState | None = None,
+    ):
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -235,7 +242,12 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
 
-    def eval(self, offer: "Outcome", state: "MechanismState" = None) -> UtilityValue:
+    def eval_on_state(
+        self,
+        offer: Outcome,
+        nmi: NegotiatorMechanismInterface | None = None,
+        state: MechanismState | None = None,
+    ):
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)

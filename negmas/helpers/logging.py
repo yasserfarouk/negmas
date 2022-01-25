@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""A set of utilities that can be used by agents developed for the platform.
+"""
+A set of utilities that can be used by agents developed for the platform.
 
 This set of utlities can be extended but must be backward compatible for at
 least two versions

@@ -80,13 +80,13 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
         if nmi.outcome_space.is_numeric() and isinstance(
             nmi.outcome_space, CartesianOutcomeSpace
         ):
-            self._preferences = LinearUtilityFunction(
+            self.preferences = LinearUtilityFunction(
                 weights=np.random.random(len(nmi.outcome_space.issues)).tolist(),
                 outcome_space=nmi.outcome_space,
             )
         else:
             outcomes = list(nmi.discrete_outcomes())
-            self._preferences = MappingUtilityFunction(
+            self.preferences = MappingUtilityFunction(
                 dict(zip(outcomes, np.random.rand(len(outcomes)))),
                 outcome_space=nmi.outcome_space,
             )

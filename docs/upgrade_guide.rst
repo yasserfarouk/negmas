@@ -18,7 +18,9 @@ outcome_as_dict(x, ...)       outcome2dict(x, ..., issues=issue)   Must pass the
 outcome_as_tuple(x, ...)      x                                    Just remove the call (all outcomes are tuples)
 negmas.java                   negmas.serialization
 to_java                       to_dict                              Java interfaces (through jnemgas) are not supported anymore.
+UtilityFunction construction                                       **MUST** pass `outcome_space`, `issues` or `outcomes` (exactly one of them). Utility functions now MUST know their outcome-space
 ============================  ===================================  ===============================================
+
 
 **Should Do**
 

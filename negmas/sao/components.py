@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Implements basic components that can be used by `SAONegotiator` s.
 """
+from __future__ import annotations
+
 import random
 from collections import defaultdict
 from typing import Iterable

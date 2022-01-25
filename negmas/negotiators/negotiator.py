@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Notifiable, Notification
-from negmas.preferences import Preferences
 from negmas.types import Rational
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
-    from negmas.preferences import Preferences, UFun
+    from negmas.preferences import BaseUtilityFunction, Preferences
     from negmas.situated import Agent
 
     from .controller import Controller
@@ -22,7 +21,8 @@ __all__ = [
 
 
 class Negotiator(Rational, Notifiable, ABC):
-    r"""Abstract negotiation agent. Base class for all negotiators
+    """
+    Abstract negotiation agent. Base class for all negotiators
 
     Args:
 
@@ -45,7 +45,7 @@ class Negotiator(Rational, Notifiable, ABC):
         self,
         name: str = None,
         preferences: Preferences | None = None,
-        ufun: UFun | None = None,
+        ufun: BaseUtilityFunction | None = None,
         parent: "Controller" = None,
         owner: "Agent" = None,
         id: str = None,
@@ -81,7 +81,7 @@ class Negotiator(Rational, Notifiable, ABC):
         self.__owner = owner
 
     @Rational.preferences.setter
-    def preferences(self, value: "Preferences"):
+    def preferences(self, value: Preferences):
         """Sets tha utility function."""
         if self._nmi is not None and self._nmi.state.started:
             warnings.warn(
@@ -100,14 +100,18 @@ class Negotiator(Rational, Notifiable, ABC):
         return self.__parent
 
     def before_death(self, cntxt: Dict[str, Any]) -> bool:
-        """Called whenever the parent is about to kill this negotiator. It should return False if the negotiator
-        does not want to be killed but the controller can still force-kill it"""
+        """
+        Called whenever the parent is about to kill this negotiator.
+
+        It should return False if the negotiator
+        does not want to be killed but the controller can still force-kill it
+        """
         return True
 
     def _dissociate(self):
         self._mechanism_id = None
         self._nmi = None
-        self._preferences = self._init_preferences
+        self.preferences = self._init_preferences
         self._role = None
 
     def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
@@ -129,7 +133,8 @@ class Negotiator(Rational, Notifiable, ABC):
         return self.ufun(outcome) >= self.reserved_value
 
     def isin(self, negotiation_id: Optional[str]) -> bool:
-        """Is that agent participating in the given negotiation?
+        """
+        Is that agent participating in the given negotiation?
         Tests if the agent is participating in the given negotiation.
 
         Args:
@@ -174,7 +179,7 @@ class Negotiator(Rational, Notifiable, ABC):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Optional[Preferences] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -201,7 +206,7 @@ class Negotiator(Rational, Notifiable, ABC):
             self.preferences is None or id(preferences) != id(self.preferences)
         ):
             self.preferences = preferences
-        if self._preferences and self._preferences_modified:
+        if self.preferences and self._preferences_modified:
             if self._preferences_modified:
                 self.on_preferences_changed()
         return True
@@ -225,7 +230,8 @@ class Negotiator(Rational, Notifiable, ABC):
             self.on_preferences_changed()
 
     def on_round_start(self, state: MechanismState) -> None:
-        """A call back called at each negotiation round start
+        """
+        A call back called at each negotiation round start
 
         Args:
             state: `MechanismState` giving current state of the negotiation.
@@ -264,7 +270,8 @@ class Negotiator(Rational, Notifiable, ABC):
         """
 
     def on_leave(self, state: MechanismState) -> None:
-        """A call back called after leaving a negotiation.
+        """
+        A call back called after leaving a negotiation.
 
         Args:
             state: `MechanismState` giving current state of the negotiation.
@@ -332,6 +339,3 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def __str__(self):
         return f"{self.name}"
-
-    class Java:
-        implements = ["jnegmas.negotiators.Negotiator"]

@@ -1,16 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    MutableMapping,
-    Optional,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Union
 
 from negmas.generics import GenericMapping, gmap, iget, ikeys
 from negmas.helpers import get_full_type_name
@@ -245,6 +235,10 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         # todo find the real maxutility
         output += '<utility_function maxutility="-1.0">\n    <ufun type="PlainUfun" weight="1" aggregation="sum">\n'
         for rect, u, w in zip(self.outcome_ranges, self.mappings, self.weights):
+            if not isinstance(u, float):
+                raise ValueError(
+                    f"Only hyper-rectangles with constant utility per rectangle can be convereted to xml"
+                )
             output += f'        <hyperRectangle utility_function="{u * w}">\n'
             for key in rect.keys():
                 # indx = [i for i, _ in enumerate(issues) if _.name == key][0] + 1
@@ -277,13 +271,25 @@ class HyperRectangleUtilityFunction(UtilityFunction):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.outcome_ranges = outcome_ranges
-        self.mappings = utilities
-        self.weights = weights
+        self.outcome_ranges = list(outcome_ranges)
+        self.mappings = list(utilities)
+        self.weights = list(weights) if weights else ([1.0] * len(self.outcome_ranges))
         self.ignore_issues_not_in_input = ignore_issues_not_in_input
         self.ignore_failing_range_utilities = ignore_failing_range_utilities
         self.bias = bias
         self.adjust_params()
+
+    @classmethod
+    def random(
+        cls,
+        outcome_space,
+        reserved_value,
+        normalized=True,
+        rectangles=(1, 4),
+        **kwargs,
+    ) -> HyperRectangleUtilityFunction:
+        """Generates a random ufun of the given type"""
+        raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}

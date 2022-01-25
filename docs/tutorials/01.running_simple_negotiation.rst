@@ -25,21 +25,21 @@ to run negotiations as follows:
     {'agreement': (9,),
      'broken': False,
      'current_offer': (9,),
-     'current_proposer': 'a4-da8ca1af-b6ad-4328-a3bb-34b4a93c4410',
+     'current_proposer': 'a1-e2105519-b95f-4da8-a5ce-e7d12f50dfdb',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': 'a3',
+     'last_negotiator': 'a0',
      'n_acceptances': 0,
      'n_negotiators': 5,
      'new_offerer_agents': [],
      'new_offers': [],
-     'relative_time': 0.1782178217821782,
+     'relative_time': 0.25742574257425743,
      'results': None,
      'running': False,
      'started': True,
-     'step': 17,
-     'time': 0.32351512100000024,
+     'step': 25,
+     'time': 0.5500195600000009,
      'timedout': False,
      'waiting': False}
 
@@ -181,7 +181,7 @@ This can be modeled in the following negotiation:
     {'agreement': (8, 9, 9),
      'broken': False,
      'current_offer': (8, 9, 9),
-     'current_proposer': 'buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634',
+     'current_proposer': 'buyer-0df91f75-2191-4540-9a04-d06dfcce844c',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -189,13 +189,13 @@ This can be modeled in the following negotiation:
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (8, 9, 9))],
+     'new_offers': [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (8, 9, 9))],
      'relative_time': 0.8571428571428571,
      'results': None,
      'running': False,
      'started': True,
      'step': 17,
-     'time': 0.08566604600000005,
+     'time': 0.08765986299999895,
      'timedout': False,
      'waiting': False}
 
@@ -215,23 +215,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 11, 0))]
-    001: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 10, 0))]
-    002: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 9, 0))]
-    003: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 8, 0))]
-    004: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (9, 7, 0))]
-    005: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 11, 0))]
-    006: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 10, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 10, 0))]
-    007: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 9, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 9, 0))]
-    008: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (0, 8, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (8, 8, 0))]
-    009: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (1, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (6, 9, 0))]
-    010: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (1, 9, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (6, 8, 0))]
-    011: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (2, 11, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (4, 11, 0))]
-    012: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (2, 7, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (4, 10, 0))]
-    013: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (3, 7, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (3, 9, 0))]
-    014: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (5, 10, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (0, 11, 0))]
-    015: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (6, 8, 9)), ('seller-8c347e4f-4f56-47ba-a9f8-28b0d504d4f0', (0, 7, 0))]
-    016: [('buyer-ad6f8bf7-2ed0-428f-bae6-44c642d46634', (8, 9, 9))]
+    000: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 11, 0))]
+    001: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 10, 0))]
+    002: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 9, 0))]
+    003: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 8, 0))]
+    004: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 7, 0))]
+    005: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 11, 0))]
+    006: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 10, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 10, 0))]
+    007: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 9, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 9, 0))]
+    008: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 8, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 8, 0))]
+    009: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (1, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (6, 9, 0))]
+    010: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (1, 9, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (6, 8, 0))]
+    011: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (2, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (4, 11, 0))]
+    012: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (2, 7, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (4, 10, 0))]
+    013: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (3, 7, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (3, 9, 0))]
+    014: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (5, 10, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (0, 11, 0))]
+    015: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (6, 8, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (0, 7, 0))]
+    016: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (8, 9, 9))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -245,6 +245,12 @@ far from it).
 
 
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_9_0.png
+
+
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>
 
 
 What happens if the seller was much more interested in delivery time.
@@ -273,7 +279,7 @@ the delivery time and price to go down. Let’s see what happens:
     {'agreement': (5, 2, 5),
      'broken': False,
      'current_offer': (5, 2, 5),
-     'current_proposer': 'seller-5924263e-ed26-483b-ac77-16192e6139b1',
+     'current_proposer': 'seller-3f8f151c-3de9-4769-8ae8-cec0089c998d',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -287,7 +293,7 @@ the delivery time and price to go down. Let’s see what happens:
      'running': False,
      'started': True,
      'step': 45,
-     'time': 0.34989592899999966,
+     'time': 0.3117902380000004,
      'timedout': False,
      'waiting': False}
 
@@ -301,6 +307,12 @@ We can check it visually as well:
 
 
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_13_0.png
+
+
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>
 
 
 It is clear that the new ufuns transformed the problem. Now we have many
@@ -321,11 +333,17 @@ this difference by normalizing both ufuns and trying again:
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     session.run()
-    session.plot()
+    session.plot(ylimits=(0.0, 1.01))
 
 
 
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_15_0.png
+
+
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>
 
 
 What happens if we give them more time to negotiate:
@@ -337,11 +355,17 @@ What happens if we give them more time to negotiate:
     session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
     session.run()
-    session.plot()
+    session.plot(ylimits=(0.0, 1.01))
 
 
 
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_17_0.png
+
+
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>
 
 
 It did not help much! The two agents adjusted their concession to match
@@ -356,15 +380,24 @@ to *linear* instead of the default *boulware*:
     session.add(AspirationNegotiator(name='buyer', aspiration_type="linear"), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
     session.run()
-    session.plot()
+    session.plot(ylimits=(0.0, 1.01))
 
 
 
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_19_0.png
 
 
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>
+
+
 It is clear that longer negotiation time, and faster concession did not
 help the negotiators get to a point on the pareto-front.
+
+What happens if one of the negotiators (say the buyer) was tougher than
+the other?
 
 .. code:: ipython3
 
@@ -372,7 +405,7 @@ help the negotiators get to a point on the pareto-front.
     session.add(AspirationNegotiator(name='buyer', aspiration_type="boulware"), ufun=buyer_utility)
     session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
     session.run()
-    session.plot()
+    session.plot(ylimits=(0.0, 1.01))
 
 
 
@@ -380,5 +413,18 @@ help the negotiators get to a point on the pareto-front.
 
 
 
+.. parsed-literal::
 
-Download :download:`Notebook<notebooks/01.running_simple_negotiation.ipynb>`.
+    <Figure size 1440x576 with 0 Axes>
+
+
+Try to give an intuition for what happened:
+
+-  Why did the negotiation take shorter than the previous one?
+-  Why is the final agreement nearer to the pareto front?
+-  Why is the buyer getting higher utility than in the case before the
+   previous (in which it was also using a Boulware strategy)?
+-  Why is the seller getting lower utility than in the case before the
+   previous (in which it was also using a linear concession strategy)?
+-  If the seller knew that the buyer will be using this strategy, what
+   is its best response?

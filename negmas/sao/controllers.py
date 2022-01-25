@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Implements controllers for the SAO mechanism.
 """
+from __future__ import annotations
+
 import itertools
 import random
 from abc import ABC, abstractmethod

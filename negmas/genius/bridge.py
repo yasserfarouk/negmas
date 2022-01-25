@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Implements GeniusBridge which manages connections to Genius through Py4J.
 
@@ -35,6 +33,8 @@ Bridge Control Operations
 
 
 """
+from __future__ import annotations
+
 import os
 import pathlib
 import socket

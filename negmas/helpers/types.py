@@ -1,11 +1,10 @@
-from __future__ import annotations
-
-import functools
-
 #!/usr/bin/env python
 """
 Datatypes that do not directly relate to negotiation.
 """
+from __future__ import annotations
+
+import functools
 import importlib
 import json
 from enum import Enum

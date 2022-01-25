@@ -399,6 +399,18 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             if r in self._requirements.keys():
                 self._requirements.pop(r, None)
 
+    def negotiator_index(self, nid: str) -> int | None:
+        """Gets the negotiator index
+
+        Args:
+            nid (str): nid
+
+        Returns:
+            int | None:
+        """
+
+        return self._negotiator_index.get(nid, None)
+
     @property
     def negotiators(self):
         return self._negotiators

@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Keeps information about ANAC competitions and Genius Agents
 """
+from __future__ import annotations
+
 import itertools
 from typing import List, Optional, Set, Tuple
 
@@ -642,24 +642,24 @@ TEST_FAILING_NEGOTIATORS = [
     "agents.anac.y2013.MetaAgent.MetaAgent2013",  # failed a few tests
     "agents.anac.y2014.AgentTD.AgentTD",
     "agents.anac.y2014.ArisawaYaki.ArisawaYaki",
-    # "agents.anac.y2014.Aster.Aster",
-    # "agents.anac.y2014.Atlas.Atlas",
-    # "agents.anac.y2014.E2Agent.AnacSampleAgent",
-    # "agents.anac.y2014.KGAgent.KGAgent",
-    # "agents.anac.y2014.TUDelftGroup2.Group2Agent",
-    # "agents.anac.y2014.simpleagent.SimpleAgent",
-    # "agents.anac.y2015.AgentHP.AgentHP",
-    # "agents.anac.y2015.AgentW.AgentW",
-    # "agents.anac.y2016.agenthp2.AgentHP2_main",
-    # "agents.anac.y2016.agentlight.SgentLight",
-    # "agents.anac.y2016.maxoops.MaxOops",
-    # "agents.anac.y2016.ngent.Ngent",
-    # "agents.anac.y2017.agentkn.AgentKN",
-    # "agents.anac.y2017.caduceusdc16.CaduceusDC16",  # failed all tests
-    # "agents.anac.y2017.geneking.GeneKing",
-    # "agents.anac.y2017.mamenchis.Mamenchis",
-    # "agents.anac.y2017.parsagent3.ShahAgent",
-    # "agents.anac.y2017.rubick.Rubick",  # failed all tests
+    "agents.anac.y2014.Aster.Aster",
+    "agents.anac.y2014.Atlas.Atlas",
+    "agents.anac.y2014.E2Agent.AnacSampleAgent",
+    "agents.anac.y2014.KGAgent.KGAgent",
+    "agents.anac.y2014.TUDelftGroup2.Group2Agent",
+    "agents.anac.y2014.simpleagent.SimpleAgent",
+    "agents.anac.y2015.AgentHP.AgentHP",
+    "agents.anac.y2015.AgentW.AgentW",
+    "agents.anac.y2016.agenthp2.AgentHP2_main",
+    "agents.anac.y2016.agentlight.SgentLight",
+    "agents.anac.y2016.maxoops.MaxOops",
+    "agents.anac.y2016.ngent.Ngent",
+    "agents.anac.y2017.agentkn.AgentKN",
+    "agents.anac.y2017.caduceusdc16.CaduceusDC16",  # failed all tests
+    "agents.anac.y2017.geneking.GeneKing",
+    "agents.anac.y2017.mamenchis.Mamenchis",
+    "agents.anac.y2017.parsagent3.ShahAgent",
+    "agents.anac.y2017.rubick.Rubick",  # failed all tests
     "parties.in4010.q12015.group1.Group1",
     "parties.in4010.q12015.group10.Group10",
     "parties.in4010.q12015.group13.Group13",

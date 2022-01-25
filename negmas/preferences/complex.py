@@ -1,19 +1,28 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Iterable, Optional
+import random
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional
 
-from negmas.helpers import get_full_type_name
+from negmas.helpers import get_full_type_name, get_one_int
 from negmas.outcomes import Outcome
-from negmas.preferences.protocols import IndIssues, StationaryCrisp
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import UtilityValue
+from .linear import LinearAdditiveUtilityFunction
 from .ufun import BaseUtilityFunction, UtilityFunction
 
 __all__ = ["ComplexWeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
 
 
-class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp):
+class _DependenceMixin:
+    def is_session_dependent(self):
+        return any(_.is_session_dependent() for _ in self.values)  # type: ignore
+
+    def is_stationary(self) -> bool:
+        return any(_.is_stationary() for _ in self.values)  # type: ignore
+
+
+class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
     """A utility function composed of linear aggregation of other utility functions
 
     Args:
@@ -35,8 +44,30 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
             weights = [1.0] * len(self.values)
         self.weights = list(weights)
 
-    def is_stationary(self) -> bool:
-        return any(_.is_stationary() for _ in self.values)
+    @classmethod
+    def random(
+        cls,
+        outcome_space,
+        reserved_value,
+        normalized=True,
+        n_ufuns=(1, 4),
+        ufun_types=(LinearAdditiveUtilityFunction,),
+        **kwargs,
+    ) -> ComplexWeightedUtilityFunction:
+        """Generates a random ufun of the given type"""
+        n = get_one_int(n_ufuns)
+        ufuns = [
+            random.choice(ufun_types).random(outcome_space, 0, normalized)
+            for _ in range(n)
+        ]
+        weights = [random.random() for _ in range(n)]
+        return ComplexWeightedUtilityFunction(
+            reserved_value=reserved_value,
+            ufuns=ufuns,
+            weights=weights,
+            outcome_space=outcome_space,
+            **kwargs,
+        )
 
     def eval(self, offer: "Outcome") -> float:
         """Calculate the utility_function value for a given outcome.
@@ -59,10 +90,9 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
         u = float(0.0)
         for f, w in zip(self.values, self.weights):
             util = f(offer)
-            if util is not None:
-                u += util * w
-            else:
-                raise ValueError(f"Cannot calculate ufility for {offer}")
+            if util is None or w is None:
+                raise ValueError(f"Cannot calculate utility for {offer}")
+            u += util * w  # type: ignore It will not e none here
         return u
 
     def to_dict(self) -> Dict[str, Any]:
@@ -81,7 +111,7 @@ class ComplexWeightedUtilityFunction(UtilityFunction, IndIssues, StationaryCrisp
         return cls(**d)
 
 
-class ComplexNonlinearUtilityFunction(UtilityFunction, StationaryCrisp):
+class ComplexNonlinearUtilityFunction(_DependenceMixin, UtilityFunction):
     """A utility function composed of nonlinear aggregation of other utility functions
 
     Args:
@@ -95,20 +125,36 @@ class ComplexNonlinearUtilityFunction(UtilityFunction, StationaryCrisp):
         self,
         ufuns: Iterable[BaseUtilityFunction],
         combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
-        name=None,
-        reserved_value: float = float("-inf"),
-        id: str = None,
+        **kwargs,
     ):
-        super().__init__(
-            name=name,
-            reserved_value=reserved_value,
-            id=id,
-        )
+        super().__init__(**kwargs)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
 
-    def is_stationary(self) -> bool:
-        return any(_.is_stationary() for _ in self.ufuns)
+    @classmethod
+    def random(
+        cls,
+        outcome_space,
+        reserved_value,
+        normalized=True,
+        n_ufuns=(1, 4),
+        ufun_types=(LinearAdditiveUtilityFunction,),
+        **kwargs,
+    ) -> ComplexNonlinearUtilityFunction:
+        """Generates a random ufun of the given type"""
+        n = get_one_int(n_ufuns)
+        ufuns = [
+            random.choice(ufun_types).random(outcome_space, 0, normalized)
+            for _ in range(n)
+        ]
+        weights = [random.random() for _ in range(n)]
+        return ComplexNonlinearUtilityFunction(
+            reserved_value=reserved_value,
+            ufuns=ufuns,
+            combination_function=lambda vals: sum(w * v for w, v in zip(weights, vals)),
+            outcome_space=outcome_space,
+            **kwargs,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}

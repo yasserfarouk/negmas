@@ -1,6 +1,6 @@
+"""Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
 from __future__ import annotations
 
-"""Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass

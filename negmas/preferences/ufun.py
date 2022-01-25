@@ -21,6 +21,7 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .preferences import Preferences
 from .protocols import (
+    BasePref,
     CardinalRanking,
     HasRange,
     HasReservedValue,
@@ -29,9 +30,7 @@ from .protocols import (
     OrdinalRanking,
     PartiallyNormalizable,
     PartiallyScalable,
-    Randomizable,
-    StarionaryConvertible,
-    StationaryUFun,
+    StationaryConvertible,
     UFunCrisp,
     UFunProb,
 )
@@ -69,21 +68,30 @@ def ignore_unhashable(func):
     return wrapper
 
 
-class BaseUtilityFunction(  # type: ignore I know that Preferences implement outcome_space!!
+class BaseUtilityFunction(
     Preferences,
-    Randomizable,
     PartiallyNormalizable,
     PartiallyScalable,
     HasRange,
     HasReservedValue,
-    StarionaryConvertible,
+    StationaryConvertible,
     OrdinalRanking,
     CardinalRanking,
+    BasePref,
     ABC,
 ):
     def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
+
+    def is_volatile(self) -> bool:
+        return True
+
+    def is_stationary(self) -> bool:
+        return False
+
+    def is_state_dependent(self) -> bool:
+        return True
 
     def scale_by(
         self, scale: float, scale_reserved=True
@@ -249,7 +257,7 @@ class BaseUtilityFunction(  # type: ignore I know that Preferences implement out
         return float(self(offer))
 
     def __call__(self, offer: Outcome | None) -> Value:
-        """Calculate the utility_function value for a given outcome.
+        """Calculate the utility_function value for a given outcome at the given negotiation state.
 
         Args:
             offer: The offer to be evaluated.
@@ -292,12 +300,6 @@ class BaseUtilityFunction(  # type: ignore I know that Preferences implement out
         d["outcome_space"] = deserialize(d.get("outcome_space", None))
         return cls(**d)
 
-    def is_stationary(self) -> bool:
-        return False
-
-    def is_non_stationary(self) -> bool:
-        return False
-
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -329,7 +331,21 @@ class BaseUtilityFunction(  # type: ignore I know that Preferences implement out
         return worst, best
 
 
-class UtilityFunction(BaseUtilityFunction, UFunCrisp):
+class _General:
+    def is_session_dependent(self) -> bool:
+        return True
+
+    def is_volatile(self) -> bool:
+        return True
+
+    def is_state_dependent(self) -> bool:
+        return True
+
+    def is_stationary(self) -> bool:
+        return False
+
+
+class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
     """Base for all crisp ufuns"""
 
     def __call__(self, offer: Outcome | None) -> float:
@@ -968,7 +984,7 @@ class UtilityFunction(BaseUtilityFunction, UFunCrisp):
         return u, discount_factor
 
 
-class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
+class ProbUtilityFunction(_General, BaseUtilityFunction, UFunProb):
     """A probablistic utility function. One that returns a probability distribution when called"""
 
     def __call__(self, offer: Outcome | None) -> Distribution:
@@ -994,10 +1010,6 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
         if offer is None:
             return ScipyDistribution("uniform", loc=self.reserved_value, scale=0.0)
         return self.eval(offer)
-
-    def __getitem__(self, offer: Outcome | None) -> Distribution | None:
-        """Overrides [] operator to call the ufun allowing it to act as a mapping"""
-        return self(offer)
 
     @classmethod
     def generate_bilateral(
@@ -1194,12 +1206,18 @@ class ProbUtilityFunction(BaseUtilityFunction, UFunProb):
         return ufuns
 
 
-class StationaryUtilityFunction(UtilityFunction, StationaryUFun):
-    def is_stationary(self) -> bool:
+class StationaryUtilityFunction(UtilityFunction):
+    def is_session_dependent(self) -> bool:
         return False
 
-    def is_non_stationary(self) -> bool:
+    def is_volatile(self) -> bool:
         return False
+
+    def is_state_dependent(self) -> bool:
+        return False
+
+    def is_stationary(self) -> bool:
+        return True
 
     def to_stationary(self):
         return self

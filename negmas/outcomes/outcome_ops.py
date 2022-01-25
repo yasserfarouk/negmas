@@ -33,7 +33,8 @@ def _is_single(x):
 
 
 def outcome_is_valid(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
-    """Test validity of an outcome given a set of issues.
+    """
+    Test validity of an outcome given a set of issues.
 
     Examples:
 
@@ -116,7 +117,8 @@ def cast_value_types(outcome: "Outcome", issues: Iterable["Issue"]) -> "Outcome"
 
 
 def outcome_is_complete(outcome: "Outcome", issues: Sequence["Issue"]) -> bool:
-    """Tests that the outcome is valid and complete.
+    """
+    Tests that the outcome is valid and complete.
 
     Examples:
 

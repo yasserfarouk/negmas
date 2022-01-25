@@ -10,6 +10,10 @@ __all__ = ["CategoricalIssue"]
 
 
 class CategoricalIssue(DiscreteIssue):
+    """
+    An `Issue` type representing discrete values that may not have differences between values defined and may not have a natural ordering.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         super().__init__(values, name, id)
         values = list(values)

@@ -1,14 +1,10 @@
-from __future__ import annotations
-
-from distributed.utils import Any
-
-from negmas.outcomes.base_issue import Issue
-
 """
 Genius Negotiator
 An agent used to connect to GENIUS agents (ver 8.0.4) and allow them to join negotiation mechanisms
 
 """
+from __future__ import annotations
+
 import math
 import os
 import pathlib
@@ -16,6 +12,10 @@ import random
 import tempfile
 import warnings
 from typing import List, Optional, Tuple, Union
+
+from distributed.utils import Any
+
+from negmas.outcomes.base_issue import Issue
 
 from ..common import MechanismState, NegotiatorMechanismInterface
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
@@ -297,12 +297,7 @@ class GeniusNegotiator(SAONegotiator):
         self.java_uuid = self._create()
 
         if self._normalize_utility:
-            self._preferences = normalize(
-                self.ufun,  # type: ignore
-                outcomes=nmi.discrete_outcomes,  # type: ignore
-                to=(None, 1.0) if self._normalize_max_only else (0.0, 1.0),
-            )
-        self.issue_names = [_.name for _ in nmi.outcome_space.issues]
+            self.preferences = self.ufun.scale_max(1.0)
         self.issues = nmi.outcome_space.issues
         self.issue_index = dict(zip(self.issue_names, range(len(self.issue_names))))
         if nmi.outcome_space is not None and self.domain_file_name is None:
@@ -388,8 +383,8 @@ class GeniusNegotiator(SAONegotiator):
             self._temp_preferences_file = True
         info = self._nmi
         if self.discount is not None and self.discount != 1.0 and self._preferences:
-            self._preferences = make_discounted_ufun(
-                self._preferences,
+            self.preferences = make_discounted_ufun(
+                self.preferences,
                 discount_per_round=self.discount,
                 power_per_round=1.0,
             )

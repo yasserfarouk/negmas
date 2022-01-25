@@ -563,8 +563,6 @@ class SAOElicitingMechanism(SAOMechanism):
     def plot(
         self,
         visible_negotiators=(0, 1),
-        plot_utils=True,
-        plot_outcomes=False,
         minmax=None,
         consider_costs=False,
     ):
