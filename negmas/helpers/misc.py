@@ -77,7 +77,7 @@ def make_callable(x: dict | Sequence | Callable | None) -> Callable:
         >>> make_callable(lambda  x: 2 * x) (4)
         8
 
-        >>> make_callable(dict(a=1, b=3))(a)
+        >>> make_callable(dict(a=1, b=3))("a")
         1
 
         >>> make_callable((3, 4, 5))(1)

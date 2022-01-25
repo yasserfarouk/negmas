@@ -11,7 +11,16 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Collection, Iterable, Optional, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Optional,
+    Set,
+    Union,
+)
 
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import MechanismState, NegotiatorInfo, NegotiatorMechanismInterface
@@ -330,8 +339,25 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             * None if the agent cannot be added.
 
         """
+
+        from negmas.preferences import (
+            BaseUtilityFunction,
+            MappingUtilityFunction,
+            Preferences,
+        )
+
         if ufun is not None:
+            if not isinstance(ufun, BaseUtilityFunction):
+                ufun = MappingUtilityFunction(ufun, outcome_space=self.outcome_space)
             preferences = ufun
+        if (
+            preferences is not None
+            and not isinstance(preferences, Preferences)
+            and isinstance(preferences, Callable)
+        ):
+            preferences = MappingUtilityFunction(
+                preferences, outcome_space=self.outcome_space
+            )
         if not self.can_enter(negotiator):
             return None
 
