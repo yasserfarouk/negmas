@@ -581,7 +581,7 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
 
     @classmethod
     def from_genius(
-        cls, file_name: PathLike, **kwargs
+        cls, file_name: PathLike | str, **kwargs
     ) -> Tuple["UtilityFunction" | None, float | None]:
         """Imports a utility function from a GENIUS XML file.
 
@@ -620,7 +620,9 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
             xml_str = f.read()
             return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
-    def to_genius(self, file_name: PathLike, issues: Iterable[Issue] = None, **kwargs):
+    def to_genius(
+        self, file_name: PathLike | str, issues: Iterable[Issue] = None, **kwargs
+    ):
         """Exports a utility function to a GENIUS XML file.
 
         Args:

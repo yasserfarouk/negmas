@@ -284,7 +284,7 @@ class Scenario:
 
 
 def get_domain_issues(
-    domain_file_name: PathLike,
+    domain_file_name: PathLike | str,
     n_discretization: Optional[int] = None,
     safe_parsing=False,
 ) -> tuple[Issue, ...] | None:

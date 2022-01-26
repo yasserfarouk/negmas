@@ -13,7 +13,7 @@ from negmas.helpers.prob import Distribution
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
-    from .outcomes import Issue, Outcome, OutcomeSpace
+    from .outcomes import CartesianOutcomeSpace, Issue, Outcome, OutcomeSpace
 
 
 __all__ = [
@@ -138,6 +138,16 @@ class NegotiatorMechanismInterface:
     annotation: dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
     _mechanism: "Mechanism" | None = None
+
+    @property
+    def cartesian_outcome_space(self) -> CartesianOutcomeSpace:
+        from negmas.outcomes import CartesianOutcomeSpace
+
+        if not isinstance(self.outcome_space, CartesianOutcomeSpace):
+            raise ValueError(
+                f"{self.outcome_space} is of type {self.outcome_space.__class__.__name__} and cannot be cast as a `CartesianOutcomeSpace`"
+            )
+        return self.outcome_space
 
     @property
     def params(self):
