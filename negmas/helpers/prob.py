@@ -7,6 +7,7 @@ from __future__ import annotations
 import copy
 import numbers
 import random
+from abc import abstractmethod
 from typing import Protocol, Type, runtime_checkable
 
 import numpy as np
@@ -41,42 +42,61 @@ class Distribution(Protocol):
     def __init__(self, type: str, **kwargs):
         """Constructor"""
 
+    @abstractmethod
     def type(self) -> str:
         """Returns the distribution type (e.g. uniform, normal, ...)"""
 
+    @abstractmethod
     def mean(self) -> float:
         """Finds the mean"""
 
-    def __float__(self) -> float:
-        """Converts to a float (usually by calling mean())"""
-
-    def __call__(self, val: float) -> float:
-        """Returns the probability for the given value"""
-
+    @abstractmethod
     def prob(self, val: float) -> float:
         """Returns the probability for the given value"""
 
+    @abstractmethod
     def cum_prob(self, mn: float, mx: float) -> float:
         """Returns the probability for the given range"""
 
+    @abstractmethod
     def sample(self, size: int = 1) -> np.ndarray:
         """Samples `size` elements from the distribution"""
 
     @property
+    @abstractmethod
     def loc(self) -> float:
         """Returns the location of the distributon (usually mean)"""
 
     @property
+    @abstractmethod
     def scale(self) -> float:
         """Returns the scale of the distribution (may be std. dev.)"""
 
     @property
+    @abstractmethod
     def min(self) -> float:
         """Returns the minimum"""
 
     @property
+    @abstractmethod
     def max(self) -> float:
         """Returns the maximum"""
+
+    @abstractmethod
+    def is_uniform(self) -> bool:
+        """Returns true if this is a uniform distribution"""
+
+    @abstractmethod
+    def is_gaussian(self) -> bool:
+        """Returns true if this is a gaussian distribution"""
+
+    def __float__(self) -> float:
+        """Converts to a float (usually by calling mean())"""
+        return self.mean()
+
+    def __call__(self, val: float) -> float:
+        """Returns the probability for the given value"""
+        return self.prob(val)
 
     def __le__(self, other) -> bool:
         """Check that a sample from `self` is ALWAYS less or equal a sample from other `other`"""
@@ -129,12 +149,6 @@ class Distribution(Protocol):
     def __mul__(self, weight: float):
         """Returns the distribution for the multiplicaiton of samples of `self` with `weight`"""
 
-    def is_uniform(self) -> bool:
-        """Returns true if this is a uniform distribution"""
-
-    def is_gaussian(self) -> bool:
-        """Returns true if this is a gaussian distribution"""
-
 
 class Real(Distribution):
     """A real number implementing the `Distribution` interface"""
@@ -162,14 +176,6 @@ class Real(Distribution):
     def mean(self) -> float:
         """Finds the mean"""
         return self._loc
-
-    def __float__(self):
-        """Converts to a float (usually by calling mean())"""
-        return self
-
-    def __call__(self, val: float) -> float:
-        """Returns the probability for the given value"""
-        return 1.0 if self == val < EPSILON else 0.0
 
     def prob(self, val: float) -> float:
         """Returns the probability for the given value"""
@@ -318,6 +324,9 @@ class ScipyDistribution(Distribution):
         self._dist = dist(**kwargs)
         self._type = type
 
+    def type(self) -> str:
+        return self._type
+
     def _make_dist(self, type: str, loc: float, scale: float):
         dist = getattr(stats, type.lower(), None)
         if dist is None:
@@ -333,13 +342,6 @@ class ScipyDistribution(Distribution):
             return float(self.loc)
         mymean = self._dist.mean()
         return float(mymean)
-
-    def __float__(self):
-        return self.mean()
-
-    def __call__(self, val: float) -> float:
-        """Returns the probability for the given value"""
-        return self._dist.prob(val)
 
     def prob(self, val: float) -> float:
         """Returns the probability for the given value"""

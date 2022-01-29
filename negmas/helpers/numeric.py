@@ -82,27 +82,27 @@ def truncated_mean(
     if isinstance(limits, str) and limits.lower() == "mean":
         return tmean(scores, None) if not return_limits else (tmean(scores, None), None)
     if isinstance(limits, str) and limits.lower() == "median":
-        return np.median(scores) if not return_limits else (np.median(scores), None)
+        return np.median(scores) if not return_limits else (np.median(scores), None)  # type: ignore (seems ok)
     if limits is not None:
         return np.mean(scores) if not return_limits else (np.mean(scores), None)
 
     if base == "zscore":
         m, s = np.nanmean(scores), np.nanstd(scores)
-        limits = (m - s * bottom_limit, m + s * top_limit)
+        limits_ = (m - s * bottom_limit, m + s * top_limit)
     elif base in ("tukey", "iqr"):
         q1, q3 = np.quantile(scores, 0.25), np.quantile(scores, 0.75)
         iqr = q3 - q1
-        limits = (
+        limits_ = (
             q1 - (bottom_limit * iqr if not np.isinf(bottom_limit) else bottom_limit),
             q3 + (top_limit * iqr if not np.isinf(top_limit) else top_limit),
         )
     elif base == "iqr_fraction":
         bottom_limit = min(1, max(0, bottom_limit))
         top_limit = min(1, max(0, top_limit))
-        limits = (np.quantile(scores, 0.25), np.quantile(scores, 0.75))
-        high = np.sort(scores[scores > limits[1]])
-        low = np.sort(scores[scores < limits[0]])
-        limits = (  # type: ignore
+        limits_: tuple[float, float] = (np.quantile(scores, 0.25), np.quantile(scores, 0.75))  # type: ignore (seems ok)
+        high = np.sort(scores[scores > limits_[1]])
+        low = np.sort(scores[scores < limits_[0]])
+        limits_ = (  # type: ignore
             low[int((len(low) - 1) * bottom_limit)] if len(low) > 0 else None,
             high[int((len(high) - 1) * (1 - top_limit))] if len(high) > 0 else None,
         )
@@ -119,31 +119,31 @@ def truncated_mean(
     elif base == "scores":
         bottom_limit = min(1, max(0, bottom_limit))
         top_limit = min(1, max(0, top_limit))
-        limits = (
+        limits_ = (  # type: ignore
             np.quantile(scores, bottom_limit),
             np.quantile(scores, 1 - top_limit),
         )
-        if limits[0] > limits[1]:
-            return float("nan") if not return_limits else (float("nan"), limits)
+        if limits_[0] > limits_[1]:
+            return float("nan") if not return_limits else (float("nan"), limits_)
     elif base == "mean":
         return np.mean(scores) if not return_limits else (np.mean(scores), None)
     elif base == "median":
-        return np.median(scores) if not return_limits else (np.median(scores), None)
+        return np.median(scores) if not return_limits else (np.median(scores), None)  # type: ignore
     else:
         raise ValueError(f"Unknown base for truncated_mean ({base})")
-    if len(scores) == 0 or limits[1] < limits[0]:
-        return float("nan") if not return_limits else (float("nan"), limits)
+    if len(scores) == 0 or limits_[1] < limits_[0]:
+        return float("nan") if not return_limits else (float("nan"), limits_)
     try:
         # this is an inclusive trimmed mean
         # tm = tmean(scores, limits)
-        scores = scores[scores >= limits[0]]
-        scores = scores[scores <= limits[1]]
+        scores = scores[scores >= limits_[0]]
+        scores = scores[scores <= limits_[1]]
         if len(scores) == 0:
-            return float("nan") if not return_limits else (float("nan"), limits)
+            return float("nan") if not return_limits else (float("nan"), limits_)
         tm = np.mean(scores)
-        return tm if not return_limits else (tm, limits)
+        return tm if not return_limits else (tm, limits_)
     except ValueError:
-        return float("nan") if not return_limits else (float("nan"), limits)
+        return float("nan") if not return_limits else (float("nan"), limits_)
 
 
 def sample(n, k, grid=False, compact=True, endpoints=True):

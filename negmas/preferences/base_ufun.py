@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import random
-import warnings
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
+from os import PathLike
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, TypeVar
 
-import numpy as np
-
+from negmas import warnings
 from negmas.common import Value
 from negmas.helpers import PathLike
-from negmas.helpers.numeric import get_one_float
-from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
@@ -25,47 +21,26 @@ from .protocols import (
     CardinalRanking,
     HasRange,
     HasReservedValue,
-    InverseUFun,
-    MultiInverseUFun,
     OrdinalRanking,
     PartiallyNormalizable,
     PartiallyScalable,
     StationaryConvertible,
-    UFunCrisp,
-    UFunProb,
 )
-from .value_fun import MAX_CARINALITY, make_fun_from_xml
+from .value_fun import make_fun_from_xml
 
 if TYPE_CHECKING:
-    from negmas.preferences import ComplexWeightedUtilityFunction
+    from negmas.preferences import (
+        ProbUtilityFunction,
+        UtilityFunction,
+        WeightedUtilityFunction,
+    )
 
 __all__ = [
     "BaseUtilityFunction",
-    "UtilityFunction",
-    "ProbUtilityFunction",
-    "StationaryUtilityFunction",
-    "PresortingInverseUtilityFunction",
-    "SamplingInverseUtilityFunction",
 ]
 
-import functools
 
-
-def ignore_unhashable(func):
-    uncached = func.__wrapped__
-    attributes = functools.WRAPPER_ASSIGNMENTS + ("cache_info", "cache_clear")  # type: ignore (not my code and I do not know what is happening here)
-
-    @functools.wraps(func, assigned=attributes)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except TypeError as error:
-            if "unhashable type" in str(error):
-                return uncached(*args, **kwargs)
-            raise
-
-    wrapper.__uncached__ = uncached
-    return wrapper
+T = TypeVar("T", bound="BaseUtilityFunction")
 
 
 class BaseUtilityFunction(
@@ -94,14 +69,14 @@ class BaseUtilityFunction(
         return True
 
     def scale_by(
-        self, scale: float, scale_reserved=True
-    ) -> "ComplexWeightedUtilityFunction":
+        self: T, scale: float, scale_reserved=True
+    ) -> WeightedUtilityFunction | T:
         if scale < 0:
             raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
-        from negmas.preferences.complex import ComplexWeightedUtilityFunction
+        from negmas.preferences.complex import WeightedUtilityFunction
 
         r = scale * self.reserved_value if scale_reserved else self.reserved_value
-        return ComplexWeightedUtilityFunction(
+        return WeightedUtilityFunction(
             ufuns=[self],
             weights=[scale],
             name=self.name,
@@ -109,13 +84,13 @@ class BaseUtilityFunction(
         )
 
     def shift_by(
-        self, offset: float, shift_reserved=True
-    ) -> "ComplexWeightedUtilityFunction":
-        from negmas.preferences.complex import ComplexWeightedUtilityFunction
-        from negmas.preferences.const import ConstUtilityFunction
+        self: T, offset: float, shift_reserved=True
+    ) -> WeightedUtilityFunction | T:
+        from negmas.preferences.complex import WeightedUtilityFunction
+        from negmas.preferences.crisp.const import ConstUtilityFunction
 
         r = self.reserved_value + offset if shift_reserved else self.reserved_value
-        return ComplexWeightedUtilityFunction(
+        return WeightedUtilityFunction(
             ufuns=[self, ConstUtilityFunction(offset)],
             weights=[1, 1],
             name=self.name,
@@ -123,13 +98,13 @@ class BaseUtilityFunction(
         )
 
     def shift_min_for(
-        self,
+        self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
+    ) -> T:
         if rng is None:
             mn, _ = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -138,13 +113,13 @@ class BaseUtilityFunction(
         return self.shift_by(offset)
 
     def scale_min_for(
-        self,
+        self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
+    ) -> T:
         if rng is None:
             mn, _ = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -153,13 +128,13 @@ class BaseUtilityFunction(
         return self.scale_by(scale)
 
     def shift_max_for(
-        self,
+        self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
+    ) -> T:
         if rng is None:
             _, mx = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -168,13 +143,13 @@ class BaseUtilityFunction(
         return self.shift_by(offset)
 
     def scale_max_for(
-        self,
+        self: T,
         to: float,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | None = None,
         rng: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
+    ) -> T:
         if rng is None:
             _, mx = self.minmax(outcome_space, issues, outcomes)
         else:
@@ -185,7 +160,8 @@ class BaseUtilityFunction(
     def argrank(
         self, outcomes: list[Outcome | None], descending=True
     ) -> list[list[Outcome | None]]:
-        """Ranks the given list of outcomes with weights. None stands for the null outcome.
+        """
+        Ranks the given list of outcomes with weights. None stands for the null outcome.
 
         Returns:
             A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
@@ -197,7 +173,8 @@ class BaseUtilityFunction(
     def rank(
         self, outcomes: list[Outcome | None], descending=True
     ) -> list[list[Outcome | None]]:
-        """Ranks the given list of outcomes with weights. None stands for the null outcome.
+        """
+        Ranks the given list of outcomes with weights. None stands for the null outcome.
 
         Returns:
             A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
@@ -253,11 +230,14 @@ class BaseUtilityFunction(
         return self._do_rank(vals, descending)
 
     def eu(self, offer: Outcome | None) -> float:
-        """calculates the **expected** utility value of the input outcome"""
+        """
+        calculates the **expected** utility value of the input outcome
+        """
         return float(self(offer))
 
     def __call__(self, offer: Outcome | None) -> Value:
-        """Calculate the utility_function value for a given outcome at the given negotiation state.
+        """
+        Calculate the utility_function value for a given outcome at the given negotiation state.
 
         Args:
             offer: The offer to be evaluated.
@@ -269,7 +249,7 @@ class BaseUtilityFunction(
               outcome type.
             - It is preferred to override eval instead of directly overriding this method
             - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
+              not possible to calculate the Value.
             - Return a float from your `eval` implementation.
             - Return the reserved value if the offer was None
 
@@ -283,6 +263,16 @@ class BaseUtilityFunction(
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
         ...
+
+    def to_crisp(self) -> UtilityFunction:
+        from negmas.preferences.crisp_ufun import CrispAdapter
+
+        return CrispAdapter(self)
+
+    def to_prob(self) -> ProbUtilityFunction:
+        from negmas.preferences.prob_ufun import ProbAdapter
+
+        return ProbAdapter(self)
 
     def to_dict(self) -> dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
@@ -330,183 +320,6 @@ class BaseUtilityFunction(
             raise ValueError(f"Cound not find worst and best outcomes for {self}")
         return worst, best
 
-
-class _General:
-    def is_session_dependent(self) -> bool:
-        return True
-
-    def is_volatile(self) -> bool:
-        return True
-
-    def is_state_dependent(self) -> bool:
-        return True
-
-    def is_stationary(self) -> bool:
-        return False
-
-
-class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
-    """Base for all crisp ufuns"""
-
-    def __call__(self, offer: Outcome | None) -> float:
-        """Calculate the utility_function value for a given outcome.
-
-        Args:
-            offer: The offer to be evaluated.
-
-
-        Remarks:
-
-            - It calls the abstract method `eval` after opationally adjusting the
-              outcome type.
-            - It is preferred to override eval instead of directly overriding this method
-            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
-            - Return a float from your `eval` implementation.
-            - Return the reserved value if the offer was None
-
-        Returns:
-            The utility of the given outcome
-        """
-        if offer is None:
-            return self.reserved_value
-        return self.eval(offer)
-
-    @abstractmethod
-    def eval(self, offer: Outcome) -> float:
-        ...
-
-    def __getitem__(self, offer: Outcome | None) -> float | None:
-        """Overrides [] operator to call the ufun allowing it to act as a mapping"""
-        return self(offer)
-
-    @classmethod
-    def generate_bilateral(
-        cls,
-        outcomes: Union[int, List[Outcome]],
-        conflict_level: float = 0.5,
-        conflict_delta=0.005,
-    ) -> Tuple["UtilityFunction", "UtilityFunction"]:
-        """Generates a couple of utility functions
-
-        Args:
-
-            n_outcomes (int): number of outcomes to use
-            conflict_level: How conflicting are the two ufuns to generate.
-                            1.0 means maximum conflict.
-            conflict_delta: How variable is the conflict at different outcomes.
-
-        Examples:
-
-            >>> from negmas.preferences import conflict_level
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.0
-            ...                                             , conflict_delta=0.0)
-            >>> print(conflict_level(u1, u2, outcomes=10))
-            0.0
-
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=1.0
-            ...                                             , conflict_delta=0.0)
-            >>> print(conflict_level(u1, u2, outcomes=10))
-            1.0
-
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.5
-            ...                                             , conflict_delta=0.0)
-            >>> 0.0 < conflict_level(u1, u2, outcomes=10) < 1.0
-            True
-
-
-        """
-        from negmas.preferences.mapping import MappingUtilityFunction
-
-        if isinstance(outcomes, int):
-            outcomes = [(_,) for _ in range(outcomes)]
-        n_outcomes = len(outcomes)
-        u1 = np.random.random(n_outcomes)
-        rand = np.random.random(n_outcomes)
-        if conflict_level > 0.5:
-            conflicting = 1.0 - u1 + conflict_delta * np.random.random(n_outcomes)
-            u2 = conflicting * conflict_level + rand * (1 - conflict_level)
-        elif conflict_level < 0.5:
-            same = u1 + conflict_delta * np.random.random(n_outcomes)
-            u2 = same * (1 - conflict_level) + rand * conflict_level
-        else:
-            u2 = rand
-
-        # todo implement win_win correctly. Order the ufun then make outcomes with good outcome even better and vice
-        # versa
-        # u2 += u2 * win_win
-        # u2 += np.random.random(n_outcomes) * conflict_delta
-        u1 -= u1.min()
-        u2 -= u2.min()
-        u1 = u1 / u1.max()
-        u2 = u2 / u2.max()
-        if random.random() > 0.5:
-            u1, u2 = u2, u1
-        return (
-            MappingUtilityFunction(dict(zip(outcomes, u1))),
-            MappingUtilityFunction(dict(zip(outcomes, u2))),
-        )
-
-    @classmethod
-    def generate_random_bilateral(
-        cls, outcomes: Union[int, List[Outcome]]
-    ) -> Tuple["UtilityFunction", "UtilityFunction"]:
-        """Generates a couple of utility functions
-
-        Args:
-
-            n_outcomes (int): number of outcomes to use
-            conflict_level: How conflicting are the two ufuns to generate. 1.0 means maximum conflict.
-            conflict_delta: How variable is the conflict at different outcomes.
-            zero_summness: How zero-sum like are the two ufuns.
-
-
-        """
-        from negmas.preferences.mapping import MappingUtilityFunction
-
-        if isinstance(outcomes, int):
-            outcomes = [(_,) for _ in range(outcomes)]
-        n_outcomes = len(outcomes)
-        u1 = np.random.random(n_outcomes)
-        u2 = np.random.random(n_outcomes)
-        u1 -= u1.min()
-        u2 -= u2.min()
-        u1 /= u1.max()
-        u2 /= u2.max()
-        return (
-            MappingUtilityFunction(dict(zip(outcomes, u1))),
-            MappingUtilityFunction(dict(zip(outcomes, u2))),
-        )
-
-    @classmethod
-    def generate_random(
-        cls, n: int, outcomes: Union[int, List[Outcome]], normalized: bool = True
-    ) -> List["UtilityFunction"]:
-        """Generates N mapping utility functions
-
-        Args:
-            n: number of utility functions to generate
-            outcomes: number of outcomes to use
-            normalized: if true, the resulting ufuns will be normlized between zero and one.
-
-
-        """
-        from negmas.preferences.mapping import MappingUtilityFunction
-
-        if isinstance(outcomes, int):
-            outcomes = [(_,) for _ in range(outcomes)]
-        else:
-            outcomes = list(outcomes)
-        n_outcomes = len(outcomes)
-        ufuns = []
-        for _ in range(n):
-            u1 = np.random.random(n_outcomes)
-            if normalized:
-                u1 -= u1.min()
-                u1 /= u1.max()
-            ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1))))
-        return ufuns
-
     def sample_outcome_with_utility(
         self,
         rng: Tuple[float, float],
@@ -515,6 +328,19 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
         outcomes: List[Outcome] | None = None,
         n_trials: int = 100,
     ) -> Optional["Outcome"]:
+        """
+        Samples an outcome in the given utiltity range or return None if not possible
+
+        Args:
+            rng (Tuple[float, float]): rng
+            outcome_space (OutcomeSpace | None): outcome_space
+            issues (List[Issue] | None): issues
+            outcomes (List[Outcome] | None): outcomes
+            n_trials (int): n_trials
+
+        Returns:
+            Optional["Outcome"]:
+        """
         if rng[0] is None:
             rng = (float("-inf"), rng[1])
         if rng[1] is None:
@@ -532,57 +358,14 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
             assert (
                 o in outcome_space
             ), f"Sampled outcome {o} which is not in the outcome-space {outcome_space}"
-            if rng[0] - 1e-6 <= self(o) <= rng[1] + 1e-6:
+            if rng[0] - 1e-6 <= float(self(o)) <= rng[1] + 1e-6:
                 return o
         return None
-
-    def normalize_for(
-        self,
-        to: tuple[float, float] = (0.0, 1.0),
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        minmax: tuple[float, float] | None = None,
-    ) -> "UtilityFunction":
-        """
-        Creates a new utility function that is normalized based on input conditions.
-
-        Args:
-            to: The minimum and maximum value to normalize to. If either is None, it is ignored.
-                 This means that passing `(None, 1.0)` will normalize the ufun so that the maximum
-                 is `1` but will not guarantee any limit for the minimum and so on.
-            outcomes: A set of outcomes to limit our attention to. If not given,
-                      the whole ufun is normalized
-            outcome_space: The outcome-space to focus on when normalizing
-            minmax: The current minimum and maximum to use for normalization. Pass if known to avoid
-                  calculating them using the outcome-space given or defined for the ufun.
-        """
-        max_cardinality: int = MAX_CARINALITY
-        outcome_space = None
-        if minmax is not None:
-            mn, mx = minmax
-        else:
-            check_one_at_most(outcome_space, issues, outcomes)
-            outcome_space = os_or_none(outcome_space, issues, outcomes)
-            if not outcome_space:
-                outcome_space = self.outcome_space
-            if not outcome_space:
-                raise ValueError(
-                    "Cannot find the outcome-space to normalize for. "
-                    "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
-                )
-            mn, mx = self.minmax(outcome_space, max_cardinality=max_cardinality)
-
-        scale = (to[1] - to[0]) / (mx - mn)
-
-        # u = self.shift_by(-mn, shift_reserved=True)
-        u = self.scale_by(scale, scale_reserved=True)
-        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
 
     @classmethod
     def from_genius(
         cls, file_name: PathLike | str, **kwargs
-    ) -> Tuple["UtilityFunction" | None, float | None]:
+    ) -> Tuple["BaseUtilityFunction" | None, float | None]:
         """Imports a utility function from a GENIUS XML file.
 
         Args:
@@ -623,7 +406,8 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
     def to_genius(
         self, file_name: PathLike | str, issues: Iterable[Issue] = None, **kwargs
     ):
-        """Exports a utility function to a GENIUS XML file.
+        """
+        Exports a utility function to a GENIUS XML file.
 
         Args:
 
@@ -659,7 +443,9 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
             f.write(self.to_xml_str(issues=issues, **kwargs))
 
     def to_xml_str(self, issues: Iterable[Issue] = None, discount_factor=None) -> str:
-        """Exports a utility function to a well formatted string"""
+        """
+        Exports a utility function to a well formatted string
+        """
         if not hasattr(self, "xml"):
             raise ValueError(
                 f"ufun of type {self.__class__.__name__} has no xml() member and cannot be saved to XML string\nThe ufun params: {self.to_dict()}"
@@ -699,7 +485,7 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
         ignore_discount=False,
         ignore_reserved=False,
         name: str = None,
-    ) -> Tuple["UtilityFunction" | None, float | None]:
+    ) -> Tuple["BaseUtilityFunction" | None, float | None]:
         """Imports a utility function from a GENIUS XML string.
 
         Args:
@@ -716,6 +502,7 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
 
         Examples:
 
+            >>> from negmas.preferences import UtilityFunction
             >>> import pkg_resources
             >>> from negmas.inout import load_genius_domain
             >>> domain = load_genius_domain(pkg_resources.resource_filename('negmas'
@@ -732,12 +519,12 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
 
 
         """
-        from negmas.preferences.complex import ComplexWeightedUtilityFunction
-        from negmas.preferences.linear import (
+        from negmas.preferences.complex import WeightedUtilityFunction
+        from negmas.preferences.crisp.linear import (
+            AffineUtilityFunction,
             LinearAdditiveUtilityFunction,
-            LinearUtilityFunction,
         )
-        from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
+        from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
 
         root = ET.fromstring(xml_str)
         if safe_parsing and root.tag != "utility_space":
@@ -890,7 +677,8 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
                         item_name = item.attrib.get("value", None)
                         if item_name is None:
                             warnings.warn(
-                                f"An item without a value at index {item_indx} for issue {issue_key}"
+                                f"An item without a value at index {item_indx} for issue {issue_key}",
+                                warnings.NegmasIOWarning,
                             )
                             continue
                         # may be I do not need this
@@ -943,7 +731,7 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
                 for i, s in enumerate(slopes):
                     ws[i] *= s
 
-                u = LinearUtilityFunction(
+                u = AffineUtilityFunction(
                     weights=ws,
                     outcome_space=make_os(ordered_issues),
                     bias=bias + global_bias,
@@ -967,7 +755,7 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
             if u is None:
                 u = uhyper
             else:
-                u = ComplexWeightedUtilityFunction(
+                u = WeightedUtilityFunction(
                     ufuns=[u, uhyper],
                     weights=[1.0, 1.0],
                     name=name,
@@ -986,455 +774,19 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
         return u, discount_factor
 
 
-class ProbUtilityFunction(_General, BaseUtilityFunction, UFunProb):
-    """A probablistic utility function. One that returns a probability distribution when called"""
+class _General:
+    """
+    Used internally to indicate that the ufun can change due to anything.
+    """
 
-    def __call__(self, offer: Outcome | None) -> Distribution:
-        """Calculate the utility_function value for a given outcome.
-
-        Args:
-            offer: The offer to be evaluated.
-
-
-        Remarks:
-
-            - It calls the abstract method `eval` after opationally adjusting the
-              outcome type.
-            - It is preferred to override eval instead of directly overriding this method
-            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
-            - Return a float from your `eval` implementation.
-            - Return the reserved value if the offer was None
-
-        Returns:
-            The utility of the given outcome
-        """
-        if offer is None:
-            return ScipyDistribution("uniform", loc=self.reserved_value, scale=0.0)
-        return self.eval(offer)
-
-    @classmethod
-    def generate_bilateral(
-        cls,
-        outcomes: Union[int, List[Outcome]],
-        conflict_level: float = 0.5,
-        conflict_delta=0.005,
-        scale: float | tuple[float, float] = 0.5,
-    ) -> Tuple["ProbUtilityFunction", "ProbUtilityFunction"]:
-        """Generates a couple of utility functions
-
-        Args:
-
-            n_outcomes (int): number of outcomes to use
-            conflict_level: How conflicting are the two ufuns to generate.
-                            1.0 means maximum conflict.
-            conflict_delta: How variable is the conflict at different outcomes.
-
-        Examples:
-
-            >>> from negmas.preferences import conflict_level
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.0
-            ...                                             , conflict_delta=0.0)
-            >>> print(conflict_level(u1, u2, outcomes=10))
-            0.0
-
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=1.0
-            ...                                             , conflict_delta=0.0)
-            >>> print(conflict_level(u1, u2, outcomes=10))
-            1.0
-
-            >>> u1, u2 = UtilityFunction.generate_bilateral(outcomes=10, conflict_level=0.5
-            ...                                             , conflict_delta=0.0)
-            >>> 0.0 < conflict_level(u1, u2, outcomes=10) < 1.0
-            True
-
-
-        """
-        from negmas.preferences.mapping import ProbMappingUtilityFunction
-
-        if isinstance(outcomes, int):
-            outcomes = [(_,) for _ in range(outcomes)]
-        n_outcomes = len(outcomes)
-        u1 = np.random.random(n_outcomes)
-        rand = np.random.random(n_outcomes)
-        if conflict_level > 0.5:
-            conflicting = 1.0 - u1 + conflict_delta * np.random.random(n_outcomes)
-            u2 = conflicting * conflict_level + rand * (1 - conflict_level)
-        elif conflict_level < 0.5:
-            same = u1 + conflict_delta * np.random.random(n_outcomes)
-            u2 = same * (1 - conflict_level) + rand * conflict_level
-        else:
-            u2 = rand
-
-        # todo implement win_win correctly. Order the ufun then make outcomes with good outcome even better and vice
-        # versa
-        # u2 += u2 * win_win
-        # u2 += np.random.random(n_outcomes) * conflict_delta
-        u1 -= u1.min()
-        u2 -= u2.min()
-        u1 = u1 / u1.max()
-        u2 = u2 / u2.max()
-        if random.random() > 0.5:
-            u1, u2 = u2, u1
-        return (
-            ProbMappingUtilityFunction(
-                dict(
-                    zip(
-                        outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u1
-                        ),
-                    )
-                )
-            ),
-            ProbMappingUtilityFunction(
-                dict(
-                    zip(
-                        outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u2
-                        ),
-                    )
-                )
-            ),
-        )
-
-    @classmethod
-    def generate_random_bilateral(
-        cls, outcomes: Union[int, List[Outcome]], scale: float = 0.5
-    ) -> Tuple["ProbUtilityFunction", "ProbUtilityFunction"]:
-        """Generates a couple of utility functions
-
-        Args:
-
-            n_outcomes (int): number of outcomes to use
-            conflict_level: How conflicting are the two ufuns to generate. 1.0 means maximum conflict.
-            conflict_delta: How variable is the conflict at different outcomes.
-            zero_summness: How zero-sum like are the two ufuns.
-
-
-        """
-        from negmas.preferences.mapping import ProbMappingUtilityFunction
-
-        if isinstance(outcomes, int):
-            outcomes = [(_,) for _ in range(outcomes)]
-        n_outcomes = len(outcomes)
-        u1 = np.random.random(n_outcomes)
-        u2 = np.random.random(n_outcomes)
-        u1 -= u1.min()
-        u2 -= u2.min()
-        u1 /= u1.max()
-        u2 /= u2.max()
-        return (
-            ProbMappingUtilityFunction(
-                dict(
-                    zip(
-                        outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u1
-                        ),
-                    )
-                )
-            ),
-            ProbMappingUtilityFunction(
-                dict(
-                    zip(
-                        outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u2
-                        ),
-                    )
-                )
-            ),
-        )
-
-    @classmethod
-    def generate_random(
-        cls,
-        n: int,
-        outcomes: Union[int, List[Outcome]],
-        normalized: bool = True,
-        scale: float | tuple[float, float] = 0.5,
-    ) -> List["ProbUtilityFunction"]:
-        """Generates N mapping utility functions
-
-        Args:
-            n: number of utility functions to generate
-            outcomes: number of outcomes to use
-            normalized: if true, the resulting ufuns will be normlized between zero and one.
-
-
-        """
-        from negmas.preferences.mapping import MappingUtilityFunction
-
-        if isinstance(outcomes, int):
-            outcomes = [(_,) for _ in range(outcomes)]
-        else:
-            outcomes = list(outcomes)
-        n_outcomes = len(outcomes)
-        ufuns = []
-        for _ in range(n):
-            u1 = np.random.random(n_outcomes)
-            if normalized:
-                u1 -= u1.min()
-                u1 /= u1.max()
-            ufuns.append(
-                MappingUtilityFunction(
-                    dict(
-                        zip(
-                            outcomes,
-                            (
-                                ScipyDistribution(
-                                    type="unifomr", loc=_, scale=get_one_float(scale)
-                                )
-                                for _ in u1
-                            ),
-                        )
-                    )
-                )
-            )
-        return ufuns
-
-
-class StationaryUtilityFunction(UtilityFunction):
     def is_session_dependent(self) -> bool:
-        return False
-
-    def is_volatile(self) -> bool:
-        return False
-
-    def is_state_dependent(self) -> bool:
-        return False
-
-    def is_stationary(self) -> bool:
         return True
 
-    def to_stationary(self):
-        return self
+    def is_volatile(self) -> bool:
+        return True
 
+    def is_state_dependent(self) -> bool:
+        return True
 
-class SamplingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
-    def __init__(self, ufun: UtilityFunction, max_samples_per_call: int = 10_000):
-        self._ufun = ufun
-        self.max_samples_per_call = max_samples_per_call
-
-    def init(self):
-        pass
-
-    def all(
-        self,
-        rng: float | tuple[float, float],
-    ) -> list[Outcome]:
-        """
-        Finds all outcomes with in the given utility value range
-
-        Args:
-            rng: The range. If a value, outcome utilities must match it exactly
-
-        Remarks:
-            - If issues or outcomes are not None, then init_inverse will be called first
-            - If the outcome-space is discrete, this method will return all outcomes in the given range
-
-        """
-        raise ValueError(
-            f"Cannot find all outcomes in a range using a SamplingInverseUtilityFunction. Try a PresortedInverseUtilityFunction"
-        )
-
-    def some(
-        self,
-        rng: float | tuple[float, float],
-        n: int | None = None,
-    ) -> list[Outcome]:
-        """
-        Finds some outcomes with the given utility value (if discrete, all)
-
-        Args:
-            rng: The range. If a value, outcome utilities must match it exactly
-            n: The maximum number of outcomes to return
-
-        Remarks:
-            - If issues or outcomes are not None, then init_inverse will be called first
-            - If the outcome-space is discrete, this method will return all outcomes in the given range
-
-        """
-        if not n:
-            n = self.max_samples_per_call
-        if not self._ufun.outcome_space:
-            return []
-        return list(self._ufun.outcome_space.sample(n, False, False))
-
-    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        some = self.some(rng)
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
-        worst_util, worst = float("inf"), None
-        for o in some:
-            util = self._ufun(o)
-            if util < worst_util:
-                worst_util, worst = util, o
-        return worst
-
-    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        some = self.some(rng)
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
-        best_util, best = float("-inf"), None
-        for o in some:
-            util = self._ufun(o)
-            if util < best_util:
-                best_util, best = util, o
-        return best
-
-    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        if not self._ufun.outcome_space:
-            return None
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
-        for _ in range(self.max_samples_per_call):
-            o = list(self._ufun.outcome_space.sample(1))[0]
-            if rng[0] + 1e-7 <= self._ufun(o) <= rng[1] - 1e-7:
-                return o
-        return None
-
-
-class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
-    def __init__(
-        self, ufun: UtilityFunction, levels: int = 10, max_cache_size: int = 10_000
-    ):
-        self._ufun = ufun
-        self.max_cache_size = max_cache_size
-        self.levels = levels
-        if ufun.is_stationary():
-            self.init()
-
-    def init(self):
-        outcome_space = self._ufun.outcome_space
-        if outcome_space is None:
-            raise ValueError("Cannot find the outcome space.")
-        self._worst, self._best = self._ufun.extreme_outcomes()
-        self._min, self._max = self._ufun(self._worst), self._ufun(self._best)
-        self._range = self._max - self._min
-        self._offset = self._min / self._range if self._range > 1e-5 else self._min
-        for l in range(self.levels, 0, -1):
-            n = outcome_space.cardinality_if_discretized(l)
-            if n <= self.max_cache_size:
-                break
-        else:
-            raise ValueError(
-                f"Cannot discretize keeping cach size at {self.max_cache_size}"
-            )
-        os = outcome_space.to_discrete(levels=l, max_cardinality=self.max_cache_size)
-        if os.cardinality <= self.max_cache_size:
-            outcomes = list(os.sample(self.max_cache_size, False, False))
-        else:
-            outcomes = list(os.enumerate())[: self.max_cache_size]
-        utils = [self._ufun(_) for _ in outcomes]
-        self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
-
-    def all(
-        self,
-        rng: float | tuple[float, float],
-    ) -> list[Outcome]:
-        """
-        Finds all outcomes with in the given utility value range
-
-        Args:
-            rng: The range. If a value, outcome utilities must match it exactly
-
-        Remarks:
-            - If issues or outcomes are not None, then init_inverse will be called first
-            - If the outcome-space is discrete, this method will return all outcomes in the given range
-
-        """
-        os_ = self._ufun.outcome_space
-        if not os_:
-            raise ValueError(f"Unkonwn outcome space. Cannot invert the ufun")
-
-        if os_.is_discrete():
-            return self.some(rng)
-        raise ValueError(
-            f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
-        )
-
-    def some(
-        self,
-        rng: float | tuple[float, float],
-        n: int | None = None,
-    ) -> list[Outcome]:
-        """
-        Finds some outcomes with the given utility value (if discrete, all)
-
-        Args:
-            rng: The range. If a value, outcome utilities must match it exactly
-            n: The maximum number of outcomes to return
-
-        Remarks:
-            - If issues or outcomes are not None, then init_inverse will be called first
-            - If the outcome-space is discrete, this method will return all outcomes in the given range
-
-        """
-        if not self._ufun.is_stationary():
-            self.init()
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
-        mn, mx = rng
-        # todo use bisection
-        results = []
-        for util, w in self._ordered_outcomes:
-            if util > mx:
-                continue
-            if util < mn:
-                break
-            results.append(w)
-            if n and len(results) >= n:
-                return results
-        return results
-
-    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        if not self._ufun.is_stationary():
-            self.init()
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
-        mn, mx = rng
-        for i, (util, _) in enumerate(self._ordered_outcomes):
-            if util >= mn:
-                continue
-            ubefore, wbefore = self._ordered_outcomes[i - 1 if i > 0 else 0]
-            if ubefore > mx:
-                return None
-            return wbefore
-        ubefore, wbefore = self._ordered_outcomes[-1]
-        if ubefore > mx:
-            return None
-        return wbefore
-
-    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        if not self._ufun.is_stationary():
-            self.init()
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
-        mn, mx = rng
-        for util, w in self._ordered_outcomes:
-            if util <= mx:
-                if util < mn:
-                    return None
-                return w
-        return None
-
-    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        lst = self.some(rng)
-        if not lst:
-            return None
-        return lst[random.randint(0, len(lst) - 1)]
+    def is_stationary(self) -> bool:
+        return False

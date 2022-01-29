@@ -9,9 +9,10 @@ import time
 from abc import abstractmethod
 from collections import defaultdict
 from heapq import heapify, heappop, heappush
-from warnings import warn
 
 import numpy as np
+
+from negmas.warnings import NegmasImportWarning, warn
 
 try:
     from blist import sortedlist
@@ -25,7 +26,7 @@ except ImportError:
         "or "
         ""
         ">> pip install negmas[elicitation]",
-        ImportWarning,
+        NegmasImportWarning,
     )
 from typing import Callable, List, Optional, Tuple, Union
 

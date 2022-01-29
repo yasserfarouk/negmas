@@ -21,12 +21,6 @@ import os
 
 # on_rtd is whether we are on readthedocs.org
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-if on_rtd:
-    import sphinx_rtd_theme
-else:
-    # import sphinx_rtd_theme
-    # import sphinx_press_theme
-    import groundwork_sphinx_theme
 
 import negmas
 
@@ -131,6 +125,8 @@ html_static_path = ["_static"]
 
 
 if on_rtd:  # only set the theme if we're building docs locally
+    import sphinx_rtd_theme
+
     html_theme = "sphinx_rtd_theme"
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     # theme options for sphinx_rtd_theme

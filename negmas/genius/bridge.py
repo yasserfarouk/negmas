@@ -41,7 +41,6 @@ import socket
 import subprocess
 import time
 import traceback
-import warnings
 from typing import Any, Dict, Optional
 
 import psutil
@@ -52,6 +51,8 @@ from py4j.java_gateway import (
     JavaObject,
 )
 from py4j.protocol import Py4JNetworkError
+
+import negmas.warnings as warnings
 
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
 from ..helpers import TimeoutCaller, TimeoutError, unique_name
@@ -108,7 +109,8 @@ def init_genius_bridge(
             'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
             " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
             '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'
-            "You can find the jar at http://www.yasserm.com/scml/genius-8.0.4-bridge.jar"
+            "You can find the jar at http://www.yasserm.com/scml/genius-8.0.4-bridge.jar",
+            warnings.NegmasBridgePathWarning,
         )
         return False
     path = pathlib.Path(path).expanduser().absolute()
@@ -272,7 +274,8 @@ class GeniusBridge:
                 'to ~/negmas/config.json under the key "genius_bridge_jar".\n\nFor example, if you downloaded the jar'
                 " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
                 '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'
-                "You can find the jar at http://www.yasserm.com/scml/geniusbridge.jar"
+                "You can find the jar at http://www.yasserm.com/scml/geniusbridge.jar",
+                warnings.NegMASBridgePathWarning,
             )
             return 0
         path = pathlib.Path(path).expanduser().absolute()  # type: ignore
@@ -333,7 +336,7 @@ class GeniusBridge:
                 cwd=path.parent,  # type: ignore
             )
         except (OSError, TimeoutError, RuntimeError, ValueError) as e:
-            warnings.warn(str(e))
+            warnings.warn(str(e), warnings.NegmasBridgeProcessWarning)
             return 0
         cls.wait_until_listening(port, timeout=0.1)
         return port if cls.gateway(port, force=True) is not None else 0
@@ -562,7 +565,8 @@ class GeniusBridge:
         except Exception as e:
             warnings.warn(
                 f"Failed to kill threads at port {port} with error: {str(e)}\n"
-                f"{traceback.format_exc()}"
+                f"{traceback.format_exc()}",
+                warnings.NegmasBridgeProcessWarning,
             )
             return False
         if gateway is None:
@@ -612,7 +616,8 @@ class GeniusBridge:
         if p is None:
             warnings.warn(
                 f"Attempting to force-kill a genius brdige we did not start "
-                "at port {port}"
+                "at port {port}",
+                warnings.NegmasBridgeProcessWarning,
             )
             return False
         _kill_process(p.pid)
@@ -632,7 +637,8 @@ class GeniusBridge:
         except Exception as e:
             warnings.warn(
                 f"Failed to kill threads at port {port} with error: {str(e)}\n"
-                f"{traceback.format_exc()}"
+                f"{traceback.format_exc()}",
+                warnings.NegmasBridgeProcessWarning,
             )
             return False
         if gateway is None:
@@ -669,7 +675,8 @@ class GeniusBridge:
         except Exception as e:
             warnings.warn(
                 f"Failed to kill threads at port {port} with error: {str(e)}\n"
-                f"{traceback.format_exc()}"
+                f"{traceback.format_exc()}",
+                warnings.NegmasBridgeProcessWarning,
             )
             raise RuntimeError(e)
         if gateway is None:

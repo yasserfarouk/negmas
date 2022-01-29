@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
-from typing import TYPE_CHECKING, Any, Iterable
+from enum import Enum, auto, unique
+from typing import TYPE_CHECKING, Any, Iterable, Union
 
 from negmas.helpers.prob import Distribution
 
@@ -21,10 +22,35 @@ __all__ = [
     "NegotiatorMechanismInterface",
     "MechanismState",
     "Value",
+    "PreferencesChange",
     "AgentMechanismInterface",
 ]
 
-Value = Distribution
+Value = Union[Distribution, float]
+"""
+A value in NegMAS can either be crisp ( float ) or probabilistic ( `Distribution` )
+"""
+
+
+@unique
+class PreferencesChange(Enum):
+    """
+    The type of change in preferences.
+
+    Remarks:
+
+        - Returned from `changes` property of `Preferences` to help the owner of the preferences in deciding what to do with the change.
+        - Received by the `on_preferences_changed` method of `Rational` entities to inform them about a change in preferences.
+        - Note that the `Rational` entity needs to call `changes` explicitly and call its own `on_preferences_changed` to handle changes that happen without assignment to `preferences` of the `Rational` entity.
+        - If the `preferences` of the `Rational` agent are changed through assignmen, its `on_preferences_changed` will be called with the appropriate `PreferencesChange` list.
+    """
+
+    General = auto()
+    Scaled = auto()
+    Shifted = auto()
+    Reservation = auto()
+    UncertaintyReduced = auto()
+    UncertaintyIncreased = auto()
 
 
 @dataclass
@@ -135,12 +161,19 @@ class NegotiatorMechanismInterface:
     """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
     max_n_agents: int | None
     """Maximum allowed number of agents in the session. None indicates no limit"""
+    _mechanism: "Mechanism" = field(init=False)
     annotation: dict[str, Any] = field(default_factory=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
-    _mechanism: "Mechanism" | None = None
 
     @property
     def cartesian_outcome_space(self) -> CartesianOutcomeSpace:
+        """
+        Returns the `outcome_space` as a `CartesianOutcomeSpace` or raises a `ValueError` if that was not possible.
+
+        Remarks:
+
+            - Useful for negotiators that only work with `CartesianOutcomeSpace` s (i.e. `GeniusNegotiator` )
+        """
         from negmas.outcomes import CartesianOutcomeSpace
 
         if not isinstance(self.outcome_space, CartesianOutcomeSpace):
@@ -168,7 +201,9 @@ class NegotiatorMechanismInterface:
         """
         return self._mechanism.random_outcomes(n=n)
 
-    def discrete_outcomes(self, max_cardinality: int = float("inf")) -> Iterable["Outcome"]:  # type: ignore
+    def discrete_outcomes(
+        self, max_cardinality: int | float = float("inf")
+    ) -> Iterable["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
@@ -183,11 +218,13 @@ class NegotiatorMechanismInterface:
         return self._mechanism.discrete_outcomes(n_max=max_cardinality)
 
     @property
-    def issues(self) -> tuple[Issue] | None:
+    def issues(self) -> tuple[Issue]:
         os = self._mechanism.outcome_space
         if hasattr(os, "issues"):
-            return os.issues  # type: ignore
-        return None
+            return os.issues  # type: ignore I am just checking that the attribute issues exists
+        raise ValueError(
+            f"{os} of type {os.__class__.__name__} has no issues attribute"
+        )
 
     @property
     def outcomes(self) -> Iterable[Outcome] | None:

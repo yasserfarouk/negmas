@@ -30,8 +30,9 @@ class OutcomeSpace(Container, Protocol):
     The base protocol for all outcome spaces.
     """
 
-    def __contains__(self, item):
-        return self.is_valid(item)
+    @abstractmethod
+    def __contains__(self, item: Outcome | OutcomeSpace | Issue):
+        ...
 
     @abstractmethod
     def is_valid(self, outcome: Outcome) -> bool:
@@ -162,9 +163,6 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
     means that its length can be found using `len()` and it can be iterated over
     to return outcomes.
     """
-
-    def __contains__(self, __x: object) -> bool:
-        return __x in self.enumerate()
 
     def __len__(self) -> int:
         return self.cardinality

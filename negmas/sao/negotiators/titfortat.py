@@ -3,6 +3,8 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
+from negmas.warnings import NegmasUnexpectedValueWarning, warn
+
 from ...common import MechanismState
 from ...negotiators import Controller
 from ...outcomes import Outcome
@@ -10,6 +12,7 @@ from ..common import ResponseType
 from .base import SAONegotiator
 
 if TYPE_CHECKING:
+    from negmas.common import PreferencesChange
     from negmas.preferences import Preferences, UtilityFunction
 
 
@@ -70,17 +73,29 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         self.randomize_offer = randomize_offer
         self.always_concede = always_concede
 
-    def on_preferences_changed(self):
-        super().on_preferences_changed()
-        outcomes = self._nmi.discrete_outcomes()
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
+        if self.ufun is None:
+            self.ordered_outcomes = []
+            return
+        if self.nmi:
+            outcomes = self.nmi.discrete_outcomes()
+        elif self.ufun.outcome_space:
+            outcomes = self.ufun.outcome_space.enumerate_or_sample(max_cardinality=1000)
+        else:
+            outcomes = []
         self.ordered_outcomes = sorted(
-            ((self.ufun(outcome), outcome) for outcome in outcomes),
+            ((float(self.ufun(outcome)), outcome) for outcome in outcomes),
             key=lambda x: x[0],
             reverse=True,
         )
 
     def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
         if self.ufun is None:
+            warn("Unkonwn ufun", NegmasUnexpectedValueWarning)
+            return ResponseType.REJECT_OFFER
+        if len(self.ordered_outcomes) < 1:
+            warn("Ordered outcomes is empty!!!", NegmasUnexpectedValueWarning)
             return ResponseType.REJECT_OFFER
         offered_utility = self.ufun(offer)
         if len(self.received_utilities) < 2:
@@ -132,6 +147,9 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         return indx
 
     def propose(self, state: MechanismState) -> Outcome | None:
+        if len(self.ordered_outcomes) < 1:
+            warn("Ordered outcomes is empty!!!", NegmasUnexpectedValueWarning)
+            return None
         indx = self._propose(state)
         self.proposed_utility = self.ordered_outcomes[indx][0]
         return self.ordered_outcomes[indx][1]

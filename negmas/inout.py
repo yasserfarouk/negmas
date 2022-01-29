@@ -7,10 +7,10 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional, Tuple, Type
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Type
 
 from negmas.outcomes.outcome_space import make_os
-from negmas.preferences.linear import LinearAdditiveUtilityFunction
+from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
@@ -194,7 +194,7 @@ class Scenario:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)
+        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def scale_max(
@@ -210,7 +210,7 @@ class Scenario:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)
+        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def normalize(
@@ -226,7 +226,7 @@ class Scenario:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.normalize(rng) for _ in self.ufuns)
+        self.ufuns = tuple(_.normalize(rng) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def discretize(self, levels: int = 10):
@@ -287,7 +287,7 @@ def get_domain_issues(
     domain_file_name: PathLike | str,
     n_discretization: Optional[int] = None,
     safe_parsing=False,
-) -> tuple[Issue, ...] | None:
+) -> Sequence[Issue] | None:
     """
     Returns the issues of a given XML domain (Genius Format)
 
@@ -391,7 +391,7 @@ def load_genius_domain(
 
 
 def load_genius_domain_from_folder(
-    folder_name: str,
+    folder_name: str | PathLike,
     ignore_reserved=False,
     ignore_discount=False,
     safe_parsing=False,
@@ -432,7 +432,7 @@ def load_genius_domain_from_folder(
         (3, 2)
 
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
@@ -441,7 +441,7 @@ def load_genius_domain_from_folder(
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
 
 
         Try loading a domain with nonlinear ufuns:
@@ -452,7 +452,7 @@ def load_genius_domain_from_folder(
         >>> print(domain.n_negotiators)
         2
         >>> print([type(u) for u in domain.ufuns])
-        [<class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>]
         >>> u = domain.ufuns[0]
         >>> print(u.outcome_ranges[0])
         {1: (7.0, 9.0), 3: (2.0, 7.0), 5: (0.0, 8.0), 8: (0.0, 7.0)}

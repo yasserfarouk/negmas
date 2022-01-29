@@ -4,14 +4,14 @@ Implements serialization to and from strings and secondary storage.
 """
 from __future__ import annotations
 
-import json
-import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Type
 
 import cloudpickle
 import numpy as np
 from pandas import json_normalize
+
+from negmas import warnings
 
 from .helpers import (
     TYPE_START,
@@ -127,7 +127,10 @@ def serialize(
         for a, b in zip(SPECIAL_FIELDS, SPECIAL_FIELDS_SHORT_NAMES):
             if a in d.keys():
                 if b in d.keys() and d[b] != d[a]:
-                    warnings.warn(f"Field {a} and {b} already exist and are not equal.")
+                    warnings.warn(
+                        f"Field {a} and {b} already exist and are not equal.",
+                        warnings.NegmasSarializationWarning,
+                    )
                 d[b] = d[a]
                 del d[b]
         return d
@@ -183,7 +186,8 @@ def serialize(
         ):
             warnings.warn(
                 f"{value} starts with a reserved part!! Will just keep it as"
-                f" it is. May be you are serializing an already serialized object"
+                f" it is. May be you are serializing an already serialized object",
+                warnings.NegmasSarializationWarning,
             )
         return value
 
@@ -248,7 +252,10 @@ def serialize(
         return vv
     except:
         pass
-    warnings.warn(f"{value} of type {type(value)} is not serializable")
+    warnings.warn(
+        f"{value} of type {type(value)} is not serializable",
+        warnings.NegmasSarializationWarning,
+    )
     return value
 
 

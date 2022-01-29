@@ -10,7 +10,6 @@ import base64
 import json
 import os
 import pathlib
-import warnings
 from os import PathLike
 from pathlib import Path
 from typing import Any, Iterable, Optional, Union
@@ -22,6 +21,7 @@ import pandas as pd
 import stringcase
 import yaml
 
+from negmas import warnings
 from negmas.config import NEGMAS_CONFIG
 
 from .types import TYPE_START, get_class, get_full_type_name, is_jsonable
@@ -354,7 +354,7 @@ class NpDecorder(json.JSONDecoder):
                 return Path(
                     obj[PATH_START:]
                 )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
-        return super().default(obj)
+        return super().default(obj)  #  type: ignore
 
 
 def dump(
@@ -444,7 +444,7 @@ def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
         with open(file_name, "rb") as f:
             d = pickle.load(f)
     elif file_name.suffix == ".csv":
-        d = pd.read_csv(file_name).to_dict()
+        d = pd.read_csv(file_name).to_dict()  # type: ignore
     else:
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
     return d
@@ -503,12 +503,13 @@ def add_records(
         else:
             try:
                 old_data = pd.read_csv(file_name, index_col=None)
-                data = pd.concat((old_data, data), axis=0, ignore_index=True)
+                data = pd.concat((old_data, data), axis=0, ignore_index=True)  # type: ignore
             except Exception as e:
                 if raise_exceptions:
                     raise e
                 warnings.warn(
-                    f"Failed to read data from file {str(file_name)} will override it\n{e}"
+                    f"Failed to read data from file {str(file_name)} will override it\n{e}",
+                    warnings.NegmasIOWarning,
                 )
 
             mode = "w"

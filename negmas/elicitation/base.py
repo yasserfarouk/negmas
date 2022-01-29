@@ -420,7 +420,7 @@ class BaseElicitor(SAONegotiator):
             preferences = IPUtilityFunction(
                 outcomes=outcomes, distributions=preferences, reserved_value=0.0
             )
-        self.preferences = preferences
+        self.set_preferences(preferences)
         self.initial_utility_priors = copy.copy(preferences)
 
     def offering_utility(self, outcome, state) -> Value:

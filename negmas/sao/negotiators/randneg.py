@@ -33,7 +33,7 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
     """
 
     def propose_(self, state: MechanismState) -> Outcome | None:
-        return RandomProposalMixin.propose(self, state)
+        return RandomProposalMixin.propose(self, state)  # type: ignore
 
     def respond_(self, state: MechanismState, offer: Outcome) -> "ResponseType":
         return RandomResponseMixin.respond(self, state, offer)
@@ -80,14 +80,18 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
         if nmi.outcome_space.is_numeric() and isinstance(
             nmi.outcome_space, CartesianOutcomeSpace
         ):
-            self.preferences = LinearUtilityFunction(
-                weights=np.random.random(len(nmi.outcome_space.issues)).tolist(),
-                outcome_space=nmi.outcome_space,
+            self.set_preferences(
+                LinearUtilityFunction(
+                    weights=np.random.random(len(nmi.outcome_space.issues)).tolist(),
+                    outcome_space=nmi.outcome_space,
+                )
             )
         else:
             outcomes = list(nmi.discrete_outcomes())
-            self.preferences = MappingUtilityFunction(
-                dict(zip(outcomes, np.random.rand(len(outcomes)))),
-                outcome_space=nmi.outcome_space,
+            self.set_preferences(
+                MappingUtilityFunction(
+                    dict(zip(outcomes, np.random.rand(len(outcomes)))),
+                    outcome_space=nmi.outcome_space,
+                )
             )
         return True

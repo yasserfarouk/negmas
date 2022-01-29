@@ -5,26 +5,27 @@ from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional
 from negmas.generics import GenericMapping, gmap, iget, ikeys
 from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome, OutcomeRange, outcome_in_range
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .base import OutcomeUtilityMapping
-from .ufun import UtilityFunction
+from ..base import OutcomeUtilityMapping
+from ..crisp_ufun import UtilityFunction
 
 __all__ = [
-    "NonLinearAdditiveUtilityFunction",
+    "NonLinearAggregationUtilityFunction",
     "HyperRectangleUtilityFunction",
     "NonlinearHyperRectangleUtilityFunction",
 ]
 
 
-class NonLinearAdditiveUtilityFunction(UtilityFunction):
+class NonLinearAggregationUtilityFunction(UtilityFunction):
     r"""A nonlinear utility function.
 
     Allows for the modeling of a single nonlinear utility function that combines the utilities of different issues.
 
     Args:
         values: A set of mappings from issue values to utility functions. These are generic mappings so
-                        \ `Callable`\ (s) and \ `Mapping`\ (s) are both accepted
+                        `Callable` (s) and `Mapping` (s) are both accepted
         f: A nonlinear function mapping from a dict of utility_function-per-issue to a float
         name: name of the utility function. If None a random name will be generated.
 
@@ -34,7 +35,7 @@ class NonLinearAdditiveUtilityFunction(UtilityFunction):
 
         .. math::
 
-                u = f\\left(u_0\\left(i_0\\right), u_1\\left(i_1\\right), ..., u_n\\left(i_n\\right)\\right)
+                u = f\left(u_0\left(i_0\right), u_1\left(i_1\right), ..., u_n\left(i_n\right)\right)
 
         where :math:`u_j()` is the utility function for issue :math:`j` and :math:`i_j` is value of issue :math:`j` in the
         evaluated outcome.
@@ -43,21 +44,24 @@ class NonLinearAdditiveUtilityFunction(UtilityFunction):
     Examples:
 
         >>> from negmas.outcomes import make_issue
-        >>> from negmas.preferences.mapping import MappingUtilityFunction
+        >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
         >>> issues = [make_issue((10.0, 20.0), 'price'), make_issue(['delivered', 'not delivered'], 'delivery')
         ...           , make_issue(5, 'quality')]
         >>> print(list(map(str, issues)))
         ['price: (10.0, 20.0)', "delivery: ['delivered', 'not delivered']", 'quality: (0, 4)']
-        >>> g = NonLinearAdditiveUtilityFunction({ 'price': lambda x: 2.0*x
+        >>> g = NonLinearAggregationUtilityFunction({'price': lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}
         ...                                         , 'quality': MappingUtilityFunction(lambda x: x-3)}
-        ...         , f=lambda u: u['price']  + 2.0 * u['quality'], issues=issues)
-        >>> float(g({'quality': 2, 'price': 14.0, 'delivery': 'delivered'})) - ((2.0*14)+2.0*(2.0-3.0))
+        ...         , f=lambda u: u[0]  + 2.0 * u[-1], issues=issues)
+        >>> g((14.0, 'delivered', 2)) - ((2.0*14.0)+2.0*(2-3))
         0.0
-        >>> g = NonLinearAdditiveUtilityFunction({'price'    : lambda x: 2.0*x
+
+        You must pass a value for each issue in the outcome. If some issues are not used for the ufun, you can pass them as any value that is acceptable to the corresponding value function
+
+        >>> g = NonLinearAggregationUtilityFunction({'price'    : lambda x: 2.0*x
         ...                                         , 'delivery': {'delivered': 10, 'not delivered': -10}}
-        ...         , f=lambda u: 2.0 * u['price'], issues=issues)
-        >>> float(g({'price': 14.0, 'delivery': 'delivered'})) - (2.0*(2.0*14))
+        ...         , f=lambda u: 2.0 * u[0], issues=issues[:2])
+        >>> g((14.0, 'delivered')) - (2.0*(2.0*14))
         0.0
 
     """
@@ -67,12 +71,28 @@ class NonLinearAdditiveUtilityFunction(UtilityFunction):
 
     def __init__(
         self,
-        values: MutableMapping[Any, GenericMapping],
-        f: Callable[[Dict[Any, float]], float],
+        values: dict[str, GenericMapping] | list[GenericMapping] | None,
+        f: Callable[[tuple[float]], float],
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
+        if isinstance(values, dict):
+            if not isinstance(self.outcome_space, CartesianOutcomeSpace):
+                raise ValueError(
+                    f"Cannot create a {self.__class__.__name__} with an outcome-space that is not Cartesian while passing values as a dict"
+                )
+            if not self.outcome_space.issues:
+                raise ValueError(
+                    "Cannot initializes with dict of values if you are not specifying issues"
+                )
+            values = [
+                values[_]
+                for _ in [
+                    i.name if isinstance(i, Issue) else i
+                    for i in self.outcome_space.issues
+                ]
+            ]
         self.values = values
         self.f = f
 
@@ -95,14 +115,9 @@ class NonLinearAdditiveUtilityFunction(UtilityFunction):
         if offer is None:
             return self.reserved_value
         if self.values is None:
-            raise ValueError(
-                "No issue utilities were set. Call set_params() or use the constructor"
-            )
+            raise ValueError("No issue utilities were set.")
 
-        u = {}
-        for k in ikeys(self.values):
-            v = iget(offer, k)
-            u[k] = gmap(iget(self.values, k), v)
+        u = tuple(gmap(v, w) for w, v in zip(offer, self.values))
         return self.f(u)
 
 

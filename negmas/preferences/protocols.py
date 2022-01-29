@@ -150,7 +150,7 @@ class Ordinal(BasePref, Protocol):
     """
 
     @abstractmethod
-    def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
+    def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
@@ -165,7 +165,7 @@ class Ordinal(BasePref, Protocol):
 
         """
 
-    def is_better(self, first: Outcome, second: Outcome) -> bool:
+    def is_better(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is strictly better than the second
 
@@ -180,7 +180,7 @@ class Ordinal(BasePref, Protocol):
         """
         return self.is_not_worse(first, second) and not self.is_not_worse(second, first)
 
-    def is_equivalent(self, first: Outcome, second: Outcome) -> bool:
+    def is_equivalent(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is strictly equivelent than the second
 
@@ -195,7 +195,7 @@ class Ordinal(BasePref, Protocol):
         """
         return self.is_not_worse(first, second) and self.is_not_worse(second, first)
 
-    def is_not_better(self, first: Outcome, second: Outcome) -> bool:
+    def is_not_better(self, first: Outcome, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is worse or equivalent than the second
 
@@ -210,7 +210,7 @@ class Ordinal(BasePref, Protocol):
         """
         return self.is_not_worse(second, first)
 
-    def is_worse(self, first: Outcome, second: Outcome) -> bool:
+    def is_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is strictly worse than the second
 
@@ -704,29 +704,32 @@ class Normalizable(Shiftable, Scalable, Protocol):
         ...
 
 
+TP = TypeVar("TP", bound="PartiallyNormalizable")
+
+
 @runtime_checkable
 class PartiallyNormalizable(PartiallyScalable, PartiallyShiftable, Protocol):
     """Can be normalized to a given range of values for a given part of the outcome space (default is 0-1)"""
 
     def normalize(
-        self,
+        self: TP,
         to: tuple[float, float] = (0.0, 1.0),
         minmax: tuple[float, float] | None = None,
         **kwargs,
-    ) -> HasRange:
+    ) -> TP:
         return self.normalize_for(
             to, outcome_space=self.outcome_space, minmax=minmax, **kwargs  # type: ignore
         )
 
     def normalize_for(
-        self,
+        self: TP,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | int | None = None,
         minmax: tuple[float, float] | None = None,
         **kwargs,
-    ) -> HasRange:
+    ) -> TP:
         ...
 
 

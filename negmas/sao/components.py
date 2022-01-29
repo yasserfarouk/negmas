@@ -1,17 +1,19 @@
 """
-Implements basic components that can be used by `SAONegotiator` s.
+Implements basic components that can be used by `SAOSAONegotiator` s.
 """
 from __future__ import annotations
 
 import random
 from collections import defaultdict
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
-from ..common import MechanismState
-from ..negotiators import Negotiator
+from ..common import MechanismState, PreferencesChange
 from ..outcomes import Outcome
 from ..preferences import MappingUtilityFunction
 from .common import ResponseType
+
+if TYPE_CHECKING:
+    from .negotiators import SAONegotiator
 
 __all__ = [
     "LimitedOutcomesAcceptorMixin",
@@ -49,7 +51,7 @@ class RandomResponseMixin:
                 is less than 1.0 then with the remaining probability a
                 NO_RESPONSE is returned from respond()
         """
-        self.add_capabilities({"respond": True})
+        self.add_capabilities({"respond": True})  # type: ignore (This mixin will always be added to a SAONegotiator which has this)
         self.p_acceptance = p_acceptance
         self.p_rejection = p_rejection
         self.p_ending = p_ending
@@ -87,7 +89,7 @@ class RandomProposalMixin:
         - call `init_random_proposal` to initialize the mixin
     """
 
-    def init_random_proposal(self: Negotiator):
+    def init_random_proposal(self: SAONegotiator):  # type: ignore
         """Initializes the mixin"""
         self.add_capabilities(
             {
@@ -97,7 +99,7 @@ class RandomProposalMixin:
             }
         )
 
-    def propose(self, state: MechanismState) -> Outcome | None:
+    def propose(self: SAONegotiator, state: MechanismState) -> Outcome | None:  # type: ignore
         """
         Proposes a random offer
 
@@ -110,12 +112,7 @@ class RandomProposalMixin:
         Remarks:
             - Does not use the state.
         """
-        if (
-            hasattr(self, "_offerable_outcomes")
-            and self._offerable_outcomes is not None
-        ):
-            return random.sample(self._offerable_outcomes, 1)[0]
-        return self._nmi.random_outcomes(1)[0]
+        return self.nmi.random_outcomes(1)[0]
 
 
 class LimitedOutcomesAcceptorMixin:
@@ -124,7 +121,7 @@ class LimitedOutcomesAcceptorMixin:
     """
 
     def init_limited_outcomes_acceptor(
-        self,
+        self: SAONegotiator,  # type: ignore
         acceptable_outcomes: Iterable[Outcome] | None = None,
         acceptance_probabilities: list[float] | None = None,
         time_factor: float | list[float] = None,
@@ -144,43 +141,43 @@ class LimitedOutcomesAcceptorMixin:
             None
         """
         self.add_capabilities({"respond": True})
-        self.acceptable_outcomes, self.acceptance_probabilities = (
+        self.acceptable_outcomes, self.acceptance_probabilities = (  # type: ignore
             acceptable_outcomes,
             acceptance_probabilities,
         )
-        self.p_no_response = p_no_response
-        self.p_ending = p_ending + p_no_response
-        self.time_factor = time_factor
+        self.p_no_response = p_no_response  # type: ignore
+        self.p_ending = p_ending + p_no_response  # type: ignore
+        self.time_factor = time_factor  # type: ignore
 
-    def join(self, *args, **kwargs):
-        if not super().join(*args, **kwargs):
+    def join(self: SAONegotiator, *args, **kwargs):  # type: ignore
+        if not super().join(*args, **kwargs):  # type: ignore
             return False
 
-        self._make_preferences(self.nmi.issues)
+        self._make_preferences(self.nmi.issues)  # type: ignore
         return True
 
-    def _make_preferences(self, issues):
+    def _make_preferences(self, issues):  # type: ignore
         """Generates a ufun that maps acceptance probability to the utility"""
         if self.acceptable_outcomes is None:
-            self.acceptable_outcomes = self.nmi.discrete_outcomes()
+            self.acceptable_outcomes = self.nmi.discrete_outcomes()  # type: ignore
 
         # self.acceptable_outcomes = [
         #     dict2outcome(_, issues) for _ in self.acceptable_outcomes
         # ]
 
         if self.acceptance_probabilities is None:
-            self.acceptance_probabilities = [1.0] * len(self.acceptable_outcomes)
+            self.acceptance_probabilities = [1.0] * len(self.acceptable_outcomes)  # type: ignore
         if not isinstance(self.acceptance_probabilities, Iterable):
             self.acceptance_probabilities = [self.acceptance_probabilities] * len(
-                self.acceptable_outcomes
+                self.acceptable_outcomes  # type: ignore
             )
         self.mapping = defaultdict(float)
         for p, o in zip(self.acceptance_probabilities, self.acceptable_outcomes):
             self.mapping[o] = p
         self.ufun = MappingUtilityFunction(self.mapping)
-        self.on_preferences_changed()
+        self.on_preferences_changed([PreferencesChange.General])  # type: ignore
 
-    def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
+    def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":  # type: ignore
         """Respond to an offer.
 
         Args:
@@ -191,7 +188,7 @@ class LimitedOutcomesAcceptorMixin:
 
         """
         if not hasattr(self, "mapping"):
-            self._make_preferences(self.nmi.issues)
+            self._make_preferences(self.nmi.issues)  # type: ignore
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
@@ -210,7 +207,7 @@ class LimitedOutcomesProposerMixin:
     """
 
     def init_limited_outcomes_proposer(
-        self: Negotiator, proposable_outcomes: list[Outcome] | None = None
+        self, proposable_outcomes: list[Outcome] | None = None
     ) -> None:
         """
         Initializes the mixin
@@ -219,7 +216,7 @@ class LimitedOutcomesProposerMixin:
             proposable_outcomes: the set of prooposable outcomes. If None then it is assumed to be all the outcomes of the negotiation
 
         """
-        self.add_capabilities(
+        self.add_capabilities(  # type: ignore
             {
                 "propose": True,
                 "propose-with-value": False,
@@ -233,7 +230,7 @@ class LimitedOutcomesProposerMixin:
     def propose(self, state: MechanismState) -> Outcome | None:
         """Proposes one of the proposable_outcomes"""
         if self._offerable_outcomes is None:
-            return self._nmi.random_outcomes(1)[0]
+            return self.nmi.random_outcomes(1)[0]  # type: ignore
         else:
             return random.sample(self._offerable_outcomes, 1)[0]
 
@@ -247,7 +244,7 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
         self,
         acceptable_outcomes: Iterable[Outcome] | None = None,
         acceptance_probabilities: float | list[float] | None = None,
-        proposable_outcomes: Iterable[Outcome] | None = None,
+        proposable_outcomes: list[Outcome] | None = None,
         p_ending=0.0,
         p_no_response=0.0,
     ) -> None:
@@ -263,7 +260,14 @@ class LimitedOutcomesMixin(LimitedOutcomesAcceptorMixin, LimitedOutcomesProposer
             p_no_response: probability of refusing to respond to offers
             p_ending: probability of ending negotiation
         """
-        self.init_limited_outcomes_acceptor(
+        if (
+            isinstance(acceptance_probabilities, float)
+            and acceptable_outcomes is not None
+        ):
+            acceptance_probabilities = [acceptance_probabilities] * len(
+                acceptable_outcomes
+            )
+        self.init_limited_outcomes_acceptor(  # type: ignore
             acceptable_outcomes=acceptable_outcomes,
             acceptance_probabilities=acceptance_probabilities,
             p_ending=p_ending,

@@ -18,8 +18,27 @@ outcome_as_dict(x, ...)       outcome2dict(x, ..., issues=issue)   Must pass the
 outcome_as_tuple(x, ...)      x                                    Just remove the call (all outcomes are tuples)
 negmas.java                   negmas.serialization
 to_java                       to_dict                              Java interfaces (through jnemgas) are not supported anymore.
-UtilityFunction construction                                       **MUST** pass `outcome_space`, `issues` or `outcomes` (exactly one of them). Utility functions now MUST know their outcome-space
+from_genius/to_genius                                              Remove keep_issue_names, keep_issue_values (not supported anymore)
+Negotiator.on_ufun_changed    Negotiator.on_preferences_changed
+Negotiator._utility_function  Negotiator.ufun
 ============================  ===================================  ===============================================
+
+The following rules  must be followed:
+
+- Never change the internal structure of a utility function after it is
+  constructed (i.e. do not change the weights on a `LinearUtilityFunction` )
+  because the negotiator will have no way to know
+  about this change. To help enforcing that, almost all members of all ufuns
+  are now private (i.e. starting with an `_` ) and only getter properties for
+  them are provided. Some members like `outcome_spaace` ,
+  `issues`  are still just data members but you should never set them after the
+  ufun is constructed (in the pythonic should also spirit of "we are all
+  consenting adults here").
+- In general, you should never need to access a private member of any class
+  (i.e. a member starting with `_` ). If you do need that, it is a bug. Please
+  raise an issue in github.
+- Do not pass `outcome_type` to any ufun constructor. It is now removed as all
+  outcomes are guarenteed to have the type `tuple` now.
 
 
 **Should Do**
@@ -30,9 +49,18 @@ UtilityFunction construction                                       **MUST** pass
 import negmas.utilities            import negmas.preferences            If not done, a deprication warning will be issued.
 load_genius_domain_from_folder     Scenario.from_genius_folder          Some of the parameters are no longer supported. Check your use-case
 LinearUtilityAggregationFunction   LinearAdditiveUtilityFunction        The old class name is still provided.
-ami                                nmi                                  Member of all `Negotiator` objects
+Negotiator.ami                     Negotiator.nmi                       Member of all `Negotiator` objects
+Controller.get_ami                 Controller.get_nmi
 AgentMechanismInterface            NegotiatorMechanismInterface         The class was renamed to better reflect its role. The old name still works but is depricated
+LinearUtilityFunction(bias!=0)     AffineUtilityFunction                We are reserving the name `LinearUtilityFunction` to ufuns with zero offset and `AffineUtilityFunction` for those with potentially nonzero offset
 =================================  ===================================  ===================================================================
+
+The following rules *should* be followed:
+
+- Always tell the ufun its outcome-space by passing `outcome_space` , `issues`
+  , or `outcomes` to it. Strictly speaking you do not need to do that for many
+  scenarios (specially for affine and linear utility functions) but some
+  operations may fail if the ufun does not know its outcome-space
 
 Outcome Type
 ------------

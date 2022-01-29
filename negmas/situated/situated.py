@@ -101,7 +101,6 @@ from typing import (
     Tuple,
     Union,
 )
-from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -132,6 +131,7 @@ from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences import Preferences, UtilityFunction
 from negmas.serialization import serialize, to_flat_dict
 from negmas.types import NamedObject, Rational
+from negmas.warnings import NegmasImportWarning, warn
 
 try:
     import networkx as nx
@@ -4946,7 +4946,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.logwarning(f"GIF generation failed with exception {str(e)}")
             warn(
                 "GIF generation failed. Make suer you have gif installed\n\nyou can install it using >> pip install gif",
-                ImportWarning,
+                NegmasImportWarning,
             )
             return []
 

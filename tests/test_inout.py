@@ -9,9 +9,8 @@ from negmas import load_genius_domain_from_folder
 from negmas.genius import genius_bridge_is_running
 from negmas.inout import Scenario
 from negmas.outcomes import enumerate_issues
-from negmas.outcomes.outcome_space import DiscreteCartesianOutcomeSpace
+from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
 from negmas.preferences.discounted import DiscountedUtilityFunction
-from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
 from negmas.sao import AspirationNegotiator
 
 

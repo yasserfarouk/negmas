@@ -14,7 +14,7 @@ from .components import PolyAspiration
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
-    from negmas.preferences import Preferences, UtilityValue
+    from negmas.preferences import Preferences, Value
 
 
 __all__ = [
@@ -71,9 +71,7 @@ class EvaluatorMixin:
     def init(self):
         self.capabilities["evaluate"] = True
 
-    def evaluate(self, outcome: "Outcome") -> Optional["UtilityValue"]:
-        if self.ufun is None:
-            return None
+    def evaluate(self, outcome: "Outcome") -> Optional["Value"]:
         return self.ufun(outcome)
 
 
@@ -91,12 +89,10 @@ class RealComparatorMixin:
             second: Second outcome to be compared
 
         Returns:
-            "UtilityValue": An estimate of the differences between the two outcomes. It can be a real number between -1, 1
+            "Value": An estimate of the differences between the two outcomes. It can be a real number between -1, 1
             or a probability distribution over the same range.
         """
-        if not self.has_preferences:
-            return None
-        return self._preferences.compare_real(first, second)
+        return self.preferences.compare_real(first, second)
 
     def is_better(self, first: "Outcome", second: "Outcome") -> Optional[bool]:
         """
@@ -111,8 +107,6 @@ class RealComparatorMixin:
             None if |utility(first) - utility(second)| <= epsilon or the utun is not defined
             False if utility(first) < utility(second) - epsilon
         """
-        if not self.has_preferences:
-            return None
         return self._preferences.is_better(first, second)
 
 

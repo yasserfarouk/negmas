@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import math
 import random
-import warnings
 
-from ...common import MechanismState
+from negmas.common import Value
+
+from ...common import MechanismState, PreferencesChange
 from ...negotiators.mixins import AspirationMixin
 from ...outcomes import Outcome
 from ..common import ResponseType
@@ -84,12 +85,13 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 "max-proposals": None,  # indicates infinity
             }
         )
-        self.__last_offer_util, self.__last_offer = float("inf"), None
+        self.__last_offer_util: Value = float("inf")
+        self.__last_offer: Outcome | None = None
         self.n_outcomes_to_force_presort = 10000
         self.n_trials = 1
 
-    def on_preferences_changed(self):
-        super().on_preferences_changed()
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
         if self.ufun is None or self._nmi is None:
             self.ufun_max = self.ufun_min = None
             return
@@ -120,6 +122,7 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                     self.ufun_max = self.ordered_outcomes[0][0]
 
                 if self.ufun_min is None:
+                    self.ufun_min = self.ufun.reserved_value
                     # we set the minimum utility to the minimum finite value above both reserved_value
                     for j in range(len(self.ordered_outcomes) - 1, -1, -1):
                         self.ufun_min = self.ordered_outcomes[j][0]
@@ -154,14 +157,14 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
         if self.ufun_max is None or self.ufun_min is None:
-            self.on_preferences_changed()
+            self.on_preferences_changed(changes=[PreferencesChange.General])
         if self._preferences is None or self.ufun_max is None or self.ufun_min is None:
             return ResponseType.REJECT_OFFER
         u = self.ufun(offer)
         if u is None or u < self.reserved_value:
             return ResponseType.REJECT_OFFER
         asp = (
-            self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
+            self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)  # type: ignore
             + self.ufun_min
         )
         if u >= asp and u > self.reserved_value:
@@ -172,13 +175,13 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     def propose(self, state: MechanismState) -> Outcome | None:
         if self.ufun_max is None or self.ufun_min is None:
-            self.on_preferences_changed()
+            self.on_preferences_changed(changes=[PreferencesChange.General])
         if self._preferences is None or self.ufun_max is None or self.ufun_min is None:
             return None
         if self.ufun_max < self.reserved_value:
             return None
         asp = (
-            self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)
+            self.aspiration(state.relative_time) * (self.ufun_max - self.ufun_min)  # type: ignore (Not sure about this one)
             + self.ufun_min
         )
         if asp < self.reserved_value:
@@ -205,14 +208,14 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
                 return self.best_outcome
             if self.randomize_offer:
                 return self.ufun.sample_outcome_with_utility(
-                    (asp, float("inf")), outcome_space=self._nmi.outcome_space
+                    (asp, float("inf")), outcome_space=self.nmi.outcome_space
                 )
             tol = self.tolerance
             for _ in range(self.n_trials):
-                rng = self.ufun_max - self.ufun_min
+                rng = self.ufun_max - self.ufun_min  # type: ignore (not sure about this one)
                 mx = min(asp + tol * rng, self.__last_offer_util)
                 outcome = self.ufun.sample_outcome_with_utility(
-                    (asp, mx), outcome_space=self._nmi.outcome_space
+                    (float(asp), float(mx)), outcome_space=self.nmi.outcome_space
                 )
                 if outcome is not None:
                     break

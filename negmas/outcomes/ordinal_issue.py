@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import random
-import warnings
 from abc import ABC, abstractmethod
 from typing import Generator
 
+from negmas import warnings
 from negmas.helpers import sample, unique_name
 from negmas.outcomes.base_issue import DiscreteIssue, Issue
 
@@ -14,7 +14,8 @@ __all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]
 def generate_values(n: int) -> list[str]:
     if n > 1000_000:
         warnings.warn(
-            f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible"
+            f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible",
+            warnings.NegmasMemoryWarning,
         )
     width = len(str(n))
     return list(f"{_:0{width}d}" for _ in range(n))

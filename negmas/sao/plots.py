@@ -7,14 +7,15 @@ from typing import Callable
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
+from matplotlib.axis import Axis
 
 from negmas.helpers.misc import make_callable
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.common import Outcome, os_or_none
 from negmas.outcomes.outcome_space import make_os
 from negmas.outcomes.protocols import OutcomeSpace
+from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import nash_point, pareto_frontier
-from negmas.preferences.ufun import UtilityFunction
 from negmas.sao.mechanism import TraceElement
 
 __all__ = ["plot_offer_utilities", "plot_mechanism_run", "plot_2dutils"]
@@ -34,7 +35,7 @@ def plot_offer_utilities(
     ignore_none_offers: bool = True,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     clrs: list | None = None,
-    ax=None,
+    ax: Axis | None = None,
     sharey=False,
     xdim: str = "relative_time",
     ylimits: tuple[float, float] | None = None,
@@ -104,7 +105,7 @@ def plot_2dutils(
     last_negotiator: str | None = None,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     clrs: list | None = None,
-    ax=None,
+    ax: Axis | None = None,
 ):
     map_ = make_callable(name_map)
     if not outcomes:

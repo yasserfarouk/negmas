@@ -15,8 +15,10 @@ import pytest_check as check
 from hypothesis import HealthCheck, example, given, settings
 from pytest import mark
 
+import negmas
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
+from negmas.helpers.types import get_class
 from negmas.outcomes import Outcome, enumerate_issues, make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
@@ -30,9 +32,13 @@ from negmas.sao import (
     SAOResponse,
     SAOState,
     SAOSyncController,
+    all_negotiator_typs,
 )
+from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
 
 exception_str = "Custom Exception"
+
+NEGTYPES = all_negotiator_typs()
 
 
 class MyRaisingNegotiator(AspirationNegotiator):
@@ -747,59 +753,48 @@ def test_can_create_all_negotiator_types():
         _ = instantiate("negmas.sao." + neg_type, **params)
 
 
-def test_can_run_all_negotiators():
-    from negmas.helpers import instantiate
-
+@given(
+    a=st.sampled_from(NEGTYPES),
+    b=st.sampled_from(NEGTYPES),
+    w1p=st.floats(-1.0, 1.0),
+    w1q=st.floats(-1.0, 1.0),
+    w2p=st.floats(-1.0, 1.0),
+    w2q=st.floats(-1.0, 1.0),
+    r1=st.floats(-1.0, 1.0),
+    r2=st.floats(-1.0, 1.0),
+)
+@settings(deadline=30_000)
+@example(
+    a=negmas.sao.negotiators.titfortat.NaiveTitForTatNegotiator,
+    b=negmas.sao.negotiators.timebased.AspirationNegotiator,
+    w1p=0.0,
+    w1q=0.0,
+    w2p=0.0,
+    w2q=0.0,
+    r1=0.0,
+    r2=0.0,
+)
+def test_can_run_all_negotiators(a, b, w1p, w1q, w2p, w2q, r1, r2):
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
-    weights = (1.0, 1.0)
-    neg_types = [
-        (
-            "RandomNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-        (
-            "AspirationNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-        (
-            "LimitedOutcomesNegotiator",
-            dict(acceptance_probabilities=0.5),
-        ),
-        (
-            "LimitedOutcomesAcceptor",
-            dict(acceptance_probabilities=0.5),
-        ),
-        (
-            "ToughNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-        (
-            "OnlyBestNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-        (
-            "NaiveTitForTatNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-        (
-            "SimpleTitForTatNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-        (
-            "NiceNegotiator",
-            dict(preferences=LinearUtilityFunction(weights=weights, issues=issues)),
-        ),
-    ]
-    for i, (neg_type, params) in enumerate(neg_types):
-        for n2, p2 in neg_types:
-            # print(f"{neg_type} <> {n2}")
-            n1 = instantiate("negmas.sao." + neg_type, **params)
-            n2 = instantiate("negmas.sao." + n2, **p2)
-            m = SAOMechanism(n_steps=30, issues=issues)
-            m.add(n1)
-            m.add(n2)
-            m.run()
-            assert not m.running
+    u1 = LinearUtilityFunction(weights=[w1p, w1q], issues=issues, reserved_value=r1)
+    u2 = LinearUtilityFunction(weights=[w2p, w2q], issues=issues, reserved_value=r2)
+    m = SAOMechanism(n_steps=30, issues=issues)
+    m.add(a(preferences=u1))
+    m.add(b(), preferences=u2)
+    m.run()
+    assert not m.running
+
+
+def test_can_run_asp_tit():
+    b, a = AspirationNegotiator, NaiveTitForTatNegotiator
+    issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
+    u1 = LinearUtilityFunction(weights=[0.0, 0.0], issues=issues, reserved_value=0.0)
+    u2 = LinearUtilityFunction(weights=[0.0, 0.0], issues=issues, reserved_value=0.0)
+    m = SAOMechanism(n_steps=30, issues=issues)
+    m.add(a(preferences=u1))
+    m.add(b(), preferences=u2)
+    m.run()
+    assert not m.running
 
 
 def test_acceptable_outcomes():

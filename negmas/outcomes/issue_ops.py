@@ -6,7 +6,7 @@ import numbers
 import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Sequence, Union
 
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 
@@ -40,7 +40,7 @@ __all__ = [
 DUMMY_ISSUE_NAME = "DUMMY_ISSUE"
 
 
-def num_outcomes(issues: tuple[Issue, ...]) -> int | float:
+def num_outcomes(issues: Sequence[Issue]) -> int | float:
     """
     Returns the total number of outcomes in a set of issues.
     """
@@ -54,9 +54,9 @@ def num_outcomes(issues: tuple[Issue, ...]) -> int | float:
 
 
 def enumerate_issues(
-    issues: tuple[Issue, ...],
+    issues: Sequence[Issue],
     max_cardinality: int | None = None,
-) -> Iterable[Outcome]:
+) -> list[Outcome]:
     """
     Enumerates the outcomes of a list of issues.
 
@@ -73,11 +73,13 @@ def enumerate_issues(
             raise ValueError(
                 "Cannot enumerate continuous issues without specifying `max_cardinality`"
             )
-        return sample_issues(
-            issues=issues,
-            n_outcomes=max_cardinality,
-            fail_if_not_enough=False,
-            with_replacement=False,
+        return list(
+            sample_issues(
+                issues=issues,
+                n_outcomes=max_cardinality,
+                fail_if_not_enough=False,
+                with_replacement=False,
+            )
         )
 
     if max_cardinality is not None and n > max_cardinality:
@@ -86,7 +88,7 @@ def enumerate_issues(
         return list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
 
 
-def enumerate_discrete_issues(issues: tuple[DiscreteIssue, ...]) -> list[Outcome]:
+def enumerate_discrete_issues(issues: Sequence[DiscreteIssue]) -> list[Outcome]:
     """
     Enumerates all outcomes of this set of discrete issues if possible.
 
@@ -96,14 +98,14 @@ def enumerate_discrete_issues(issues: tuple[DiscreteIssue, ...]) -> list[Outcome
     Returns:
         list of outcomes
     """
-    return itertools.product(*(_.all for _ in issues))
+    return list(itertools.product(*(_.all for _ in issues)))
 
 
 def issues_from_outcomes(
-    outcomes: Iterable["Outcome"] | int,
+    outcomes: Sequence[Outcome] | int,
     numeric_as_ranges: bool = True,
     issue_names: list[str] | None = None,
-) -> tuple["DiscreteIssue", ...]:
+) -> Sequence[DiscreteIssue]:
     """
     Create a set of issues given some outcomes.
 
@@ -172,15 +174,15 @@ def issues_from_outcomes(
                 f"Outcome {i} ({o}) has {len(o)} values but we have {len(issue_names)} issue names"
             )
 
-        o = outcome2dict(o, issue_names)
+        o_dict = outcome2dict(o, issue_names)
 
-        if names is not None and not all(a == b for a, b in zip(names, o.keys())):
+        if names is not None and not all(a == b for a, b in zip(names, o_dict.keys())):
             raise ValueError(
-                f"Outcome {o} at {i} has issues {list(o.keys())} but an earlier outcome had issues {names}"
+                f"Outcome {o} at {i} has issues {list(o_dict.keys())} but an earlier outcome had issues {names}"
             )
-        names = list(o.keys())
 
-        for k, v in o.items():
+        for i, v in enumerate(o):
+            k = issue_names[i]
             if len(values[k]) > 0:
                 try:
                     v = convert_type(v, values[k][-1], values[k])
@@ -195,17 +197,19 @@ def issues_from_outcomes(
         values[k] = sorted(list(set(vals)))
 
     if numeric_as_ranges:
-        return [
+        return [  # type: ignore (seems  ok but not sure)
             make_issue(values=(v[0], v[-1]), name=n)
-            if len(v) > 0 and (isinstance(v[0], numbers.Number))
+            if len(v) > 0
+            and (isinstance(v[0], int))
+            and all(a == b + 1 for a, b in zip(v[1:], v[:-1]))
             else make_issue(values=v, name=n)
             for n, v in values.items()
         ]
     else:
-        return [make_issue(values=v, name=n) for n, v in values.items()]
+        return [make_issue(values=v, name=n) for n, v in values.items()]  # type: ignore (seems  ok but not sure)
 
 
-def issues_to_xml_str(issues: tuple[Issue, ...]) -> str:
+def issues_to_xml_str(issues: Sequence[Issue]) -> str:
     """
     Converts the list of issues into a well-formed xml string.
 
@@ -257,7 +261,7 @@ def issues_to_xml_str(issues: tuple[Issue, ...]) -> str:
     return output
 
 
-def issues_to_genius(issues: tuple[Issue, ...], file_name: PathLike) -> None:
+def issues_to_genius(issues: Sequence[Issue], file_name: PathLike | str) -> None:
     """
     Exports a the domain issues to a GENIUS XML file.
 
@@ -308,7 +312,7 @@ def issues_from_xml_str(
     xml_str: str,
     safe_parsing=True,
     n_discretization: int | None = None,
-) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
+) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Exports a list/dict of issues from a GENIUS XML file.
 
@@ -372,7 +376,6 @@ def issues_from_xml_str(
         utility_space = root
     issues_dict: dict[int | str, Any] = {}
     issue_info = {}
-    all_discrete = True
 
     for child in utility_space:
         if child.tag == "issue":
@@ -390,7 +393,6 @@ def issues_from_xml_str(
 
                 for item in child:
                     if item.tag == "item":
-                        item_indx = int(item.attrib["index"]) - 1
                         item_name = item.attrib.get("value", None)
 
                         if (
@@ -458,10 +460,10 @@ def issues_from_xml_str(
 
 
 def issues_from_genius(
-    file_name: PathLike,
+    file_name: PathLike | str,
     safe_parsing=True,
     n_discretization: int | None = None,
-) -> tuple[tuple[Issue, ...] | None, tuple[str, ...] | None]:
+) -> tuple[Sequence[Issue] | None, Sequence[str] | None]:
     """
     Imports a the domain issues from a GENIUS XML file.
 
@@ -502,7 +504,9 @@ def issues_from_genius(
 
 
 def generate_issues(
-    params: list[Union[int, list[str], tuple[int, int], Callable, tuple[float, float]]],
+    params: Sequence[
+        Union[int, list[str], tuple[int, int], Callable, tuple[float, float]]
+    ],
     counts: Optional[list[int]] = None,
     names: Optional[list[str]] = None,
 ) -> tuple[Issue, ...]:
@@ -522,7 +526,7 @@ def generate_issues(
     """
     one_each = counts is None
     int_names = names is None
-    result = []
+    result: list[Issue] = []
     nxt = 0
 
     for i, issue in enumerate(params):
@@ -535,14 +539,14 @@ def generate_issues(
             nxt += 1
             result.append(make_issue(values=issue, name=name))
 
-    return result
+    return tuple(result)
 
 
 def discretize_and_enumerate_issues(
-    issues: tuple[Issue, ...],
+    issues: Sequence[Issue],
     n_discretization: int | None = 10,
     max_cardinality: int = None,
-) -> list["Outcome"]:
+) -> list[Outcome]:
     """
     Enumerates the outcomes of a list of issues.
 
@@ -555,18 +559,18 @@ def discretize_and_enumerate_issues(
     issues = [
         _
         if _.is_finite()
-        else make_issue(values=_.value_generator(n_discretization), name=_.name)
+        else make_issue(values=list(_.value_generator(n_discretization)), name=_.name)
         for _ in issues
     ]
     return enumerate_issues(issues, max_cardinality=max_cardinality)
 
 
 def sample_outcomes(
-    issues: tuple[Issue, ...],
+    issues: Sequence[Issue],
     n_outcomes: Optional[int] = None,
-    min_per_dim=5,
+    min_per_dim: int = 5,
     expansion_policy=None,
-) -> Optional[list["Outcome"]]:
+) -> list["Outcome"]:
     """
     Discretizes the issue space and returns either a predefined number of outcomes or uniform samples.
 
@@ -614,13 +618,12 @@ def sample_outcomes(
         4
 
     """
-    from negmas.outcomes import Issue, enumerate_discrete_issues
+    from negmas.outcomes import enumerate_discrete_issues
 
+    issues = list(issues)
     issues = [copy.deepcopy(_) for _ in issues]
     continuous = []
-    uncountable = []
     indx = []
-    uindx = []
     discrete = []
     n_disc = 0
 
@@ -634,7 +637,7 @@ def sample_outcomes(
 
     if len(continuous) > 0:
         if n_outcomes is not None:
-            n_per_issue = max(min_per_dim, (n_outcomes - n_disc) / len(continuous))
+            n_per_issue = max(min_per_dim, int(n_outcomes - n_disc) // len(continuous))
         else:
             n_per_issue = min_per_dim
 
@@ -654,10 +657,15 @@ def sample_outcomes(
         cardinality *= issue.cardinality
 
     if cardinality == n_outcomes or n_outcomes is None:
-        return list(enumerate_discrete_issues(issues))
+        return list(
+            enumerate_discrete_issues(issues)
+        )  #  type: ignore I am  sure that the issues are all discrete by this point
 
     if cardinality < n_outcomes:
-        outcomes = list(enumerate_discrete_issues(issues))
+        cardinality = int(cardinality)
+        outcomes = list(
+            enumerate_discrete_issues(issues)
+        )  #  type: ignore I am  sure that the issues are all discrete by this point
 
         if expansion_policy == "no" or expansion_policy is None:
             return outcomes
@@ -668,7 +676,7 @@ def sample_outcomes(
             n_rem = n_outcomes % cardinality
 
             if n_reps > 1:
-                for _ in n_reps:
+                for _ in range(n_reps):
                     outcomes += outcomes
 
             if n_rem > 0:
@@ -695,14 +703,14 @@ def sample_outcomes(
 
 
 def _sample_issues(
-    issues: tuple[Issue, ...],
+    issues: Sequence[Issue],
     n: int,
     with_replacement,
     n_total,
     old_values,
     trial,
     max_trials,
-) -> Iterable["Outcome"]:
+) -> Iterable[Outcome]:
     if trial > max_trials:
         return old_values
 
@@ -750,11 +758,11 @@ def _sample_issues(
 
 
 def sample_issues(
-    issues: tuple[Issue, ...],
+    issues: Sequence[Issue],
     n_outcomes: int,
     with_replacement: bool = True,
     fail_if_not_enough=True,
-) -> Iterable["Outcome"]:
+) -> Iterable[Outcome]:
     """
     Samples some outcomes from the outcome space defined by the list of issues.
 
@@ -799,7 +807,7 @@ def sample_issues(
         )
 
     if n_total is not None and n_total != float("inf") and n_outcomes is None:
-        return enumerate_discrete_issues(issues=issues)
+        return enumerate_discrete_issues(issues=issues)  # type: ignore I know that these issues are discrete
     if n_total is None and n_outcomes is None:
         raise ValueError(
             f"Cannot sample unknown number of outcomes from continuous outcome spaces"
@@ -810,12 +818,12 @@ def sample_issues(
 
 
 def combine_issues(
-    issues: tuple[Issue, ...],
+    issues: Sequence[Issue],
     name: str | None = None,
     keep_value_names=True,
     issue_sep="_",
     value_sep="-",
-) -> Optional["Issue"]:
+) -> Issue | None:
     """
     Combines multiple issues into a single issue.
 
@@ -839,7 +847,7 @@ def combine_issues(
     name = issue_sep.join([_.name for _ in issues]) if name is None else name
     if keep_value_names:
         values = [
-            value_sep.join([str(_) for _ in outcome])
+            value_sep.join([str(_) for _ in outcomes])
             for outcomes in enumerate_issues(issues)
         ]
     else:

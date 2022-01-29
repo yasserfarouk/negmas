@@ -10,9 +10,9 @@ import os
 import pathlib
 import random
 import tempfile
-import warnings
 from typing import List, Optional, Tuple, Union
 
+from negmas import warnings
 from negmas.outcomes.base_issue import Issue
 
 from ..common import MechanismState, NegotiatorMechanismInterface
@@ -392,10 +392,12 @@ class GeniusNegotiator(SAONegotiator):
                 raise ValueError(
                     f"Genius Negotiator must have `UtilityFunctions` but you passed {self.ufun.__class__.__name__}"
                 )
-            self.preferences = make_discounted_ufun(
-                self.ufun,
-                discount_per_round=self.discount,
-                power_per_round=1.0,
+            self.set_preferences(
+                make_discounted_ufun(
+                    self.ufun,
+                    discount_per_round=self.discount,
+                    power_per_round=1.0,
+                )
             )
         n_steps = -1 if info.n_steps is None else int(info.n_steps)  # number of steps
         n_seconds = (
@@ -425,7 +427,8 @@ class GeniusNegotiator(SAONegotiator):
                         f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. Not allowed in strict mode"
                     )
                 warnings.warn(
-                    f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. This may lead to an infinite negotiation"
+                    f"{self._me()}: Neither n_steps ({n_steps}) nor n_seconds ({n_seconds}) are given. This may lead to an infinite negotiation",
+                    warnings.NegmasInfiniteNegotiationWarning,
                 )
             else:
                 # n_steps take precedence
@@ -434,7 +437,8 @@ class GeniusNegotiator(SAONegotiator):
                         f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. Not allowed in strict execution"
                     )
                 warnings.warn(
-                    f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. time_limit will be ignored"
+                    f"{self._me()}: Both n_steps ({n_steps}) and n_seconds ({n_seconds}) are given. time_limit will be ignored",
+                    warnings.NegmasStepAndTimeLimitWarning,
                 )
                 n_seconds, timeout = -1, -1
         try:
@@ -574,7 +578,8 @@ class GeniusNegotiator(SAONegotiator):
                         f"{self._me()} failed to parse {bid_str} of action {action} with exception {str(e)}"
                     )
                 warnings.warn(
-                    f"{self._me()} failed in parsing bid string: {bid_str} of action {action} with exception {str(e)}"
+                    f"{self._me()} failed in parsing bid string: {bid_str} of action {action} with exception {str(e)}",
+                    warnings.NegmasBrdigeParsingWarning,
                 )
 
         if typ_ in (TIMEOUT, "Offer"):

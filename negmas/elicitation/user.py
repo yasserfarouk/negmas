@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass
 from typing import List, Optional
 
 import numpy as np
 
+from negmas import warnings
 from negmas.preferences.preferences import Preferences
 from negmas.types.rational import Rational
 
@@ -94,7 +94,9 @@ class User(Rational):
                 return QResponse(
                     answer=reply, indx=i, cost=CostEvaluator(self.cost)(q, reply)
                 )
-        warnings.warn(f"No response for {q} (ufun={self.ufun})")
+        warnings.warn(
+            f"No response for {q} (ufun={self.ufun})", warnings.NegmasNoResponseWarning
+        )
         return QResponse(answer=None, indx=-1, cost=q.cost)
 
     def cost_of_asking(

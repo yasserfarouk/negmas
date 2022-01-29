@@ -36,6 +36,6 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
         return ResponseType.ACCEPT_OFFER
 
     def propose_(self, state: MechanismState) -> Outcome | None:
-        return RandomProposalMixin.propose(self, state)
+        return RandomProposalMixin.propose(self, state)  # type: ignore
 
     propose = propose_

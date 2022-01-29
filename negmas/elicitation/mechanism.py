@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 import math
 import random
-import warnings
 from typing import Any, Dict
 
 import pandas as pd
+
+from negmas import warnings
 
 from ..genius import GeniusNegotiator
 from ..helpers import create_loggers, instantiate
@@ -563,7 +564,6 @@ class SAOElicitingMechanism(SAOMechanism):
     def plot(
         self,
         visible_negotiators=(0, 1),
-        minmax=None,
         consider_costs=False,
     ):
         try:

@@ -4,11 +4,12 @@ from __future__ import annotations
 import json
 import random
 import time
-import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+
+from negmas import warnings
 
 from .outcomes import Issue
 from .serialization import serialize
@@ -128,7 +129,9 @@ class EventLogger(EventSink):
             with open(self._file_name, "a") as f:
                 f.write(f"{json.dumps(d)},\n")
         except Exception as e:
-            warnings.warn(f"Failed to log {str(event)}: {str(e)}")
+            warnings.warn(
+                f"Failed to log {str(event)}: {str(e)}", warnings.NegmasLoggingWarning
+            )
 
 
 @dataclass

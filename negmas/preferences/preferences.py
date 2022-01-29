@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import TYPE_CHECKING, Any
 
+from negmas.common import PreferencesChange
 from negmas.helpers import snake_case
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Outcome
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from negmas.outcomes.protocols import OutcomeSpace
 
 
-class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
+class Preferences(NamedObject, HasReservedOutcome, BasePref):
     """
     Base class for all preferences.
 
@@ -47,6 +47,7 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
         super().__init__(*args, **kwargs)
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)
         self.reserved_outcome = reserved_outcome  # type: ignore
+        self._changes: list[PreferencesChange] = []
 
     def to_dict(self) -> dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
@@ -63,6 +64,11 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref, ABC):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["outcome_space"] = deserialize(d.get("outcome_space", None))
         return cls(**d)
+
+    def changes(self) -> list[PreferencesChange]:
+        if self.is_stationary():
+            return []
+        return [PreferencesChange.General]
 
     @property
     def type(self) -> str:

@@ -22,6 +22,7 @@ from typing import (
     Union,
 )
 
+from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import MechanismState, NegotiatorInfo, NegotiatorMechanismInterface
 from negmas.events import Event, EventSource
@@ -37,7 +38,7 @@ from negmas.types import NamedObject
 if TYPE_CHECKING:
     from negmas.outcomes.base_issue import Issue
     from negmas.preferences import Preferences
-    from negmas.preferences.ufun import BaseUtilityFunction
+    from negmas.preferences.base_ufun import BaseUtilityFunction
 
 __all__ = ["Mechanism", "MechanismRoundResult"]
 
@@ -220,7 +221,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Checks whether the outcome is valid given the issues"""
         return outcome in self.nmi.outcome_space
 
-    def discrete_outcomes(self, n_max: int = None) -> list["Outcome"]:
+    def discrete_outcomes(self, n_max: int | float = float("inf")) -> list["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
@@ -238,7 +239,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.__discrete_outcomes:
             return self.__discrete_outcomes
         self.__discrete_os = self.outcome_space.to_discrete(
-            levels=5, max_cardinality=n_max if n_max else float("inf")
+            levels=5, max_cardinality=n_max if n_max is not None else float("inf")
         )
         self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
         return self.__discrete_outcomes
@@ -336,7 +337,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
             * True if the agent was added.
             * False if the agent was already in the negotiation.
-            * None if the agent cannot be added.
+            * None if the agent cannot be added. This can happen in the following cases:
+
+              1. The capabilities of the negotiator do not match the requirements of the negotiation
+              2. The outcome-space of the negotiator's preferences do not contain the outcome-space of the negotiation
+              3. The negotiator refuses to join (by returning False from its `join` method) see `Negotiator.join` for possible reasons of that
 
         """
 
@@ -358,6 +363,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             preferences = MappingUtilityFunction(
                 preferences, outcome_space=self.outcome_space
             )
+        if (
+            preferences
+            and preferences.outcome_space
+            and self.outcome_space not in preferences.outcome_space
+        ):
+            return None
         if not self.can_enter(negotiator):
             return None
 
@@ -1052,7 +1063,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return dict()
 
     def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
-        warnings.warn(f"_get_ami is depricated. Use `get_nmi` instead of it")
+        warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
         return self.nmi
 
     def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:

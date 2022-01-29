@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import random
-import warnings
 
 import numpy as np
 
-from ...common import MechanismState
+from ...common import MechanismState, PreferencesChange
 from ...negotiators import Controller
 from ...outcomes import Outcome
 from ..common import ResponseType
@@ -55,8 +54,8 @@ class ToughNegotiator(SAONegotiator):
             }
         )
 
-    def on_preferences_changed(self):
-        super().on_preferences_changed()
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
         if self.ufun is None:
             return
         _, self.best_outcome = self.ufun.extreme_outcomes()
@@ -110,9 +109,6 @@ class OnlyBestNegotiator(SAONegotiator):
         self.acceptable_outcomes = []
         self.wheel = np.array([])
         self.offered = set()
-        super().__init__(
-            name=name, parent=parent, ufun=ufun, preferences=preferences, **kwargs
-        )
         self.top_fraction = top_fraction
         self.min_utility = min_utility
         self.best_first = best_first
@@ -125,15 +121,26 @@ class OnlyBestNegotiator(SAONegotiator):
                 "max-proposals": None,  # indicates infinity
             }
         )
-
-    def on_preferences_changed(self):
-        super().on_preferences_changed()
-        outcomes = list(
-            self._nmi.discrete_outcomes()
-            if self._offerable_outcomes is None
-            else self._offerable_outcomes
+        super().__init__(
+            name=name, parent=parent, ufun=ufun, preferences=preferences, **kwargs
         )
-        eu_outcome = list(zip([self.ufun.eval(_) for _ in outcomes], outcomes))
+
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
+        if not self.ufun:
+            self.acceptable_outcomes, self.wheel = [], []
+            return
+        if self._offerable_outcomes is not None:
+            outcomes = self._offerable_outcomes
+        elif self.nmi is not None:
+            outcomes = list(self.nmi.discrete_outcomes())
+        elif self.ufun and self.ufun.outcome_space:
+            outcomes = list(
+                self.ufun.outcome_space.enumerate_or_sample(max_cardinality=1000)
+            )
+        else:
+            outcomes = []
+        eu_outcome = list(zip([self.ufun(_) for _ in outcomes], outcomes))
         self.ordered_outcomes = sorted(eu_outcome, key=lambda x: x[0], reverse=True)
         if self.min_utility is None:
             selected, selected_utils = [], []

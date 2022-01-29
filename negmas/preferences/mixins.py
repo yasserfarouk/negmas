@@ -8,7 +8,12 @@ if TYPE_CHECKING:
     from negmas.negotiators import Negotiator
     from negmas.outcomes.common import Outcome
 
-__all__ = ["VolatileUFunMixin", "SessionDependentUFunMixin", "StateDependentUFunMixin"]
+__all__ = [
+    "VolatileUFunMixin",
+    "SessionDependentUFunMixin",
+    "StateDependentUFunMixin",
+    "StationaryMixin",
+]
 
 
 class VolatileUFunMixin:
@@ -69,3 +74,20 @@ class StateDependentUFunMixin:
         Does the utiltiy of an outcome depend on the negotiation state?
         """
         return True
+
+
+class StationaryMixin:
+    def is_session_dependent(self) -> bool:
+        return False
+
+    def is_volatile(self) -> bool:
+        return False
+
+    def is_state_dependent(self) -> bool:
+        return False
+
+    def is_stationary(self) -> bool:
+        return True
+
+    def to_stationary(self):
+        return self

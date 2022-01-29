@@ -7,9 +7,10 @@ import functools
 import random
 import sys
 import time
-import warnings
 from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+
+from negmas import warnings
 
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
@@ -117,7 +118,8 @@ class SAOMechanism(Mechanism):
             time_limit is None or time_limit == float("inf")
         ):
             warnings.warn(
-                "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!"
+                "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!",
+                warnings.NegmasInfiniteNegotiationWarning,
             )
         self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
@@ -177,7 +179,7 @@ class SAOMechanism(Mechanism):
         ):
             warnings.warn(
                 f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds and a n_steps of {self.nmi.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
-                category=UserWarning,
+                warnings.NegmasStepAndTimeLimitWarning,
             )
         return added
 
@@ -250,7 +252,9 @@ class SAOMechanism(Mechanism):
             zip([_.id for _ in negotiators], [list() for _ in negotiators])
         )
 
-        def _safe_counter(negotiator, *args, **kwargs) -> Tuple[SAOResponse, bool]:
+        def _safe_counter(
+            negotiator, *args, **kwargs
+        ) -> tuple[SAOResponse | None, bool]:
             rem = self.remaining_time
             if rem is None:
                 rem = float("inf")
@@ -327,7 +331,7 @@ class SAOMechanism(Mechanism):
                 # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
                 if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
                     if outcome_types_are_ok(
-                        response.outcome, self.outcome_space.issues
+                        response.outcome, self.outcome_space.issues  # type: ignore
                     ):
                         return response, False
                     elif self._cast_offers:
@@ -335,7 +339,7 @@ class SAOMechanism(Mechanism):
                             SAOResponse(
                                 response.response,
                                 cast_value_types(
-                                    response.outcome, self.outcome_space.issues
+                                    response.outcome, self.outcome_space.issues  # type: ignore
                                 ),
                             ),
                             False,

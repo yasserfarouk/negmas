@@ -11,11 +11,12 @@ from numpy.testing import assert_almost_equal
 from negmas import (
     GeniusNegotiator,
     genius_bridge_is_running,
-    load_genius_domain,
     load_genius_domain_from_folder,
 )
 from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
 from negmas.genius.gnegotiators import AgentK
+from negmas.sao.common import SAOState
+from negmas.sao.mechanism import SAOMechanism
 
 DOMAIN_FOLDER = pathlib.Path(
     pkg_resources.resource_filename(

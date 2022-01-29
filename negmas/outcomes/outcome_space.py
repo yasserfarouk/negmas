@@ -12,6 +12,7 @@ from negmas.outcomes.outcome_ops import (
     outcome_types_are_ok,
 )
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
+from negmas.warnings import NegmasSpeedWarning, warn
 
 from ..protocols import XmlSerializable
 from .base_issue import DiscreteIssue, Issue
@@ -84,7 +85,7 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
         self.issues = tuple(issues)
 
     def __contains__(self, item):
-        if isinstance(item, CartesianOutcomeSpace):
+        if isinstance(item, OutcomeSpace):
             return self.contains_os(item)
         if isinstance(item, Issue):
             return self.contains_issue(item)
@@ -114,9 +115,17 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
             return len(self.issues) == len(x.issues) and all(
                 b in a for a, b in zip(self.issues, x.issues)
             )
-        if not x.is_finite():
+        if self.is_finite() and not x.is_finite():
             return False
-        return all(self.is_valid(_) for _ in x.enumerate())  # type: ignore
+        if not self.is_finite() and not x.is_finite():
+            raise NotImplementedError(
+                "Cannot check an infinite outcome space that is not cartesian for inclusion in an infinite cartesian outcome space!!"
+            )
+        warn(
+            f"Testing inclusion of a finite non-carteisan outcome space in a cartesian outcome space can be very slow (will do {x.cardinality} checks)",
+            NegmasSpeedWarning,
+        )
+        return all(self.is_valid(_) for _ in x.enumerate())  # type: ignore If we are here, we know that x is finite
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}

@@ -6,7 +6,7 @@ import pytest
 
 from negmas.outcomes.base_issue import make_issue
 from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
-from negmas.preferences.nonlinear import HyperRectangleUtilityFunction
+from negmas.preferences.crisp.nonlinear import HyperRectangleUtilityFunction
 from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
 from negmas.sao.mechanism import SAOMechanism
 from negmas.sao.negotiators import AspirationNegotiator, NaiveTitForTatNegotiator

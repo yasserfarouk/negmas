@@ -3,10 +3,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from negmas import Value
+from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
-from negmas.preferences.protocols import UFun
 
-from ...common import MechanismState
+from ...common import MechanismState, PreferencesChange
 from ...events import Notification
 from ...negotiators import Controller, Negotiator
 from ...outcomes import Outcome
@@ -45,7 +46,7 @@ class SAONegotiator(Negotiator):
         self,
         assume_normalized=False,
         preferences: Preferences | None = None,
-        ufun: UFun | None = None,
+        ufun: BaseUtilityFunction | None = None,
         name: str | None = None,
         parent: Controller = None,
         owner: "Agent" = None,
@@ -63,7 +64,7 @@ class SAONegotiator(Negotiator):
         self.assume_normalized = assume_normalized
         self.__end_negotiation = False
         self.my_last_proposal: Outcome | None = None
-        self.my_last_proposal_utility: float | None = None
+        self._my_last_proposal_utility: Value | None = None
         self.rational_proposal = rational_proposal
         self.add_capabilities({"respond": True, "propose": True, "max-proposals": 1})
 
@@ -99,12 +100,10 @@ class SAONegotiator(Negotiator):
         """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
-        if self._preferences_modified:
-            self.on_preferences_changed()
         proposal = self.propose(state=state)
 
         # never return a proposal that is less than the reserved value
-        if self.rational_proposal:
+        if self.rational_proposal and self.ufun:
             utility = None
             if proposal is not None and self._preferences is not None:
                 utility = self.ufun(proposal)
@@ -113,7 +112,7 @@ class SAONegotiator(Negotiator):
 
             if utility is not None:
                 self.my_last_proposal = proposal
-                self.my_last_proposal_utility = utility
+                self._my_last_proposal_utility = utility
 
         return proposal
 
@@ -145,8 +144,6 @@ class SAONegotiator(Negotiator):
         """
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
-        if self._preferences_modified:
-            self.on_preferences_changed()
         return self.respond(state=state, offer=offer)
 
     def counter(self, state: MechanismState, offer: Outcome | None) -> "SAOResponse":
@@ -163,6 +160,10 @@ class SAONegotiator(Negotiator):
         """
         if self.__end_negotiation:
             return SAOResponse(ResponseType.END_NEGOTIATION, None)
+        if self.ufun is not None:
+            changes = self.ufun.changes()
+            if changes:
+                self.on_preferences_changed(changes)
         if offer is None:
             return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
         response = self.respond_(state=state, offer=offer)
@@ -186,21 +187,30 @@ class SAONegotiator(Negotiator):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
-        if self._preferences is None:
+        # Always reject offers that we do not know or if we have no kknown preferences
+        if offer is None or self.ufun is None:
             return ResponseType.REJECT_OFFER
-        if offer is None:
+        # find offer utility
+        offer_util = self.ufun(offer) if self.ufun else float("-inf")
+        # if the offer is worse than the reserved value or its utility is less than that of the reserved outcome, reject it
+        if (self.reserved_value is not None and offer_util < self.reserved_value) or (
+            self.reserved_outcome is not None
+            and self.ufun is not None
+            and offer_util < self.ufun(self.reserved_outcome)
+        ):
             return ResponseType.REJECT_OFFER
-        if self.ufun(offer) < self.reserved_value:
-            return ResponseType.REJECT_OFFER
+        # find my last proposal (if any)
         utility = None
-        if self.my_last_proposal_utility is not None:
-            utility = self.my_last_proposal_utility
+        if self._my_last_proposal_utility is not None:
+            utility = self._my_last_proposal_utility
+        # if I never proposed, find what would I have proposed at this state and its utility
         if utility is None:
             myoffer = self.propose_(state=state)
             if myoffer is None:
                 return ResponseType.NO_RESPONSE
             utility = self.ufun(myoffer)
-        if utility is not None and self.ufun(offer) >= utility:
+        # accept only if I know what I would have proposed at this state (or the previous one) and it was worse than what I am about to proposed
+        if utility is not None and offer_util >= utility:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

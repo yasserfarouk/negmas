@@ -12,6 +12,7 @@ from pytest import mark
 from negmas.outcomes import enumerate_issues, issues_from_xml_str, make_issue
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.preferences import (
+    AffineUtilityFunction,
     HyperRectangleUtilityFunction,
     LinearAdditiveUtilityFunction,
     LinearUtilityFunction,
@@ -19,9 +20,9 @@ from negmas.preferences import (
     UtilityFunction,
     pareto_frontier,
 )
-from negmas.preferences.const import ConstUtilityFunction
+from negmas.preferences.crisp.const import ConstUtilityFunction
+from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
 from negmas.preferences.ops import normalize, scale_max
-from negmas.preferences.ufun import PresortingInverseUtilityFunction
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
@@ -315,9 +316,9 @@ rngs = [
     bias=st.floats(min_value=-5.0, max_value=5.0),
     rng=st.sampled_from(rngs),
 )
-def test_can_normalize_linear_ufun(weights, bias, rng):
+def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     issues = [make_issue(10), make_issue(5)]
-    ufun = LinearUtilityFunction(weights=weights, bias=bias, issues=issues)
+    ufun = AffineUtilityFunction(weights=weights, bias=bias, issues=issues)
     outcomes = enumerate_issues(issues)
     u1 = [ufun(w) for w in outcomes]
 
@@ -338,8 +339,10 @@ def test_can_normalize_linear_ufun(weights, bias, rng):
             return
         raise e
 
-    assert isinstance(ufun, LinearUtilityFunction) or isinstance(
-        ufun, ConstUtilityFunction
+    assert (
+        isinstance(ufun, AffineUtilityFunction)
+        or isinstance(ufun, LinearUtilityFunction)
+        or isinstance(ufun, ConstUtilityFunction)
     ), f"Normalization of ufun of type "
     f"LinearUtilityFunction should generate an IndependentIssuesUFun but we got {type(nfun).__name__}"
     u2 = [nfun(w) for w in outcomes]

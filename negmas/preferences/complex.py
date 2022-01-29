@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 from negmas.helpers import get_full_type_name, get_one_int
 from negmas.outcomes import Outcome
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .base import UtilityValue
-from .linear import LinearAdditiveUtilityFunction
-from .ufun import BaseUtilityFunction, UtilityFunction
+from .base import Value
+from .base_ufun import BaseUtilityFunction
+from .crisp.linear import LinearAdditiveUtilityFunction
 
-__all__ = ["ComplexWeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
+__all__ = ["WeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
 
 
 class _DependenceMixin:
@@ -21,8 +21,14 @@ class _DependenceMixin:
     def is_stationary(self) -> bool:
         return any(_.is_stationary() for _ in self.values)  # type: ignore
 
+    def is_volatile(self) -> bool:
+        return any(_.is_volatile() for _ in self.values)  # type: ignore
 
-class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
+    def is_state_dependent(self) -> bool:
+        return any(_.is_state_dependent() for _ in self.values)  # type: ignore
+
+
+class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     """A utility function composed of linear aggregation of other utility functions
 
     Args:
@@ -53,7 +59,7 @@ class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
         n_ufuns=(1, 4),
         ufun_types=(LinearAdditiveUtilityFunction,),
         **kwargs,
-    ) -> ComplexWeightedUtilityFunction:
+    ) -> WeightedUtilityFunction:
         """Generates a random ufun of the given type"""
         n = get_one_int(n_ufuns)
         ufuns = [
@@ -61,7 +67,7 @@ class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
             for _ in range(n)
         ]
         weights = [random.random() for _ in range(n)]
-        return ComplexWeightedUtilityFunction(
+        return WeightedUtilityFunction(
             reserved_value=reserved_value,
             ufuns=ufuns,
             weights=weights,
@@ -69,7 +75,7 @@ class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
             **kwargs,
         )
 
-    def eval(self, offer: "Outcome") -> float:
+    def eval(self, offer: Outcome) -> Value:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -78,11 +84,11 @@ class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
 
         Remarks:
             - You cannot return None from overriden apply() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
-            - Return A UtilityValue not a float for real-valued utilities for the benefit of inspection code.
+              not possible to calculate the Value.
+            - Return A Value not a float for real-valued utilities for the benefit of inspection code.
 
         Returns:
-            UtilityValue: The utility_function value which may be a distribution. If `None` it means the utility_function value cannot be
+            Value: The utility_function value which may be a distribution. If `None` it means the utility_function value cannot be
             calculated.
         """
         if offer is None:
@@ -92,7 +98,7 @@ class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
             util = f(offer)
             if util is None or w is None:
                 raise ValueError(f"Cannot calculate utility for {offer}")
-            u += util * w  # type: ignore It will not e none here
+            u += util * w  # type: ignore
         return u
 
     def to_dict(self) -> Dict[str, Any]:
@@ -111,7 +117,7 @@ class ComplexWeightedUtilityFunction(_DependenceMixin, UtilityFunction):
         return cls(**d)
 
 
-class ComplexNonlinearUtilityFunction(_DependenceMixin, UtilityFunction):
+class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     """A utility function composed of nonlinear aggregation of other utility functions
 
     Args:
@@ -124,7 +130,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, UtilityFunction):
     def __init__(
         self,
         ufuns: Iterable[BaseUtilityFunction],
-        combination_function=Callable[[Iterable[UtilityValue]], UtilityValue],
+        combination_function=Callable[[Iterable[Value]], Value],
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -171,7 +177,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, UtilityFunction):
         d["combination_function"] = deserialize(d["combination_function"])
         return cls(**d)
 
-    def eval(self, offer: "Outcome") -> UtilityValue:
+    def eval(self, offer: "Outcome") -> Value:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -180,11 +186,11 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, UtilityFunction):
 
         Remarks:
             - You cannot return None from overriden apply() functions but raise an exception (ValueError) if it was
-              not possible to calculate the UtilityValue.
-            - Return A UtilityValue not a float for real-valued utilities for the benefit of inspection code.
+              not possible to calculate the Value.
+            - Return A Value not a float for real-valued utilities for the benefit of inspection code.
 
         Returns:
-            UtilityValue: The utility_function value which may be a distribution. If `None` it means the utility_function value cannot be
+            Value: The utility_function value which may be a distribution. If `None` it means the utility_function value cannot be
             calculated.
         """
         if offer is None:

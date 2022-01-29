@@ -9,23 +9,25 @@ from negmas.generics import iget, ikeys, ivalues
 from negmas.helpers import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 
-from ..helpers.prob import (
+from ...helpers.prob import (
     Distribution,
     ScipyDistribution,
     as_distribution,
     uniform_around,
 )
-from .mapping import MappingUtilityFunction, ProbMappingUtilityFunction
-from .ufun import ProbUtilityFunction, UtilityFunction
+from ..crisp.mapping import MappingUtilityFunction
+from ..prob_ufun import ProbUtilityFunction
+from .mapping import ProbMappingUtilityFunction
 
 if TYPE_CHECKING:
-    from .base import UtilityValue
+    from ..base import Value
 
-__all__ = ["IPUtilityFunction", "ILSUtilityFunction", "UniformUtilityFunction"]
+__all__ = ["IPUtilityFunction"]
 
 
 class IPUtilityFunction(ProbUtilityFunction):
-    """Independent Probabilistic Utility Function.
+    """
+    Independent Probabilistic Utility Function.
 
     Args:
 
@@ -174,7 +176,7 @@ class IPUtilityFunction(ProbUtilityFunction):
     @classmethod
     def from_mapping(
         cls,
-        mapping: Dict["Outcome", "UtilityValue"],
+        mapping: Dict["Outcome", "Value"],
         range: Tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
@@ -296,43 +298,3 @@ class IPUtilityFunction(ProbUtilityFunction):
 
     def xml(self, issues: List[Issue]) -> str:
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
-
-
-class ILSUtilityFunction(ProbUtilityFunction):
-    """
-    A utility function which represents the loc and scale deviations as any crisp ufun
-    """
-
-    def __init__(
-        self, type: str, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self._type = type
-        self.loc = loc
-        self.scale = scale
-
-    def eval(self, offer: Outcome) -> ScipyDistribution:
-        loc, scale = self.loc(offer), self.scale(offer)
-        if loc is None or scale is None:
-            raise ValueError(
-                f"Cannot calculate loc ({loc}) or scale ({scale}) for offer {offer}"
-            )
-        return ScipyDistribution(self._type, loc=loc, scale=scale)
-
-
-class UniformUtilityFunction(ILSUtilityFunction):
-    """
-    A utility function which represents the loc and scale deviations as any crisp ufun
-    """
-
-    def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
-        super().__init__("uniform", loc, scale, *args, *kwargs)
-
-
-class GaussialUtilityFunction(ILSUtilityFunction):
-    """
-    A utility function which represents the mean and std deviations as any crisp ufun
-    """
-
-    def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
-        super().__init__("norm", loc, scale, *args, *kwargs)

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import warnings
 from abc import ABC
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from negmas.common import MechanismState, NegotiatorMechanismInterface
+import negmas.warnings as warnings
+from negmas.common import (
+    MechanismState,
+    NegotiatorMechanismInterface,
+    PreferencesChange,
+)
 from negmas.events import Notifiable, Notification
 from negmas.types import Rational
 
@@ -50,28 +54,28 @@ class Negotiator(Rational, Notifiable, ABC):
         owner: "Agent" = None,
         id: str = None,
     ) -> None:
-        super().__init__(name=name, ufun=ufun, preferences=preferences, id=id)
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
         self._mechanism_id = None
-        self._nmi = None
+        self._nmi: NegotiatorMechanismInterface | None = None
         self._initial_state = None
         self._role = None
         self.__owner = owner
+        super().__init__(name=name, ufun=ufun, preferences=preferences, id=id)
 
     @property
-    def ami(self):
-        warnings.warn(
+    def ami(self) -> NegotiatorMechanismInterface | None:
+        warnings.deprecated(
             "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
         )
         return self._nmi
 
     @property
-    def nmi(self):
+    def nmi(self) -> NegotiatorMechanismInterface | None:
         return self._nmi
 
     @property
-    def owner(self):
+    def owner(self) -> Agent | None:
         """Returns the owner agent of the negotiator"""
         return self.__owner
 
@@ -80,22 +84,17 @@ class Negotiator(Rational, Notifiable, ABC):
         """Sets the owner"""
         self.__owner = owner
 
-    @Rational.preferences.setter
-    def preferences(self, value: Preferences):
+    def set_preferences(self, value: Preferences) -> Preferences | None:
         """Sets tha utility function."""
+        super().set_preferences(value)
         if self._nmi is not None and self._nmi.state.started:
-            warnings.warn(
+            warnings.deprecated(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
-        Rational.preferences.fset(self, value)  # type: ignore
-        # if self._nmi is not None:
-        # else:
-        #     self._preferences = value
-        #     self._preferences_modified = True
 
     @property
-    def parent(self) -> "Controller" | None:
+    def parent(self) -> Controller | None:
         """Returns the parent controller"""
         return self.__parent
 
@@ -111,7 +110,7 @@ class Negotiator(Rational, Notifiable, ABC):
     def _dissociate(self):
         self._mechanism_id = None
         self._nmi = None
-        self.preferences = self._init_preferences
+        self._preferences = self._init_preferences
         self._role = None
 
     def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
@@ -195,8 +194,17 @@ class Negotiator(Rational, Notifiable, ABC):
             bool indicating whether or not the agent accepts to enter.
             If False is returned it will not enter the negotiation
 
+        Remarks:
+
+            - Joining a neogiation will fail in the following conditions:
+
+              1. The negotiator already has preferences and is asked to join with new ones
+              2. The negotiator is already in a negotiation
+
         """
         if self._mechanism_id is not None:
+            return False
+        if preferences and self.preferences:
             return False
         self._role = role
         self._mechanism_id = nmi.id
@@ -205,10 +213,7 @@ class Negotiator(Rational, Notifiable, ABC):
         if preferences is not None and (
             self.preferences is None or id(preferences) != id(self.preferences)
         ):
-            self.preferences = preferences
-        if self.preferences and self._preferences_modified:
-            if self._preferences_modified:
-                self.on_preferences_changed()
+            self.set_preferences(preferences)
         return True
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -226,8 +231,6 @@ class Negotiator(Rational, Notifiable, ABC):
             - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
 
         """
-        if self._preferences_modified:
-            self.on_preferences_changed()
 
     def on_round_start(self, state: MechanismState) -> None:
         """
@@ -326,7 +329,11 @@ class Negotiator(Rational, Notifiable, ABC):
         elif notification.type == "negotiation_end":
             self.on_negotiation_end(state=notification.data)
         elif notification.type == "ufun_modified":
-            self.on_preferences_changed()
+            self.on_preferences_changed(
+                changes=notification.data
+                if notification.data
+                else [PreferencesChange.General]
+            )
 
     def cancel(self, reason=None) -> None:
         """

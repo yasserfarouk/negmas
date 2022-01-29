@@ -5,15 +5,21 @@ A rational agent is one that has some preferences.
 """
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING
 
+from negmas import warnings
+
+from ..common import PreferencesChange
 from .named import NamedObject
 
 if TYPE_CHECKING:
     from ..outcomes import Outcome
-    from ..preferences import BaseUtilityFunction, Preferences
-    from ..preferences.protocols import UFunCrisp, UFunProb
+    from ..preferences import (
+        BaseUtilityFunction,
+        Preferences,
+        ProbUtilityFunction,
+        UtilityFunction,
+    )
 
 __all__ = ["Rational"]
 
@@ -27,6 +33,7 @@ class Rational(NamedObject):
         name: Object name. Used for printing and logging but not internally by the system
         preferences: An optional preferences to attach to the object
         ufun: An optinoal utility function (overrides preferences if given)
+        id: Object ID (must be unique in the whole system). If None, the system will generate it
 
 
     Remarks:
@@ -49,10 +56,10 @@ class Rational(NamedObject):
         super().__init__(name, id=id)
         if ufun:
             preferences = ufun
-        self._preferences: Preferences | None = preferences
         self._init_preferences = preferences
-        self._preferences_modified = preferences is not None
-        self._set_pref_owner()
+        self._preferences = None
+        if preferences is not None:
+            self.set_preferences(preferences)
 
     def _set_pref_owner(self):
         if not self._preferences:
@@ -61,7 +68,8 @@ class Rational(NamedObject):
             warnings.warn(
                 f"Entity {self.name} ({self.__class__.__name__}) is "
                 f"assigned preferences belonging to another agent "
-                f"({self._preferences.owner.name} of type {self.__class__.__name__})!!"
+                f"({self._preferences.owner.name} of type {self.__class__.__name__})!!",
+                warnings.NegmasDoubleAssignmentWarning,
             )
 
         self._preferences.owner = self
@@ -71,60 +79,72 @@ class Rational(NamedObject):
         """The utility function attached to that object"""
         return self._preferences
 
-    @preferences.setter
-    def preferences(self, value: Preferences):
-        """Sets tha utility function."""
+    def set_preferences(self, value: Preferences | None) -> Preferences | None:
+        """Sets tha utility function/Preferences."""
         if value == self._preferences:
-            return
+            return self._preferences
+        old = self._preferences
         self._preferences = value
-        self._set_pref_owner()
-        self._preferences_modified = True
-        self.on_preferences_changed()
+        if value and value.owner != self:
+            self._set_pref_owner()
+        if id(value) != id(old):
+            self.on_preferences_changed([PreferencesChange.General])
+        return self._preferences
 
     @property
-    def crisp_ufun(self) -> UFunCrisp | None:
+    def crisp_ufun(self) -> UtilityFunction | None:
         """Returns the preferences if it is a CrispUtilityFunction else None"""
-        from negmas.preferences.protocols import UFunCrisp
+        from negmas.preferences import UtilityFunction
 
-        return self._preferences if isinstance(self._preferences, UFunCrisp) else None
+        return (
+            self._preferences
+            if isinstance(self._preferences, UtilityFunction)
+            else None
+        )
 
     @crisp_ufun.setter
-    def crisp_ufun(self, v: UFunCrisp):
-        from negmas.preferences.protocols import UFunCrisp
+    def crisp_ufun(self, v: UtilityFunction):
+        from negmas.preferences import UtilityFunction
 
-        if not isinstance(v, UFunCrisp):
+        if not isinstance(v, UtilityFunction):
             raise ValueError(f"Cannot assign a {type(v)} to crisp_ufun")
-        self.preferences = v  # type: ignore
+        self.set_preferences(v)
 
     @property
-    def prob_ufun(self) -> UFunProb | None:
+    def prob_ufun(self) -> ProbUtilityFunction | None:
         """Returns the preferences if it is a ProbUtilityFunction else None"""
-        from negmas.preferences.protocols import UFunProb
+        from negmas.preferences import ProbUtilityFunction
 
-        return self._preferences if isinstance(self._preferences, UFunProb) else None
+        return (
+            self._preferences
+            if isinstance(self._preferences, ProbUtilityFunction)
+            else None
+        )
 
     @prob_ufun.setter
-    def prob_ufun(self, v: UFunProb):
-        from negmas.preferences.protocols import UFunProb
+    def prob_ufun(self, v: ProbUtilityFunction):
+        from negmas.preferences import ProbUtilityFunction
 
-        if not isinstance(v, UFunProb):
+        if not isinstance(v, ProbUtilityFunction):
             raise ValueError(f"Cannot assign a {type(v)} to prob_ufun")
-        self.preferences = v  # type: ignore
+        self.set_preferences(v)
 
     @property
     def ufun(self) -> BaseUtilityFunction | None:
         """Returns the preferences if it is a UtilityFunction else None"""
         from ..preferences import BaseUtilityFunction
 
-        return (
-            self._preferences
-            if isinstance(self._preferences, BaseUtilityFunction)
-            else None
+        if self._preferences is None:
+            return None
+        if isinstance(self._preferences, BaseUtilityFunction):
+            return self._preferences
+        raise ValueError(
+            f"prefrences are not for type `BaseUtilityFunction` ({self._preferences.__class__.__name__})"
         )
 
     @ufun.setter
     def ufun(self, v: BaseUtilityFunction):
-        self.preferences = v
+        self.set_preferences(v)
 
     @property
     def has_preferences(self) -> bool:
@@ -178,17 +198,16 @@ class Rational(NamedObject):
             return float("nan")
         return self._preferences.reserved_value
 
-    def reset_preferences_changed_flag(self):
-        """Called to reset the internal preferences changed flag after processing a change"""
-        self._preferences_modified = False
-
-    def on_preferences_changed(self):
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
         """
         Called to inform the entity that its ufun has changed.
+
+        Args:
+            changes: An ordered list of changes that happened.
 
         Remarks:
 
             - You MUST call the super() version of this function either before or after your code when you are overriding
               it.
+            - The most general form of change is `PreferencesChange.General` which indicates that you cannot trust anything you knew about the ufun anymore
         """
-        self.reset_preferences_changed_flag()

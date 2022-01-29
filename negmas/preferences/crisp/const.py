@@ -8,16 +8,17 @@ from negmas.outcomes import Issue, Outcome
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
-from .base import UtilityValue
-from .ufun import StationaryUtilityFunction
+from ..base import Value
+from ..crisp_ufun import UtilityFunction
+from ..mixins import StationaryMixin
 
 __all__ = ["ConstUtilityFunction"]
 
 
-class ConstUtilityFunction(StationaryUtilityFunction, XmlSerializable):
+class ConstUtilityFunction(StationaryMixin, UtilityFunction, XmlSerializable):
     def __init__(
         self,
-        value: UtilityValue,
+        value: Value,
         *,
         reserved_value: float = float("-inf"),
         **kwargs,
@@ -39,15 +40,15 @@ class ConstUtilityFunction(StationaryUtilityFunction, XmlSerializable):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         return cls(**d)
 
-    def eval(self, offer: "Outcome") -> UtilityValue:
+    def eval(self, offer: "Outcome") -> Value:
         if offer is None:
             return self.reserved_value
         return self.value
 
     def xml(self, issues: List[Issue]) -> str:
-        from negmas.preferences.linear import LinearUtilityFunction
+        from negmas.preferences.crisp.linear import AffineUtilityFunction
 
-        return LinearUtilityFunction(
+        return AffineUtilityFunction(
             [0.0] * len(issues),
             float(self.value),
             issues=issues,

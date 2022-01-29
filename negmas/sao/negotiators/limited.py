@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import warnings
 from typing import List, Optional, Union
+
+from negmas import warnings
 
 from ...common import MechanismState
 from ...outcomes import Outcome
@@ -52,7 +53,8 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
             preferences = ufun
         if preferences is not None:
             warnings.warn(
-                f"LimitedOutcomesAcceptor negotiators cannot ignore preferences but they are given"
+                f"LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
+                warnings.NegmasUnusedValueWarning,
             )
         super().__init__(**kwargs)
         if proposable_outcomes is None:
@@ -91,7 +93,8 @@ class LimitedOutcomesAcceptor(LimitedOutcomesAcceptorMixin, SAONegotiator):
     ) -> None:
         if preferences is not None:
             warnings.warn(
-                f"LimitedOutcomesAcceptor negotiators cannot ignore preferences but they are given"
+                f"LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
+                warnings.NegmasIgnoredValueWarning,
             )
         super().__init__(self, **kwargs)
         self.init_limited_outcomes_acceptor(

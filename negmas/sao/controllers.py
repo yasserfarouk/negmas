@@ -7,7 +7,7 @@ import itertools
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from negmas.preferences.protocols import UFun
 
@@ -16,6 +16,9 @@ from ..negotiators import AspirationMixin, Controller
 from ..outcomes import Outcome, outcome_is_valid
 from .common import ResponseType, SAOResponse, SAOState
 from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
+
+if TYPE_CHECKING:
+    from negmas.preferences import Preferences
 
 __all__ = [
     "SAOController",
@@ -69,7 +72,7 @@ class SAOController(Controller):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Optional[Preferences] = None,
         role: str = "agent",
     ) -> bool:
         """
@@ -110,7 +113,7 @@ class SAOController(Controller):
             role (str): role of the agent.
         """
 
-    def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
+    def propose(self, negotiator_id: str, state: MechanismState) -> Optional[Outcome]:
 
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -118,7 +121,7 @@ class SAOController(Controller):
         return self.call(negotiator, "propose", state=state)
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: "Outcome"
+        self, negotiator_id: str, state: MechanismState, offer: Outcome
     ) -> "ResponseType":
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -146,7 +149,7 @@ class SAORandomController(SAOController):
         super().__init__(*args, **kwargs)
         self._p_acceptance = p_acceptance
 
-    def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
+    def propose(self, negotiator_id: str, state: MechanismState) -> Optional[Outcome]:
 
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -156,7 +159,7 @@ class SAORandomController(SAOController):
         return negotiator.nmi.random_outcomes(1)[0]
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: "Outcome"
+        self, negotiator_id: str, state: MechanismState, offer: Outcome
     ) -> "ResponseType":
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -186,19 +189,19 @@ class SAOSyncController(SAOController):
 
     def __init__(self, *args, global_ufun=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__offers: Dict[str, "Outcome"] = {}
+        self.__offers: Dict[str, Outcome] = {}
         """Keeps the last offer received for each negotiation"""
         self.__responses: Dict[str, ResponseType] = {}
         """Keeps the next response type for each negotiation"""
-        self.__proposals: Dict[str, "Outcome"] = {}
+        self.__proposals: Dict[str, Outcome | None] = {}
         """Keeps the next proposal for each negotiation"""
-        self.__offer_states: Dict[str, "SAOState"] = {}
+        self.__offer_states: Dict[str, SAOState] = {}
         """Keeps the last state received for each negotiation"""
         self.__n_waits: Dict[str, int] = defaultdict(int)
         """The number of contiguous waits sent for every partner"""
         self.__global_ufun = global_ufun
 
-    def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
+    def propose(self, negotiator_id: str, state: MechanismState) -> Optional[Outcome]:
         # if there are no proposals yet, get first proposals
         if not self.__proposals:
             self.__proposals = self.first_proposals()
@@ -222,7 +225,7 @@ class SAOSyncController(SAOController):
         return proposal
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: "Outcome"
+        self, negotiator_id: str, state: SAOState, offer: Outcome
     ) -> "ResponseType":
         # get the saved response to this negotiator if any
         response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
@@ -265,7 +268,7 @@ class SAOSyncController(SAOController):
         self.__offer_states = dict()
         return self.__responses.pop(negotiator_id)
 
-    def first_proposals(self) -> Dict[str, "Outcome"]:
+    def first_proposals(self) -> Dict[str, Outcome | None]:
         """Gets a set of proposals to use for initializing the negotiation."""
         return dict(
             zip(
@@ -276,7 +279,7 @@ class SAOSyncController(SAOController):
 
     @abstractmethod
     def counter_all(
-        self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
+        self, offers: Dict[str, Outcome], states: Dict[str, SAOState]
     ) -> Dict[str, SAOResponse]:
         """Calculate a response to all offers from all negotiators (negotiator ID is the key).
 
@@ -291,7 +294,7 @@ class SAOSyncController(SAOController):
 
         """
 
-    def first_offer(self, negotiator_id: str) -> Optional["Outcome"]:
+    def first_offer(self, negotiator_id: str) -> Optional[Outcome]:
         """
         Finds the first offer for this given negotiator. By default it will be the best offer
 
@@ -309,7 +312,10 @@ class SAOSyncController(SAOController):
         if negotiator is None or negotiator.nmi is None:
             return None
         # if the controller has a ufun, use it otherwise use the negotiator's
-        ufun = self.ufun if self.ufun is not None else negotiator.ufun
+        try:
+            ufun = self.ufun
+        except ValueError:
+            ufun = negotiator.ufun
         if isinstance(ufun, UFun):
             _, best = ufun.extreme_outcomes()
         else:
@@ -446,7 +452,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             self.__end_all = True
 
     def counter_all(
-        self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
+        self, offers: Dict[str, Outcome], states: Dict[str, SAOState]
     ) -> Dict[str, SAOResponse]:
         """
         Counters all responses
@@ -553,7 +559,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             )
         )
 
-    def first_proposals(self) -> Dict[str, "Outcome"]:
+    def first_proposals(self) -> Dict[str, Outcome | None]:
         if not self.strict:
             return super().first_proposals()
 
@@ -567,8 +573,8 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         )
 
     def response_to_best_offer(
-        self, negotiator: str, state: SAOState, offer: "Outcome"
-    ) -> Optional["Outcome"]:
+        self, negotiator: str, state: SAOState, offer: Outcome
+    ) -> Optional[Outcome]:
         """
         Return a response to the partner from which the best current offer was
         received
@@ -592,7 +598,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
 
     def best_outcome(
         self, negotiator: str, state: Optional[SAOState] = None
-    ) -> Optional["Outcome"]:
+    ) -> Optional[Outcome]:
         """
         The best outcome for the negotiation `negotiator` engages in given the
         `state` .
@@ -630,9 +636,9 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         self,
         negotiator: str,
         state: SAOState,
-        best_offer: Optional["Outcome"],
+        best_offer: Optional[Outcome],
         best_from: Optional[str],
-    ) -> Optional["Outcome"]:
+    ) -> Optional[Outcome]:
         """Generate an offer for the given partner
 
         Args:
@@ -664,7 +670,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             return current_best
 
     @abstractmethod
-    def is_acceptable(self, offer: "Outcome", source: str, state: SAOState) -> bool:
+    def is_acceptable(self, offer: Outcome, source: str, state: SAOState) -> bool:
         """Should decide if the given offer is acceptable
 
         Args:
@@ -678,7 +684,7 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
 
     @abstractmethod
-    def best_offer(self, offers: Dict[str, "Outcome"]) -> Optional[str]:
+    def best_offer(self, offers: Dict[str, Outcome]) -> Optional[str]:
         """
         Return the ID of the negotiator with the best offer
 
@@ -691,12 +697,14 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
 
     @abstractmethod
-    def is_better(self, a: "Outcome", b: "Outcome", negotiator: str, state: SAOState):
+    def is_better(
+        self, a: Outcome | None, b: Outcome | None, negotiator: str, state: SAOState
+    ):
         """Compares two outcomes of the same negotiation
 
         Args:
-            a: "Outcome"
-            b: "Outcome"
+            a: Outcome
+            b: Outcome
             negotiator: The negotiator for which the comparison is to be made
             state: Current state of the negotiation
 
@@ -735,7 +743,7 @@ class SAOMetaNegotiatorController(SAOController):
             )
         self.meta_negotiator = meta_negotiator
 
-    def propose(self, negotiator_id: str, state: MechanismState) -> Optional["Outcome"]:
+    def propose(self, negotiator_id: str, state: MechanismState) -> Optional[Outcome]:
         """Uses the meta negotiator to propose"""
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -744,7 +752,7 @@ class SAOMetaNegotiatorController(SAOController):
         return self.meta_negotiator.propose(state)
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: "Outcome"
+        self, negotiator_id: str, state: MechanismState, offer: Outcome
     ) -> "ResponseType":
         """Uses the meta negotiator to respond"""
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
@@ -763,13 +771,13 @@ class SAOSingleAgreementRandomController(SAOSingleAgreementController):
 
     """
 
-    def is_acceptable(self, offer: "Outcome", source: str, state: SAOState) -> bool:
+    def is_acceptable(self, offer: Outcome, source: str, state: SAOState) -> bool:
         return random.random() > self.p_acceptance
 
-    def best_offer(self, offers: Dict[str, "Outcome"]) -> Optional[str]:
+    def best_offer(self, offers: Dict[str, Outcome]) -> Optional[str]:
         return random.sample(list(offers.keys()), 1)[0]
 
-    def is_better(self, a: "Outcome", b: "Outcome", negotiator: str, state: SAOState):
+    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
         return random.random() > 0.5
 
     def __init__(self, *args, p_acceptance=0.1, **kwargs):
@@ -812,26 +820,36 @@ class SAOSingleAgreementAspirationController(
         super().__init__(*args, **kwargs)
         AspirationMixin.aspiration_init(self, max_aspiration, aspiration_type)
 
-    def is_acceptable(self, offer: "Outcome", source: str, state: SAOState):
+    def is_acceptable(self, offer: Outcome, source: str, state: SAOState):
+        if not self.ufun:
+            return False
         return self.ufun(offer) >= self.aspiration(state.relative_time)
 
-    def is_better(self, a: "Outcome", b: "Outcome", negotiator: str, state: SAOState):
-        return self.ufun(a) > self.ufun(b)
+    def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
+        if not self.ufun:
+            raise ValueError("No ufun is defined")
+        return self.ufun.is_better(a, b)
 
     def best_offer(self, offers):
-        best_val, best_negotiator = float("-inf"), None
+        if not self.ufun:
+            raise ValueError("No ufun is defined")
+        best_negotiator, best_offer = None, None
         for k, offer in offers.items():
-            curr_val = self.ufun(offer)
-            if curr_val >= best_val:
-                best_val, best_negotiator = curr_val, k
+            if best_negotiator is None:
+                best_negotiator, best_offer = k, offer
+                continue
+            if self.ufun.is_better(offer, best_offer):
+                best_negotiator, best_offer = k, offer
         return best_negotiator
 
     def best_outcome(self, negotiator, state=None):
+        if not self.ufun:
+            raise ValueError("No ufun is defined")
         outcome = self.ufun.sample_outcome_with_utility(
             rng=(
                 self.aspiration(state.relative_time)
                 if state is not None
-                else self.ufun(super().best_outcome(negotiator, None)),
+                else float(self.ufun(super().best_outcome(negotiator, None))),
                 float("inf"),
             ),
             issues=self.negotiators[negotiator][0].nmi.issues,

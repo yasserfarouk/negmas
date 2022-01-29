@@ -14,7 +14,7 @@ from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Type, 
 from negmas.helpers import get_class, unique_name
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, make_issue
-from negmas.preferences.linear import LinearUtilityFunction
+from negmas.preferences.crisp.linear import LinearUtilityFunction
 from negmas.serialization import deserialize, serialize
 from negmas.situated import Agent
 from negmas.situated.neg import NegAgent, NegDomain, NegWorld  # , _wrap_in_agents

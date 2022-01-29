@@ -11,6 +11,7 @@ from negmas import (
     AspirationNegotiator,
     NaiveTitForTatNegotiator,
     OnlyBestNegotiator,
+    PreferencesChange,
     PresortingInverseUtilityFunction,
     SAOController,
     SAOMechanism,
@@ -19,10 +20,7 @@ from negmas import (
 from negmas.negotiators.components import PolyAspiration
 from negmas.outcomes.base_issue import make_issue
 from negmas.preferences import MappingUtilityFunction, RandomUtilityFunction
-from negmas.preferences.linear import (
-    LinearAdditiveUtilityFunction,
-    LinearUtilityFunction,
-)
+from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
 from negmas.sao.negotiators.base import SAONegotiator
 
@@ -144,7 +142,12 @@ class TestTitForTatNegotiator:
         a1 = NaiveTitForTatNegotiator(name="a1", initial_concession="min")
         u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
-        neg.add(a1, preferences=MappingUtilityFunction(dict(zip(outcomes, u1))))
+        neg.add(
+            a1,
+            preferences=MappingUtilityFunction(
+                dict(zip(outcomes, u1)), outcomes=outcomes
+            ),
+        )
 
         proposal = a1.propose_(neg.state)
         assert proposal == (0,), "Proposes top first"
@@ -263,7 +266,7 @@ class SmartAspirationNegotiator(SAONegotiator):
         self._partner_first = None
         self._min = self._max = self._worst = self._best = None
 
-    def on_preferences_changed(self):
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
         if not self.ufun:
             self._inv = None
             self._min = self._max = self._worst = self._best = None
@@ -272,7 +275,7 @@ class SmartAspirationNegotiator(SAONegotiator):
         self._inv.init()
         self._worst, self._best = self.ufun.extreme_outcomes()
         self._min, self._max = self.ufun(self._worst), self.ufun(self._best)
-        super().on_preferences_changed()
+        super().on_preferences_changed(changes)
 
     def respond(self, state, offer):
         if not self._partner_first:
