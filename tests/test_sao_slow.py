@@ -18,8 +18,7 @@ from pytest import mark
 import negmas
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
-from negmas.helpers.types import get_class
-from negmas.outcomes import Outcome, enumerate_issues, make_issue
+from negmas.outcomes import Outcome, make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
 from negmas.sao import (
@@ -150,10 +149,14 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         kwargs["p_ending"] = kwargs.get("p_ending", pe)
         kwargs["p_rejection"] = kwargs.get("p_rejection", pr)
         super().__init__(*args, **kwargs)
+        self.__stop = False
 
     def counter(self, state, offer) -> NoReturn:
-        while True:
+        while not self.__stop:
             pass
+
+    def stop(self):
+        self.__stop = True
 
 
 class TimeWaster(RandomNegotiator):
@@ -223,6 +226,8 @@ def test_hidden_time_limit_words():
     assert mechanism.state.step < n_steps
     assert time.perf_counter() - mechanism._start_time >= tlimit
     assert not mechanism.state.waiting
+    for negotiator in mechanism.negotiators:
+        negotiator.stop()
 
 
 def test_neg_run_no_waiting():

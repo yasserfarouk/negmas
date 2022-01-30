@@ -275,7 +275,7 @@ class GeniusNegotiator(SAONegotiator):
         if preferences is None:
             preferences = self.__preferences_received
         result = super().join(nmi=nmi, state=state, preferences=preferences, role=role)
-        if not result:
+        if not result or self.ufun is None:
             return False
         # only connect to the JVM running genius-bridge if you are going to join a negotiation.
         if not self.is_connected:
@@ -372,6 +372,11 @@ class GeniusNegotiator(SAONegotiator):
         if info is None:
             raise ValueError("Cannot start a negotiation without a NMI")
         if self._preferences is not None and self.utility_file_name is None:
+            domain_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
+            self.domain_file_name = domain_file.name
+            domain_file.write(issues_to_xml_str(self._preferences.outcome_space.issues))  # type: ignore
+            domain_file.close()
+            self._temp_domain_file = True
             utility_file = tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False)
             self.utility_file_name = utility_file.name
             if not isinstance(self.ufun, UtilityFunction):
@@ -441,6 +446,7 @@ class GeniusNegotiator(SAONegotiator):
                     warnings.NegmasStepAndTimeLimitWarning,
                 )
                 n_seconds, timeout = -1, -1
+        timeout = int(timeout)
         try:
             result = self.java.on_negotiation_start(  # type: ignore
                 self.java_uuid,  # java_uuid
@@ -450,12 +456,14 @@ class GeniusNegotiator(SAONegotiator):
                 n_seconds > 0,
                 self.domain_file_name,  # domain file
                 self.utility_file_name,  # Negotiator file
-                int(timeout),
+                timeout,
                 self._strict,
             )
             self.__started = result == OK
         except Exception as e:
-            raise ValueError(f"{self._me()}: Cannot start negotiation: {str(e)}")
+            raise ValueError(
+                f"{self._me()}: Cannot start negotiation: {str(e)}\nDomain file: {self.domain_file_name}\nUFun file: {self.domain_file_name}\n{'strict' if self._strict else 'non-strict'} {n_steps=} {timeout=}"
+            )
 
     def cancel(self, reason=None) -> None:
         try:

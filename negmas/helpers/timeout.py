@@ -76,7 +76,7 @@ class TimeoutCaller:
                     del thread._threads_queues[t]
             except:
                 warnings.warn(
-                    "NegMAS have finished processing but there are some "
+                    "NegMAS have finished processing but there may be some "
                     "threads still hanging there!! If your program does "
                     "not die by itself. Please press Ctrl-c to kill it",
                     warnings.NegmasShutdownWarning,
@@ -90,4 +90,5 @@ def cleanup():
     TimeoutCaller.cleanup()
 
 
+TimeoutCaller.get_pool()
 atexit.register(cleanup)
