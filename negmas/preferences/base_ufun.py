@@ -75,7 +75,7 @@ class BaseUtilityFunction(
             raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
         from negmas.preferences.complex import WeightedUtilityFunction
 
-        r = scale * self.reserved_value if scale_reserved else self.reserved_value
+        r = (scale * self.reserved_value) if scale_reserved else self.reserved_value
         return WeightedUtilityFunction(
             ufuns=[self],
             weights=[scale],
@@ -89,7 +89,7 @@ class BaseUtilityFunction(
         from negmas.preferences.complex import WeightedUtilityFunction
         from negmas.preferences.crisp.const import ConstUtilityFunction
 
-        r = self.reserved_value + offset if shift_reserved else self.reserved_value
+        r = (self.reserved_value + offset) if shift_reserved else self.reserved_value
         return WeightedUtilityFunction(
             ufuns=[self, ConstUtilityFunction(offset)],
             weights=[1, 1],
