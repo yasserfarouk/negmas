@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from functools import partial
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Iterable, Mapping, Optional
 
 from negmas import warnings
 from negmas.helpers import get_full_type_name, make_range
@@ -12,7 +12,7 @@ from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
-from negmas.preferences.protocols import IndIssues, SingleIssueFun
+from negmas.preferences.protocols import SingleIssueFun
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
@@ -188,11 +188,23 @@ class AffineUtilityFunction(
             >>> issues = [make_issue(values=10, name='i1'), make_issue(values=4, name='i2')]
             >>> f = LinearUtilityFunction(weights=[1.0, 4.0], issues=issues)
             >>> print(f.xml(issues))
-            <issue index="1" etype="integer" type="integer" vtype="integer" name="i1">
-                <evaluator ftype="linear" parameter0="0.0" parameter1="1.0"></evaluator>
+            <issue index="1" etype="discrete" type="discrete" vtype="integer" name="i1">
+                <item index="1" value="0" evaluation="0.0" />
+                <item index="2" value="1" evaluation="1.0" />
+                <item index="3" value="2" evaluation="2.0" />
+                <item index="4" value="3" evaluation="3.0" />
+                <item index="5" value="4" evaluation="4.0" />
+                <item index="6" value="5" evaluation="5.0" />
+                <item index="7" value="6" evaluation="6.0" />
+                <item index="8" value="7" evaluation="7.0" />
+                <item index="9" value="8" evaluation="8.0" />
+                <item index="10" value="9" evaluation="9.0" />
             </issue>
-            <issue index="2" etype="integer" type="integer" vtype="integer" name="i2">
-                <evaluator ftype="linear" parameter0="0.0" parameter1="1.0"></evaluator>
+            <issue index="2" etype="discrete" type="discrete" vtype="integer" name="i2">
+                <item index="1" value="0" evaluation="0.0" />
+                <item index="2" value="1" evaluation="1.0" />
+                <item index="3" value="2" evaluation="2.0" />
+                <item index="4" value="3" evaluation="3.0" />
             </issue>
             <weight index="1" value="1.0">
             </weight>

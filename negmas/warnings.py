@@ -32,7 +32,7 @@ class NegmasWarning(UserWarning):
     ...
 
 
-def warn(message, category=NegmasWarning, stacklevel=1, source=None):
+def warn(message, category=NegmasWarning, stacklevel=2, source=None):
     """Issues a warning to the user. Defaults to `NegmasWarning` and stacklevel of 2."""
     return warnings.warn(message, category, stacklevel, source)
 
