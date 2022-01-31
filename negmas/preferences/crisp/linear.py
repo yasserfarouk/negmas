@@ -572,7 +572,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         if isinstance(values, dict):
             if self.issues is None:
                 raise ValueError(
-                    "Must specify issues when passing `issue_utilties` or `weights` is a dict"
+                    "Must specify issues when passing `values` or `weights` is a dict"
                 )
             values = [
                 values.get(_, IdentityFun())  # type: ignore
@@ -585,7 +585,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         if isinstance(weights, dict):
             if self.issues is None:
                 raise ValueError(
-                    "Must specify issues when passing `issue_utilties` or `weights` is a dict"
+                    "Must specify issues when passing `values` or `weights` is a dict"
                 )
             weights = [
                 weights.get(_, 1.0)

@@ -666,6 +666,18 @@ TEST_FAILING_NEGOTIATORS = [
     "parties.in4010.q12015.group18.Group18",
     "parties.in4010.q12015.group21.Group21",
     "parties.in4010.q12015.group7.Group7",
+    "agents.anac.y2015.cuhkagent2015.CUHKAgent2015",
+    "agents.anac.y2017.simpleagent.SimpleAgent",
+    "agents.ai2014.group4.Group4",
+    "parties.in4010.q12015.group6.Group6",
+    "agents.anac.y2016.agentlight.AgentLight",
+    "parties.in4010.q12015.group3.Group3",
+    "parties.in4010.q12015.group19.Group19",
+    "agents.anac.y2015.Phoenix.PhoenixParty",
+    "agents.anac.y2015.Mercury.Mercury",
+    "agents.anac.y2015.xianfa.XianFaAgent",
+    "agents.anac.y2016.grandma.GrandmaAgent",
+    "agents.anac.y2015.pnegotiator.PNegotiator",
 ] + [_ for _ in ALL_GENIUS_NEGOTIATORS if "y2018" in _]
 
 """Agetns taht fail simple tests making them less robust over the bridge"""

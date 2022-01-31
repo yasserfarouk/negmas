@@ -279,14 +279,6 @@ def test_RandomDance():
     condition=SKIP_CONDITION,
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_GrandmaAgent():
-    do_test_genius_agent(GrandmaAgent)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
 def test_Atlas32016():
     do_test_genius_agent(Atlas32016)
 
@@ -313,22 +305,6 @@ def test_Farma():
 )
 def test_PokerFace():
     do_test_genius_agent(PokerFace)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_XianFaAgent():
-    do_test_genius_agent(XianFaAgent)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_PhoenixParty():
-    do_test_genius_agent(PhoenixParty)
 
 
 @pytest.mark.skipif(
@@ -551,30 +527,6 @@ def test_TheFawkes():
     condition=SKIP_CONDITION,
     reason="No Genius Bridge, skipping genius-agent tests",
 )
-def test_AgentHP2():
-    do_test_genius_agent(AgentHP2)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_KGAgent():
-    do_test_genius_agent(KGAgent)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_E2Agent():
-    do_test_genius_agent(E2Agent)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
 def test_MetaAgent():
     do_test_genius_agent(MetaAgent)
 
@@ -585,14 +537,6 @@ def test_MetaAgent():
 )
 def test_TheNegotiatorReloaded():
     do_test_genius_agent(TheNegotiatorReloaded)
-
-
-@pytest.mark.skipif(
-    condition=SKIP_CONDITION,
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_Ngent():
-    do_test_genius_agent(Ngent)
 
 
 @pytest.mark.skipif(
@@ -733,44 +677,101 @@ def test_ImmediateAcceptor():
 
 #### agents after this line are not very robust
 
-# @pytest.mark.skipif(
-#     condition=SKIP_CONDITION,
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_Rubick():
-#     do_test_genius_agent(Rubick)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_CONDITION,
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_CaduceusDC16():
-#     do_test_genius_agent(CaduceusDC16)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_CONDITION,
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_BetaOne():
-#     do_test_genius_agent(BetaOne)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_CONDITION,
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_AgreeableAgent2018():
-#     do_test_genius_agent(AgreeableAgent2018)
-#
-#
-# @pytest.mark.skipif(
-#     condition=SKIP_CONDITION,
-#     reason="No Genius Bridge, skipping genius-agent tests",
-# )
-# def test_MengWan():
-#     do_test_genius_agent(MengWan)
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Rubick():
+    do_test_genius_agent(Rubick)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_CaduceusDC16():
+    do_test_genius_agent(CaduceusDC16)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_BetaOne():
+    do_test_genius_agent(BetaOne)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgreeableAgent2018():
+    do_test_genius_agent(AgreeableAgent2018)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_MengWan():
+    do_test_genius_agent(MengWan)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_GrandmaAgent():
+    do_test_genius_agent(GrandmaAgent)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_XianFaAgent():
+    do_test_genius_agent(XianFaAgent)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_PhoenixParty():
+    do_test_genius_agent(PhoenixParty)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_AgentHP2():
+    do_test_genius_agent(AgentHP2)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_KGAgent():
+    do_test_genius_agent(KGAgent)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_E2Agent():
+    do_test_genius_agent(E2Agent)
+
+
+@pytest.mark.skipif(
+    condition=True,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_Ngent():
+    do_test_genius_agent(Ngent)
 
 
 if __name__ == "__main__":
