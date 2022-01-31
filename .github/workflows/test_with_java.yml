@@ -39,7 +39,7 @@ jobs:
       - name: "Install negmas and geinus-bridge"
         run: |
           python -m pip install -e .
-          negmas genius-setu
+          negmas genius-setup
       - name: "running genius bridge"
         run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
