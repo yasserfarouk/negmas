@@ -3,7 +3,6 @@ import os
 import pkg_resources
 import pytest
 
-from negmas.genius import GeniusBridge
 from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
 from negmas.genius.gnegotiators import (
     ABMPAgent2,
@@ -83,102 +82,122 @@ from negmas.sao.negotiators import ToughNegotiator
 TIMELIMIT = 30
 STEPLIMIT = 50
 
-AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
+AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = (
+    "agents.anac.y2015.Mercury.Mercury",
+    "parties.in4010.q12015.group19.Group19",
+    "parties.in4010.q12015.group6.Group6",
+    "agents.anac.y2015.xianfa.XianFaAgent",
+)
+
+DOMAINS = [
+    "tests/data/Car-A-domain",
+    # "tests/data/Laptop",
+]
 
 SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
 # SKIP_CONDITION = False
 
 
+def do_run(
+    agent_factory,
+    base_folder,
+    opponent_preferences,
+    agent_preferences,
+    agent_starts,
+    opponent_factory,
+    n_steps,
+    time_limit,
+):
+    domain = Scenario.from_genius_folder(base_folder)
+    if not domain:
+        raise ValueError(f"Cannot open domain {base_folder}")
+    neg = domain.make_session(
+        n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False
+    )
+    if neg is None:
+        raise ValueError(f"Failed to load domain from {base_folder}")
+    opponent = opponent_factory(preferences=domain.ufuns[opponent_preferences])
+    theagent = agent_factory(preferences=domain.ufuns[agent_preferences])
+    if agent_starts:
+        neg.add(theagent)
+        neg.add(opponent)
+    else:
+        neg.add(opponent)
+        neg.add(theagent)
+    return neg.run()
+
+
 def do_test_genius_agent(
-    AgentClass, must_agree_if_same_preferences=True, java_class_name=None
+    AgentFactory, must_agree_if_same_preferences=True, java_class_name=None
 ):
     if java_class_name is not None:
-        AgentClass = lambda *args, **kwargs: GeniusNegotiator(
+        AgentFactory = lambda *args, **kwargs: GeniusNegotiator(
             *args, java_class_name=java_class_name, **kwargs
         )
         agent_class_name = java_class_name
     else:
-        agent_class_name = AgentClass.__name__
+        agent_class_name = AgentFactory.__name__
     # print(f"Running {AgentClass.__name__}")
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    for domain in DOMAINS:
+        base_folder = pkg_resources.resource_filename("negmas", resource_name=domain)
 
-    def do_run(
-        opponent_preferences,
-        agent_preferences,
-        agent_starts,
-        opponent_type=ToughNegotiator,
-        n_steps=None,
-        time_limit=TIMELIMIT,
-        must_agree_if_same_preferences=True,
-    ):
-        domain = Scenario.from_genius_folder(base_folder)
-        neg = domain.make_session(
-            n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False
-        )
-        if neg is None:
-            raise ValueError(f"Failed to load domain from {base_folder}")
-        if isinstance(opponent_type, GeniusNegotiator):
-            opponent = opponent_type(
-                preferences=domain.ufuns[opponent_preferences],
-            )
-        else:
-            opponent = opponent_type(preferences=domain.ufuns[opponent_preferences])
-        theagent = AgentClass(preferences=domain.ufuns[agent_preferences])
-        if agent_starts:
-            neg.add(theagent)
-            neg.add(opponent)
-        else:
-            neg.add(opponent)
-            neg.add(theagent)
-        return neg.run()
+        # check that it can run without errors with two different ufuns
+        for opponent_type in (ToughNegotiator, Atlas3):
+            for starts in (False, True):
+                for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT)):
+                    for ufuns in ((1, 0), (0, 1)):
+                        try:
+                            do_run(
+                                AgentFactory,
+                                base_folder,
+                                ufuns[0],
+                                ufuns[1],
+                                starts,
+                                opponent_type,
+                                n_steps=n_steps,
+                                time_limit=time_limit,
+                            )
+                        except Exception as e:
+                            print(
+                                f"{agent_class_name} FAILED against {opponent_type.__name__}"
+                                f" going {'first' if starts else 'last'} ({n_steps} steps with "
+                                f"{time_limit} limit taking ufun {ufuns[1]}."
+                            )
+                            raise e
 
-    # check that it can run without errors with two different ufuns
-    for opponent_type in (ToughNegotiator, Atlas3):
-        for starts in (False, True):
-            for n_steps, time_limit in ((STEPLIMIT, None), (None, TIMELIMIT)):
-                for ufuns in ((1, 0), (0, 1)):
-                    try:
-                        result = do_run(
-                            ufuns[0],
-                            ufuns[1],
-                            starts,
-                            opponent_type,
-                            n_steps=n_steps,
-                            time_limit=time_limit,
-                        )
-                    except Exception as e:
-                        print(
-                            f"{agent_class_name} FAILED against {opponent_type.__name__}"
-                            f" going {'first' if starts else 'last'} ({n_steps} steps with "
-                            f"{time_limit} limit taking ufun {ufuns[1]}."
-                        )
-                        raise e
+        if not must_agree_if_same_preferences or (
+            java_class_name is None
+            and AgentFactory in AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences
+        ):
+            continue
+        do_test_same_ufun(AgentFactory, base_folder, STEPLIMIT, None, 3)
 
-    if not must_agree_if_same_preferences or (
-        java_class_name is None
-        and AgentClass in AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences
-    ):
-        return
 
+def do_test_same_ufun(agent_factory, base_folder, n_steps, time_limit, n_trials=3):
     # check that it will get to an agreement sometimes if the same ufun
     # is used for both agents
     from random import randint
 
-    n_trials = 3
-    for starts in (False, True):
-        for _ in range(n_trials):
-            indx = randint(0, 1)
-            neg = do_run(indx, indx, starts)
-            if neg.agreement is not None:
-                break
-        else:
-            assert (
-                False
-            ), f"{agent_class_name}: failed to get an agreement in {n_trials} trials even using the same ufun"
+    for _ in range(n_trials):
+        indx = randint(0, 1)
+        neg = do_run(
+            agent_factory,
+            base_folder,
+            indx,
+            indx,
+            False,
+            agent_factory,
+            n_steps,
+            time_limit,
+        )
+        if neg.agreement is not None:
+            break
+    else:
+        assert (
+            False
+        ), f"failed to get an agreement in {n_trials} trials even using the same ufun"
 
-    GeniusBridge.clean()
+    # GeniusBridge.clean()
 
 
 @pytest.mark.skipif(
@@ -188,6 +207,16 @@ def do_test_genius_agent(
 @pytest.mark.parametrize("negotiator", ALL_NEGOTIATORS)
 def test_all_negotiators(negotiator):
     do_test_genius_agent(None, java_class_name=negotiator)
+
+
+def test_boulware_party():
+    do_test_genius_agent(
+        None, java_class_name="negotiator.parties.BoulwareNegotiationParty"
+    )
+
+
+def test_boulware_agent():
+    do_test_genius_agent(None, java_class_name="agents.TimeDependentAgentBoulware")
 
 
 @pytest.mark.skipif(

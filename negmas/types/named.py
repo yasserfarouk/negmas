@@ -13,7 +13,7 @@ import datetime
 import uuid
 from os import PathLike
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 import dill
 
@@ -223,10 +223,24 @@ class NamedObject:
         dump(info, info_file_name)
         return full_file_name
 
+    @overload
+    @classmethod
+    def from_checkpoint(
+        cls, file_name: Path | str, return_info=Literal[False]
+    ) -> NamedObject:
+        ...
+
+    @overload
+    @classmethod
+    def from_checkpoint(
+        cls, file_name: Path | str, return_info=Literal[True]
+    ) -> tuple[NamedObject, dict[str, Any]]:
+        ...
+
     @classmethod
     def from_checkpoint(
         cls, file_name: Path | str, return_info=False
-    ) -> "NamedObject" | tuple["NamedObject", dict[str, Any]]:
+    ) -> NamedObject | tuple[NamedObject, dict[str, Any]]:
         """
         Creates an object from a saved checkpoint
 

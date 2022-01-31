@@ -120,13 +120,13 @@ class MySyncController(SAOSyncController):
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
         self.n_counter_all_calls = 0
-        self.countered_offers: Dict[int, Dict[str, List[Outcome]]] = defaultdict(
+        self.countered_offers: Dict[int, Dict[str, List[Outcome | None]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.received_offers: Dict[str, Dict[int, List[Outcome]]] = defaultdict(
+        self.received_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.sent_offers: Dict[str, Dict[int, List[Outcome]]] = defaultdict(
+        self.sent_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
             lambda: defaultdict(list)
         )
         self.sent_responses: Dict[str, Dict[int, List[ResponseType]]] = defaultdict(
@@ -151,7 +151,7 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         super().__init__(*args, **kwargs)
         self.__stop = False
 
-    def counter(self, state, offer) -> NoReturn:
+    def counter(self, state, offer):
         while not self.__stop:
             pass
 
@@ -169,15 +169,17 @@ class TimeWaster(RandomNegotiator):
         kwargs["p_rejection"] = kwargs.get("p_rejection", pr)
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
-        self.my_offers = defaultdict(lambda: None)
-        self.received_offers = defaultdict(lambda: None)
-        self.my_responses = defaultdict(lambda: None)
+        self.my_offers: Dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.received_offers: Dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.my_responses: Dict[int, ResponseType | None] = defaultdict(lambda: None)
         self.n_waits = n_waits
         if n_waits:
             self.n_waits = random.randint(0, n_waits)
         self.waited = 0
 
     def counter(self, state, offer):
+        if not self.nmi:
+            return None
         if self.waited < self.n_waits and (
             state.step > 0 or not self.nmi.params["avoid_ultimatum"]
         ):
@@ -216,7 +218,9 @@ def test_hidden_time_limit_words():
         hidden_time_limit=tlimit,
         step_time_limit=float("inf"),
     )
-    ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
+    ufuns = MappingUtilityFunction.generate_random(
+        2, outcomes=mechanism.discrete_outcomes()
+    )
     mechanism.add(InfiniteLoopNegotiator(name=f"agent{0}", preferences=ufuns[0]))
     mechanism.add(InfiniteLoopNegotiator(name=f"agent{1}", preferences=ufuns[1]))
     mechanism.run()
@@ -224,6 +228,7 @@ def test_hidden_time_limit_words():
     assert mechanism.state.started
     assert mechanism.state.timedout
     assert mechanism.state.step < n_steps
+    assert mechanism._start_time is not None
     assert time.perf_counter() - mechanism._start_time >= tlimit
     assert not mechanism.state.waiting
     for negotiator in mechanism.negotiators:
@@ -235,7 +240,9 @@ def test_neg_run_no_waiting():
     mechanism = SAOMechanism(
         outcomes=n_outcomes, n_steps=n_steps, ignore_negotiator_exceptions=True
     )
-    ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
+    ufuns = MappingUtilityFunction.generate_random(
+        2, outcomes=mechanism.discrete_outcomes()
+    )
     mechanism.add(
         TimeWaster(name=f"agent{0}", sleep_seconds=waste, preferences=ufuns[0])
     )
@@ -270,12 +277,14 @@ def test_neg_sync_loop(keep_order):
             avoid_ultimatum=False,
             name=f"{m}",
         )
-        ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
-        mechanism.add(
-            c1.create_negotiator(preferences=ufuns[0], id=f"0-{m}", name=f"0-{m}")
+        ufuns = MappingUtilityFunction.generate_random(
+            2, outcomes=mechanism.discrete_outcomes()
         )
         mechanism.add(
-            c2.create_negotiator(preferences=ufuns[1], id=f"1-{m}", name=f"1-{m}")
+            c1.create_negotiator(preferences=ufuns[0], id=f"0-{m}", name=f"0-{m}")  # type: ignore It will be SAOPassThrough
+        )
+        mechanism.add(
+            c2.create_negotiator(preferences=ufuns[1], id=f"1-{m}", name=f"1-{m}")  # type: ignore It will be SAOPassThrough
         )
         mechanisms.append(mechanism)
     SAOMechanism.runall(mechanisms, keep_order=keep_order)
@@ -306,7 +315,9 @@ def test_neg_run_sync(n_negotiators):
             ignore_negotiator_exceptions=True,
             avoid_ultimatum=False,
         )
-        ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
+        ufuns = MappingUtilityFunction.generate_random(
+            2, outcomes=mechanism.discrete_outcomes()
+        )
         edge_names.append(f"f{0}")
         mechanism.add(
             TimeWaster(
@@ -316,7 +327,7 @@ def test_neg_run_sync(n_negotiators):
                 preferences=ufuns[0],
             )
         )
-        mechanism.add(c.create_negotiator(preferences=ufuns[1]))
+        mechanism.add(c.create_negotiator(preferences=ufuns[1]))  # type: ignore IT will be the correct type
         mechanisms.append(mechanism)
     SAOMechanism.runall(mechanisms)
 
@@ -345,7 +356,7 @@ def test_exceptions_are_saved():
         outcomes=n_outcomes, n_steps=n_outcomes, ignore_negotiator_exceptions=True
     )
     ufuns = MappingUtilityFunction.generate_random(
-        n_negotiators, outcomes=mechanism.outcomes
+        n_negotiators, outcomes=mechanism.discrete_outcomes()
     )
     mechanism.add(AspirationNegotiator(name=f"agent{0}"), preferences=ufuns[0])
     mechanism.add(MyRaisingNegotiator(name=f"agent{1}"), preferences=ufuns[1])
@@ -408,6 +419,7 @@ def test_mechanism_runs_with_offering_not_accepting(n_negotiators, oia):
         mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
     assert mechanism.state.step == 0
     mechanism.step()
+    assert mechanism._current_proposer
     assert mechanism._current_proposer.name == "agent0"
     assert mechanism._n_accepting == n_negotiators + int(oia) - 1
     assert (mechanism.agreement is not None) is oia
@@ -437,7 +449,7 @@ def test_mechanism_runall(n_negotiators, oia):
 
     states = SAOMechanism.runall(mechanisms)
     assert len(states) == 10
-    assert not any(_.running for _ in states)
+    assert not any(_ is not None and _.running for _ in states)
 
 
 class MySAOSync(SAOSyncController):
@@ -446,7 +458,7 @@ class MySAOSync(SAOSyncController):
     ) -> Dict[str, SAOResponse]:
         responses = {}
         for nid in offers.keys():
-            offer, state = offers[nid], states[nid]
+            _, state = offers[nid], states[nid]
             if state.step < 2:
                 responses[nid] = SAOResponse(ResponseType.REJECT_OFFER, None)
             else:
@@ -482,7 +494,7 @@ def test_sync_controller(n_negotiations, n_negotiators, oia):
         mechanisms[-1].add(controller.create_negotiator())
 
     states = SAOMechanism.runall(mechanisms)
-    assert all(_.agreement is not None for _ in states)
+    assert all(_ is not None and _.agreement is not None for _ in states)
 
 
 def test_pickling_mechanism(tmp_path):

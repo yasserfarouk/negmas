@@ -9,7 +9,7 @@ from negmas.tournaments.neg import domains_from_list, neg_tournament
 
 
 def test_can_run_world():
-    issues = [make_issue(10, "quantity"), make_issue(5, "price")]
+    issues = (make_issue(10, "quantity"), make_issue(5, "price"))
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
         competitors += [Atlas3, NiceTitForTat]
@@ -21,11 +21,11 @@ def test_can_run_world():
                 NegDomain(
                     name="d0",
                     issues=issues,
-                    ufuns=[
+                    ufuns=(
                         U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
                         U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
-                    ],
-                    partner_types=[partner],
+                    ),
+                    partner_types=(partner,),
                     index=index,
                 )
             )
@@ -45,7 +45,7 @@ def test_can_run_world():
 
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_can_run_tournament():
-    issues = [make_issue(10, "quantity"), make_issue(5, "price")]
+    issues = (make_issue(10, "quantity"), make_issue(5, "price"))
     competitors = [AspirationNegotiator, NaiveTitForTatNegotiator]
     if genius_bridge_is_running():
         competitors += [Atlas3, NiceTitForTat]
@@ -57,11 +57,11 @@ def test_can_run_tournament():
                 NegDomain(
                     name="d0",
                     issues=issues,
-                    ufuns=[
+                    ufuns=(
                         U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
                         U.random(issues, reserved_value=(0.0, 0.2), normalized=False),
-                    ],
-                    partner_types=[partner],
+                    ),
+                    partner_types=(partner,),
                     index=index,
                 )
             )

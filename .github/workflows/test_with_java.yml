@@ -39,11 +39,15 @@ jobs:
       - name: "Install negmas and geinus-bridge"
         run: |
           python -m pip install -e .
-          negmas genius-setup
+          negmas genius-setu
       - name: "running genius bridge"
         run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: |
+          export NEGMAS_SLOW_TEST=True
+          export NEGMAS_BRIDGE_OPS
+          unset NEGMAS_BRIDGE_OPS
           python -m pytest tests/test_genius.py  || python -m pytest --last-failed .
-          python -m pytest tests/test_genius_bridge.py  || python -m pytest --last-failed .
           python -m pytest tests/test_inout.py  || python -m pytest --last-failed .
+          export NEGMAS_BRIDGE_OPS=True
+          python -m pytest tests/test_genius_bridge.py  || python -m pytest --last-failed .

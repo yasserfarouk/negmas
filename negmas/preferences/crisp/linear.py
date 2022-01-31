@@ -229,7 +229,12 @@ class AffineUtilityFunction(
         return f"w: {self._weights}, b: {self._bias}"
 
     @classmethod
-    def random(cls, issues: list["Issue"], reserved_value=(0.0, 1.0), normalized=True):
+    def random(
+        cls,
+        issues: list[Issue] | tuple[Issue, ...],
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+    ):
         # from negmas.preferences.ops import normalize
         for issue in issues:
             if not issue.is_numeric():

@@ -31,16 +31,16 @@ class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
         self._n_values = values[1] - values[0] + 1  # type: ignore
 
     def _to_xml_str(self, indx):
-        return (
-            f'    <issue etype="integer" index="{indx + 1}" name="{self.name}" type="integer" vtype="integer"'
-            f' lowerbound="{self._values[0]}" upperbound="{self._values[1]}" />\n'
-        )
+        # return (
+        #     f'    <issue etype="integer" index="{indx + 1}" name="{self.name}" type="integer" vtype="integer"'
+        #     f' lowerbound="{self._values[0]}" upperbound="{self._values[1]}" />\n'
+        # )
 
-        # output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="integer">\n'
-        # for i, v in enumerate(range(self._values[0], self._values[1] + 1)):
-        #     output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
-        # output += "    </issue>\n"
-        # return output
+        output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="integer">\n'
+        for i, v in enumerate(range(self._values[0], self._values[1] + 1)):
+            output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
+        output += "    </issue>\n"
+        return output
 
     @property
     def all(self) -> Generator:

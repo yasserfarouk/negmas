@@ -110,9 +110,9 @@ class AffineFun(SingleIssueFun):
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
             output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
-        elif isinstance(issue, ContiguousIssue):
-            output = f'<issue index="{indx + 1}" etype="integer" type="integer" vtype="integer" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
+        # elif isinstance(issue, ContiguousIssue) and issue.cardinality > 50_000:
+        #     output = f'<issue index="{indx + 1}" etype="real" type="integer" vtype="integer" name="{issue_name}">\n'
+        #     output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(

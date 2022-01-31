@@ -15,8 +15,6 @@ from negmas import (
 )
 from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
 from negmas.genius.gnegotiators import AgentK
-from negmas.sao.common import SAOState
-from negmas.sao.mechanism import SAOMechanism
 
 DOMAIN_FOLDER = pathlib.Path(
     pkg_resources.resource_filename(
