@@ -313,7 +313,6 @@ class BaseUtilityFunction(
             u = self(o)
             if u < mn:
                 worst, mn = o, u
-                continue
             if u > mx:
                 best, mx = o, u
         if worst is None or best is None:
