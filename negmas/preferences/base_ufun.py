@@ -398,9 +398,9 @@ class BaseUtilityFunction(
 
         """
         kwargs["name"] = str(file_name)
-        with open(file_name) as f:
+        with open(file_name, "r") as f:
             xml_str = f.read()
-            return cls.from_xml_str(xml_str=xml_str, **kwargs)
+        return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
     def to_genius(
         self, file_name: PathLike | str, issues: Iterable[Issue] = None, **kwargs

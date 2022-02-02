@@ -210,12 +210,20 @@ def test_all_negotiators(negotiator):
     do_test_genius_agent(None, java_class_name=negotiator)
 
 
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 def test_boulware_party():
     do_test_genius_agent(
         None, java_class_name="negotiator.parties.BoulwareNegotiationParty"
     )
 
 
+@pytest.mark.skipif(
+    condition=SKIP_CONDITION,
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
 def test_boulware_agent():
     do_test_genius_agent(None, java_class_name="agents.TimeDependentAgentBoulware")
 
