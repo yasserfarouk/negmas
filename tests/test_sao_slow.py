@@ -702,72 +702,17 @@ def test_loops_are_broken(keep_order):
     # TODO check why sometimes we get no agreements when order is not kept
 
 
-def test_can_create_all_negotiator_types():
-    from negmas.helpers import instantiate
-
+@given(
+    typ=st.sampled_from(NEGTYPES),
+)
+def test_can_create_all_negotiator_types(typ):
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
-    neg_types = [
-        (
-            "RandomNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-        ("LimitedOutcomesNegotiator", dict()),
-        ("LimitedOutcomesAcceptor", dict()),
-        (
-            "AspirationNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-        (
-            "ToughNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-        (
-            "OnlyBestNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-        (
-            "NaiveTitForTatNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-        (
-            "SimpleTitForTatNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-        (
-            "NiceNegotiator",
-            dict(
-                preferences=LinearUtilityFunction(
-                    issues=issues, weights=dict(price=1.0, quantity=1.0)
-                )
-            ),
-        ),
-    ]
-    for neg_type, params in neg_types:
-        _ = instantiate("negmas.sao." + neg_type, **params)
+    params = dict(
+        preferences=LinearUtilityFunction(
+            issues=issues, weights=dict(price=1.0, quantity=1.0)
+        )
+    )
+    assert typ(**params) is not None
 
 
 @given(

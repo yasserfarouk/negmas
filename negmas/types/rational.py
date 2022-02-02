@@ -79,9 +79,21 @@ class Rational(NamedObject):
         """The utility function attached to that object"""
         return self._preferences
 
-    def set_preferences(self, value: Preferences | None) -> Preferences | None:
-        """Sets tha utility function/Preferences."""
+    def set_preferences(
+        self, value: Preferences | None, force=False
+    ) -> Preferences | None:
+        """
+        Sets tha utility function/Preferences.
+
+        Args:
+
+            value: The value to set to
+            force: If true, `on_preferecnes_changed()` will always be called even if `value` == `self.preferences`
+
+        """
         if value == self._preferences:
+            if force:
+                self.on_preferences_changed([PreferencesChange.General])
             return self._preferences
         old = self._preferences
         self._preferences = value

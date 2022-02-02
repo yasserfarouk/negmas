@@ -189,7 +189,7 @@ class SAOMechanism(Mechanism):
     #     state: MechanismState,
     #     *,
     #     preferences: Optional["Preferences"] = None,
-    #     role: str = "agent",
+    #     role: str = "negotiator",
     # ) -> bool:
     #     if not super().join(nmi, state, preferences=preferences, role=role):
     #         return False

@@ -12,7 +12,8 @@ from .base import SAONegotiator
 
 __all__ = [
     "ToughNegotiator",
-    "OnlyBestNegotiator",
+    "TopFractionNegotiator",
+    "BestOutcomeOnlyNegotiator",
 ]
 
 
@@ -68,10 +69,45 @@ class ToughNegotiator(SAONegotiator):
     def propose(self, state: MechanismState) -> Outcome | None:
         if not self._capabilities["propose"]:
             return None
+
+
+class BestOutcomeOnlyNegotiator(SAONegotiator):
+    """
+    Offers and accepts only its absolute best outcome(s)
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.best_outcome = None
+        self.best_util = float("-inf")
+        self.__end_negotiation = False
+
+    def on_preferences_changed(self, changes):
+        super().on_preferences_changed(changes)
+        if self.ufun is None:
+            return
+        _, self.best_outcome = self.ufun.extreme_outcomes()
+        self.best_util = float(self.ufun(self.best_outcome))
+        if (
+            self.ufun.reserved_value is not None
+            and self.best_util < self.reserved_value
+        ):
+            self.__end_negotiation = True
+
+    def propose(self, state: MechanismState) -> Outcome | None:
         return self.best_outcome
 
+    def respond(self, state: MechanismState, offer: Outcome) -> ResponseType:
+        if self.__end_negotiation:
+            return ResponseType.END_NEGOTIATION
+        if offer == self.best_outcome or (
+            self.ufun is not None and float(self.ufun(offer)) >= self.best_util
+        ):
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
 
-class OnlyBestNegotiator(SAONegotiator):
+
+class TopFractionNegotiator(SAONegotiator):
     """
     Offers and accepts only one of the top outcomes for the negotiator.
 
@@ -96,7 +132,7 @@ class OnlyBestNegotiator(SAONegotiator):
         parent: Controller = None,
         min_utility=0.95,
         top_fraction=0.05,
-        best_first=False,
+        best_first=True,
         probabilistic_offering=True,
         can_propose=True,
         preferences=None,

@@ -7,7 +7,7 @@ import itertools
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 from negmas.preferences.protocols import UFun
 
@@ -30,6 +30,8 @@ __all__ = [
     "SAOSingleAgreementAspirationController",
     "SAOMetaNegotiatorController",
 ]
+
+ControlledNegotiatorType = TypeVar("ControlledNegotiatorType", bound=SAONegotiator)
 
 
 class SAOController(Controller):
@@ -73,7 +75,7 @@ class SAOController(Controller):
         state: MechanismState,
         *,
         preferences: Optional[Preferences] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> bool:
         """
         Called by children negotiators to get permission to join negotiations
@@ -92,6 +94,15 @@ class SAOController(Controller):
         """
         return True
 
+    def create_negotiator(
+        self,
+        negotiator_type: str | ControlledNegotiatorType | None = None,
+        name: str = None,
+        cntxt: Any = None,
+        **kwargs,
+    ) -> ControlledNegotiatorType:
+        return super().create_negotiator(negotiator_type, name, cntxt, **kwargs)  # type: ignore I know that the return type is an SAONegotiator
+
     def after_join(
         self,
         negotiator_id: str,
@@ -99,7 +110,7 @@ class SAOController(Controller):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> None:
         """
         Called by children negotiators after joining a negotiation to inform
@@ -590,7 +601,9 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
         """
         return self._best_outcomes[negotiator][0]
 
-    def after_join(self, negotiator_id, nmi, state, *, preferences=None, role="agent"):
+    def after_join(
+        self, negotiator_id, nmi, state, *, preferences=None, role="negotiator"
+    ):
         super().after_join(
             negotiator_id, nmi, state, preferences=preferences, role=role
         )

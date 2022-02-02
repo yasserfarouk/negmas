@@ -4,7 +4,7 @@ import math
 import numbers
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Generator, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Optional, Union
 
 import numpy as np
 
@@ -335,7 +335,7 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
     @abstractmethod
     def value_generator(
         self, n: int | None = 10, grid=True, compact=True, endpoints=True
-    ) -> Generator:
+    ) -> Generator[Any, None, None]:
         """
         A generator that generates at most `n` values (in any order)
 
@@ -387,7 +387,7 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         ...
 
     @property
-    def all(self) -> Generator:
+    def all(self) -> Generator[Outcome, None, None]:
         """
         A generator that generates all possible values.
         """
@@ -413,7 +413,7 @@ class DiscreteIssue(Issue, ABC):
 
     @property
     @abstractmethod
-    def all(self) -> Generator:
+    def all(self) -> Generator[Any, None, None]:
         """
         A generator that generates all possible values.
 
@@ -429,7 +429,7 @@ class DiscreteIssue(Issue, ABC):
 
     def value_generator(
         self, n: int | None = 10, grid=True, compact=True, endpoints=True
-    ) -> Generator:
+    ) -> Generator[Any, None, None]:
         yield from (
             self._values[_]
             for _ in sample(

@@ -679,14 +679,14 @@ def sample_outcomes(
 
     if cardinality == n_outcomes or n_outcomes is None:
         return list(
-            enumerate_discrete_issues(issues)
-        )  #  type: ignore I am  sure that the issues are all discrete by this point
+            enumerate_discrete_issues(issues)  # type: ignore I am  sure that the issues are all discrete by this point
+        )
 
     if cardinality < n_outcomes:
         cardinality = int(cardinality)
         outcomes = list(
-            enumerate_discrete_issues(issues)
-        )  #  type: ignore I am  sure that the issues are all discrete by this point
+            enumerate_discrete_issues(issues)  # type: ignore I am  sure that the issues are all discrete by this point
+        )
 
         if expansion_policy == "no" or expansion_policy is None:
             return outcomes

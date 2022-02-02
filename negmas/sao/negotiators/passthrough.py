@@ -28,6 +28,11 @@ class PassThroughSAONegotiator(SAONegotiator):
             return self._Negotiator__parent.respond(self.id, state, offer)  # type: ignore
         return ResponseType.REJECT_OFFER
 
+    # def _on_negotiation_start(self, state: MechanismState) -> None:
+    #     """Calls parent controller"""
+    #     if self._Negotiator__parent:  # type: ignore
+    #         return self._Negotiator__parent._on_negotiation_start(self.id, state)  # type: ignore
+
     def on_negotiation_start(self, state: MechanismState) -> None:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
@@ -44,7 +49,7 @@ class PassThroughSAONegotiator(SAONegotiator):
         state,
         *,
         preferences=None,
-        role="agent",
+        role="negotiator",
     ) -> bool:
         """
         Joins a negotiation.

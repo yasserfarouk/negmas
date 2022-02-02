@@ -218,7 +218,7 @@ class NegotiatorMechanismInterface:
         return self._mechanism.discrete_outcomes(n_max=max_cardinality)
 
     @property
-    def issues(self) -> tuple[Issue]:
+    def issues(self) -> tuple[Issue, ...]:
         os = self._mechanism.outcome_space
         if hasattr(os, "issues"):
             return os.issues  # type: ignore I am just checking that the attribute issues exists

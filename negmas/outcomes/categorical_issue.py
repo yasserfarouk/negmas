@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Generator
+from typing import Any, Generator
 
 from negmas.helpers import unique_name
 from negmas.outcomes.base_issue import DiscreteIssue
@@ -43,8 +43,8 @@ class CategoricalIssue(DiscreteIssue):
         return False
 
     @property
-    def all(self) -> Generator:
-        yield from self._values  # type: ignore
+    def all(self) -> Generator[Any, None, None]:
+        yield from self._values
 
     def rand_invalid(self):
         """Pick a random *invalid* value"""

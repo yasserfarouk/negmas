@@ -22,10 +22,10 @@ from ..sao import (
     AspirationNegotiator,
     LimitedOutcomesAcceptor,
     LimitedOutcomesNegotiator,
-    OnlyBestNegotiator,
     RandomNegotiator,
     SAOMechanism,
     SAOState,
+    TopFractionNegotiator,
     ToughNegotiator,
 )
 from .baseline import DummyElicitor, FullKnowledgeElicitor
@@ -86,7 +86,7 @@ def create_negotiator(
     elif negotiator_type == "tough":
         negotiator = ToughNegotiator(can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):
-        negotiator = OnlyBestNegotiator(
+        negotiator = TopFractionNegotiator(
             min_utility=None,
             top_fraction=1.0 - toughness,
             best_first=False,

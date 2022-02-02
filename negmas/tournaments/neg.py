@@ -393,7 +393,7 @@ def random_discrete_domains(
                     )
 
 
-def domains_from_list(domains: List[NegDomain]) -> Generator[NegDomain, None, None]:
+def domains_from_list(domains: List[NegDomain]):
     """
     Creats an appropriate `NegDomain` generator from a list/tuple of domains
     """

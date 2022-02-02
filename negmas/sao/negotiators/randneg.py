@@ -59,7 +59,7 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
         state: MechanismState,
         *,
         preferences: "Preferences" | None = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> bool:
         """
         Will create a random utility function to be used by the negotiator.

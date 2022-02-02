@@ -124,7 +124,8 @@ def do_run(
     else:
         neg.add(opponent)
         neg.add(theagent)
-    return neg.run()
+    neg.run()
+    return neg
 
 
 def do_test_genius_agent(
@@ -195,7 +196,7 @@ def do_test_same_ufun(agent_factory, base_folder, n_steps, time_limit, n_trials=
     else:
         assert (
             False
-        ), f"failed to get an agreement in {n_trials} trials even using the same ufun"
+        ), f"failed to get an agreement in {n_trials} trials even using the same ufun\n{neg.trace}"  # type: ignore It makes not sense to have n_trials == 0 so we are safe
 
     # GeniusBridge.clean()
 

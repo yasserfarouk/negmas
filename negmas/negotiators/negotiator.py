@@ -54,14 +54,16 @@ class Negotiator(Rational, Notifiable, ABC):
         owner: "Agent" = None,
         id: str = None,
     ) -> None:
+        if ufun is not None:
+            preferences = ufun
         self.__parent = parent
         self._capabilities = {"enter": True, "leave": True, "ultimatum": True}
-        self._mechanism_id = None
         self._nmi: NegotiatorMechanismInterface | None = None
         self._initial_state = None
         self._role = None
         self.__owner = owner
-        super().__init__(name=name, ufun=ufun, preferences=preferences, id=id)
+        super().__init__(name=name, ufun=None, preferences=None, id=id)
+        self._preferences = preferences
 
     @property
     def ami(self) -> NegotiatorMechanismInterface | None:
@@ -84,14 +86,16 @@ class Negotiator(Rational, Notifiable, ABC):
         """Sets the owner"""
         self.__owner = owner
 
-    def set_preferences(self, value: Preferences) -> Preferences | None:
-        """Sets tha utility function."""
-        super().set_preferences(value)
-        if self._nmi is not None and self._nmi.state.started:
+    def set_preferences(self, value: Preferences, force=False) -> Preferences | None:
+        if self._nmi is None:
+            self._preferences = value
+            return
+        if self._nmi.state.started:
             warnings.deprecated(
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
+        super().set_preferences(value, force=force)
 
     @property
     def parent(self) -> Controller | None:
@@ -108,7 +112,6 @@ class Negotiator(Rational, Notifiable, ABC):
         return True
 
     def _dissociate(self):
-        self._mechanism_id = None
         self._nmi = None
         self._preferences = self._init_preferences
         self._role = None
@@ -146,7 +149,9 @@ class Negotiator(Rational, Notifiable, ABC):
                 negotiation if it was None)
 
         """
-        return self._mechanism_id == negotiation_id
+        if not self.nmi:
+            return False
+        return self.nmi.id == negotiation_id
 
     @property
     def capabilities(self) -> Dict[str, Any]:
@@ -178,8 +183,9 @@ class Negotiator(Rational, Notifiable, ABC):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional[Preferences] = None,
-        role: str = "agent",
+        preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
+        role: str = "negotiator",
     ) -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
@@ -187,8 +193,9 @@ class Negotiator(Rational, Notifiable, ABC):
         Args:
             nmi  (AgentMechanismInterface): The negotiation.
             state (MechanismState): The current state of the negotiation
-            ufun (UtilityFunction): The ufun function to use before any discounting.
-            role (str): role of the agent.
+            preferences (Preferences): The preferences used by the negotiator (see `ufun` )
+            ufun (UtilityFunction): The ufun function to use (overrides `preferences` )
+            role (str): role of the negotiator.
 
         Returns:
             bool indicating whether or not the agent accepts to enter.
@@ -202,19 +209,31 @@ class Negotiator(Rational, Notifiable, ABC):
               2. The negotiator is already in a negotiation
 
         """
-        if self._mechanism_id is not None:
+        if self.nmi is not None:
             return False
-        if preferences and self.preferences:
-            return False
+        if ufun:
+            preferences = ufun
+        if preferences is None:
+            preferences = self._preferences
+        elif self.preferences and preferences != self.preferences:
+            warnings.warn(
+                f"Setting preferenes to {preferences} but the agent already has preferences {self.preferences}",
+                warnings.NegmasDoubleAssignmentWarning,
+            )
         self._role = role
-        self._mechanism_id = nmi.id
         self._nmi = nmi
         self._initial_state = state
-        if preferences is not None and (
-            self.preferences is None or id(preferences) != id(self.preferences)
-        ):
-            self.set_preferences(preferences)
+        if preferences is not None:
+            self._preferences = preferences
         return True
+
+    def _on_negotiation_start(self, state: MechanismState) -> None:
+        """
+        Internally called by the mechanism when the negotiation is about to start
+        """
+        if self._preferences:
+            super().set_preferences(self._preferences, force=True)
+        self.on_negotiation_start(state)
 
     def on_negotiation_start(self, state: MechanismState) -> None:
         """
@@ -318,8 +337,8 @@ class Negotiator(Rational, Notifiable, ABC):
               overriding it.
 
         """
-        if notifier != self._mechanism_id:
-            raise ValueError(f"Notification is coming from unknown {notifier}")
+        # if not self.nmi or notifier != self.nmi.id:
+        #     raise ValueError(f"Notification is coming from unknown {notifier}")
         if notification.type == "negotiation_start":
             self.on_negotiation_start(state=notification.data)
         elif notification.type == "round_start":

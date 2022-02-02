@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numbers
 import random
-from typing import Generator
+from typing import Any, Generator
 
 import numpy as np
 
@@ -58,14 +58,14 @@ class ContinuousIssue(RangeIssue):
 
     def value_generator(
         self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[float, None, None]:
         yield from self.ordered_value_generator(
             n, grid=grid, compact=compact, endpoints=endpoints
         )
 
     def ordered_value_generator(
         self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[float, None, None]:
         if n is None:
             raise ValueError("Real valued issue with no discretization value")
         if grid:

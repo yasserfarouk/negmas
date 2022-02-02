@@ -376,7 +376,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return False
 
         if role is None:
-            role = "agent"
+            role = "negotiator"
 
         if negotiator.join(
             nmi=self._get_nmi(negotiator),
@@ -753,7 +753,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self._agreement, self._broken, self._timedout = None, False, False
                 return self.state
             for a in self.negotiators:
-                a.on_negotiation_start(state=state)
+                a._on_negotiation_start(state=state)
             self.announce(Event(type="negotiation_start", data=None))
         else:
             # if no steps are remaining, end with a timeout

@@ -180,3 +180,38 @@ Java Support
 ------------
 
 Developping agents and negotiators in Java is no longer supported. This means that `jnegmas` is no longer needed or used.
+
+
+Other Changes
+-------------
+
+NegMAS 0.9 has other changing that can be potentially breaking but are
+justified by the more consistency they bring and/or their performance edge.
+Most of these changes have no effect on well-behaving code using the library:
+
+- In most cases, we use the more general term `preferences` instead of `ufun`
+  whenever possible. For example, `on_ufun_changed` was renamed to
+  `on_preferences_changed` to make it clear that general preferences can be
+  used not only ufuns.
+- Some methods now receive both `preferences` and `ufun` aruments (instead of
+  only `ufun` ) with the `ufun` argument overriding the `preferences` argument
+  when given.
+  This was done (instead of just renaming the `ufun` argument to `preferences`
+  ) to reduce the effect on downstream code.
+- The negotiator is not notified that its preferences have changed (through a
+  call to its `on_preferences_changed()` method) only when it is about to start
+  a negotiation even if the assignment of preferences was done in construction
+  (by passing `preferences` to the constructor) or by `set_preferences()`
+  before joining. This has two advantages:
+
+  1. The later call makes it more likely that all data needed for the
+     negotiator for using this callback is available. For example, if the
+     negotiator is created by an agent to be used with multiple negotiations,
+     it may be the case that the setting of preferences happens in the agent's
+     `init()` method before the `awi` is set.
+     By delaying the call to `on_preferences_changed()` we make sure that the
+     `awi` is available in case it is needed.
+  2. In some cases, the negotitor may be constructed by never joins a
+     negotiation. It is a waste of resources to compute whatever
+     `on_preferences_changed()` is computing in such cases as the preferences
+     will never be really used.

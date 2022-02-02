@@ -7,14 +7,14 @@ import numpy as np
 import pytest
 
 from negmas import (
-    Aspiration,
     AspirationNegotiator,
+    BestOutcomeOnlyNegotiator,
     NaiveTitForTatNegotiator,
-    OnlyBestNegotiator,
     PreferencesChange,
     PresortingInverseUtilityFunction,
     SAOController,
     SAOMechanism,
+    TopFractionNegotiator,
     ToughNegotiator,
 )
 from negmas.negotiators.components import PolyAspiration
@@ -106,7 +106,7 @@ def test_asp_negotaitor():
     assert neg.state.agreement in ((4,), (5,))
 
 
-def test_tit_for_tat_negotiators():
+def test_tit_for_tat_negotiators_agree_in_the_middle():
     a1 = NaiveTitForTatNegotiator(name="a1")
     a2 = NaiveTitForTatNegotiator(name="a2")
     outcomes = [(_,) for _ in range(10)]
@@ -136,35 +136,82 @@ def test_tit_for_tat_negotiators():
     assert neg.state.agreement in ((4,), (5,))
 
 
+def test_top_only_negotiator():
+    outcomes = [(_,) for _ in range(10)]
+    a1 = BestOutcomeOnlyNegotiator(name="a1")
+    a2 = BestOutcomeOnlyNegotiator(name="a2")
+    u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
+    neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
+    neg.add(
+        a1,
+        preferences=MappingUtilityFunction(
+            dict(zip(outcomes, u1)), outcome_space=neg.outcome_space
+        ),
+    )
+    neg.add(
+        a2,
+        preferences=MappingUtilityFunction(
+            dict(zip(outcomes, 22 - u1)), outcome_space=neg.outcome_space
+        ),
+    )
+    neg.run()
+    assert neg.state.timedout
+    first = neg.negotiator_offers(neg.negotiator_ids[0])
+    second = neg.negotiator_offers(neg.negotiator_ids[1])
+    assert len(set(first)) == 1
+    assert len(set(second)) == 1
+    assert first[0] == (0,)
+    assert second[0] == (9,)
+
+
 class TestTitForTatNegotiator:
     def test_propose(self):
         outcomes = [(_,) for _ in range(10)]
         a1 = NaiveTitForTatNegotiator(name="a1", initial_concession="min")
+        a2 = BestOutcomeOnlyNegotiator(name="a2")
         u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
         neg.add(
             a1,
             preferences=MappingUtilityFunction(
-                dict(zip(outcomes, u1)), outcomes=outcomes
+                dict(zip(outcomes, u1)), outcome_space=neg.outcome_space
             ),
         )
-
-        proposal = a1.propose_(neg.state)
+        neg.add(
+            a2,
+            preferences=MappingUtilityFunction(
+                dict(zip(outcomes, 22 - u1)), outcome_space=neg.outcome_space
+            ),
+        )
+        neg.step()
+        proposal = neg.negotiator_offers(neg.negotiators[0].id)[0]
         assert proposal == (0,), "Proposes top first"
-        proposal = a1.propose_(neg.state)
+
+        neg.step()
+        proposal = neg.negotiator_offers(neg.negotiators[0].id)[1]
         assert proposal == (1,), "Proposes second second if min concession is set"
 
         a1 = NaiveTitForTatNegotiator(name="a1")
+        a2 = BestOutcomeOnlyNegotiator(name="a1")
         u1 = [50.0] * 3 + (22 - np.linspace(10.0, 22.0, len(outcomes) - 3)).tolist()
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
         neg.add(
             a1,
             preferences=MappingUtilityFunction(lambda x: u1[x[0]], outcomes=outcomes),
         )
+        neg.add(
+            a2,
+            preferences=MappingUtilityFunction(
+                lambda x: 22 - u1[x[0]], outcomes=outcomes
+            ),
+        )
 
-        proposal = a1.propose_(neg.state)
+        neg.step()
+        proposal = neg.negotiator_offers(neg.negotiators[0].id)[-1]
         assert proposal == (0,), "Proposes top first"
-        proposal = a1.propose_(neg.state)
+
+        neg.step()
+        proposal = neg.negotiator_offers(neg.negotiators[0].id)[-1]
         assert proposal == (
             3,
         ), "Proposes first item with utility less than the top if concession is min"
@@ -201,7 +248,7 @@ def test_tit_for_tat_against_asp_negotiators():
 
 
 def test_best_only_asp_negotiator():
-    a1 = OnlyBestNegotiator(min_utility=0.9, top_fraction=0.1)
+    a1 = TopFractionNegotiator(min_utility=0.9, top_fraction=0.1)
     a2 = AspirationNegotiator(aspiration_type="conceder")
     outcomes = [(_,) for _ in range(20)]
     u1 = MappingUtilityFunction(
@@ -237,13 +284,13 @@ def test_controller():
     for session in sessions:
         session.add(
             AspirationNegotiator(aspiration_type="conceder"),
-            preferences=RandomUtilityFunction(outcomes=tuple(session.outcomes)),
+            preferences=RandomUtilityFunction(outcome_space=session.outcome_space),
         )
         session.add(
             c.create_negotiator(),
-            preferences=RandomUtilityFunction(outcomes=tuple(session.outcomes)),
+            preferences=RandomUtilityFunction(outcome_space=session.outcome_space),
         )
-    completed: List[int] = []
+    completed: list[int] = []
     while len(completed) < n_sessions:
         for i, session in enumerate(sessions):
             if i in completed:
@@ -267,6 +314,7 @@ class SmartAspirationNegotiator(SAONegotiator):
         self._min = self._max = self._worst = self._best = None
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
         if not self.ufun:
             self._inv = None
             self._min = self._max = self._worst = self._best = None
@@ -274,8 +322,9 @@ class SmartAspirationNegotiator(SAONegotiator):
         self._inv = PresortingInverseUtilityFunction(self.ufun)
         self._inv.init()
         self._worst, self._best = self.ufun.extreme_outcomes()
-        self._min, self._max = self.ufun(self._worst), self.ufun(self._best)
-        super().on_preferences_changed(changes)
+        self._min, self._max = float(self.ufun(self._worst)), float(
+            self.ufun(self._best)
+        )
 
     def respond(self, state, offer):
         if not self._partner_first:

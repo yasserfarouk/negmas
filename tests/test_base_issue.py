@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from negmas.outcomes import ContinuousInfiniteIssue, CountableInfiniteIssue, make_os
@@ -7,7 +8,7 @@ from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
 from negmas.outcomes.categorical_issue import CategoricalIssue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 from negmas.outcomes.continuous_issue import ContinuousIssue
-from negmas.outcomes.ordinal_issue import generate_values
+from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue, generate_values
 
 
 def test_make_issue_generation():
@@ -141,3 +142,19 @@ def test_values_contained_in_outcome_spaces():
         assert i in a
         assert not i in b
         assert i not in c
+
+
+def test_ordinal_issue_with_multiple_int_types():
+    make_issue([0, 1, np.asarray([10])[0]])
+    with pytest.raises(TypeError):
+        make_issue([0, 1.0, np.asarray([10])[0]])
+    with pytest.raises(TypeError):
+        DiscreteOrdinalIssue([0, "1", np.asarray([10])[0]])
+
+
+def test_ordinal_issue_with_multiple_float_types():
+    make_issue([0.0, 1.0, np.asarray([10.0])[0]])
+    with pytest.raises(TypeError):
+        DiscreteOrdinalIssue([0.0, "1.0", np.asarray([10.0])[0]])
+    with pytest.raises(TypeError):
+        make_issue([0, 1.0, np.asarray([10.0])[0]])

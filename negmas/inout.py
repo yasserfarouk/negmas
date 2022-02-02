@@ -176,7 +176,7 @@ class Scenario:
                 f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})"
             )
         if not roles:
-            roles = ["agent"] * len(negs)
+            roles = ["negotiator"] * len(negs)
         for n, r, u in zip(negs, roles, self.ufuns):
             m.add(n, preferences=u, role=r)
         return m

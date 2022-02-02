@@ -5,7 +5,7 @@ from typing import Iterable
 
 from negmas.outcomes import Outcome
 
-from .crisp_ufun import UtilityFunction
+from .base_ufun import BaseUtilityFunction
 from .protocols import InverseUFun, MultiInverseUFun
 
 __all__ = [
@@ -15,7 +15,7 @@ __all__ = [
 
 
 class SamplingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
-    def __init__(self, ufun: UtilityFunction, max_samples_per_call: int = 10_000):
+    def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
 
@@ -100,7 +100,7 @@ class SamplingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
 
 class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
     def __init__(
-        self, ufun: UtilityFunction, levels: int = 10, max_cache_size: int = 10_000
+        self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 10_000
     ):
         self._ufun = ufun
         self.max_cache_size = max_cache_size
@@ -113,7 +113,9 @@ class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
         self._worst, self._best = self._ufun.extreme_outcomes()
-        self._min, self._max = self._ufun(self._worst), self._ufun(self._best)
+        self._min, self._max = float(self._ufun(self._worst)), float(
+            self._ufun(self._best)
+        )
         self._range = self._max - self._min
         self._offset = self._min / self._range if self._range > 1e-5 else self._min
         for l in range(self.levels, 0, -1):
@@ -129,7 +131,7 @@ class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
             outcomes = list(os.sample(self.max_cache_size, False, False))
         else:
             outcomes = list(os.enumerate())[: self.max_cache_size]
-        utils = [self._ufun(_) for _ in outcomes]
+        utils = [float(self._ufun(_)) for _ in outcomes]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
 
     def all(

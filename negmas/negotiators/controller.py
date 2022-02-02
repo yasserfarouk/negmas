@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, TypeVar, Union
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Notification
@@ -9,11 +9,12 @@ from negmas.helpers import get_class
 from negmas.preferences import Preferences
 from negmas.types import Rational
 
+from .negotiator import Negotiator
+
 if TYPE_CHECKING:
     from negmas.preferences import BaseUtilityFunction
     from negmas.situated import Agent
 
-    from .negotiator import Negotiator
     from .passthrough import PassThroughNegotiator
 
 
@@ -25,6 +26,8 @@ NegotiatorInfo = namedtuple("NegotiatorInfo", ["negotiator", "context"])
 """
 The return type of `negotiators` member of `Controller`.
 """
+
+ControlledNegotiatorType = TypeVar("ControlledNegotiatorType", bound=Negotiator)
 
 
 class Controller(Rational):
@@ -114,11 +117,11 @@ class Controller(Rational):
 
     def create_negotiator(
         self,
-        negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
+        negotiator_type: str | ControlledNegotiatorType | None = None,
         name: str = None,
         cntxt: Any = None,
         **kwargs,
-    ) -> PassThroughNegotiator:
+    ) -> ControlledNegotiatorType:
         """
         Creates a negotiator passing it the context
 
@@ -139,16 +142,16 @@ class Controller(Rational):
 
     def make_negotiator(
         self,
-        negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
+        negotiator_type: str | ControlledNegotiatorType | None = None,
         name: str = None,
         **kwargs,
-    ) -> PassThroughNegotiator:
+    ) -> ControlledNegotiatorType:
         """
         Creates a negotiator but does not add it to the controller. Call
         `add_negotiator` to add it.
 
         Args:
-            negotiator_type: Type of the negotiator to be created
+            negotiator_type: Type of the negotiator to be created. If None, A `PassThroughNegotiator` negotiator will be controlled (which is **fully** controlled by the controller).
             name: negotiator name
             **kwargs: any key-value pairs to be passed to the negotiator constructor
 
@@ -158,7 +161,7 @@ class Controller(Rational):
 
         """
         if negotiator_type is None:
-            negotiator_type = self.__default_negotiator_type
+            negotiator_type = self.__default_negotiator_type  # type: ignore
         elif isinstance(negotiator_type, str):
             negotiator_type = get_class(negotiator_type)
         if negotiator_type is None:
@@ -292,7 +295,7 @@ class Controller(Rational):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> bool:
         """
         Called by children negotiators to get permission to join negotiations
@@ -318,7 +321,7 @@ class Controller(Rational):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> None:
         """
         Called by children negotiators after joining a negotiation to inform
@@ -340,7 +343,7 @@ class Controller(Rational):
         *,
         preferences: Optional["Preferences"] = None,
         ufun: Optional["BaseUtilityFunction"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> bool:
         """
         Called by the mechanism when the agent is about to enter a negotiation. It can prevent the agent from entering
@@ -374,6 +377,20 @@ class Controller(Rational):
             self.after_join(negotiator, nmi, state, preferences=preferences, role=role)
             return True
         return False
+
+    #     def _on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
+    #         """
+    #         A call back called at each negotiation start dirctly by the mechanism
+    #
+    #         Args:
+    #             negotiator_id: The negotiator ID
+    #             state: `MechanismState` giving current state of the negotiation.
+    #
+    #         """
+    #         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+    #         if negotiator is None:
+    #             raise ValueError(f"Unknown negotiator {negotiator_id}")
+    #         return self.call(negotiator, "_on_negotiation_start", state=state)
 
     def on_negotiation_start(self, negotiator_id: str, state: MechanismState) -> None:
         """

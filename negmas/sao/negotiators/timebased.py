@@ -92,6 +92,8 @@ class AspirationNegotiator(SAONegotiator, AspirationMixin):
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         super().on_preferences_changed(changes)
+        if self.nmi is None:
+            return
         if self.ufun is None or self._nmi is None:
             self.ufun_max = self.ufun_min = None
             return

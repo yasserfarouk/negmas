@@ -40,7 +40,8 @@ FAILED, OK, TIMEOUT = "__FAILED__", "__OK__", "__TIMEOUT__"
 
 
 class GeniusNegotiator(SAONegotiator):
-    """Encapsulates a Genius Negotiator
+    """
+    Encapsulates a Genius Negotiator
 
     Args:
         assume_normalized: Assume that the utility function is already normalized (or do not need to be normalized)
@@ -269,12 +270,17 @@ class GeniusNegotiator(SAONegotiator):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["UtilityFunction"] = None,
-        role: str = "agent",
+        preferences: UtilityFunction | None = None,
+        ufun: UtilityFunction | None = None,
+        role: str = "negotiator",
     ) -> bool:
-        if preferences is None:
+        if ufun:
+            preferences = ufun
+        if not preferences:
             preferences = self.__preferences_received
-        result = super().join(nmi=nmi, state=state, preferences=preferences, role=role)
+        result = super().join(
+            nmi=nmi, state=state, preferences=preferences, ufun=None, role=role
+        )
         if not result or self.ufun is None:
             return False
         # only connect to the JVM running genius-bridge if you are going to join a negotiation.

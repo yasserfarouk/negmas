@@ -15,13 +15,54 @@ from scipy.stats import tmean
 
 T = TypeVar("T")
 
+INTTYPES = (int, np.int32, np.int64, np.int8, np.int16)
+REALTYPES = (
+    float,
+    np.float16,
+    np.float32,
+    np.float128,
+    np.float64,
+)
+
 __all__ = [
     "get_one_float",
     "get_one_int",
     "make_range",
     "truncated_mean",
     "sample",
+    "is_int_type",
+    "is_float_type",
+    "isint",
+    "isreal",
 ]
+
+
+def is_int_type(x):
+    """
+    Checks if the given type is an integer (cannot be a floating point type)
+    """
+    return np.issubdtype(x, np.integer)
+
+
+def is_float_type(x):
+    """
+    Checks if the given type is a floating point type (it cannot be an integer type)
+    """
+    return np.issubdtype(x, np.floating)
+
+
+def isint(x):
+    """
+    Is the given number is of an integer type
+    """
+    return isinstance(x, np.integer)
+
+
+def isreal(x):
+    """
+    Is the given number is of a floating point type
+    """
+    return isinstance(x, np.floating)
 
 
 def get_one_int(i: int | tuple[int, int]):

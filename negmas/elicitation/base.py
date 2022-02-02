@@ -102,7 +102,7 @@ class BaseElicitor(SAONegotiator):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
         **kwargs,
     ) -> bool:
         """

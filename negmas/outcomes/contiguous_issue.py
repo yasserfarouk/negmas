@@ -43,17 +43,19 @@ class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
         return output
 
     @property
-    def all(self) -> Generator:
+    def all(self) -> Generator[int, None, None]:
         yield from range(self._values[0], self._values[1] + 1)
 
     def value_generator(
         self, n: int | None = 10, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[int, None, None]:
         yield from self.ordered_value_generator(
             n, grid=grid, compact=compact, endpoints=endpoints
         )
 
-    def ordered_value_generator(self, n: int | None = None, grid=True, compact=False, endpoints=True) -> Generator:  # type: ignore
+    def ordered_value_generator(
+        self, n: int | None = None, grid=True, compact=False, endpoints=True
+    ) -> Generator[int, None, None]:
         yield from (
             _ + self._values[0]
             for _ in sample(
