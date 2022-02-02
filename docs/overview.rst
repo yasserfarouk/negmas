@@ -195,10 +195,9 @@ The interaction between **Mechanism** and **Negotiator** objects mirrors
 the interaction between **World** and **Agent** objects. **Mechanism**
 objects call methods in **Negotiator** objects directly but
 **Negotiator** objects can only access services provided by the
-**Mechanism** object through a **AgentMechanismInterface** (AMI). Note
-that it is an AMI not a NMI (for historical reasons). You can find more
-details about the general NegMAS AMI
-`here <http://www.yasserm.com/negmas/api/negmas.common.AgentMechanismInterface.html>`__.
+**Mechanism** object through a **NegotiatorMechanismInterface** (AMI).
+You can find more details about the general NegMAS NMI
+`here <http://www.yasserm.com/negmas/api/negmas.common.NegotiatorMechanismInterface.html>`__.
 
 Each specific **Mechanism** defines a corresponding specific
 **AgentMechanismInterface** class (in the same way that **World**
@@ -406,7 +405,7 @@ You can pick random valid or invalid values for the issue:
 .. parsed-literal::
 
     [['not to be',
-      '20220121H150151228315PUaFX3FQnot to be20220121H150151228362w7VF0GTS'],
+      '20220202H163631489331PUaFX3FQnot to be20220202H163631489376w7VF0GTS'],
      [4, 15],
      [0.38864224283144744, 1.7576161999324909]]
 
@@ -794,7 +793,7 @@ a simple example:
 .. code:: ipython3
 
     COST = 0
-    class ConstUtilityFunction(StationaryUtilityFunction):
+    class ConstUtilityFunction(UtilityFunction):
        def eval(self, offer):
             try:
                 return 3.0 * offer[COST]
@@ -1073,7 +1072,7 @@ For example, a seller’s utility can be defined as:
 
 .. code:: ipython3
 
-    seller_utility =NonLinearAdditiveUtilityFunction((
+    seller_utility =NonLinearAggregationUtilityFunction((
                                  lambda x: x
                                , lambda x: 0.5 * x
                                , {'delivered': 1.0, 'not delivered': 0.0})
@@ -1296,26 +1295,26 @@ module for more details
     ['BaseUtilityFunction',
      'UtilityFunction',
      'ProbUtilityFunction',
-     'StationaryUtilityFunction',
      'PresortingInverseUtilityFunction',
      'SamplingInverseUtilityFunction',
-     'WeightedUtilityFunction',
-     'ComplexNonlinearUtilityFunction',
      'DiscountedUtilityFunction',
-     'MappingUtilityFunction',
-     'ProbMappingUtilityFunction',
+     'ConstUtilityFunction',
      'LinearUtilityAggregationFunction',
      'LinearAdditiveUtilityFunction',
-     'AffineUtilityFunction',
      'LinearUtilityFunction',
-     'NonLinearAdditiveUtilityFunction',
+     'AffineUtilityFunction',
+     'MappingUtilityFunction',
+     'NonLinearAggregationUtilityFunction',
      'HyperRectangleUtilityFunction',
      'NonlinearHyperRectangleUtilityFunction',
+     'RandomUtilityFunction',
+     'ProbMappingUtilityFunction',
      'IPUtilityFunction',
      'ILSUtilityFunction',
      'UniformUtilityFunction',
-     'RandomUtilityFunction',
-     'ConstUtilityFunction']
+     'ProbRandomUtilityFunction',
+     'WeightedUtilityFunction',
+     'ComplexNonlinearUtilityFunction']
 
 
 Utility Helpers and Analysis Tools
@@ -1664,7 +1663,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.000725</td>
+          <td>0.000903</td>
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
@@ -1680,7 +1679,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.001474</td>
+          <td>0.002518</td>
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>

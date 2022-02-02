@@ -22,10 +22,10 @@ to run negotiations as follows:
 
 .. parsed-literal::
 
-    {'agreement': (9,),
+    {'agreement': (8,),
      'broken': False,
-     'current_offer': (9,),
-     'current_proposer': 'a1-e2105519-b95f-4da8-a5ce-e7d12f50dfdb',
+     'current_offer': (8,),
+     'current_proposer': 'a1-fe37f235-df3a-4745-a3da-e1645a0f29f1',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -34,12 +34,12 @@ to run negotiations as follows:
      'n_negotiators': 5,
      'new_offerer_agents': [],
      'new_offers': [],
-     'relative_time': 0.25742574257425743,
+     'relative_time': 0.7821782178217822,
      'results': None,
      'running': False,
      'started': True,
-     'step': 25,
-     'time': 0.5500195600000009,
+     'step': 78,
+     'time': 6.3316177379999985,
      'timedout': False,
      'waiting': False}
 
@@ -181,7 +181,7 @@ This can be modeled in the following negotiation:
     {'agreement': (8, 9, 9),
      'broken': False,
      'current_offer': (8, 9, 9),
-     'current_proposer': 'buyer-0df91f75-2191-4540-9a04-d06dfcce844c',
+     'current_proposer': 'buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -189,13 +189,13 @@ This can be modeled in the following negotiation:
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (8, 9, 9))],
+     'new_offers': [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (8, 9, 9))],
      'relative_time': 0.8571428571428571,
      'results': None,
      'running': False,
      'started': True,
      'step': 17,
-     'time': 0.08765986299999895,
+     'time': 0.174903982,
      'timedout': False,
      'waiting': False}
 
@@ -215,23 +215,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 11, 0))]
-    001: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 10, 0))]
-    002: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 9, 0))]
-    003: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 8, 0))]
-    004: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (9, 7, 0))]
-    005: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 11, 0))]
-    006: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 10, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 10, 0))]
-    007: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 9, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 9, 0))]
-    008: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (0, 8, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (8, 8, 0))]
-    009: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (1, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (6, 9, 0))]
-    010: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (1, 9, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (6, 8, 0))]
-    011: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (2, 11, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (4, 11, 0))]
-    012: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (2, 7, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (4, 10, 0))]
-    013: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (3, 7, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (3, 9, 0))]
-    014: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (5, 10, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (0, 11, 0))]
-    015: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (6, 8, 9)), ('seller-a0be09ed-74da-40ff-a74b-e06176230ad1', (0, 7, 0))]
-    016: [('buyer-0df91f75-2191-4540-9a04-d06dfcce844c', (8, 9, 9))]
+    000: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 11, 0))]
+    001: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 10, 0))]
+    002: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 9, 0))]
+    003: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 8, 0))]
+    004: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 7, 0))]
+    005: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 11, 0))]
+    006: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 10, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 10, 0))]
+    007: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 9, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 9, 0))]
+    008: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 8, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 8, 0))]
+    009: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (1, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (6, 9, 0))]
+    010: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (1, 9, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (6, 8, 0))]
+    011: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (2, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (4, 11, 0))]
+    012: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (2, 7, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (4, 10, 0))]
+    013: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (3, 7, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (3, 9, 0))]
+    014: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (5, 10, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (0, 11, 0))]
+    015: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (6, 8, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (0, 7, 0))]
+    016: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (8, 9, 9))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -279,7 +279,7 @@ the delivery time and price to go down. Let’s see what happens:
     {'agreement': (5, 2, 5),
      'broken': False,
      'current_offer': (5, 2, 5),
-     'current_proposer': 'seller-3f8f151c-3de9-4769-8ae8-cec0089c998d',
+     'current_proposer': 'seller-8cb1537b-27c8-448c-ab8f-1ff01424ece4',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -293,7 +293,7 @@ the delivery time and price to go down. Let’s see what happens:
      'running': False,
      'started': True,
      'step': 45,
-     'time': 0.3117902380000004,
+     'time': 1.8555690819999988,
      'timedout': False,
      'waiting': False}
 
