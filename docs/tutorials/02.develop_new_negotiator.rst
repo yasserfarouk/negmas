@@ -37,17 +37,6 @@ seller negotiating over a deal using time-based negotiators.
     session.run()
     session.plot()
 
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_1_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
 The negotiation ended with an agreement far from the pareto-front
 (pareto-distance = :math:`0.31`) which does not seem like a good result.
 What is the problem?
@@ -113,15 +102,6 @@ try to do that
         RandomNegotiator()
     except Exception as e:
         print(e)
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Can't instantiate abstract class RandomNegotiator with abstract method propose
-    </pre>
-
-
 
 This is telling us that there is one (and only one) required abstract
 method that we need to override called ``propose()``. This is the
@@ -195,17 +175,6 @@ the buyer and/or seller negotiators in the code sample we used above:
 
     s = try_negotiator(RandomNegotiator)
 
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_9_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
 What just happened? It seems that the buyer offered a single offer which
 was **immediately** accepted by the seller. We can check that explicitly
 by looking at the negotiation *trace* which stores all the offers
@@ -215,32 +184,12 @@ exchanged (along with the agent that offered it):
 
     s.trace
 
-
-
-
-.. parsed-literal::
-
-    [('buyer-272a3b11-476f-488f-87ec-d98a8fcb3834', (1, 2, 5))]
-
-
-
 Why did this happen? To answer this question, let’s try to run another
 negotiation but replacing only the buyer
 
 .. code:: ipython3
 
     s2 = try_negotiator(RandomNegotiator, replace_seller=False)
-
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_13_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
 
 The seller behaves as the time-based aspiration negotiator is expected
 to behave. It starts at its best outcome then it conceeds slowly. Our
@@ -275,11 +224,6 @@ negotiation ended.
     ended_at = [try_negotiator(RandomNegotiator, plot=False).state.step for _ in range(100)]
     plt.hist(ended_at)
     plt.show()
-
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_15_0.png
-
 
 Better acceptance strategy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -321,17 +265,6 @@ agents with our slightly better random negotiator
 
     s3 = try_negotiator(BetterRandomNegotiator)
 
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_19_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
 Now *both* agents are proposing randomly. How can we check that our
 *complicated* acceptance strategy is implemented correctly?
 
@@ -345,36 +278,6 @@ negotiation:
 .. code:: ipython3
 
     print(s3.state)
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">SAOState</span><span style="font-weight: bold">(</span>
-        <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
-        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.3445030249999999</span>,
-        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.47619047619047616</span>,
-        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
-        <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-35998df1-4d77-4bcf-bed8-02ed7acc6e46'</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-35998df1-4d77-4bcf-bed8-02ed7acc6e46'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>
-    <span style="font-weight: bold">)</span>
-    </pre>
-
-
 
 Some of these state variables are specific to the ``SAOMechanism`` but
 others are common to all mechanisms (i.e. available in the
@@ -422,15 +325,6 @@ agreement for the agent that accepted it as follows:
     negotiator_ids = [_.id for _ in s3.negotiators]
     acceptor = [i for i, _ in enumerate(negotiator_ids) if _ != s3.state.current_proposer][0]
     print(s3.negotiators[acceptor].ufun(s3.agreement))
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9822134387351779</span>
-    </pre>
-
-
 
 Seems OK.
 
@@ -494,8 +388,11 @@ explain it:
             # Initialize the aspiration mixin to start at 1.0 and concede slowly
             AspirationMixin.aspiration_init(self, 1.0, "boulware")
 
-        def on_preferences_changed(self):
+        def on_preferences_changed(self, changes):
             # create an initiaze an invertor for my ufun
+            changes = [_ for _ in changes if _ not in (PreferencesChange.Scaled,)]
+            if not changes:
+                return
             self._inv = PresortingInverseUtilityFunction(self.ufun)
             self._inv.init()
 
@@ -506,7 +403,7 @@ explain it:
             self._min, self._max = self.ufun(worest), self.ufun(self._best)
 
             # MUST call parent to avoid being called again for no reason
-            super().on_preferences_changed()
+            super().on_preferences_changed(changes)
 
         def respond(self, state, offer):
             # set the partner's first offer when I receive it
@@ -543,15 +440,15 @@ Let’s look at this negotiator in details. We override four methods: -
 **init\ ()** to initialize the negotiator. This method should **alwyas**
 call ``super().__init__()`` to correctly initialize the negotiator.
 Moreover, we initialize the aspiration mixin to slowly concede from
-zero. - **on_preferences_changed()** to update the ufun inverter, my
-ufun’s range and find out the best outcome. \*You must call the parent’s
-implementation using ``super().on_preferences_changed()`` to avoid
-unnecessary repeated calls to this method. - **respond()** to implement
-our acceptance strategy. In this case the default NegMAS strategy is OK
-for us (called in the last line). We only need to save the partner’s
-first offer here to use it in our offering strategy. - **propose()**
-This is the core of the negotiator and implements its offering strategy.
-Let’s look to it line by line:
+zero. - **on_preferences_changed(changes)** to update the ufun inverter,
+my ufun’s range and find out the best outcome. \*You must call the
+parent’s implementation using ``super().on_preferences_changed()`` to
+avoid unnecessary repeated calls to this method. - **respond()** to
+implement our acceptance strategy. In this case the default NegMAS
+strategy is OK for us (called in the last line). We only need to save
+the partner’s first offer here to use it in our offering strategy. -
+**propose()** This is the core of the negotiator and implements its
+offering strategy. Let’s look to it line by line:
 
 1. Calculate the current aspiration level which is the utility level
    above which we are going to offer
@@ -597,17 +494,6 @@ While you are thinking about that, let’s check our new negotiator:
 
     s = try_negotiator(SmartAspirationNegotiator)
 
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_29_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
 As you can see, now the agreement is on the pareto front which means no
 money left on the table (i.e. it is impossible to increase the utility
 of one partner without decreasing the utility of the other).
@@ -646,18 +532,6 @@ with ``AspriationNegotiator`` on multiple negotiations:
             ndiff[cls.__name__] += nash_diff(a, nash_welfare) / n
 
     print(f"{pdist=}\n{ndiff=}")
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #808000; text-decoration-color: #808000">pdist</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8.602325267042609</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.701116394854619</span><span style="font-weight: bold">})</span>
-    <span style="color: #808000; text-decoration-color: #808000">ndiff</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.567428481978633</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.14792783626188705</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.4196839901381442</span><span style="font-weight: bold">})</span>
-    </pre>
-
-
 
 It is clear that our negotiator achieved its goal. It reduces the
 distance to the pareto-front of the final agreement compared with

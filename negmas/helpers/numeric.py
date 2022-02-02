@@ -15,14 +15,13 @@ from scipy.stats import tmean
 
 T = TypeVar("T")
 
-INTTYPES = (int, np.int32, np.int64, np.int8, np.int16)
-REALTYPES = (
-    float,
-    np.float16,
-    np.float32,
-    np.float128,
-    np.float64,
-)
+# INTTYPES = (int, np.int32, np.int64, np.int8, np.int16)
+# REALTYPES = (
+#     float,
+#     np.float16,
+#     np.float32,
+#     np.float64,
+# )
 
 __all__ = [
     "get_one_float",
