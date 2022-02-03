@@ -10,7 +10,7 @@ from hypothesis import given
 from pytest import mark
 
 from negmas.outcomes import enumerate_issues, issues_from_xml_str, make_issue
-from negmas.outcomes.outcome_space import CartesianOutcomeSpace
+from negmas.outcomes.outcome_space import CartesianOutcomeSpace, make_os
 from negmas.preferences import (
     AffineUtilityFunction,
     HyperRectangleUtilityFunction,
@@ -438,6 +438,86 @@ def test_normalization():
 
     for k, v in gt_max.items():
         assert abs(v - u(k)) < 1e-3, f"Failed for {k} got {(u(k))} expected {v}"
+
+
+def test_rank_only_ufun_randomize_no_reserve():
+    from negmas.preferences import RankOnlyUtilityFunction
+
+    issues = [make_issue((0, 9)), make_issue((1, 5))]
+    outcomes = list(make_os(issues).enumerate_or_sample())
+    assert len(outcomes) == 10 * 5
+    ufun = LinearUtilityFunction(
+        weights=[1, 1], issues=issues, reserved_value=float("-inf")
+    )
+    ro = RankOnlyUtilityFunction(ufun, randomize_equal=True)
+    assert isinstance(ro(None), float)
+    assert isinstance(ro.reserved_value, float)
+    assert ro.reserved_value == ro(None) == float("-inf")
+    assert min(ro._mapping.values()) == 0
+    assert max(ro._mapping.values()) == 10 * 5 - 1
+    assert any(
+        ro((0, _)) == 0 for _ in range(1, 6)
+    ), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    assert ro((9, 5)) == 10 * 5 - 1
+    mapping = ro.to_mapping_ufun()
+    assert mapping.reserved_value == ro(None)
+    assert any(
+        mapping((0, _)) == 0 for _ in range(1, 6)
+    ), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    assert mapping((9, 5)) == 10 * 5 - 1
+
+
+def test_rank_only_ufun_randomize():
+    from negmas.preferences import RankOnlyUtilityFunction
+
+    issues = [make_issue((0, 9)), make_issue((1, 5))]
+    outcomes = list(make_os(issues).enumerate_or_sample())
+    assert len(outcomes) == 10 * 5
+    ufun = LinearUtilityFunction(weights=[1, 1], issues=issues, reserved_value=1.5)
+    ro = RankOnlyUtilityFunction(ufun, randomize_equal=True)
+    assert isinstance(ro(None), int)
+    assert isinstance(ro.reserved_value, int)
+    assert ro.reserved_value == ro(None)
+    assert min(ro._mapping.values()) == 0
+    assert max(ro._mapping.values()) == 10 * 5
+    assert any(
+        ro((0, _)) == 0 for _ in range(1, 6)
+    ), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    assert ro((9, 5)) == 10 * 5
+    mapping = ro.to_mapping_ufun()
+    assert isinstance(mapping(None), int)
+    assert isinstance(mapping.reserved_value, int)
+    assert mapping.reserved_value == ro(None)
+    assert any(
+        mapping((0, _)) == 0 for _ in range(1, 6)
+    ), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    assert mapping((9, 5)) == 10 * 5
+
+
+def test_rank_only_ufun_no_randomize():
+    from negmas.preferences import RankOnlyUtilityFunction
+
+    issues = [make_issue((0, 9)), make_issue((1, 5))]
+    outcomes = list(make_os(issues).enumerate_or_sample())
+    assert len(outcomes) == 10 * 5
+    ufun = LinearUtilityFunction(weights=[1, 1], issues=issues, reserved_value=0.5)
+    ro = RankOnlyUtilityFunction(ufun, randomize_equal=False)
+    assert min(ro._mapping.values()) == 0
+    assert max(ro._mapping.values()) < 10 * 5
+    assert ro((1, 1)) == ro((0, 2))
+    assert ro((2, 1)) == ro((1, 2)) == ro((0, 3))
+    assert all(
+        ro((9, 5)) > ro(_) for _ in outcomes if _ != (9, 5)
+    ), f"{[(_, ro(_)) for _ in outcomes]}"
+    mapping = ro.to_mapping_ufun()
+    assert isinstance(mapping(None), int)
+    assert isinstance(mapping.reserved_value, int)
+    assert mapping.reserved_value == ro(None)
+    assert all(
+        mapping((9, 5)) > mapping(_) for _ in outcomes if _ != (9, 5)
+    ), f"{[(_, mapping(_)) for _ in outcomes]}"
+    assert mapping((1, 1)) == mapping((0, 2))
+    assert mapping((2, 1)) == mapping((1, 2)) == mapping((0, 3))
 
 
 if __name__ == "__main__":
