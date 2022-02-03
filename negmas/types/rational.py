@@ -67,7 +67,7 @@ class Rational(NamedObject):
         if self._preferences.owner is not None and self._preferences.owner is not self:
             warnings.warn(
                 f"Entity {self.name} ({self.__class__.__name__}) is "
-                f"assigned preferences belonging to another agent "
+                f"assigned preferences belonging to another entity "
                 f"({self._preferences.owner.name} of type {self.__class__.__name__})!!",
                 warnings.NegmasDoubleAssignmentWarning,
             )
