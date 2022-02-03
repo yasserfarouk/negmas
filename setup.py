@@ -100,6 +100,7 @@ setup(
         "gif",
         "py4j",
         "psutil",
+        "rich",
     ],  # Optional
     extras_require={
         "elicitation": ["blist; python_version < '3.10'"],

@@ -47,3 +47,4 @@ pytest-repeat
 dask[complete]
 psutil
 papermill
+rich
