@@ -750,17 +750,7 @@ def test_can_create_all_negotiator_types(typ):
     r1=st.floats(-1.0, 1.0),
     r2=st.floats(-1.0, 1.0),
 )
-@settings(deadline=30_000)
-@example(
-    a=negmas.sao.negotiators.titfortat.NaiveTitForTatNegotiator,
-    b=negmas.sao.negotiators.timebased.AspirationNegotiator,
-    w1p=0.0,
-    w1q=0.0,
-    w2p=0.0,
-    w2q=0.0,
-    r1=0.0,
-    r2=0.0,
-)
+@settings(deadline=100_000, max_examples=50)
 def test_can_run_all_negotiators(a, b, w1p, w1q, w2p, w2q, r1, r2):
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
     u1 = LinearUtilityFunction(weights=[w1p, w1q], issues=issues, reserved_value=r1)
@@ -1413,7 +1403,7 @@ def test_bilateral_timebased(typ, linear, starting, opp):
 @given(
     neg_types=st.lists(st.sampled_from(TIME_BASED_NEGOTIATORS), min_size=4, max_size=4)
 )
-@settings(deadline=10_000)
+@settings(deadline=10_000, max_examples=20)
 def test_multilateral_timebased(neg_types):
     outcome_space = make_os([make_issue(10)])
     outcomes = list(outcome_space.enumerate_or_sample())
