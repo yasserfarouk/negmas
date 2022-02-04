@@ -9,6 +9,8 @@ from time import sleep
 from typing import Dict, List, NoReturn, Sequence
 
 import hypothesis.strategies as st
+import matplotlib.pyplot as plt
+import numpy as np
 import pkg_resources
 import pytest
 import pytest_check as check
@@ -23,7 +25,12 @@ from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
 from negmas.sao import (
     AspirationNegotiator,
+    BoulwareTBNegotiator,
+    ConcederTBNegotiator,
+    FirstOfferOrientedTBNegotiator,
     LimitedOutcomesNegotiator,
+    LinearTBNegotiator,
+    ParetoFollowingTBNegotiator,
     RandomNegotiator,
     ResponseType,
     SAOMechanism,
@@ -31,8 +38,11 @@ from negmas.sao import (
     SAOResponse,
     SAOState,
     SAOSyncController,
+    TimeBasedConcedingNegotiator,
+    TimeBasedNegotiator,
     all_negotiator_typs,
 )
+from negmas.sao.negotiators.timebased import LastOfferOrientedTBNegotiator
 from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
 
 exception_str = "Custom Exception"
@@ -1196,7 +1206,7 @@ def test_aspiration_continuous_issues(
                             -neg.tolerance
                             <= (
                                 neg.ufun(offer)
-                                - neg.aspiration(
+                                - neg.utility_at(
                                     (mechanism.state.step) / mechanism.n_steps
                                 )
                                 * neg.ufun(best_outcome)
@@ -1206,7 +1216,7 @@ def test_aspiration_continuous_issues(
                     # else:
                     #     assert -neg.tolerance <= (
                     #         neg.ufun(offer)
-                    #         - neg.aspiration(
+                    #         - neg.utility_at(
                     #             (mechanism.state.step - 1) / mechanism.n_steps
                     #         )
                     #         * neg.ufun(best_outcome)
@@ -1337,3 +1347,151 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
         mechanism.add(a1)
 
     assert len(record) == 0
+
+
+def _run_neg(agents, utils, outcome_space):
+    neg = SAOMechanism(
+        outcome_space=outcome_space, n_steps=200, avoid_ultimatum=False, time_limit=None
+    )
+    for a, u in zip(agents, utils):
+        neg.add(a, preferences=u)
+    neg.run()
+    plt.show()
+    assert neg.state.agreement is not None, f"No agreement!!\n{neg.extended_trace}"
+    for a, u in zip(agents, utils):
+        offers = neg.negotiator_offers(a.id)
+        _, best = u.extreme_outcomes()
+        assert (
+            isinstance(a, ConcederTBNegotiator) or offers[0] == best
+        ), f"Did not start with its best offer {best} but used {offers[0]}"
+        if isinstance(a, AspirationNegotiator):
+            for i, offer in enumerate(_ for _ in offers):
+                assert i == 0 or u(offer) <= u(offers[i - 1]), f"Not always conceding"
+    return neg
+
+
+def run_against_self_linear(typ):
+    a1 = typ(name="a1")
+    a2 = typ(name="a2")
+    issues = [make_issue((1, 5)), make_issue((1, 10))]
+    outcome_space = make_os(issues)
+
+    u1 = LinearUtilityFunction([-0.75, 0.25], outcome_space=outcome_space)
+    u2 = LinearUtilityFunction([0.5, -0.5], outcome_space=outcome_space)
+    _run_neg((a1, a2), (u1, u2), outcome_space)
+
+
+def run_against_self_mapping(typ):
+    a1 = typ(name="TFT")
+    a2 = typ(name=f"{typ.__name__}")
+    outcome_space = make_os([make_issue(50)])
+    outcomes = list(outcome_space.enumerate_or_sample())
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
+    neg = _run_neg((a1, a2), (u1, u2), outcome_space)
+
+
+def run_against_tft_linear(typ):
+    a1 = NaiveTitForTatNegotiator(name="a1")
+    a2 = typ(name="a2")
+    issues = [make_issue((1, 5)), make_issue((1, 10))]
+    outcome_space = make_os(issues)
+
+    u1 = LinearUtilityFunction([-0.75, 0.25], outcome_space=outcome_space)
+    u2 = LinearUtilityFunction([0.5, -0.5], outcome_space=outcome_space)
+    _run_neg((a1, a2), (u1, u2), outcome_space)
+
+
+def run_against_tft_mapping(typ):
+    a1 = NaiveTitForTatNegotiator(name="TFT")
+    a2 = typ(name=f"{typ.__name__}")
+    outcome_space = make_os([make_issue(50)])
+    outcomes = list(outcome_space.enumerate_or_sample())
+    u1 = MappingUtilityFunction(
+        dict(zip(outcomes, np.linspace(0.0, 1.0, len(outcomes)).tolist())),
+        outcomes=outcomes,
+    )
+    u2 = MappingUtilityFunction(
+        dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
+        outcomes=outcomes,
+    )
+    neg = _run_neg((a1, a2), (u1, u2), outcome_space)
+
+
+TIME_BASED_NEGOTIATORS = [
+    AspirationNegotiator,
+    BoulwareTBNegotiator,
+    LinearTBNegotiator,
+    ConcederTBNegotiator,
+    ParetoFollowingTBNegotiator,
+    FirstOfferOrientedTBNegotiator,
+    LastOfferOrientedTBNegotiator,
+]
+
+
+@given(
+    neg_types=st.lists(st.sampled_from(TIME_BASED_NEGOTIATORS), min_size=4, max_size=4)
+)
+@settings(max_examples=1, deadline=10_000)
+def test_4_negotiators(neg_types):
+    outcome_space = make_os([make_issue(10)])
+    outcomes = list(outcome_space.enumerate_or_sample())
+
+    negotiators = [typ(name=f"{typ.__name__}") for typ in neg_types]
+    utils = [
+        MappingUtilityFunction(
+            dict(zip(outcomes, np.random.rand(len(outcomes)).tolist())),
+            outcomes=outcomes,
+        )
+        for _ in neg_types
+    ]
+    _run_neg(negotiators, utils, outcome_space)
+
+
+def try_timebased_neg(typ):
+    run_against_self_linear(typ)
+    run_against_self_mapping(typ)
+    run_against_tft_linear(typ)
+    run_against_tft_mapping(typ)
+
+
+def test_AspirationNegotiator():
+    try_timebased_neg(AspirationNegotiator)
+
+
+def test_TimeBasedNegotiator():
+    try_timebased_neg(TimeBasedNegotiator)
+
+
+def test_TimeBasedConcedingNegotiator():
+    try_timebased_neg(TimeBasedConcedingNegotiator)
+
+
+def test_BoulwareTBNegotiator():
+    try_timebased_neg(BoulwareTBNegotiator)
+
+
+def test_LinearTBNegotiator():
+    try_timebased_neg(LinearTBNegotiator)
+
+
+def test_ConcederTBNegotiator():
+    try_timebased_neg(ConcederTBNegotiator)
+
+
+def test_LastOfferOrientedTBNegotiator():
+    try_timebased_neg(LastOfferOrientedTBNegotiator)
+
+
+def test_FirstOfferOrientedTBNegotiator():
+    try_timebased_neg(FirstOfferOrientedTBNegotiator)
+
+
+def test_ParetoFollowingTBNegotiator():
+    try_timebased_neg(ParetoFollowingTBNegotiator)
