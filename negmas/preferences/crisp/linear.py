@@ -121,7 +121,7 @@ class AffineUtilityFunction(
 
     def __init__(
         self,
-        weights: dict[str, float] | list[float] | tuple[float] | None = None,
+        weights: dict[str, float] | list[float] | tuple[float, ...] | None = None,
         bias: float = 0,
         *args,
         **kwargs,
@@ -560,7 +560,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     def __init__(
         self,
         values: dict[str, SingleIssueFun]
-        | tuple[SingleIssueFun]
+        | tuple[SingleIssueFun, ...]
         | list[SingleIssueFun],
         weights: Mapping[Any, float] | list[float] | tuple[float, ...] | None = None,
         bias: float = 0.0,

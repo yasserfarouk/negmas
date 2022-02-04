@@ -1384,7 +1384,7 @@ def _run_neg(agents, utils, outcome_space):
     starting=st.booleans(),
     opp=st.sampled_from((None, NaiveTitForTatNegotiator)),
 )
-@settings(deadline=10_000)
+@settings(deadline=10_000, max_examples=10)
 def test_bilateral_timebased(typ, linear, starting, opp):
     if opp is None and starting:
         return
