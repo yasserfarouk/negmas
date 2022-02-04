@@ -7,7 +7,7 @@ from typing import Callable
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-from matplotlib.axis import Axis
+from matplotlib.axes import Axes
 
 from negmas.helpers.misc import make_callable
 from negmas.outcomes.base_issue import Issue
@@ -20,8 +20,10 @@ from negmas.sao.mechanism import TraceElement
 
 __all__ = ["plot_offer_utilities", "plot_mechanism_run", "plot_2dutils"]
 
+ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
 
-def get_cmap(n, name="hsv"):
+
+def get_cmap(n, name="viridis"):
     """Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name."""
     return plt.cm.get_cmap(name, n)
@@ -34,26 +36,30 @@ def plot_offer_utilities(
     plotting_negotiators: list[str],
     ignore_none_offers: bool = True,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
-    clrs: list | None = None,
-    ax: Axis | None = None,
+    colors: list | None = None,
+    markers: list | None = None,
+    ax: Axes | None = None,  # type: ignore
     sharey=False,
     xdim: str = "relative_time",
     ylimits: tuple[float, float] | None = None,
+    show_legend=True,
+    show_x_label=True,
+    ignore_markers_limit=50,
 ):
     map_ = make_callable(name_map)
-    if not ax:
+    if ax is None:
         _, ax = plt.subplots()
+    ax: Axes
     one_y = True
     axes = [ax] * len(plotting_negotiators)
     if not sharey and len(plotting_negotiators) == 2:
         axes = [ax, ax.twinx()]
         one_y = False
-    if not clrs:
-        cmap = get_cmap(len(plotting_negotiators))
-        clrs = [
-            "black" if _ == negotiator else cmap(i)
-            for i, _ in enumerate(plotting_negotiators)
-        ]
+
+    colors, markers = make_colors_and_markers(
+        colors, markers, len(plotting_negotiators)
+    )
+
     if xdim.startswith("step") or xdim.startswith("round"):
         trace_info = [(_.offer, _.step) for _ in trace if _.negotiator == negotiator]
     elif xdim.startswith("time") or xdim.startswith("real"):
@@ -76,15 +82,30 @@ def plot_offer_utilities(
             xx,
             y,
             label=f"{name} ({i})",
-            color="black" if not clrs and neg == negotiator else clrs[i],
+            color=colors[i % len(colors)],
             linestyle="solid" if neg == negotiator else "dotted",
             linewidth=2 if neg == negotiator else 1,
+            marker=markers[i % len(markers)]
+            if len(trace_info) < ignore_markers_limit
+            else None,
         )
         if ylimits is not None:
             a.set_ylim(ylimits)
         a.set_ylabel(f"{name} ({i}) utility" if not one_y else "utility")
-        a.legend()
-    ax.set_xlabel(xdim)
+        if show_legend and len(plotting_negotiators) == 2:
+            a.legend(
+                loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.1)
+            )
+    if show_legend and len(plotting_negotiators) != 2:
+        ax.legend(
+            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+            loc="lower left",
+            ncol=2,
+            mode="expand",
+            borderaxespad=0.0,
+        )
+    if show_x_label:
+        ax.set_xlabel(xdim)
 
 
 def plot_2dutils(
@@ -104,9 +125,13 @@ def plot_2dutils(
     end_reason: str | None = None,
     last_negotiator: str | None = None,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
-    clrs: list | None = None,
-    ax: Axis | None = None,
+    colors: list | None = None,
+    markers: list[str] | None = None,
+    ax: Axes | None = None,  # type: ignore
 ):
+    if ax is None:
+        _, ax = plt.subplots()
+    ax: Axes
     map_ = make_callable(name_map)
     if not outcomes:
         outcome_space = os_or_none(outcome_space, issues, outcomes)
@@ -143,9 +168,9 @@ def plot_2dutils(
     frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
     fig = plt.figure(figsize=(20, 8))
 
-    if not clrs:
-        clrs = ["green", "red"]
-    mrkrs = ("s", "o")
+    colors, markers = make_colors_and_markers(
+        colors, markers, len(offering_negotiators)
+    )
 
     agreement_utility = tuple(u(agreement) for u in plotting_ufuns)
     unknown_agreement_utility = None in agreement_utility
@@ -200,9 +225,9 @@ def plot_2dutils(
         (ax.scatter if not with_lines else ax.plot)(
             x,
             y,
-            color=clrs[a],
+            color=colors[a % len(colors)],
             label=f"{map_(neg)}",
-            marker=mrkrs[a],
+            marker=markers[a % len(markers)],
         )
     if frontier:
         ax.scatter(
@@ -267,15 +292,24 @@ def plot_2dutils(
     ax.legend(
         bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
         loc="lower left",
-        ncol=5,
+        ncol=2,
         mode="expand",
         borderaxespad=0.0,
     )
 
 
+def make_colors_and_markers(colors, markers, n: int):
+    if not colors:
+        cmap = get_cmap(n)
+        colors = [cmap(i) for i in range(n)]
+    if not markers:
+        markers = [ALL_MARKERS[i % len(ALL_MARKERS)] for i in range(n)]
+    return colors, markers
+
+
 def plot_mechanism_run(
     mechanism,
-    negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
+    negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
     save_fig: bool = False,
     path: str = None,
     fig_name: str = None,
@@ -287,8 +321,10 @@ def plot_mechanism_run(
     show_end_reason: bool = True,
     show_last_negotiator: bool = True,
     show_annotations: bool = False,
-    clrs: list | None = None,
+    colors: list | None = None,
+    markers: list[str] | None = None,
     ylimits: tuple[float, float] | None = None,
+    common_legend=True,
 ):
     if negotiators is None:
         negotiators = (0, 1)
@@ -311,8 +347,10 @@ def plot_mechanism_run(
     fig = plt.figure()
     gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 2)
     axs = []
-    if not clrs:
-        clrs = ["green", "red"]
+    colors, markers = make_colors_and_markers(
+        colors, markers, len(mechanism.negotiators)
+    )
+
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
     all_ufuns = [_.ufun for _ in mechanism.negotiators]
     for a, neg in enumerate(mechanism.negotiator_ids):
@@ -327,9 +365,12 @@ def plot_mechanism_run(
             plotting_negotiators=mechanism.negotiator_ids,
             ax=axs[-1],
             name_map=name_map,
-            clrs=clrs,
+            colors=colors,
+            markers=markers,
             ignore_none_offers=ignore_none_offers,
             ylimits=ylimits,
+            show_legend=not common_legend or a == 0,
+            show_x_label=a == len(mechanism.negotiator_ids) - 1,
         )
     axu = fig.add_subplot(gs[:, 0])
     agreement = mechanism.agreement
@@ -370,7 +411,8 @@ def plot_mechanism_run(
         show_pareto_distance=show_pareto_distance,
         show_nash_distance=show_nash_distance,
         show_annotations=show_annotations,
-        clrs=clrs,
+        colors=colors,
+        markers=markers,
         agreement=mechanism.state.agreement,
         end_reason=reason,
         last_negotiator=last_negotiator,

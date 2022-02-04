@@ -814,7 +814,8 @@ class SAOMechanism(Mechanism):
         show_end_reason: bool = True,
         show_last_negotiator: bool = True,
         show_annotations: bool = False,
-        clrs: list | None = None,
+        colors: list | None = None,
+        markers: list[str] | None = None,
         ylimits: tuple[float, float] | None = None,
     ):
         from negmas.sao.plots import plot_mechanism_run
@@ -833,7 +834,8 @@ class SAOMechanism(Mechanism):
             show_end_reason=show_end_reason,
             show_last_negotiator=show_last_negotiator,
             show_annotations=show_annotations,
-            clrs=clrs,
+            colors=colors,
+            markers=markers,
             ylimits=ylimits,
         )
 
