@@ -6,7 +6,7 @@ from typing import Iterable
 from negmas.outcomes import Outcome
 
 from .base_ufun import BaseUtilityFunction
-from .protocols import InverseUFun, MultiInverseUFun
+from .protocols import InverseUFun
 
 __all__ = [
     "PresortingInverseUtilityFunction",
@@ -14,10 +14,19 @@ __all__ = [
 ]
 
 
-class SamplingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
+class SamplingInverseUtilityFunction(InverseUFun):
     def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
+        self._initialized = True
+
+    @property
+    def initialized(self):
+        return self._initialized
+
+    @property
+    def ufun(self):
+        return self._ufun
 
     def init(self):
         pass
@@ -98,15 +107,22 @@ class SamplingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
         return None
 
 
-class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
+class PresortingInverseUtilityFunction(InverseUFun):
     def __init__(
-        self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 10_000
+        self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 100_000
     ):
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
-        if ufun.is_stationary():
-            self.init()
+        self._initialized = False
+
+    @property
+    def initialized(self):
+        return self._initialized
+
+    @property
+    def ufun(self):
+        return self._ufun
 
     def init(self):
         outcome_space = self._ufun.outcome_space
@@ -124,7 +140,7 @@ class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
                 break
         else:
             raise ValueError(
-                f"Cannot discretize keeping cach size at {self.max_cache_size}"
+                f"Cannot discretize keeping cach size at {self.max_cache_size}. Outocme space cardinality is {outcome_space.cardinality}\nOutcome space: {outcome_space}"
             )
         os = outcome_space.to_discrete(levels=l, max_cardinality=self.max_cache_size)
         if os.cardinality <= self.max_cache_size:
@@ -133,6 +149,7 @@ class PresortingInverseUtilityFunction(MultiInverseUFun, InverseUFun):
             outcomes = list(os.enumerate())[: self.max_cache_size]
         utils = [float(self._ufun(_)) for _ in outcomes]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
+        self._initialized = True
 
     def all(
         self,

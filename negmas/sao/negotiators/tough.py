@@ -27,8 +27,6 @@ class ToughNegotiator(SAONegotiator):
          can_propose: If `False` the negotiator will never propose but can only accept
          preferences: The preferences of the negotiator
          ufun: The ufun of the negotiator (overrides preferences)
-         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
-                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
          owner: The `Agent` that owns the negotiator.
 
     Remarks:
@@ -112,18 +110,16 @@ class TopFractionNegotiator(SAONegotiator):
     Offers and accepts only one of the top outcomes for the negotiator.
 
     Args:
-         name: Negotiator name
-         parent: Parent controller if any
-         can_propose: If `False` the negotiator will never propose but can only accept
-         preferences: The preferences of the negotiator
-         ufun: The ufun of the negotiator (overrides preferences)
-         min_utility: The minimum utility to offer or accept
-         top_fraction: The fraction of the outcomes (ordered decreasingly by utility) to offer or accept
-         best_first: Guarantee offering will non-increasing in terms of utility value
-         probabilistic_offering: Offer randomly from the outcomes selected based on `top_fraction` and `min_utility`
-         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
-                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
-         owner: The `Agent` that owns the negotiator.
+        name: Negotiator name
+        parent: Parent controller if any
+        can_propose: If `False` the negotiator will never propose but can only accept
+        preferences: The preferences of the negotiator
+        ufun: The ufun of the negotiator (overrides preferences)
+        min_utility: The minimum utility to offer or accept
+        top_fraction: The fraction of the outcomes (ordered decreasingly by utility) to offer or accept
+        best_first: Guarantee offering will non-increasing in terms of utility value
+        probabilistic_offering: Offer randomly from the outcomes selected based on `top_fraction` and `min_utility`
+        owner: The `Agent` that owns the negotiator.
     """
 
     def __init__(

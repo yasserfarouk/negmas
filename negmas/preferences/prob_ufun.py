@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numbers
 import random
+from abc import ABC, abstractmethod
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -20,6 +21,10 @@ __all__ = [
 
 class ProbUtilityFunction(_General, BaseUtilityFunction, UFunProb):
     """A probablistic utility function. One that returns a probability distribution when called"""
+
+    @abstractmethod
+    def eval(self, offer: Outcome) -> Distribution:
+        ...
 
     def __call__(self, offer: Outcome | None) -> Distribution:
         """Calculate the utility_function value for a given outcome.
@@ -260,3 +265,6 @@ class ProbAdapter(ProbUtilityFunction):
         if isinstance(v, numbers.Real):
             return Real(v)
         return v
+
+    def to_stationary(self):
+        return self._ufun.to_stationary()

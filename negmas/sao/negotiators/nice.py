@@ -21,9 +21,6 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
          parent: Parent controller if any
          preferences: The preferences of the negotiator
          ufun: The ufun of the negotiator (overrides prefrences)
-         assume_normalized: If true, the negotiator can assume that the ufun is normalized.
-         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
-                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
          owner: The `Agent` that owns the negotiator.
 
     """

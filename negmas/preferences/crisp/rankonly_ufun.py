@@ -5,6 +5,7 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 from ..crisp_ufun import UtilityFunction
+from ..mixins import StationaryMixin
 from .mapping import MappingUtilityFunction
 
 if TYPE_CHECKING:
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 __all__ = ["RankOnlyUtilityFunction"]
 
 
-class RankOnlyUtilityFunction(UtilityFunction):
+class RankOnlyUtilityFunction(UtilityFunction, StationaryMixin):
     """
     A utility function that keeps trak of outcome order onlyself.
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from abc import abstractmethod
-from typing import Protocol, Union
+from typing import Literal, Protocol, runtime_checkable
 
 __all__ = [
     "Aspiration",
@@ -10,27 +10,43 @@ __all__ = [
 ]
 
 
-class Aspiration(Protocol):
+@runtime_checkable
+class TimeCurve(Protocol):
+    """
+    Models a time-curve mapping relative timge (going from 0.0 to 1.0) to a utility range to use
+    """
+
     @abstractmethod
-    def aspiration(self, t: float) -> float:
+    def utility_range(self, t: float) -> tuple[float, float]:
         pass
+
+
+@runtime_checkable
+class Aspiration(TimeCurve, Protocol):
+    @abstractmethod
+    def utility_at(self, t: float) -> float:
+        pass
+
+    def utility_range(self, t: float) -> tuple[float, float]:
+        return self.utility_at(t), 1.0
 
 
 class PolyAspiration(Aspiration):
     """
-    Adds aspiration level calculation. This Mixin MUST be used with a `Negotiator` class.
+    A polynomially conceding curve
 
     Args:
         max_aspiration: The aspiration level to start from (usually 1.0)
         aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
-        above_reserved_value: If False, the lowest value for the aspiration curve will be set to zero instead of the reserved_value
     """
 
     def __init__(
         self,
         max_aspiration: float,
-        aspiration_type: Union[str, int, float],
-        above_reserved_value=True,
+        aspiration_type: Literal["boulware"]
+        | Literal["conceder"]
+        | Literal["linear"]
+        | float,
     ):
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
@@ -47,9 +63,8 @@ class PolyAspiration(Aspiration):
             self.exponent = 0.25
         else:
             raise ValueError(f"Unknown aspiration type {aspiration_type}")
-        self.above_reserved = above_reserved_value
 
-    def aspiration(self, t: float) -> float:
+    def utility_at(self, t: float) -> float:
         """
         The aspiration level
 

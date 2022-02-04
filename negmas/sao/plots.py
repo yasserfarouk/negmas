@@ -23,7 +23,7 @@ __all__ = ["plot_offer_utilities", "plot_mechanism_run", "plot_2dutils"]
 ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
 
 
-def get_cmap(n, name="viridis"):
+def get_cmap(n, name="jet"):
     """Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name."""
     return plt.cm.get_cmap(name, n)
@@ -38,6 +38,7 @@ def plot_offer_utilities(
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     colors: list | None = None,
     markers: list | None = None,
+    colormap: str = "jet",
     ax: Axes | None = None,  # type: ignore
     sharey=False,
     xdim: str = "relative_time",
@@ -57,7 +58,7 @@ def plot_offer_utilities(
         one_y = False
 
     colors, markers = make_colors_and_markers(
-        colors, markers, len(plotting_negotiators)
+        colors, markers, len(plotting_negotiators), colormap
     )
 
     if xdim.startswith("step") or xdim.startswith("round"):
@@ -94,7 +95,7 @@ def plot_offer_utilities(
         a.set_ylabel(f"{name} ({i}) utility" if not one_y else "utility")
         if show_legend and len(plotting_negotiators) == 2:
             a.legend(
-                loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.1)
+                loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.2)
             )
     if show_legend and len(plotting_negotiators) != 2:
         ax.legend(
@@ -127,6 +128,7 @@ def plot_2dutils(
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     colors: list | None = None,
     markers: list[str] | None = None,
+    colormap: str = "jet",
     ax: Axes | None = None,  # type: ignore
 ):
     if ax is None:
@@ -169,7 +171,7 @@ def plot_2dutils(
     fig = plt.figure(figsize=(20, 8))
 
     colors, markers = make_colors_and_markers(
-        colors, markers, len(offering_negotiators)
+        colors, markers, len(offering_negotiators), colormap
     )
 
     agreement_utility = tuple(u(agreement) for u in plotting_ufuns)
@@ -298,9 +300,9 @@ def plot_2dutils(
     )
 
 
-def make_colors_and_markers(colors, markers, n: int):
+def make_colors_and_markers(colors, markers, n: int, colormap="jet"):
     if not colors:
-        cmap = get_cmap(n)
+        cmap = get_cmap(n, colormap)
         colors = [cmap(i) for i in range(n)]
     if not markers:
         markers = [ALL_MARKERS[i % len(ALL_MARKERS)] for i in range(n)]
@@ -323,6 +325,7 @@ def plot_mechanism_run(
     show_annotations: bool = False,
     colors: list | None = None,
     markers: list[str] | None = None,
+    colormap: str = "jet",
     ylimits: tuple[float, float] | None = None,
     common_legend=True,
 ):
@@ -348,7 +351,7 @@ def plot_mechanism_run(
     gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 2)
     axs = []
     colors, markers = make_colors_and_markers(
-        colors, markers, len(mechanism.negotiators)
+        colors, markers, len(mechanism.negotiators), colormap
     )
 
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
@@ -426,5 +429,4 @@ def plot_mechanism_run(
             path_ = pathlib.Path(path)
         path_.mkdir(parents=True, exist_ok=True)
         fig.savefig(str(path_ / fig_name), bbox_inches="tight", transparent=False)
-    else:
-        fig.show()
+    return fig

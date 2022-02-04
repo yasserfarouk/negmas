@@ -44,10 +44,8 @@ class GeniusNegotiator(SAONegotiator):
     Encapsulates a Genius Negotiator
 
     Args:
-        assume_normalized: Assume that the utility function is already normalized (or do not need to be normalized)
         preferences: The ufun of the negotiator [optional]
         name: Negotiator name [optional]
-        rational_proposal: If true, the negotiator will not offer anything less than their reserved-value
         parent: Parent `Controller`
         owner: The agent that owns the negotiator (if any)
         java_class_name: The java class name of the Geinus underlying agent
@@ -66,10 +64,8 @@ class GeniusNegotiator(SAONegotiator):
 
     def __init__(
         self,
-        assume_normalized=True,
         preferences: Optional[UtilityFunction] = None,
         name: str = None,
-        rational_proposal=False,
         parent: Controller = None,
         owner: "Agent" = None,  # type: ignore
         java_class_name: str = None,
@@ -83,9 +79,7 @@ class GeniusNegotiator(SAONegotiator):
     ):
         super().__init__(
             name=name,
-            assume_normalized=assume_normalized,
             preferences=None,
-            rational_proposal=rational_proposal,
             parent=parent,
             owner=owner,
         )

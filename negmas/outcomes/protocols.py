@@ -90,7 +90,7 @@ class OutcomeSpace(Container, Protocol):
                 break
         else:
             raise ValueError(
-                f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality}"
+                f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality} Outocme space cardinality is {self.cardinality}\nOutcome space: {self}"
             )
         return self.to_discrete(l, max_cardinality, **kwargs)
 

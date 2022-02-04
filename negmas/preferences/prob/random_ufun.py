@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from negmas.helpers.prob import Distribution, ScipyDistribution
 
+from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
 
 if TYPE_CHECKING:
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 __all__ = ["ProbRandomUtilityFunction"]
 
 
-class ProbRandomUtilityFunction(ProbUtilityFunction):
+class ProbRandomUtilityFunction(ProbUtilityFunction, StationaryMixin):
     """A random utility function for a discrete outcome space"""
 
     def __init__(

@@ -29,7 +29,6 @@ class RandomNegotiator(RandomResponseMixin, RandomProposalMixin, SAONegotiator):
 
     Remarks:
         - If p_acceptance + p_rejection + p_ending < 1, the rest is the probability of no-response.
-        - This negotiator ignores the `rational_proposal` parameter.
     """
 
     def propose_(self, state: MechanismState) -> Outcome | None:

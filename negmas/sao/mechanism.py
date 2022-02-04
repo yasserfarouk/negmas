@@ -816,6 +816,7 @@ class SAOMechanism(Mechanism):
         show_annotations: bool = False,
         colors: list | None = None,
         markers: list[str] | None = None,
+        colormap: str = "jet",
         ylimits: tuple[float, float] | None = None,
     ):
         from negmas.sao.plots import plot_mechanism_run
@@ -836,6 +837,7 @@ class SAOMechanism(Mechanism):
             show_annotations=show_annotations,
             colors=colors,
             markers=markers,
+            colormap=colormap,
             ylimits=ylimits,
         )
 

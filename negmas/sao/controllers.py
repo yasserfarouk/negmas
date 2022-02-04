@@ -836,7 +836,7 @@ class SAOSingleAgreementAspirationController(
     def is_acceptable(self, offer: Outcome, source: str, state: SAOState):
         if not self.ufun:
             return False
-        return self.ufun(offer) >= self.aspiration(state.relative_time)
+        return self.ufun(offer) >= self.utility_at(state.relative_time)
 
     def is_better(self, a: Outcome, b: Outcome, negotiator: str, state: SAOState):
         if not self.ufun:
@@ -860,7 +860,7 @@ class SAOSingleAgreementAspirationController(
             raise ValueError("No ufun is defined")
         outcome = self.ufun.sample_outcome_with_utility(
             rng=(
-                self.aspiration(state.relative_time)
+                self.utility_at(state.relative_time)
                 if state is not None
                 else float(self.ufun(super().best_outcome(negotiator, None))),
                 float("inf"),

@@ -44,7 +44,6 @@ __all__ = [
     "PartiallyNormalizable",
     "HasRange",
     "InverseUFun",
-    "MultiInverseUFun",
     "IndIssues",
     "XmlSerializableUFun",
     "SingleIssueFun",
@@ -301,6 +300,9 @@ class UFun(CardinalProb, Protocol):
         return u1 - u2  # type: ignore
 
 
+T = TypeVar("T", bound="UFunCrisp")
+
+
 @runtime_checkable
 class UFunCrisp(UFun, Protocol):
     """Can be called to map an `Outcome` to a `float`"""
@@ -311,6 +313,9 @@ class UFunCrisp(UFun, Protocol):
     def eval(self, offer: Outcome) -> float:
         ...
 
+    def to_stationary(self: T) -> T:
+        return self
+
 
 @runtime_checkable
 class UFunProb(UFun, Protocol):
@@ -319,6 +324,7 @@ class UFunProb(UFun, Protocol):
     def __call__(self, offer: Outcome | None) -> Distribution:
         ...
 
+    @abstractmethod
     def eval(self, offer: Outcome) -> Distribution:
         ...
 
@@ -388,19 +394,16 @@ class CardinalRanking(Protocol):
 
 
 @runtime_checkable
-class MultiInverseUFun(Protocol):
-    """Can be used to get some outcomes in a given utility range"""
-
-    @abstractmethod
-    def some(self, rng: float | tuple[float, float]) -> list[Outcome]:
-        """
-        Finds some outcomes in the given utility range
-        """
-
-
-@runtime_checkable
 class InverseUFun(Protocol):
     """Can be used to get one or more outcomes at a given range"""
+
+    ufun: UFun
+    initialized: bool
+
+    def init(self):
+        """
+        Used to intialize the inverse ufun. Any computationally expensive initialization should be  done here not in the constructor.
+        """
 
     @abstractmethod
     def some(
@@ -422,17 +425,25 @@ class InverseUFun(Protocol):
         """
         Finds an outcmoe with the given utility value
         """
-        return self.worst_in(rng) if random.random() < 0.5 else self.best_in(rng)
+        return random.choice(self.some(rng))
 
+    @abstractmethod
     def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
         """
         Finds an outcome with highest utility within the given range
         """
 
+    @abstractmethod
     def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
         """
         Finds an outcome with lowest utility within the given range
         """
+
+    def __call__(self, rng: float | tuple[float, float]) -> Outcome | None:
+        """
+        Calling an inverse ufun directly is equivalent to calling `one_in()`
+        """
+        return self.one_in(rng)
 
 
 @runtime_checkable

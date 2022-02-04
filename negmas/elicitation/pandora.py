@@ -118,7 +118,6 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         self.aspiration_init(
             max_aspiration=max_aspiration,
             aspiration_type=aspiration_type,
-            above_reserved_value=True,
         )
         self.add_capabilities(
             {
@@ -151,7 +150,7 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             - This does not depend on using `AspirationNegotiator` as the
               base_negotiator.
         """
-        return self.aspiration(state.relative_time)
+        return self.utility_at(state.relative_time)
 
     def update_cutoff_utility(self) -> None:
         r"""

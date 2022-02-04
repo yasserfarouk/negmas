@@ -30,9 +30,6 @@ class SAONegotiator(Negotiator):
          parent: Parent controller if any
          preferences: The preferences of the negotiator
          ufun: The utility function of the negotiator (overrides preferences if given)
-         assume_normalized: If true, the negotiator can assume that the ufun is normalized between zreo and one.
-         rational_proposal: If `True`, the negotiator will never propose something with a utility value less than its
-                            reserved value. If `propose` returned such an outcome, a NO_OFFER will be returned instead.
          owner: The `Agent` that owns the negotiator.
 
     Remarks:
@@ -44,14 +41,13 @@ class SAONegotiator(Negotiator):
 
     def __init__(
         self,
-        assume_normalized=False,
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
         name: str | None = None,
         parent: Controller = None,
         owner: "Agent" = None,
         id: str | None = None,
-        rational_proposal=True,
+        can_propose: bool = True,
     ):
         super().__init__(
             name=name,
@@ -61,12 +57,12 @@ class SAONegotiator(Negotiator):
             owner=owner,
             id=id,
         )
-        self.assume_normalized = assume_normalized
         self.__end_negotiation = False
         self.my_last_proposal: Outcome | None = None
         self._my_last_proposal_utility: Value | None = None
-        self.rational_proposal = rational_proposal
-        self.add_capabilities({"respond": True, "propose": True, "max-proposals": 1})
+        self.add_capabilities(
+            {"respond": True, "propose": can_propose, "max-proposals": 1}
+        )
 
     def on_notification(self, notification: Notification, notifier: str):
         """
@@ -95,26 +91,11 @@ class SAONegotiator(Negotiator):
         Remarks:
             - Depending on the `SAOMechanism` settings, refusing to offer may be interpreted as ending the negotiation
             - The negotiator will only receive this call if it has the 'propose' capability.
-            - Rational proposal is implemented in this method.
 
         """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
-        proposal = self.propose(state=state)
-
-        # never return a proposal that is less than the reserved value
-        if self.rational_proposal and self.ufun:
-            utility = None
-            if proposal is not None and self._preferences is not None:
-                utility = self.ufun(proposal)
-                if utility is not None and utility < self.reserved_value:
-                    return None
-
-            if utility is not None:
-                self.my_last_proposal = proposal
-                self._my_last_proposal_utility = utility
-
-        return proposal
+        return self.propose(state=state)
 
     def respond_(self, state: MechanismState, offer: Outcome) -> "ResponseType":
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.

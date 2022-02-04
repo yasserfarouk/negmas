@@ -20,7 +20,7 @@ __all__ = [
     "SAOResponse",
     "SAOState",
     "SAOAMI",
-    "all_negotiator_typs",
+    "all_negotiator_types",
 ]
 
 
@@ -68,7 +68,7 @@ class SAOAMI(NegotiatorMechanismInterface):
 
 
 @lru_cache(1)
-def all_negotiator_typs() -> list["SAONegotiator"]:
+def all_negotiator_types() -> list["SAONegotiator"]:
     """
     Returns all the negotiator types defined in negmas.sao.negotiators
     """

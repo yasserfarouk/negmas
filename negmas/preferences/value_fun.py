@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from functools import lru_cache, reduce
 from math import cos, e, log, pow, sin
 from operator import add
+from random import choice
 from typing import Any, Callable, Iterable
 
 from negmas.helpers.misc import (
@@ -114,7 +115,7 @@ class AffineFun(SingleIssueFun):
         #     output = f'<issue index="{indx + 1}" etype="real" type="integer" vtype="integer" name="{issue_name}">\n'
         #     output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
         else:
-            vals = list(issue.all)  # type: ignore
+            vals = list(issue.all)
             return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
                 indx, issue, bias
             )
@@ -571,7 +572,7 @@ class LogFun(SingleIssueFun):
 
 @dataclass
 class TableMultiFun(MultiIssueFun):
-    d: dict
+    d: dict[tuple, Any]
 
     def __call__(self, x):
         return self.d[x]
@@ -591,6 +592,14 @@ class TableMultiFun(MultiIssueFun):
         for k in self.d.keys():
             d[k] = self.d[k] * scale
         return TableMultiFun(d)
+
+    def dim(self) -> int:
+        if not len(self.d):
+            raise ValueError("Unkonwn dictionary in TableMultiFun")
+        return len(list(self.d.keys())[0])
+
+    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -612,6 +621,12 @@ class AffineMultiFun(MultiIssueFun):
         return AffineMultiFun(
             slope=tuple(scale * _ for _ in self.slope), bias=self.bias * scale
         )
+
+    def dim(self) -> int:
+        raise NotImplementedError()
+
+    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -635,6 +650,12 @@ class LinearMultiFun(MultiIssueFun):
     def scale_by(self, scale: float) -> LinearMultiFun:
         return LinearMultiFun(slope=tuple(scale * _ for _ in self.slope))
 
+    def dim(self) -> int:
+        raise NotImplementedError()
+
+    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+        raise NotImplementedError()
+
 
 @dataclass
 class LambdaMultiFun(MultiIssueFun):
@@ -656,6 +677,18 @@ class LambdaMultiFun(MultiIssueFun):
         if self.max_value is not None:
             mx = min(mx, self.max_value)
         return mn, mx
+
+    def shift_by(self, offset: float) -> AffineMultiFun:
+        raise NotImplementedError()
+
+    def scale_by(self, scale: float) -> LinearMultiFun:
+        raise NotImplementedError()
+
+    def dim(self) -> int:
+        raise NotImplementedError()
+
+    def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
+        raise NotImplementedError()
 
 
 def make_fun_from_xml(item) -> tuple[SingleIssueFun, str]:

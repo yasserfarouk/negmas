@@ -43,16 +43,6 @@ seller negotiating over a deal using time-based negotiators.
 
 
 
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_1_1.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
-
 .. parsed-literal::
 
     <Figure size 1440x576 with 0 Axes>
@@ -123,14 +113,6 @@ try to do that
         RandomNegotiator()
     except Exception as e:
         print(e)
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Can't instantiate abstract class RandomNegotiator with abstract method propose
-    </pre>
-
 
 
 
@@ -219,16 +201,6 @@ the buyer and/or seller negotiators in the code sample we used above:
 
 
 
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_9_1.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
-
 .. parsed-literal::
 
     <Figure size 1440x576 with 0 Axes>
@@ -248,15 +220,8 @@ exchanged (along with the agent that offered it):
 
 .. parsed-literal::
 
-    [('buyer-c3207c78-720c-45a8-99a0-1f2da76d409d', (1, 2, 5))]
-
-
-
-
-
-.. parsed-literal::
-
-    [('buyer-c3207c78-720c-45a8-99a0-1f2da76d409d', (1, 2, 5))]
+    [('buyer-5816c7e8-8206-4a36-9e80-e9aa07df6e1f', (7, 8, 9)),
+     ('seller-208f72ab-0def-485b-bee8-e2b46ba63dc8', (4, 11, 5))]
 
 
 
@@ -270,16 +235,6 @@ negotiation but replacing only the buyer
 
 
 .. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_13_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_13_2.png
 
 
 
@@ -318,17 +273,13 @@ negotiation ended.
 
 .. code:: ipython3
 
-    ended_at = [try_negotiator(RandomNegotiator, plot=False).state.step for _ in range(100)]
+    ended_at = [try_negotiator(RandomNegotiator, plot=False).state.step for _ in range(1000)]
     plt.hist(ended_at)
     plt.show()
 
 
 
 .. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_15_0.png
-
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_15_1.png
 
 
 Better acceptance strategy
@@ -382,16 +333,6 @@ agents with our slightly better random negotiator
     <Figure size 1440x576 with 0 Axes>
 
 
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_19_2.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
-
-
 Now *both* agents are proposing randomly. How can we check that our
 *complicated* acceptance strategy is implemented correctly?
 
@@ -414,50 +355,21 @@ negotiation:
         <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
-        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6.131748072999997</span>,
-        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.47619047619047616</span>,
+        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.1342009099999988</span>,
+        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.09523809523809523</span>,
         <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span><span style="font-weight: bold">)</span>,
         <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
         <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
         <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-59800a0c-a2ea-41cb-928b-0bdf2bd92a5c'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-813d06d5-67a1-41b0-bfd2-f0aac30b1843'</span>,
         <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
         <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-59800a0c-a2ea-41cb-928b-0bdf2bd92a5c'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
-        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>
-    <span style="font-weight: bold">)</span>
-    </pre>
-
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">SAOState</span><span style="font-weight: bold">(</span>
-        <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
-        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>,
-        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6.131748072999997</span>,
-        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.47619047619047616</span>,
-        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
-        <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer-59800a0c-a2ea-41cb-928b-0bdf2bd92a5c'</span>,
-        <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>,
-        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-59800a0c-a2ea-41cb-928b-0bdf2bd92a5c'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-813d06d5-67a1-41b0-bfd2-f0aac30b1843'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span><span style="font-weight: bold">))]</span>,
         <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
         <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'seller'</span>
     <span style="font-weight: bold">)</span>
@@ -516,15 +428,7 @@ agreement for the agent that accepted it as follows:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9822134387351779</span>
-    </pre>
-
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9822134387351779</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.8260869565217391</span>
     </pre>
 
 
@@ -618,7 +522,7 @@ explain it:
 
         def propose(self, state):
             # calculate my current aspiration level (utility level at which I will offer and accept)
-            a = (self._max - self._min) * self.aspiration(state.relative_time) + self._min
+            a = (self._max - self._min) * self.utility_at(state.relative_time) + self._min
 
             # find some outcomes (all if the outcome space is  discrete) above the aspiration level
             outcomes = self._inv.some((a, self._max))
@@ -658,7 +562,7 @@ offering strategy. Let’s look to it line by line:
 
 .. code:: python
 
-      a = (self._max - self._min) * self.aspiration(state.relative_time) + self._min
+      a = (self._max - self._min) * self.utility_at(state.relative_time) + self._min
 
 2. Find outcomes above my aspiration level. Note here that we use
    ``some()`` instead of ``all()`` to be compatible with continuous
@@ -700,16 +604,6 @@ While you are thinking about that, let’s check our new negotiator:
 
 
 .. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_29_0.png
-
-
-
-.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_29_1.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
 
 
 
@@ -761,21 +655,10 @@ with ``AspriationNegotiator`` on multiple negotiations:
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #808000; text-decoration-color: #808000">pdist</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8.602325267042609</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.701116394854619</span><span style="font-weight: bold">})</span>
-    <span style="color: #808000; text-decoration-color: #808000">ndiff</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.567428481978633</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.14792783626188705</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.4196839901381442</span><span style="font-weight: bold">})</span>
-    </pre>
-
-
-
-
-.. raw:: html
-
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #808000; text-decoration-color: #808000">pdist</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8.602325267042609</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.701116394854619</span><span style="font-weight: bold">})</span>
-    <span style="color: #808000; text-decoration-color: #808000">ndiff</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.567428481978633</span>,
-    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.14792783626188705</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.4196839901381442</span><span style="font-weight: bold">})</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #808000; text-decoration-color: #808000">pdist</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5.97563679346262</span>,
+    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6.081628904427046</span><span style="font-weight: bold">})</span>
+    <span style="color: #808000; text-decoration-color: #808000">ndiff</span>=<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">defaultdict</span><span style="font-weight: bold">(&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'float'</span><span style="font-weight: bold">&gt;</span>, <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'AspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.2907887527883225</span>,
+    <span style="color: #008000; text-decoration-color: #008000">'SmartAspirationNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.09861855750792475</span>, <span style="color: #008000; text-decoration-color: #008000">'RandomNegotiator'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.40651802136735393</span><span style="font-weight: bold">})</span>
     </pre>
 
 
@@ -809,3 +692,60 @@ in this negotiator?* Here are some answers:
 
 Now that you have some experience developing a negotiating agent, try to
 improve the design by handling these two issues.
+
+NegMAS already have slightly more general implementations of the general
+idea of biasing selection of outcomes to what we received from the
+partner. Let’s try one of them
+
+.. code:: ipython3
+
+    from negmas import ParetoFollowingTBNegotiator
+    _ = try_negotiator(ParetoFollowingTBNegotiator)
+
+
+
+.. image:: 02.develop_new_negotiator_files/02.develop_new_negotiator_33_0.png
+
+
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>
+
+
+Not bad.
+
+You can check other negotiators in NegMAS for new ideas:
+
+.. code:: ipython3
+
+    from negmas import all_negotiator_types
+    print(all_negotiator_types())
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">[</span>
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.AdditiveParetoFollowingTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.AspirationNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.tough.BestOutcomeOnlyNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.BoulwareTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.ConcederTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.FirstOfferOrientedTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.limited.LimitedOutcomesAcceptor'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.limited.LimitedOutcomesNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.LinearTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.MultiplicativeParetoFollowingTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.titfortat.NaiveTitForTatNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.nice.NiceNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.ParetoFollowingTBNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.passthrough.PassThroughSAONegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.randneg.RandomNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.titfortat.NaiveTitForTatNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.TimeBasedConcedingNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.timebased.TimeBasedNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.tough.TopFractionNegotiator'</span><span style="font-weight: bold">&gt;</span>,
+        <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.sao.negotiators.tough.ToughNegotiator'</span><span style="font-weight: bold">&gt;</span>
+    <span style="font-weight: bold">]</span>
+    </pre>

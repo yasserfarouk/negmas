@@ -30,13 +30,12 @@ __all__ = [
 
 
 class AspirationMixin:
-    "A mixin that adds aspiration capability (and aspiration() method)"
+    "A mixin that adds aspiration capability (and utility_at() method)"
 
     def aspiration_init(
         self,
         max_aspiration: float,
         aspiration_type: Union[str, int, float],
-        above_reserved_value=True,
     ):
         """
         Initializes the mixin.
@@ -44,13 +43,10 @@ class AspirationMixin:
         Args:
             max_aspiration: The aspiration level to start from (usually 1.0)
             aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
-            above_reserved_value: If False, the lowest value for the aspiration curve will be set to zero instead of the reserved_value
         """
-        self.__asp = PolyAspiration(
-            max_aspiration, aspiration_type, above_reserved_value
-        )
+        self.__asp = PolyAspiration(max_aspiration, aspiration_type)
 
-    def aspiration(self, t: float) -> float:
+    def utility_at(self, t: float) -> float:
         """
         The aspiration level
 
@@ -60,7 +56,7 @@ class AspirationMixin:
         Returns:
             aspiration level
         """
-        return self.__asp.aspiration(t)
+        return self.__asp.utility_at(t)
 
 
 class EvaluatorMixin:

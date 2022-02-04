@@ -387,7 +387,7 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         ...
 
     @property
-    def all(self) -> Generator[Outcome, None, None]:
+    def all(self) -> Generator[Any, None, None]:
         """
         A generator that generates all possible values.
         """

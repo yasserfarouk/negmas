@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import math
 import random
-from typing import Callable, Literal, Sequence, TypeVar
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Literal, Sequence, TypeVar
 
+from negmas import warnings
 from negmas.helpers.numeric import isint, isreal
 from negmas.negotiators.components import Aspiration, PolyAspiration, TimeCurve
 from negmas.outcomes.cardinal_issue import CardinalIssue
@@ -13,6 +16,7 @@ from negmas.preferences import (
     RankOnlyUtilityFunction,
     SamplingInverseUtilityFunction,
 )
+from negmas.sao import SAOState
 
 from ...common import PreferencesChange
 from ...outcomes import CartesianOutcomeSpace, Outcome, OutcomeSpace
@@ -28,38 +32,65 @@ __all__ = [
     "ConcederTBNegotiator",
     "FirstOfferOrientedTBNegotiator",
     "ParetoFollowingTBNegotiator",
+    "AdditiveParetoFollowingTBNegotiator",
+    "MultiplicativeParetoFollowingTBNegotiator",
 ]
 
 
-def diff(
+def generalized_euclidean_distance(
     outcome_space: OutcomeSpace | None,
     a: Outcome,
     b: Outcome,
     weights: Sequence[float] | None = None,
+    dist_power: float = 2,
 ) -> float:
     """
-    Calculates the difference between two outcomes given an outcome-space (optionally with issue weights).
+    Calculates the difference between two outcomes given an outcome-space (optionally with issue weights). This is defined as the distance.
 
     Remarks:
 
-        - Becomes the square of the Euclidean distance if all issues are numeric and no weights are given
+        - Becomes the Euclidean distance if all issues are numeric and no weights are given
+        - You can control the power:
+
+            - Setting it to 1 is the city-block distance
+            - Setting it to 0 is the maximum issue difference
     """
     if not weights:
         weights = [1] * len(a)
+    if dist_power <= 0 or dist_power == float("inf"):
+        if not isinstance(outcome_space, CartesianOutcomeSpace):
+            return max(
+                (w * abs(x - y))
+                if (isint(x) or isreal(x)) and (isint(y) or isreal(y))
+                else (w * int(x == y))
+                for w, x, y in zip(weights, a, b)
+            )
+        d = float("-inf")
+        for issue, w, x, y in zip(outcome_space.issues, weights, a, b):
+            if isinstance(issue, CardinalIssue):
+                c = w * abs(x - y)
+            else:
+                c = w * int(x == y)
+            if c > d:
+                d = c
+        return d
     if not isinstance(outcome_space, CartesianOutcomeSpace):
-        return sum(
-            (w * (x - y) * (x - y))
-            if (isint(x) or isreal(x)) and (isint(y) or isreal(y))
-            else (w * int(x == y))
-            for w, x, y in zip(weights, a, b)
+        return math.pow(
+            sum(
+                (w * math.pow(abs(x - y), dist_power))
+                if (isint(x) or isreal(x)) and (isint(y) or isreal(y))
+                else (w * int(x == y))
+                for w, x, y in zip(weights, a, b)
+            ),
+            1.0 / dist_power,
         )
     d = 0.0
     for issue, w, x, y in zip(outcome_space.issues, weights, a, b):
         if isinstance(issue, CardinalIssue):
-            d += w * (x - y) * (x - y)
+            d += w * math.pow(abs(x - y), dist_power)
             continue
         d += w * int(x == y)
-    return d
+    return math.pow(d, 1.0 / dist_power)
 
 
 def min_dist(
@@ -67,6 +98,7 @@ def min_dist(
     outcomes: Sequence[Outcome],
     outcome_space: OutcomeSpace | None,
     weights: Sequence[float] | None,
+    **kwargs,
 ) -> float:
     """
     Minimum distance between an outcome and a set of outcomes in an outcome-spaceself.
@@ -77,15 +109,19 @@ def min_dist(
     """
     if not outcomes:
         return 1.0
-    return min(diff(outcome_space, outcome, _, weights) for _ in outcomes)
+    return min(
+        generalized_euclidean_distance(outcome_space, outcome, _, weights, **kwargs)
+        for _ in outcomes
+    )
 
 
-def sum_pareto_follower(
+def additive_outcome_selector(
     outcomes: Sequence[Outcome],
     partner_offers: Sequence[Outcome],
     ufun: BaseUtilityFunction,
     weights: Sequence[float] | None = None,
     u_weight: float = 0.5,
+    dist_power: float = 2,
 ) -> Outcome:
     """
     Selects the outcome that maximizes the weightd sum of utility value and distance to the partner offers (with `u_weight` weighing the utility value)
@@ -95,26 +131,40 @@ def sum_pareto_follower(
         `min_dist` , `diff`
     """
     utils = [float(ufun(_)) for _ in outcomes]
+    dists = [
+        min_dist(
+            w,
+            partner_offers,
+            ufun.outcome_space,
+            weights=weights,
+            dist_power=dist_power,
+        )
+        for w in outcomes
+    ]
+    max_dist = max(dists)
+    if abs(max_dist) < 1e-8:
+        scores = sorted(zip(utils, outcomes), reverse=True)
+        return scores[0][1]
+    dists = [(max_dist - _) / max_dist for _ in dists]
     scores = sorted(
         (
             (
-                u * u_weight
-                + (1 - u_weight)
-                * min_dist(w, partner_offers, ufun.outcome_space, weights),
+                u * u_weight + (1 - u_weight) * d,
                 w,
             )
-            for (u, w) in zip(utils, outcomes)
+            for (u, d, w) in zip(utils, dists, outcomes)
         ),
         reverse=True,
     )
     return scores[0][1]
 
 
-def product_pareto_follower(
+def multiplicative_outcome_selector(
     outcomes: Sequence[Outcome],
     partner_offers: Sequence[Outcome],
     ufun: BaseUtilityFunction,
     weights: Sequence[float] | None = None,
+    dist_power: float = 2,
 ) -> Outcome:
     """
     Selects the outcome that maximizes the product of utility value and distance to the partner offers.
@@ -124,11 +174,17 @@ def product_pareto_follower(
         `min_dist` , `diff`
     """
     utils = [float(ufun(_)) for _ in outcomes]
+    dists = [
+        min_dist(w, partner_offers, ufun.outcome_space, weights, dist_power=dist_power)
+        for w in outcomes
+    ]
+    max_dist = max(dists)
+    if abs(max_dist) < 1e-8:
+        scores = sorted(zip(utils, outcomes), reverse=True)
+        return scores[0][1]
+    dists = [(max_dist - _) / max_dist for _ in dists]
     scores = sorted(
-        (
-            (u * min_dist(w, partner_offers, ufun.outcome_space, weights), w)
-            for (u, w) in zip(utils, outcomes)
-        ),
+        ((u * d, w) for (u, d, w) in zip(utils, dists, outcomes)),
         reverse=True,
     )
     return scores[0][1]
@@ -187,7 +243,7 @@ def make_offer_selector(
     raise ValueError(f"Unknown selector type: {selector}")
 
 
-TC = TypeVar("TC", bound=TimeCurve)
+TC = TypeVar("TC", bound=TimeCurve, contravariant=False)
 
 
 def make_curve(
@@ -241,7 +297,7 @@ class TimeBasedNegotiator(SAONegotiator):
         | Literal["worst"]
         | None = None,
         max_cardinality: int = 10_000,
-        eps: float = 0.01,
+        eps: float = 0.0001,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -258,7 +314,8 @@ class TimeBasedNegotiator(SAONegotiator):
         self._max_cartinality = max_cardinality
         self._inverter_factory = ufun_inverter
         self._selector_type = offer_selector
-        self._selector: Callable[[tuple[float, float]], Outcome | None] | None = None
+        self._selector: Callable[[Sequence[Outcome]], Outcome | None] | None = None
+        self._inv_method = None
         self._eps = eps
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
@@ -270,15 +327,33 @@ class TimeBasedNegotiator(SAONegotiator):
         self._inv = make_inverter(
             self.ufun, self._inverter_factory, self._rank_only, self._max_cartinality
         )
-        self._selector = make_offer_selector(self._inv, self._selector_type)
+        if self._selector_type is None:
+            self._inv_method = self._inv.one_in
+            self._selector = None
+        elif isinstance(self._selector_type, Callable):
+            self._selector, self._inv_method = self._selector_type, self._inv.some
+        elif self._selector_type == "worst":
+            self._inv_method = self._inv.worst_in
+            self._selector = None
+        elif self._selector_type == "best_in":
+            self._inv_method = self._inv.best_in
+            self._selector = None
+
         _worst, self._best = self.ufun.extreme_outcomes()
         self._min, self._max = float(self.ufun(_worst)), float(self.ufun(self._best))
         if self._min < self.reserved_value:
             self._min = self.reserved_value
 
     def respond(self, state, offer):
-        if self.ufun is None or self._max is None or self._min is None:
+        if self.ufun is None:
             raise ValueError("Unkonwn ufun.")
+        if self._max is None or self._min is None:
+            warnings.warn(
+                f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self.ufun.__class__.__name__} for negotiator {self.id} of type {self.__class__.__name__}"
+            )
+            self.on_preferences_changed([PreferencesChange.General])
+        if self._max is None or self._min is None:
+            raise ValueError("Cannot find extreme outcomes.")
         urange = self._accepting_curve.utility_range(state.relative_time)
         w, b = ((self._max - self._min) * _ + self._min for _ in urange)
         urange = (w - self._eps, b + self._eps)
@@ -287,19 +362,24 @@ class TimeBasedNegotiator(SAONegotiator):
         return ResponseType.REJECT_OFFER
 
     def propose(self, state):
-        if (
-            self._inv is None
-            or self._selector is None
-            or self._max is None
-            or self._min is None
-        ):
+        if self.ufun is None:
             raise ValueError("Unkonwn ufun.")
+        if self._inv is None or self._max is None or self._min is None:
+            warnings.warn(
+                f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self.ufun.__class__.__name__} for negotiator {self.id} of type {self.__class__.__name__}"
+            )
+            self.on_preferences_changed([PreferencesChange.General])
+        if self._inv is None or self._max is None or self._min is None:
+            raise ValueError(
+                "Failed to find an invertor, a selector, or exreme outputs"
+            )
         if not self._inv.initialized:
             self._inv.init()
         urange = self._offering_curve.utility_range(state.relative_time)
         w, b = ((self._max - self._min) * _ + self._min for _ in urange)
         urange = (w - self._eps, b + self._eps)
-        outcome = self._selector(urange)
+        outcomes = self._inv_method(urange)  # type: ignore
+        outcome = self._selector(outcomes) if self._selector else outcomes  # type: ignore
         if not outcome:
             return self._best
         return outcome
@@ -340,14 +420,19 @@ class TimeBasedConcedingNegotiator(TimeBasedNegotiator):
         rank_only: bool = False,
         ufun_inverter: Callable[[BaseUtilityFunction], InverseUFun] | None = None,
         max_cardinality: int = 10_000,
-        stochastic: bool = True,
+        stochastic: bool = False,
         starting_utility: float = 1.0,
+        offer_selector: Callable[[Sequence[Outcome]], Outcome]
+        | Literal["best"]
+        | Literal["worst"]
+        | None = None,
         **kwargs,
     ):
         offering_curve = make_curve(offering_curve, starting_utility)
         if not accepting_curve:
             accepting_curve = offering_curve
-        kwargs["offer_selector"] = None if stochastic else "worst"
+        if offer_selector is None and not stochastic:
+            offer_selector = "worst"
         super().__init__(
             *args,
             offering_curve=offering_curve,
@@ -355,6 +440,7 @@ class TimeBasedConcedingNegotiator(TimeBasedNegotiator):
             rank_only=rank_only,
             ufun_inverter=ufun_inverter,
             max_cardinality=max_cardinality,
+            offer_selector=offer_selector,
             **kwargs,
         )
 
@@ -477,7 +563,7 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
         stochastic=False,
         ranking_only=False,
         presort: bool = True,
-        tolerance: float = 0.01,
+        tolerance: float = 0.001,
         **kwargs,
     ):
         super().__init__(
@@ -492,90 +578,111 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
             **kwargs,
         )
 
+    @property
+    def tolerance(self):
+        return self._eps
 
-class FirstOfferOrientedTBNegotiator(TimeBasedNegotiator):
+    def utility_at(self, t):
+        if not self._offering_curve:
+            raise ValueError(f"No inverse ufun is known yet")
+        return self._offering_curve.utility_at(t)  # type: ignore (I know it is an Aspiration not a TimeCurve)
+
+    @property
+    def ufun_max(self):
+        return self._max
+
+    @property
+    def ufun_min(self):
+        return self._min
+
+
+class DynamicSelectorTBNegotiator(TimeBasedNegotiator, ABC):
+    """
+    Time-based negotiators that use a dynamic way to select which offer to give the opponent from the set selected by the current utility level
+    """
+
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
+        self._inv_method = self._inv.some  # type: ignore
+        self._selector = self.outcome_selector
+
+    @abstractmethod
+    def outcome_selector(self, outcomes: Sequence[Outcome]) -> Outcome | None:
+        ...
+
+
+class OfferOrientedTBNegotiator(DynamicSelectorTBNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by the  current utility level based on their utility value and how near they are to the partner's first offer (abstract).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        kwargs["stochastic"] = True
+        self._followed_offer = None
+
+    @abstractmethod
+    def pivot_selector(
+        self, old: Outcome | None, new: Outcome | None, state: SAOState
+    ) -> Outcome | None:
+        ...
+
+    def outcome_selector(self, outcomes: Sequence[Outcome]) -> Outcome | None:
+        if not self.ufun:
+            raise ValueError(f"Unkonwn ufun")
+        if not self._followed_offer:
+            return random.choice(outcomes)
+        nearest, ndist = None, float("inf")
+        for o in outcomes:
+            d = generalized_euclidean_distance(
+                self.ufun.outcome_space, o, self._followed_offer, None
+            )
+            if d < ndist:
+                nearest, ndist = o, d
+        return nearest
+
+    def respond(self, state, offer):
+        self._followed_offer = self.pivot_selector(self._followed_offer, offer, state)
+        if not self._followed_offer:
+            self._followed_offer = offer
+        return super().respond(state, offer)
+
+
+class FirstOfferOrientedTBNegotiator(OfferOrientedTBNegotiator):
     """
     A time-based negotiator that selectes outcomes from the list allowed by the  current utility level based on their utility value and how near they are to the partner's first offer
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._partner_first = None
-
-    def respond(self, state, offer):
-        if not self._partner_first:
-            self._partner_first = offer
-        return super().respond(state, offer)
-
-    def propose(self, state):
-        if (
-            self._inv is None
-            or self._best is None
-            or self._max is None
-            or self._min is None
-        ):
-            raise ValueError("Asked to propose without knowing the ufun or its invrese")
-        if not self._inv.initialized:
-            self._inv.init()
-        urange = self._offering_curve.utility_range(state.relative_time)
-        w, b = ((self._max - self._min) * _ + self._min for _ in urange)
-        urange = (w - self._eps * b, b + self._eps * b)
-        outcomes = self._inv.some(urange)
-        if not outcomes:
-            return self._best
-        if not self._partner_first:
-            return random.choice(outcomes)
-        nearest, ndist = None, float("inf")
-        for o in outcomes:
-            d = sum((a - b) * (a - b) for a, b in zip(o, self._partner_first))
-            if d < ndist:
-                nearest, ndist = o, d
-        return nearest
+    def pivot_selector(
+        self, old: Outcome | None, new: Outcome | None, state: SAOState
+    ) -> Outcome | None:
+        if old is None:
+            return new
+        return old
 
 
-class LastOfferOrientedTBNegotiator(TimeBasedNegotiator):
+class LastOfferOrientedTBNegotiator(FirstOfferOrientedTBNegotiator):
     """
     A time-based negotiator that selectes outcomes from the list allowed by the  current utility level based on their utility value and how near they are to the partner's last offer
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._partner_last = None
-
-    def respond(self, state, offer):
-        self._partner_last = offer
-        return super().respond(state, offer)
-
-    def propose(self, state):
-        if (
-            self._inv is None
-            or self.ufun is None
-            or self._best is None
-            or self._max is None
-            or self._min is None
-        ):
-            raise ValueError("Asked to propose without knowing the ufun or its invrese")
-        if not self._inv.initialized:
-            self._inv.init()
-        urange = self._offering_curve.utility_range(state.relative_time)
-        w, b = ((self._max - self._min) * _ + self._min for _ in urange)
-        urange = (w - self._eps * b, b + self._eps * b)
-        outcomes = self._inv.some(urange)
-        if not outcomes:
-            return self._best
-        if not self._partner_last:
-            return random.choice(outcomes)
-        nearest, ndist = None, float("inf")
-        for o in outcomes:
-            d = diff(self.ufun.outcome_space, o, self._partner_last, None)
-            if d < ndist:
-                nearest, ndist = o, d
-        return nearest
+    def pivot_selector(
+        self, old: Outcome | None, new: Outcome | None, state: SAOState
+    ) -> Outcome | None:
+        return new
 
 
-class ParetoFollowingTBNegotiator(TimeBasedNegotiator):
+class ParetoFollowingTBNegotiator(DynamicSelectorTBNegotiator):
     """
     A time-based negotiator that selectes outcomes from the list allowed by the  current utility level based on their utility value and how near they are to the partner's previous offers.
+
+
+    Remarks:
+        - You can pass extra parameters to the `offer_selector` using `offer_selector_params` .
+        - Builtin selectors (i.e. `additive_outcome_selector`, `multiplicative_outcome_selector` ) can be passed the following parameters:
+
+           - weights: To choose a weight for each issue when evaluating outcome distances. Default is 1 for all issues
+           - dist_power: To choose a power for calculating distances. Default is 2 (for Euclidean distance)
     """
 
     def __init__(
@@ -583,27 +690,71 @@ class ParetoFollowingTBNegotiator(TimeBasedNegotiator):
         *args,
         offer_selector: Callable[
             [Sequence[Outcome], Sequence[Outcome], BaseUtilityFunction], Outcome
-        ] = product_pareto_follower,
+        ] = multiplicative_outcome_selector,
+        offer_selector_params: dict[str, Any] | None = None,
         **kwargs,
     ):
         super().__init__(*args, offer_selector=None, **kwargs)
-        self._partner_offers: list[Outcome] = []
-        self._offer_selector = offer_selector
+        self._partner_offers: set[Outcome] = set()
+        self.offer_selector = offer_selector
+        self._selector_params = (
+            offer_selector_params if offer_selector_params else dict()
+        )
 
     def respond(self, state, offer):
-        self._partner_offers.append(offer)
+        self._partner_offers.add(offer)
         return super().respond(state, offer)
 
-    def propose(self, state):
-        if self._inv is None or self.ufun is None:
-            raise ValueError("Unkonwn ufun.")
-        if not self._inv.initialized:
-            self._inv.init()
-        w, b = self._offering_curve.utility_range(state.step)
-        urange = (w - self._eps * b, b + self._eps * b)
-        outcome = self._offer_selector(
-            self._inv.some(urange), self._partner_offers, self.ufun
+    def outcome_selector(self, outcomes: Sequence[Outcome]) -> Outcome | None:
+        if self.ufun is None:
+            raise ValueError(f"Unknown ufun")
+        return self.offer_selector(
+            outcomes, list(self._partner_offers), self.ufun, **self._selector_params
         )
-        if not outcome:
-            return self._best
-        return outcome
+
+
+class MultiplicativeParetoFollowingTBNegotiator(ParetoFollowingTBNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by the  current utility level based on a weighted sum of their normalized utilities and distances to previous offers
+
+
+    """
+
+    def __init__(
+        self,
+        *args,
+        dist_power: float = 2,
+        issue_weights: list[float] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            offer_selector=multiplicative_outcome_selector,
+            offer_selector_params=dict(weights=issue_weights, dist_power=dist_power),
+            **kwargs,
+        )
+
+
+class AdditiveParetoFollowingTBNegotiator(ParetoFollowingTBNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by the  current utility level based on a weighted sum of their normalized utilities and distances to previous offers
+
+
+    """
+
+    def __init__(
+        self,
+        *args,
+        dist_power: float = 2,
+        utility_weight: float = 0.25,
+        issue_weights: list[float] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            offer_selector=additive_outcome_selector,
+            offer_selector_params=dict(
+                weights=issue_weights, u_weight=utility_weight, dist_power=dist_power
+            ),
+            **kwargs,
+        )

@@ -16,6 +16,7 @@ from ...helpers.prob import (
     uniform_around,
 )
 from ..crisp.mapping import MappingUtilityFunction
+from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
 from .mapping import ProbMappingUtilityFunction
 
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 __all__ = ["IPUtilityFunction"]
 
 
-class IPUtilityFunction(ProbUtilityFunction):
+class IPUtilityFunction(ProbUtilityFunction, StationaryMixin):
     """
     Independent Probabilistic Utility Function.
 

@@ -245,3 +245,6 @@ class CrispAdapter(UtilityFunction):
 
     def eval(self, offer):
         return float(self._prob.eval(offer))
+
+    def to_stationary(self):
+        return self._prob.to_stationary()

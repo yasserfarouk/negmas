@@ -113,7 +113,9 @@ class DummyAgent(Agent):
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         negotiator = AspirationNegotiator(
-            preferences=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
+            preferences=MappingUtilityFunction(
+                mapping=lambda x: 1.0 - x[0] / 10.0, issues=issues
+            )
         )
         return negotiator
 
@@ -203,7 +205,10 @@ class ExceptionAgent(Agent):
         req_id: Optional[str],
     ) -> Optional[Negotiator]:
         negotiator = AspirationNegotiator(
-            preferences=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0)
+            preferences=MappingUtilityFunction(
+                mapping=lambda x: 1.0 - x[0] / 10.0,
+                issues=issues,
+            ),
         )
         return negotiator
 

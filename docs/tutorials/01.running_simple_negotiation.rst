@@ -10,36 +10,36 @@ to run negotiations as follows:
     import random # for generating random ufuns
     random.seed(0) # for reproducibility
     from pprint import pprint # for printing
-    from negmas import SAOMechanism, AspirationNegotiator, MappingUtilityFunction
+    from negmas import SAOMechanism, TimeBasedConcedingNegotiator, MappingUtilityFunction
 
     session = SAOMechanism(outcomes=10, n_steps=100)
-    negotiators = [AspirationNegotiator(name=f'a{_}') for _ in range(5)]
+    negotiators = [TimeBasedConcedingNegotiator(name=f'a{_}') for _ in range(5)]
     for negotiator in negotiators:
-        session.add(negotiator, preferences=MappingUtilityFunction(lambda x: random.random() * x[0]))
+        session.add(negotiator, preferences=MappingUtilityFunction(lambda x: random.random() * x[0], outcome_space=session.outcome_space))
 
     pprint(vars(session.run()))
 
 
 .. parsed-literal::
 
-    {'agreement': (8,),
+    {'agreement': (7,),
      'broken': False,
-     'current_offer': (8,),
-     'current_proposer': 'a1-fe37f235-df3a-4745-a3da-e1645a0f29f1',
+     'current_offer': (7,),
+     'current_proposer': 'a0-cff98877-9385-417b-aa80-71040ac4c823',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': 'a0',
+     'last_negotiator': 'a4',
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'new_offerer_agents': [],
-     'new_offers': [],
-     'relative_time': 0.7821782178217822,
+     'new_offerer_agents': [None],
+     'new_offers': [('a0-cff98877-9385-417b-aa80-71040ac4c823', (7,))],
+     'relative_time': 0.7425742574257426,
      'results': None,
      'running': False,
      'started': True,
-     'step': 78,
-     'time': 6.3316177379999985,
+     'step': 74,
+     'time': 0.3147378679999999,
      'timedout': False,
      'waiting': False}
 
@@ -135,7 +135,7 @@ This can be modeled in the following negotiation:
 
 .. code:: ipython3
 
-    from negmas import make_issue, SAOMechanism, NaiveTitForTatNegotiator, AspirationNegotiator
+    from negmas import make_issue, SAOMechanism, NaiveTitForTatNegotiator, TimeBasedConcedingNegotiator
     from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
     from negmas.preferences.value_fun import LinearFun, IdentityFun, AffineFun
 
@@ -169,7 +169,7 @@ This can be modeled in the following negotiation:
         )
 
     # create and add buyer and seller negotiators
-    session.add(AspirationNegotiator(name='buyer'), preferences=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='buyer'), preferences=buyer_utility)
     session.add(NaiveTitForTatNegotiator(name='seller'), ufun=seller_utility)
 
     # run the negotiation and show the results
@@ -178,10 +178,10 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': (8, 9, 9),
+    {'agreement': (4, 9, 5),
      'broken': False,
-     'current_offer': (8, 9, 9),
-     'current_proposer': 'buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2',
+     'current_offer': (4, 9, 5),
+     'current_proposer': 'buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -189,13 +189,13 @@ This can be modeled in the following negotiation:
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (8, 9, 9))],
+     'new_offers': [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (4, 9, 5))],
      'relative_time': 0.8571428571428571,
      'results': None,
      'running': False,
      'started': True,
      'step': 17,
-     'time': 0.174903982,
+     'time': 0.021572251000000264,
      'timedout': False,
      'waiting': False}
 
@@ -215,23 +215,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 11, 0))]
-    001: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 10, 0))]
-    002: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 9, 0))]
-    003: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 8, 0))]
-    004: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (9, 7, 0))]
-    005: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 11, 0))]
-    006: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 10, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 10, 0))]
-    007: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 9, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 9, 0))]
-    008: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (0, 8, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (8, 8, 0))]
-    009: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (1, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (6, 9, 0))]
-    010: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (1, 9, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (6, 8, 0))]
-    011: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (2, 11, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (4, 11, 0))]
-    012: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (2, 7, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (4, 10, 0))]
-    013: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (3, 7, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (3, 9, 0))]
-    014: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (5, 10, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (0, 11, 0))]
-    015: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (6, 8, 9)), ('seller-23435637-5534-4b50-adaa-4db8217a52ac', (0, 7, 0))]
-    016: [('buyer-c6b60895-4c79-4e7f-8f1a-06582cc1fac2', (8, 9, 9))]
+    000: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 11, 0))]
+    001: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 10, 0))]
+    002: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 9, 0))]
+    003: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 8, 0))]
+    004: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 7, 0))]
+    005: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 11, 0))]
+    006: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 10, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 10, 0))]
+    007: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 9, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 9, 0))]
+    008: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 8, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 8, 0))]
+    009: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (6, 9, 0))]
+    010: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 9, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (6, 8, 0))]
+    011: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 1, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (6, 7, 0))]
+    012: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 2, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (4, 10, 0))]
+    013: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (3, 7, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (1, 9, 0))]
+    014: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (3, 5, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (0, 11, 0))]
+    015: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (5, 3, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (0, 7, 0))]
+    016: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (4, 9, 5))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -269,31 +269,31 @@ the delivery time and price to go down. Let’s see what happens:
                            outcome_space=session.outcome_space)
 
     session = SAOMechanism(issues=issues, n_steps=50)
-    session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name='buyer'), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
     pprint(session.run().__dict__)
 
 
 .. parsed-literal::
 
-    {'agreement': (5, 2, 5),
+    {'agreement': (2, 11, 2),
      'broken': False,
-     'current_offer': (5, 2, 5),
-     'current_proposer': 'seller-8cb1537b-27c8-448c-ab8f-1ff01424ece4',
+     'current_offer': (2, 11, 2),
+     'current_proposer': 'buyer-f5833730-86ef-4c0c-8828-83601b80bccf',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': 'buyer',
+     'last_negotiator': 'seller',
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'new_offerer_agents': [],
-     'new_offers': [],
-     'relative_time': 0.9019607843137255,
+     'new_offerer_agents': [None],
+     'new_offers': [('buyer-f5833730-86ef-4c0c-8828-83601b80bccf', (2, 11, 2))],
+     'relative_time': 0.8431372549019608,
      'results': None,
      'running': False,
      'started': True,
-     'step': 45,
-     'time': 1.8555690819999988,
+     'step': 42,
+     'time': 0.06833521500000028,
      'timedout': False,
      'waiting': False}
 
@@ -330,8 +330,8 @@ this difference by normalizing both ufuns and trying again:
     seller_utility = seller_utility.scale_max(1.0)
     buyer_utility = buyer_utility.scale_max(1.0)
     session = SAOMechanism(issues=issues, n_steps=50)
-    session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name='buyer'), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01))
 
@@ -352,8 +352,8 @@ What happens if we give them more time to negotiate:
 
     session = SAOMechanism(issues=issues, n_steps=5000)
 
-    session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name='buyer'), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01))
 
@@ -377,8 +377,8 @@ to *linear* instead of the default *boulware*:
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-    session.add(AspirationNegotiator(name='buyer', aspiration_type="linear"), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name='buyer', offering_curve="linear"), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='seller', offering_curve="linear"), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01))
 
@@ -402,8 +402,8 @@ the other?
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-    session.add(AspirationNegotiator(name='buyer', aspiration_type="boulware"), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller', aspiration_type="linear"), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name='buyer', offering_curve="boulware"), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='seller', offering_curve="linear"), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01))
 
@@ -428,3 +428,37 @@ Try to give an intuition for what happened:
    previous (in which it was also using a linear concession strategy)?
 -  If the seller knew that the buyer will be using this strategy, what
    is its best response?
+
+Using a Genius Negotiator
+-------------------------
+
+NegMAS tries to make interoperability with Genius (the Java based
+defacto standard negotiation platform) as easy as possible. Once you
+install NegMAS, you need to run this command once to enable this:
+
+.. code:: bash
+
+   negmas genius-setup
+
+Assuming that you have a recent Java version, that is all you need to
+do. Let’s try to run the same negotiation we had before using the Genius
+Implementation of the time-based boulware negotiator:
+
+.. code:: ipython3
+
+    from negmas.genius.gnegotiators import BoulwareNegotiationParty
+    session = SAOMechanism(issues=issues, n_steps=5000)
+    session.add(BoulwareNegotiationParty(name='buyer-genius'), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name='seller-negmas', offering_curve="boulware"), ufun=seller_utility)
+    session.run()
+    session.plot(ylimits=(0.0, 1.01))
+
+
+
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_24_0.png
+
+
+
+.. parsed-literal::
+
+    <Figure size 1440x576 with 0 Axes>

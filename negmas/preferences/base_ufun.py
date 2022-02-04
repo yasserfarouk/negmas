@@ -21,6 +21,7 @@ from .protocols import (
     CardinalRanking,
     HasRange,
     HasReservedValue,
+    InverseUFun,
     OrdinalRanking,
     PartiallyNormalizable,
     PartiallyScalable,
@@ -41,9 +42,10 @@ __all__ = [
 
 
 T = TypeVar("T", bound="BaseUtilityFunction")
+TP = TypeVar("TP", bound="BaseUtilityFunction")
 
 
-class BaseUtilityFunction(
+class BaseUtilityFunction(  # type: ignore
     Preferences,
     PartiallyNormalizable,
     PartiallyScalable,
@@ -55,6 +57,10 @@ class BaseUtilityFunction(
     BasePref,
     ABC,
 ):
+    @abstractmethod
+    def eval(self, offer: Outcome) -> Value:
+        ...
+
     def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
@@ -259,10 +265,6 @@ class BaseUtilityFunction(
         if offer is None:
             return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
         return self.eval(offer)
-
-    @abstractmethod
-    def eval(self, offer: Outcome) -> Value:
-        ...
 
     def to_crisp(self) -> UtilityFunction:
         from negmas.preferences.crisp_ufun import CrispAdapter

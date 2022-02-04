@@ -84,6 +84,9 @@ class CartesianOutcomeSpace(OutcomeSpace, IndependentIssuesOS, XmlSerializable):
         self.name = name
         self.issues = tuple(issues)
 
+    def __str__(self):
+        return f"CartesianOutcomeSpace: {self.name} with issues:\n{[str(i) for i in self.issues]}"
+
     def __contains__(self, item):
         if isinstance(item, OutcomeSpace):
             return self.contains_os(item)

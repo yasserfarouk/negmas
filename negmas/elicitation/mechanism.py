@@ -60,7 +60,7 @@ def uniform():
 def current_aspiration(
     elicitor: "AspirationMixin", outcome: "Outcome", negotiation: "Mechanism"
 ) -> float:
-    return elicitor.aspiration(negotiation.relative_time)
+    return elicitor.utility_at(negotiation.relative_time)
 
 
 def create_negotiator(

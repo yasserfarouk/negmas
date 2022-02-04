@@ -484,7 +484,7 @@ class LinearUtilityFunction(AffineUtilityFunction):
 
     def __init__(
         self,
-        weights: dict[str, float] | list[float] | tuple[float] | None = None,
+        weights: dict[str, float] | list[float] | tuple[float, ...] | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -562,7 +562,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         values: dict[str, SingleIssueFun]
         | tuple[SingleIssueFun]
         | list[SingleIssueFun],
-        weights: Mapping[Any, float] | list[float] | tuple[float] | None = None,
+        weights: Mapping[Any, float] | list[float] | tuple[float, ...] | None = None,
         bias: float = 0.0,
         *args,
         **kwargs,

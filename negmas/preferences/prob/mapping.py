@@ -13,12 +13,13 @@ from negmas.outcomes.protocols import OutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..base import OutcomeUtilityMapping
+from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction
 
 __all__ = ["ProbMappingUtilityFunction"]
 
 
-class ProbMappingUtilityFunction(ProbUtilityFunction):
+class ProbMappingUtilityFunction(ProbUtilityFunction, StationaryMixin):
     """
     Outcome mapping utility function.
 

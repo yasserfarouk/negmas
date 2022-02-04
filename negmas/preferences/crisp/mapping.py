@@ -15,11 +15,12 @@ from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..base import OutcomeUtilityMapping
 from ..crisp_ufun import UtilityFunction
+from ..mixins import StationaryMixin
 
 __all__ = ["MappingUtilityFunction"]
 
 
-class MappingUtilityFunction(UtilityFunction):
+class MappingUtilityFunction(UtilityFunction, StationaryMixin):
     """
     Outcome mapping utility function.
 

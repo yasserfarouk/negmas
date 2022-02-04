@@ -532,7 +532,7 @@ other agent’s
         def propose(self, state: RubinsteinMechanismState)-> Outcome:
             if self.ufun((1.0, 1.0)) < 0.0:
                 return None
-            r = self.aspiration(state.relative_time)
+            r = self.utility_at(state.relative_time)
             return  (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)
 
     mechanism = RubinsteinMechanism(n_steps=100, extended=True)
