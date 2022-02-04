@@ -337,5 +337,49 @@ def test_smart_aspiration():
     session.run()
 
 
+def test_outcome_space_setting_resetting():
+    # create negotiation agenda (issues)
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
+    ]
+
+    # create the mechanism
+    session = SAOMechanism(issues=issues, n_steps=20)
+
+    # define ufuns
+    seller_utility = LinearAdditiveUtilityFunction(
+        values=(
+            IdentityFun(),
+            LinearFun(0.2),
+            AffineFun(-1, bias=9),
+        ),
+        weights=(1.0, 1.0, 10.0),
+    )
+    buyer_utility = LinearAdditiveUtilityFunction(
+        values=(
+            AffineFun(-1, bias=9.0),
+            LinearFun(0.2),
+            IdentityFun(),
+        ),
+    )
+    assert seller_utility.outcome_space is None
+    assert buyer_utility.outcome_space is None
+
+    session.add(FirstOfferOrientedTBNegotiator(name="buyer"), ufun=buyer_utility)
+    assert seller_utility.outcome_space is None
+    assert buyer_utility.outcome_space is None
+    session.add(FirstOfferOrientedTBNegotiator(name="seller"), ufun=seller_utility)
+    assert seller_utility.outcome_space is None
+    assert buyer_utility.outcome_space is None
+    session.step()
+    assert seller_utility.outcome_space is not None
+    assert buyer_utility.outcome_space is not None
+    session.run()
+    assert seller_utility.outcome_space is None
+    assert buyer_utility.outcome_space is None
+
+
 if __name__ == "__main__":
     pytest.main(args=[__file__])

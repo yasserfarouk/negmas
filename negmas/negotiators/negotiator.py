@@ -64,6 +64,9 @@ class Negotiator(Rational, Notifiable, ABC):
         self.__owner = owner
         super().__init__(name=name, ufun=None, preferences=None, id=id)
         self._preferences = preferences
+        self.__saved_pref_os = None
+        self.__did_save_pref_os = False
+        self.__dissociated = False
 
     @property
     def ami(self) -> NegotiatorMechanismInterface | None:
@@ -113,7 +116,11 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def _dissociate(self):
         self._nmi = None
+        if self._preferences and self.__did_save_pref_os:
+            self.__did_save_pref_os = False
+            self._preferences.outcome_space = self.__saved_pref_os
         self._preferences = self._init_preferences
+        self.__dissociated = True
         self._role = None
 
     def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
@@ -231,7 +238,12 @@ class Negotiator(Rational, Notifiable, ABC):
         """
         Internally called by the mechanism when the negotiation is about to start
         """
+        self.__dissociated = False
         if self._preferences:
+            if self.nmi:
+                self.__saved_pref_os = self._preferences.outcome_space
+                self.__did_save_pref_os = True
+                self._preferences.outcome_space = self.nmi.outcome_space
             super().set_preferences(self._preferences, force=True)
         self.on_negotiation_start(state)
 
@@ -305,6 +317,24 @@ class Negotiator(Rational, Notifiable, ABC):
 
         """
         self._dissociate()
+
+    def _on_negotiation_end(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation end
+
+        Args:
+            state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
+
+        """
+        self.on_negotiation_end(state)
+        if self._preferences and self.__did_save_pref_os:
+            self.__did_save_pref_os = False
+            self._preferences.outcome_space = self.__saved_pref_os
 
     def on_negotiation_end(self, state: MechanismState) -> None:
         """

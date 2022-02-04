@@ -948,7 +948,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         state = self.state
         for a in self.negotiators:
-            a.on_negotiation_end(state)
+            a._on_negotiation_end(state)
         self.announce(
             Event(
                 type="negotiation_end",
