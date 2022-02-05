@@ -247,8 +247,8 @@ class Negotiator(Rational, Notifiable, ABC):
         Internally called by the mechanism when the negotiation is about to start
         """
         if self._preferences:
-            super().set_preferences(self._preferences, force=True)
             self._set_pref_os()
+            super().set_preferences(self._preferences, force=True)
         self.on_negotiation_start(state)
 
     def on_negotiation_start(self, state: MechanismState) -> None:
