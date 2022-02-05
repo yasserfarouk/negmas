@@ -65,8 +65,7 @@ class Negotiator(Rational, Notifiable, ABC):
         super().__init__(name=name, ufun=None, preferences=None, id=id)
         self._preferences = preferences
         self.__saved_pref_os = None
-        self.__did_save_pref_os = False
-        self.__dissociated = False
+        self.__saved_prefs = None
 
     @property
     def ami(self) -> NegotiatorMechanismInterface | None:
@@ -99,6 +98,18 @@ class Negotiator(Rational, Notifiable, ABC):
                 "started is deprecated."
             )
         super().set_preferences(value, force=force)
+        self._set_pref_os()
+
+    def _reset_pref_os(self):
+        if self.__saved_prefs is not None:
+            self.__saved_prefs.outcome_space = self.__saved_pref_os
+            self.__saved_prefs = None
+
+    def _set_pref_os(self):
+        if self.nmi and self._preferences:
+            self.__saved_pref_os = self._preferences.outcome_space
+            self.__saved_prefs = self._preferences
+            self._preferences.outcome_space = self.nmi.outcome_space
 
     @property
     def parent(self) -> Controller | None:
@@ -116,11 +127,8 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def _dissociate(self):
         self._nmi = None
-        if self._preferences and self.__did_save_pref_os:
-            self.__did_save_pref_os = False
-            self._preferences.outcome_space = self.__saved_pref_os
+        self._reset_pref_os()
         self._preferences = self._init_preferences
-        self.__dissociated = True
         self._role = None
 
     def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
@@ -238,13 +246,9 @@ class Negotiator(Rational, Notifiable, ABC):
         """
         Internally called by the mechanism when the negotiation is about to start
         """
-        self.__dissociated = False
         if self._preferences:
-            if self.nmi:
-                self.__saved_pref_os = self._preferences.outcome_space
-                self.__did_save_pref_os = True
-                self._preferences.outcome_space = self.nmi.outcome_space
             super().set_preferences(self._preferences, force=True)
+            self._set_pref_os()
         self.on_negotiation_start(state)
 
     def on_negotiation_start(self, state: MechanismState) -> None:
@@ -332,9 +336,7 @@ class Negotiator(Rational, Notifiable, ABC):
 
         """
         self.on_negotiation_end(state)
-        if self._preferences and self.__did_save_pref_os:
-            self.__did_save_pref_os = False
-            self._preferences.outcome_space = self.__saved_pref_os
+        self._reset_pref_os()
 
     def on_negotiation_end(self, state: MechanismState) -> None:
         """

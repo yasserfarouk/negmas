@@ -346,7 +346,10 @@ class TimeBasedNegotiator(SAONegotiator):
 
     def respond(self, state, offer):
         if self.ufun is None:
-            raise ValueError("Unkonwn ufun.")
+            warnings.warn(
+                f"TimeBased negotiators need a ufun but I am asked to respond without one ({self.name} [id:{self.id}]. Will just reject hoping that a ufun will be set later"
+            )
+            return ResponseType.REJECT_OFFER
         if self._max is None or self._min is None:
             warnings.warn(
                 f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self.ufun.__class__.__name__} for negotiator {self.id} of type {self.__class__.__name__}"
@@ -363,7 +366,10 @@ class TimeBasedNegotiator(SAONegotiator):
 
     def propose(self, state):
         if self.ufun is None:
-            raise ValueError("Unkonwn ufun.")
+            warnings.warn(
+                f"TimeBased negotiators need a ufun but I am asked to offer without one ({self.name} [id:{self.id}]. Will just offer `None` waiting for next round if any"
+            )
+            return None
         if self._inv is None or self._max is None or self._min is None:
             warnings.warn(
                 f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self.ufun.__class__.__name__} for negotiator {self.id} of type {self.__class__.__name__}"
@@ -629,7 +635,7 @@ class OfferOrientedTBNegotiator(DynamicSelectorTBNegotiator):
 
     def outcome_selector(self, outcomes: Sequence[Outcome]) -> Outcome | None:
         if not self.ufun:
-            raise ValueError(f"Unkonwn ufun")
+            raise ValueError(f"Unknown ufun")
         if not self._followed_offer:
             return random.choice(outcomes)
         nearest, ndist = None, float("inf")
