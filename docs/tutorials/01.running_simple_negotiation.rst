@@ -25,7 +25,7 @@ to run negotiations as follows:
     {'agreement': (7,),
      'broken': False,
      'current_offer': (7,),
-     'current_proposer': 'a0-cff98877-9385-417b-aa80-71040ac4c823',
+     'current_proposer': 'a0-75c2bf05-c980-410f-8948-26058ea2fdae',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -33,13 +33,13 @@ to run negotiations as follows:
      'n_acceptances': 0,
      'n_negotiators': 5,
      'new_offerer_agents': [None],
-     'new_offers': [('a0-cff98877-9385-417b-aa80-71040ac4c823', (7,))],
+     'new_offers': [('a0-75c2bf05-c980-410f-8948-26058ea2fdae', (7,))],
      'relative_time': 0.7425742574257426,
      'results': None,
      'running': False,
      'started': True,
      'step': 74,
-     'time': 0.3147378679999999,
+     'time': 0.37875956700000035,
      'timedout': False,
      'waiting': False}
 
@@ -181,7 +181,7 @@ This can be modeled in the following negotiation:
     {'agreement': (4, 9, 5),
      'broken': False,
      'current_offer': (4, 9, 5),
-     'current_proposer': 'buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4',
+     'current_proposer': 'buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -189,13 +189,13 @@ This can be modeled in the following negotiation:
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (4, 9, 5))],
+     'new_offers': [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (4, 9, 5))],
      'relative_time': 0.8571428571428571,
      'results': None,
      'running': False,
      'started': True,
      'step': 17,
-     'time': 0.021572251000000264,
+     'time': 0.0683395770000006,
      'timedout': False,
      'waiting': False}
 
@@ -215,23 +215,23 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 11, 0))]
-    001: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 10, 0))]
-    002: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 9, 0))]
-    003: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 8, 0))]
-    004: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (9, 7, 0))]
-    005: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 11, 0))]
-    006: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 10, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 10, 0))]
-    007: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 9, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 9, 0))]
-    008: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 8, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (8, 8, 0))]
-    009: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 11, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (6, 9, 0))]
-    010: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 9, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (6, 8, 0))]
-    011: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 1, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (6, 7, 0))]
-    012: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (0, 2, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (4, 10, 0))]
-    013: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (3, 7, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (1, 9, 0))]
-    014: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (3, 5, 8)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (0, 11, 0))]
-    015: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (5, 3, 9)), ('seller-eb29d8d3-a0d4-482b-8044-0bb815031b11', (0, 7, 0))]
-    016: [('buyer-61b817f2-54e6-44b5-8b6c-f1a68013dec4', (4, 9, 5))]
+    000: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 11, 0))]
+    001: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 10, 0))]
+    002: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 9, 0))]
+    003: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 8, 0))]
+    004: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 7, 0))]
+    005: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 11, 0))]
+    006: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 10, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 10, 0))]
+    007: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 9, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 9, 0))]
+    008: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 8, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 8, 0))]
+    009: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (6, 9, 0))]
+    010: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 9, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (6, 8, 0))]
+    011: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 1, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (6, 7, 0))]
+    012: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 2, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (4, 10, 0))]
+    013: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (3, 7, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (1, 9, 0))]
+    014: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (3, 5, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (0, 11, 0))]
+    015: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (5, 3, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (0, 7, 0))]
+    016: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (4, 9, 5))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -279,7 +279,7 @@ the delivery time and price to go down. Let’s see what happens:
     {'agreement': (2, 11, 2),
      'broken': False,
      'current_offer': (2, 11, 2),
-     'current_proposer': 'buyer-f5833730-86ef-4c0c-8828-83601b80bccf',
+     'current_proposer': 'buyer-8eae4dea-9229-4598-b68d-f7efca15f5f8',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -287,13 +287,13 @@ the delivery time and price to go down. Let’s see what happens:
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-f5833730-86ef-4c0c-8828-83601b80bccf', (2, 11, 2))],
+     'new_offers': [('buyer-8eae4dea-9229-4598-b68d-f7efca15f5f8', (2, 11, 2))],
      'relative_time': 0.8431372549019608,
      'results': None,
      'running': False,
      'started': True,
      'step': 42,
-     'time': 0.06833521500000028,
+     'time': 0.061531085000000374,
      'timedout': False,
      'waiting': False}
 
@@ -428,37 +428,3 @@ Try to give an intuition for what happened:
    previous (in which it was also using a linear concession strategy)?
 -  If the seller knew that the buyer will be using this strategy, what
    is its best response?
-
-Using a Genius Negotiator
--------------------------
-
-NegMAS tries to make interoperability with Genius (the Java based
-defacto standard negotiation platform) as easy as possible. Once you
-install NegMAS, you need to run this command once to enable this:
-
-.. code:: bash
-
-   negmas genius-setup
-
-Assuming that you have a recent Java version, that is all you need to
-do. Let’s try to run the same negotiation we had before using the Genius
-Implementation of the time-based boulware negotiator:
-
-.. code:: ipython3
-
-    from negmas.genius.gnegotiators import BoulwareNegotiationParty
-    session = SAOMechanism(issues=issues, n_steps=5000)
-    session.add(BoulwareNegotiationParty(name='buyer-genius'), ufun=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller-negmas', offering_curve="boulware"), ufun=seller_utility)
-    session.run()
-    session.plot(ylimits=(0.0, 1.01))
-
-
-
-.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_24_0.png
-
-
-
-.. parsed-literal::
-
-    <Figure size 1440x576 with 0 Axes>
