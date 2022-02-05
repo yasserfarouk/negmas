@@ -97,8 +97,8 @@ class Negotiator(Rational, Notifiable, ABC):
                 "Changing the utility function by direct assignment after the negotiation is "
                 "started is deprecated."
             )
-        super().set_preferences(value, force=force)
         self._set_pref_os()
+        super().set_preferences(value, force=force)
 
     def _reset_pref_os(self):
         if self.__saved_prefs is not None:
