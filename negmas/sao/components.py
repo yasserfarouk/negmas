@@ -7,6 +7,8 @@ import random
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable
 
+from negmas.warnings import NegmasUnexpectedValueWarning
+
 from ..common import MechanismState, PreferencesChange
 from ..outcomes import Outcome
 from ..preferences import MappingUtilityFunction
@@ -149,21 +151,28 @@ class LimitedOutcomesAcceptorMixin:
         self.p_ending = p_ending + p_no_response  # type: ignore
         self.time_factor = time_factor  # type: ignore
 
-    def join(self: SAONegotiator, *args, **kwargs):  # type: ignore
-        if not super().join(*args, **kwargs):  # type: ignore
-            return False
-
-        self._make_preferences(self.nmi.issues)  # type: ignore
-        return True
+    def join(
+        self,
+        nmi,
+        state,
+        *,
+        preferences=None,
+        ufun=None,
+        role: str = "negotiator",
+        **kwargs,
+    ) -> bool:
+        if preferences or ufun:
+            warnings.warn(
+                f"Preferences or ufun are given but {self.name}  [id: {self.id}] of type {self.__class__.__name__} will ignore it",
+                NegmasUnexpectedValueWarning,
+            )
+        ufun = self._make_preferences(nmi.issues)
+        return super().join(nmi, state, ufun=ufun, role=role, **kwargs)
 
     def _make_preferences(self, issues):  # type: ignore
         """Generates a ufun that maps acceptance probability to the utility"""
         if self.acceptable_outcomes is None:
             self.acceptable_outcomes = self.nmi.discrete_outcomes()  # type: ignore
-
-        # self.acceptable_outcomes = [
-        #     dict2outcome(_, issues) for _ in self.acceptable_outcomes
-        # ]
 
         if self.acceptance_probabilities is None:
             self.acceptance_probabilities = [1.0] * len(self.acceptable_outcomes)  # type: ignore
@@ -174,8 +183,7 @@ class LimitedOutcomesAcceptorMixin:
         self.mapping = defaultdict(float)
         for p, o in zip(self.acceptance_probabilities, self.acceptable_outcomes):
             self.mapping[o] = p
-        self.ufun = MappingUtilityFunction(self.mapping)
-        self.on_preferences_changed([PreferencesChange.General])  # type: ignore
+        return MappingUtilityFunction(self.mapping)
 
     def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":  # type: ignore
         """Respond to an offer.
@@ -188,7 +196,7 @@ class LimitedOutcomesAcceptorMixin:
 
         """
         if not hasattr(self, "mapping"):
-            self._make_preferences(self.nmi.issues)  # type: ignore
+            self.set_preferences(self._make_preferences(self.nmi.issues))  # type: ignore
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
