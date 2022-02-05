@@ -3,11 +3,11 @@ Implements basic components that can be used by `SAOSAONegotiator` s.
 """
 from __future__ import annotations
 
-from negmas import warnings
 import random
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable
 
+from negmas import warnings
 from negmas.warnings import NegmasUnexpectedValueWarning
 
 from ..common import MechanismState, PreferencesChange
@@ -167,13 +167,13 @@ class LimitedOutcomesAcceptorMixin:
                 f"Preferences or ufun are given but {self.name}  [id: {self.id}] of type {self.__class__.__name__} will ignore it",
                 NegmasUnexpectedValueWarning,
             )
-        ufun = self._make_preferences(nmi.issues)
+        ufun = self._make_preferences(nmi, nmi.issues)
         return super().join(nmi, state, ufun=ufun, role=role, **kwargs)
 
-    def _make_preferences(self, issues):  # type: ignore
+    def _make_preferences(self, nmi, issues):  # type: ignore
         """Generates a ufun that maps acceptance probability to the utility"""
         if self.acceptable_outcomes is None:
-            self.acceptable_outcomes = self.nmi.discrete_outcomes()  # type: ignore
+            self.acceptable_outcomes = nmi.discrete_outcomes()  # type: ignore
 
         if self.acceptance_probabilities is None:
             self.acceptance_probabilities = [1.0] * len(self.acceptable_outcomes)  # type: ignore
@@ -197,7 +197,7 @@ class LimitedOutcomesAcceptorMixin:
 
         """
         if not hasattr(self, "mapping"):
-            self.set_preferences(self._make_preferences(self.nmi.issues))  # type: ignore
+            self.set_preferences(self._make_preferences(self.nmi, self.nmi.issues))  # type: ignore
         r = random.random()
         if r < self.p_no_response:
             return ResponseType.NO_RESPONSE
