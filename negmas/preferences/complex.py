@@ -97,7 +97,9 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         for f, w in zip(self.values, self.weights):
             util = f(offer)
             if util is None or w is None:
-                raise ValueError(f"Cannot calculate utility for {offer}")
+                raise ValueError(
+                    f"Cannot calculate utility for {offer}\n\t UFun {str(f)}\n\t with vars\n{vars(f)}"
+                )
             u += util * w  # type: ignore
         return u
 
