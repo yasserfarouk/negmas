@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from random import choice
 from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
+from negmas.common import PreferencesChange
 from negmas.preferences import (
     BaseUtilityFunction,
     InverseUFun,
@@ -21,7 +22,6 @@ __all__ = [
 ]
 
 if TYPE_CHECKING:
-    from negmas.common import PreferencesChange
     from negmas.outcomes import Outcome
     from negmas.sao import SAONegotiator, SAOState
 
