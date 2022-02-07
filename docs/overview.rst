@@ -1438,7 +1438,7 @@ handled by the ``Negotiator``. To allow controllers to actually manage
 negotiations, a subclass of ``Controller`` needs to implement these
 actions without calling the base class’s implementation.
 
-A special kind of negotiator called ``PassThroughNegotiator`` is
+A special kind of negotiator called ``ControlledNegotiator`` is
 designed to work with controllers that take full responsibility of the
 negotiation. These negotiators act just as a relay station passing all
 requests from the mechanism object to the controller and all responses

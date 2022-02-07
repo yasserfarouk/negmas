@@ -8,6 +8,7 @@ from __future__ import annotations
 from .common import *
 from .components import *
 from .controllers import *
+from .mixins import *
 from .mechanism import *
 from .negotiators import *
 from .plots import *
@@ -15,6 +16,7 @@ from .plots import *
 __all__ = (
     common.__all__
     + components.__all__
+    + mixins.__all__
     + mechanism.__all__
     + negotiators.__all__
     + controllers.__all__

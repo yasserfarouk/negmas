@@ -16,7 +16,7 @@ import pytest_check as check
 from hypothesis import HealthCheck, example, given, settings
 from pytest import mark
 
-import negmas
+from negmas import SAOSyncController
 from negmas.genius import genius_bridge_is_running
 from negmas.helpers import unique_name
 from negmas.outcomes import Outcome, make_issue
@@ -31,19 +31,20 @@ from negmas.sao import (
     LimitedOutcomesNegotiator,
     LinearTBNegotiator,
     MultiplicativeParetoFollowingTBNegotiator,
-    ParetoFollowingTBNegotiator,
     RandomNegotiator,
     ResponseType,
     SAOMechanism,
     SAONegotiator,
     SAOResponse,
     SAOState,
-    SAOSyncController,
     TimeBasedConcedingNegotiator,
     TimeBasedNegotiator,
     all_negotiator_types,
 )
-from negmas.sao.negotiators.timebased import LastOfferOrientedTBNegotiator
+from negmas.sao.negotiators.timebased import (
+    BestOfferOrientedTBNegotiator,
+    LastOfferOrientedTBNegotiator,
+)
 from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
 
 exception_str = "Custom Exception"
@@ -55,9 +56,9 @@ TIME_BASED_NEGOTIATORS = [
     BoulwareTBNegotiator,
     LinearTBNegotiator,
     ConcederTBNegotiator,
-    ParetoFollowingTBNegotiator,
     FirstOfferOrientedTBNegotiator,
     LastOfferOrientedTBNegotiator,
+    BestOfferOrientedTBNegotiator,
     TimeBasedConcedingNegotiator,
     TimeBasedNegotiator,
     AdditiveParetoFollowingTBNegotiator,
@@ -306,10 +307,10 @@ def test_neg_sync_loop(keep_order):
             2, outcomes=mechanism.discrete_outcomes()
         )
         mechanism.add(
-            c1.create_negotiator(preferences=ufuns[0], id=f"0-{m}", name=f"0-{m}")  # type: ignore It will be SAOPassThrough
+            c1.create_negotiator(preferences=ufuns[0], id=f"0-{m}", name=f"0-{m}")  # type: ignore It will be SAOControlled
         )
         mechanism.add(
-            c2.create_negotiator(preferences=ufuns[1], id=f"1-{m}", name=f"1-{m}")  # type: ignore It will be SAOPassThrough
+            c2.create_negotiator(preferences=ufuns[1], id=f"1-{m}", name=f"1-{m}")  # type: ignore It will be SAOControlled
         )
         mechanisms.append(mechanism)
     SAOMechanism.runall(mechanisms, keep_order=keep_order)
@@ -1147,13 +1148,11 @@ def test_times_are_calculated(n_outcomes, n_negotiators, n_steps):
     n_negotiators=st.integers(2, 4),
     n_issues=st.integers(1, 3),
     presort=st.booleans(),
-    randomize_offers=st.booleans(),
+    stochastic=st.booleans(),
 )
 @settings(deadline=20000, max_examples=100)
-@example(n_negotiators=2, n_issues=1, presort=False, randomize_offers=False)
-def test_aspiration_continuous_issues(
-    n_negotiators, n_issues, presort, randomize_offers
-):
+@example(n_negotiators=2, n_issues=1, presort=False, stochastic=False)
+def test_aspiration_continuous_issues(n_negotiators, n_issues, presort, stochastic):
     issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
     for _ in range(5):
         mechanism = SAOMechanism(
@@ -1175,7 +1174,7 @@ def test_aspiration_continuous_issues(
             AspirationNegotiator(
                 name=f"agent{i}",
                 presort=presort,
-                stochastic=randomize_offers,
+                stochastic=stochastic,
                 preferences=ufuns[i],
             )
         ), "Cannot add negotiator"
@@ -1184,7 +1183,7 @@ def test_aspiration_continuous_issues(
                 AspirationNegotiator(
                     name=f"agent{i}",
                     presort=presort,
-                    stochastic=randomize_offers,
+                    stochastic=stochastic,
                 ),
                 preferences=ufuns[i],
             ), "Cannot add negotiator"
@@ -1195,7 +1194,7 @@ def test_aspiration_continuous_issues(
             assert neg_id in agents.keys()
             utils = [neg.ufun(_) for _ in mechanism.negotiator_offers(neg_id)]
             if presort:
-                if randomize_offers:
+                if stochastic:
                     assert all(
                         utils[_] <= utils[0] + neg.tolerance for _ in range(len(utils))
                     ), f"{utils}"
@@ -1359,22 +1358,24 @@ def _run_neg(agents, utils, outcome_space):
     for a, u in zip(agents, utils):
         neg.add(a, preferences=u)
     neg.run()
-    # import matplotlib.pyplot as plt
-    # if not neg.agreement:
-    #     neg.plot()
-    #     plt.show()
     assert neg.state.agreement is not None, f"No agreement!!\n{neg.trace}"
     for a, u in zip(agents, utils):
         offers = neg.negotiator_offers(a.id)
         _, best = u.extreme_outcomes()
         assert (
             isinstance(a, ConcederTBNegotiator)
-            or isinstance(a, ParetoFollowingTBNegotiator)
+            or isinstance(a, AdditiveParetoFollowingTBNegotiator)
+            or isinstance(a, MultiplicativeParetoFollowingTBNegotiator)
             or u(offers[0]) >= (u(best) - 1e-4)
         ), f"Did not start with its best offer {best} but used {offers[0]}"
         if isinstance(a, AspirationNegotiator):
             for i, offer in enumerate(_ for _ in offers):
                 assert i == 0 or u(offer) <= u(offers[i - 1]), f"Not always conceding"
+                # if not(i == 0 or u(offer) <= u(offers[i - 1])):
+                #     import matplotlib.pyplot as plt
+                #     neg.plot()
+                #     plt.show()
+                #     raise AssertionError("Not always conceding")
     return neg
 
 

@@ -6,11 +6,11 @@ from ..common import ResponseType
 from .base import SAONegotiator
 
 __all__ = [
-    "PassThroughSAONegotiator",
+    "ControlledSAONegotiator",
 ]
 
 
-class PassThroughSAONegotiator(SAONegotiator):
+class ControlledSAONegotiator(SAONegotiator):
     """
     A negotiator that acts as an end point to a parent Controller.
 

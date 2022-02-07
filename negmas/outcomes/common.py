@@ -3,7 +3,7 @@ Common datastructures used in the outcomes module.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
 from negmas.outcomes.issue_ops import issues_from_outcomes
 

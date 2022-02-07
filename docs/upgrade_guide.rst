@@ -1,7 +1,7 @@
 0.8->0.9 Upgrade Guide
 ======================
 
-NegMAS 0.9 is not backward  compatible with NegMAS 0.8 and to use it you
+NegMAS 0.9 is not backward compatible with NegMAS 0.8 and to use it you
 will need to make some modifications to your code. This guide aims at helping
 you achieve this with minimal hassle.
 
@@ -21,6 +21,10 @@ to_java                       to_dict                              Java interfac
 from_genius/to_genius                                              Remove keep_issue_names, keep_issue_values (not supported anymore)
 Negotiator.on_ufun_changed    Negotiator.on_preferences_changed
 Negotiator._utility_function  Negotiator.ufun
+SAOAMI                        SAONMI
+PassThroughNegotiator         ControlledNegotiator
+PassThroughSAONegotiator      ControlledNegotiator
+from negmas.*.passthrough     from negmas.*.controlled             where `*` here stands for any submodule
 ============================  ===================================  ===============================================
 
 The following rules  must be followed:
@@ -189,6 +193,10 @@ NegMAS 0.9 has other changing that can be potentially breaking but are
 justified by the more consistency they bring and/or their performance edge.
 Most of these changes have no effect on well-behaving code using the library:
 
+- We renamed PassThroughNegotiator types to `ControlledNegotiator` types to better
+  document their roles. These negotiators allow for user-controlled separation of
+  responsibilities between the `Controller` and the `Negotiator` . The old name
+  suggested that the negotiator **cannot** do anything (just a pass-through entity).
 - In most cases, we use the more general term `preferences` instead of `ufun`
   whenever possible. For example, `on_ufun_changed` was renamed to
   `on_preferences_changed` to make it clear that general preferences can be

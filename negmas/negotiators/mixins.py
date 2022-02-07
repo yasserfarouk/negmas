@@ -10,7 +10,7 @@ import numpy as np
 from negmas.outcomes import Issue, sample_issues
 from negmas.preferences import Preferences
 
-from .components import PolyAspiration
+from .helpers import PolyAspiration
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome

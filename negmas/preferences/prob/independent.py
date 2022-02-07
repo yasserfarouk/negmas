@@ -12,7 +12,7 @@ from negmas.outcomes import Issue, Outcome
 from ...helpers.prob import (
     Distribution,
     ScipyDistribution,
-    as_distribution,
+    make_distribution,
     uniform_around,
 )
 from ..crisp.mapping import MappingUtilityFunction
@@ -292,7 +292,7 @@ class IPUtilityFunction(ProbUtilityFunction, StationaryMixin):
 
         """
         if offer is None:
-            return as_distribution(self.reserved_value)
+            return make_distribution(self.reserved_value)
         if self.tupelized and not isinstance(offer, tuple):
             offer = tuple(ivalues(offer))
         return self.distributions[offer]

@@ -19,14 +19,15 @@ __all__ = [
     "NormalDistribution",  # A probability distribution using scipy stats
     "UniformDistribution",  # A probability distribution using scipy stats
     "Real",
-    "as_distribution",
+    "make_distribution",
 ]
 
 EPSILON = 1e-8
 
 
-def as_distribution(x: int | float | numbers.Real | Distribution):
-    """Ensures the output is `Distribution`
+def make_distribution(x: int | float | numbers.Real | Distribution) -> Distribution:
+    """
+    Ensures the output is `Distribution`
 
     Remarks:
         The input can either be `Distribution` or a number

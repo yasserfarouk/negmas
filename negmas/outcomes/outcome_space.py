@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import reduce
 from operator import mul
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence, Union
 
 from negmas.helpers import unique_name
 from negmas.helpers.types import get_full_type_name
@@ -34,9 +34,18 @@ from .protocols import (
 )
 from .range_issue import RangeIssue
 
-__all__ = ["CartesianOutcomeSpace", "DiscreteCartesianOutcomeSpace", "make_os"]
+__all__ = [
+    "CartesianOutcomeSpace",
+    "DiscreteCartesianOutcomeSpace",
+    "make_os",
+    "DistanceFun",
+]
 
 NLEVELS = 5
+
+
+DistanceFun = Callable[[Outcome, Outcome, Union[OutcomeSpace, None]], float]
+"""A callable that can calculate the distance between two outcomes in an outcome-space"""
 
 
 def make_os(

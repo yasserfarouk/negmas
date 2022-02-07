@@ -19,7 +19,7 @@ __all__ = [
     "ResponseType",
     "SAOResponse",
     "SAOState",
-    "SAOAMI",
+    "SAONMI",
     "all_negotiator_types",
 ]
 
@@ -61,7 +61,7 @@ class SAOState(MechanismState):
 
 
 @dataclass
-class SAOAMI(NegotiatorMechanismInterface):
+class SAONMI(NegotiatorMechanismInterface):
     end_on_no_response: bool = True
     publish_proposer: bool = True
     publish_n_acceptances: bool = False

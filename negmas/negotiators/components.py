@@ -1,81 +1,64 @@
 from __future__ import annotations
 
-import math
-from abc import abstractmethod
-from typing import Literal, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
-__all__ = [
-    "Aspiration",
-    "PolyAspiration",
-]
+from negmas.common import NegotiatorMechanismInterface, PreferencesChange
 
-
-@runtime_checkable
-class TimeCurve(Protocol):
-    """
-    Models a time-curve mapping relative timge (going from 0.0 to 1.0) to a utility range to use
-    """
-
-    @abstractmethod
-    def utility_range(self, t: float) -> tuple[float, float]:
-        pass
+if TYPE_CHECKING:
+    from ..common import MechanismState
+    from ..negotiators import Negotiator
+__all__ = ["Component"]
 
 
-@runtime_checkable
-class Aspiration(TimeCurve, Protocol):
-    @abstractmethod
-    def utility_at(self, t: float) -> float:
-        pass
-
-    def utility_range(self, t: float) -> tuple[float, float]:
-        return self.utility_at(t), 1.0
-
-
-class PolyAspiration(Aspiration):
-    """
-    A polynomially conceding curve
-
-    Args:
-        max_aspiration: The aspiration level to start from (usually 1.0)
-        aspiration_type: The aspiration type. Can be a string ("boulware", "linear", "conceder") or a number giving the exponent of the aspiration curve.
-    """
-
-    def __init__(
-        self,
-        max_aspiration: float,
-        aspiration_type: Literal["boulware"]
-        | Literal["conceder"]
-        | Literal["linear"]
-        | float,
-    ):
-        self.max_aspiration = max_aspiration
-        self.aspiration_type = aspiration_type
-        self.exponent = 1.0
-        if isinstance(aspiration_type, int):
-            self.exponent = float(aspiration_type)
-        elif isinstance(aspiration_type, float):
-            self.exponent = aspiration_type
-        elif aspiration_type == "boulware":
-            self.exponent = 4.0
-        elif aspiration_type == "linear":
-            self.exponent = 1.0
-        elif aspiration_type == "conceder":
-            self.exponent = 0.25
-        else:
-            raise ValueError(f"Unknown aspiration type {aspiration_type}")
-
-    def utility_at(self, t: float) -> float:
+class Component(Protocol):
+    def set_negotiator(self, negotiator: Negotiator) -> None:
         """
-        The aspiration level
-
-        Args:
-            t: relative time (a number between zero and one)
-
-        Returns:
-            aspiration level
+        Sets the negotiator of which this component is a part.
         """
-        if t is None:
-            raise ValueError(
-                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
-            )
-        return self.max_aspiration * (1.0 - math.pow(t, self.exponent))
+
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """
+        Called to inform the component that the ufun has changed and the kinds of change that happened.
+        """
+
+    def can_join(self, nmi: NegotiatorMechanismInterface) -> bool:
+        """
+        A call back called before joining a negotiation to confirm that we can join it.
+        """
+        return True
+
+    def after_join(self, nmi: NegotiatorMechanismInterface) -> None:
+        """
+        A call back called after joining a negotiation to confirm wwe joined.
+        """
+
+    def on_negotiation_start(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation start
+        """
+
+    def on_round_start(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation round start
+        """
+
+    def on_round_end(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation round end
+        """
+
+    def on_leave(self, state: MechanismState) -> None:
+        """
+        A call back called after leaving a negotiation.
+        """
+
+    def on_negotiation_end(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation end
+        """
+
+    def on_mechanism_error(self, state: MechanismState) -> None:
+        """
+        A call back called whenever an error happens in the mechanism. The error and its explanation are accessible in
+        `state`
+        """

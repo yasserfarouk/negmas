@@ -7,7 +7,7 @@ from negmas import warnings
 from ...common import MechanismState
 from ...outcomes import Outcome
 from ..common import ResponseType
-from ..components import LimitedOutcomesAcceptorMixin, LimitedOutcomesMixin
+from ..mixins import LimitedOutcomesAcceptorMixin, LimitedOutcomesMixin
 from .base import SAONegotiator
 
 __all__ = [

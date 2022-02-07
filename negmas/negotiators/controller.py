@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from negmas.preferences import BaseUtilityFunction
     from negmas.situated import Agent
 
-    from .passthrough import PassThroughNegotiator
+    from .controlled import ControlledNegotiator
 
 
 __all__ = [
@@ -40,7 +40,7 @@ class Controller(Rational):
 
     Controllers for specific classes should inherit from this class and
     implement whatever methods they want to override on their
-    `PassThroughNegotiator` objects. For example, the SAO module defines
+    `ControlledNegotiator` objects. For example, the SAO module defines
     `SAOController` that needs only to implement `propose` and `respond` .
 
     Args:
@@ -63,7 +63,7 @@ class Controller(Rational):
 
     def __init__(
         self,
-        default_negotiator_type: Union[str, Type[PassThroughNegotiator]] = None,
+        default_negotiator_type: Union[str, Type[ControlledNegotiator]] = None,
         default_negotiator_params: Dict[str, Any] = None,
         parent: Union["Controller", "Agent"] = None,
         auto_kill: bool = True,
@@ -151,7 +151,7 @@ class Controller(Rational):
         `add_negotiator` to add it.
 
         Args:
-            negotiator_type: Type of the negotiator to be created. If None, A `PassThroughNegotiator` negotiator will be controlled (which is **fully** controlled by the controller).
+            negotiator_type: Type of the negotiator to be created. If None, A `ControlledNegotiator` negotiator will be controlled (which is **fully** controlled by the controller).
             name: negotiator name
             **kwargs: any key-value pairs to be passed to the negotiator constructor
 
@@ -192,7 +192,7 @@ class Controller(Rational):
         if negotiator is not None:
             self._negotiators[negotiator.id] = NegotiatorInfo(negotiator, cntxt)
 
-    def call(self, negotiator: PassThroughNegotiator, method: str, *args, **kwargs):
+    def call(self, negotiator: ControlledNegotiator, method: str, *args, **kwargs):
         """
         Calls the given method on the given negotiator safely without causing
         recursion. The controller MUST use this function to access any callable

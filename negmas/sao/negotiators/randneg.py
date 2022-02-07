@@ -8,7 +8,7 @@ from ...common import MechanismState, NegotiatorMechanismInterface
 from ...outcomes import CartesianOutcomeSpace, Outcome
 from ...preferences import LinearUtilityFunction, MappingUtilityFunction
 from ..common import ResponseType
-from ..components import RandomProposalMixin, RandomResponseMixin
+from ..mixins import RandomProposalMixin, RandomResponseMixin
 from .base import SAONegotiator
 
 __all__ = [

@@ -15,7 +15,7 @@ from ..common import MechanismState, NegotiatorMechanismInterface
 from ..negotiators import AspirationMixin, Controller
 from ..outcomes import Outcome, outcome_is_valid
 from .common import ResponseType, SAOResponse, SAOState
-from .negotiators import AspirationNegotiator, PassThroughSAONegotiator, SAONegotiator
+from .negotiators import AspirationNegotiator, ControlledSAONegotiator, SAONegotiator
 
 if TYPE_CHECKING:
     from negmas.preferences import Preferences
@@ -40,7 +40,7 @@ class SAOController(Controller):
 
     Args:
          default_negotiator_type: Default type to use when creating negotiators using this controller. The default type is
-                                  `PassThroughSAONegotiator` which passes *full control* to the controller.
+                                  `ControlledSAONegotiator` which passes *full control* to the controller.
          default_negotiator_params: Default paramters to pass to the default controller.
          auto_kill: Automatically kill the negotiator once its negotiation session is ended.
          name: Controller name
@@ -50,7 +50,7 @@ class SAOController(Controller):
 
     def __init__(
         self,
-        default_negotiator_type=PassThroughSAONegotiator,
+        default_negotiator_type=ControlledSAONegotiator,
         default_negotiator_params=None,
         auto_kill=False,
         name=None,

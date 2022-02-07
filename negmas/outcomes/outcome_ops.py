@@ -3,18 +3,22 @@ Functions for handling outcome spaces
 """
 from __future__ import annotations
 
+import math
 import numbers
-from typing import TYPE_CHECKING, Any, Iterable, Sequence, overload
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence, overload
 
 import numpy as np
 
 from negmas.generics import ienumerate, iget, ikeys
+from negmas.helpers.numeric import isint, isreal
+from negmas.outcomes.cardinal_issue import CardinalIssue
 from negmas.outcomes.range_issue import RangeIssue
 
 from .base_issue import Issue
 
 if TYPE_CHECKING:
     from .common import Outcome, OutcomeRange
+    from .outcome_space import DistanceFun, OutcomeSpace
 
 __all__ = [
     "dict2outcome",
@@ -23,6 +27,8 @@ __all__ = [
     "outcome_is_complete",
     "outcome_types_are_ok",
     "outcome_is_valid",
+    "generalized_minkowski_distance",
+    "min_dist",
 ]
 
 
@@ -102,7 +108,7 @@ def outcome_types_are_ok(outcome: "Outcome", issues: Iterable["Issue"]) -> bool:
     return True
 
 
-def cast_value_types(outcome: "Outcome", issues: Iterable["Issue"]) -> "Outcome":
+def cast_value_types(outcome: Outcome, issues: Iterable["Issue"]) -> Outcome:
     """
     Casts the types of values in the outcomes to the value-type of each issue (if given)
     """
@@ -116,7 +122,7 @@ def cast_value_types(outcome: "Outcome", issues: Iterable["Issue"]) -> "Outcome"
     return tuple(new_outcome)
 
 
-def outcome_is_complete(outcome: "Outcome", issues: Sequence["Issue"]) -> bool:
+def outcome_is_complete(outcome: Outcome, issues: Sequence[Issue]) -> bool:
     """
     Tests that the outcome is valid and complete.
 
@@ -177,7 +183,7 @@ def outcome_is_complete(outcome: "Outcome", issues: Sequence["Issue"]) -> bool:
 
 
 def outcome_in_range(
-    outcome: "Outcome",
+    outcome: Outcome,
     outcome_range: OutcomeRange,
     *,
     strict=False,
@@ -405,3 +411,105 @@ def dict2outcome(
         return d
 
     return tuple(d[_ if isinstance(_, str) else _.name] for _ in issues)
+
+
+def generalized_minkowski_distance(
+    a: Outcome,
+    b: Outcome,
+    outcome_space: OutcomeSpace | None,
+    *,
+    weights: Sequence[float] | None = None,
+    dist_power: float = 2,
+) -> float:
+    r"""
+    Calculates the difference between two outcomes given an outcome-space (optionally with issue weights). This is defined as the distance.
+
+    Args:
+
+        outcome_space: The outcome space used for comparison (If None an apporximate implementation is provided)
+        a: first outcome
+        b: second outcome
+        weights: Issue weights
+        dist_power: The exponent used when calculating the distance
+
+    Remarks:
+
+        - Implements the following distance measure:
+
+          .. math::
+
+             d(a, b) = \left( \sum_{i=1}^{N} w_i {\left| a_i - b_i \right|}^p \right)^{frac{1}{p}}
+
+          where $a, b$ are the outocmes, $x_i$ is value for issue $i$ of outcoem $x$, $w_i$ is the weight of issue $i$ and $p$ is the `dist_power` passsed. Categorical issue differences is defined as $1$ if the values are not
+          equal and $0$ otherwise.
+        - Becomes the Euclidean distance if all issues are numeric and no weights are given
+        - You can control the power:
+
+            - Setting it to 1 is the city-block distance
+            - Setting it to 0 is the maximum issue difference
+    """
+    from negmas.outcomes import CartesianOutcomeSpace
+
+    if not weights:
+        weights = [1] * len(a)
+    if dist_power <= 0 or dist_power == float("inf"):
+        if not isinstance(outcome_space, CartesianOutcomeSpace):
+            return max(
+                (w * abs(x - y))
+                if (isint(x) or isreal(x)) and (isint(y) or isreal(y))
+                else (w * int(x == y))
+                for w, x, y in zip(weights, a, b)
+            )
+        d = float("-inf")
+        for issue, w, x, y in zip(outcome_space.issues, weights, a, b):
+            if isinstance(issue, CardinalIssue):
+                c = w * abs(x - y)
+            else:
+                c = w * int(x == y)
+            if c > d:
+                d = c
+        return d
+    if not isinstance(outcome_space, CartesianOutcomeSpace):
+        return math.pow(
+            sum(
+                (w * math.pow(abs(x - y), dist_power))
+                if (isint(x) or isreal(x)) and (isint(y) or isreal(y))
+                else (w * int(x == y))
+                for w, x, y in zip(weights, a, b)
+            ),
+            1.0 / dist_power,
+        )
+    d = 0.0
+    for issue, w, x, y in zip(outcome_space.issues, weights, a, b):
+        if isinstance(issue, CardinalIssue):
+            d += w * math.pow(abs(x - y), dist_power)
+            continue
+        d += w * int(x == y)
+    return math.pow(d, 1.0 / dist_power)
+
+
+def min_dist(
+    test_outcome: Outcome,
+    outcomes: Sequence[Outcome],
+    outcome_space: OutcomeSpace | None,
+    distance_fun: DistanceFun = generalized_minkowski_distance,
+    **kwargs,
+) -> float:
+    """
+    Minimum distance between an outcome and a set of outcomes in an outcome-spaceself.
+
+    Args:
+        test_outcome: The outcome tested
+        outcomes: A sequence of outcomes to compare to
+        outcome_space: The outcomespace used for comparison
+        distance_fun: The distance function
+        kwargs: Paramters to pass to the distance function
+
+
+    See Also:
+
+        `generalized_euclidean_distance`
+    """
+    if not outcomes:
+        return 1.0
+    return min(distance_fun(test_outcome, _, outcome_space, **kwargs) for _ in outcomes)

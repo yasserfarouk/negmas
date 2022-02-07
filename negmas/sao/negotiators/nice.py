@@ -4,7 +4,7 @@ from negmas.sao.common import ResponseType
 
 from ...common import MechanismState
 from ...outcomes import Outcome
-from ..components import RandomProposalMixin
+from ..mixins import RandomProposalMixin
 from .base import SAONegotiator
 
 __all__ = [

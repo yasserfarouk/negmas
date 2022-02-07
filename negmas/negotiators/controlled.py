@@ -6,20 +6,20 @@ from typing import Callable
 from .negotiator import Negotiator
 
 __all__ = [
-    "PassThroughNegotiator",
+    "ControlledNegotiator",
 ]
 
 
-class PassThroughNegotiator(Negotiator):
+class ControlledNegotiator(Negotiator):
     """
     A negotiator that can be used to pass all method calls to a parent (Controller).
 
     It uses magic dunder methods to implement a general way of passing calls to the parent. This method is slow.
 
-    It is recommended to implement a PassThrough*Negotiator for each mechanism that does this passing explicitly which
+    It is recommended to implement a `ControlledNegotiator` for each mechanism that does this passing explicitly which
     will be much faster.
 
-    For an example, see the implementation of `PassThroughSAONegotiator` .
+    For an example, see the implementation of `ControlledSAONegotiator` .
 
     """
 
