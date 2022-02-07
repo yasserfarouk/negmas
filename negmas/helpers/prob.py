@@ -141,13 +141,16 @@ class Distribution(Protocol):
         """Returns true if this is a distribution with all probability at one point (delta(v))"""
         return self.scale < EPSILON / 1000
 
-    def __sub__(self, other):
+    @abstractmethod
+    def __sub__(self, other) -> Distribution:
         """Returns the distribution for the difference between samples of `self` and `other`"""
 
-    def __add__(self, other):
+    @abstractmethod
+    def __add__(self, other) -> Distribution:
         """Returns the distribution for the sum of samples of `self` and `other`"""
 
-    def __mul__(self, weight: float):
+    @abstractmethod
+    def __mul__(self, weight: float) -> Distribution:
         """Returns the distribution for the multiplicaiton of samples of `self` with `weight`"""
 
 

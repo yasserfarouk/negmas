@@ -2,14 +2,8 @@ from __future__ import annotations
 
 from typing import Callable, Literal, Sequence, TypeVar
 
-from negmas import PreferencesChange, warnings
 from negmas.negotiators.helpers import Aspiration, PolyAspiration, TimeCurve
-from negmas.preferences import (
-    BaseUtilityFunction,
-    InverseUFun,
-    PresortingInverseUtilityFunction,
-)
-from negmas.sao.components.inverter import UtilityInverter
+from negmas.preferences import InverseUFun, PresortingInverseUtilityFunction
 from negmas.sao.components.selectors import (
     AdditivePartnerOffersOrientedSelector,
     BestOfferOrientedSelector,
@@ -19,10 +13,9 @@ from negmas.sao.components.selectors import (
     OfferOrientedSelector,
     OfferSelector,
 )
-from negmas.sao.negotiators.base import SAONegotiator
 
 from ...outcomes import DistanceFun, Outcome, generalized_minkowski_distance
-from ..common import ResponseType
+from .utilbased import UtilBasedNegotiator
 
 __all__ = [
     "TimeBasedNegotiator",
@@ -79,7 +72,7 @@ def make_offer_selector(
     raise ValueError(f"Unknown selector type: {selector}")
 
 
-class TimeBasedNegotiator(SAONegotiator):
+class TimeBasedNegotiator(UtilBasedNegotiator):
     """
     Represents a time-based negotiation strategy that is independent of the offers received during the negotiation.
 
@@ -105,11 +98,6 @@ class TimeBasedNegotiator(SAONegotiator):
         | float
         | None = None,
         offer_selector: OfferSelector | None = None,
-        stochastic: bool = False,
-        rank_only: bool = False,
-        ufun_inverter: Callable[[BaseUtilityFunction], InverseUFun] | None = None,
-        max_cardinality: int = 10_000,
-        eps: float = 0.0001,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -120,57 +108,12 @@ class TimeBasedNegotiator(SAONegotiator):
             accepting_curve = make_curve(accepting_curve, 1.0)
         self._offering_curve = offering_curve
         self._accepting_curve = accepting_curve
-        self._inverter = UtilityInverter(
-            rank_only=rank_only,
-            ufun_inverter=ufun_inverter,
-            max_cardinality=max_cardinality,
-            eps=eps,
-            offer_selector="min" if not stochastic else offer_selector,
-        )
-        self._inverter.set_negotiator(self)
-        self._selector = offer_selector
-        if self._selector:
-            self._selector.set_negotiator(self)
 
-    def respond(self, state, offer):
-        if self._selector:
-            self._selector.before_responding(state, offer)
-        if self.ufun is None:
-            warnings.warn(
-                f"TimeBased negotiators need a ufun but I am asked to respond without one ({self.name} [id:{self.id}]. Will just reject hoping that a ufun will be set later",
-                warnings.NegmasUnexpectedValueWarning,
-            )
-            return ResponseType.REJECT_OFFER
-        urange = self._inverter.scale_utilities(
-            self._accepting_curve.utility_range(state.relative_time)
-        )
-        u = self.ufun(offer)
-        if u is None:
-            warnings.warn(
-                f"Cannot find utility for {offer}",
-                warnings.NegmasUnexpectedValueWarning,
-            )
-            return ResponseType.REJECT_OFFER
-        if urange[0] <= u <= urange[1]:
-            return ResponseType.ACCEPT_OFFER
-        return ResponseType.REJECT_OFFER
+    def utility_range_to_propose(self, state) -> tuple[float, float]:
+        return self._offering_curve.utility_range(state.relative_time)
 
-    def propose(self, state):
-        self._inverter.before_proposing(state)
-        if self.ufun is None:
-            warnings.warn(
-                f"TimeBased negotiators need a ufun but I am asked to offer without one ({self.name} [id:{self.id}]. Will just offer `None` waiting for next round if any"
-            )
-            return None
-        return self._inverter.propose(
-            self._offering_curve.utility_range(state.relative_time), state
-        )
-
-    def on_preferences_changed(self, changes: list[PreferencesChange]):
-        self._inverter.on_preferences_changed(changes)
-        if self._selector:
-            self._selector.on_preferences_changed(changes)
-        return super().on_preferences_changed(changes)
+    def utility_range_to_accept(self, state) -> tuple[float, float]:
+        return self._accepting_curve.utility_range(state.relative_time)
 
 
 class TimeBasedConcedingNegotiator(TimeBasedNegotiator):

@@ -46,6 +46,7 @@ class PolyAspiration(Aspiration):
         aspiration_type: Literal["boulware"]
         | Literal["conceder"]
         | Literal["linear"]
+        | Literal["hardheaded"]
         | float,
     ):
         self.max_aspiration = max_aspiration
@@ -61,6 +62,8 @@ class PolyAspiration(Aspiration):
             self.exponent = 1.0
         elif aspiration_type == "conceder":
             self.exponent = 0.25
+        elif aspiration_type == "hardheaded":
+            self.exponent = float("inf")
         else:
             raise ValueError(f"Unknown aspiration type {aspiration_type}")
 

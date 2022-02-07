@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
-from negmas.warnings import NegmasUnexpectedValueWarning, warn
+from negmas.sao.components.concession import (
+    CrispSelfProjectionConcessionEstimator,
+    KindConcessionRecommender,
+    ProbSelfProjectionConcessionEstimator,
+)
 
-from ...common import MechanismState
-from ...negotiators import Controller
-from ...outcomes import Outcome
-from ..common import ResponseType
-from .base import SAONegotiator
+from ..components import ConcessionEstimator, ConcessionRecommender
+from .utilbased import UtilBasedNegotiator
 
 if TYPE_CHECKING:
     from negmas.common import PreferencesChange
-    from negmas.preferences import Preferences, UtilityFunction
 
 
 __all__ = [
@@ -22,7 +21,75 @@ __all__ = [
 ]
 
 
-class NaiveTitForTatNegotiator(SAONegotiator):
+class TitForTatNegotiator(UtilBasedNegotiator):
+    """
+    Implements a tit-for-tat strategy.
+
+    Args:
+        estimator: A `SAOComponent` that can estimate
+
+    Remarks:
+        - This negotiator does not keep an opponent model. It thinks only in terms of changes in its own utility.
+          If the opponent's last offer was better for the negotiator compared with the one before it, it considers
+          that the opponent has conceded by the difference. This means that it implicitly assumes a zero-sum
+          situation.
+    """
+
+    def __init__(
+        self,
+        *args,
+        estimator: ConcessionEstimator | None = None,
+        offering_recommender: ConcessionRecommender | None = None,
+        acceptance_recommender: ConcessionRecommender | None = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._estimator = (
+            estimator
+            if estimator is not None
+            else ProbSelfProjectionConcessionEstimator()
+        )
+        self._offering_recommender = (
+            offering_recommender
+            if offering_recommender is not None
+            else KindConcessionRecommender(must_concede=True, inverter=self._inverter)
+        )
+        self._acceptance_recommender = (
+            acceptance_recommender
+            if acceptance_recommender is not None
+            else self._offering_recommender
+        )
+        self._pivot_util: float = 1.0
+        self._estimator.set_negotiator(self)
+        self._offering_recommender.set_negotiator(self)
+        self._acceptance_recommender.set_negotiator(self)
+
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        super().on_preferences_changed(changes)
+        self._estimator.on_preferences_changed(changes)
+
+    def respond(self, state, offer):
+        self._estimator.before_responding(state, offer)
+        return super().respond(state, offer)
+
+    def propose(self, state):
+        proposal = super().propose(state)
+        if state.step == 0 or not self._estimator.total_concession:
+            self._pivot_util = float(self.ufun(proposal))  # type: ignore
+        return proposal
+
+    def utility_range_to_accept(self, state) -> tuple[float, float]:
+        concession = self._acceptance_recommender(self._estimator(state), state)
+        return self._inverter.scale_utilities((self._pivot_util - concession, 1.0))
+
+    def utility_range_to_propose(self, state) -> tuple[float, float]:
+        concession = self._offering_recommender(self._estimator(state), state)
+        return self._inverter.scale_utilities(
+            (self._pivot_util - concession, self._pivot_util)
+        )
+
+
+class NaiveTitForTatNegotiator(TitForTatNegotiator):
     """
     Implements a naive tit-for-tat strategy that does not depend on the availability of an opponent model.
 
@@ -33,9 +100,9 @@ class NaiveTitForTatNegotiator(SAONegotiator):
         parent: A controller
         kindness: How 'kind' is the agent. A value of zero is standard tit-for-tat. Positive values makes the negotiator
                   concede faster and negative values slower.
-        randomize_offer: If `True`, the offers will be randomized above the level determined by the current concession
+        stochastic: If `True`, the offers will be randomized above the level determined by the current concession
                         which in turn reflects the opponent's concession.
-        always_concede: If `True` the agent will never use a negative concession rate
+        punish: If `True` the agent punish a partner who does not seem to conede by requiring higher utilities
         initial_concession: How much should the agent concede in the beginning in terms of utility. Should be a number
                             or the special string value 'min' for minimum concession
 
@@ -48,111 +115,36 @@ class NaiveTitForTatNegotiator(SAONegotiator):
 
     def __init__(
         self,
-        name: str = None,
-        parent: Controller = None,
-        preferences: "Preferences" | None = None,
-        ufun: "UtilityFunction" | None = None,
+        *args,
         kindness=0.0,
-        randomize_offer=False,
-        always_concede=True,
-        initial_concession: float | str = "min",
+        punish=False,
+        initial_concession: float | Literal["min"] = "min",
+        total_concession: bool = False,
+        rank_only: bool = False,
+        stochastic: bool = False,
         **kwargs,
     ):
-        self.received_utilities = []
-        self.proposed_utility = None
-        self.ordered_outcomes: list[tuple[float, Outcome]] = []
-        self.sent_offer_index = None
-        self.n_sent = 0
+        estimator = CrispSelfProjectionConcessionEstimator(
+            rank_only=rank_only, total_concession=total_concession
+        )
+        if isinstance(initial_concession, str):
+            initial_concession = 0.00
+        offering = KindConcessionRecommender(
+            initial_concession=initial_concession, kindness=kindness, punish=punish
+        )
+        acceptance = KindConcessionRecommender(
+            initial_concession=initial_concession, kindness=kindness, punish=punish
+        )
         super().__init__(
-            name=name, ufun=ufun, preferences=preferences, parent=parent, **kwargs
+            *args,
+            estimator=estimator,
+            offering_recommender=offering,
+            acceptance_recommender=acceptance,
+            stochastic=stochastic,
+            **kwargs,
         )
-        self.kindness = kindness
-        self.initial_concession = (
-            initial_concession if isinstance(initial_concession, float) else -1.0
-        )
-        self.randomize_offer = randomize_offer
-        self.always_concede = always_concede
-
-    def on_preferences_changed(self, changes: list[PreferencesChange]):
-        super().on_preferences_changed(changes)
-        if self.ufun is None:
-            self.ordered_outcomes = []
-            return
-        if self.nmi:
-            outcomes = self.nmi.discrete_outcomes()
-        elif self.ufun.outcome_space:
-            outcomes = self.ufun.outcome_space.enumerate_or_sample(max_cardinality=1000)
-        else:
-            outcomes = []
-        self.ordered_outcomes = sorted(
-            ((float(self.ufun(outcome)), outcome) for outcome in outcomes),
-            key=lambda x: x[0],
-            reverse=True,
-        )
-
-    def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
-        if self.ufun is None:
-            warn("Unkonwn ufun", NegmasUnexpectedValueWarning)
-            return ResponseType.REJECT_OFFER
-        if len(self.ordered_outcomes) < 1:
-            warn("Ordered outcomes is empty!!!", NegmasUnexpectedValueWarning)
-            return ResponseType.REJECT_OFFER
-        offered_utility = self.ufun(offer)
-        if len(self.received_utilities) < 2:
-            self.received_utilities.append(offered_utility)
-        else:
-            self.received_utilities[0] = self.received_utilities[1]
-            self.received_utilities[-1] = offered_utility
-        indx = self._propose(state=state)
-        my_utility, _ = self.ordered_outcomes[indx]
-        if offered_utility >= my_utility:
-            return ResponseType.ACCEPT_OFFER
-        return ResponseType.REJECT_OFFER
-
-    def _outcome_just_below(self, ulevel: float) -> int:
-        for i, (u, _) in enumerate(self.ordered_outcomes):
-            if u is None:
-                continue
-            if u < ulevel:
-                if self.randomize_offer:
-                    return random.randint(0, i)
-                return i
-        if self.randomize_offer:
-            return random.randint(0, len(self.ordered_outcomes) - 1)
-        return -1
-
-    def _propose(self, state: MechanismState) -> int:
-        if self.proposed_utility is None:
-            return 0
-        if len(self.received_utilities) < 2:
-            if self.initial_concession < 0:
-                return self._outcome_just_below(ulevel=self.ordered_outcomes[0][0])
-            else:
-                asp = self.ordered_outcomes[0][0] * (1.0 - self.initial_concession)
-            return self._outcome_just_below(ulevel=asp)
-
-        if self.always_concede:
-            opponent_concession = max(
-                0.0, self.received_utilities[1] - self.received_utilities[0]
-            )
-        else:
-            opponent_concession = (
-                self.received_utilities[1] - self.received_utilities[0]
-            )
-        indx = self._outcome_just_below(
-            ulevel=self.proposed_utility
-            - opponent_concession
-            - self.kindness * max(0.0, opponent_concession)
-        )
-        return indx
-
-    def propose(self, state: MechanismState) -> Outcome | None:
-        if len(self.ordered_outcomes) < 1:
-            warn("Ordered outcomes is empty!!!", NegmasUnexpectedValueWarning)
-            return None
-        indx = self._propose(state)
-        self.proposed_utility = self.ordered_outcomes[indx][0]
-        return self.ordered_outcomes[indx][1]
+        offering.set_inverter(self._inverter)
+        acceptance.set_inverter(self._inverter)
 
 
 SimpleTitForTatNegotiator = NaiveTitForTatNegotiator
