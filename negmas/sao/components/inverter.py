@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from random import choice
-from typing import TYPE_CHECKING, Callable, Iterable, Literal, Sequence
-
-from yaml import warnings
+from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
 from negmas.preferences import (
     BaseUtilityFunction,
@@ -14,7 +12,7 @@ from negmas.preferences import (
     SamplingInverseUtilityFunction,
 )
 from negmas.sao.components import SAODoNothingComponent
-from negmas.warnings import NegmasUnexpectedValueWarning
+from negmas.warnings import NegmasUnexpectedValueWarning, warn
 
 __all__ = [
     "UtilityInverter",
@@ -148,9 +146,10 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self._inv is None or self._max is None or self._min is None:
-            warnings.warn(
+            warn(
                 f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
-                f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}"
+                f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
+                NegmasUnexpectedValueWarning,
             )
             self.on_preferences_changed([PreferencesChange.General])
         if self._inv is None or self._max is None or self._min is None:
@@ -174,7 +173,7 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self._max is None or self._min is None or self._best is None:
-            warnings.warn(
+            warn(
                 f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
                 f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
                 NegmasUnexpectedValueWarning,
