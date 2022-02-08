@@ -117,14 +117,6 @@ class SAOController(Controller):
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
         """
-        if ufun:
-            preferences = ufun
-        super().after_join(*args, **kwargs)
-        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
-        if not negotiator or not self.ufun:
-            return
-        if self.ufun.outcome_space is None:
-            negotiator.set_preferences(preferences)
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional[Outcome]:
 
