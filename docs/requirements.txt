@@ -121,7 +121,6 @@ Sphinx
 sphinx-autodoc-annotation
 sphinx-autodoc-typehints
 sphinx-automodapi
-sphinx-rtd-theme
 sphinxcontrib-fulltoc
 sphinxcontrib-websupport
 sphinxtesters
@@ -152,4 +151,6 @@ yapf
 yappi
 yarg
 zict
-poetry
+sphinx-rtd-theme
+sphinx-press-theme
+groundwork-sphinx-theme

@@ -4,6 +4,7 @@ import numbers
 import random
 import sys
 
+from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 from negmas.outcomes.continuous_issue import ContinuousIssue
 
@@ -62,8 +63,16 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
     def value_at(self, index: int):
         raise ValueError("Cannot index an infinite issue")
 
+    def contains(self, issue: Issue) -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        return issubclass(issue.value_type, numbers.Integral)
+
 
 class ContinuousInfiniteIssue(ContinuousIssue, InfiniteIssue):
     """
-    An issue that can all real
+    An issue that can represent all real numbers
     """
+
+    def contains(self, issue: Issue) -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        return issubclass(issue.value_type, numbers.Real)

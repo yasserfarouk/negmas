@@ -2,20 +2,20 @@ name: CI
 
 on:
   push:
-    branches: ["master"]
+    branches: ["*"]
   pull_request:
-    branches: ["master"]
+    branches: ["*"]
 
 jobs:
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
     env:
-      USING_COVERAGE: '3.8'
+      USING_COVERAGE: '3.8.12'
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.8.12", "3.9.10", "3.10.2"]
 
     steps:
       - uses: "actions/checkout@v2"
@@ -30,10 +30,9 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
           python -m pip install -r requirements.txt
-          python -m pip install -r requirements-elicitation.txt
 
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -m pytest . || python -m pytest --last-failed ."
+        run: "python -W ignore -m pytest . || python -W ignore -m pytest --last-failed ."
 
   package:
     name: "Build & verify package"

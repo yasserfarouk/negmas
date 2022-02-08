@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 # -*- coding: utf-8 -*-
 """"
 The interface to all negotiators capable of eliciting user preferences before
 , and during negotiations.
 """
+from __future__ import annotations
+
 from .base import *
 from .baseline import *
 from .common import *

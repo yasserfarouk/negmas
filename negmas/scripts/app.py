@@ -1,7 +1,7 @@
-from __future__ import annotations
-
 #!/usr/bin/env python
 """The NegMAS universal command line tool"""
+from __future__ import annotations
+
 import json
 import os
 import pathlib

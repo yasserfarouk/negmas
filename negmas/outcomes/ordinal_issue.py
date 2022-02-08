@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import random
-import warnings
 from abc import ABC, abstractmethod
-from typing import Generator
+from typing import Any, Generator
 
+from negmas import warnings
 from negmas.helpers import sample, unique_name
+from negmas.helpers.numeric import is_float_type, is_int_type
 from negmas.outcomes.base_issue import DiscreteIssue, Issue
 
 __all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]
@@ -14,21 +15,30 @@ __all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]
 def generate_values(n: int) -> list[str]:
     if n > 1000_000:
         warnings.warn(
-            f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible"
+            f"You are creating an OrdinalIssue with {n} items. This is too large. Consider using something like ContiguousIssue if possible",
+            warnings.NegmasMemoryWarning,
         )
     width = len(str(n))
-    return list(f"{_:0{width}n}" for _ in range(n))
+    return list(f"{_:0{width}d}" for _ in range(n))
 
 
 class OrdinalIssue(Issue, ABC):
+    """
+    An `Issue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
+    """
+
     @abstractmethod
     def ordered_value_generator(
         self, n: int = 10, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[Any, None, None]:
         ...
 
 
 class DiscreteOrdinalIssue(DiscreteIssue):
+    """
+    A `DiscreteIssue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         """
         `values` can be an integer and in this case, values will be strings
@@ -39,17 +49,23 @@ class DiscreteOrdinalIssue(DiscreteIssue):
         else:
             values = list(values)
         types = set(type(_) for _ in values)
-        if len(types) != 1:
-            raise ValueError(
+        if len(types) == 1:
+            type_ = list(types)[0]
+        elif all(is_int_type(_) for _ in types):
+            type_ = int
+        elif all(is_float_type(_) for _ in types):
+            type_ = float
+        else:
+            raise TypeError(
                 f"Found the following types in the list of values for an "
                 f"ordinal issue ({types}). Can only have one type. Try "
                 f"CategoricalIssue"
             )
-        self._value_type = type(values[0])
+        self._value_type = type_
         self._n_values = len(values)
         self.min_value, self.max_value = min(values), max(values)
 
-    def _to_xml_str(self, indx, enumerate_integer=False):
+    def _to_xml_str(self, indx):
         output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
 
         for i, v in enumerate(self._values):
@@ -58,7 +74,7 @@ class DiscreteOrdinalIssue(DiscreteIssue):
         return output
 
     @property
-    def all(self) -> Generator:
+    def all(self) -> Generator[Any, None, None]:
         yield from self._values  # type: ignore
 
     def rand_invalid(self):
@@ -74,7 +90,7 @@ class DiscreteOrdinalIssue(DiscreteIssue):
 
     def ordered_value_generator(
         self, n: int = 10, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[Any, None, None]:
         """
         A generator that generates at most `n` values (in order)
 

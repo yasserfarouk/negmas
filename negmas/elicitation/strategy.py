@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple, Union
 
 from ..common import NegotiatorMechanismInterface, Value
-from ..helpers.prob import Distribution
+from ..helpers.prob import ScipyDistribution
 from ..preferences import IPUtilityFunction
 from .common import _loc, _upper
 from .queries import Answer, Query, RangeConstraint
@@ -65,7 +65,7 @@ class EStrategy:
 
             - This function returns a uniform distribution whenever it returns a distribution
             - Can return `None` which indicates that elicitation failed
-            - If it could find an exact value, it will return a `float` not a `UtilityDistribution`
+            - If it could find an exact value, it will return a `float` not a `Distribution`
 
         """
 
@@ -86,7 +86,7 @@ class EStrategy:
             reply = user.ask(query)
             if reply is None or reply.answer is None:
                 return (
-                    Distribution(type="uniform", loc=lower, scale=upper - lower),
+                    ScipyDistribution(type="uniform", loc=lower, scale=upper - lower),
                     None,
                 )
             lower_new, upper_new = (
@@ -102,7 +102,7 @@ class EStrategy:
         elif abs(upper - lower) < epsilon or query is None:
             u = (upper + lower) / 2
         else:
-            u = Distribution(type="uniform", loc=lower, scale=upper - lower)
+            u = ScipyDistribution(type="uniform", loc=lower, scale=upper - lower)
         return u, reply
 
     def next_query(self, outcome: "Outcome") -> Optional[Query]:
@@ -262,7 +262,7 @@ class EStrategy:
         scale = self.upper[indx] - self.lower[indx]
         if scale < self.resolution:
             return self.lower[indx]
-        return Distribution(type="uniform", loc=self.lower[indx], scale=scale)
+        return ScipyDistribution(type="uniform", loc=self.lower[indx], scale=scale)
 
     def until(
         self,

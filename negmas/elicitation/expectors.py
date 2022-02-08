@@ -73,12 +73,11 @@ class AspiringExpector(Expector, AspirationMixin):
         nmi: Optional[NegotiatorMechanismInterface] = None,
         max_aspiration=1.0,
         aspiration_type: Union[str, int, float] = "linear",
-    ) -> bool:
+    ):
         Expector.__init__(self, nmi=nmi)
         self.aspiration_init(
             max_aspiration=max_aspiration,
             aspiration_type=aspiration_type,
-            above_reserved_value=False,
         )
 
     def is_dependent_on_negotiation_info(self) -> bool:
@@ -90,5 +89,5 @@ class AspiringExpector(Expector, AspirationMixin):
         if isinstance(u, float):
             return u
         else:
-            alpha = self.aspiration(state.relative_time)
+            alpha = self.utility_at(state.relative_time)
             return alpha * u.loc + (1.0 - alpha) * (u.loc + u.scale)

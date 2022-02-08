@@ -1,29 +1,31 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 
-from negmas.common import MechanismState
-from negmas.helpers import get_class, get_full_type_name, make_range
+from negmas.common import MechanismState, NegotiatorMechanismInterface
+from negmas.helpers import get_class, make_range
 from negmas.outcomes import Issue, Outcome
-from negmas.preferences.protocols import NonStationaryUFun
 from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .base import UtilityValue
-from .ufun import UtilityFunction
+from .base import Value
+from .base_ufun import BaseUtilityFunction
+from .mixins import StateDependentUFunMixin
 
 __all__ = ["LinDiscountedUFun", "ExpDiscountedUFun", "DiscountedUtilityFunction"]
 
 
-class DiscountedUtilityFunction(UtilityFunction, NonStationaryUFun, XmlSerializable):
+class DiscountedUtilityFunction(
+    StateDependentUFunMixin, BaseUtilityFunction, XmlSerializable
+):
     """Base class for all discounted ufuns"""
 
-    def __init__(self, ufun: UtilityFunction, **kwargs):
+    def __init__(self, ufun: BaseUtilityFunction, **kwargs):
         super().__init__(**kwargs)
         self.ufun = ufun
 
-    def is_non_stationary(self):
+    def is_state_dependent(self):
         return True
 
 
@@ -40,11 +42,11 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
 
     def __init__(
         self,
-        ufun: UtilityFunction,
+        ufun: BaseUtilityFunction,
         discount: Optional[float] = None,
         factor: Union[str, Callable[["MechanismState"], float]] = "step",
         name=None,
-        reserved_value: UtilityValue = float("-inf"),
+        reserved_value: Value = float("-inf"),
         dynamic_reservation=True,
         id=None,
         **kwargs,
@@ -116,7 +118,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         normalized=True,
         discount_range=(0.8, 1.0),
         base_preferences_type: Union[
-            str, Type[UtilityFunction]
+            str, Type[BaseUtilityFunction]
         ] = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
     ) -> "ExpDiscountedUFun":
@@ -138,7 +140,12 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             **kwargs,
         )
 
-    def eval(self, offer: "Outcome", state: "MechanismState" = None) -> UtilityValue:
+    def eval_on_state(
+        self,
+        offer: Outcome,
+        nmi: NegotiatorMechanismInterface | None = None,
+        state: MechanismState | None = None,
+    ):
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -197,12 +204,12 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
 
     def __init__(
         self,
-        ufun: UtilityFunction,
+        ufun: BaseUtilityFunction,
         cost: Optional[float] = None,
         factor: Union[str, Callable[["MechanismState"], float]] = "current_step",
-        power: float = 1.0,
+        power: float | None = 1.0,
         name=None,
-        reserved_value: UtilityValue = float("-inf"),
+        reserved_value: Value = float("-inf"),
         dynamic_reservation=True,
         id=None,
         **kwargs,
@@ -210,6 +217,8 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         super().__init__(
             ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
         )
+        if power is None:
+            power = 1.0
         self.ufun = ufun
         self.cost = cost
         self.factor = factor
@@ -233,7 +242,12 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
 
-    def eval(self, offer: "Outcome", state: "MechanismState" = None) -> UtilityValue:
+    def eval_on_state(
+        self,
+        offer: Outcome,
+        nmi: NegotiatorMechanismInterface | None = None,
+        state: MechanismState | None = None,
+    ):
         if offer is None and not self.dynamic_reservation:
             return self.reserved_value
         u = self.ufun(offer)
@@ -287,7 +301,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         normalized=True,
         cost_range=(0.8, 1.0),
         power_range=(0.0, 1.0),
-        base_preferences_type: Type[UtilityFunction]
+        base_preferences_type: Type[BaseUtilityFunction]
         | str = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
     ) -> "LinDiscountedUFun":

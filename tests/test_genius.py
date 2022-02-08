@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import hypothesis.strategies as st
@@ -7,10 +8,9 @@ from hypothesis import given, settings
 
 from negmas.genius import GeniusBridge, get_anac_agents
 from negmas.genius.bridge import genius_bridge_is_running
-from negmas.genius.ginfo import ALL_PASSING_NEGOTIATORS as ALL_NEGOTIATORS
 from negmas.genius.gnegotiators import AgentK, Caduceus
 from negmas.genius.negotiator import GeniusNegotiator
-from negmas.inout import Domain
+from negmas.inout import Scenario
 from negmas.sao.mechanism import SAOMechanism
 from negmas.sao.negotiators import AspirationNegotiator
 
@@ -19,35 +19,18 @@ STEPLIMIT = 1000
 
 AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences = tuple()
 
-SKIP_IF_NO_BRIDGE = True
+SKIP_IF_NO_BRIDGE = not os.environ.get("NEGMAS_LONG_TEST", False)
 
 
 @given(
-    linear=st.booleans(),
-    learning=st.booleans(),
-    multilateral=st.booleans(),
     bilateral=st.booleans(),
-    reservation=st.booleans(),
-    discounting=st.booleans(),
-    uncertainty=st.booleans(),
-    elicitation=st.booleans(),
 )
 def test_get_genius_agents_example(
-    linear,
-    learning,
-    multilateral,
     bilateral,
-    reservation,
-    discounting,
-    uncertainty,
-    elicitation,
 ):
-    winners = get_anac_agents(bilateral=True, winners_only=True)
-    everyone = get_anac_agents(bilateral=True)
-    finalists = get_anac_agents(bilateral=True, finalists_only=True)
-    # assert len(winners) > 0
-    # assert len(everyone) > 0
-    # assert len(finalists) > 0
+    winners = get_anac_agents(bilateral=bilateral, winners_only=True)
+    everyone = get_anac_agents(bilateral=bilateral)
+    finalists = get_anac_agents(bilateral=bilateral, finalists_only=True)
     for x in (winners, finalists, everyone):
         assert all(
             list(
@@ -87,7 +70,8 @@ def test_genius_does_not_freeze():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    domain = Domain.from_genius_folder(folder_name)
+    domain = Scenario.from_genius_folder(Path(folder_name))
+    assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
         domain_file_name=domain.agenda.name,
@@ -121,7 +105,43 @@ def test_old_agent():
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
     )
-    domain = Domain.from_genius_folder(folder_name)
+    domain = Scenario.from_genius_folder(folder_name)
+    assert domain is not None
+    a1 = GeniusNegotiator(
+        java_class_name="agents.anac.y2017.ponpokoagent.PonPokoAgent",
+        domain_file_name=domain.agenda.name,
+        utility_file_name=domain.ufuns[0].name,
+    )
+
+    a2 = GeniusNegotiator(
+        java_class_name="agents.anac.y2016.yxagent.YXAgent",
+        domain_file_name=domain.agenda.name,
+        utility_file_name=domain.ufuns[1].name,
+    )
+
+    mechanism = domain.make_session(n_steps=None, time_limit=TIMELIMIT)
+    mechanism.add(a1)
+    mechanism.add(a2)
+    mechanism.run()
+    # print(a1.preferences.__call__(mechanism.agreement), a2.preferences.__call__(mechanism.agreement))
+    GeniusBridge.clean()
+
+
+@pytest.mark.skipif(
+    condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
+    reason="No Genius Bridge, skipping genius-agent tests",
+)
+def test_old_agent2():
+    from pathlib import Path
+
+    from negmas.genius import GeniusNegotiator
+    from negmas.inout import load_genius_domain_from_folder
+
+    folder_name = pkg_resources.resource_filename(
+        "negmas", resource_name="tests/data/cameradomain"
+    )
+    domain = Scenario.from_genius_folder(Path(folder_name))
+    assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2012.AgentLG.AgentLG",
         domain_file_name=domain.agenda.name,
@@ -164,9 +184,11 @@ def test_genius_agents_run_using_hypothesis(
 
     src = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     base_folder = src
-    domain = Domain.from_genius_folder(Path(base_folder))
+    domain = Scenario.from_genius_folder(Path(base_folder))
+    assert domain is not None
     if single_issue:
         domain = domain.to_single_issue()
+        assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name=agent_name1,
         preferences=domain.ufuns[0],
@@ -192,7 +214,8 @@ def test_genius_agent_gets_preferences():
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )
-    domain = Domain.from_genius_folder(base_folder)
+    domain = Scenario.from_genius_folder(base_folder)
+    assert domain is not None
     a1 = GeniusNegotiator(
         java_class_name="agents.anac.y2015.Atlas3.Atlas3",
         domain_file_name=base_folder + "/Laptop-C-domain.xml",
@@ -233,7 +256,8 @@ def test_genius_agents_run_example():
         base_folder = pkg_resources.resource_filename(
             "negmas", resource_name="tests/data/Laptop"
         )
-        domain = Domain.from_genius_folder(base_folder)
+        domain = Scenario.from_genius_folder(base_folder)
+        assert domain is not None
         atlas = GeniusNegotiator(
             java_class_name=agent_name1,
             domain_file_name=base_folder + "/Laptop-C-domain.xml",
@@ -264,7 +288,8 @@ def test_agentk_perceives_time():
         "negmas", resource_name="tests/data/Laptop"
     )
 
-    domain = Domain.from_genius_folder(base_folder)
+    domain = Scenario.from_genius_folder(base_folder)
+    assert domain is not None
     gagent = AgentK()
     neg = domain.make_session(
         [gagent, AspirationNegotiator()],
@@ -276,6 +301,7 @@ def test_agentk_perceives_time():
         raise ValueError(f"Failed to load domain from {base_folder}")
     current_time = 0
     for _ in range(n_steps):
+        assert gagent.relative_time is not None
         assert (
             gagent.relative_time >= current_time
         ), f"Failed to get time before step {_}"
@@ -292,33 +318,35 @@ def test_agentk_perceives_time():
             break
         current_time = gagent.relative_time
 
+    assert gagent.relative_time is not None
     assert gagent.relative_time >= current_time
 
 
-@pytest.mark.skipif(
-    condition=True or not genius_bridge_is_running(),
-    reason="No Genius Bridge, skipping genius-agent tests",
-)
-def test_running_genius_mechanism_in_genius(tmp_path):
-
-    base_folder = Path(
-        pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
-    )
-    profiles = [
-        "file://" + str(base_folder / "Laptop-C-prof1.xml"),
-        "file://" + str(base_folder / "Laptop-C-prof2.xml"),
-    ]
-    agents = ["agents.anac.y2010.AgentK.Agent_K", "agents.anac.y2010.AgentK.Agent_K"]
-    output_file = str(tmp_path)
-
-    gateway = GeniusBridge.gateway()
-    gateway.entry_point.run_negotiation(
-        "genius.core.protocol.StackedAlternatingOffersProtocol",
-        "file://" + str(base_folder / "Laptop-C-domain.xml"),
-        ";".join(profiles),
-        ";".join(agents),
-        output_file,
-    )
+# @pytest.mark.skipif(
+#     condition=True or not genius_bridge_is_running(),
+#     reason="No Genius Bridge, skipping genius-agent tests",
+# )
+# def test_running_genius_mechanism_in_genius(tmp_path):
+#
+#     base_folder = Path(
+#         pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
+#     )
+#     profiles = [
+#         "file://" + str(base_folder / "Laptop-C-prof1.xml"),
+#         "file://" + str(base_folder / "Laptop-C-prof2.xml"),
+#     ]
+#     agents = ["agents.anac.y2010.AgentK.Agent_K", "agents.anac.y2010.AgentK.Agent_K"]
+#     output_file = str(tmp_path)
+#
+#     gateway = GeniusBridge.gateway()
+#     assert gateway is not None
+#     gateway.entry_point.run_negotiation(
+#         "genius.core.protocol.StackedAlternatingOffersProtocol",
+#         "file://" + str(base_folder / "Laptop-C-domain.xml"),
+#         ";".join(profiles),
+#         ";".join(agents),
+#         output_file,
+#     )
 
 
 @pytest.mark.skipif(
@@ -361,7 +389,8 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
         )
     )
 
-    domain = Domain.from_genius_folder(base_folder)
+    domain = Scenario.from_genius_folder(base_folder)
+    assert domain is not None
     neg = domain.make_session(
         n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=True
     )
@@ -369,11 +398,9 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
         raise ValueError(f"Failed to load domain from {base_folder}")
     neg.add(
         GeniusNegotiator(java_class_name=a1, strict=True, preferences=domain.ufuns[0]),
-        strict=True,
     )
     neg.add(
         GeniusNegotiator(java_class_name=a2, strict=True, preferences=domain.ufuns[1]),
-        strict=True,
     )
     neg.run()
 
@@ -390,7 +417,8 @@ def test_caudacius_caudacius():
         )
     )
 
-    domain = Domain.from_genius_folder(base_folder)
+    domain = Scenario.from_genius_folder(base_folder)
+    assert domain is not None
     neg = domain.make_session(
         n_steps=n_steps, time_limit=float("inf"), avoid_ultimatum=True
     )
@@ -398,8 +426,8 @@ def test_caudacius_caudacius():
         raise ValueError(f"Failed to load domain from {base_folder}")
     if not isinstance(neg, SAOMechanism):
         raise ValueError(f"Loading generated a domain that is not SAO {type(neg)}")
-    neg.add(Caduceus(preferences=domain.ufuns[0]), strict=True)
-    neg.add(Caduceus(preferences=domain.ufuns[1]), strict=True)
+    neg.add(Caduceus(preferences=domain.ufuns[0], strict=True))
+    neg.add(Caduceus(preferences=domain.ufuns[1], strict=True))
     for _ in range(n_steps):
         neg.step()
         if neg.state.agreement is not None:

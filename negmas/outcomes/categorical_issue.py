@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Generator
+from typing import Any, Generator
 
 from negmas.helpers import unique_name
 from negmas.outcomes.base_issue import DiscreteIssue
@@ -10,6 +10,10 @@ __all__ = ["CategoricalIssue"]
 
 
 class CategoricalIssue(DiscreteIssue):
+    """
+    An `Issue` type representing discrete values that may not have differences between values defined and may not have a natural ordering.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         super().__init__(values, name, id)
         values = list(values)
@@ -24,7 +28,7 @@ class CategoricalIssue(DiscreteIssue):
     def type(self) -> str:
         return "categorical"
 
-    def _to_xml_str(self, indx, enumerate_integer=False):
+    def _to_xml_str(self, indx):
         output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
 
         for i, v in enumerate(self._values):
@@ -39,8 +43,8 @@ class CategoricalIssue(DiscreteIssue):
         return False
 
     @property
-    def all(self) -> Generator:
-        yield from self._values  # type: ignore
+    def all(self) -> Generator[Any, None, None]:
+        yield from self._values
 
     def rand_invalid(self):
         """Pick a random *invalid* value"""

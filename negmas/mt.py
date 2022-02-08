@@ -1,12 +1,15 @@
+"""
+Implements single text negotiation mechanisms
+"""
 from __future__ import annotations
 
-"""Implements single text negotiation mechanisms"""
 import time
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
+from .outcomes import Outcome
 
 __all__ = [
     "VetoMTMechanism",
@@ -17,7 +20,7 @@ __all__ = [
 class MTState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    current_offers: List[Optional["Outcome"]] = field(default_factory=list)
+    current_offers: List[Optional[Outcome]] = field(default_factory=list)
 
 
 class VetoMTMechanism(Mechanism):
@@ -45,7 +48,7 @@ class VetoMTMechanism(Mechanism):
         *args,
         epsilon: float = 1e-6,
         n_texts: int = 10,
-        initial_outcomes=None,
+        initial_outcomes: list[Outcome | None] | None = None,
         initial_responses: Tuple[Tuple[bool]] = None,
         **kwargs
     ):
@@ -55,7 +58,7 @@ class VetoMTMechanism(Mechanism):
         self.add_requirements(
             {"compare-binary": True}
         )  # assert that all agents must have compare-binary capability
-        self.current_offers = (
+        self.current_offers: list[Outcome | None] = (
             initial_outcomes if initial_outcomes is not None else [None] * n_texts
         )
         """The current offer"""
@@ -76,7 +79,7 @@ class VetoMTMechanism(Mechanism):
             current_offers=deepcopy(self.current_offers),
         )
 
-    def next_outcome(self, outcome: Optional["Outcome"]) -> Optional["Outcome"]:
+    def next_outcome(self, outcome: Optional[Outcome]) -> Optional[Outcome]:
         """Generate the next outcome given some outcome.
 
         Args:

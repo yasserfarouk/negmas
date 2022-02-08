@@ -43,8 +43,8 @@ specific modules, advanced and helper modules.
    1. **outcomes** This module represents issues, outcome and responses
       and provides basic functions and methods to operator with and on
       them.
-   2. **utilities** This modules represents the base type of all
-      utilities and different widely used utility function types
+   2. **preferences** This modules represents the base type of all
+      preferences and different widely used utility function types
       including linear and nonlinear utilities and constraint-based
       utilities. This module also implements basic analysis tools like
       finding the pareto-frontier, sampling outcomes with given
@@ -108,8 +108,6 @@ specific modules, advanced and helper modules.
 
    -  **common** Provides common interfaces that are used by all other
       modules.
-   -  **generics** Provides a set of types and interfaces to increase
-      the representation flexibility of different base modules.
    -  **helpers** Various helper functions and classes used throughout
       the library including mixins for logging.
    -  **inout** Provides functions to load and store XML Genius domains
@@ -122,6 +120,8 @@ specific modules, advanced and helper modules.
       to/from secondary storage.
    -  **visualizers** [Under development] Supports visualization of
       world simulation, negotiation sessions, negotiators, and agents.
+   -  **generics** Provides a set of types and interfaces to increase
+      the representation flexibility of different base modules.
 
 A (not very) brief introduction to NegMAS
 -----------------------------------------
@@ -195,10 +195,9 @@ The interaction between **Mechanism** and **Negotiator** objects mirrors
 the interaction between **World** and **Agent** objects. **Mechanism**
 objects call methods in **Negotiator** objects directly but
 **Negotiator** objects can only access services provided by the
-**Mechanism** object through a **AgentMechanismInterface** (AMI). Note
-that it is an AMI not a NMI (for historical reasons). You can find more
-details about the general NegMAS AMI
-`here <http://www.yasserm.com/negmas/api/negmas.common.AgentMechanismInterface.html>`__.
+**Mechanism** object through a **NegotiatorMechanismInterface** (AMI).
+You can find more details about the general NegMAS NMI
+`here <http://www.yasserm.com/negmas/api/negmas.common.NegotiatorMechanismInterface.html>`__.
 
 Each specific **Mechanism** defines a corresponding specific
 **AgentMechanismInterface** class (in the same way that **World**
@@ -259,7 +258,7 @@ concurrently running negotiations (or on expectations of future
 negotiations). NegMAS provides two ways to support this case shown in
 the following figure:
 
-.. figure:: controllers.jpg
+.. figure:: figs/controllers.jpg
    :alt: controllers
 
    controllers
@@ -276,10 +275,10 @@ just pass control to their *owning* **Controller**.
 This concludes our introduction to NegMAS and different objects you need
 to know about to develop your agent.
 
-.. |NegMAS world| image:: world.png
+.. |NegMAS world| image:: figs/world.png
 
-Issues and Outcome Spaces
--------------------------
+Outcomes, Issues and Outcome Spaces
+-----------------------------------
 
 Negotiations are conducted between multiple agents with the goal of
 achieving an *agreement* (usually called a contract) on one of several
@@ -309,7 +308,7 @@ NegMAS supports a variety of ``Issue`` types.
 
 .. parsed-literal::
 
-    QKqgvpMitAUvhKCf: ['to be', 'not to be']
+    TVxoHhOQTAWzrEZU: ['to be', 'not to be']
     The Problem: ['to be', 'not to be']
 
 
@@ -370,7 +369,7 @@ discrete or continuous:
 
 .. parsed-literal::
 
-    ['discrete', True, False]
+    ['categorical', True, False]
 
 
 
@@ -405,15 +404,16 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20210405H095721457952jJTGt6qBto be20210405H095721458380XtRgNy0I'],
-     [6, 10],
-     [0.6118970848141451, 1.928063278403899]]
+    [['not to be',
+      '20220208H075738907868PUaFX3FQnot to be20220208H075738908017w7VF0GTS'],
+     [4, 15],
+     [0.38864224283144744, 1.7576161999324909]]
 
 
 
 You can also list all valid values for an issue using ``all`` or sample
-from them using ``alli``. Notice that ``all`` and ``alli`` return
-generators so both are memory efficient.
+from them using ``value_generator``. Notice that ``all`` and
+``value_generator`` return generators so both are memory efficient.
 
 .. code:: ipython3
 
@@ -431,7 +431,7 @@ generators so both are memory efficient.
     ('to be', 'not to be')
     ('to be', 'not to be')
     (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    Cannot return all possibilities of a continuous/uncountable issue
+    Cannot enumerate all values of a continuous issue
 
 
 Outcomes
@@ -594,6 +594,58 @@ the constraint:
 -  **list of tuples** The outcome must fall within one of the ranges
    specified by the tuples.
 
+Outcome Spaces
+~~~~~~~~~~~~~~
+
+An outcome-space is a *set of outcomes* which can be enumerated,
+sampled, etc.
+
+NegMAS supports a special kind of outcome-spaces called
+``CartesianOutcomeSpace`` which represents the Cartesian product of a
+set of issues and can be created using ``make_os`` function:
+
+.. code:: ipython3
+
+    myos = make_os([issue1, issue2, issue3, issue4])
+    print(type(myos))
+
+
+.. parsed-literal::
+
+    <class 'negmas.outcomes.outcome_space.CartesianOutcomeSpace'>
+
+
+A special case of ``CartesianOutcomeSpace`` is a
+``DiscreteCartesianOutcomeSpace`` (see the examle above) which represent
+a Cartesian outcome-space with discrete issues (i.e. no issues are
+continuous).
+
+``OutcomeSpace`` provide convenient methods for gettin information about
+the outcome-space or manipulating it. Some of the most important
+examples are:
+
+-  **is_numeric, is_integer, is_float** Checks if all components of all
+   outcomes are numeric, integer or float.
+-  **is_discrete, is_finite, is_continuous** Check if the outcome space
+   itself is discrete, finite or continuous.
+-  **cardinality** returns the number of outcomes in the outcome-space.
+-  **cardinality_if_discretized** returns the number of outcomes in the
+   outcome-space if we discretize it.
+-  **to_discrete, to_largest_discrete** create an discrete outcome-space
+   that ranges over the input outcome-space.
+-  **sample** returns outcomes from the outcome-space.
+-  **enumerate_or_sample** sample from continuous outcome-spaces and
+   enumerate all outcomes of discrete outcome-spaces.
+
+``DiscreteOutcomeSpace`` is a special case of ``OutcomeSpace``
+representing a finite outcome space and adds some operations including:
+
+-  **to_single_issue** generates a single-issue outcome-space with the
+   same number of outcomes as the given outcome-space
+-  **limit_cardinality** generates a discrete outcome-space that
+   *approximates* the input outcome-space using at most some predefined
+   number of outcomes.
+
 Utilities and Preferences
 -------------------------
 
@@ -617,29 +669,35 @@ over utilities.
 a utility distribution. This is achieved through the use of two basic
 type definitions:
 
--  ``UtilityDistribution`` That is a probability ``Distribution`` class
-   capable of representing probabilistic variables having both
-   continuous and discrete distributions and applying basic operations
-   on them (addition, subtraction and multiplication). Currently we use
+-  ``Distribution`` That is a probability distribution class capable of
+   representing probabilistic variables having both continuous and
+   discrete distributions and applying basic operations on them
+   (addition, subtraction and multiplication). Currently we use
    ``scipy.stats`` for modeling these distributions but this is an
    implementation detail that should not be relied upon as it is likely
    that the probabilistic framework will be changed in the future to
    enhance the flexibility of the package and its integration with other
-   probabilistic modeling packages (e.g. PyMC3).
+   probabilistic modeling packages (e.g. PyMC3). A concrete
+   implementation of ``Distribution`` provided by NegMAS is
+   ``ScipyDistribution``. A special case if the ``Real`` distribution
+   which represents a delta distribution :math:`\delta(v)` at a given
+   real value :math:`v` (i.e. :math:`p(x)=1` for :math:`x=v` and
+   :math:`0` otherwise) which acts both as a ``Distribution`` and a
+   ``float``.
 
--  ``UtilityValue`` This is the input and output type used whenever a
-   utility value is to be represented in the whole package. It is
-   defined as a union of a real value and a ``UtilityDistribution``
-   (``Union[float, UtilityDistribution]``). This way, it is possible to
-   pass utility distributions to most functions expecting (or returning)
-   a utility value including utility functions.
+-  ``Value`` This is the input and output type used whenever a utility
+   value is to be represented in the whole package. It is defined as a
+   union of a real value and a ``Distribution``
+   (``float | Distribution``). This way, it is possible to pass utility
+   distributions to most functions expecting (or returning) a utility
+   value including utility functions.
 
 This means that both of the following are valid utility values
 
 .. code:: ipython3
 
-    u1 = 1.0
-    u2 = UtilityDistribution(dtype='norm')   # standard normal distribution
+    u1 = Real(1.0)
+    u2 = UniformDistribution()   # standard normal distribution
     print(u1)
     print(u2)
 
@@ -647,21 +705,79 @@ This means that both of the following are valid utility values
 .. parsed-literal::
 
     1.0
-    norm(loc:0.0, scale:1.0)
+    U(0.0, 1.0)
 
+
+Preferences
+~~~~~~~~~~~
+
+``Rational`` entities in NegMAS (including ``Agent``\ s,
+``Negotiator``\ s, and ``Controller``\ s) can have ``Preferences`` which
+define how much they prefer an ``Outcome`` over another. Several types
+of preferences are supported in NegMAS and they all must implement the
+``BasePref`` protocol.
+
+Ordinal and Cardinal Preferences
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The most general ``Preferences`` type in NegMAS is ``Ordinal``
+``Preferences`` which can only represent partial ordering of outcomes in
+the outcome-space throgh the ``is_not_worse()`` method. An entity with
+this kind of preferences can compare two outcomes but it gets one bit of
+information out of this comparison (which is better for the entity) and
+has no way to know *how much* is the difference
+
+``CarindalProb`` ``Preferences``, on the other hand, implement
+``difference_prob()`` which return a ``Distribution`` indicating *how
+much* is the difference between two outcomes. A crisp version
+(``CardinalCrisp``) moreover implements ``difference()`` which returns a
+``float`` indicating *exactly* the difference in value for the entity
+between two outcomes.
+
+Every ``CadrinalCrisp`` object is a ``CardinalProb`` which is also an
+``Ordinal`` object.
+
+Crisp and Prob Preferences
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+NegMAS usually implements two versions of each ``Preferences`` type
+(other than ``Ordinal``) that represent a probabilistic version (ending
+with ``Prob``) returing ``Distribution``\ s when queried, and a crisp
+version (ending with ``Crisp``) returning a ``float``. This simplifies
+the development of agents and negotiators working with probability
+distributions.
+
+Stationary and Non-Stationary Preferences
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Stationary ``Preferences`` are those that *do not change during the
+lifetime of their owner*, while non-stationary ``Preferences`` are
+allowed to change. The entity having non-stationary preferences usually
+faces a harder problem achieving its goals as it needs to take into
+account this possible change. Entities interacting with other entities
+with non-stationary ``Preferences`` are also in reatively harder
+situation comapred with those dealing with entities with stationary
+``Preferences``.
+
+Stationary Preference type names start with ``Stationary``
+(e.g. ``StationaryCardinalProb``) while non-stationary types start with
+``NonStationary`` (e.g. ``NonStationaryCardinalProb``).
 
 Utility Functions
 ~~~~~~~~~~~~~~~~~
 
 Utility functions are entities that take an ``Outcome`` and return its
-``UtilityValue``. There are many types of utility functions defined in
-the literature. In this package, the base of all utiliy functions is the
-``UtilityFunction`` class which is defined in the ``utilities`` module.
-It behaves like a standard python ``Callable`` which can be called with
-a single ``Outcome`` object (i.e. a dictionary, list, tuple etc
-representing an outcome) and returns a ``UtilityValue``. This allows
-utility functions to return a distribution instead of a single utility
-value.
+``Value``. There are many types of utility functions defined in the
+literature. In this package, the base of all utiliy functions is the
+``BaseUtilityFunction`` class which is defined in the
+``preferences.ufun`` module. It behaves like a standard python
+``Callable`` which can be called with a single ``Outcome`` object
+(i.e. a dictionary, list, tuple etc representing an outcome) and returns
+a ``Value``. This allows utility functions to return a distribution
+instead of a single utility value. Special cases are ``UtilityFunction``
+which is the base class of all crisp ufuns (returning a ``float`` when
+called) and ``ProbUtilityFunction`` which is the base class of all
+probabilistic ufuns (returning a ``Distribution`` when called).
 
 Utility functions in ``negmas`` have a helper ``property`` called
 ``type`` which returns the type of the utility function and a helper
@@ -670,15 +786,17 @@ which is guaranteed to return a real number (``float``) even if the
 utiliy function itself is returning a utility distribution.
 
 To implement a specific utility function, you need to override the
-single ``eval`` function provided in the ``UtilityFunction`` abstract
-interface. This is a simple example:
+single ``eval`` function provided in the
+``UtilityFunction``/``ProbUtilityFunction`` abstract base class. This is
+a simple example:
 
 .. code:: ipython3
 
+    COST = 0
     class ConstUtilityFunction(UtilityFunction):
        def eval(self, offer):
             try:
-                return 3.0 * offer['cost']
+                return 3.0 * offer[COST]
             except KeyError:  # No value was given to the cost
                 return None
 
@@ -686,18 +804,23 @@ interface. This is a simple example:
             return '<ufun const=True value=3.0></ufun>'
 
     f = ConstUtilityFunction()
-    [f({'The Problem': 'to be'}), f({'cost': 10})]
+    f((10,))
 
 
 
 
 .. parsed-literal::
 
-    [None, 30.0]
+    30.0
 
 
 
-Utility functions can store internal state and use it to return
+Note that we used ``StationaryUtilityFunction`` as the base class to
+inform users of the ``ConstUtilityFunction`` class that it represents a
+stationary ufun which means that it is OK to cache results of calls to
+the ufun for example.
+
+General Utility functions can store internal state and use it to return
 different values for the same outcome over time allowing for dynamic
 change or evolution of them during negotiations. For example this
 *silly* utility function responds to the mood of the user:
@@ -709,17 +832,17 @@ change or evolution of them during negotiations. For example this
             super().__init__()
             self.mood = mood
 
-        def __call__(self, offer):
-            return float(offer['cost']) if self.mood == 'good'\
-                                else 0.1 * offer['cost'] if self.mood == 'bad' \
-                                else None
+        def eval(self, offer):
+            if self.mood not in ('good', 'bad'):
+                raise ValueError(f"Cannot calculate utility for {offer}")
+            return float(offer[COST]) if self.mood == 'good' else 0.1 * offer[COST]
         def set_mood(self, mood):
             self.mood = mood
 
         def xml(self):
             pass
 
-    offer = {'cost': 10.0}
+    offer = (10,)
 
     f = MoodyUtilityFunction()
     # I am in a good mode now
@@ -727,79 +850,96 @@ change or evolution of them during negotiations. For example this
     f.set_mood('bad')
     print(f'Utility in bad mood of {offer} is {f(offer)}')
     f.set_mood('undecided')
-    print(f'Utility in good mood of {offer} is {f(offer)}')
+    try:
+        y = f(offer)
+    except ValueError as e:
+        print(f'Utility in good mood of {offer} is undecidable: {e}')
 
 
 .. parsed-literal::
 
-    Utility in good mood of {'cost': 10.0} is 10.0
-    Utility in bad mood of {'cost': 10.0} is 1.0
-    Utility in good mood of {'cost': 10.0} is None
+    Utility in good mood of (10,) is 10.0
+    Utility in bad mood of (10,) is 1.0
+    Utility in good mood of (10,) is undecidable: Cannot calculate utility for (10,)
 
 
 Notice that (as the last example shows) utility functions can return
 ``None`` to indicate that the utility value cannot be inferred for this
 outcome/offer.
 
+Preferences Protcols
+~~~~~~~~~~~~~~~~~~~~
+
+The ``preferences`` module provide a set of other python protocols that
+guarantee that a given ``Preferences`` object has some predefined
+properties. This can be used by developers to adjust the behavior of any
+entity based on the specific features of its preferences or to limit the
+applicability of some strategy to a given ``Preferences`` type.
+
+Here are some examples of these protocols all applying to utility
+functions (see next section) (note that *protocol* here is used in the
+Pythonic sense of a duck-typed interface):
+
++-----------------------------------+-----------------------------------+
+| Protoocol                         | Meaning                           |
++===================================+===================================+
+| Scalable                          | The utility function can be       |
+|                                   | scaled by some factor             |
++-----------------------------------+-----------------------------------+
+| PartiallyScalable                 | The utility function can be       |
+|                                   | scaled in some part of the        |
+|                                   | outcome-space                     |
++-----------------------------------+-----------------------------------+
+| Shiftable                         | The utility function can be       |
+|                                   | shifted by some constant value    |
++-----------------------------------+-----------------------------------+
+| PartiallyShiftable                | The utility function can be by    |
+|                                   | some constant value in some part  |
+|                                   | of the outcome-space              |
++-----------------------------------+-----------------------------------+
+| Normalizable                      | The utility function can be       |
+|                                   | normalized to fall in some given  |
+|                                   | range                             |
++-----------------------------------+-----------------------------------+
+| PartiallyNormalizable             | The utility function can be       |
+|                                   | normalized to fall in some given  |
+|                                   | range for some part of the        |
+|                                   | outcome-space                     |
++-----------------------------------+-----------------------------------+
+| HasReservedOutcome                | The utility function defines some |
+|                                   | outcome as the default outcome in |
+|                                   | case of disagreement              |
++-----------------------------------+-----------------------------------+
+| HasReservedDistribution           | The utility function defines some |
+|                                   | distribution as the distribution  |
+|                                   | from which a value is chosen in   |
+|                                   | case of disagreement              |
++-----------------------------------+-----------------------------------+
+| HasReservedValue                  | The utility function defines some |
+|                                   | value as the default value for    |
+|                                   | the agent in case of agreement in |
+|                                   | case of disagreement              |
++-----------------------------------+-----------------------------------+
+| HasRange                          | The utility function defines some |
+|                                   | value as the default value for    |
+|                                   | the agent in case of agreement in |
+|                                   | case of disagreement              |
++-----------------------------------+-----------------------------------+
+| IndIssues                         | The utility function is a         |
+|                                   | mathematical function (linear or  |
+|                                   | otherwise) of a set of            |
+|                                   | single-issue functions.           |
++-----------------------------------+-----------------------------------+
+
 The package provides a set of predefined utility functions representing
-most widely used types. The following subsections describe them briefly:
+most widely used types. The following subsections describe them briefly.
 
-Comparison Interface to UFuns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Linear Additive Utility Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In some cases, the preferences that the negotiator is to work with are
-not directly given as a mapping from outcomes to utility values but as
-comparisons between different outcomes.
-
-For example, we may have four outcomes ``A``, ``B``, ``C``, ``D``, and
-we know that each letter is better than the next except ``C`` and ``D``
-that are equivalent. How can we encode this in negmas?
-
-All preferences in negmas are encoded using a ``UtilityFunction`` so we
-must use one. Here is one example:
-
-.. code:: ipython3
-
-    class MyUFun(UtilityFunction):
-        def eval(self, outcome):
-            raise ValueError("This ufun does not implement the direct evaluation interface")
-        def xml(self):
-            raise NotImplementedError('I do not know how to save myself to XML')
-        def is_better(self, a, b):
-            return a < b and not (a=='C' and b == 'D')
-
-We can create a ufun of this type now as usual
-
-.. code:: ipython3
-
-    u = MyUFun()
-
-You can then use the ufun normally. In the future, the ``eval`` method
-will be approximated for those utility functions allowing them to be
-used directly in mechanisms that expect an outcome-value mapping. For
-now, they are only usable in mechanisms that rely on the ``is_better``
-interface (e.g. the single-text mechanism ``STMechanism`` and its
-derivatives).
-
-.. code:: ipython3
-
-    u.is_better('A', 'C')
-
-
-
-
-.. parsed-literal::
-
-    True
-
-
-
-Linear Aggregation Utility Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``LinearAggregationUtilityFunction`` class represents a function
-that linearly aggregate utilities assigned to issues in the given
-outcome which can be defined mathematically as follows:
+The ``LinearAdditiveUtilityFunction`` class represents a function that
+linearly aggregate utilities assigned to issues in the given outcome
+which can be defined mathematically as follows:
 
 .. math:: U(o) = \sum_{i=0}^{\left|o\right|}{w_i\times g_i(o_i)}
 
@@ -814,21 +954,53 @@ represent nonlinear relation between issue values and utility values.
 The linearity is in how these possibly nonlinear mappings are being
 combind to generate a utility value for the outcome.
 
+Note that a utility function needs to know the outcome-space over which
+is it defined. There are three ways to pass this to the
+``UtilityFunction`` constructor:
+
+1. **issues=…** pass a list of issues (usually made using
+   ``make_issue``)
+2. **outcome_space=…** pass an ``OutcomeSpace`` type (usualy made using
+   ``make_os``)
+3. **outcomes=…** pass a list of outcomes.
+
+The following three ufuns are exactly equivalent:
+
+.. code:: ipython3
+
+    issues = [make_issue(2, "i1"), make_issue(2, "i2")]
+    u1 = LinearAdditiveUtilityFunction(issues=issues, values=[lambda x: x, lambda x: x, lambda x: x])
+
+.. code:: ipython3
+
+    u2 = LinearAdditiveUtilityFunction(outcome_space=make_os(issues=issues), values=[lambda x: x, lambda x: x, lambda x: x])
+
+.. code:: ipython3
+
+    u3 = LinearAdditiveUtilityFunction(outcomes=[(0, 0), (0, 1), (1, 0), (1, 1)],
+                                       values=[lambda x: x, lambda x: x, lambda x: x])
+
 For example, the following utility function represents the utility of
 ``buyer`` who wants low cost, many items, and prefers delivery:
 
 .. code:: ipython3
 
-    buyer_utility = LinearAdditiveUtilityFunction({'price': lambda x: - x
-                               , 'number of items': lambda x: 0.5 * x
-                               , 'delivery': {'delivered': 1.0, 'not delivered': 0.0}})
+    issues = [
+        make_issue((0, 10), "price"),
+        make_issue((1, 10), "number of items"),
+        make_issue(["delivered", "not delivered"], "delivery")
+    ]
+    buyer_utility = LinearAdditiveUtilityFunction({
+        'price': lambda x: - x , 'number of items': lambda x: 0.5 * x,
+        'delivery': {'delivered': 1.0, 'not delivered': 0.0}},
+        issues=issues)
 
 Given this definition of utility, we can easily calculate the utility of
 different options:
 
 .. code:: ipython3
 
-    print(buyer_utility({'price': 1.0, 'number of items': 3, 'delivery': 'not delivered'}))
+    print(buyer_utility((1.0, 3, 'not delivered')))
 
 
 .. parsed-literal::
@@ -840,7 +1012,7 @@ Now what happens if we offer to deliver the items:
 
 .. code:: ipython3
 
-    print(buyer_utility({'price': 1.0, 'number of items': 3, 'delivery': 'delivered'}))
+    print(buyer_utility((1.0, 3, 'delivered')))
 
 
 .. parsed-literal::
@@ -852,7 +1024,7 @@ And if delivery was accompanied with an increase in price
 
 .. code:: ipython3
 
-    print(buyer_utility({'price': 1.8, 'number of items': 3, 'delivery': 'delivered'}))
+    print(buyer_utility((1.8, 3, 'delivered')))
 
 
 .. parsed-literal::
@@ -863,6 +1035,26 @@ And if delivery was accompanied with an increase in price
 It is clear that this buyer will still accept that increase of price
 from ``'1.0'`` to ``'1.8``\ ’ if it is accompanied with the delivery
 option.
+
+As explained before, you can use ``dict2outcome`` to make ufun calls
+more readable:
+
+.. code:: ipython3
+
+    buyer_utility(
+        dict2outcome({"price": 1.8, "number of items": 3, "delivery": "delivered"},
+                     issues=buyer_utility.issues
+                    )
+    )
+
+
+
+
+.. parsed-literal::
+
+    0.7
+
+
 
 Nonlinear Aggregation Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -880,11 +1072,11 @@ For example, a seller’s utility can be defined as:
 
 .. code:: ipython3
 
-    seller_utility =NonLinearAdditiveUtilityFunction({
-                                 'price': lambda x: x
-                               , 'number of items': lambda x: 0.5 * x
-                               , 'delivery': {'delivered': 1.0, 'not delivered': 0.0}}
-                       , f=lambda x: x['price']/x['number of items'] - 0.5 * x['delivery'])
+    seller_utility =NonLinearAggregationUtilityFunction((
+                                 lambda x: x
+                               , lambda x: 0.5 * x
+                               , {'delivered': 1.0, 'not delivered': 0.0})
+                       , f=lambda x: x[0]/x[1] - 0.5 * x[2])
 
 This utility will go up with the ``price`` and down with the
 ``number of items`` as expected but not linearly.
@@ -893,7 +1085,7 @@ We can now evaluate different options similar to the case for the buyer:
 
 .. code:: ipython3
 
-    print(seller_utility({'price': 1.0, 'number of items': 3, 'delivery': 'not delivered'}))
+    print(seller_utility((1.0, 3, 'not delivered')))
 
 
 .. parsed-literal::
@@ -903,7 +1095,7 @@ We can now evaluate different options similar to the case for the buyer:
 
 .. code:: ipython3
 
-    print(seller_utility({'price': 1.0, 'number of items': 3, 'delivery': 'delivered'}))
+    print(seller_utility((1.0, 3, 'delivered')))
 
 
 .. parsed-literal::
@@ -913,7 +1105,7 @@ We can now evaluate different options similar to the case for the buyer:
 
 .. code:: ipython3
 
-    print(seller_utility({'price': 1.8, 'number of items': 3, 'delivery': 'delivered'}))
+    print(seller_utility((1.8, 3, 'delivered')))
 
 
 .. parsed-literal::
@@ -1095,29 +1287,35 @@ module for more details
 .. code:: ipython3
 
     from pprint import pprint
-    pprint(list(_ for _ in negmas.preferences.__all__ if _.endswith("n")))
+    pprint(list(_ for _ in negmas.preferences.__all__ if _.endswith("Function")))
 
 
 .. parsed-literal::
 
-    ['UtilityDistribution',
-     'UtilityDistribution',
+    ['BaseUtilityFunction',
      'UtilityFunction',
-     'make_discounted_ufun',
-     'ConstUFun',
-     'LinDiscountedUFun',
-     'ExpDiscountedUFun',
+     'ProbUtilityFunction',
+     'PresortingInverseUtilityFunction',
+     'SamplingInverseUtilityFunction',
+     'DiscountedUtilityFunction',
+     'ConstUtilityFunction',
+     'LinearUtilityAggregationFunction',
      'LinearAdditiveUtilityFunction',
      'LinearUtilityFunction',
+     'AffineUtilityFunction',
      'MappingUtilityFunction',
-     'NonLinearAdditiveUtilityFunction',
+     'NonLinearAggregationUtilityFunction',
      'HyperRectangleUtilityFunction',
      'NonlinearHyperRectangleUtilityFunction',
-     'ComplexWeightedUtilityFunction',
-     'ComplexNonlinearUtilityFunction',
+     'RandomUtilityFunction',
+     'RankOnlyUtilityFunction',
+     'ProbMappingUtilityFunction',
      'IPUtilityFunction',
-     'JavaUtilityFunction',
-     'RandomUtilityFunction']
+     'ILSUtilityFunction',
+     'UniformUtilityFunction',
+     'ProbRandomUtilityFunction',
+     'WeightedUtilityFunction',
+     'ComplexNonlinearUtilityFunction']
 
 
 Utility Helpers and Analysis Tools
@@ -1241,8 +1439,8 @@ handled by the ``Negotiator``. To allow controllers to actually manage
 negotiations, a subclass of ``Controller`` needs to implement these
 actions without calling the base class’s implementation.
 
-A special kind of negotiator called ``PassThroughNegotiator`` is
-designed to work with controllers that take full responsibility of the
+A special kind of negotiator called ``ControlledNegotiator`` is designed
+to work with controllers that take full responsibility of the
 negotiation. These negotiators act just as a relay station passing all
 requests from the mechanism object to the controller and all responses
 back.
@@ -1466,8 +1664,8 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.001257</td>
-          <td>0.0</td>
+          <td>0.001456</td>
+          <td>0.090909</td>
           <td>False</td>
           <td>False</td>
           <td>None</td>
@@ -1478,28 +1676,12 @@ Our mechanism keeps a history in the form of a list of
         </tr>
         <tr>
           <th>1</th>
-          <td>True</td>
+          <td>False</td>
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.002331</td>
-          <td>0.1</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>2</td>
-          <td>False</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>False</td>
-          <td>False</td>
-          <td>True</td>
-          <td>2</td>
-          <td>0.003132</td>
-          <td>0.2</td>
+          <td>0.002149</td>
+          <td>0.181818</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1623,8 +1805,48 @@ to confirm that the current offer and its source are stored.
         <tr>
           <th>0</th>
           <td>0</td>
+          <td>None</td>
+          <td>0.090909</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.181818</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.272727</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.363636</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
           <td>(3,)</td>
-          <td>0.0</td>
+          <td>0.454545</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1690,17 +1912,17 @@ acceptable outcomes in our case):
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.000000</td>
+          <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
           <td>None</td>
-          <td>0.166667</td>
+          <td>0.285714</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1710,50 +1932,40 @@ acceptable outcomes in our case):
           <th>2</th>
           <td>2</td>
           <td>None</td>
-          <td>0.333333</td>
+          <td>0.428571</td>
           <td>False</td>
           <td>False</td>
-          <td>(2,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>3</th>
           <td>3</td>
           <td>None</td>
-          <td>0.500000</td>
+          <td>0.571429</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
         <tr>
           <th>4</th>
           <td>4</td>
           <td>None</td>
-          <td>0.666667</td>
+          <td>0.714286</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>5</th>
           <td>5</td>
           <td>None</td>
-          <td>0.833333</td>
+          <td>0.857143</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>6</th>
-          <td>6</td>
-          <td>None</td>
-          <td>1.000000</td>
-          <td>True</td>
-          <td>False</td>
-          <td>(1,)</td>
+          <td>(4,)</td>
           <td>buyer</td>
         </tr>
       </tbody>
@@ -1817,37 +2029,17 @@ agree upon:
           <th>0</th>
           <td>0</td>
           <td>None</td>
-          <td>0.000000</td>
+          <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(0,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
-          <td>None</td>
-          <td>0.166667</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(4,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
-          <td>None</td>
-          <td>0.333333</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
           <td>(3,)</td>
-          <td>0.500000</td>
+          <td>0.285714</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>

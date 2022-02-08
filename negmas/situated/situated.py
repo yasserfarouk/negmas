@@ -86,6 +86,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass, field
 from enum import Enum
+from os import PathLike
 from pathlib import Path
 from typing import (
     Any,
@@ -100,7 +101,6 @@ from typing import (
     Tuple,
     Union,
 )
-from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -128,9 +128,10 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome, outcome2dict
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import OutcomeSpace
-from negmas.preferences import Preferences
+from negmas.preferences import Preferences, UtilityFunction
 from negmas.serialization import serialize, to_flat_dict
 from negmas.types import NamedObject, Rational
+from negmas.warnings import NegmasImportWarning, warn
 
 try:
     import networkx as nx
@@ -352,9 +353,6 @@ class Contract:
             return s.__hash__()
         return None
 
-    class Java:
-        implements = ["jnegmas.situated.Contract"]
-
 
 @dataclass
 class Breach:
@@ -395,9 +393,6 @@ class Breach:
             "resolved": None,
         }
 
-    class Java:
-        implements = ["jnegmas.situated.Breach"]
-
 
 @dataclass
 class RenegotiationRequest:
@@ -406,9 +401,6 @@ class RenegotiationRequest:
     publisher: "Agent"
     issues: List[Issue]
     annotation: Dict[str, Any] = field(default_factory=dict)
-
-    class Java:
-        implements = ["jnegmas.situated.RenegotiationRequest"]
 
 
 class Entity:
@@ -1447,9 +1439,6 @@ class AgentWorldInterface:
         """
         return list(self.agent._running_negotiations.values())
 
-    class Java:
-        implements = ["jnegmas.situated.AgentWorldInterface"]
-
 
 def _path(path) -> Path:
     """Creates an absolute path from given path which can be a string"""
@@ -1495,9 +1484,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         name: str = None,
         type_postfix: str = "",
         preferences: "Preferences" = None,
+        ufun: "UtilityFunction" = None,
     ):
         super().__init__(type_postfix=type_postfix)
-        Rational.__init__(self, name=name, preferences=preferences)
+        Rational.__init__(self, name=name, preferences=preferences, ufun=ufun)
         self._running_negotiations: Dict[str, RunningNegotiationInfo] = {}
         self._requested_negotiations: Dict[str, NegotiationRequestInfo] = {}
         self._accepted_requests: Dict[str, NegotiationRequestInfo] = {}
@@ -4956,7 +4946,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.logwarning(f"GIF generation failed with exception {str(e)}")
             warn(
                 "GIF generation failed. Make suer you have gif installed\n\nyou can install it using >> pip install gif",
-                ImportWarning,
+                NegmasImportWarning,
             )
             return []
 
@@ -5318,7 +5308,7 @@ class NoContractExecutionMixin:
 
 def save_stats(
     world: World,
-    log_dir: str,
+    log_dir: PathLike | str,
     params: Dict[str, Any] = None,
     stats_file_name: Optional[str] = None,
 ):
@@ -5328,7 +5318,7 @@ def save_stats(
     Args:
 
         world: The world
-        log_dir: The directory to save the stats into.
+        logdir_: The directory to save the stats into.
         params: A parameter list to save with the world
         stats_file_name: File name to use for stats file(s) without extension
 
@@ -5343,8 +5333,8 @@ def save_stats(
             return False
         return True
 
-    log_dir = Path(log_dir)
-    os.makedirs(log_dir, exist_ok=True)
+    logdir_ = Path(log_dir)
+    os.makedirs(logdir_, exist_ok=True)
     if params is None:
         d = serialize(world, add_type_field=False, deep=False)
         to_del = []
@@ -5358,7 +5348,7 @@ def save_stats(
         params = d
     if stats_file_name is None:
         stats_file_name = "stats"
-    agents = {
+    agents: dict[str, dict[str, Any]] = {
         k: dict(id=a.id, name=a.name, type=a.type_name, short_type=a.short_type_name)
         for k, a in world.agents.items()
     }
@@ -5381,21 +5371,21 @@ def save_stats(
         agents[k]["contracts_executed"] = world.contracts_executed[k]
         agents[k]["contracts_breached"] = world.contracts_breached[k]
 
-    dump(agents, log_dir / "agents")
-    with open(log_dir / "params.json", "w") as f_:
+    dump(agents, logdir_ / "agents")
+    with open(logdir_ / "params.json", "w") as f_:
         f_.write(str(serialize(params)))
 
-    dump(world.stats, log_dir / stats_file_name)
+    dump(world.stats, logdir_ / stats_file_name)
 
     if world.info is not None:
-        dump(world.info, log_dir / "info")
+        dump(world.info, logdir_ / "info")
 
     if hasattr(world, "info") and world.info is not None:
-        dump(world.info, log_dir / "info")
+        dump(world.info, logdir_ / "info")
 
     try:
         data = pd.DataFrame.from_dict(world.stats)
-        data.to_csv(str(log_dir / f"{stats_file_name}.csv"), index_label="index")
+        data.to_csv(str(logdir_ / f"{stats_file_name}.csv"), index_label="index")
     except:
         pass
 
@@ -5404,33 +5394,33 @@ def save_stats(
             data = pd.DataFrame(world.saved_negotiations)
             if "ended_at" in data.columns:
                 data = data.sort_values(["ended_at"])
-            data.to_csv(str(log_dir / "negotiations.csv"), index_label="index")
+            data.to_csv(str(logdir_ / "negotiations.csv"), index_label="index")
         else:
-            with open(log_dir / "negotiations.csv", "w") as f:
+            with open(logdir_ / "negotiations.csv", "w") as f:
                 f.write("")
 
     if world.save_resolved_breaches or world.save_unresolved_breaches:
         if len(world.saved_breaches) > 0:
             data = pd.DataFrame(world.saved_breaches)
-            data.to_csv(str(log_dir / "breaches.csv"), index_label="index")
+            data.to_csv(str(logdir_ / "breaches.csv"), index_label="index")
         else:
-            with open(log_dir / "breaches.csv", "w") as f:
+            with open(logdir_ / "breaches.csv", "w") as f:
                 f.write("")
 
     # if world.save_signed_contracts:
     #     if len(world.signed_contracts) > 0:
     #         data = pd.DataFrame(world.signed_contracts)
-    #         data.to_csv(str(log_dir / "signed_contracts.csv"), index_label="index")
+    #         data.to_csv(str(logdir_ / "signed_contracts.csv"), index_label="index")
     #     else:
-    #         with open(log_dir / "signed_contracts.csv", "w") as f:
+    #         with open(logdir_ / "signed_contracts.csv", "w") as f:
     #             f.write("")
     #
     # if world.save_cancelled_contracts:
     #     if len(world.cancelled_contracts) > 0:
     #         data = pd.DataFrame(world.cancelled_contracts)
-    #         data.to_csv(str(log_dir / "cancelled_contracts.csv"), index_label="index")
+    #         data.to_csv(str(logdir_ / "cancelled_contracts.csv"), index_label="index")
     #     else:
-    #         with open(log_dir / "cancelled_contracts.csv", "w") as f:
+    #         with open(logdir_ / "cancelled_contracts.csv", "w") as f:
     #             f.write("")
 
     if world.save_signed_contracts or world.save_cancelled_contracts:
@@ -5440,9 +5430,9 @@ def save_stats(
                 if col in data.columns:
                     data = data.sort_values(["delivery_time"])
                     break
-            data.to_csv(str(log_dir / "contracts.csv"), index_label="index")
+            data.to_csv(str(logdir_ / "contracts.csv"), index_label="index")
         else:
-            with open(log_dir / "contracts.csv", "w") as f:
+            with open(logdir_ / "contracts.csv", "w") as f:
                 f.write("")
 
 

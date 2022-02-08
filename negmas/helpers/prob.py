@@ -5,57 +5,99 @@ A set of utilities to handle probability distributions
 from __future__ import annotations
 
 import copy
+import numbers
 import random
+from abc import abstractmethod
 from typing import Protocol, Type, runtime_checkable
 
 import numpy as np
 import scipy.stats as stats
 
 __all__ = [
-    "DistributionLike",  # THe interface of a distribution class
-    "Distribution",  # A probability distribution using scipy stats
+    "Distribution",  # THe interface of a distribution class
+    "ScipyDistribution",  # A probability distribution using scipy stats
+    "NormalDistribution",  # A probability distribution using scipy stats
+    "UniformDistribution",  # A probability distribution using scipy stats
     "Real",
+    "make_distribution",
 ]
 
 EPSILON = 1e-8
 
 
+def make_distribution(x: int | float | numbers.Real | Distribution) -> Distribution:
+    """
+    Ensures the output is `Distribution`
+
+    Remarks:
+        The input can either be `Distribution` or a number
+
+    """
+    if not isinstance(x, Distribution):
+        return Real(x)
+    return x
+
+
 @runtime_checkable
-class DistributionLike(Protocol):
-    def __init__(self, type: str, loc: float, scale: float, **kwargs):
+class Distribution(Protocol):
+    def __init__(self, type: str, **kwargs):
         """Constructor"""
 
+    @abstractmethod
+    def type(self) -> str:
+        """Returns the distribution type (e.g. uniform, normal, ...)"""
+
+    @abstractmethod
     def mean(self) -> float:
         """Finds the mean"""
 
-    def __float__(self) -> float:
-        """Converts to a float (usually by calling mean())"""
-
-    def __call__(self, val: float) -> float:
-        """Returns the probability for the given value"""
-
+    @abstractmethod
     def prob(self, val: float) -> float:
         """Returns the probability for the given value"""
 
+    @abstractmethod
     def cum_prob(self, mn: float, mx: float) -> float:
         """Returns the probability for the given range"""
 
+    @abstractmethod
     def sample(self, size: int = 1) -> np.ndarray:
         """Samples `size` elements from the distribution"""
 
     @property
+    @abstractmethod
     def loc(self) -> float:
         """Returns the location of the distributon (usually mean)"""
 
     @property
+    @abstractmethod
     def scale(self) -> float:
         """Returns the scale of the distribution (may be std. dev.)"""
 
+    @property
+    @abstractmethod
     def min(self) -> float:
         """Returns the minimum"""
 
+    @property
+    @abstractmethod
     def max(self) -> float:
         """Returns the maximum"""
+
+    @abstractmethod
+    def is_uniform(self) -> bool:
+        """Returns true if this is a uniform distribution"""
+
+    @abstractmethod
+    def is_gaussian(self) -> bool:
+        """Returns true if this is a gaussian distribution"""
+
+    def __float__(self) -> float:
+        """Converts to a float (usually by calling mean())"""
+        return self.mean()
+
+    def __call__(self, val: float) -> float:
+        """Returns the probability for the given value"""
+        return self.prob(val)
 
     def __le__(self, other) -> bool:
         """Check that a sample from `self` is ALWAYS less or equal a sample from other `other`"""
@@ -67,63 +109,77 @@ class DistributionLike(Protocol):
 
     def __ne__(self, other) -> bool:
         """Checks for ineqlaity of the distributions"""
-        return not self == other
+        return not (self == other)
 
     def __eq__(self, other) -> bool:
         """Checks for equality of the two distributions"""
+        if isinstance(other, numbers.Real):
+            other = Real(other)
+        return (
+            self.loc == other.loc
+            and self.scale == other.scale
+            and (
+                isinstance(other, Real)
+                or isinstance(self, Real)
+                or self.type == other.type
+            )
+        )
 
     def __lt__(self, other) -> bool:
         """Check that a sample from `self` is ALWAYS less than a sample from other `other`"""
+        if isinstance(other, numbers.Real):
+            return self.max < float(other)
         return self.max < other.min
 
     def __gt__(self, other) -> bool:
         """Check that a sample from `self` is ALWAYS greater than a sample from other `other`"""
+        if isinstance(other, numbers.Real):
+            return self.min > other
         return self.min > other.max
 
     def is_crisp(self) -> bool:
         """Returns true if this is a distribution with all probability at one point (delta(v))"""
         return self.scale < EPSILON / 1000
 
-    def __sub__(self, other):
+    @abstractmethod
+    def __sub__(self, other) -> Distribution:
         """Returns the distribution for the difference between samples of `self` and `other`"""
 
-    def __add__(self, other):
+    @abstractmethod
+    def __add__(self, other) -> Distribution:
         """Returns the distribution for the sum of samples of `self` and `other`"""
 
-    def __radd__(self, other):
-        """Returns the distribution for the sum of samples of `self` and `other`"""
-
-    def is_uniform(self) -> bool:
-        """Returns true if this is a uniform distribution"""
-
-    def is_gaussian(self) -> bool:
-        """Returns true if this is a gaussian distribution"""
+    @abstractmethod
+    def __mul__(self, weight: float) -> Distribution:
+        """Returns the distribution for the multiplicaiton of samples of `self` with `weight`"""
 
 
-class Real(float, DistributionLike):
-    """A real number implementing the `DistributionLike` interface"""
+class Real(Distribution):
+    """A real number implementing the `Distribution` interface"""
 
     def __init__(
-        self, type: str = "uniform", loc: float = 0.0, scale: float = 0.0, **kwargs
+        self,
+        loc: int | float | numbers.Real = 0.0,
+        type: str = "",
+        scale: float = 0.0,
+        **kwargs,
     ):
+        loc = float(loc)
         if not (0 <= scale <= EPSILON):
             raise ValueError(
                 f"Cannot construct a Real with this scale ({scale}) It must be zero"
             )
+        self._loc: float = loc
+        self._scale = 0.0
         # todo: check that this works. I think it does not
-        super().__init__()
+        super().__init__(type=type)
+
+    def type(self) -> str:
+        return "uniform"
 
     def mean(self) -> float:
         """Finds the mean"""
-        return self
-
-    def __float__(self):
-        """Converts to a float (usually by calling mean())"""
-        return self
-
-    def __call__(self, val: float) -> float:
-        """Returns the probability for the given value"""
-        return 1.0 if self == val < EPSILON else 0.0
+        return self._loc
 
     def prob(self, val: float) -> float:
         """Returns the probability for the given value"""
@@ -135,42 +191,46 @@ class Real(float, DistributionLike):
 
     def sample(self, size: int = 1) -> np.ndarray:
         """Samples `size` elements from the distribution"""
-        return float(self) * np.ones(size)
+        return self._loc * np.ones(size)
 
     @property
     def loc(self) -> float:
         """Returns the location of the distributon (usually mean)"""
-        return self
+        return self._loc
 
     @property
     def scale(self) -> float:
         """Returns the scale of the distribution (may be std. dev.)"""
         return 0.0
 
+    @property
     def min(self) -> float:
         """Returns the minimum"""
-        return self
+        return self._loc
 
+    @property
     def max(self) -> float:
         """Returns the maximum"""
-        return self
+        return self._loc
 
     def __str__(self):
         """Converts to a readable string"""
-        return str(float(self))
+        return str(float(self._loc))
+
+    __repr__ = __str__
 
     def __copy__(self):
         """Copies the distribution"""
-        return Real(self)
+        return Real(type="", loc=self.loc)
 
     def __deepcopy__(self, memo):
         """Performs deep copying"""
-        return Real(self)
+        return Real(loc=self.loc)
 
     def __eq__(self, other):
         """Checks for equality of the two distributions"""
-        if isinstance(other, DistributionLike):
-            return other.scale < EPSILON and abs(other.loc - self) < EPSILON
+        if isinstance(other, Distribution):
+            return other.scale < EPSILON and abs(other.loc - self.loc) < EPSILON
         if isinstance(other, float):
             return abs(self.loc - other) < EPSILON
         raise ValueError(f"Cannot compare CrispValues with {type(other)}")
@@ -207,19 +267,19 @@ class Real(float, DistributionLike):
         """Returns the distribution for the difference between samples of `self` and `other`"""
         if isinstance(other, float):
             return super().__sub__(other)
-        return other.__class__(loc=other.loc - self, scale=other.scale)
+        return other.__class__(loc=self.loc - other._loc, scale=other.scale)
 
     def __add__(self, other):
         """Returns the distribution for the sum of samples of `self` and `other`"""
         if isinstance(other, float):
             return super().__add__(other)
-        return other.__class__(loc=other.loc + self, scale=other.scale)
+        return other.__class__(loc=other.loc + self._loc, scale=other.scale)
 
-    def __radd__(self, other):
+    def __mul__(self, other):
         """Returns the distribution for the sum of samples of `self` and `other`"""
         if isinstance(other, float):
-            return super().__radd__(other)
-        return other.__class__(loc=other.loc + self, scale=other.scale)
+            return self._loc * other
+        return other * self._loc
 
     def is_gaussian(self):
         return True
@@ -232,7 +292,7 @@ class Real(float, DistributionLike):
         return self.scale < EPSILON / 1000
 
 
-class Distribution(DistributionLike):
+class ScipyDistribution(Distribution):
     """
     Any distribution from scipy.stats with overloading of addition and multiplication.
 
@@ -244,12 +304,12 @@ class Distribution(DistributionLike):
 
     Examples:
 
-        >>> d2 = Distribution('uniform')
+        >>> d2 = ScipyDistribution('uniform')
         >>> print(d2.mean())
         0.5
 
         >>> try:
-        ...     d = Distribution('something crazy')
+        ...     d = ScipyDistribution('something crazy')
         ... except ValueError as e:
         ...     print(str(e))
         Unknown distribution something crazy
@@ -257,7 +317,6 @@ class Distribution(DistributionLike):
     """
 
     def __init__(self, type: str, **kwargs) -> None:
-        super().__init__()
         dist = getattr(stats, type.lower(), None)
         if dist is None:
             raise ValueError(f"Unknown distribution {type}")
@@ -269,22 +328,24 @@ class Distribution(DistributionLike):
         self._dist = dist(**kwargs)
         self._type = type
 
+    def type(self) -> str:
+        return self._type
+
+    def _make_dist(self, type: str, loc: float, scale: float):
+        dist = getattr(stats, type.lower(), None)
+        if dist is None:
+            raise ValueError(f"Unknown distribution {type}")
+        return dist(loc=loc, scale=scale)
+
     def mean(self) -> float:
         if self._type != "uniform":
             raise NotImplementedError(
                 "Only uniform distributions are supported for now"
             )
         if self.scale < 1e-6:
-            return self.loc
+            return float(self.loc)
         mymean = self._dist.mean()
         return float(mymean)
-
-    def __float__(self):
-        return float(self.mean())
-
-    def __call__(self, val: float) -> float:
-        """Returns the probability for the given value"""
-        return self._dist.prob(val)
 
     def prob(self, val: float) -> float:
         """Returns the probability for the given value"""
@@ -305,16 +366,22 @@ class Distribution(DistributionLike):
     def scale(self):
         return self._dist.kwds.get("scale", 0.0)
 
+    @property
     def min(self):
         return self.loc - self.scale
 
+    @property
     def max(self):
         return self.loc + self.scale
 
     def __str__(self):
         if self._type == "uniform":
             return f"U({self.loc}, {self.loc+self.scale})"
+        if self._type == "normal":
+            return f"G({self.loc}, {self.loc+self.scale})"
         return f"{self._type}(loc:{self.loc}, scale:{self.scale})"
+
+    __repr__ = __str__
 
     def __copy__(self):
         cls = self.__class__
@@ -331,7 +398,7 @@ class Distribution(DistributionLike):
         return result
 
     def __eq__(self, other):
-        if isinstance(other, Distribution):
+        if isinstance(other, ScipyDistribution):
             return (
                 self._type == other._type
                 and abs(self.loc - other.loc) < EPSILON
@@ -343,12 +410,20 @@ class Distribution(DistributionLike):
         raise ValueError(f"Cannot compare Distribution with {type(other)}")
 
     def __sub__(self, other):
+        if isinstance(other, float) and self._type in ("uniform", "normal"):
+            self._dist = self._make_dist(self._type, self.loc - other, self.scale)
         raise NotImplementedError()
 
     def __add__(self, other):
+        if isinstance(other, float) and self._type in ("uniform", "normal"):
+            self._dist = self._make_dist(self._type, self.loc + other, self.scale)
         raise NotImplementedError()
 
-    def __radd__(self, other):
+    def __mul__(self, weight: float):
+        if isinstance(weight, float) and self._type in ("uniform", "normal"):
+            self._dist = self._make_dist(
+                self._type, self.loc * weight, self.scale * weight
+            )
         raise NotImplementedError()
 
     def is_gaussian(self):
@@ -358,12 +433,30 @@ class Distribution(DistributionLike):
         return self._type == "uniform"
 
 
+class UniformDistribution(ScipyDistribution):
+    """A `ScipyDistribution` reprsenting a unifrom distribution"""
+
+    def __init__(
+        self, loc: float = 0.0, scale: float = 1.0, *, type: str = "uniform", **kwargs
+    ) -> None:
+        super().__init__(loc=loc, scale=scale, type="uniform", **kwargs)
+
+
+class NormalDistribution(ScipyDistribution):
+    """A `ScipyDistribution` reprsenting a unifrom distribution"""
+
+    def __init__(
+        self, loc: float = 0.0, scale: float = 1.0, *, type: str = "norm", **kwargs
+    ) -> None:
+        super().__init__(loc=loc, scale=scale, type="norm", **kwargs)
+
+
 def uniform_around(
     value: float = 0.5,
     range: tuple[float, float] = (0.0, 1.0),
     uncertainty: float = 0.5,
-    cls: Type[DistributionLike] = Distribution,
-) -> "DistributionLike":
+    cls: Type[Distribution] = ScipyDistribution,
+) -> "Distribution":
     """
     Generates a uniform distribution around the input value in the given range with given uncertainty
 
@@ -373,12 +466,12 @@ def uniform_around(
         uncertainty: The uncertainty level required. 0.0 means no uncertainty and 1.0 means full uncertainty
 
     Returns:
-        DistributionLike A uniform distribution around `value` with uncertainty (scale) `uncertainty`
+        Distribution A uniform distribution around `value` with uncertainty (scale) `uncertainty`
     """
     if uncertainty >= 1.0:
         return cls(type="uniform", loc=range[0], scale=range[1])
     if uncertainty <= 0.0:
-        return Real(value)
+        return Real(loc=value)
     scale = uncertainty * (range[1] - range[0])
     loc = max(range[0], (random.random() - 1.0) * scale + value)
     if loc + scale > range[1]:

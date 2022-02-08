@@ -14,7 +14,7 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
 , etc.
 
 .. toctree::
-    :caption: Table of Contents
+    :caption: Introduction
     :name: mastertoc
     :includehidden:
     :titlesonly:
@@ -25,18 +25,60 @@ Nevertheless, it can; and was used; in modeling simpler bilateral and multi-late
     installation
     overview
 
+.. toctree::
+    :caption: Tutorials
+    :name: mastertoc
+    :includehidden:
+    :titlesonly:
+    :hidden:
+    :maxdepth: 1
+
     tutorials
+    upgrade_guide
+
+.. toctree::
+    :caption: Modules
+    :name: mastertoc
+    :includehidden:
+    :titlesonly:
+    :hidden:
+    :maxdepth: 1
 
     base_modules
     negotiation_mechanisms
     advanced_negotiation
     helper_modules
+
+
+.. toctree::
+    :caption: Interfaces
+    :name: mastertoc
+    :includehidden:
+    :titlesonly:
+    :hidden:
+    :maxdepth: 1
+
     scripts
+
+.. toctree::
+    :caption: Acknowledgements
+    :name: mastertoc
+    :includehidden:
+    :titlesonly:
+    :hidden:
+    :maxdepth: 1
 
     contributing
     authors
     history
 
-    api
+.. toctree::
+    :caption: References
+    :name: mastertoc
+    :includehidden:
+    :titlesonly:
+    :hidden:
+    :maxdepth: 1
 
+    api
     indices

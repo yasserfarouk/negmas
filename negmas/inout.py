@@ -7,10 +7,10 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional, Tuple, Type
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Type
 
 from negmas.outcomes.outcome_space import make_os
-from negmas.preferences.mapping import MappingUtilityFunction
+from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
@@ -20,10 +20,11 @@ from .preferences import (
     UtilityFunction,
     make_discounted_ufun,
 )
+from .preferences.value_fun import TableFun
 from .sao import SAOMechanism
 
 __all__ = [
-    "Domain",
+    "Scenario",
     "load_genius_domain",
     "load_genius_domain_from_folder",
     "find_domain_and_utility_files",
@@ -32,7 +33,7 @@ __all__ = [
 
 
 @dataclass
-class Domain:
+class Scenario:
     """
     A class representing a negotiation domain
     """
@@ -86,7 +87,7 @@ class Domain:
     def issue_names(self) -> list[str]:
         return self.agenda.issue_names
 
-    def to_numeric(self) -> "Domain":
+    def to_numeric(self) -> "Scenario":
         """
         Forces all issues in the domain to become numeric
 
@@ -95,7 +96,7 @@ class Domain:
         """
         raise NotImplementedError()
 
-    def to_single_issue(self, numeric=False, stringify=False) -> "Domain":
+    def to_single_issue(self, numeric=False, stringify=True) -> "Scenario":
         """
         Forces the domain to have a single issue with all possible outcomes
 
@@ -107,17 +108,22 @@ class Domain:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
+        if hasattr(self.agenda, "issues") and len(self.agenda.issues) == 1:
+            return self
+        outcomes = list(self.agenda.enumerate_or_sample())
         sos = self.agenda.to_single_issue(numeric, stringify)
         sos.name = self.agenda.name
         ufuns = []
+        souts = list(sos.issues[0].all)
         for u in self.ufuns:
             if isinstance(u, DiscountedUtilityFunction):
                 usave = u
                 v = u.ufun
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
-                u.ufun = MappingUtilityFunction(
-                    mapping=lambda x, v=v: v(x[0]),
+                u.ufun = LinearAdditiveUtilityFunction(
+                    values=[TableFun(dict(zip(souts, [v(_) for _ in outcomes])))],
+                    bias=0.0,
                     reserved_value=v.reserved_value,
                     name=v.name,
                     outcome_space=sos,
@@ -125,8 +131,9 @@ class Domain:
                 ufuns.append(usave)
                 continue
             ufuns.append(
-                MappingUtilityFunction(
-                    mapping=lambda x, v=u: v(x[0]),
+                LinearAdditiveUtilityFunction(
+                    values=[TableFun(dict(zip(souts, [u(_) for _ in outcomes])))],
+                    bias=0.0,
                     reserved_value=u.reserved_value,
                     name=u.name,
                     outcome_space=sos,
@@ -169,7 +176,7 @@ class Domain:
                 f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})"
             )
         if not roles:
-            roles = ["agent"] * len(negs)
+            roles = ["negotiator"] * len(negs)
         for n, r, u in zip(negs, roles, self.ufuns):
             m.add(n, preferences=u, role=r)
         return m
@@ -177,7 +184,7 @@ class Domain:
     def scale_min(
         self,
         to: float = 1.0,
-    ) -> "Domain":
+    ) -> "Scenario":
         """Normalizes a utility function to the given range
 
         Args:
@@ -187,13 +194,13 @@ class Domain:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)
+        self.ufuns = tuple(_.scale_min(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def scale_max(
         self,
         to: float = 1.0,
-    ) -> "Domain":
+    ) -> "Scenario":
         """Normalizes a utility function to the given range
 
         Args:
@@ -203,13 +210,13 @@ class Domain:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)
+        self.ufuns = tuple(_.scale_max(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def normalize(
         self,
         rng: Tuple[float, float] = (0.0, 1.0),
-    ) -> "Domain":
+    ) -> "Scenario":
         """Normalizes a utility function to the given range
 
         Args:
@@ -219,7 +226,7 @@ class Domain:
             levels: Number of levels to use for discretizing continuous issues (if any)
             max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.normalize(rng) for _ in self.ufuns)
+        self.ufuns = tuple(_.normalize(rng) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def discretize(self, levels: int = 10):
@@ -245,11 +252,11 @@ class Domain:
 
     @staticmethod
     def from_genius_folder(
-        path: PathLike,
+        path: PathLike | str,
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
-    ) -> "Domain" | None:
+    ) -> "Scenario" | None:
         return load_genius_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
@@ -264,7 +271,7 @@ class Domain:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
-    ) -> "Domain" | None:
+    ) -> "Scenario" | None:
         return load_genius_domain(
             domain,
             [_ for _ in ufuns],
@@ -277,10 +284,10 @@ class Domain:
 
 
 def get_domain_issues(
-    domain_file_name: PathLike,
+    domain_file_name: PathLike | str,
     n_discretization: Optional[int] = None,
     safe_parsing=False,
-) -> tuple[Issue, ...] | None:
+) -> Sequence[Issue] | None:
     """
     Returns the issues of a given XML domain (Genius Format)
 
@@ -311,7 +318,7 @@ def load_genius_domain(
     ignore_reserved=False,
     safe_parsing=True,
     **kwargs,
-) -> Domain:
+) -> Scenario:
     """
     Loads a genius domain, creates appropriate negotiators if necessary
 
@@ -375,7 +382,7 @@ def load_genius_domain(
     if issues is None:
         raise ValueError(f"Could not load domain {domain_file_name}")
 
-    return Domain(
+    return Scenario(
         agenda=make_os(issues, name=str(domain_file_name)),
         ufuns=[_["ufun"] for _ in agent_info],  # type: ignore
         mechanism_type=SAOMechanism,
@@ -384,12 +391,12 @@ def load_genius_domain(
 
 
 def load_genius_domain_from_folder(
-    folder_name: str,
+    folder_name: str | PathLike,
     ignore_reserved=False,
     ignore_discount=False,
     safe_parsing=False,
     **kwargs,
-) -> Domain | None:
+) -> Scenario:
     """
     Loads a genius domain from a folder. See ``load_genius_domain`` for more details.
 
@@ -425,7 +432,7 @@ def load_genius_domain_from_folder(
         (3, 2)
 
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.linear.LinearAdditiveUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
 
         Try loading a domain forcing a single issue space
         >>> domain = load_genius_domain_from_folder(
@@ -434,7 +441,8 @@ def load_genius_domain_from_folder(
         >>> domain.n_issues, domain.n_negotiators
         (1, 2)
         >>> [type(_) for _ in domain.ufuns]
-        [<class 'negmas.preferences.mapping.MappingUtilityFunction'>, <class 'negmas.preferences.mapping.MappingUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>, <class 'negmas.preferences.crisp.linear.LinearAdditiveUtilityFunction'>]
+
 
         Try loading a domain with nonlinear ufuns:
         >>> folder_name = pkg_resources.resource_filename('negmas', resource_name='tests/data/10issues')
@@ -444,7 +452,7 @@ def load_genius_domain_from_folder(
         >>> print(domain.n_negotiators)
         2
         >>> print([type(u) for u in domain.ufuns])
-        [<class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.nonlinear.HyperRectangleUtilityFunction'>]
+        [<class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>, <class 'negmas.preferences.crisp.nonlinear.HyperRectangleUtilityFunction'>]
         >>> u = domain.ufuns[0]
         >>> print(u.outcome_ranges[0])
         {1: (7.0, 9.0), 3: (2.0, 7.0), 5: (0.0, 8.0), 8: (0.0, 7.0)}
@@ -452,7 +460,7 @@ def load_genius_domain_from_folder(
         >>> print(u.mappings[0])
         97.0
         >>> print(u([0.0] * domain.n_issues))
-        0.0
+        0
         >>> print(u([0.5] * domain.n_issues))
         186.0
     """
@@ -471,7 +479,7 @@ def load_genius_domain_from_folder(
         elif root.tag == "utility_space":
             utility_file_names.append(full_name)
     if domain_file_name is None:
-        return None
+        raise ValueError("Cannot find a domain file")
     return load_genius_domain(
         domain_file_name=domain_file_name,
         utility_file_names=utility_file_names,

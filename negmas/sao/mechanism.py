@@ -4,31 +4,19 @@ Implements Stacked Alternating Offers (SAO) mechanism.
 from __future__ import annotations
 
 import functools
-import itertools
-import math
-import os
-import pathlib
 import random
 import sys
 import time
-import uuid
-import warnings
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
-import pandas as pd
+from negmas import warnings
 
-from ..common import MechanismState, NegotiatorMechanismInterface
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismRoundResult
 from ..outcomes.common import Outcome
-from ..outcomes.outcome_ops import (
-    cast_value_types,
-    outcome_is_complete,
-    outcome_types_are_ok,
-)
-from ..preferences.ops import nash_point
+from ..outcomes.outcome_ops import cast_value_types, outcome_types_are_ok
 from .common import ResponseType, SAOResponse, SAOState
 
 if TYPE_CHECKING:
@@ -39,7 +27,13 @@ if TYPE_CHECKING:
 __all__ = [
     "SAOMechanism",
     "SAOProtocol",
+    "TraceElement",
 ]
+
+TraceElement = namedtuple(
+    "TraceElement", ["time", "relative_time", "step", "negotiator", "offer", "response"]
+)
+"""An element of the trace returned by `full_trace` representing the history of the negotiation"""
 
 
 class SAOMechanism(Mechanism):
@@ -124,7 +118,8 @@ class SAOMechanism(Mechanism):
             time_limit is None or time_limit == float("inf")
         ):
             warnings.warn(
-                "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!"
+                "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!",
+                warnings.NegmasInfiniteNegotiationWarning,
             )
         self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
@@ -184,29 +179,29 @@ class SAOMechanism(Mechanism):
         ):
             warnings.warn(
                 f"{negotiator.id} of type {negotiator.__class__.__name__} is joining SAOMechanism which has a time_limit of {self.nmi.time_limit} seconds and a n_steps of {self.nmi.n_steps}. This agnet will only know about the time_limit and will not know about the n_steps!!!",
-                category=UserWarning,
+                warnings.NegmasStepAndTimeLimitWarning,
             )
         return added
 
-    def join(
-        self,
-        nmi: NegotiatorMechanismInterface,
-        state: MechanismState,
-        *,
-        preferences: Optional["Preferences"] = None,
-        role: str = "agent",
-    ) -> bool:
-        if not super().join(nmi, state, preferences=preferences, role=role):
-            return False
-        if not self.nmi.dynamic_entry and not any(
-            [a.capabilities.get("propose", False) for a in self.negotiators]
-        ):
-            self._current_proposer = None
-            self._last_checked_negotiator = -1
-            self._current_offer = None
-            self._n_accepting = 0
-            return False
-        return True
+    # def join(
+    #     self,
+    #     nmi: NegotiatorMechanismInterface,
+    #     state: MechanismState,
+    #     *,
+    #     preferences: Optional["Preferences"] = None,
+    #     role: str = "negotiator",
+    # ) -> bool:
+    #     if not super().join(nmi, state, preferences=preferences, role=role):
+    #         return False
+    #     if not self.nmi.dynamic_entry and not any(
+    #         [a.capabilities.get("propose", False) for a in self.negotiators]
+    #     ):
+    #         self._current_proposer = None
+    #         self._last_checked_negotiator = -1
+    #         self._current_offer = None
+    #         self._n_accepting = 0
+    #         return False
+    #     return True
 
     def set_sync_call(self, v: bool):
         self._sync_call = v
@@ -239,383 +234,6 @@ class SAOMechanism(Mechanism):
             else "---",
         )
 
-    def plot(
-        self,
-        visible_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
-        plot_utils=True,
-        plot_outcomes=False,
-        minmax: Optional[Tuple[float, float]] = None,
-        save_fig: bool = False,
-        path: str = None,
-        fig_name: str = None,
-        ignore_none_offers: bool = True,
-        with_lines: bool = True,
-        show_agreement: bool = False,
-        show_pareto_distance: bool = True,
-        show_nash_distance: bool = True,
-        show_end_reason: bool = True,
-        show_last_negotiator: bool = True,
-        show_annotations: bool = False,
-    ):
-        import matplotlib.gridspec as gridspec
-        import matplotlib.pyplot as plt
-
-        if self.issues is not None and len(self.issues) > 1:
-            plot_outcomes = False
-
-        if len(self.negotiators) < 2:
-            warnings.warn("Cannot visualize negotiations with less than 2 negotiators")
-            return
-        if len(visible_negotiators) > 2:
-            warnings.warn("Cannot visualize more than 2 agents")
-            return
-        if isinstance(visible_negotiators[0], str):
-            tmp = []
-            for _ in visible_negotiators:
-                for n in self.negotiators:
-                    if n.id == _:
-                        tmp.append(n)
-        else:
-            vnegotiators = [
-                self.negotiators[visible_negotiators[0]],
-                self.negotiators[visible_negotiators[1]],
-            ]
-        # indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
-        outcomes = self.discrete_outcomes()
-        history = []
-        for state in self.history:
-            for a, o in state.new_offers:
-                if ignore_none_offers and o is None:
-                    continue
-                history.append(
-                    {
-                        "current_proposer": a,
-                        "current_offer": o,
-                        "offer_index": outcomes.index(o) if o is not None else None,
-                        "relative_time": state.relative_time,
-                        "step": state.step,
-                        "u0": vnegotiators[0].ufun(o),
-                        "u1": vnegotiators[1].ufun(o),
-                    }
-                )
-        history = pd.DataFrame(data=history)
-        has_history = len(history) > 0
-        has_front = 1
-        # n_negotiators = len(self.negotiators)
-        n_agents = len(vnegotiators)
-        ufuns = self._get_preferencess()
-        utils = [tuple(f(o) for f in ufuns) for o in outcomes]
-        xrange = max(_[0] for _ in utils) - min(_[0] for _ in utils)
-        yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
-        agent_names = [a.name for a in vnegotiators]
-        if has_history:
-            history["offer_index"] = [
-                outcomes.index(_) if _ is not None else None
-                for _ in history.current_offer
-            ]
-        frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
-        nash, _ = nash_point(ufuns, frontier, self.issues, self.outcomes)
-        if not nash:
-            show_nash_distance = False
-        frontier_indices = [
-            i
-            for i, _ in enumerate(frontier)
-            if _[0] is not None
-            and _[0] > float("-inf")
-            and _[1] is not None
-            and _[1] > float("-inf")
-        ]
-        frontier = [frontier[i] for i in frontier_indices]
-        frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
-        frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
-        if plot_utils:
-            fig_util = plt.figure(figsize=(20, 8))
-        if plot_outcomes:
-            fig_outcome = plt.figure(figsize=(20, 8))
-        gs_util = gridspec.GridSpec(n_agents, has_front + 1) if plot_utils else None
-        gs_outcome = (
-            gridspec.GridSpec(n_agents, has_front + 1) if plot_outcomes else None
-        )
-        axs_util, axs_outcome = [], []
-
-        clrs = ("green", "blue")
-        mrkrs = ("s", "o")
-
-        for a in range(n_agents):
-            if a == 0:
-                if plot_utils:
-                    axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
-                if plot_outcomes:
-                    axs_outcome.append(
-                        fig_outcome.add_subplot(gs_outcome[a, has_front])
-                    )
-            else:
-                if plot_utils:
-                    axs_util.append(
-                        fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0])
-                    )
-                if plot_outcomes:
-                    axs_outcome.append(
-                        fig_outcome.add_subplot(
-                            gs_outcome[a, has_front], sharex=axs_outcome[0]
-                        )
-                    )
-            if plot_utils:
-                axs_util[-1].set_ylabel(agent_names[a])
-            if plot_outcomes:
-                axs_outcome[-1].set_ylabel(agent_names[a])
-        for a, (au, ao) in enumerate(
-            zip(
-                itertools.chain(axs_util, itertools.repeat(None)),
-                itertools.chain(axs_outcome, itertools.repeat(None)),
-            )
-        ):
-            if au is None and ao is None:
-                break
-            if not has_history:
-                continue
-            h = history.loc[
-                history.current_proposer == vnegotiators[a].id,
-                ["relative_time", "offer_index", "current_offer"],
-            ]
-            h["utility"] = h["current_offer"].apply(ufuns[a])
-            if plot_outcomes:
-                ao.plot(
-                    h.relative_time,
-                    h["offer_index"],
-                    label=vnegotiators[a].name + f" ({a})",
-                    color=clrs[a],
-                )
-                ao.legend()
-            if plot_utils:
-                au.plot(
-                    h.relative_time,
-                    h.utility,
-                    label=vnegotiators[a].name + f" ({a})",
-                    color=clrs[a],
-                )
-                if minmax is not None:
-                    au.set_ylim(*minmax)
-                au.set_ylabel(vnegotiators[a].name + f" ({a}) utility")
-                au.set_xlabel("relative time")
-                au.legend()
-        agreement = (
-            self.agreement if self.agreement is not None else tuple(None for _ in ufuns)
-        )
-        agreement_utility = tuple(u(agreement) for u in ufuns)
-        unknown_agreement_utility = None in agreement_utility
-        if unknown_agreement_utility:
-            show_pareto_distance = show_nash_distance = False
-        if has_front:
-            if plot_utils:
-                axu = fig_util.add_subplot(gs_util[:, 0])
-                axu.scatter(
-                    [_[0] for _ in utils],
-                    [_[1] for _ in utils],
-                    # label="outcomes",
-                    color="gray",
-                    marker="s",
-                    s=20,
-                )
-            if plot_outcomes:
-                axo = fig_outcome.add_subplot(gs_outcome[:, 0])
-            pareto_distance = float("inf")
-            nash_distance = float("inf")
-            if plot_utils:
-                f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-                axu.scatter(f1, f2, color="red", marker="x")
-                axu.set_xlabel(agent_names[0] + f"(0) utility")
-                axu.set_ylabel(agent_names[1] + f"(1) utility")
-                cu = agreement_utility
-                if not unknown_agreement_utility:
-                    if nash:
-                        nash_distance = math.sqrt(
-                            (nash[0] - cu[0]) ** 2 + (nash[1] - cu[1]) ** 2
-                        )
-                    for pu in frontier:
-                        dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
-                        if dist < pareto_distance:
-                            pareto_distance = dist
-                txt = ""
-                if show_agreement:
-                    txt += f"Agreement:{outcome_as_dict(self.agreement, self.issues)}\n"
-                if show_pareto_distance and self.agreement is not None:
-                    txt += f"Pareto-distance={pareto_distance:5.2}\n"
-                if show_nash_distance and self.agreement is not None:
-                    txt += f"Nash-distance={nash_distance:5.2}\n"
-                if show_end_reason:
-                    if self.state.ended and self.state.agreement is None:
-                        txt += "Negotiation Ended\n"
-                    elif self.state.timedout:
-                        txt += "Negotiation Timedout\n"
-                    elif self.state.agreement is not None:
-                        txt += "Negotiation Success\n"
-                    elif self.state.erred:
-                        txt += "Negotiation ERROR\n"
-                    elif self.state.agreement is not None:
-                        txt += "Agreemend Reached\n"
-                    elif self.state.agreement is None:
-                        txt += "No Agreement\n"
-                    else:
-                        txt += "Unknown state!!\n"
-                if show_last_negotiator:
-                    txt += f"Last: {self.state.last_negotiator}"
-
-                axu.text(
-                    0.05,
-                    0.05,
-                    txt,
-                    verticalalignment="bottom",
-                    transform=axu.transAxes,
-                )
-
-            if plot_outcomes:
-                axo.scatter(
-                    frontier_outcome_indices,
-                    frontier_outcome_indices,
-                    color="red",
-                    marker="x",
-                    label="frontier",
-                )
-                axo.legend()
-                axo.set_xlabel(agent_names[0])
-                axo.set_ylabel(agent_names[1])
-
-            if plot_utils and has_history:
-                for a in range(n_agents):
-                    h = history.loc[
-                        history.current_proposer == vnegotiators[a].id,
-                        ["relative_time", "offer_index", "current_offer"],
-                    ]
-                    h["u0"] = h["current_offer"].apply(ufuns[0])
-                    h["u1"] = h["current_offer"].apply(ufuns[1])
-                    (axu.scatter if not with_lines else axu.plot)(
-                        h.u0,
-                        h.u1,
-                        color=clrs[a],
-                        label=f"{agent_names[a]}",
-                        marker=mrkrs[a],
-                    )
-                if frontier:
-                    axu.scatter(
-                        [frontier[0][0]],
-                        [frontier[0][1]],
-                        color="magenta",
-                        label=f"Max. Welfare",
-                        marker="+",
-                        s=120,
-                    )
-                    if show_annotations:
-                        axu.annotate(
-                            "Max. Welfare",
-                            xy=frontier[0],  # theta, radius
-                            xytext=(
-                                frontier[0][0] + 0.02,
-                                frontier[0][1] + 0.02 * yrange,
-                            ),  # fraction, fraction
-                            horizontalalignment="left",
-                            verticalalignment="bottom",
-                        )
-                if nash:
-                    axu.scatter(
-                        [nash[0]],
-                        [nash[1]],
-                        color="cyan",
-                        label=f"Nash Point",
-                        marker="x",
-                        s=120,
-                    )
-                    if show_annotations:
-                        axu.annotate(
-                            "Nash Point",
-                            xy=nash,  # theta, radius
-                            xytext=(
-                                nash[0] + 0.02,
-                                nash[1] - 0.02 * yrange,
-                            ),  # fraction, fraction
-                            horizontalalignment="left",
-                            verticalalignment="bottom",
-                        )
-                if self.state.agreement is not None:
-                    axu.scatter(
-                        [ufuns[0](self.state.agreement)],
-                        [ufuns[1](self.state.agreement)],
-                        color="black",
-                        marker="*",
-                        s=120,
-                        label="Agreement",
-                    )
-                    if show_annotations:
-                        axu.annotate(
-                            "Agreement",
-                            xy=nash,  # theta, radius
-                            xytext=(
-                                agreement_utility[0] + 0.02,
-                                agreement_utility[1] + 0.02,
-                            ),  # fraction, fraction
-                            horizontalalignment="left",
-                            verticalalignment="bottom",
-                        )
-                axu.legend(
-                    bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
-                    loc="lower left",
-                    ncol=5,
-                    mode="expand",
-                    borderaxespad=0.0,
-                )
-            if plot_outcomes and has_history:
-                steps = sorted(history.step.unique().tolist())
-                aoffers = [[], []]
-                for step in steps[::2]:
-                    offrs = []
-                    for a in range(n_agents):
-                        a_offer = history.loc[
-                            (history.current_proposer == agent_names[a])
-                            & ((history.step == step) | (history.step == step + 1)),
-                            "offer_index",
-                        ]
-                        if len(a_offer) > 0:
-                            offrs.append(a_offer.values[-1])
-                    if len(offrs) == 2:
-                        aoffers[0].append(offrs[0])
-                        aoffers[1].append(offrs[1])
-                (axo.scatter if not with_lines else axo.plot)(
-                    aoffers[0], aoffers[1], color=clrs[0], label=f"offers"
-                )
-
-            if self.state.agreement is not None:
-                if plot_outcomes:
-                    axo.scatter(
-                        [outcomes.index(self.state.agreement)],
-                        [outcomes.index(self.state.agreement)],
-                        color="black",
-                        marker="*",
-                        s=120,
-                        label="Agreement",
-                        zorder=10,
-                    )
-
-        if save_fig:
-            if fig_name is None:
-                fig_name = str(uuid.uuid4()) + ".png"
-            parts = fig_name.split(".")
-            fig_name_outcomes = ".".join(parts[:-1]) + "_outcomes." + parts[-1]
-            if path is None:
-                path = pathlib.Path().absolute()
-            else:
-                pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-            if plot_utils:
-                fig_util.savefig(os.path.join(path, fig_name), bbox_inches="tight")
-            if plot_outcomes:
-                fig_outcome.savefig(
-                    os.path.join(path, fig_name_outcomes), bbox_inches="tight"
-                )
-        else:
-            if plot_utils:
-                fig_util.show()
-            if plot_outcomes:
-                fig_outcome.show()
-
     def _stop_waiting(self, negotiator_id):
         self._waiting_time[negotiator_id] = 0.0
         self._waiting_start[negotiator_id] = float("inf")
@@ -634,7 +252,9 @@ class SAOMechanism(Mechanism):
             zip([_.id for _ in negotiators], [list() for _ in negotiators])
         )
 
-        def _safe_counter(negotiator, *args, **kwargs) -> Tuple[SAOResponse, bool]:
+        def _safe_counter(
+            negotiator, *args, **kwargs
+        ) -> tuple[SAOResponse | None, bool]:
             rem = self.remaining_time
             if rem is None:
                 rem = float("inf")
@@ -709,9 +329,9 @@ class SAOMechanism(Mechanism):
                 if not self.outcome_space.is_valid(response.outcome):
                     return SAOResponse(response.response, None), False
                 # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
-                if self._enforce_issue_types:
+                if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
                     if outcome_types_are_ok(
-                        response.outcome, self.outcome_space.issues
+                        response.outcome, self.outcome_space.issues  # type: ignore
                     ):
                         return response, False
                     elif self._cast_offers:
@@ -719,7 +339,7 @@ class SAOMechanism(Mechanism):
                             SAOResponse(
                                 response.response,
                                 cast_value_types(
-                                    response.outcome, self.outcome_space.issues
+                                    response.outcome, self.outcome_space.issues  # type: ignore
                                 ),
                             ),
                             False,
@@ -903,7 +523,7 @@ class SAOMechanism(Mechanism):
                 for _ in range(n_negotiators)
             ]
 
-        for iii, neg_indx in enumerate(ordered_indices):
+        for _, neg_indx in enumerate(ordered_indices):
             self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
@@ -1056,6 +676,55 @@ class SAOMechanism(Mechanism):
         )
 
     @property
+    def full_trace(self) -> List[TraceElement]:
+        """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
+
+        def response(state: SAOState):
+            if state.timedout:
+                return "timedout"
+            if state.ended:
+                return "ended"
+            if state.has_error:
+                return "error"
+            if state.agreement:
+                return "accepted"
+            return "rejected"
+
+        offers = []
+        for state in self._history:
+            state: SAOState
+            offers += [
+                TraceElement(
+                    state.time, state.relative_time, state.step, n, o, response(state)
+                )
+                for n, o in state.new_offers
+            ]
+
+        def not_equal(a, b):
+            return any(x != y for x, y in zip(a, b))
+
+        self._history: List[SAOState]
+        # if the agreement does not appear as the last offer in the trace, add it.
+        # this should not happen though!!
+        if (
+            self.agreement is not None
+            and offers
+            and not_equal(offers[-1][-1], self.agreement)
+        ):
+            offers.append(
+                TraceElement(
+                    self._history[-1].time,
+                    self._history[-1].relative_time,
+                    self._history[-1].step,
+                    self._history[-1].current_proposer,
+                    self.agreement,
+                    response(self._history[-1]),
+                )
+            )
+
+        return offers
+
+    @property
     def extended_trace(self) -> List[Tuple[int, str, Outcome]]:
         """Returns the negotiation history as a list of step/negotiator/offer tuples"""
         offers = []
@@ -1116,10 +785,61 @@ class SAOMechanism(Mechanism):
         """Returns the offers given by a negotiator (in order)"""
         return [o for n, o in self.trace if n == negotiator_id]
 
+    def negotiator_full_trace(
+        self, negotiator_id: str
+    ) -> List[Tuple[float, float, int, Outcome, str]]:
+        """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
+        return [
+            (t, rt, s, o, r)
+            for t, rt, s, n, o, r in self.full_trace
+            if n == negotiator_id
+        ]
+
     @property
     def offers(self) -> List[Outcome]:
         """Returns the negotiation history as a list of offers"""
         return [o for _, o in self.trace]
+
+    def plot(
+        self,
+        plotting_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
+        save_fig: bool = False,
+        path: str = None,
+        fig_name: str = None,
+        ignore_none_offers: bool = True,
+        with_lines: bool = True,
+        show_agreement: bool = False,
+        show_pareto_distance: bool = True,
+        show_nash_distance: bool = True,
+        show_end_reason: bool = True,
+        show_last_negotiator: bool = True,
+        show_annotations: bool = False,
+        colors: list | None = None,
+        markers: list[str] | None = None,
+        colormap: str = "jet",
+        ylimits: tuple[float, float] | None = None,
+    ):
+        from negmas.sao.plots import plot_mechanism_run
+
+        return plot_mechanism_run(
+            self,
+            negotiators=plotting_negotiators,
+            save_fig=save_fig,
+            path=path,
+            fig_name=fig_name,
+            ignore_none_offers=ignore_none_offers,
+            with_lines=with_lines,
+            show_agreement=show_agreement,
+            show_pareto_distance=show_pareto_distance,
+            show_nash_distance=show_nash_distance,
+            show_end_reason=show_end_reason,
+            show_last_negotiator=show_last_negotiator,
+            show_annotations=show_annotations,
+            colors=colors,
+            markers=markers,
+            colormap=colormap,
+            ylimits=ylimits,
+        )
 
 
 SAOProtocol = SAOMechanism

@@ -7,14 +7,18 @@ from typing import Generator
 import numpy as np
 
 from negmas.helpers.numeric import sample
-from negmas.outcomes.base_issue import DiscreteIssue
+from negmas.outcomes.base_issue import DiscreteIssue, Issue
+from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
 from negmas.outcomes.range_issue import RangeIssue
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 __all__ = ["ContiguousIssue"]
 
 
-class ContiguousIssue(RangeIssue):
+class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
+    """
+    A `RangeIssue` (also a `DiscreteCardinalIssue`) representing a contiguous range of integers.
+    """
+
     def __init__(
         self,
         values: int | tuple[int, int],
@@ -26,16 +30,11 @@ class ContiguousIssue(RangeIssue):
         super().__init__(values, name, id)
         self._n_values = values[1] - values[0] + 1  # type: ignore
 
-    @property
-    def cardinality(self) -> int:
-        return self.max_value - self.min_value + 1
-
-    def _to_xml_str(self, indx, enumerate_integer=False):
-        if not enumerate_integer:
-            return (
-                f'    <issue etype="integer" index="{indx + 1}" name="{self.name}" type="integer" vtype="integer"'
-                f' lowerbound="{self._values[0]}" upperbound="{self._values[1]}" />\n'
-            )
+    def _to_xml_str(self, indx):
+        # return (
+        #     f'    <issue etype="integer" index="{indx + 1}" name="{self.name}" type="integer" vtype="integer"'
+        #     f' lowerbound="{self._values[0]}" upperbound="{self._values[1]}" />\n'
+        # )
 
         output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="integer">\n'
         for i, v in enumerate(range(self._values[0], self._values[1] + 1)):
@@ -44,17 +43,19 @@ class ContiguousIssue(RangeIssue):
         return output
 
     @property
-    def all(self) -> Generator:
+    def all(self) -> Generator[int, None, None]:
         yield from range(self._values[0], self._values[1] + 1)
 
     def value_generator(
         self, n: int | None = 10, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[int, None, None]:
         yield from self.ordered_value_generator(
             n, grid=grid, compact=compact, endpoints=endpoints
         )
 
-    def ordered_value_generator(self, n: int | None = None, grid=True, compact=False, endpoints=True) -> Generator:  # type: ignore
+    def ordered_value_generator(
+        self, n: int | None = None, grid=True, compact=False, endpoints=True
+    ) -> Generator[int, None, None]:
         yield from (
             _ + self._values[0]
             for _ in sample(
@@ -73,7 +74,7 @@ class ContiguousIssue(RangeIssue):
             )
 
         beg = (self.cardinality - n) // 2
-        return ContiguousIssue((beg, beg + n), name=self.name + f"{n}")
+        return ContiguousIssue((int(beg), int(beg + n)), name=self.name + f"{n}")
 
     def rand(self) -> int:
         """Picks a random valid value."""
@@ -115,3 +116,11 @@ class ContiguousIssue(RangeIssue):
         if index < 0 or index > self.cardinality - 1:
             raise IndexError(index)
         return self.min_value + index
+
+    def contains(self, issue: Issue) -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        return (
+            issubclass(issue.value_type, numbers.Integral)
+            and issue.min_value >= self.min_value
+            and issue.max_value <= self.max_value
+        )
