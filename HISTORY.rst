@@ -316,7 +316,7 @@ Release 0.6.8
   that was scattered between it an negotiation_info.csv
 - [situated] Adding the concept of a neg. group
 - [bugfix] correcting the implementation of joining in
-  SAOPassThroughNegotiator
+  SAOControlledNegotiator
 - [negotiators] Making it possible to use the `AspirationMixin`
   for controllers.
 
@@ -689,9 +689,9 @@ Release 0.2.25
 
 Release 0.2.24
 --------------
-- separating PassThroughNegotiator, PassThroughSAONegotiator. This speeds up all simulations at the expense
+- separating ControlledNegotiator, ControlledSAONegotiator. This speeds up all simulations at the expense
   of backward incompatibility for the undocumented Controller pattern. If you are using this pattern, you
-  need to create PassThroughSAONegotiator instead of SAONegotiator. If you are not using Controller or you do not know
+  need to create ControlledSAONegotiator instead of SAONegotiator. If you are not using Controller or you do not know
   what that is, you probably safe and your code will just work.
 - adding logging of negotiations and offers (very slow)
 - preventing miners from buying in case sell CFPs are posted.

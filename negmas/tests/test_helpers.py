@@ -83,15 +83,15 @@ def test_unique_name_with_path(tmpdir):
 def test_is_nonzero_file(tmpdir):
     f_name = unique_name("")
     f = tmpdir / f_name
-    assert is_nonzero_file(str(f)) is False
+    assert is_nonzero_file(f) is False
 
     with open(f, "w") as tst_file:
         tst_file.write("")
-    assert is_nonzero_file(str(f)) is False
+    assert is_nonzero_file(f) is False
 
     with open(f, "w") as tst_file:
         tst_file.write("test")
-    assert is_nonzero_file(str(f)) is True
+    assert is_nonzero_file(f) is True
 
 
 def test_pretty_string(capsys):
@@ -114,7 +114,7 @@ def test_config_reader():
             self.a = a
             self.b = b
 
-    test, children = A.from_config(
+    test, _ = A.from_config(
         config={"a": 10, "b": [1, 2, 3]}, ignore_children=False, scope=locals()
     )
     assert isinstance(test, A)
@@ -133,7 +133,7 @@ def test_config_reader_with_enum():
             self.b = b
             self.e = e
 
-    test, children = A.from_config(
+    test, _ = A.from_config(
         config={"a": 10, "b": [1, 2, 3], "e:E": 1},
         ignore_children=False,
         scope=locals(),

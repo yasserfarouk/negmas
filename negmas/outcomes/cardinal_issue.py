@@ -6,14 +6,18 @@ __all__ = ["CardinalIssue", "DiscreteCardinalIssue"]
 
 
 class CardinalIssue(OrdinalIssue):
+    """
+    An `Issue` for which differences between values are meaningful.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         super().__init__(values, name, id)
         try:
             for _ in range(10):
                 self.rand_valid() - self.rand_valid()  # type: ignore
-        except:
+        except Exception as e:
             raise ValueError(
-                f"Cardinal issues should support subtraction between issue values. {self.value_type} does not"
+                f"Cardinal issues should support subtraction between issue values. {self.value_type} does not ({e})"
             )
 
 

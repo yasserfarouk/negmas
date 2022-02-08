@@ -2,20 +2,20 @@ name: CI-Bridge
 
 on:
   push:
-    branches: ["master"]
+    branches: ["*"]
   pull_request:
-    branches: ["master"]
+    branches: ["*"]
 
 jobs:
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
     env:
-      USING_COVERAGE: '3.9'
+      USING_COVERAGE: '3.9.10'
 
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9.10"]
 
     steps:
       - uses: "actions/checkout@v2"
@@ -44,6 +44,10 @@ jobs:
         run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: |
-          python -m pytest tests/test_genius.py  || python -m pytest --last-failed .
-          python -m pytest tests/test_genius_bridge.py  || python -m pytest --last-failed .
-          python -m pytest tests/test_inout.py  || python -m pytest --last-failed .
+          export NEGMAS_SLOW_TEST=True
+          export NEGMAS_BRIDGE_OPS
+          unset NEGMAS_BRIDGE_OPS
+          python -W ignore -m pytest tests/test_genius.py  || python -W ignore -m pytest --last-failed .
+          python -W ignore -m pytest tests/test_inout.py  || python -W ignore -m pytest --last-failed .
+          export NEGMAS_BRIDGE_OPS=True
+          python -W ignore -m pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .

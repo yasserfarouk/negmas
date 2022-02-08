@@ -10,7 +10,7 @@ from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
 from negmas.preferences.preferences import Preferences
 
 from ..common import NegotiatorMechanismInterface, Value
-from ..helpers.prob import Distribution
+from ..helpers.prob import ScipyDistribution
 from ..outcomes import Outcome
 from ..preferences import UtilityFunction
 from .common import _loc, _upper
@@ -65,11 +65,11 @@ class Constraint(ABC):
         return self.__dict__.__repr__()
 
     @abstractmethod
-    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[Distribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[ScipyDistribution]:
         ...
 
     @abstractmethod
-    def marginal(self, outcome: "Outcome") -> Distribution:
+    def marginal(self, outcome: "Outcome") -> ScipyDistribution:
         ...
 
 
@@ -77,12 +77,12 @@ class MarginalNeutralConstraint(Constraint):
     """Constraints that do not affect the marginals of any outcomes. These constraints may only affect the joint
     distribution."""
 
-    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[Distribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[ScipyDistribution]:
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
         return [
-            Distribution(
+            ScipyDistribution(
                 type="uniform",
                 loc=self.full_range[_][0],
                 scale=self.full_range[_][1] - self.full_range[_][0],
@@ -90,16 +90,16 @@ class MarginalNeutralConstraint(Constraint):
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: "Outcome") -> Distribution:
+    def marginal(self, outcome: "Outcome") -> ScipyDistribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
-            return Distribution(
+            return ScipyDistribution(
                 type="uniform",
                 loc=self.full_range[0],
                 scale=self.full_range[1] - self.full_range[0],
             )
         indx = self.index[outcome]
-        return Distribution(
+        return ScipyDistribution(
             type="uniform",
             loc=self.full_range[indx][0],
             scale=self.full_range[indx][1] - self.full_range[indx][0],
@@ -237,12 +237,12 @@ class RangeConstraint(Constraint):
                     return False
         return True
 
-    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[Distribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[ScipyDistribution]:
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
         return [
-            Distribution(
+            ScipyDistribution(
                 type="uniform",
                 loc=self.effective_range[_][0],
                 scale=self.effective_range[_][1] - self.effective_range[_][0],
@@ -250,16 +250,16 @@ class RangeConstraint(Constraint):
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: "Outcome") -> Distribution:
+    def marginal(self, outcome: "Outcome") -> ScipyDistribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
-            return Distribution(
+            return ScipyDistribution(
                 type="uniform",
                 loc=self.effective_range[0],
                 scale=self.effective_range[1] - self.effective_range[0],
             )
         indx = self.index[outcome]
-        return Distribution(
+        return ScipyDistribution(
             type="uniform",
             loc=self.effective_range[indx][0],
             scale=self.effective_range[indx][1] - self.effective_range[indx][0],
@@ -326,7 +326,7 @@ def possible_queries(
     strategy: "EStrategy",
     user: "User",
     outcome: "Outcome" = None,
-) -> List[Tuple[Outcome, List["Distribution"], float]]:
+) -> List[Tuple[Outcome, List["ScipyDistribution"], float]]:
     """Gets all queries that could be asked for that outcome until an exact value of ufun is found.
 
     For each ask,  the following tuple is returned:
@@ -361,11 +361,11 @@ def possible_queries(
         #         continue
         #     others = []
         #     if (_[1] - lower_before) > epsilon:
-        #         others.append(UtilityDistribution(dtype='uniform', loc=lower_before, scale=_[1] - lower_before))
-        #     others.append(UtilityDistribution(dtype='uniform', loc=_[1], scale=_[2]) if _[2] > 0 else _[1])
+        #         others.append(ScipyDistribution(type='uniform', loc=lower_before, scale=_[1] - lower_before))
+        #     others.append(ScipyDistribution(type='uniform', loc=_[1], scale=_[2]) if _[2] > 0 else _[1])
         #     end = (_[1] + _[2])
         #     if (upper_before - end) > epsilon:
-        #         others.append(UtilityDistribution(dtype='uniform', loc=end, scale=upper_before - end))
+        #         others.append(ScipyDistribution(type='uniform', loc=end, scale=upper_before - end))
         #     qs[old_indx] = (_[0], others, _[3], _[4], _[5])
         return qs
 

@@ -1,9 +1,10 @@
-from __future__ import annotations
-
 #!/usr/bin/env python
 """
 Datatypes that do not directly relate to negotiation.
 """
+from __future__ import annotations
+
+import functools
 import importlib
 import json
 from enum import Enum
@@ -23,8 +24,10 @@ __all__ = [
     "instantiate",
     "is_jsonable",
     "is_lambda_function",
+    "is_partial_function",
+    "is_lambda_or_partial_function",
     "is_type",
-    "is_non_lambda_function",
+    "is_not_lambda_nor_partial_function",
 ]
 
 TYPE_START = "__TYPE__:"
@@ -112,6 +115,16 @@ def is_lambda_function(obj):
     return isinstance(obj, LambdaType) and obj.__name__ == "<lambda>"
 
 
+def is_partial_function(obj):
+    """Checks if the given object is a lambda function"""
+    return isinstance(obj, functools.partial)
+
+
+def is_lambda_or_partial_function(obj):
+    """Checks if the given object is a lambda function or a partial function"""
+    return is_lambda_function(obj) or is_partial_function(obj)
+
+
 def is_type(obj):
     """Checks if the given object is a type converted to string"""
     return isinstance(obj, Type)
@@ -122,9 +135,11 @@ def is_not_type(obj):
     return not is_type(obj)
 
 
-def is_non_lambda_function(obj):
+def is_not_lambda_nor_partial_function(obj):
     """Checks if the given object is not a lambda function"""
-    return isinstance(obj, FunctionType) and obj.__name__ != "<lambda>"
+    return isinstance(obj, FunctionType) and (
+        obj.__name__ != "<lambda>" and not isinstance(obj, functools.partial)
+    )
 
 
 def is_jsonable(x):

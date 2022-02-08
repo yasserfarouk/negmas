@@ -622,7 +622,7 @@ unnecessary details from developers of agents targeting our
 
         @abstractmethod
         def respond_to_negotiation_request(
-                self, initiator: str, partners: List[str], mechanism: AgentMechanismInterface,
+                self, initiator: str, partners: List[str], mechanism: NegotiatorMechanismInterface,
         ) -> Optional[Negotiator]:
             ...
 
@@ -632,7 +632,7 @@ unnecessary details from developers of agents targeting our
                 partners: List[str],
                 issues: List[Issue],
                 annotation: Dict[str, Any],
-                mechanism: AgentMechanismInterface,
+                mechanism: NegotiatorMechanismInterface,
                 role: Optional[str],
                 req_id: Optional[str],
         ) -> Optional[Negotiator]:
@@ -641,20 +641,20 @@ unnecessary details from developers of agents targeting our
         def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
             pass
 
-        def on_neg_request_accepted(self, req_id: str, mechanism: AgentMechanismInterface):
+        def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
             pass
 
         def on_negotiation_failure(
                 self,
                 partners: List[str],
                 annotation: Dict[str, Any],
-                mechanism: AgentMechanismInterface,
+                mechanism: NegotiatorMechanismInterface,
                 state: MechanismState,
         ) -> None:
             pass
 
         def on_negotiation_success(
-                self, contract: Contract, mechanism: AgentMechanismInterface
+                self, contract: Contract, mechanism: NegotiatorMechanismInterface
         ) -> None:
             pass
 
@@ -1007,7 +1007,3 @@ and location using this set of parameters
 
 We can now continue to the next tutorials in which we will develop
 agents for your newly created world.
-
-
-
-Download :download:`Notebook<notebooks/04.develop_new_simulation.ipynb>`.

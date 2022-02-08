@@ -174,3 +174,8 @@ trash/utilities.p_
 genius-bridge-log.txt
 .envrc
 /venv*
+coverage_html_report/
+wiley-report.html
+*.html
+**/*.html
+**/tmp_notebooks

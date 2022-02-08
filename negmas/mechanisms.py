@@ -11,8 +11,18 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Collection, Iterable, Optional, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Optional,
+    Set,
+    Union,
+)
 
+from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import MechanismState, NegotiatorInfo, NegotiatorMechanismInterface
 from negmas.events import Event, EventSource
@@ -22,11 +32,13 @@ from negmas.negotiators import Negotiator
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import check_one_and_only, ensure_os
 from negmas.outcomes.protocols import OutcomeSpace
-from negmas.preferences import pareto_frontier
+from negmas.preferences import nash_point, pareto_frontier
 from negmas.types import NamedObject
 
 if TYPE_CHECKING:
+    from negmas.outcomes.base_issue import Issue
     from negmas.preferences import Preferences
+    from negmas.preferences.base_ufun import BaseUtilityFunction
 
 __all__ = ["Mechanism", "MechanismRoundResult"]
 
@@ -191,7 +203,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # use that port.
         self.genius_port = genius_port if genius_port > 0 else get_free_tcp_port()
 
-        self.params = dict(
+        self.params: dict[str, Any] = dict(
             dynamic_entry=dynamic_entry,
             genius_port=genius_port,
             annotation=annotation,
@@ -209,7 +221,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Checks whether the outcome is valid given the issues"""
         return outcome in self.nmi.outcome_space
 
-    def discrete_outcomes(self, n_max: int = None) -> list["Outcome"]:
+    def discrete_outcomes(self, n_max: int | float = float("inf")) -> list["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
@@ -227,7 +239,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.__discrete_outcomes:
             return self.__discrete_outcomes
         self.__discrete_os = self.outcome_space.to_discrete(
-            levels=5, max_cardinality=n_max if n_max else float("inf")
+            levels=5, max_cardinality=n_max if n_max is not None else float("inf")
         )
         self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
         return self.__discrete_outcomes
@@ -303,9 +315,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self,
         negotiator: "Negotiator",
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Optional[Preferences] = None,
         role: Optional[str] = None,
-        **kwargs,
+        ufun: Optional[BaseUtilityFunction] = None,
     ) -> Optional[bool]:
         """Add an agent to the negotiation.
 
@@ -314,6 +326,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             negotiator: The agent to be added.
             preferences: The utility function to use. If None, then the agent must already have a stored
                   utility function otherwise it will fail to enter the negotiation.
+            ufun: [depricated] same as preferences but must be a `UFun` object.
             role: The role the agent plays in the negotiation mechanism. It is expected that mechanisms inheriting from
                   this class will check this parameter to ensure that the role is a valid role and is still possible for
                   negotiators to join on that role. Roles may include things like moderator, representative etc based
@@ -324,9 +337,38 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
             * True if the agent was added.
             * False if the agent was already in the negotiation.
-            * None if the agent cannot be added.
+            * None if the agent cannot be added. This can happen in the following cases:
+
+              1. The capabilities of the negotiator do not match the requirements of the negotiation
+              2. The outcome-space of the negotiator's preferences do not contain the outcome-space of the negotiation
+              3. The negotiator refuses to join (by returning False from its `join` method) see `Negotiator.join` for possible reasons of that
 
         """
+
+        from negmas.preferences import (
+            BaseUtilityFunction,
+            MappingUtilityFunction,
+            Preferences,
+        )
+
+        if ufun is not None:
+            if not isinstance(ufun, BaseUtilityFunction):
+                ufun = MappingUtilityFunction(ufun, outcome_space=self.outcome_space)
+            preferences = ufun
+        if (
+            preferences is not None
+            and not isinstance(preferences, Preferences)
+            and isinstance(preferences, Callable)
+        ):
+            preferences = MappingUtilityFunction(
+                preferences, outcome_space=self.outcome_space
+            )
+        if (
+            preferences
+            and preferences.outcome_space
+            and self.outcome_space not in preferences.outcome_space
+        ):
+            return None
         if not self.can_enter(negotiator):
             return None
 
@@ -334,10 +376,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return False
 
         if role is None:
-            role = "agent"
+            role = "negotiator"
 
         if negotiator.join(
-            nmi=self._get_nmi(negotiator, role),
+            nmi=self._get_nmi(negotiator),
             state=self.state,
             preferences=preferences,
             role=role,
@@ -355,7 +397,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns the negotiator with the given ID if present in the negotiation"""
         return self._negotiator_map.get(nid, None)
 
-    def remove(self, negotiator: "Negotiator", **kwargs) -> Optional[bool]:
+    def remove(self, negotiator: "Negotiator") -> Optional[bool]:
         """Remove the agent from the negotiation.
 
         Args:
@@ -393,6 +435,18 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         for r in requirements:
             if r in self._requirements.keys():
                 self._requirements.pop(r, None)
+
+    def negotiator_index(self, nid: str) -> int | None:
+        """Gets the negotiator index
+
+        Args:
+            nid (str): nid
+
+        Returns:
+            int | None:
+        """
+
+        return self._negotiator_index.get(nid, None)
 
     @property
     def negotiators(self):
@@ -547,9 +601,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self.nmi.outcome_space
 
     @property
-    def issues(self):
+    def issues(self) -> list[Issue] | None:
         if hasattr(self.nmi.outcome_space, "issues"):
-            return self.nmi.outcome_space.issues
+            return self.nmi.outcome_space.issues  # type: ignore
         return None
 
     @property
@@ -699,7 +753,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self._agreement, self._broken, self._timedout = None, False, False
                 return self.state
             for a in self.negotiators:
-                a.on_negotiation_start(state=state)
+                a._on_negotiation_start(state=state)
             self.announce(Event(type="negotiation_start", data=None))
         else:
             # if no steps are remaining, end with a timeout
@@ -894,7 +948,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         state = self.state
         for a in self.negotiators:
-            a.on_negotiation_end(state)
+            a._on_negotiation_end(state)
         self.announce(
             Event(
                 type="negotiation_end",
@@ -949,17 +1003,33 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def pareto_frontier(
         self, n_max=None, sort_by_welfare=True
-    ) -> tuple[list[tuple[float]], list["Outcome"]]:
+    ) -> tuple[list[tuple[float]], list[Outcome]]:
         ufuns = self._get_preferencess()
         if any(_ is None for _ in ufuns):
-            return [], []
+            raise ValueError(
+                "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
+            )
         frontier, indices = pareto_frontier(
             ufuns=ufuns,
             n_discretization=None,
             sort_by_welfare=sort_by_welfare,
             outcomes=self.discrete_outcomes(n_max=n_max),
         )
+        if frontier is None:
+            raise ValueError("Cound not find the pareto-frontier")
         return frontier, [self.discrete_outcomes(n_max=n_max)[_] for _ in indices]
+
+    def nash_point(
+        self, n_max=None, frontier: list[tuple[float]] | None = None
+    ) -> tuple[tuple[float], Outcome]:
+        ufuns = self._get_preferencess()
+        if not frontier:
+            frontier, _ = self.pareto_frontier(n_max)
+        outcomes = self.discrete_outcomes(n_max=n_max)
+        nash_utils, indx = nash_point(ufuns, frontier, outcomes=outcomes)
+        if not nash_utils or indx is None:
+            raise ValueError("Cannot find the nash-point")
+        return nash_utils, frontier[indx]
 
     def __str__(self):
         d = self.__dict__.copy()
@@ -992,7 +1062,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Returns any extra state information to be kept in the `state` and `history` properties"""
         return dict()
 
-    def _get_nmi(
-        self, negotiator: Negotiator, role: str
-    ) -> NegotiatorMechanismInterface:
+    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
+        warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
+        return self.nmi
+
+    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
         return self.nmi

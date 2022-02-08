@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Negotiation tournaments module.
 """
+from __future__ import annotations
+
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
@@ -14,7 +14,7 @@ from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Type, 
 from negmas.helpers import get_class, unique_name
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, make_issue
-from negmas.preferences.linear import LinearUtilityFunction
+from negmas.preferences.crisp.linear import LinearUtilityFunction
 from negmas.serialization import deserialize, serialize
 from negmas.situated import Agent
 from negmas.situated.neg import NegAgent, NegDomain, NegWorld  # , _wrap_in_agents
@@ -393,7 +393,7 @@ def random_discrete_domains(
                     )
 
 
-def domains_from_list(domains: List[NegDomain]) -> Generator[NegDomain, None, None]:
+def domains_from_list(domains: List[NegDomain]):
     """
     Creats an appropriate `NegDomain` generator from a list/tuple of domains
     """

@@ -1,10 +1,8 @@
-from __future__ import annotations
-
-from negmas.preferences.protocols import HasRange
-
 """
 Defines a world for running negotiations directly
 """
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
@@ -26,6 +24,7 @@ from negmas.helpers import get_class, get_full_type_name, instantiate
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.preferences import Preferences
+from negmas.preferences.protocols import HasRange
 from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import (
     Action,
@@ -107,19 +106,19 @@ class NegDomain:
 
     name: str
     """Domain name"""
-    issues: List[Issue]
+    issues: tuple[Issue, ...]
     """The issue space as a list of issues"""
-    ufuns: List[Preferences]
+    ufuns: tuple[Preferences, ...]
     """The utility functions used by all negotiators in the domain"""
-    partner_types: List[Union[str, Negotiator]]
+    partner_types: tuple[str | Negotiator, ...]
     """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
     index: int = 0
     """The index of the negotiator being evaluated in the list of negotiators passed to the mechanism"""
-    partner_params: Optional[List[Optional[Dict[str, Any]]]] = None
+    partner_params: tuple[Dict[str, Any] | None, ...] | None = None
     """Any paramters used to construct partners (must be the same length as `partner_types`)"""
-    roles: Optional[List[str]] = None
+    roles: tuple[str, ...] | None = None
     """Roles of all negotiators (includng the negotiator being evaluated) in order"""
-    annotation: Optional[Dict[str, Any]] = None
+    annotation: Dict[str, Any] | None = None
     """Any extra annotation to add to the mechanism."""
 
     def to_dict(self):
@@ -127,7 +126,7 @@ class NegDomain:
             name=self.name,
             issues=[i.to_dict() for i in self.issues],
             ufuns=[serialize(u) for u in self.ufuns],
-            partner_types=[get_full_type_name(_) for _ in self.partner_types],
+            partner_types=[get_full_type_name(_) for _ in self.partner_types],  # type: ignore
             index=self.index,
             partner_params=serialize(self.partner_params),
             roles=self.roles,
@@ -138,13 +137,13 @@ class NegDomain:
     def from_dict(cls, d):
         return cls(
             name=d["name"],
-            issues=[Issue.from_dict(_) for _ in d["issues"]],
-            ufuns=[deserialize(u) for u in d["ufuns"]],
-            partner_types=[get_class(_) for _ in d["partner_types"]],
+            issues=tuple(Issue.from_dict(_) for _ in d["issues"]),
+            ufuns=tuple(deserialize(u) for u in d["ufuns"]),  # type: ignore The type should be correct in the dict
+            partner_types=tuple(get_class(_) for _ in d["partner_types"]),
             index=d["index"],
-            partner_params=deserialize(d["partner_params"]),
+            partner_params=deserialize(d["partner_params"]),  # type: ignore The type should be correct in the dict
             roles=d["roles"],
-            annotation=deserialize(d["annotation"]),
+            annotation=deserialize(d["annotation"]),  # type: ignore The type should be correct in the dict
         )
 
 

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import pathlib
+from math import isclose
 
 import numpy as np
 import pkg_resources
 import pytest
+from numpy.testing import assert_almost_equal
 
 from negmas import (
     GeniusNegotiator,
     genius_bridge_is_running,
-    load_genius_domain,
     load_genius_domain_from_folder,
 )
 from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
@@ -378,8 +379,8 @@ def test_genius_agent_same_utility():
         "6:Environment: ['Parks and Gardens', 'Square', 'Historical places', 'See, river, etc.'"
         ", 'Monuments', 'Special streets', 'Palace', 'Landscape and nature']",
     ]
-    a1 = AgentK(ufun=domain.ufuns[0])
-    a2 = Atlas3(ufun=domain.ufuns[0])
+    a1 = AgentK(preferences=domain.ufuns[0])
+    a2 = Atlas3(preferences=domain.ufuns[0])
     p.add(a1)
     p.add(a2)
     final = p.run()
@@ -406,15 +407,15 @@ class TestGeniusAgentSessions:
 
         domain = load_genius_domain_from_folder(base_folder).normalize()
         if single_issue:
-            domain = domain.to_single_issue()
+            domain = domain.to_single_issue(stringify=True)
         atlas = GeniusNegotiator(
             java_class_name="agents.anac.y2015.Atlas3.Atlas3",
-            ufun=domain.ufuns[utils[0]],
+            preferences=domain.ufuns[utils[0]],
         )
         # agentx = GeniusNegotiator.random_negotiator(
         agentx = GeniusNegotiator(
             java_class_name="agents.anac.y2015.AgentX.AgentX",
-            ufun=domain.ufuns[utils[1]],
+            preferences=domain.ufuns[utils[1]],
         )
         neg = domain.make_session(n_steps=100)
         neg.add(atlas)
@@ -429,17 +430,14 @@ class TestGeniusAgentSessions:
         self, init_genius
     ):
         neg = self.prepare(utils=(0, 0), single_issue=True)
-        assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
-            # (30.001554125152623, 30.001554125152623)
-            (1.0, 1.0)
-        ]
-        state = neg.run()
-        # pprint(neg.history)
+        best = neg.pareto_frontier(sort_by_welfare=True)[0][0]
+        assert isclose(best[0], 1.0, abs_tol=0.001) and isclose(
+            best[1], 1.0, abs_tol=0.001
+        )
+        neg.run()
         assert neg.agreement is not None
-        #        assert len(neg.history) <= 3
-        assert neg.agreement == {
-            "Laptop-Harddisk-External Monitor": "HP+60 Gb+19'' LCD"
-        }
+        assert len(neg.history) <= 3
+        assert neg.agreement == ("v18",)
 
     @pytest.mark.skipif(
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
@@ -449,13 +447,14 @@ class TestGeniusAgentSessions:
         self, init_genius
     ):
         neg = self.prepare(utils=(1, 1), single_issue=True)
-        assert neg.pareto_frontier(sort_by_welfare=True)[0] == [(1.0, 1.0)]
-        state = neg.run()
+        best = neg.pareto_frontier(sort_by_welfare=True)[0][0]
+        assert isclose(best[0], 1.0, abs_tol=0.001) and isclose(
+            best[1], 1.0, abs_tol=0.001
+        )
+        neg.run()
         assert neg.agreement is not None
         assert len(neg.history) <= 3
-        assert neg.agreement == {
-            "Laptop-Harddisk-External Monitor": "Macintosh+80 Gb+19'' LCD"
-        }
+        assert neg.agreement == ("v12",)
 
     @pytest.mark.skipif(
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
@@ -463,15 +462,20 @@ class TestGeniusAgentSessions:
     )
     def test_genius_agents_can_run_on_converted_single_issue(self, init_genius):
         neg = self.prepare(utils=(0, 1), single_issue=True)
-        assert neg.pareto_frontier(sort_by_welfare=True)[0] == [
-            (0.7715533992081258, 0.8450562871935449),
-            (0.5775524426410947, 1.0),
-            (1.0, 0.5136317604069089),
-            (0.8059990434329689, 0.6685754732133642),
-        ], neg.pareto_frontier(sort_by_welfare=True)[0]
+        front = neg.pareto_frontier(sort_by_welfare=True)[0]
+        assert_almost_equal(
+            front,
+            [
+                (0.7715, 0.845),
+                (0.577, 1.0),
+                (1.0, 0.5136),
+                (0.805, 0.668),
+            ],
+            decimal=2,
+        )
 
-        state = neg.run()
-        # assert len(neg.history) >= 2
+        neg.run()
+        assert len(neg.history) >= 1
         assert neg.agreement is not None
 
     @pytest.mark.skipif(
@@ -489,11 +493,7 @@ class TestGeniusAgentSessions:
         neg.run()
         assert len(neg.history) < 3
         assert neg.agreement is not None
-        assert neg.agreement == {
-            "Laptop": "HP",
-            "Harddisk": "60 Gb",
-            "External Monitor": "19'' LCD",
-        }
+        assert neg.agreement == ("HP", "60 Gb", "19'' LCD")
 
     # @pytest.mark.skipif(
     #     condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),

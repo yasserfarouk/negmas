@@ -10,17 +10,14 @@ The set of supported commands are:
  Command                                  Meaning
 ===============       ===================================================================
 genius-setup          Downloads the genius bridge and updates your settings.
-jnegmas-setup         Downloads jnegmas and updates your settings
 genius                Run a Genius Bridge. This bridge allows you to use GeniusNegotiator
                       agents. Please notice that this command by-default runs in the
                       foreground preventing further input to the terminal.\
-jnegmas               Start the bridge to JNegMAS (to use Java agents in worlds)
 tournament            Runs a tournament
 version               Prints NegMAS version
 ===============       ===================================================================
 
-The commands `genius-steup` and `jnegmas-setup`  have no parameters and will download genius and jnegmas (respectively)
-for later use by `genius` and `jnegmas` commands.
+The commands `genius-steup` have no parameters and will download genius for later use by the `genius` command.
 
 Genius Bridge (negmas genius)
 -----------------------------
@@ -50,24 +47,6 @@ This tool supports the following *optional* arguments:
 --help                 Show help message and exit.
 ===================   ==============================================================
 
-JNegMAS bridge (negmas jnegmas)
--------------------------------
-
-Runs a bridge to jnegmas (notice that `negmas jnegmas-setup` must have been run at least once before that). It has the
-following parameters
-
-===================== =================================================================
- Argument               Meaning
-===================== =================================================================
-  -p, --path TEXT     Path to jnegmas*.jar with. Use "auto" to read the path
-                      from ~/negmas/config.json.  Config key is jnegmas_jar
-                      You can download the latest version of this
-                      jar from: http://www.yasserm.com/scml/jnegmas-all.jar
-                      [default: auto]
-  -r, --port INTEGER  Port to run the jnegmas on. Pass 0 for the default value
-                      [default: 0]
-  --config FILE       Read configuration from FILE.
-===================== =================================================================
 
 Tournament Command (negmas tournament)
 --------------------------------------

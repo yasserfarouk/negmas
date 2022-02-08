@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 """
 Implements serialization to and from strings and secondary storage.
 
 """
-import json
-import warnings
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Type
 
@@ -13,15 +11,16 @@ import cloudpickle
 import numpy as np
 from pandas import json_normalize
 
+from negmas import warnings
+
 from .helpers import (
     TYPE_START,
     dump,
     get_class,
     get_full_type_name,
     is_jsonable,
-    is_lambda_function,
-    is_non_lambda_function,
-    is_type,
+    is_lambda_or_partial_function,
+    is_not_lambda_nor_partial_function,
     load,
 )
 
@@ -114,9 +113,9 @@ def serialize(
             return True
         if objmem and id(v) in objmem:
             return False
-        if ignore_methods and is_non_lambda_function(v):
+        if ignore_lambda and is_lambda_or_partial_function(v):
             return False
-        if ignore_lambda and is_lambda_function(v):
+        if ignore_methods and is_not_lambda_nor_partial_function(v):
             return False
         if not isinstance(k, str):
             return False
@@ -128,7 +127,10 @@ def serialize(
         for a, b in zip(SPECIAL_FIELDS, SPECIAL_FIELDS_SHORT_NAMES):
             if a in d.keys():
                 if b in d.keys() and d[b] != d[a]:
-                    warnings.warn(f"Field {a} and {b} already exist and are not equal.")
+                    warnings.warn(
+                        f"Field {a} and {b} already exist and are not equal.",
+                        warnings.NegmasSarializationWarning,
+                    )
                 d[b] = d[a]
                 del d[b]
         return d
@@ -184,14 +186,15 @@ def serialize(
         ):
             warnings.warn(
                 f"{value} starts with a reserved part!! Will just keep it as"
-                f" it is. May be you are serializing an already serialized object"
+                f" it is. May be you are serializing an already serialized object",
+                warnings.NegmasSarializationWarning,
             )
         return value
 
-    if is_lambda_function(value):
+    if is_lambda_or_partial_function(value):
         return LAMBDA_START + cloudpickle.dumps(value)
 
-    if is_non_lambda_function(value):
+    if is_not_lambda_nor_partial_function(value):
         return FUNCTION_START + cloudpickle.dumps(value)
 
     if hasattr(value, "__dict__"):
@@ -249,7 +252,10 @@ def serialize(
         return vv
     except:
         pass
-    warnings.warn(f"{value} of type {type(value)} is not serializable")
+    warnings.warn(
+        f"{value} of type {type(value)} is not serializable",
+        warnings.NegmasSarializationWarning,
+    )
     return value
 
 
@@ -294,7 +300,7 @@ def deserialize(
             python_class_name = d.pop(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
         else:
             python_class_name = d.get(PYTHON_CLASS_IDENTIFIER, fallback_class_name)
-        if python_class_name is not None:
+        if python_class_name is not None and python_class_name != "functools.partial":
             python_class = get_class(python_class_name)
             # we resolve sub-objects first from the dict if deep is specified before calling deserialize on the class
             if deep:
@@ -330,6 +336,6 @@ def deserialize(
         # if d.startswith(JSON_START):
         #     return json.loads(d[JSON_START:])
         return d
-    if isinstance(d, Iterable):
+    if isinstance(d, tuple) or isinstance(d, list):
         return type(d)(deserialize(_) for _ in d)
     return d

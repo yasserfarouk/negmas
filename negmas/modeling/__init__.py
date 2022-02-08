@@ -1,7 +1,7 @@
-from __future__ import annotations
-
 # -*- coding: utf-8 -*-
 """A package for generalized opponent modeling"""
+from __future__ import annotations
+
 from .acceptance import *
 from .future import *
 from .strategy import *

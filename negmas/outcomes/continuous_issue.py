@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import numbers
 import random
-from typing import Generator
+from typing import Any, Generator
 
 import numpy as np
 
+from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.range_issue import RangeIssue
 
 from .common import DEFAULT_LEVELS
@@ -13,12 +15,16 @@ __all__ = ["ContinuousIssue"]
 
 
 class ContinuousIssue(RangeIssue):
+    """
+    A `RangeIssue` representing a continous range of real numbers with finite limits.
+    """
+
     def __init__(self, values, name=None, id=None, n_levels=DEFAULT_LEVELS) -> None:
         super().__init__(values, name=name, id=id)
         self._n_levels = n_levels
         self.delta = (self.max_value - self.min_value) / self._n_levels
 
-    def _to_xml_str(self, indx, enumerate_integer=True):
+    def _to_xml_str(self, indx):
         return (
             f'    <issue etype="real" index="{indx + 1}" name="{self.name}" type="real" vtype="real">\n'
             f'        <range lowerbound="{self._values[0]}" upperbound="{self._values[1]}"></range>\n    </issue>\n'
@@ -52,14 +58,14 @@ class ContinuousIssue(RangeIssue):
 
     def value_generator(
         self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[float, None, None]:
         yield from self.ordered_value_generator(
             n, grid=grid, compact=compact, endpoints=endpoints
         )
 
     def ordered_value_generator(
-        self, n: int = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+        self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
+    ) -> Generator[float, None, None]:
         if n is None:
             raise ValueError("Real valued issue with no discretization value")
         if grid:
@@ -104,3 +110,11 @@ class ContinuousIssue(RangeIssue):
         if v > self.max_value:
             return IndexError(index)
         return v
+
+    def contains(self, issue: Issue) -> bool:
+        """Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)"""
+        return (
+            issubclass(issue.value_type, numbers.Real)
+            and issue.min_value >= self.min_value
+            and issue.max_value <= self.max_value
+        )

@@ -1,6 +1,6 @@
+"""Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
 from __future__ import annotations
 
-"""Implements a concurrent set of negotiations creating a chain of bilateral negotiations."""
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
@@ -66,7 +66,7 @@ class ChainNegotiator(Negotiator, ABC):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> bool:
         to_join = super().join(nmi, state, preferences=preferences, role=role)
         if to_join:
@@ -141,7 +141,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         state: MechanismState,
         *,
         preferences: Optional["Preferences"] = None,
-        role: str = "agent",
+        role: str = "negotiator",
     ) -> bool:
         to_join = super().join(nmi, state, preferences=preferences, role=role)
         if to_join:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generator
+from typing import Any, Generator
 
 from negmas.outcomes.base_issue import Issue
 
@@ -8,11 +8,18 @@ __all__ = ["CallableIssue"]
 
 
 class CallableIssue(Issue):
+    """
+    An `Issue` with a callable for generating values. This is a very limited issue type and most operations are not supported on it.
+    """
+
     def __init__(self, values, name=None, id=None) -> None:
         super().__init__(values, name, id)
         self._value_type = object
 
-    def _to_xml_str(self, indx, enumerate_integer=False):
+    def _to_xml_str(
+        self,
+        indx,
+    ):
         raise NotImplementedError("CallableIssue cannot be saved to xml")
 
     @property
@@ -27,7 +34,7 @@ class CallableIssue(Issue):
 
     def value_generator(
         self, n: int | None = 10, grid=True, compact=False, endpoints=True
-    ) -> Generator:
+    ) -> Generator[Any, None, None]:
         if n is None:
             raise ValueError("Real valued issue with no discretization value")
         yield from (self._values() for _ in range(n))

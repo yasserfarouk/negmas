@@ -3,14 +3,15 @@ from __future__ import annotations
 import logging
 import math
 import random
-import warnings
 from typing import Any, Dict
 
 import pandas as pd
 
+from negmas import warnings
+
 from ..genius import GeniusNegotiator
 from ..helpers import create_loggers, instantiate
-from ..helpers.prob import Distribution
+from ..helpers.prob import ScipyDistribution
 from ..inout import load_genius_domain_from_folder
 from ..mechanisms import Mechanism
 from ..modeling import UncertainOpponentModel
@@ -21,10 +22,10 @@ from ..sao import (
     AspirationNegotiator,
     LimitedOutcomesAcceptor,
     LimitedOutcomesNegotiator,
-    OnlyBestNegotiator,
     RandomNegotiator,
     SAOMechanism,
     SAOState,
+    TopFractionNegotiator,
     ToughNegotiator,
 )
 from .baseline import DummyElicitor, FullKnowledgeElicitor
@@ -53,13 +54,13 @@ __all__ = ["SAOElicitingMechanism"]
 def uniform():
     loc = random.random()
     scale = random.random() * (1.0 - loc)
-    return Distribution(type="uniform", loc=loc, scale=scale)
+    return ScipyDistribution(type="uniform", loc=loc, scale=scale)
 
 
 def current_aspiration(
     elicitor: "AspirationMixin", outcome: "Outcome", negotiation: "Mechanism"
 ) -> float:
-    return elicitor.aspiration(negotiation.relative_time)
+    return elicitor.utility_at(negotiation.relative_time)
 
 
 def create_negotiator(
@@ -85,7 +86,7 @@ def create_negotiator(
     elif negotiator_type == "tough":
         negotiator = ToughNegotiator(can_propose=can_propose)
     elif negotiator_type in ("only_best", "best_only", "best"):
-        negotiator = OnlyBestNegotiator(
+        negotiator = TopFractionNegotiator(
             min_utility=None,
             top_fraction=1.0 - toughness,
             best_first=False,
@@ -563,9 +564,6 @@ class SAOElicitingMechanism(SAOMechanism):
     def plot(
         self,
         visible_negotiators=(0, 1),
-        plot_utils=True,
-        plot_outcomes=False,
-        minmax=None,
         consider_costs=False,
     ):
         try:

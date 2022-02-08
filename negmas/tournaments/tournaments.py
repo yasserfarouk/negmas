@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """
 Tournament generation and management.
 
 """
+from __future__ import annotations
+
 import concurrent.futures as futures
 import copy
 import hashlib
@@ -14,9 +14,10 @@ import pathlib
 import random
 import time
 import traceback
-import warnings
 from multiprocessing import current_process
 from socket import gethostname
+
+from negmas import warnings
 
 try:
     import distributed
@@ -2097,7 +2098,8 @@ def create_tournament(
             f"Use n_configs, max_worlds_per_config n_runs_per_world instead."
             f"\nWill use the following settings: n_configs ({n_configs})"
             f", max_worlds_per_config ({max_worlds_per_config})"
-            f", and n_runs_per_world ({n_runs_per_world})."
+            f", and n_runs_per_world ({n_runs_per_world}).",
+            warnings.NegmasWorldConfigWarning,
         )
 
     if n_runs_per_world is None or n_configs is None:

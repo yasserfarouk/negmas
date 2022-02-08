@@ -1,32 +1,44 @@
 from __future__ import annotations
 
-import math
-import warnings
-from typing import TYPE_CHECKING, Collection, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Iterable, Optional, TypeVar, Union
 
 import numpy as np
 from numpy.ma.core import sqrt
 
-from negmas.common import NegotiatorMechanismInterface
+from negmas import warnings
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
-from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 
-from .ufun import UtilityFunction
+from .base_ufun import BaseUtilityFunction
+
+if TYPE_CHECKING:
+
+    from negmas.preferences.prob_ufun import ProbUtilityFunction
+
+    from .complex import WeightedUtilityFunction
+    from .crisp_ufun import UtilityFunction
+    from .discounted import DiscountedUtilityFunction
+
+    UFunType = TypeVar("UFunType", UtilityFunction, ProbUtilityFunction)
 
 __all__ = [
     "pareto_frontier",
     "nash_point",
     "make_discounted_ufun",
+    "scale_max",
     "normalize",
     "sample_outcome_with_utility",
+    "extreme_outcomes",
     "minmax",
+    "conflict_level",
+    "opposition_level",
+    "winwin_level",
 ]
 
 
 def make_discounted_ufun(
-    ufun: UtilityFunction,
+    ufun: UFunType,
     cost_per_round: float = None,
     power_per_round: float = None,
     discount_per_round: float = None,
@@ -37,11 +49,11 @@ def make_discounted_ufun(
     power_per_real_time: float = None,
     discount_per_real_time: float = None,
     dynamic_reservation: bool = True,
-):
+) -> DiscountedUtilityFunction | UFunType:
     from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
 
     if cost_per_round is not None and cost_per_round > 0.0:
-        ufun = LinDiscountedUFun(
+        ufun = LinDiscountedUFun(  # type: ignore (discounted ufuns return values of the same tyupe as their base ufun)
             ufun=ufun,
             cost=cost_per_round,
             factor="step",
@@ -51,7 +63,7 @@ def make_discounted_ufun(
             outcome_space=ufun.outcome_space,
         )
     if cost_per_relative_time is not None and cost_per_relative_time > 0.0:
-        ufun = LinDiscountedUFun(
+        ufun = LinDiscountedUFun(  # type: ignore (discounted ufuns return values of the same tyupe as their base ufun)
             ufun=ufun,
             cost=cost_per_relative_time,
             factor="relative_time",
@@ -61,7 +73,7 @@ def make_discounted_ufun(
             outcome_space=ufun.outcome_space,
         )
     if cost_per_real_time is not None and cost_per_real_time > 0.0:
-        ufun = LinDiscountedUFun(
+        ufun = LinDiscountedUFun(  # type: ignore (discounted ufuns return values of the same tyupe as their base ufun)
             ufun=ufun,
             cost=cost_per_real_time,
             factor="real_time",
@@ -71,7 +83,7 @@ def make_discounted_ufun(
             outcome_space=ufun.outcome_space,
         )
     if discount_per_round is not None and discount_per_round > 0.0:
-        ufun = ExpDiscountedUFun(
+        ufun = ExpDiscountedUFun(  # type: ignore (discounted ufuns return values of the same tyupe as their base ufun)
             ufun=ufun,
             discount=discount_per_round,
             factor="step",
@@ -80,7 +92,7 @@ def make_discounted_ufun(
             outcome_space=ufun.outcome_space,
         )
     if discount_per_relative_time is not None and discount_per_relative_time > 0.0:
-        ufun = ExpDiscountedUFun(
+        ufun = ExpDiscountedUFun(  # type: ignore (discounted ufuns return values of the same tyupe as their base ufun)
             ufun=ufun,
             discount=discount_per_relative_time,
             factor="relative_time",
@@ -89,7 +101,7 @@ def make_discounted_ufun(
             outcome_space=ufun.outcome_space,
         )
     if discount_per_real_time is not None and discount_per_real_time > 0.0:
-        ufun = ExpDiscountedUFun(
+        ufun = ExpDiscountedUFun(  # type: ignore (discounted ufuns return values of the same tyupe as their base ufun)
             ufun=ufun,
             discount=discount_per_real_time,
             factor="real_time",
@@ -102,7 +114,7 @@ def make_discounted_ufun(
 
 def _pareto_frontier(
     points, eps=-1e-18, sort_by_welfare=False
-) -> Tuple[List[Tuple[float]], List[int]]:
+) -> tuple[list[tuple[float]], list[int]]:
     """Finds the pareto-frontier of a set of points
 
     Args:
@@ -161,11 +173,11 @@ def _pareto_frontier(
 
 def nash_point(
     ufuns: Iterable[UtilityFunction],
-    frontier: Iterable[Tuple[float]],
-    outcome_space: Optional[OutocmeSpace] = None,
-    issues: Optional[List[Issue]] = None,
-    outcomes: Optional[List[Outcome]] = None,
-) -> Tuple[Optional[Tuple[float]], Optional[int]]:
+    frontier: Iterable[tuple[float]],
+    outcome_space: Optional[OutcomeSpace] = None,
+    issues: Optional[list[Issue]] = None,
+    outcomes: Optional[list[Outcome]] = None,
+) -> tuple[Optional[tuple[float, ...]], Optional[int]]:
     """
     Calculates the nash point on the pareto frontier of a negotiation
 
@@ -218,7 +230,7 @@ def pareto_frontier(
     issues: Iterable[Issue] = None,
     n_discretization: Optional[int] = 10,
     sort_by_welfare=False,
-) -> Tuple[List[Tuple[float]], List[int]]:
+) -> tuple[list[tuple[float, ...]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
 
     Args:
@@ -234,11 +246,11 @@ def pareto_frontier(
 
     """
 
-    ufuns = list(ufuns)
+    ufuns = tuple(ufuns)
     if issues:
-        issues = list(issues)
+        issues = tuple(issues)
     if outcomes:
-        outcomes = list(outcomes)
+        outcomes = tuple(outcomes)
 
     # calculate all candidate outcomes
     if outcomes is None:
@@ -253,12 +265,12 @@ def pareto_frontier(
 
 
 def scale_max(
-    ufun: UtilityFunction,
+    ufun: UFunType,
     to: float = 1.0,
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
     outcomes: list[Outcome] | None = None,
-) -> UtilityFunction:
+) -> UFunType:
     """Normalizes a utility function to the given range
 
     Args:
@@ -277,13 +289,13 @@ def scale_max(
 
 
 def normalize(
-    ufun: UtilityFunction,
+    ufun: UFunType,
     to: tuple[float, float] = (0.0, 1.0),
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
     outcomes: list[Outcome] | None = None,
     minmax: tuple[float, float] | None = None,
-) -> UtilityFunction:
+) -> UFunType | WeightedUtilityFunction:
     """Normalizes a utility function to the given range
 
     Args:
@@ -301,13 +313,13 @@ def normalize(
 
 
 def sample_outcome_with_utility(
-    ufun: UtilityFunction,
-    rng: Tuple[float, float],
+    ufun: BaseUtilityFunction,
+    rng: tuple[float, float],
     outcome_space: OutcomeSpace | None = None,
-    issues: List[Issue] | None = None,
-    outcomes: List[Outcome] | None = None,
+    issues: list[Issue] | None = None,
+    outcomes: list[Outcome] | None = None,
     n_trials: int = 100,
-) -> Optional["Outcome"]:
+) -> Outcome | None:
     """
     Gets one outcome within the given utility range or None on failure
 
@@ -333,7 +345,7 @@ def extreme_outcomes(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | int | None = None,
+    outcomes: list[Outcome] | None = None,
     max_cardinality=1000,
 ) -> tuple[Outcome, Outcome]:
     """
@@ -342,7 +354,7 @@ def extreme_outcomes(
     Args:
         ufun: The utility function
         outcome_space: An outcome-space to consider
-        issues: List of issues (optional)
+        issues: list of issues (optional)
         outcomes: A collection of outcomes (optional)
         max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                         given)
@@ -362,15 +374,15 @@ def minmax(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | int | None = None,
+    outcomes: list[Outcome] | None = None,
     max_cardinality=1000,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Finds the range of the given utility function for the given outcomes
 
     Args:
         ufun: The utility function
         outcome_space: An outcome-space to consider
-        issues: List of issues (optional)
+        issues: list of issues (optional)
         outcomes: A collection of outcomes (optional)
         max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
                         given)
@@ -378,14 +390,19 @@ def minmax(
         Minumum utility, maximum utility
 
     """
-    return ufun.minmax(issues, outcomes, max_cardinality)
+    return ufun.minmax(
+        outcome_space=outcome_space,
+        issues=issues,
+        outcomes=outcomes,
+        max_cardinality=max_cardinality,
+    )
 
 
 def opposition_level(
-    ufuns=List["UtilityFunction"],
-    max_utils: Union[float, Tuple[float, float]] = 1.0,  # type: ignore
-    outcomes: Union[int, List[Outcome]] = None,
-    issues: List["Issue"] = None,
+    ufuns: list["UtilityFunction"],
+    max_utils: Union[float, tuple[float, float]] = 1.0,  # type: ignore
+    outcomes: Union[int, list[Outcome]] = None,
+    issues: list["Issue"] = None,
     max_tests: int = 10000,
 ) -> float:
     """
@@ -405,7 +422,7 @@ def opposition_level(
 
 
         - Opposition level of the same ufun repeated is always 0
-        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
         >>> from negmas.preferences.ops import opposition_level
         >>> u1, u2 = lambda x: x[0], lambda x: x[0]
         >>> opposition_level([u1, u2], outcomes=10, max_utils=9)
@@ -420,7 +437,7 @@ def opposition_level(
     if outcomes is None:
         if issues is None:
             raise ValueError("You must either give outcomes or issues")
-        outcomes = enumerate_issues(issues, max_cardinality=max_tests)
+        outcomes = list(enumerate_issues(tuple(issues), max_cardinality=max_tests))
     if isinstance(outcomes, int):
         outcomes = [(_,) for _ in range(outcomes)]
     if not isinstance(max_utils, Iterable):
@@ -440,7 +457,8 @@ def opposition_level(
         )
         if v == float("inf"):
             warnings.warn(
-                f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils"
+                f"u is infinity: {outcome}, {[_(outcome) for _ in ufuns]}, max_utils",
+                warnings.NegmasNumericWarning,
             )
         if v < nearest_val:
             nearest_val = v
@@ -450,7 +468,7 @@ def opposition_level(
 def conflict_level(
     u1: "UtilityFunction",
     u2: "UtilityFunction",
-    outcomes: Union[int, List[Outcome]],
+    outcomes: Union[int, list[Outcome]],
     max_tests: int = 10000,
 ) -> float:
     """
@@ -462,7 +480,7 @@ def conflict_level(
 
     Examples:
         - A nonlinear strictly zero sum case
-        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
         >>> from negmas.preferences import conflict_level
         >>> outcomes = [(_,) for _ in range(10)]
         >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
@@ -517,7 +535,7 @@ def conflict_level(
 def winwin_level(
     u1: "UtilityFunction",
     u2: "UtilityFunction",
-    outcomes: Union[int, List[Outcome]],
+    outcomes: Union[int, list[Outcome]],
     max_tests: int = 10000,
 ) -> float:
     """
@@ -529,7 +547,7 @@ def winwin_level(
 
     Examples:
         - A nonlinear same ufun case
-        >>> from negmas.preferences.nonlinear import MappingUtilityFunction
+        >>> from negmas.preferences.crisp.mapping import MappingUtilityFunction
         >>> outcomes = [(_,) for _ in range(10)]
         >>> u1 = MappingUtilityFunction(dict(zip(outcomes,
         ... np.linspace(1.0, 0.0, len(outcomes), endpoint=True))))

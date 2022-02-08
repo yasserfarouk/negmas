@@ -5,11 +5,12 @@ Utilitites for handling timeout and async calls
 from __future__ import annotations
 
 import atexit
-import concurrent
-import warnings
 from concurrent.futures import TimeoutError
+from concurrent.futures import thread as thread
 from concurrent.futures.thread import ThreadPoolExecutor
 from contextlib import contextmanager
+
+from negmas import warnings
 
 __all__ = [
     "TimeoutError",
@@ -51,7 +52,7 @@ class TimeoutCaller:
         if is_single_thread():
             return to_run()
         pool = cls.get_pool()
-        future = pool.submit(to_run)
+        future = pool.submit(to_run)  # type: ignore (Probably ok)
         try:
             result = future.result(timeout)
             return result
@@ -70,14 +71,24 @@ class TimeoutCaller:
         if cls.pool is not None:
             try:
                 cls.pool.shutdown(wait=False)
-                for thread in cls.pool._threads:
-                    del concurrent.futures.thread._threads_queues[thread]
+                for t in cls.pool._threads:
+                    # we are using an undocumented private value here. DANGEROUS
+                    del thread._threads_queues[t]
             except:
                 warnings.warn(
-                    "NegMAS have finished processing but there are some "
+                    "NegMAS have finished processing but there may be some "
                     "threads still hanging there!! If your program does "
-                    "not die by itself. Please press Ctrl-c to kill it"
+                    "not die by itself. Please press Ctrl-c to kill it",
+                    warnings.NegmasShutdownWarning,
                 )
 
 
-atexit.register(TimeoutCaller.cleanup)
+def cleanup():
+    """
+    Used to cleanup at normal program exit
+    """
+    TimeoutCaller.cleanup()
+
+
+TimeoutCaller.get_pool()
+atexit.register(cleanup)

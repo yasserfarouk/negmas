@@ -30,8 +30,9 @@ class OutcomeSpace(Container, Protocol):
     The base protocol for all outcome spaces.
     """
 
-    def __contains__(self, item):
-        return self.is_valid(item)
+    @abstractmethod
+    def __contains__(self, item: Outcome | OutcomeSpace | Issue):
+        ...
 
     @abstractmethod
     def is_valid(self, outcome: Outcome) -> bool:
@@ -89,7 +90,7 @@ class OutcomeSpace(Container, Protocol):
                 break
         else:
             raise ValueError(
-                f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality}"
+                f"Cannot discretize with levels <= {levels} keeping the cardinality under {max_cardinality} Outocme space cardinality is {self.cardinality}\nOutcome space: {self}"
             )
         return self.to_discrete(l, max_cardinality, **kwargs)
 
@@ -148,8 +149,9 @@ class OutcomeSpace(Container, Protocol):
         """Checks whether there are no continua components of the space"""
         return isinstance(self, DiscreteOutcomeSpace)
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         """All outcome spaces must be hashable"""
+        return hash(vars(self))
 
 
 @runtime_checkable
@@ -161,9 +163,6 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
     means that its length can be found using `len()` and it can be iterated over
     to return outcomes.
     """
-
-    def __contains__(self, __x: object) -> bool:
-        return __x in self.enumerate()
 
     def __len__(self) -> int:
         return self.cardinality
@@ -188,7 +187,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         return self
 
     def to_single_issue(
-        self, numeric: bool = False, stringify: bool = False
+        self, numeric: bool = False, stringify: bool = True
     ) -> "CartesianOutcomeSpace":
         from negmas.outcomes import (
             CategoricalIssue,
@@ -238,6 +237,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         random.shuffle(outcomes)
         return outcomes[:n_outcomes]
 
+    @abstractmethod
     def limit_cardinality(
         self, max_cardinality: int | float = float("inf"), **kwargs
     ) -> "DiscreteOutcomeSpace":
@@ -252,9 +252,17 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
 
 @runtime_checkable
 class IndependentIssuesOS(Protocol):
+    """
+    An Outcome-Space that is constructed from a tuple of `Issue` objects.
+    """
+
     issues: tuple[Issue, ...]
 
 
 @runtime_checkable
 class IndependentDiscreteIssuesOS(Protocol):
+    """
+    An Outcome-Space that is constructed from a tuple of `DiscreteIssue` objects.
+    """
+
     issues: tuple[DiscreteIssue, ...]

@@ -62,7 +62,7 @@ negotiators is less than or equal to one:
 
         def __init__(self, **kwargs):
             kwargs.update(dict(n_steps=1, max_n_agents=2, dynamic_entry=False))
-            super().__init__(**kwargs)
+            super().__init__(**kwargs, issues=[make_issue((0.0, 1.0))])
             self.add_requirements(dict(propose_for_self = True))
             self.ufuns: List[UtilityFunction] = []
 
@@ -73,7 +73,7 @@ negotiators is less than or equal to one:
             preferences: Optional["Preferences"] = None,
             **kwargs,
         ) -> Optional[bool]:
-            added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
+            added = super().add(negotiator, preferences=preferences, role=None, **kwargs)
             if added:
                 self.ufuns.append(self.negotiators[-1].ufun)
 
@@ -166,8 +166,8 @@ Now let’s try our brand new mechanism and negotiator
 .. code:: ipython3
 
     m = NashBargainingGame()
-    u1 = LinearUtilityFunction([1, 0], reserved_value=0.0)
-    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
+    u1 = LinearUtilityFunction([1, 0], reserved_value=0.0, outcome_space=m.outcome_space)
+    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0, outcome_space=m.outcome_space)
     m.add(NashNegotiator(ufun=u1, name="a1"))
     m.add(NashNegotiator(ufun=u2, name="a2"))
     result = m.run()
@@ -176,7 +176,8 @@ Now let’s try our brand new mechanism and negotiator
 
 .. parsed-literal::
 
-    Agreement: (0.5000000028846202, 0.4999999969319606)
+    Agreement: (0.4999999967147826, 0.5000000058259688)
+    Agreement: (0.4999999967147826, 0.5000000058259688)
 
 
 As expected, the two negotiators agreed on the expected nash point (0.5,
@@ -190,10 +191,10 @@ example, how does the reservation value affect the outcome:
     u1values, u2values = np.zeros(101), np.zeros(101)
     a1values, a2values = np.zeros(101), np.zeros(101)
     values = np.linspace(0.0, 1.0, 101, endpoint=True)
-    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
     for i, r in enumerate(values):
         m = NashBargainingGame()
-        u1 = LinearUtilityFunction([1, 0], reserved_value=r)
+        u1 = LinearUtilityFunction([1, 0], reserved_value=r, outcome_space=m.outcome_space)
+        u2 = LinearUtilityFunction([0, 1], reserved_value=0.0, outcome_space=m.outcome_space)
         m.add(NashNegotiator(ufun=u1, name="a1"))
         m.add(NashNegotiator(ufun=u2, name="a2"))
         result = m.run()
@@ -226,6 +227,14 @@ example, how does the reservation value affect the outcome:
 .. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_9_1.png
 
 
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_9_2.png
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_9_3.png
+
+
 We can see that increasing the reservation value of a negotiator
 increases the utility it receives by the end of the negotiation
 proportionally.
@@ -237,10 +246,10 @@ What happens if the utility value of a negotiator had a different slope:
     u1values, u2values = np.zeros(101), np.zeros(101)
     a1values, a2values = np.zeros(101), np.zeros(101)
     slopes = np.linspace(0.0, 1.0, 101, endpoint=True)
-    u2 = LinearUtilityFunction([0, 1], reserved_value=0.0)
     for i, s in enumerate(slopes):
         m = NashBargainingGame()
-        u1 = LinearUtilityFunction([s, 0.0], reserved_value=0.0)
+        u1 = LinearUtilityFunction([s, 0.0], reserved_value=0.0, outcome_space=m.outcome_space)
+        u2 = LinearUtilityFunction([0, 1], reserved_value=0.0, outcome_space=m.outcome_space)
         m.add(NashNegotiator(ufun=u1, name="a1"))
         m.add(NashNegotiator(ufun=u2, name="a2"))
         result = m.run()
@@ -271,6 +280,14 @@ What happens if the utility value of a negotiator had a different slope:
 
 
 .. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_11_1.png
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_11_2.png
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_11_3.png
 
 
 Notice that in this case, the both negotiators always get their maximum
@@ -316,11 +333,10 @@ We can then define the mechanism class itself:
     class RubinsteinMechanism(Mechanism):
         """Simplified Rubinstein's Mechanism with Exponential discounting"""
         def __init__(self, extended=False, **kwargs):
-            kwargs.update(dict(issues=[Issue(values=(0.0, 1.0), name="first")
-                                       , Issue(values=(0.0, 1.0), name="second")],
+            kwargs.update(dict(issues=[make_issue(values=(0.0, 1.0), name="first")
+                                       , make_issue(values=(0.0, 1.0), name="second")],
                                        max_n_agents=2, dynamic_entry=False,
-                               state_factory=RubinsteinMechanismState,
-                              keep_issue_names=False))
+                               state_factory=RubinsteinMechanismState))
             super().__init__(**kwargs)
             self.add_requirements(dict(propose=True, set_index=True))
             self.discounts: List[UtilityFunction] = []
@@ -338,7 +354,10 @@ We can then define the mechanism class itself:
             **kwargs,
         ) -> Optional[bool]:
             weights = [1, 0] if len(self.negotiators) == 0 else [0, 1]
-            ufun = ExpDiscountedUFun(LinearUtilityFunction(weights), discount=discount, nmi=self.nmi)
+            ufun = ExpDiscountedUFun(
+                LinearUtilityFunction(weights, outcome_space=self.outcome_space),
+                outcome_space=self.outcome_space, discount=discount
+            )
             added = super().add(negotiator, ufun=ufun, role=None, **kwargs)
             if added:
                 self.discounts.append(discount)
@@ -457,11 +476,16 @@ Now we can run negotiations using our new protocol and negotiator:
 
 .. parsed-literal::
 
-    Agreed to: (0.9201484771096927, 0.07985152289030728) after 569 steps
+    Agreed to: (0.6641520929891249, 0.3358479070108751) after 778 steps
+    Agreed to: (0.6641520929891249, 0.3358479070108751) after 778 steps
 
 
 
 .. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_23_1.png
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_23_2.png
 
 
 Rubinstein showed in 1982 that there is a single perfect game
@@ -488,6 +512,7 @@ We can implement the optimal negotiator for this mechanism as follows:
 .. parsed-literal::
 
     Agreed to: (0.5128205128205131, 0.4871794871794869) in 1 steps
+    Agreed to: (0.5128205128205131, 0.4871794871794869) in 1 steps
 
 
 We can see that even though both negotiators had the same time-pressure
@@ -507,7 +532,7 @@ other agent’s
         def propose(self, state: RubinsteinMechanismState)-> Outcome:
             if self.ufun((1.0, 1.0)) < 0.0:
                 return None
-            r = self.aspiration(state.relative_time)
+            r = self.utility_at(state.relative_time)
             return  (r, 1.0 - r) if self.my_index == 0 else (1.0 - r, r)
 
     mechanism = RubinsteinMechanism(n_steps=100, extended=True)
@@ -520,11 +545,16 @@ other agent’s
 
 .. parsed-literal::
 
-    Agreed to: (0.5, 0.5) in 50 steps
+    Agreed to: (0.49504950495049505, 0.49504950495049505) in 51 steps
+    Agreed to: (0.49504950495049505, 0.49504950495049505) in 51 steps
 
 
 
 .. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_27_1.png
+
+
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_27_2.png
 
 
 Now we can see when the first negotiator is a ``conceder`` :
@@ -540,15 +570,16 @@ Now we can see when the first negotiator is a ``conceder`` :
 
 .. parsed-literal::
 
-    Agreed to: (0.27257284748717403, 0.72) in 28 steps
+    Agreed to: (0.27438013387778515, 0.7227722772277227) in 28 steps
+    Agreed to: (0.27438013387778515, 0.7227722772277227) in 28 steps
 
 
 
 .. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_29_1.png
 
 
+
+.. image:: 03.develop_new_mechanism_files/03.develop_new_mechanism_29_2.png
+
+
 As expected, the agreement shifted toward the second agent.
-
-
-
-Download :download:`Notebook<notebooks/03.develop_new_mechanism.ipynb>`.
