@@ -33,7 +33,7 @@ jobs:
           python -m pip install -r requirements-elicitation.txt
 
       - name: "Run pytest for ${{ matrix.python-version }}"
-        run: "python -m pytest . || python -m pytest --last-failed ."
+        run: "python -W ignore -m pytest . || python -W ignore -m pytest --last-failed ."
 
   package:
     name: "Build & verify package"

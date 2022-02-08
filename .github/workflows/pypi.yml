@@ -42,7 +42,7 @@ jobs:
           pip install pytest
           negmas genius-setup
           java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &
-          python -m pytest negmas tests
+          python -W ignore -m pytest negmas tests
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
