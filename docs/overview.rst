@@ -405,7 +405,7 @@ You can pick random valid or invalid values for the issue:
 .. parsed-literal::
 
     [['not to be',
-      '20220202H163631489331PUaFX3FQnot to be20220202H163631489376w7VF0GTS'],
+      '20220208H075738907868PUaFX3FQnot to be20220208H075738908017w7VF0GTS'],
      [4, 15],
      [0.38864224283144744, 1.7576161999324909]]
 
@@ -1308,6 +1308,7 @@ module for more details
      'HyperRectangleUtilityFunction',
      'NonlinearHyperRectangleUtilityFunction',
      'RandomUtilityFunction',
+     'RankOnlyUtilityFunction',
      'ProbMappingUtilityFunction',
      'IPUtilityFunction',
      'ILSUtilityFunction',
@@ -1438,8 +1439,8 @@ handled by the ``Negotiator``. To allow controllers to actually manage
 negotiations, a subclass of ``Controller`` needs to implement these
 actions without calling the base class’s implementation.
 
-A special kind of negotiator called ``ControlledNegotiator`` is
-designed to work with controllers that take full responsibility of the
+A special kind of negotiator called ``ControlledNegotiator`` is designed
+to work with controllers that take full responsibility of the
 negotiation. These negotiators act just as a relay station passing all
 requests from the mechanism object to the controller and all responses
 back.
@@ -1663,7 +1664,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.000903</td>
+          <td>0.001456</td>
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
@@ -1679,7 +1680,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.002518</td>
+          <td>0.002149</td>
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>

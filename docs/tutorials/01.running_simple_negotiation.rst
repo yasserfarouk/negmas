@@ -22,24 +22,24 @@ to run negotiations as follows:
 
 .. parsed-literal::
 
-    {'agreement': (7,),
-     'broken': False,
-     'current_offer': (7,),
-     'current_proposer': 'a0-75c2bf05-c980-410f-8948-26058ea2fdae',
+    {'agreement': None,
+     'broken': True,
+     'current_offer': None,
+     'current_proposer': None,
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': 'a4',
+     'last_negotiator': 'a0',
      'n_acceptances': 0,
      'n_negotiators': 5,
-     'new_offerer_agents': [None],
-     'new_offers': [('a0-75c2bf05-c980-410f-8948-26058ea2fdae', (7,))],
-     'relative_time': 0.7425742574257426,
+     'new_offerer_agents': [],
+     'new_offers': [],
+     'relative_time': 0.019801980198019802,
      'results': None,
      'running': False,
      'started': True,
-     'step': 74,
-     'time': 0.37875956700000035,
+     'step': 1,
+     'time': 0.0010459159999998136,
      'timedout': False,
      'waiting': False}
 
@@ -178,25 +178,26 @@ This can be modeled in the following negotiation:
 
 .. parsed-literal::
 
-    {'agreement': (4, 9, 5),
+    {'agreement': None,
      'broken': False,
-     'current_offer': (4, 9, 5),
-     'current_proposer': 'buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d',
+     'current_offer': (9, 11, 0),
+     'current_proposer': 'seller-74ef099a-6ad2-45f6-8a65-5745864d41ee',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
      'last_negotiator': 'seller',
      'n_acceptances': 0,
      'n_negotiators': 2,
-     'new_offerer_agents': [None],
-     'new_offers': [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (4, 9, 5))],
-     'relative_time': 0.8571428571428571,
+     'new_offerer_agents': [None, None],
+     'new_offers': [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (7, 9, 0)),
+                    ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))],
+     'relative_time': 1.0,
      'results': None,
      'running': False,
      'started': True,
-     'step': 17,
-     'time': 0.0683395770000006,
-     'timedout': False,
+     'step': 20,
+     'time': 0.020053968000000033,
+     'timedout': True,
      'waiting': False}
 
 
@@ -215,23 +216,26 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 11, 0))]
-    001: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 10, 0))]
-    002: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 9, 0))]
-    003: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 8, 0))]
-    004: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (9, 7, 0))]
-    005: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 11, 0))]
-    006: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 10, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 10, 0))]
-    007: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 9, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 9, 0))]
-    008: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 8, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (8, 8, 0))]
-    009: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 11, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (6, 9, 0))]
-    010: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 9, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (6, 8, 0))]
-    011: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 1, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (6, 7, 0))]
-    012: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (0, 2, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (4, 10, 0))]
-    013: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (3, 7, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (1, 9, 0))]
-    014: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (3, 5, 8)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (0, 11, 0))]
-    015: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (5, 3, 9)), ('seller-249540f8-7a69-4675-a6e3-8f0424ba5bfc', (0, 7, 0))]
-    016: [('buyer-308ec5bf-a5c8-467f-a8fa-46cc9963cc0d', (4, 9, 5))]
+    000: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    001: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    002: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    003: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    004: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    005: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    006: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 10, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    007: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 9, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    008: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 8, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    009: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 6, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    010: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 9, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    011: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 7)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    012: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (1, 7, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    013: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (2, 7, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    014: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (3, 5, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    015: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 8, 3)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    016: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (2, 4, 4)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    017: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (3, 3, 3)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    018: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (8, 9, 4)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    019: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (7, 9, 0)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -276,10 +280,10 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. parsed-literal::
 
-    {'agreement': (2, 11, 2),
+    {'agreement': (1, 5, 3),
      'broken': False,
-     'current_offer': (2, 11, 2),
-     'current_proposer': 'buyer-8eae4dea-9229-4598-b68d-f7efca15f5f8',
+     'current_offer': (1, 5, 3),
+     'current_proposer': 'buyer-a572118a-ef4f-43c8-8610-d80f935df405',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
@@ -287,13 +291,13 @@ the delivery time and price to go down. Let’s see what happens:
      'n_acceptances': 0,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-8eae4dea-9229-4598-b68d-f7efca15f5f8', (2, 11, 2))],
-     'relative_time': 0.8431372549019608,
+     'new_offers': [('buyer-a572118a-ef4f-43c8-8610-d80f935df405', (1, 5, 3))],
+     'relative_time': 0.8235294117647058,
      'results': None,
      'running': False,
      'started': True,
-     'step': 42,
-     'time': 0.061531085000000374,
+     'step': 41,
+     'time': 0.025890352000000227,
      'timedout': False,
      'waiting': False}
 

@@ -104,13 +104,7 @@ class SAOController(Controller):
         return super().create_negotiator(negotiator_type, name, cntxt, **kwargs)  # type: ignore I know that the return type is an SAONegotiator
 
     def after_join(
-        self,
-        negotiator_id: str,
-        nmi: NegotiatorMechanismInterface,
-        state: MechanismState,
-        *,
-        preferences: Optional["Preferences"] = None,
-        role: str = "negotiator",
+        self, negotiator_id, *args, ufun=None, preferences=None, **kwargs
     ) -> None:
         """
         Called by children negotiators after joining a negotiation to inform
@@ -123,6 +117,14 @@ class SAOController(Controller):
             ufun (UtilityFunction): The ufun function to use before any discounting.
             role (str): role of the agent.
         """
+        if ufun:
+            preferences = ufun
+        super().after_join(*args, **kwargs)
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
+        if not negotiator or not self.ufun:
+            return
+        if self.ufun.outcome_space is None:
+            negotiator.set_preferences(preferences)
 
     def propose(self, negotiator_id: str, state: MechanismState) -> Optional[Outcome]:
 

@@ -22,10 +22,7 @@ def test_notebook(notebook):
     dst = notebook.relative_to(base)
     dst = Path(__file__).parent / "tmp_notebooks" / str(dst)
     dst.parent.mkdir(exist_ok=True, parents=True)
-    pm.execute_notebook(
-        notebook,
-        dst,
-    )
+    pm.execute_notebook(notebook, dst)
 
 
 if __name__ == "__main__":
