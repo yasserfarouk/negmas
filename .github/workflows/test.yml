@@ -30,7 +30,8 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
           python -m pip install -r requirements.txt
-
+      - name: "Setting up environment"
+        run: "export NEGMAS_IGNORE_TEST_NOTEBOOKS=True"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "python -W ignore -m pytest . || python -W ignore -m pytest --last-failed ."
 
