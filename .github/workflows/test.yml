@@ -30,7 +30,6 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
           python -m pip install -r requirements.txt
-          python -m pip install -r requirements-elicitation.txt
 
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "python -W ignore -m pytest . || python -W ignore -m pytest --last-failed ."
