@@ -3,8 +3,6 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-
-# from pprint import pprint
 from time import sleep
 from typing import Dict, List, Sequence
 
@@ -16,20 +14,21 @@ import pytest_check as check
 from hypothesis import HealthCheck, example, given, settings
 from pytest import mark
 
+import negmas
 from negmas import SAOSyncController
 from negmas.genius import genius_bridge_is_running
+from negmas.genius.ginfo import ALL_NEGOTIATORS
 from negmas.helpers import unique_name
+from negmas.helpers.types import get_class
 from negmas.outcomes import Outcome, make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
+from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
 from negmas.sao import (
     AdditiveParetoFollowingTBNegotiator,
     AspirationNegotiator,
-    BoulwareTBNegotiator,
     ConcederTBNegotiator,
-    FirstOfferOrientedTBNegotiator,
     LimitedOutcomesNegotiator,
-    LinearTBNegotiator,
     MultiplicativeParetoFollowingTBNegotiator,
     RandomNegotiator,
     ResponseType,
@@ -37,13 +36,7 @@ from negmas.sao import (
     SAONegotiator,
     SAOResponse,
     SAOState,
-    TimeBasedConcedingNegotiator,
-    TimeBasedNegotiator,
     all_negotiator_types,
-)
-from negmas.sao.negotiators.timebased import (
-    BestOfferOrientedTBNegotiator,
-    LastOfferOrientedTBNegotiator,
 )
 from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
 
@@ -52,17 +45,17 @@ exception_str = "Custom Exception"
 NEGTYPES = all_negotiator_types()
 
 TIME_BASED_NEGOTIATORS = [
-    AspirationNegotiator,
-    BoulwareTBNegotiator,
-    LinearTBNegotiator,
-    ConcederTBNegotiator,
-    FirstOfferOrientedTBNegotiator,
-    LastOfferOrientedTBNegotiator,
-    BestOfferOrientedTBNegotiator,
-    TimeBasedConcedingNegotiator,
-    TimeBasedNegotiator,
-    AdditiveParetoFollowingTBNegotiator,
-    MultiplicativeParetoFollowingTBNegotiator,
+    get_class(f"negmas.sao.negotiators.timebased.{x}")
+    for x in negmas.sao.negotiators.timebased.__all__
+]
+TFT_NEGOTIATORS = [
+    get_class(f"negmas.sao.negotiators.titfortat.{x}")
+    for x in negmas.sao.negotiators.titfortat.__all__
+]
+ALL_BUILTIN_NEGOTIATORS = [
+    get_class(f"negmas.sao.negotiators.{x}")
+    for x in negmas.sao.negotiators.__all__
+    if x not in ["SAONegotiator", "UtilBasedNegotiator"]
 ]
 
 
@@ -1418,3 +1411,65 @@ def test_multilateral_timebased(neg_types):
         for _ in neg_types
     ]
     _run_neg(negotiators, utils, outcome_space)
+
+
+def try_negotiator(
+    cls, replace_buyer=True, replace_seller=True, plot=False, n_steps=20
+):
+    if isinstance(cls, str):
+        cls = get_class(cls)
+    from negmas.preferences import LinearAdditiveUtilityFunction
+    from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
+
+    buyer_cls = cls if replace_buyer else AspirationNegotiator
+    seller_cls = cls if replace_seller else AspirationNegotiator
+
+    # create negotiation agenda (issues)
+    issues = [
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
+    ]
+
+    # create the mechanism
+    session = SAOMechanism(issues=issues, n_steps=n_steps)
+
+    # define ufuns
+    seller_utility = LinearAdditiveUtilityFunction(
+        values={
+            "price": IdentityFun(),
+            "quantity": LinearFun(0.2),
+            "delivery_time": AffineFun(-1, bias=9),
+        },
+        weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
+        outcome_space=session.outcome_space,
+        reserved_value=0.0,
+    )
+    buyer_utility = LinearAdditiveUtilityFunction(
+        values={
+            "price": AffineFun(-1, bias=9.0),
+            "quantity": LinearFun(0.2),
+            "delivery_time": IdentityFun(),
+        },
+        outcome_space=session.outcome_space,
+        reserved_value=0.0,
+    )
+
+    session.add(buyer_cls(name=f"buyer-{buyer_cls.__name__}"), ufun=buyer_utility)
+    session.add(seller_cls(name=f"seller-{buyer_cls.__name__}"), ufun=seller_utility)
+    session.run()
+    if plot:
+        session.plot()
+    return session
+
+
+# @pytest.mark.parametrize("negotiator", ALL_BUILTIN_NEGOTIATORS)
+# @pytest.mark.parametrize("negotiator", [MultiplicativeParetoFollowingTBNegotiator])
+def test_specific_negotiator_buy_selling():
+    plot = True
+    for negotiator in ALL_BUILTIN_NEGOTIATORS:
+        try_negotiator(negotiator, plot=plot)
+    if plot:
+        import matplotlib.pyplot as plt
+
+        plt.show(block=True)

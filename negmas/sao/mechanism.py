@@ -821,7 +821,7 @@ class SAOMechanism(Mechanism):
     ):
         from negmas.sao.plots import plot_mechanism_run
 
-        plot_mechanism_run(
+        return plot_mechanism_run(
             self,
             negotiators=plotting_negotiators,
             save_fig=save_fig,

@@ -168,7 +168,6 @@ def plot_2dutils(
     ]
     frontier = [frontier[i] for i in frontier_indices]
     frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
-    fig = plt.figure(figsize=(20, 8))
 
     colors, markers = make_colors_and_markers(
         colors, markers, len(offering_negotiators), colormap

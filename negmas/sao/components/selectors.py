@@ -139,6 +139,29 @@ def make_inverter(
     )
 
 
+class OfferFilterProtocol(Protocol):
+    """
+    Can select *the best* offers in some  sense from a list of offers based on an inverter
+    """
+
+    def __call__(
+        self, outcomes: Sequence[Outcome], state: SAOState
+    ) -> Sequence[Outcome]:
+        ...
+
+
+def NoFiltering(outcomes: Sequence[Outcome], state: SAOState) -> Sequence[Outcome]:
+    return outcomes
+
+
+def KeepFirst(outcomes: Sequence[Outcome], state: SAOState) -> Sequence[Outcome]:
+    return [] if not outcomes else [outcomes[0]]
+
+
+def KeepLast(outcomes: Sequence[Outcome], state: SAOState) -> Sequence[Outcome]:
+    return [] if not outcomes else [outcomes[-1]]
+
+
 class OfferSelectorProtocol(Protocol):
     """
     Can select *the best* offer in some  sense from a list of offers based on an inverter
@@ -311,11 +334,15 @@ class OutcomeSetOrientedSelector(OfferSelector):
     """
 
     def __init__(
-        self, distance_fun: DistanceFun = generalized_minkowski_distance, **kwargs
+        self,
+        distance_fun: DistanceFun = generalized_minkowski_distance,
+        offer_filter: OfferFilterProtocol = NoFiltering,
+        **kwargs,
     ):
         self._pivots: list[Outcome] = []
         self._distance_fun = distance_fun
         self._distnace_fun_params = kwargs
+        self._offer_filter = offer_filter
 
     @abstractmethod
     def calculate_scores(
@@ -326,6 +353,7 @@ class OutcomeSetOrientedSelector(OfferSelector):
     def __call__(self, outcomes: Sequence[Outcome], state: SAOState) -> Outcome | None:
         if not self._negotiator or not self._negotiator.ufun:
             raise ValueError(f"Unknown ufun or negotiator")
+        outcomes = self._offer_filter(outcomes, state)
         if not self._pivots:
             return choice(outcomes)
         scores = self.calculate_scores(outcomes, self._pivots, state)

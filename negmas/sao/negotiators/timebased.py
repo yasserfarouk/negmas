@@ -8,8 +8,12 @@ from negmas.sao.components.selectors import (
     AdditivePartnerOffersOrientedSelector,
     BestOfferOrientedSelector,
     FirstOfferOrientedSelector,
+    KeepFirst,
+    KeepLast,
     LastOfferOrientedSelector,
     MultiplicativePartnerOffersOrientedSelector,
+    NoFiltering,
+    OfferFilterProtocol,
     OfferOrientedSelector,
     OfferSelector,
 )
@@ -29,6 +33,10 @@ __all__ = [
     "BestOfferOrientedTBNegotiator",
     "AdditiveParetoFollowingTBNegotiator",
     "MultiplicativeParetoFollowingTBNegotiator",
+    "MultiplicativeLastOfferFollowingTBNegotiator",
+    "AdditiveLastOfferFollowingTBNegotiator",
+    "MultiplicativeFirstFollowingTBNegotiator",
+    "AdditiveFirstFollowingTBNegotiator",
 ]
 
 TC = TypeVar("TC", bound=TimeCurve, contravariant=False)
@@ -325,12 +333,15 @@ class MultiplicativeParetoFollowingTBNegotiator(TimeBasedNegotiator):
         *args,
         dist_power: float = 2,
         issue_weights: list[float] | None = None,
+        offer_filter: OfferFilterProtocol = NoFiltering,
         **kwargs,
     ):
         super().__init__(
             *args,
             offer_selector=MultiplicativePartnerOffersOrientedSelector(
-                distance_power=dist_power, weights=issue_weights
+                distance_power=dist_power,
+                weights=issue_weights,
+                offer_filter=offer_filter,
             ),
             **kwargs,
         )
@@ -348,12 +359,107 @@ class AdditiveParetoFollowingTBNegotiator(TimeBasedNegotiator):
         *args,
         dist_power: float = 2,
         issue_weights: list[float] | None = None,
+        offer_filter: OfferFilterProtocol = NoFiltering,
         **kwargs,
     ):
         super().__init__(
             *args,
             offer_selector=AdditivePartnerOffersOrientedSelector(
-                distance_power=dist_power, weights=issue_weights
+                distance_power=dist_power,
+                weights=issue_weights,
+                offer_filter=offer_filter,
+            ),
+            **kwargs,
+        )
+
+
+class MultiplicativeLastOfferFollowingTBNegotiator(TimeBasedNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by the
+    current utility level based on a weighted sum of their normalized utilities and
+    distances to previous offers
+    """
+
+    def __init__(
+        self,
+        *args,
+        dist_power: float = 2,
+        issue_weights: list[float] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            offer_selector=MultiplicativePartnerOffersOrientedSelector(
+                distance_power=dist_power, weights=issue_weights, offer_filter=KeepLast
+            ),
+            **kwargs,
+        )
+
+
+class AdditiveLastOfferFollowingTBNegotiator(TimeBasedNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by
+    the  current utility level based on a weighted sum of their normalized
+    utilities and distances to previous offers
+    """
+
+    def __init__(
+        self,
+        *args,
+        dist_power: float = 2,
+        issue_weights: list[float] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            offer_selector=AdditivePartnerOffersOrientedSelector(
+                distance_power=dist_power, weights=issue_weights, offer_filter=KeepLast
+            ),
+            **kwargs,
+        )
+
+
+class MultiplicativeFirstFollowingTBNegotiator(TimeBasedNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by the
+    current utility level based on a weighted sum of their normalized utilities and
+    distances to previous offers
+    """
+
+    def __init__(
+        self,
+        *args,
+        dist_power: float = 2,
+        issue_weights: list[float] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            offer_selector=MultiplicativePartnerOffersOrientedSelector(
+                distance_power=dist_power, weights=issue_weights, offer_filter=KeepFirst
+            ),
+            **kwargs,
+        )
+
+
+class AdditiveFirstFollowingTBNegotiator(TimeBasedNegotiator):
+    """
+    A time-based negotiator that selectes outcomes from the list allowed by
+    the  current utility level based on a weighted sum of their normalized
+    utilities and distances to previous offers
+    """
+
+    def __init__(
+        self,
+        *args,
+        dist_power: float = 2,
+        issue_weights: list[float] | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            offer_selector=AdditivePartnerOffersOrientedSelector(
+                distance_power=dist_power, weights=issue_weights, offer_filter=KeepFirst
             ),
             **kwargs,
         )
