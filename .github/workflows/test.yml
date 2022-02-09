@@ -10,8 +10,6 @@ jobs:
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
-    env:
-      USING_COVERAGE: '3.8.12'
 
     strategy:
       matrix:
@@ -35,8 +33,6 @@ jobs:
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           python -m pip install jupyter
           python3 -m ipykernel install --user
-          
-          
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: "export NEGMAS_IGNORE_TEST_NOTEBOOKS=True; python -W ignore -m pytest . || python -W ignore -m pytest --last-failed ."
 

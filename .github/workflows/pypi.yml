@@ -42,6 +42,7 @@ jobs:
           pip install pytest
           negmas genius-setup
           java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &
+          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           python -W ignore -m pytest negmas tests
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
