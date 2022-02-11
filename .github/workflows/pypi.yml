@@ -37,13 +37,11 @@ jobs:
           python -m pip install --upgrade  virtualenv
           python -m pip install -r requirements.txt
           python -m pip install -r docs/requirements.txt
-          python -m pip install -r requirements-elicitation.txt
           python -m pip install -e .
           pip install pytest
           negmas genius-setup
           java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          python -W ignore -m pytest negmas tests
+          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True; python -W ignore -m pytest negmas tests
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
