@@ -6,6 +6,7 @@ import uuid
 from typing import Callable
 
 import matplotlib.gridspec as gridspec
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
@@ -21,6 +22,16 @@ from negmas.sao.mechanism import TraceElement
 __all__ = ["plot_offer_utilities", "plot_mechanism_run", "plot_2dutils"]
 
 ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
+PROPOSALS_ALPHA = 0.9
+AGREEMENT_ALPHA = 0.9
+NASH_ALPHA = 0.6
+RESERVED_ALPHA = 0.08
+WELFARE_ALPHA = 0.6
+AGREEMENT_SCALE = 10
+NASH_SCALE = 4
+WELFARE_SCALE = 2
+OUTCOMES_SCALE = 0.5
+PARETO_SCALE = 1.5
 
 
 def get_cmap(n, name="jet"):
@@ -46,6 +57,7 @@ def plot_offer_utilities(
     show_legend=True,
     show_x_label=True,
     ignore_markers_limit=50,
+    show_reserved=True,
 ):
     map_ = make_callable(name_map)
     if ax is None:
@@ -73,6 +85,11 @@ def plot_offer_utilities(
     for i, (u, neg, a) in enumerate(zip(plotting_ufuns, plotting_negotiators, axes)):
         name = map_(neg)
         y = [u(_[0]) for _ in trace_info]
+        reserved = None
+        if show_reserved:
+            r = u.reserved_value
+            if r is not None and math.isfinite(r):
+                reserved = [r] * len(y)
         if not ignore_none_offers:
             xx = x
         else:
@@ -90,6 +107,16 @@ def plot_offer_utilities(
             if len(trace_info) < ignore_markers_limit
             else None,
         )
+        if reserved:
+            a.plot(
+                xx,
+                reserved,
+                # label=f"{name} ({i})",
+                color=colors[i % len(colors)],
+                linestyle="solid" if neg == negotiator else "dotted",
+                linewidth=0.5,
+                marker=None,
+            )
         if ylimits is not None:
             a.set_ylim(ylimits)
         a.set_ylabel(f"{name} ({i}) utility" if not one_y else "utility")
@@ -123,6 +150,7 @@ def plot_2dutils(
     show_agreement: bool = False,
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
+    show_reserved: bool = True,
     end_reason: str | None = None,
     last_negotiator: str | None = None,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
@@ -177,18 +205,21 @@ def plot_2dutils(
     unknown_agreement_utility = None in agreement_utility
     if unknown_agreement_utility:
         show_pareto_distance = show_nash_distance = False
+    default_marker_size = plt.rcParams.get("lines.markersize", 20) ** 2
     ax.scatter(
         [_[0] for _ in utils],
         [_[1] for _ in utils],
         color="gray",
-        marker="s",
-        s=20,
+        marker=".",
+        s=int(default_marker_size * OUTCOMES_SCALE),
     )
     agent_names = [map_(_) for _ in plotting_negotiators]
     pareto_distance = float("inf")
     nash_distance = float("inf")
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-    ax.scatter(f1, f2, color="red", marker="x")
+    ax.scatter(
+        f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE)
+    )
     ax.set_xlabel(agent_names[0] + f"(0) utility")
     ax.set_ylabel(agent_names[1] + f"(1) utility")
     cu = agreement_utility
@@ -219,6 +250,39 @@ def plot_2dutils(
         transform=ax.transAxes,
     )
 
+    if show_reserved:
+        ranges = [plotting_ufuns[_].minmax() for _ in range(len(plotting_ufuns))]
+        for i, (mn, mx) in enumerate(ranges):
+            if any(_ is None or not math.isfinite(_) for _ in (mn, mx)):
+                x = []
+                for a, neg in enumerate(offering_negotiators):
+                    negtrace = [_ for _ in trace if _.negotiator == neg]
+                    x += [plotting_ufuns[i](_.offer) for _ in negtrace]
+                ranges[i] = (min(x), max(x))
+        for i, (mn, mx) in enumerate(ranges):
+            r = plotting_ufuns[i].reserved_value
+            if r is None or not math.isfinite(r):
+                r = mn
+            if i == 0:
+                pt = (r, ranges[1 - i][0])
+                width = mx - r
+                height = ranges[1 - i][1] - ranges[1 - i][0]
+            else:
+                pt = (ranges[1 - i][0], r)
+                height = mx - r
+                width = ranges[1 - i][1] - ranges[1 - i][0]
+
+            ax.add_patch(
+                mpatches.Rectangle(
+                    pt,
+                    width=width,
+                    height=height,
+                    fill=True,
+                    color=colors[i % len(colors)],
+                    alpha=RESERVED_ALPHA,
+                    linewidth=0,
+                )
+            )
     for a, neg in enumerate(offering_negotiators):
         negtrace = [_ for _ in trace if _.negotiator == neg]
         x = [plotting_ufuns[0](_.offer) for _ in negtrace]
@@ -227,6 +291,7 @@ def plot_2dutils(
             x,
             y,
             color=colors[a % len(colors)],
+            alpha=PROPOSALS_ALPHA,
             label=f"{map_(neg)}",
             marker=markers[a % len(markers)],
         )
@@ -236,8 +301,9 @@ def plot_2dutils(
             [frontier[0][1]],
             color="magenta",
             label=f"Max. Welfare",
-            marker="+",
-            s=120,
+            marker="s",
+            alpha=WELFARE_ALPHA,
+            s=int(default_marker_size * WELFARE_SCALE),
         )
         if show_annotations:
             ax.annotate(
@@ -257,7 +323,8 @@ def plot_2dutils(
             color="cyan",
             label=f"Nash Point",
             marker="x",
-            s=120,
+            alpha=NASH_ALPHA,
+            s=int(default_marker_size * NASH_SCALE),
         )
         if show_annotations:
             ax.annotate(
@@ -276,7 +343,8 @@ def plot_2dutils(
             [plotting_ufuns[1](agreement)],
             color="black",
             marker="*",
-            s=120,
+            s=int(default_marker_size * AGREEMENT_SCALE),
+            alpha=AGREEMENT_ALPHA,
             label="Agreement",
         )
         if show_annotations:
@@ -322,6 +390,7 @@ def plot_mechanism_run(
     show_end_reason: bool = True,
     show_last_negotiator: bool = True,
     show_annotations: bool = False,
+    show_reserved: bool = True,
     colors: list | None = None,
     markers: list[str] | None = None,
     colormap: str = "jet",
@@ -373,6 +442,7 @@ def plot_mechanism_run(
             ylimits=ylimits,
             show_legend=not common_legend or a == 0,
             show_x_label=a == len(mechanism.negotiator_ids) - 1,
+            show_reserved=show_reserved,
         )
     axu = fig.add_subplot(gs[:, 0])
     agreement = mechanism.agreement
@@ -384,9 +454,7 @@ def plot_mechanism_run(
     if not show_end_reason:
         reason = None
     else:
-        if state.ended and agreement is None:
-            reason = "Negotiation Ended"
-        elif state.timedout:
+        if state.timedout:
             reason = "Negotiation Timedout"
         elif agreement is not None:
             reason = "Negotiation Success"
@@ -394,6 +462,8 @@ def plot_mechanism_run(
             reason = "Negotiation ERROR"
         elif agreement is not None:
             reason = "Agreemend Reached"
+        elif state.broken:
+            reason = "Negotiation Ended"
         elif agreement is None:
             reason = "No Agreement"
         else:
@@ -413,6 +483,7 @@ def plot_mechanism_run(
         show_pareto_distance=show_pareto_distance,
         show_nash_distance=show_nash_distance,
         show_annotations=show_annotations,
+        show_reserved=show_reserved,
         colors=colors,
         markers=markers,
         agreement=mechanism.state.agreement,
