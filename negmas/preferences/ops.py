@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Iterable, Optional, TypeVar, Union
 
 import numpy as np
@@ -203,19 +204,20 @@ def nash_point(
     nash_val = float("-inf")
     u_vals = None
     nash_indx = None
-    reserves = [_.reserved_value for _ in ufuns]
-    reserves = [float("-inf") if _ is None else _ for _ in reserves]
-    maxs = [_.minmax(outcome_space, issues, outcomes)[1] for _ in ufuns]
-    if any([_ == float("inf") or _ == float("-inf") for _ in reserves]):
+    ranges = [_.minmax(outcome_space, issues, outcomes) for _ in ufuns]
+    for i, (rng, ufun) in enumerate(zip(ranges, ufuns)):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            return None, None
+        r = ufun.reserved_value
+        if r is None or r < rng[0]:
+            continue
+        ranges[i] = (r, rng[1])
+    if any([_[1] <= 1.0e-9 for _ in ranges]):
         return None, None
-    if any([_ is None or _ == float("inf") or _ == float("-inf") for _ in maxs]):
-        return None, None
-    diffs = [float(a) - float(b) for a, b in zip(maxs, reserves)]
-    if any([_ <= 1.0e-9 for _ in maxs]):
-        return None, None
+    diffs = [float(b) - float(r) for r, b in ranges]
     for indx, us in enumerate(frontier):
         val = 0.0
-        for u, r, d in zip(us, reserves, diffs):
+        for u, (r, _), d in zip(us, ranges, diffs):
             val *= (float(u) - float(r)) / d
         if val > nash_val:
             nash_val = val
