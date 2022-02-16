@@ -11,7 +11,7 @@ from negmas.helpers.prob import Distribution, UniformDistribution, make_distribu
 from negmas.outcomes.common import Outcome
 from negmas.preferences import BaseUtilityFunction, RankOnlyUtilityFunction
 
-from .base import SAOComponent, SAODoNothingComponent
+from .base import SAOComponent
 
 if TYPE_CHECKING:
     from negmas.sao import SAONegotiator, SAOState
@@ -28,7 +28,7 @@ __all__ = [
 
 
 @dataclass
-class ConcessionEstimator(SAODoNothingComponent):
+class ConcessionEstimator(SAOComponent):
     """
     Estimates the partner's concession
     """
@@ -59,7 +59,7 @@ class ConcessionEstimator(SAODoNothingComponent):
         return self._ufun
 
 
-class ConcessionRecommender(SAOComponent, Protocol):
+class ConcessionRecommender(SAOComponent):
     """
     Decides the level of concession to use
     """
@@ -196,7 +196,7 @@ class KindConcessionRecommender(ConcessionRecommender):
         concession += self.initial_concession + self.kindness
         if not self.inverter:
             return concession
-        inv = self.inverter.recommender._inv
+        inv = self.inverter.recommender.inv
         increment = (
             0.5 * self.initial_concession if self.initial_concession > 1e-2 else 0.01
         )

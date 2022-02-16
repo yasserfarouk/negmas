@@ -39,15 +39,17 @@ __all__ = [
     "AdditiveFirstFollowingTBNegotiator",
 ]
 
-TC = TypeVar("TC", bound=TimeCurve, contravariant=False)
+TC = TypeVar("TC", bound=TimeCurve)
 
 
 def make_curve(
     curve: TC | Literal["boulware"] | Literal["conceder"] | Literal["linear"] | float,
     starting_utility: float = 1.0,
-) -> TC:
+) -> TC | PolyAspiration:
     """
-    Generates a `TimeCurve` or `Aspiration` with optional `starting_utility`
+    Generates a `TimeCurve` or `Aspiration` with optional `starting_utility`self.
+
+    Default behavior is to return a `PolyAspiration` object.
     """
     if isinstance(curve, TimeCurve):
         return curve

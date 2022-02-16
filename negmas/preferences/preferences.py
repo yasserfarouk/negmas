@@ -68,7 +68,7 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref):
     def changes(self) -> list[PreferencesChange]:
         if self.is_stationary():
             return []
-        return [PreferencesChange.General]
+        return [PreferencesChange()]
 
     @property
     def type(self) -> str:

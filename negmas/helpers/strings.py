@@ -22,7 +22,52 @@ __all__ = [
     "pretty_string",
     "exception2str",
     "humanize_time",
+    "shorten",
 ]
+
+COMMON_NAME_PARTS = (
+    "Mechanism",
+    "Negotiator",
+    "Agent",
+    "Controller",
+    "Acceptance",
+    "Component",
+    "Model",
+    "Strategy",
+    "Offering",
+)
+"""Default parts of names removed by `shorten` """
+
+
+def shorten(name: str, length: int = 4, common_parts=COMMON_NAME_PARTS) -> str:
+    """
+    Returns a short version of the name.
+
+    Remarks:
+        - Removes common parts of names in negmas like Negotiator, Agent, etc
+        - Keeps Capital letters up to the given length
+        - Adds some of the lowercase letters to fit the length
+        - If the input is shorter than the length, it is returned as it is
+    """
+    for p in common_parts:
+        if len(name) <= len(p):
+            continue
+        name = name.replace(p, "")
+    if len(name) <= length:
+        return name
+    caps = [_ for _ in name if _.isupper()]
+    if len(caps) >= length:
+        return "".join(caps[:length])
+    needed = length - len(caps)
+    caps = []
+    for c in name:
+        if needed < 1:
+            break
+        if c.isupper():
+            caps.append(c)
+        needed -= 1
+        caps.append(c)
+    return "".join(caps[:length])
 
 
 def shortest_unique_names(

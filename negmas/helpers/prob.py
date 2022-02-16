@@ -267,7 +267,7 @@ class Real(Distribution):
         """Returns the distribution for the difference between samples of `self` and `other`"""
         if isinstance(other, float):
             return super().__sub__(other)
-        return other.__class__(loc=self.loc - other._loc, scale=other.scale)
+        return other.__class__(loc=self.loc - other.loc, scale=other.scale)
 
     def __add__(self, other):
         """Returns the distribution for the sum of samples of `self` and `other`"""

@@ -8,13 +8,20 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field, fields
 from enum import Enum, auto, unique
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Union
 
 from negmas.helpers.prob import Distribution
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
-    from .outcomes import CartesianOutcomeSpace, Issue, Outcome, OutcomeSpace
+    from .outcomes import (
+        CartesianOutcomeSpace,
+        DiscreteOutcomeSpace,
+        Issue,
+        Outcome,
+        OutcomeSpace,
+    )
 
 
 __all__ = [
@@ -23,6 +30,7 @@ __all__ = [
     "MechanismState",
     "Value",
     "PreferencesChange",
+    "PreferencesChangeType",
     "AgentMechanismInterface",
 ]
 
@@ -33,7 +41,7 @@ A value in NegMAS can either be crisp ( float ) or probabilistic ( `Distribution
 
 
 @unique
-class PreferencesChange(Enum):
+class PreferencesChangeType(Enum):
     """
     The type of change in preferences.
 
@@ -48,13 +56,24 @@ class PreferencesChange(Enum):
     General = auto()
     Scaled = auto()
     Shifted = auto()
-    Reservation = auto()
+    ReservedValue = auto()
+    ReservedOutcome = auto()
     UncertaintyReduced = auto()
     UncertaintyIncreased = auto()
 
 
 @dataclass
+class PreferencesChange:
+    type: PreferencesChangeType = PreferencesChangeType.General
+    data: Any = None
+
+
+@dataclass
 class NegotiatorInfo:
+    """
+    Keeps information about a negotiator. Mostly for use with controllers.
+    """
+
     name: str
     """Name of this negotiator"""
     id: str
@@ -182,6 +201,14 @@ class NegotiatorMechanismInterface:
             )
         return self.outcome_space
 
+    def discrete_outcome_space(
+        self, levels: int = 5, max_cartinality: int = 100_000
+    ) -> DiscreteOutcomeSpace:
+        """
+        Returns a stable discrete version of the given outcome-space
+        """
+        return self._mechanism.discrete_outcome_space(levels, max_cartinality)
+
     @property
     def params(self):
         """Returns the parameters used to initialize the mechanism."""
@@ -215,7 +242,7 @@ class NegotiatorMechanismInterface:
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self._mechanism.discrete_outcomes(n_max=max_cardinality)
+        return self._mechanism.discrete_outcomes(max_cartinality=max_cardinality)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
@@ -331,4 +358,4 @@ class NegotiatorMechanismInterface:
 
 
 AgentMechanismInterface = NegotiatorMechanismInterface
-"""An alias for `NegotiatorMechanismInterface`"""
+"""A **depricated** alias for `NegotiatorMechanismInterface`"""

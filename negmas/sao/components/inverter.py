@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from random import choice
 from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
@@ -10,15 +9,13 @@ from negmas.preferences import (
     InverseUFun,
     PresortingInverseUtilityFunction,
     RankOnlyUtilityFunction,
-    SamplingInverseUtilityFunction,
 )
-from negmas.sao.components import SAODoNothingComponent
+from negmas.sao.components import SAOComponent
 from negmas.warnings import NegmasUnexpectedValueWarning, warn
 
 __all__ = [
     "UtilityInverter",
     "UtilityBasedOutcomeSetRecommender",
-    "OutcomeSetRecommender",
 ]
 
 if TYPE_CHECKING:
@@ -32,7 +29,7 @@ def make_inverter(
     ufun: BaseUtilityFunction,
     ufun_inverter: Callable[[BaseUtilityFunction], InverseUFun] | None = None,
     rank_only: bool = False,
-    max_cardinality: int = 10_000,
+    max_cardinality: int | float = float("inf"),
 ) -> InverseUFun:
     """
     Creates an `InverseUFun` object from the given ufun with appropriate type if the type is not given
@@ -47,35 +44,16 @@ def make_inverter(
         ufun = RankOnlyUtilityFunction(ufun, randomize_equal=False, name=ufun.name)
     if ufun_inverter:
         return ufun_inverter(ufun)
-    return (
-        SamplingInverseUtilityFunction(ufun)
-        if ufun.outcome_space is None
-        or ufun.outcome_space.cardinality >= max_cardinality
-        else PresortingInverseUtilityFunction(ufun)
-    )
+    return PresortingInverseUtilityFunction(ufun)
+    # return (
+    #     SamplingInverseUtilityFunction(ufun)
+    #     if ufun.outcome_space is None
+    #     or ufun.outcome_space.is_discrete() and ufun.outcome_space.cardinality >= max_cardinality
+    #     else PresortingInverseUtilityFunction(ufun)
+    # )
 
 
-class OutcomeSetRecommender(SAODoNothingComponent):
-    """
-    Recommends outcomes for the negotiator
-    """
-
-    def __init__(
-        self,
-        type: Literal["min"]
-        | Literal["max"]
-        | Literal["one"]
-        | Literal["some"]
-        | Literal["all"] = "some",
-    ):
-        self._type = type
-
-    @abstractmethod
-    def __call__(self, state: SAOState) -> Sequence[Outcome]:
-        ...
-
-
-class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
+class UtilityBasedOutcomeSetRecommender(SAOComponent):
     """
     Recommends a set of outcome appropriate for proposal
 
@@ -85,7 +63,7 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
         self,
         rank_only: bool = False,
         ufun_inverter: Callable[[BaseUtilityFunction], InverseUFun] | None = None,
-        max_cardinality: int = 10_000,
+        max_cardinality: int | float = float("inf"),
         eps: float = 0.0001,
         inversion_method: Literal["min"]
         | Literal["max"]
@@ -93,18 +71,21 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
         | Literal["some"]
         | Literal["all"] = "some",
     ):
+        super().__init__()
         self._rank_only = rank_only
         self._max_cartinality = max_cardinality
-        self._inverter_factory = ufun_inverter
+        self._ufun_inverter = ufun_inverter
         self._inv_method = None
-        self._type = inversion_method
-        self._eps = eps
-        self.set_negotiator(None)  # type: ignore (It is OK. We do not really need to pass this at all here.)
+        self._inversion_method = inversion_method
+        self.eps = eps
+        self.inv: InverseUFun | None = None
+        self.min = self.max = self.best = None
+        self._inv_method = None
 
     def set_negotiator(self, negotiator: SAONegotiator) -> None:
         super().set_negotiator(negotiator)
-        self._inv: InverseUFun | None = None
-        self._min = self._max = self._best = None
+        self.inv: InverseUFun | None = None
+        self.min = self.max = self.best = None
         self._inv_method = None
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
@@ -113,51 +94,51 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
         ufun = self._negotiator.ufun
 
         if not ufun:
-            self._inv = None
-            self._min = self._max = self._best = None
+            self.inv = None
+            self.min = self.max = self.best = None
             return
-        self._inv = make_inverter(
-            ufun, self._inverter_factory, self._rank_only, self._max_cartinality
+        self.inv = make_inverter(
+            ufun, self._ufun_inverter, self._rank_only, self._max_cartinality
         )
-        if self._type == "one":
-            self._inv_method = self._inv.one_in
+        if self._inversion_method == "one":
+            self._inv_method = self.inv.one_in
             self._single_inv_return = True
-        elif self._type == "min":
-            self._inv_method = self._inv.worst_in
+        elif self._inversion_method == "min":
+            self._inv_method = self.inv.worst_in
             self._single_inv_return = True
-        elif self._type == "max":
-            self._inv_method = self._inv.best_in
+        elif self._inversion_method == "max":
+            self._inv_method = self.inv.best_in
             self._single_inv_return = True
-        elif self._type == "some":
-            self._inv_method = self._inv.some
+        elif self._inversion_method == "some":
+            self._inv_method = self.inv.some
             self._single_inv_return = False
-        elif self._type == "all":
-            self._inv_method = self._inv.all  # type: ignore
+        elif self._inversion_method == "all":
+            self._inv_method = self.inv.all  # type: ignore
             self._single_inv_return = False
         else:
-            raise ValueError(f"Unknown selectortype: {self._type}")
+            raise ValueError(f"Unknown selectortype: {self._inversion_method}")
 
-        _worst, self._best = ufun.extreme_outcomes()
-        self._min, self._max = float(ufun(_worst)), float(ufun(self._best))
-        if self._min < ufun.reserved_value:
-            self._min = ufun.reserved_value
+        _worst, self.best = ufun.extreme_outcomes()
+        self.min, self.max = float(ufun(_worst)), float(ufun(self.best))
+        if self.min < ufun.reserved_value:
+            self.min = ufun.reserved_value
 
     def before_proposing(self, state: SAOState):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
-        if self._inv is None or self._max is None or self._min is None:
+        if self.inv is None or self.max is None or self.min is None:
             warn(
                 f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
                 f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
                 NegmasUnexpectedValueWarning,
             )
-            self.on_preferences_changed([PreferencesChange.General])
-        if self._inv is None or self._max is None or self._min is None:
+            self.on_preferences_changed([PreferencesChange()])
+        if self.inv is None or self.max is None or self.min is None:
             raise ValueError(
                 "Failed to find an invertor, a selector, or exreme outputs"
             )
-        if not self._inv.initialized:
-            self._inv.init()
+        if not self.inv.initialized:
+            self.inv.init()
 
     def scale_utilities(self, urange: tuple[float, ...]) -> tuple[float, ...]:
         """
@@ -172,19 +153,19 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
         """
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
-        if self._max is None or self._min is None or self._best is None:
+        if self.max is None or self.min is None or self.best is None:
             warn(
                 f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
                 f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
                 NegmasUnexpectedValueWarning,
             )
-            self.on_preferences_changed([PreferencesChange.General])
-        if self._max is None or self._min is None:
+            self.on_preferences_changed([PreferencesChange()])
+        if self.max is None or self.min is None:
             raise ValueError("Cannot find extreme outcomes.")
-        adjusted = [(self._max - self._min) * _ + self._min for _ in urange]
+        adjusted = [(self.max - self.min) * _ + self.min for _ in urange]
         if adjusted:
-            adjusted[0] -= self._eps
-            adjusted[-1] += self._eps
+            adjusted[0] -= self.eps
+            adjusted[-1] += self.eps
         return tuple(adjusted)
 
     def __call__(
@@ -209,18 +190,18 @@ class UtilityBasedOutcomeSetRecommender(SAODoNothingComponent):
 
     @property
     def tolerance(self):
-        return self._eps
+        return self.eps
 
     @property
     def ufun_max(self):
-        return self._max
+        return self.max
 
     @property
     def ufun_min(self):
-        return self._min
+        return self.min
 
 
-class UtilityInverter(SAODoNothingComponent):
+class UtilityInverter(SAOComponent):
     """
     A component that can recommend an outcome based on utility
     """
@@ -240,28 +221,24 @@ class UtilityInverter(SAODoNothingComponent):
             type_ = "some"
         else:
             type_ = offer_selector
-        self._recommender = UtilityBasedOutcomeSetRecommender(
+        self.recommender = UtilityBasedOutcomeSetRecommender(
             *args, inversion_method=type_, **kwargs
         )
-        self._selector: Callable[
-            [Sequence[Outcome], SAOState], Outcome | None
-        ] | None = (
+        self.selector: Callable[[Sequence[Outcome], SAOState], Outcome | None] | None
+        self.selector = (
             None if not isinstance(offer_selector, Callable) else offer_selector
         )
         self.set_negotiator(None)  # type: ignore (It is OK. We do not really need to pass this at all here.)
 
-    @property
-    def recommender(self) -> UtilityBasedOutcomeSetRecommender:
-        return self._recommender
-
     def set_negotiator(self, negotiator: SAONegotiator) -> None:
-        self._recommender.set_negotiator(negotiator)
+        super().set_negotiator(negotiator)
+        self.recommender.set_negotiator(negotiator)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
-        self._recommender.on_preferences_changed(changes)
+        self.recommender.on_preferences_changed(changes)
 
     def before_proposing(self, state: SAOState):
-        self._recommender.before_proposing(state)
+        self.recommender.before_proposing(state)
 
     def __call__(self, urange: tuple[float, float], state: SAOState) -> Outcome | None:
         """
@@ -271,29 +248,29 @@ class UtilityInverter(SAODoNothingComponent):
 
             - This method calls `scale_utilities` on the input range
         """
-        outcomes = self._recommender(urange, state)
+        outcomes = self.recommender(urange, state)
         if not outcomes:
             return None
         if len(outcomes) == 1:
             return outcomes[0]
-        if self._selector is None:
+        if self.selector is None:
             return choice(outcomes)
-        outcome = self._selector(outcomes, state)
+        outcome = self.selector(outcomes, state)
         if not outcome:
-            return self._recommender._best
+            return self.recommender.best
         return outcome
 
     def scale_utilities(self, urange):
-        return self._recommender.scale_utilities(urange)
+        return self.recommender.scale_utilities(urange)
 
     @property
     def tolerance(self):
-        return self._recommender._eps
+        return self.recommender.eps
 
     @property
     def ufun_max(self):
-        return self._recommender._max
+        return self.recommender.max
 
     @property
     def ufun_min(self):
-        return self._recommender._min
+        return self.recommender.min

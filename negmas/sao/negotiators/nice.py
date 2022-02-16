@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-from negmas.sao.common import ResponseType
-
-from ...common import MechanismState
-from ...outcomes import Outcome
-from ..mixins import RandomProposalMixin
-from .base import SAONegotiator
+from ..components.acceptance import AcceptImmediately
+from ..components.offering import RandomOfferingStrategy
+from .modular.mapneg import MAPNegotiator
 
 __all__ = [
     "NiceNegotiator",
 ]
 
 
-class NiceNegotiator(SAONegotiator, RandomProposalMixin):
+class NiceNegotiator(MAPNegotiator):
     """
     Offers and accepts anything.
 
@@ -26,13 +23,6 @@ class NiceNegotiator(SAONegotiator, RandomProposalMixin):
     """
 
     def __init__(self, *args, **kwargs):
-        SAONegotiator.__init__(self, *args, **kwargs)
-        self.init_random_proposal()
-
-    def respond_(self, state: MechanismState, offer: Outcome) -> ResponseType:
-        return ResponseType.ACCEPT_OFFER
-
-    def propose_(self, state: MechanismState) -> Outcome | None:
-        return RandomProposalMixin.propose(self, state)  # type: ignore
-
-    propose = propose_
+        kwargs["acceptance"] = AcceptImmediately()
+        kwargs["offering"] = RandomOfferingStrategy()
+        super().__init__(*args, **kwargs)

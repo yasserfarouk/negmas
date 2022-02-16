@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
-
 from negmas import warnings
+from negmas.sao.components.acceptance import LimitedOutcomesAcceptanceStrategy
+from negmas.sao.components.offering import LimitedOutcomesOfferingStrategy
 
-from ...common import MechanismState
 from ...outcomes import Outcome
-from ..common import ResponseType
-from ..mixins import LimitedOutcomesAcceptorMixin, LimitedOutcomesMixin
 from .base import SAONegotiator
+from .modular.mapneg import MAPNegotiator
 
 __all__ = [
     "LimitedOutcomesNegotiator",
@@ -16,7 +14,7 @@ __all__ = [
 ]
 
 
-class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
+class LimitedOutcomesNegotiator(MAPNegotiator):
     """
     A negotiation agent that uses a fixed set of outcomes in a single
     negotiation.
@@ -40,9 +38,9 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
 
     def __init__(
         self,
-        acceptable_outcomes: Optional[List["Outcome"]] = None,
-        acceptance_probabilities: Optional[Union[float, List[float]]] = None,
-        proposable_outcomes: Optional[List["Outcome"]] = None,
+        acceptable_outcomes: list[Outcome] | None = None,
+        acceptance_probabilities: float | list[float] | None = None,
+        proposable_outcomes: list[Outcome] | None = None,
         p_ending=0.0,
         p_no_response=0.0,
         preferences=None,
@@ -56,20 +54,48 @@ class LimitedOutcomesNegotiator(LimitedOutcomesMixin, SAONegotiator):
                 f"LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
                 warnings.NegmasUnusedValueWarning,
             )
-        super().__init__(**kwargs)
-        if proposable_outcomes is None:
+        if not proposable_outcomes:
             proposable_outcomes = acceptable_outcomes
-        self.init_limited_outcomes(
-            p_ending=p_ending,
-            p_no_response=p_no_response,
-            acceptable_outcomes=acceptable_outcomes,
-            acceptance_probabilities=acceptance_probabilities,
-            proposable_outcomes=proposable_outcomes,
+        offering = LimitedOutcomesOfferingStrategy(
+            outcomes=proposable_outcomes if proposable_outcomes else [],
+            p_ending=p_no_response,
         )
+        if acceptance_probabilities is None and acceptable_outcomes is None:
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=0.5,
+                p_ending=p_ending,
+            )
+        elif acceptance_probabilities is None and acceptable_outcomes is not None:
+            acceptance = LimitedOutcomesAcceptanceStrategy.from_outcome_list(
+                acceptable_outcomes,
+                p_ending=p_ending,
+            )
+        elif isinstance(acceptance_probabilities, float):
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=acceptance_probabilities,
+                p_ending=p_ending,
+            )
+        elif acceptable_outcomes is None:
+            warnings.warn(
+                "No outcomes are given but we have a list of acceptance probabilities for a limited negotiatoor!! Will just reject everything and offer nothing",
+                warnings.NegmasUnexpectedValueWarning,
+            )
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=0.0,
+                p_ending=p_ending,
+            )
+        else:
+            if acceptance_probabilities is None:
+                acceptance_probabilities = [1.0] * len(acceptable_outcomes)
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=dict(zip(acceptable_outcomes, acceptance_probabilities)),
+                p_ending=p_ending,
+            )
+        super().__init__(acceptance=acceptance, offering=offering, **kwargs)
 
 
 # noinspection PyCallByClass
-class LimitedOutcomesAcceptor(LimitedOutcomesAcceptorMixin, SAONegotiator):
+class LimitedOutcomesAcceptor(MAPNegotiator, SAONegotiator):
     """A negotiation agent that uses a fixed set of outcomes in a single
     negotiation.
 
@@ -79,32 +105,50 @@ class LimitedOutcomesAcceptor(LimitedOutcomesAcceptorMixin, SAONegotiator):
 
     """
 
-    def respond(self, state: MechanismState, offer: "Outcome") -> "ResponseType":
-        return LimitedOutcomesAcceptorMixin.respond(self, state=state, offer=offer)
-
     def __init__(
         self,
-        acceptable_outcomes: Optional[List["Outcome"]] = None,
-        acceptance_probabilities: Optional[List[float]] = None,
+        acceptable_outcomes: list[Outcome] | None = None,
+        acceptance_probabilities: list[float] | None = None,
         p_ending=0.0,
-        p_no_response=0.0,
-        preferences=None,  # type: ignore This type of negotiator does not take preferences on construction
+        preferences=None,
+        ufun=None,
         **kwargs,
     ) -> None:
+        if ufun:
+            preferences = ufun
         if preferences is not None:
             warnings.warn(
                 f"LimitedOutcomesAcceptor negotiators ignore preferences but they are given",
-                warnings.NegmasIgnoredValueWarning,
+                warnings.NegmasUnusedValueWarning,
             )
-        super().__init__(self, **kwargs)
-        self.init_limited_outcomes_acceptor(
-            p_ending=p_ending,
-            p_no_response=p_no_response,
-            acceptable_outcomes=acceptable_outcomes,
-            acceptance_probabilities=acceptance_probabilities,
-        )
-        self.add_capabilities({"propose": False})
-
-    def propose(self, state: MechanismState) -> Optional["Outcome"]:
-        """Always refuses to propose"""
-        return None
+        if acceptance_probabilities is None and acceptable_outcomes is None:
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=None,
+                p_ending=p_ending,
+            )
+        elif acceptance_probabilities is None and acceptable_outcomes is not None:
+            acceptance = LimitedOutcomesAcceptanceStrategy.from_outcome_list(
+                acceptable_outcomes,
+                p_ending=p_ending,
+            )
+        elif isinstance(acceptance_probabilities, float):
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=acceptance_probabilities,
+                p_ending=p_ending,
+            )
+        elif acceptable_outcomes is None:
+            warnings.warn(
+                "No outcomes are given but we have a list of acceptance probabilities for a limited negotiatoor!! Will just reject everything and offer nothing",
+                warnings.NegmasUnexpectedValueWarning,
+            )
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=0.0,
+                p_ending=p_ending,
+            )
+        else:
+            acceptance = LimitedOutcomesAcceptanceStrategy(
+                prob=dict(zip(acceptable_outcomes, acceptance_probabilities)),  # type: ignore I know that acceptance probabilitis is not none by now
+                p_ending=p_ending,
+            )
+        super().__init__(models=None, acceptance=acceptance, **kwargs)
+        self.capabilities["propose"] = False

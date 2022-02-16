@@ -1,6 +1,18 @@
+"""
+Implements components used to consruct negotiators for SAO.
+"""
 from .base import *
-from .inverter import *
-from .selectors import *
+from .acceptance import *
+from .offering import *
 from .concession import *
+from .selectors import *
+from .inverter import *
 
-__all__ = base.__all__ + inverter.__all__ + selectors.__all__ + concession.__all__
+__all__ = (
+    base.__all__
+    + acceptance.__all__
+    + offering.__all__
+    + concession.__all__
+    + selectors.__all__
+    + inverter.__all__
+)

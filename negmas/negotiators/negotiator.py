@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from textwrap import shorten
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import negmas.warnings as warnings
@@ -53,6 +54,7 @@ class Negotiator(Rational, Notifiable, ABC):
         parent: "Controller" = None,
         owner: "Agent" = None,
         id: str = None,
+        type_name: str = None,
     ) -> None:
         if ufun is not None:
             preferences = ufun
@@ -62,7 +64,9 @@ class Negotiator(Rational, Notifiable, ABC):
         self._initial_state = None
         self._role = None
         self.__owner = owner
-        super().__init__(name=name, ufun=None, preferences=None, id=id)
+        super().__init__(
+            name=name, ufun=None, preferences=None, id=id, type_name=type_name
+        )
         self._preferences = preferences
         self.__saved_pref_os = None
         self.__saved_prefs = None
@@ -173,8 +177,24 @@ class Negotiator(Rational, Notifiable, ABC):
         """Agent capabilities"""
         return self._capabilities
 
+    def remove_capability(self, name: str) -> None:
+        """Removes named capability from the negotiator
+
+        Args:
+            capabilities: The capabilities to be added as a dict
+
+        Returns:
+            None
+
+        Remarks:
+            It is the responsibility of the caller to be really capable of added capabilities.
+
+        """
+        if hasattr(self, "_capabilities"):
+            self._capabilities.pop(name, None)
+
     def add_capabilities(self, capabilities: dict) -> None:
-        """Adds named capabilities to the agent.
+        """Adds named capabilities to the negotiator.
 
         Args:
             capabilities: The capabilities to be added as a dict
@@ -383,7 +403,7 @@ class Negotiator(Rational, Notifiable, ABC):
             self.on_preferences_changed(
                 changes=notification.data
                 if notification.data
-                else [PreferencesChange.General]
+                else [PreferencesChange()]
             )
 
     def cancel(self, reason=None) -> None:

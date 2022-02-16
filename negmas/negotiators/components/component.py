@@ -1,27 +1,62 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
-from negmas.common import NegotiatorMechanismInterface, PreferencesChange
+from attr import define
+
+
+def __setattr__(self, name, value):
+    pass
+
+
+def __delattr__(self, name):
+    pass
+
 
 if TYPE_CHECKING:
-    from ..common import MechanismState
-    from ..negotiators import Negotiator
+    from ...common import (
+        MechanismState,
+        NegotiatorMechanismInterface,
+        PreferencesChange,
+    )
+    from ...negotiators import Negotiator
+    from ...preferences import BaseUtilityFunction, Preferences
+
 __all__ = ["Component"]
 
 
-class Component(Protocol):
+@define
+class Component:
+    """
+    A component that can be added to a `ModulerNegotiator`
+    """
+
+    _negotiator: Negotiator
+
+    @property
+    def negotiator(self):
+        return self._negotiator
+
     def set_negotiator(self, negotiator: Negotiator) -> None:
         """
         Sets the negotiator of which this component is a part.
         """
+        self._negotiator = negotiator
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """
         Called to inform the component that the ufun has changed and the kinds of change that happened.
         """
 
-    def can_join(self, nmi: NegotiatorMechanismInterface) -> bool:
+    def can_join(
+        self,
+        nmi: NegotiatorMechanismInterface,
+        state: MechanismState,
+        *,
+        preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
+        role: str = "negotiator"
+    ) -> bool:
         """
         A call back called before joining a negotiation to confirm that we can join it.
         """

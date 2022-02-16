@@ -34,7 +34,7 @@ class OrdinalIssue(Issue, ABC):
         ...
 
 
-class DiscreteOrdinalIssue(DiscreteIssue):
+class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
     """
     A `DiscreteIssue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
     """

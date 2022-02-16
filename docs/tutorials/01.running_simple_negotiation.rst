@@ -24,22 +24,22 @@ to run negotiations as follows:
 
     {'agreement': None,
      'broken': True,
-     'current_offer': None,
-     'current_proposer': None,
+     'current_offer': (6,),
+     'current_proposer': 'a0-a8783734-9380-46e4-8b00-4d1fcdd80197',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
-     'last_negotiator': 'a0',
-     'n_acceptances': 0,
+     'last_negotiator': 'a1',
+     'n_acceptances': 1,
      'n_negotiators': 5,
-     'new_offerer_agents': [],
-     'new_offers': [],
+     'new_offerer_agents': [None],
+     'new_offers': [('a0-a8783734-9380-46e4-8b00-4d1fcdd80197', (6,))],
      'relative_time': 0.019801980198019802,
      'results': None,
      'running': False,
      'started': True,
      'step': 1,
-     'time': 0.0010459159999998136,
+     'time': 0.0014950259999997328,
      'timedout': False,
      'waiting': False}
 
@@ -181,22 +181,22 @@ This can be modeled in the following negotiation:
     {'agreement': None,
      'broken': False,
      'current_offer': (9, 11, 0),
-     'current_proposer': 'seller-74ef099a-6ad2-45f6-8a65-5745864d41ee',
+     'current_proposer': 'seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
      'last_negotiator': 'seller',
-     'n_acceptances': 0,
+     'n_acceptances': 1,
      'n_negotiators': 2,
      'new_offerer_agents': [None, None],
-     'new_offers': [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (7, 9, 0)),
-                    ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))],
+     'new_offers': [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (7, 9, 0)),
+                    ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))],
      'relative_time': 1.0,
      'results': None,
      'running': False,
      'started': True,
      'step': 20,
-     'time': 0.020053968000000033,
+     'time': 0.020938199999999796,
      'timedout': True,
      'waiting': False}
 
@@ -216,26 +216,26 @@ We can check the negotiation history as well
 
 .. parsed-literal::
 
-    000: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    001: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    002: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    003: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    004: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    005: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    006: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 10, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    007: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 9, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    008: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 8, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    009: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 6, 9)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    010: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 9, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    011: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 11, 7)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    012: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (1, 7, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    013: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (2, 7, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    014: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (3, 5, 8)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    015: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (0, 8, 3)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    016: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (2, 4, 4)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    017: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (3, 3, 3)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    018: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (8, 9, 4)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
-    019: [('buyer-0998a2c3-7937-4773-ae0d-a6fde9267314', (7, 9, 0)), ('seller-74ef099a-6ad2-45f6-8a65-5745864d41ee', (9, 11, 0))]
+    000: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    001: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    002: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    003: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    004: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    005: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    006: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 10, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    007: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 9, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    008: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 8, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    009: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 6, 9)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    010: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 9, 8)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    011: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 11, 7)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    012: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (1, 7, 8)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    013: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (0, 7, 6)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    014: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (3, 5, 8)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    015: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (4, 8, 7)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    016: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (2, 4, 4)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    017: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (6, 8, 5)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    018: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (8, 9, 4)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
+    019: [('buyer-1686090f-2116-4b6e-9ab7-81df7ce33739', (7, 9, 0)), ('seller-2d302684-c6fa-4eb5-a9c9-dec80f3b98ff', (9, 11, 0))]
 
 
 We can even plot the complete negotiation history and visually see how
@@ -248,13 +248,13 @@ far from it).
 
 
 
+
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_9_0.png
 
 
 
-.. parsed-literal::
 
-    <Figure size 1440x576 with 0 Axes>
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_9_1.png
 
 
 What happens if the seller was much more interested in delivery time.
@@ -280,24 +280,24 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. parsed-literal::
 
-    {'agreement': (1, 5, 3),
+    {'agreement': (0, 9, 2),
      'broken': False,
-     'current_offer': (1, 5, 3),
-     'current_proposer': 'buyer-a572118a-ef4f-43c8-8610-d80f935df405',
+     'current_offer': (0, 9, 2),
+     'current_proposer': 'buyer-e3e98667-dee9-40e0-8ec7-35e63d3ef82e',
      'current_proposer_agent': None,
      'error_details': '',
      'has_error': False,
      'last_negotiator': 'seller',
-     'n_acceptances': 0,
+     'n_acceptances': 2,
      'n_negotiators': 2,
      'new_offerer_agents': [None],
-     'new_offers': [('buyer-a572118a-ef4f-43c8-8610-d80f935df405', (1, 5, 3))],
-     'relative_time': 0.8235294117647058,
+     'new_offers': [('buyer-e3e98667-dee9-40e0-8ec7-35e63d3ef82e', (0, 9, 2))],
+     'relative_time': 0.803921568627451,
      'results': None,
      'running': False,
      'started': True,
-     'step': 41,
-     'time': 0.025890352000000227,
+     'step': 40,
+     'time': 0.07819558399999949,
      'timedout': False,
      'waiting': False}
 
@@ -310,13 +310,13 @@ We can check it visually as well:
 
 
 
+
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_13_0.png
 
 
 
-.. parsed-literal::
 
-    <Figure size 1440x576 with 0 Axes>
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_13_1.png
 
 
 It is clear that the new ufuns transformed the problem. Now we have many
@@ -341,13 +341,13 @@ this difference by normalizing both ufuns and trying again:
 
 
 
+
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_15_0.png
 
 
 
-.. parsed-literal::
 
-    <Figure size 1440x576 with 0 Axes>
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_15_1.png
 
 
 What happens if we give them more time to negotiate:
@@ -363,13 +363,13 @@ What happens if we give them more time to negotiate:
 
 
 
+
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_17_0.png
 
 
 
-.. parsed-literal::
 
-    <Figure size 1440x576 with 0 Axes>
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_17_1.png
 
 
 It did not help much! The two agents adjusted their concession to match
@@ -388,13 +388,13 @@ to *linear* instead of the default *boulware*:
 
 
 
+
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_19_0.png
 
 
 
-.. parsed-literal::
 
-    <Figure size 1440x576 with 0 Axes>
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_19_1.png
 
 
 It is clear that longer negotiation time, and faster concession did not
@@ -413,13 +413,13 @@ the other?
 
 
 
+
 .. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_21_0.png
 
 
 
-.. parsed-literal::
 
-    <Figure size 1440x576 with 0 Axes>
+.. image:: 01.running_simple_negotiation_files/01.running_simple_negotiation_21_1.png
 
 
 Try to give an intuition for what happened:

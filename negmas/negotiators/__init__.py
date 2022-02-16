@@ -8,8 +8,8 @@ from .controller import *
 from .controlled import *
 from .components import *
 from .helpers import *
-from .mixins import *
 from .simple import *
+from .modular import *
 
 __all__ = (
     common.__all__
@@ -18,6 +18,6 @@ __all__ = (
     + controlled.__all__
     + components.__all__
     + simple.__all__
-    + mixins.__all__
     + helpers.__all__
+    + modular.__all__
 )

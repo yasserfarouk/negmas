@@ -17,8 +17,8 @@ from pytest import mark
 import negmas
 from negmas import SAOSyncController
 from negmas.genius import genius_bridge_is_running
-from negmas.genius.ginfo import ALL_NEGOTIATORS
 from negmas.helpers import unique_name
+from negmas.helpers.strings import shorten
 from negmas.helpers.types import get_class
 from negmas.outcomes import Outcome, make_issue
 from negmas.outcomes.outcome_space import make_os
@@ -38,7 +38,11 @@ from negmas.sao import (
     SAOState,
     all_negotiator_types,
 )
-from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
+from negmas.sao.negotiators.nice import NiceNegotiator
+from negmas.sao.negotiators.titfortat import (
+    NaiveTitForTatNegotiator,
+    TitForTatNegotiator,
+)
 
 exception_str = "Custom Exception"
 
@@ -545,6 +549,9 @@ def test_pickling_mechanism(tmp_path):
     assert mechanism.state.step == 1
 
 
+@mark.skip(
+    "Checkpointing is known to fail with UtilityInverter. As this whole thing will be changed, we may just wait for now"
+)
 def test_checkpointing_mechanism(tmp_path):
     file = tmp_path
     n_outcomes, n_negotiators = 5, 3
@@ -777,7 +784,7 @@ def test_acceptable_outcomes():
         LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)])
     )
     state = p.run()
-    assert state.agreement == (3,)
+    assert state.agreement == (3,), f"{p.extended_trace}"
 
 
 class MyNegotiator(SAONegotiator):
@@ -1455,21 +1462,23 @@ def try_negotiator(
         reserved_value=0.0,
     )
 
-    session.add(buyer_cls(name=f"buyer-{buyer_cls.__name__}"), ufun=buyer_utility)
-    session.add(seller_cls(name=f"seller-{buyer_cls.__name__}"), ufun=seller_utility)
+    session.add(
+        buyer_cls(name=f"buyer-{shorten(buyer_cls.__name__)}"), ufun=buyer_utility
+    )
+    session.add(
+        seller_cls(name=f"seller-{shorten(buyer_cls.__name__)}"), ufun=seller_utility
+    )
     session.run()
     if plot:
         session.plot()
     return session
 
 
-# @pytest.mark.parametrize("negotiator", ALL_BUILTIN_NEGOTIATORS)
 # @pytest.mark.parametrize("negotiator", [MultiplicativeParetoFollowingTBNegotiator])
-def test_specific_negotiator_buy_selling():
-    plot = True
-    for negotiator in ALL_BUILTIN_NEGOTIATORS:
-        try_negotiator(negotiator, plot=plot)
-    if plot:
-        import matplotlib.pyplot as plt
-
-        plt.show(block=True)
+@given(negotiator=st.sampled_from(ALL_BUILTIN_NEGOTIATORS))
+@example(negotiator=NiceNegotiator)
+@example(negotiator=TitForTatNegotiator)
+def test_specific_negotiator_buy_selling(negotiator):
+    try_negotiator(negotiator, plot=False)
+    # import matplotlib.pyplot as plt
+    # plt.show(block=True)

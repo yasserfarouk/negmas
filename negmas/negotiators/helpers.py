@@ -23,6 +23,10 @@ class TimeCurve(Protocol):
 
 @runtime_checkable
 class Aspiration(TimeCurve, Protocol):
+    """
+    A monotonically decreasing time-curve
+    """
+
     @abstractmethod
     def utility_at(self, t: float) -> float:
         pass

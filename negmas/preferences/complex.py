@@ -15,16 +15,18 @@ __all__ = ["WeightedUtilityFunction", "ComplexNonlinearUtilityFunction"]
 
 
 class _DependenceMixin:
-    def is_session_dependent(self):
+    """Used to set dependence properties based on the object's `values` ."""
+
+    def is_session_dependent(self):  # type: ignore
         return any(_.is_session_dependent() for _ in self.values)  # type: ignore
 
-    def is_stationary(self) -> bool:
+    def is_stationary(self) -> bool:  # type: ignore
         return any(_.is_stationary() for _ in self.values)  # type: ignore
 
-    def is_volatile(self) -> bool:
+    def is_volatile(self) -> bool:  # type: ignore
         return any(_.is_volatile() for _ in self.values)  # type: ignore
 
-    def is_state_dependent(self) -> bool:
+    def is_state_dependent(self) -> bool:  # type: ignore
         return any(_.is_state_dependent() for _ in self.values)  # type: ignore
 
 

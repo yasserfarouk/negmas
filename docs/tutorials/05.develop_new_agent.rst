@@ -52,7 +52,7 @@ We can now start world simulations using our new world and agent
 
 .. parsed-literal::
 
-    100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:37<00:00,  3.74s/it]
+    100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:05<00:00,  1.78it/s]
 
 
 Let’s see what happened in this run. Firstly, how many negotiations were
@@ -172,7 +172,7 @@ We can actually check what happens to ALL agents
 
 .. parsed-literal::
 
-    <matplotlib.legend.Legend at 0x12769b910>
+    <matplotlib.legend.Legend at 0x123305bb0>
 
 
 
@@ -255,7 +255,8 @@ Let’s try it
 
 .. parsed-literal::
 
-     65%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▋                                                                      | 13/20 [01:10<00:40,  5.84s/it]
+    100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:27<00:00,  1.36s/it]
+
 
 Let’s check how did our agent do
 
@@ -270,5 +271,18 @@ Let’s check how did our agent do
         utility.plot(utils[name], label=name)
     utility.set(xlabel='Simulation Step', ylabel='Player Total Utility')
     utility.legend(loc='lower left')
+
+
+
+
+.. parsed-literal::
+
+    <matplotlib.legend.Legend at 0x12a717eb0>
+
+
+
+
+.. image:: 05.develop_new_agent_files/05.develop_new_agent_23_1.png
+
 
 Better.
