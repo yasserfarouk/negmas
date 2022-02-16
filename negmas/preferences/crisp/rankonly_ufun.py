@@ -36,6 +36,7 @@ class RankOnlyUtilityFunction(UtilityFunction, StationaryMixin):
         eps=1e-7,
         name: str = None,
         id: str = None,
+        type_name: str = None,
     ):
         if ufun.outcome_space is None:
             raise ValueError(
@@ -45,7 +46,9 @@ class RankOnlyUtilityFunction(UtilityFunction, StationaryMixin):
             raise ValueError(
                 f"Cannot create a RankOnly utility function for the given ufun because the outcome space is not discrete\n{ufun.outcome_space}"
             )
-        super().__init__(outcome_space=ufun.outcome_space, name=name, id=id)
+        super().__init__(
+            outcome_space=ufun.outcome_space, name=name, id=id, type_name=type_name
+        )
         if math.isinf(ufun.reserved_value):
             outcomes = ufun.outcome_space.enumerate_or_sample()
         else:

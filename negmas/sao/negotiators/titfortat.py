@@ -9,6 +9,7 @@ from negmas.sao.components.concession import (
 )
 
 from ..components import ConcessionEstimator, ConcessionRecommender
+from .modular import MAPNegotiator
 from .utilbased import UtilBasedNegotiator
 
 if TYPE_CHECKING:
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "TitForTatNegotiator",
     "NaiveTitForTatNegotiator",
     "SimpleTitForTatNegotiator",
 ]
@@ -147,5 +149,5 @@ class NaiveTitForTatNegotiator(TitForTatNegotiator):
         acceptance.set_inverter(self._inverter)
 
 
-SimpleTitForTatNegotiator = NaiveTitForTatNegotiator
-"""A simple tit-for-tat negotiator"""
+class SimpleTitForTatNegotiator(MAPNegotiator):
+    """A simple tit-for-tat negotiator based on the MAP architecture"""

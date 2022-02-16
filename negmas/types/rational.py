@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from negmas import warnings
 
-from ..common import PreferencesChange
+from ..common import PreferencesChange, PreferencesChangeType
 from .named import NamedObject
 
 if TYPE_CHECKING:
@@ -52,8 +52,9 @@ class Rational(NamedObject):
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
         id: str = None,
+        type_name: str = None,
     ):
-        super().__init__(name, id=id)
+        super().__init__(name, type_name=type_name, id=id)
         if ufun:
             preferences = ufun
         self._init_preferences = preferences
@@ -93,14 +94,14 @@ class Rational(NamedObject):
         """
         if value == self._preferences:
             if force:
-                self.on_preferences_changed([PreferencesChange.General])
+                self.on_preferences_changed([PreferencesChange()])
             return self._preferences
         old = self._preferences
         self._preferences = value
         if value and value.owner != self:
             self._set_pref_owner()
         if id(value) != id(old):
-            self.on_preferences_changed([PreferencesChange.General])
+            self.on_preferences_changed([PreferencesChange()])
         return self._preferences
 
     @property

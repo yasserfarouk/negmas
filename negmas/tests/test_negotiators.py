@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import random
-from random import choice
 
 import numpy as np
 import pytest
 
 from negmas import (
     AspirationNegotiator,
-    BestOutcomeOnlyNegotiator,
     FirstOfferOrientedTBNegotiator,
     NaiveTitForTatNegotiator,
     SAOController,
@@ -43,7 +41,6 @@ def test_tough_asp_negotiator():
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
-    assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
         assert len(set(a1offers)) == 1 and a1offers[-1] == (9,)
     assert len(set(a2offers)) >= 0
@@ -69,7 +66,6 @@ def test_tough_tit_for_tat_negotiator():
     a2offers = neg.negotiator_offers(a2.id)
     # print(a1offers)
     # print(a2offers)
-    assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
         assert len(set(a1offers)) == 1 and a1offers[-1] == (9,)
     assert len(set(a2offers)) >= 0
@@ -135,8 +131,8 @@ def test_tit_for_tat_negotiators_agree_in_the_middle():
 
 def test_top_only_negotiator():
     outcomes = [(_,) for _ in range(10)]
-    a1 = BestOutcomeOnlyNegotiator(name="a1")
-    a2 = BestOutcomeOnlyNegotiator(name="a2")
+    a1 = ToughNegotiator(name="a1")
+    a2 = ToughNegotiator(name="a2")
     u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
     neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
     neg.add(
@@ -165,7 +161,7 @@ class TestTitForTatNegotiator:
     def test_propose(self):
         outcomes = [(_,) for _ in range(10)]
         a1 = NaiveTitForTatNegotiator(name="a1", initial_concession="min")
-        a2 = BestOutcomeOnlyNegotiator(name="a2")
+        a2 = ToughNegotiator(name="a2")
         u1 = 22.0 - np.linspace(0.0, 22.0, len(outcomes))
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
         neg.add(
@@ -189,7 +185,7 @@ class TestTitForTatNegotiator:
         assert proposal == (0,), "Proposes second second if min concession is set"
 
         a1 = NaiveTitForTatNegotiator(name="a1")
-        a2 = BestOutcomeOnlyNegotiator(name="a1")
+        a2 = ToughNegotiator(name="a1")
         u1 = [50.0] * 3 + (22 - np.linspace(10.0, 22.0, len(outcomes) - 3)).tolist()
         neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
         neg.add(
@@ -264,7 +260,6 @@ def test_best_only_asp_negotiator():
     neg.run()
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
-    assert a1._offerable_outcomes is None
     if len(a1offers) > 0:
         assert (
             len(set(a1offers)) <= 2

@@ -101,6 +101,7 @@ setup(
         "py4j",
         "psutil",
         "rich",
+        "attrs",
     ],  # Optional
     extras_require={
         "elicitation": ["blist; python_version < '3.10'"],

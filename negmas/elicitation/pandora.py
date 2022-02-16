@@ -12,7 +12,7 @@ import scipy.optimize as opt
 
 from ..common import MechanismState, Value
 from ..modeling import AdaptiveDiscreteAcceptanceModel
-from ..negotiators import AspirationMixin
+from ..negotiators.helpers import PolyAspiration
 from ..outcomes import Outcome
 from ..sao import AspirationNegotiator, SAONegotiator
 from .base import BaseElicitor
@@ -41,7 +41,7 @@ __all__ = [
 ]
 
 
-class BasePandoraElicitor(BaseElicitor, AspirationMixin):
+class BasePandoraElicitor(BaseElicitor):
     """
     The base class of all Pandora's box based algorithms.
 
@@ -115,10 +115,6 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
             true_utility_on_zero_cost=true_utility_on_zero_cost,
             base_negotiator=base_negotiator,
         )
-        self.aspiration_init(
-            max_aspiration=max_aspiration,
-            aspiration_type=aspiration_type,
-        )
         self.add_capabilities(
             {
                 "propose": True,
@@ -142,6 +138,10 @@ class BasePandoraElicitor(BaseElicitor, AspirationMixin):
         self.user_model_in_index = user_model_in_index
         self.precalculated_index = precalculated_index
         self.incremental = incremental
+        self.__asp = PolyAspiration(max_aspiration, aspiration_type)
+
+    def utility_at(self, x):
+        return self.__asp.utility_at(x)
 
     def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
         """Uses the aspiration level as the utility of rejection.

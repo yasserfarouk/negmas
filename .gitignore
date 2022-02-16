@@ -179,3 +179,4 @@ wiley-report.html
 *.html
 **/*.html
 **/tmp_notebooks
+**/compiled_notebooks

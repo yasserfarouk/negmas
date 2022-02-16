@@ -15,7 +15,6 @@ from ..helpers.prob import ScipyDistribution
 from ..inout import load_genius_domain_from_folder
 from ..mechanisms import Mechanism
 from ..modeling import UncertainOpponentModel
-from ..negotiators import AspirationMixin
 from ..outcomes import Outcome
 from ..preferences import IPUtilityFunction, MappingUtilityFunction, UtilityFunction
 from ..sao import (
@@ -57,9 +56,7 @@ def uniform():
     return ScipyDistribution(type="uniform", loc=loc, scale=scale)
 
 
-def current_aspiration(
-    elicitor: "AspirationMixin", outcome: "Outcome", negotiation: "Mechanism"
-) -> float:
+def current_aspiration(elicitor, outcome: Outcome, negotiation: "Mechanism") -> float:
     return elicitor.utility_at(negotiation.relative_time)
 
 
@@ -120,14 +117,10 @@ def create_negotiator(
         if class_name.startswith("_"):
             class_name = class_name[1:]
         if class_name == "auto" or len(class_name) < 1:
-            negotiator = GeniusNegotiator.random_negotiator(
-                keep_issue_names=False, keep_value_names=False, can_propose=can_propose
-            )
+            negotiator = GeniusNegotiator.random_negotiator(can_propose=can_propose)
         else:
             negotiator = GeniusNegotiator(
                 java_class_name=class_name,
-                keep_value_names=False,
-                keep_issue_names=False,
                 can_propose=can_propose,
             )
         negotiator.preferences = preferences

@@ -15,6 +15,14 @@ __all__ = [
 
 
 class SamplingInverseUtilityFunction(InverseUFun):
+    """
+    A utility function inverter that uses sampling.
+
+    Nothing is done during initialization so the fixed cost of this inverter is minimal.
+    Nevertheless, each time the system is asked to find an outcome within some range, it uses
+    random sampling which is very inefficient and suffers from the curse of dimensinality.
+    """
+
     def __init__(self, ufun: BaseUtilityFunction, max_samples_per_call: int = 10_000):
         self._ufun = ufun
         self.max_samples_per_call = max_samples_per_call
@@ -108,6 +116,14 @@ class SamplingInverseUtilityFunction(InverseUFun):
 
 
 class PresortingInverseUtilityFunction(InverseUFun):
+    """
+    A utility function inverter that uses pre-sorting.
+
+    The outcome-space is sampled if it is continuous and enumerated if it is discrete
+    during the call to `init()` and an ordered list of outcomes with their utility
+    values is then cached.
+    """
+
     def __init__(
         self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 100_000
     ):
@@ -246,3 +262,45 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not lst:
             return None
         return lst[random.randint(0, len(lst) - 1)]
+
+    def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
+        """
+        Finds outocmes within the given fractions of utility values
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        n = len(self._ordered_outcomes)
+        rng = (max(rng[0] * n, 0), min(rng[1] * n, len(self._ordered_outcomes)))
+        return [_[1] for _ in self._ordered_outcomes[int(rng[0]) : int(rng[1])]]
+
+    def within_indices(self, rng: tuple[int, int]) -> list[Outcome]:
+        """
+        Finds outocmes within the given indices with the best at index 0 and the worst at largest index.
+
+        Remarks:
+            - Works only for discrete outcome spaces
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        rng = (max(rng[0], 0), min(rng[1], len(self._ordered_outcomes)))
+        return [_[1] for _ in self._ordered_outcomes[rng[0] : rng[1]]]
+
+    def worst(self) -> Outcome:
+        """
+        Finds the worst  outcome
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        if not self._ordered_outcomes:
+            raise ValueError(f"No outcomes to find the best")
+        return self._ordered_outcomes[-1][1]
+
+    def best(self) -> Outcome:
+        """
+        Finds the best  outcome
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        if not self._ordered_outcomes:
+            raise ValueError(f"No outcomes to find the best")
+        return self._ordered_outcomes[0][1]

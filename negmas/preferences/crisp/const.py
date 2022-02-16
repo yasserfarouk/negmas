@@ -16,6 +16,13 @@ __all__ = ["ConstUtilityFunction"]
 
 
 class ConstUtilityFunction(StationaryMixin, UtilityFunction, XmlSerializable):
+    """
+    A utility function that returns the same value for all outcomes.
+
+    This type of ufun can be considered a special type of `LinearUtilityFunction` with zero slop
+    but it is applicable to any type of issue not only numeric ones.
+    """
+
     def __init__(
         self,
         value: Value,

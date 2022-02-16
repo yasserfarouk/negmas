@@ -12,9 +12,8 @@ from negmas.preferences import (
     InverseUFun,
     PresortingInverseUtilityFunction,
     RankOnlyUtilityFunction,
-    SamplingInverseUtilityFunction,
 )
-from negmas.sao.components import SAODoNothingComponent
+from negmas.sao.components import SAOComponent
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
@@ -131,12 +130,7 @@ def make_inverter(
         ufun = RankOnlyUtilityFunction(ufun, randomize_equal=False, name=ufun.name)
     if ufun_inverter:
         return ufun_inverter(ufun)
-    return (
-        SamplingInverseUtilityFunction(ufun)
-        if ufun.outcome_space is None
-        or ufun.outcome_space.cardinality >= max_cardinality
-        else PresortingInverseUtilityFunction(ufun)
-    )
+    return PresortingInverseUtilityFunction(ufun)
 
 
 class OfferFilterProtocol(Protocol):
@@ -171,7 +165,7 @@ class OfferSelectorProtocol(Protocol):
         ...
 
 
-class OfferSelector(OfferSelectorProtocol, SAODoNothingComponent):
+class OfferSelector(OfferSelectorProtocol, SAOComponent):
     """
     Can select *the best* offer in some  sense from a list of offers based on an inverter
     """

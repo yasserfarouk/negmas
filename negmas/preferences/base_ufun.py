@@ -3,7 +3,17 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 from negmas import warnings
 from negmas.common import Value
@@ -64,6 +74,25 @@ class BaseUtilityFunction(  # type: ignore
     def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
+        self._cached_inverse: InverseUFun | None = None
+        self._cached_inverse_type: Type[InverseUFun] | None = None
+
+    def invert(self, inverter: Type[InverseUFun] | None = None) -> InverseUFun:
+        """
+        Inverts the ufun, initializes it and caches the result.
+        """
+        from .inv_ufun import PresortingInverseUtilityFunction
+
+        if self._cached_inverse and (
+            inverter is None or self._cached_inverse_type == inverter
+        ):
+            return self._cached_inverse
+        if inverter is None:
+            inverter = PresortingInverseUtilityFunction
+        self._cached_inverse_type = inverter
+        self._cached_inverse = inverter(self)
+        self._cached_inverse.init()
+        return self._cached_inverse
 
     def is_volatile(self) -> bool:
         return True

@@ -17,7 +17,7 @@ from typing import Any, Literal, overload
 
 import dill
 
-from ..helpers import dump, get_full_type_name, load, unique_name
+from ..helpers import dump, get_full_type_name, load, shorten, unique_name
 
 __all__ = ["NamedObject"]
 
@@ -33,10 +33,13 @@ class NamedObject:
         id (str): A unique identifier in the whole system. In principle you should let the system create
                   this identifier by passing None. In special cases like in serialization you may want to
                   set the id directly
+        type_name (str): A string to be returned by `type_name` and its short version is returned by `short_type_name`
 
     """
 
-    def __init__(self, name: str = None, *, id: str = None) -> None:
+    def __init__(
+        self, name: str = None, *, id: str = None, type_name: str = None
+    ) -> None:
         if name is not None:
             name = str(name)
         self.__uuid = (
@@ -47,6 +50,7 @@ class NamedObject:
         if name is None or len(name) == 0:
             name = unique_name("", add_time=False, rand_digits=16)
         self.__name = name
+        self.__type_name = type_name
         super().__init__()
 
     @classmethod
@@ -279,3 +283,13 @@ class NamedObject:
         """
         file_name = Path(file_name).absolute()
         return load(file_name.parent / (file_name.name + ".json"))
+
+    @property
+    def type_name(self) -> str:
+        if self.__type_name:
+            return self.__type_name
+        return self.__class__.__name__
+
+    @property
+    def short_type_name(self) -> str:
+        return shorten(self.type_name)

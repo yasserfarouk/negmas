@@ -404,10 +404,9 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['not to be',
-      '20220208H075738907868PUaFX3FQnot to be20220208H075738908017w7VF0GTS'],
-     [4, 15],
-     [0.38864224283144744, 1.7576161999324909]]
+    [['to be', '20220216H181012069319W1q6gdElto be20220216H1810120693543sAHogUt'],
+     [9, 12],
+     [0.6976970707821888, 1.303414685774959]]
 
 
 
@@ -1664,7 +1663,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.001456</td>
+          <td>0.000777</td>
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
@@ -1676,12 +1675,28 @@ Our mechanism keeps a history in the form of a list of
         </tr>
         <tr>
           <th>1</th>
-          <td>False</td>
+          <td>True</td>
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.002149</td>
+          <td>0.001374</td>
           <td>0.181818</td>
+          <td>False</td>
+          <td>False</td>
+          <td>None</td>
+          <td>None</td>
+          <td>2</td>
+          <td>False</td>
+          <td></td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>False</td>
+          <td>False</td>
+          <td>True</td>
+          <td>2</td>
+          <td>0.001986</td>
+          <td>0.272727</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1809,48 +1824,18 @@ to confirm that the current offer and its source are stored.
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>2</td>
-          <td>None</td>
-          <td>0.272727</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(5,)</td>
-          <td>seller</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>3</td>
-          <td>None</td>
-          <td>0.363636</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(1,)</td>
-          <td>buyer</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>4</td>
           <td>(3,)</td>
-          <td>0.454545</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>seller</td>
+          <td>buyer</td>
         </tr>
       </tbody>
     </table>
@@ -1915,7 +1900,7 @@ acceptable outcomes in our case):
           <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(2,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1925,7 +1910,7 @@ acceptable outcomes in our case):
           <td>0.285714</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(1,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1955,7 +1940,7 @@ acceptable outcomes in our case):
           <td>0.714286</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1965,7 +1950,7 @@ acceptable outcomes in our case):
           <td>0.857143</td>
           <td>False</td>
           <td>False</td>
-          <td>(4,)</td>
+          <td>(3,)</td>
           <td>buyer</td>
         </tr>
       </tbody>
@@ -2028,22 +2013,12 @@ agree upon:
         <tr>
           <th>0</th>
           <td>0</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(0,)</td>
+          <td>(3,)</td>
           <td>seller</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>1</td>
-          <td>(3,)</td>
-          <td>0.285714</td>
-          <td>False</td>
-          <td>False</td>
-          <td>(3,)</td>
-          <td>buyer</td>
         </tr>
       </tbody>
     </table>

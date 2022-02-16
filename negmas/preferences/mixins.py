@@ -17,11 +17,19 @@ __all__ = [
 
 
 class VolatileUFunMixin:
+    """
+    Indicates that the ufun is volatile
+    """
+
     def is_volatile(self):
         return True
 
 
 class SessionDependentUFunMixin:
+    """
+    Indicates that the ufun is session-dependent (i.e. utility value of outcomes depend on the NMI)
+    """
+
     @abstractmethod
     def eval_on_session(
         self, offer: Outcome, nmi: NegotiatorMechanismInterface | None = None
@@ -48,6 +56,10 @@ class SessionDependentUFunMixin:
 
 
 class StateDependentUFunMixin:
+    """
+    Indicates that the ufun is state-dependent (i.e. utility value of outcomes depend on the mechanism state)
+    """
+
     @abstractmethod
     def eval_on_state(
         self,
@@ -77,6 +89,12 @@ class StateDependentUFunMixin:
 
 
 class StationaryMixin:
+    """
+    Indicates that the ufun is stationary which means that it is not session or state dependent and not volatile.
+
+    Negotiators using this type of ufuns can assume that if they call it twice with the same outcome, it will always return the same value.
+    """
+
     def is_session_dependent(self) -> bool:
         return False
 

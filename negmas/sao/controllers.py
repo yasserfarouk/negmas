@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar, Uni
 from negmas.preferences.protocols import UFun
 
 from ..common import MechanismState, NegotiatorMechanismInterface
-from ..negotiators import AspirationMixin, Controller
+from ..negotiators import Controller
+from ..negotiators.helpers import PolyAspiration
 from ..outcomes import Outcome, outcome_is_valid
 from .common import ResponseType, SAOResponse, SAOState
 from .negotiators import AspirationNegotiator, ControlledSAONegotiator, SAONegotiator
@@ -792,9 +793,7 @@ class SAOSingleAgreementRandomController(SAOSingleAgreementController):
         self.p_acceptance = p_acceptance
 
 
-class SAOSingleAgreementAspirationController(
-    SAOSingleAgreementController, AspirationMixin
-):
+class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
     """
     A `SAOSingleAgreementController` that uses aspiration level to decide what
     to accept and what to propose.
@@ -825,7 +824,10 @@ class SAOSingleAgreementAspirationController(
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        AspirationMixin.aspiration_init(self, max_aspiration, aspiration_type)
+        self.__asp = PolyAspiration(max_aspiration, aspiration_type)
+
+    def utility_at(self, x):
+        return self.__asp.utility_at(x)
 
     def is_acceptable(self, offer: Outcome, source: str, state: SAOState):
         if not self.ufun:

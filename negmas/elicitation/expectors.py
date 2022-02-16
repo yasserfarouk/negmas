@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from ..common import MechanismState, NegotiatorMechanismInterface, Value
-from ..negotiators import AspirationMixin
+from ..negotiators.helpers import PolyAspiration
 
 
 class Expector(ABC):
@@ -67,18 +67,20 @@ class BalancedExpector(Expector):
             )
 
 
-class AspiringExpector(Expector, AspirationMixin):
+class AspiringExpector(Expector):
     def __init__(
         self,
         nmi: Optional[NegotiatorMechanismInterface] = None,
         max_aspiration=1.0,
-        aspiration_type: Union[str, int, float] = "linear",
+        aspiration_type: Union[
+            Literal["linear"], Literal["conceder"], Literal["boulware"], float
+        ] = "linear",
     ):
         Expector.__init__(self, nmi=nmi)
-        self.aspiration_init(
-            max_aspiration=max_aspiration,
-            aspiration_type=aspiration_type,
-        )
+        self.__asp = PolyAspiration(max_aspiration, aspiration_type)
+
+    def utility_at(self, x):
+        return self.__asp.utility_at(x)
 
     def is_dependent_on_negotiation_info(self) -> bool:
         return True
@@ -89,5 +91,5 @@ class AspiringExpector(Expector, AspirationMixin):
         if isinstance(u, float):
             return u
         else:
-            alpha = self.utility_at(state.relative_time)
+            alpha = self.__asp.utility_at(state.relative_time)
             return alpha * u.loc + (1.0 - alpha) * (u.loc + u.scale)

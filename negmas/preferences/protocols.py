@@ -400,6 +400,9 @@ class InverseUFun(Protocol):
     ufun: UFun
     initialized: bool
 
+    def __init__(self, ufun: UFun) -> None:
+        ...
+
     def init(self):
         """
         Used to intialize the inverse ufun. Any computationally expensive initialization should be  done here not in the constructor.
@@ -439,6 +442,33 @@ class InverseUFun(Protocol):
         Finds an outcome with lowest utility within the given range
         """
 
+    @abstractmethod
+    def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
+        """
+        Finds outocmes within the given fractions of utility values
+        """
+
+    @abstractmethod
+    def within_indices(self, rng: tuple[int, int]) -> list[Outcome]:
+        """
+        Finds outocmes within the given indices with the best at index 0 and the worst at largest index.
+
+        Remarks:
+            - Works only for discrete outcome spaces
+        """
+
+    @abstractmethod
+    def worst(self) -> Outcome:
+        """
+        Finds the worst  outcome
+        """
+
+    @abstractmethod
+    def best(self) -> Outcome:
+        """
+        Finds the best  outcome
+        """
+
     def __call__(self, rng: float | tuple[float, float]) -> Outcome | None:
         """
         Calling an inverse ufun directly is equivalent to calling `one_in()`
@@ -456,6 +486,7 @@ class HasRange(HasMinMax, UFun, Protocol):
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | int | None = None,
         max_cardinality=1000,
+        above_reserve=False,
     ) -> tuple[float, float]:
         """Finds the range of the given utility function for the given outcomes
 
@@ -463,8 +494,8 @@ class HasRange(HasMinMax, UFun, Protocol):
             self: The utility function
             issues: List of issues (optional)
             outcomes: A collection of outcomes (optional)
-            max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not
-                            given)
+            max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not given)
+            above_reserve: If given, the minimum and maximum will be set to reserved value if they were less than it.
 
         Returns:
             (lowest, highest) utilities in that order
@@ -480,6 +511,12 @@ class HasRange(HasMinMax, UFun, Protocol):
             w = w.min
         if isinstance(b, Distribution):
             b = b.max
+        if above_reserve and isinstance(self, HasReservedValue):
+            r = self.reserved_value
+            if b < r:
+                b, w = r, r
+            elif w < r:
+                w = r
         return w, b
 
     @abstractmethod

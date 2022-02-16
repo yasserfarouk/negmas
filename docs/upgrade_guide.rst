@@ -1,7 +1,7 @@
 0.8->0.9 Upgrade Guide
 ======================
 
-NegMAS 0.9 is not backward compatible with NegMAS 0.8 and to use it you
+NegMAS 0.9 is *not* backward compatible with NegMAS 0.8 and to use it you
 will need to make some modifications to your code. This guide aims at helping
 you achieve this with minimal hassle.
 
@@ -43,6 +43,10 @@ The following rules  must be followed:
   raise an issue in github.
 - Do not pass `outcome_type` to any ufun constructor. It is now removed as all
   outcomes are guarenteed to have the type `tuple` now.
+- Some I/O methods (and few others) had `force_single_issue`, `keep_issue_names` and `keep_issue_values`
+  paramters to do on-the-fly type conversions and change the type of the outcomes.
+  All of this is removed now. Conversion of issue spaces can be done explicitly
+  using methods in the `OutcomeSpace` protocol like `to_single` and `to_numeric`.
 
 
 **Should Do**
@@ -61,10 +65,16 @@ LinearUtilityFunction(bias!=0)     AffineUtilityFunction                We are r
 
 The following rules *should* be followed:
 
-- Always tell the ufun its outcome-space by passing `outcome_space` , `issues`
+- It is better to always tell the ufun its outcome-space by passing `outcome_space` , `issues`
   , or `outcomes` to it. Strictly speaking you do not need to do that for many
   scenarios (specially for affine and linear utility functions) but some
-  operations may fail if the ufun does not know its outcome-space
+  operations may fail if the ufun does not know its outcome-space. For example,
+  if you construct a utility function without passing an outcome space to it, you
+  will get an execption if you try to call `extreme_outcomes()` or `minmax()` on
+  it later as the ufun has no way to know how to evaluate either. Because some
+  builtin negotiators (e.g. `TimeBasedNegotiator` ) do use these methods internally,
+  you will get these exceptions at the time of calling said methods which may be
+  tricky to debug.
 
 Outcome Type
 ------------
