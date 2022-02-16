@@ -35,6 +35,7 @@ COMMON_NAME_PARTS = (
     "Model",
     "Strategy",
     "Offering",
+    "Entity",
 )
 """Default parts of names removed by `shorten` """
 

@@ -227,7 +227,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return outcome in self.nmi.outcome_space
 
     def discrete_outcome_space(
-        self, levels: int = 5, max_cartinality: int = 100_000
+        self, levels: int = 5, max_cardinality: int = 100_000
     ) -> DiscreteOutcomeSpace:
         """
         Returns a stable discrete version of the given outcome-space
@@ -236,20 +236,20 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return self.__discrete_os
         self.__discrete_os = self.outcome_space.to_discrete(
             levels=levels,
-            max_cardinality=max_cartinality
-            if max_cartinality is not None
+            max_cardinality=max_cardinality
+            if max_cardinality is not None
             else float("inf"),
         )
         return self.__discrete_os
 
     def discrete_outcomes(
-        self, levels: int = 5, max_cartinality: int | float = float("inf")
+        self, levels: int = 5, max_cardinality: int | float = float("inf")
     ) -> list["Outcome"]:
         """
         A discrete set of outcomes that spans the outcome space
 
         Args:
-            max_cartinality: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
+            max_cardinality: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete issues
             and *10_000* if any of the issues was continuous
 
         Returns:
@@ -263,8 +263,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return self.__discrete_outcomes
         self.__discrete_os = self.outcome_space.to_discrete(
             levels=levels,
-            max_cardinality=max_cartinality
-            if max_cartinality is not None
+            max_cardinality=max_cardinality
+            if max_cardinality is not None
             else float("inf"),
         )
         self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
@@ -1028,7 +1028,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
 
     def pareto_frontier(
-        self, max_cartinality=None, sort_by_welfare=True
+        self, max_cardinality=None, sort_by_welfare=True
     ) -> tuple[list[tuple[float]], list[Outcome]]:
         ufuns = self._get_preferencess()
         if any(_ is None for _ in ufuns):
@@ -1039,21 +1039,21 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             ufuns=ufuns,
             n_discretization=None,
             sort_by_welfare=sort_by_welfare,
-            outcomes=self.discrete_outcomes(max_cartinality=max_cartinality),
+            outcomes=self.discrete_outcomes(max_cardinality=max_cardinality),
         )
         if frontier is None:
             raise ValueError("Cound not find the pareto-frontier")
         return frontier, [
-            self.discrete_outcomes(max_cartinality=max_cartinality)[_] for _ in indices
+            self.discrete_outcomes(max_cardinality=max_cardinality)[_] for _ in indices
         ]
 
     def nash_point(
-        self, max_cartinality=None, frontier: list[tuple[float]] | None = None
+        self, max_cardinality=None, frontier: list[tuple[float]] | None = None
     ) -> tuple[tuple[float], Outcome]:
         ufuns = self._get_preferencess()
         if not frontier:
-            frontier, _ = self.pareto_frontier(max_cartinality)
-        outcomes = self.discrete_outcomes(max_cartinality=max_cartinality)
+            frontier, _ = self.pareto_frontier(max_cardinality)
+        outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
         nash_utils, indx = nash_point(ufuns, frontier, outcomes=outcomes)
         if not nash_utils or indx is None:
             raise ValueError("Cannot find the nash-point")
