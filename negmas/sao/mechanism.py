@@ -93,7 +93,7 @@ class SAOMechanism(Mechanism):
         enable_callbacks=False,
         end_on_no_response=True,
         publish_proposer=True,
-        publish_n_acceptances=False,
+        publish_n_acceptances=True,
         avoid_ultimatum=False,
         check_offers=True,
         enforce_issue_types=False,
@@ -408,7 +408,8 @@ class SAOMechanism(Mechanism):
             # in both cases, the agent cannot know whether its last offer going to be passed to the other agent
             # (the ultimatum scenario) or not.
             responses = []
-            for neg in proposers:
+            responders = []
+            for i, neg in enumerate(proposers):
                 if not neg.capabilities.get("propose", False):
                     continue
                 strt = time.perf_counter()
@@ -475,6 +476,7 @@ class SAOMechanism(Mechanism):
                 ):
                     continue
                 responses.append(resp)
+                responders.append(i)
             if len(responses) < 1:
                 if not self.dynamic_entry:
                     return MechanismRoundResult(
@@ -498,8 +500,8 @@ class SAOMechanism(Mechanism):
             self._ultimatum_avoided = True
             selected = random.randint(0, len(responses) - 1)
             resp = responses[selected]
-            neg = proposers[selected]
-            _first_proposer = proposer_indices[selected]
+            neg = proposers[responders[selected]]
+            _first_proposer = proposer_indices[responders[selected]]
             self._n_accepting = 1 if self._offering_is_accepting else 0
             self._current_offer = resp.outcome
             self._current_proposer = neg
