@@ -251,7 +251,10 @@ def plot_2dutils(
     )
 
     if show_reserved:
-        ranges = [plotting_ufuns[_].minmax() for _ in range(len(plotting_ufuns))]
+        ranges = [
+            plotting_ufuns[_].minmax(outcome_space=outcome_space)
+            for _ in range(len(plotting_ufuns))
+        ]
         for i, (mn, mx) in enumerate(ranges):
             if any(_ is None or not math.isfinite(_) for _ in (mn, mx)):
                 x = []
