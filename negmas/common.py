@@ -235,7 +235,7 @@ class NegotiatorMechanismInterface:
         A discrete set of outcomes that spans the outcome space
 
         Args:
-            n_max: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete outcome-spaces
+            max_cardinality: The maximum number of outcomes to return. If None, all outcomes will be returned for discrete outcome-spaces
 
         Returns:
 

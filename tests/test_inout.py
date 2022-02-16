@@ -166,7 +166,7 @@ def compared_two_domains(domain, domain2):
         m.add(n2)
         u1, u2 = n1.ufun, n2.ufun
         assert u1 and u2
-        outcomes = m.discrete_outcomes(n_max=100)
+        outcomes = m.discrete_outcomes(max_cardinality=100)
         for outcome in outcomes:
             u1_, u2_ = u1(outcome), u2(outcome)
             assert isinstance(u1_, float)
