@@ -202,12 +202,12 @@ class NegotiatorMechanismInterface:
         return self.outcome_space
 
     def discrete_outcome_space(
-        self, levels: int = 5, max_cartinality: int = 100_000
+        self, levels: int = 5, max_cardinality: int = 100_000
     ) -> DiscreteOutcomeSpace:
         """
         Returns a stable discrete version of the given outcome-space
         """
-        return self._mechanism.discrete_outcome_space(levels, max_cartinality)
+        return self._mechanism.discrete_outcome_space(levels, max_cardinality)
 
     @property
     def params(self):
@@ -242,7 +242,7 @@ class NegotiatorMechanismInterface:
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self._mechanism.discrete_outcomes(max_cartinality=max_cardinality)
+        return self._mechanism.discrete_outcomes(max_cardinality=max_cardinality)
 
     @property
     def issues(self) -> tuple[Issue, ...]:

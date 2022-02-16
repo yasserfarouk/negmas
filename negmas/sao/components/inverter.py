@@ -73,7 +73,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
     ):
         super().__init__()
         self._rank_only = rank_only
-        self._max_cartinality = max_cardinality
+        self._max_cardinality = max_cardinality
         self._ufun_inverter = ufun_inverter
         self._inv_method = None
         self._inversion_method = inversion_method
@@ -98,7 +98,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
             self.min = self.max = self.best = None
             return
         self.inv = make_inverter(
-            ufun, self._ufun_inverter, self._rank_only, self._max_cartinality
+            ufun, self._ufun_inverter, self._rank_only, self._max_cardinality
         )
         if self._inversion_method == "one":
             self._inv_method = self.inv.one_in
