@@ -4,7 +4,7 @@ from __future__ import annotations
 
 __author__ = """Yasser Mohammad"""
 __email__ = "yasserfarouk@gmail.com"
-__version__ = "0.8.9"
+__version__ = "0.9.0"
 
 
 from .common import *

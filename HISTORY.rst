@@ -1,6 +1,23 @@
 History
 =======
 
+Release 0.9.0
+-------------
+
+This is a major release and it is **not** backward compatible. Please reference
+the upgrare guide at the upgrdade guide_.
+
+.. _guide: http://yasserm.com/negmas/upgrade_guide.html
+
+Some of the most important changes are:
+
+* Introduces the `ModularNegotiator` and `Component` objects to simplify reuse of negotiation strategies through composition instead of inheritance.
+* Restructures most of the code-base for readability.
+* Completed the tutorial.
+* Simplified several key methods.
+* Introduced the `SAOModularNegotiator`, `MAPNegotiator`, `BOANegotiator` as basic modular negotiators for the SAO mechanism as well as reusable components like `AcceptanceStrategy`, and `OfferingStrategy`
+
+
 Release 0.8.9
 -------------
 
