@@ -85,9 +85,10 @@ result of a simulated business-like process.
 By *simultaneous* negotiations, we mean sessions of dependent negotiations for which the utility value of an agreement
 of one session is affected by what happens in other sessions.
 
-The documentation is available at: documentation_
+The documentation is available at: documentation_  (Automatically built versions are available on readthedocs_ )
 
 .. _documentation: http://yasserm.com/negmas/
+.. _readthedocs: https://negmas.readthedocs.io/en/latest/
 
 Main Features
 =============
