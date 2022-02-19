@@ -29,7 +29,7 @@ if on_rtd:
     import sphinx_rtd_theme
 
     THEME_NAME = "sphinx_rtd_theme"
-    # THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
+    THEME_PATH = None
 else:
     import sphinx_rtd_theme
 
