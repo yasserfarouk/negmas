@@ -2,96 +2,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from negmas.sao.components.concession import (
-    CrispSelfProjectionConcessionEstimator,
-    KindConcessionRecommender,
-    ProbSelfProjectionConcessionEstimator,
-)
+from negmas.sao.components.concession import KindConcessionRecommender
 
-from ..components import ConcessionEstimator, ConcessionRecommender
+from ..components import TFTAcceptanceStrategy, TFTOfferingStrategy, ZeroSumModel
 from .modular import MAPNegotiator
-from .utilbased import UtilBasedNegotiator
 
 if TYPE_CHECKING:
     from negmas.common import PreferencesChange
 
 
 __all__ = [
-    "TitForTatNegotiator",
     "NaiveTitForTatNegotiator",
     "SimpleTitForTatNegotiator",
 ]
 
 
-class TitForTatNegotiator(UtilBasedNegotiator):
-    """
-    Implements a tit-for-tat strategy.
-
-    Args:
-        estimator: A `SAOComponent` that can estimate
-
-    Remarks:
-        - This negotiator does not keep an opponent model. It thinks only in terms of changes in its own utility.
-          If the opponent's last offer was better for the negotiator compared with the one before it, it considers
-          that the opponent has conceded by the difference. This means that it implicitly assumes a zero-sum
-          situation.
-    """
-
-    def __init__(
-        self,
-        *args,
-        estimator: ConcessionEstimator | None = None,
-        offering_recommender: ConcessionRecommender | None = None,
-        acceptance_recommender: ConcessionRecommender | None = None,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self._estimator = (
-            estimator
-            if estimator is not None
-            else ProbSelfProjectionConcessionEstimator()
-        )
-        self._offering_recommender = (
-            offering_recommender
-            if offering_recommender is not None
-            else KindConcessionRecommender(must_concede=True, inverter=self._inverter)
-        )
-        self._acceptance_recommender = (
-            acceptance_recommender
-            if acceptance_recommender is not None
-            else self._offering_recommender
-        )
-        self._pivot_util: float = 1.0
-        self._estimator.set_negotiator(self)
-        self._offering_recommender.set_negotiator(self)
-        self._acceptance_recommender.set_negotiator(self)
-
-    def on_preferences_changed(self, changes: list[PreferencesChange]):
-        super().on_preferences_changed(changes)
-        self._estimator.on_preferences_changed(changes)
-
-    def respond(self, state, offer):
-        self._estimator.before_responding(state, offer)
-        return super().respond(state, offer)
-
-    def propose(self, state):
-        proposal = super().propose(state)
-        if state.step == 0 or not self._estimator.total_concession:
-            self._pivot_util = float(self.ufun(proposal))  # type: ignore
-        return proposal
-
-    def utility_range_to_accept(self, state) -> tuple[float, float]:
-        concession = self._acceptance_recommender(self._estimator(state), state)
-        return self._inverter.scale_utilities((self._pivot_util - concession, 1.0))
-
-    def utility_range_to_propose(self, state) -> tuple[float, float]:
-        concession = self._offering_recommender(self._estimator(state), state)
-        return self._inverter.scale_utilities(
-            (self._pivot_util - concession, self._pivot_util)
-        )
-
-
-class NaiveTitForTatNegotiator(TitForTatNegotiator):
+class NaiveTitForTatNegotiator(MAPNegotiator):
     """
     Implements a naive tit-for-tat strategy that does not depend on the availability of an opponent model.
 
@@ -121,33 +47,31 @@ class NaiveTitForTatNegotiator(TitForTatNegotiator):
         kindness=0.0,
         punish=False,
         initial_concession: float | Literal["min"] = "min",
-        total_concession: bool = False,
         rank_only: bool = False,
         stochastic: bool = False,
         **kwargs,
     ):
-        estimator = CrispSelfProjectionConcessionEstimator(
-            rank_only=rank_only, total_concession=total_concession
-        )
+        partner_model = ZeroSumModel(rank_only=rank_only, above_reserve=False)
         if isinstance(initial_concession, str):
-            initial_concession = 0.00
-        offering = KindConcessionRecommender(
+            initial_concession = 0
+        recommender = KindConcessionRecommender(
             initial_concession=initial_concession, kindness=kindness, punish=punish
         )
-        acceptance = KindConcessionRecommender(
-            initial_concession=initial_concession, kindness=kindness, punish=punish
+        acceptance = TFTAcceptanceStrategy(
+            recommender=recommender, partner_ufun=partner_model
+        )
+        offering = TFTOfferingStrategy(
+            recommender=recommender, partner_ufun=partner_model, stochastic=stochastic
         )
         super().__init__(
             *args,
-            estimator=estimator,
-            offering_recommender=offering,
-            acceptance_recommender=acceptance,
-            stochastic=stochastic,
+            models=[partner_model, recommender],
+            model_names=["partner-model", "concession-recommender"],
+            acceptance=acceptance,
+            offering=offering,
             **kwargs,
         )
-        offering.set_inverter(self._inverter)
-        acceptance.set_inverter(self._inverter)
 
 
-class SimpleTitForTatNegotiator(MAPNegotiator):
-    """A simple tit-for-tat negotiator based on the MAP architecture"""
+SimpleTitForTatNegotiator = NaiveTitForTatNegotiator
+"""A simple tit-for-tat negotiator based on the MAP architecture"""

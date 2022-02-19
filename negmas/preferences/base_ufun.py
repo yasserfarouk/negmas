@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from os import PathLike
@@ -18,6 +19,7 @@ from typing import (
 from negmas import warnings
 from negmas.common import Value
 from negmas.helpers import PathLike
+from negmas.helpers.prob import Distribution
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
@@ -70,6 +72,48 @@ class BaseUtilityFunction(  # type: ignore
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
         ...
+
+    def eval_normalized(
+        self,
+        offer: Outcome | None,
+        above_reserve: bool = True,
+        expected_limits: bool = True,
+    ) -> Value:
+        """
+        Evaluates the ufun normalizing the result between zero and one
+
+        Args:
+            offer (Outcome | None): offer
+            above_reserve (bool): If True, zero corresponds to the reserved value not the minimum
+            expected_limits (bool): If True, the expectation of the utility limits will be used for normalization instead of the maximum range and minimum lowest limit
+
+        Remarks:
+            - If the maximum and the minium are equal, finite and above reserve, will return 1.0.
+            - If the maximum and the minium are equal, initinte or below reserve, will return 0.0.
+            - For probabilistic ufuns, a distribution will still be returned.
+            - The minimum and maximum will be evaluated freshly every time. If they are already caached in the ufun, the cache will be used.
+
+        """
+        r = self.reserved_value
+        u = self.eval(offer) if offer else r
+        mn, mx = self.minmax()
+        if above_reserve:
+            if mx < r:
+                mx = mn = float("-inf")
+            elif mn < r:
+                mn = r
+        d = mx - mn
+        if isinstance(d, Distribution):
+            d = float(d) if expected_limits else d.max
+        if isinstance(mn, Distribution):
+            mn = float(mn) if expected_limits else mn.min
+        if d < 1e-5:
+            warnings.warn(
+                f"Ufun has equal max and min. The outcome will be normalized to zero if they were finite otherwise 1.0: {mn=}, {mx=}, {r=}, {u=}"
+            )
+            return 1.0 if math.isfinite(mx) else 0.0
+        d = 1 / d
+        return (u - mn) * d
 
     def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
         super().__init__(*args, **kwargs)

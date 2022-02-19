@@ -181,7 +181,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         urange = self.scale_utilities(urange)
-        outcomes = self._inv_method(urange)  # type: ignore
+        outcomes = self._inv_method(urange, normalized=False)  # type: ignore
         if outcomes is None:
             return []
         if self._single_inv_return:

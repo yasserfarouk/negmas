@@ -128,6 +128,7 @@ class IdentityFun(SingleIssueFun):
     def __call__(self, x: float):
         return x
 
+    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
         return (input.min_value, input.max_value)
 
@@ -148,6 +149,7 @@ class ConstFun(SingleIssueFun):
     def __call__(self, x: float):
         return self.bias
 
+    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
         return (self.bias, self.bias)
 

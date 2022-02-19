@@ -264,7 +264,7 @@ def test_inverse_genius_domain():
     inv = PresortingInverseUtilityFunction(u)
     inv.init()
     for i in range(100):
-        v = u(inv.one_in((i / 100.0, i / 100.0)))
+        v = u(inv.one_in((i / 100.0, i / 100.0), normalized=True))
         assert v - 1e-3 <= v <= v + 0.1
 
 

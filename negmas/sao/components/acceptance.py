@@ -10,6 +10,8 @@ from negmas.common import PreferencesChange, PreferencesChangeType
 from negmas.sao.common import ResponseType
 
 from .base import AcceptanceStrategy, FilterResult
+from .concession import ConcessionRecommender
+from .models.ufun import UFunModel
 
 if TYPE_CHECKING:
     from negmas.common import PreferencesChange
@@ -30,10 +32,38 @@ __all__ = [
     "RandomAcceptanceStrategy",
     "AcceptTop",
     "AcceptBest",
+    "TFTAcceptanceStrategy",
 ]
 
 
-@define()
+@define
+class TFTAcceptanceStrategy(AcceptanceStrategy):
+    """
+    An acceptance strategy that concedes as much as the partner (or more)
+    """
+
+    partner_ufun: UFunModel
+    recommender: ConcessionRecommender
+
+    def respond(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        partner_u = float(self.partner_ufun.eval_normalized(offer)) if offer else 1.0
+        partner_concession = 1.0 - partner_u
+        my_concession = self.recommender(partner_concession, state)
+        assert (
+            -1e-6 <= partner_concession <= 1.0000001
+        ), f"{partner_concession} is negative or above 1"
+        assert (
+            -1e-6 <= my_concession <= 1.0000001
+        ), f"{my_concession} is negative or above 1"
+        u = 1.0 - float(my_concession)
+        if self.negotiator.ufun.eval_normalized(offer) >= u:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+
+@define
 class RandomAcceptanceStrategy(AcceptanceStrategy):
     p_acceptance: float = 0.15
     p_rejection: float = 0.25
@@ -56,7 +86,6 @@ class AcceptBest(AcceptanceStrategy):
     Accepts Only the best outcome.
 
     Remarks:
-        - You can pass the  utility of the best outcome if you know it as `best_util` otherwise it will find it.
         - If the best possible utility cannot be found, nothing will be accepted
     """
 
@@ -65,12 +94,12 @@ class AcceptBest(AcceptanceStrategy):
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         if not self.negotiator or not self.negotiator.ufun:
             return
-        _, self._best_util = self.negotiator.ufun.minmax()
 
     def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
-        if self.negotiator.ufun(offer) >= self._best_util - 1e-10:
+
+        if self.negotiator.ufun(offer) >= self.negotiator.ufun.max() - 1e-10:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -116,22 +145,23 @@ class AcceptTop(AcceptanceStrategy):
 @define
 class AcceptAbove(AcceptanceStrategy):
     """
-    Accepts outcomes with utilities in the given top fraction.
+    Accepts outcomes with utilities in the given top `limit` fraction above reserve/minimum (based on `above_resrve` ).
     """
 
     limit: float
-    _min: float = field(init=False, default=float("inf"))
+    above_reserve: bool = True
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         if not self.negotiator or not self.negotiator.ufun:
             return
-        _min, _max = self.negotiator.ufun.minmax(above_reserve=True)
-        self._min = self.limit * (_max - _min) + _min
 
     def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
-        if self.negotiator.ufun(offer) >= self._min:
+        if (
+            self.negotiator.ufun.eval_normalized(offer, self.above_reserve)
+            >= self.limit
+        ):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 

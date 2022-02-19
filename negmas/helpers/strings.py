@@ -62,10 +62,13 @@ def shorten(name: str, length: int = 4, common_parts=COMMON_NAME_PARTS) -> str:
     needed = length - len(caps)
     caps = []
     for c in name:
-        if needed < 1:
+        if len(caps) >= length:
             break
         if c.isupper():
             caps.append(c)
+            continue
+        if needed < 1:
+            continue
         needed -= 1
         caps.append(c)
     return "".join(caps[:length])

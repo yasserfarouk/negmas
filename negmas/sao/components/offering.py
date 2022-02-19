@@ -9,6 +9,8 @@ from attr import define, field
 from negmas.common import PreferencesChangeType, Value
 
 from .base import FilterResult, OfferingStrategy
+from .concession import ConcessionRecommender
+from .models.ufun import UFunModel
 
 if TYPE_CHECKING:
     from negmas.common import PreferencesChange
@@ -30,26 +32,48 @@ __all__ = [
     "RandomOfferingStrategy",
     "OfferTop",
     "OfferBest",
-    "NaiveTFTOfferingStrategy",
+    "TFTOfferingStrategy",
 ]
 
 
 @define
-class NaiveTFTOfferingStrategy(OfferingStrategy):
+class TFTOfferingStrategy(OfferingStrategy):
     """
-    Offers based on an estimate of the concession made by the opponent as projected in our own utility space.
-
+    An acceptance strategy that concedes as much as the partner (or more)
     """
 
-    _best: Outcome | None = None
+    partner_ufun: UFunModel
+    recommender: ConcessionRecommender
+    stochastic: bool = False
+    _partner_offer: Outcome | None = field(init=False, default=None)
 
-    def on_preferences_changed(self, changes: list[PreferencesChange]):
+    def propose(self, state):
         if not self.negotiator or not self.negotiator.ufun:
-            return
-        _, self._best = self.negotiator.ufun.extreme_outcomes()
+            return None
+        partner_u = (
+            float(self.partner_ufun.eval_normalized(self._partner_offer, True))
+            if self._partner_offer
+            else 1.0
+        )
+        partner_concession = 1.0 - partner_u
+        my_concession = self.recommender(partner_concession, state)
+        assert (
+            -1e-6 <= partner_concession <= 1.0000001
+        ), f"{partner_concession} is negative or above 1"
+        assert (
+            -1e-6 <= my_concession <= 1.0000001
+        ), f"{my_concession} is negative or above 1"
+        target_utility = 1.0 - float(my_concession)
+        if self.stochastic:
+            return self.negotiator.ufun.invert().one_in(
+                (target_utility, 1.0), normalized=True
+            )
+        return self.negotiator.ufun.invert().worst_in(
+            (target_utility, 1.0), normalized=True
+        )
 
-    def propose(self, state: SAOState) -> Outcome | None:
-        return self._best
+    def before_responding(self, state: SAOState, offer: Outcome | None):
+        self._partner_offer = offer
 
 
 @define

@@ -279,6 +279,32 @@ class UFun(CardinalProb, Protocol):
         ...
 
     def eval(self, offer: Outcome) -> Value:
+        """
+        Evaluates the ufun without normalization (See `eval_normalized` )
+        """
+        ...
+
+    def eval_normalized(
+        self,
+        offer: Outcome | None,
+        above_reserve: bool = True,
+        expected_limits: bool = True,
+    ) -> Value:
+        """
+        Evaluates the ufun normalizing the result between zero and one
+
+        Args:
+            offer (Outcome | None): offer
+            above_reserve (bool): If True, zero corresponds to the reserved value not the minimum
+            expected_limits (bool): If True, the expectation of the utility limits will be used for normalization instead of the maximum range and minimum lowest limit
+
+        Remarks:
+            - If the maximum and the minium are equal, finite and above reserve, will return 1.0.
+            - If the maximum and the minium are equal, initinte or below reserve, will return 0.0.
+            - For probabilistic ufuns, a distribution will still be returned.
+            - The minimum and maximum will be evaluated freshly every time. If they are already caached in the ufun, the cache will be used.
+
+        """
         ...
 
     def difference(self, first: Outcome, second: Outcome) -> Value:
@@ -298,6 +324,12 @@ class UFun(CardinalProb, Protocol):
         if isinstance(u2, float):
             u2 = Real(u2)
         return u1 - u2  # type: ignore
+
+    @abstractmethod
+    def minmax(self) -> tuple[float, float]:
+        """
+        Finds the minimum and maximum for the ufun
+        """
 
 
 T = TypeVar("T", bound="UFunCrisp")
@@ -410,13 +442,14 @@ class InverseUFun(Protocol):
 
     @abstractmethod
     def some(
-        self, rng: float | tuple[float, float], n: int | None = None
+        self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
     ) -> list[Outcome]:
         """
         Finds a list of outcomes with utilities in the given range.
 
         Args:
             rng: The range (or single value) of utility values to search for outcomes
+            normalized: if `True`, the input `rng` will be understood as ranging from 0-1 (1=max, 0=min) independent of the ufun actual range
             n: The maximum number of outcomes to return
 
         Remarks:
@@ -424,28 +457,46 @@ class InverseUFun(Protocol):
             - If the ufun outcome space is discrete **all** outcomes in the range are returned
         """
 
-    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def one_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
         """
-        Finds an outcmoe with the given utility value
+        Finds an outcmoe with the given utility value.
+
+        Args:
+            rng: The range (or single value) of utility values to search for outcomes
+            normalized: if `True`, the input `rng` will be understood as ranging from 0-1 (1=max, 0=min) independent of the ufun actual range
         """
-        return random.choice(self.some(rng))
+        return random.choice(self.some(rng, normalized))
 
     @abstractmethod
-    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def best_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
         """
         Finds an outcome with highest utility within the given range
+
+        Args:
+            rng: The range (or single value) of utility values to search for outcomes
+            normalized: if `True`, the input `rng` will be understood as ranging from 0-1 (1=max, 0=min) independent of the ufun actual range
         """
 
     @abstractmethod
-    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def worst_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
         """
         Finds an outcome with lowest utility within the given range
+
+        Args:
+            rng: The range (or single value) of utility values to search for outcomes
+            normalized: if `True`, the input `rng` will be understood as ranging from 0-1 (1=max, 0=min) independent of the ufun actual range
         """
 
     @abstractmethod
     def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
         """
-        Finds outocmes within the given fractions of utility values
+        Finds outocmes within the given fractions of utility values. `rng` is always assumed to be normalized between 0-1
         """
 
     @abstractmethod
@@ -456,6 +507,42 @@ class InverseUFun(Protocol):
         Remarks:
             - Works only for discrete outcome spaces
         """
+
+    @abstractmethod
+    def min(self) -> float:
+        """
+        Finds the minimum utility value that can be returned.
+
+        Remarks:
+            - May be different from the minimum of the whole ufun if there is approximation
+        """
+
+    @abstractmethod
+    def max(self) -> float:
+        """
+        Finds the maximum utility value that can be returned.
+
+        Remarks:
+            - May be different from the maximum of the whole ufun if there is approximation
+        """
+
+    def minmax(self) -> tuple[float, float]:
+        """
+        Finds the minimum and maximum utility values that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.minmax()` as they can be approximate.
+        """
+        return self.min(), self.max()
+
+    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
+        """
+        Finds the worst and best outcomes that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.extreme_outcomes()` as they can be approximate.
+        """
+        return self.worst(), self.best()
 
     @abstractmethod
     def worst(self) -> Outcome:
@@ -469,11 +556,13 @@ class InverseUFun(Protocol):
         Finds the best  outcome
         """
 
-    def __call__(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def __call__(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
         """
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """
-        return self.one_in(rng)
+        return self.one_in(rng, normalized)
 
 
 @runtime_checkable
@@ -540,14 +629,20 @@ class HasRange(HasMinMax, UFun, Protocol):
 
         """
 
-    @property
-    def max_value(self):
+    def max(self) -> Value:
         _, mx = self.minmax()
         return mx
 
-    @property
-    def min_value(self):
+    def min(self) -> Value:
         mn, _ = self.minmax()
+        return mn
+
+    def best(self) -> Outcome:
+        _, mx = self.extreme_outcomes()
+        return mx
+
+    def worst(self) -> Outcome:
+        mn, _ = self.extreme_outcomes()
         return mn
 
 
@@ -610,7 +705,16 @@ class SingleIssueFun(Fun, Protocol):
         _ = d.pop(PYTHON_CLASS_IDENTIFIER, None)
         return cls(**deserialize(d))  # type: ignore Concrete classes will have constructor params
 
+    def min(self, input: Issue) -> float:
+        mn, _ = self.minmax(input)
+        return mn
+
+    def max(self, input: Issue) -> float:
+        _, mx = self.minmax(input)
+        return mx
+
     def to_dict(self) -> dict[str, Any]:
+
         return serialize(vars(self))  # type: ignore Not sure but it should be OK
 
 

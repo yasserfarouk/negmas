@@ -36,7 +36,7 @@ def nonmonotonic_minmax(
 def nonmonotonic_multi_minmax(
     input: Iterable[Iterable], f: Callable[[Any], float]
 ) -> tuple[float, float]:
-    """Finds the limits of a function `f` for the each input assuming that it is non-monotonic and input is iterable"""
+    """Finds the limits of a function `f` for each input assuming that it is non-monotonic and input is iterable"""
     return nonmonotonic_minmax(itertools.product(*input), f)
 
 

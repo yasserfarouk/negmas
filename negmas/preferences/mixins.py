@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from negmas.common import MechanismState, NegotiatorMechanismInterface
+    from negmas.common import MechanismState, NegotiatorMechanismInterface, Value
     from negmas.negotiators import Negotiator
     from negmas.outcomes.common import Outcome
+    from negmas.preferences import BaseUtilityFunction
 
 __all__ = [
     "VolatileUFunMixin",
@@ -109,3 +111,15 @@ class StationaryMixin:
 
     def to_stationary(self):
         return self
+
+    # @lru_cache(maxsize=100)
+    # def eval_normalized(
+    #     self: BaseUtilityFunction, # type: ignore
+    #     offer: Outcome | None,
+    #     above_reserve: bool = True,
+    #     expected_limits: bool = True,
+    # ) -> Value:
+    #     """
+    #     Caches the top 100 results from the ufun because we know they are never going to change.
+    #     """
+    #     return super().eval_normalized(offer, above_reserve, expected_limits)
