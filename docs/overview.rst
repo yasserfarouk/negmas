@@ -404,7 +404,7 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20220216H181012069319W1q6gdElto be20220216H1810120693543sAHogUt'],
+    [['to be', '20220219H112412903289W1q6gdElto be20220219H1124129033533sAHogUt'],
      [9, 12],
      [0.6976970707821888, 1.303414685774959]]
 
@@ -1663,7 +1663,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.000777</td>
+          <td>0.000742</td>
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
@@ -1679,7 +1679,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>1</td>
-          <td>0.001374</td>
+          <td>0.001438</td>
           <td>0.181818</td>
           <td>False</td>
           <td>False</td>
@@ -1695,7 +1695,7 @@ Our mechanism keeps a history in the form of a list of
           <td>False</td>
           <td>True</td>
           <td>2</td>
-          <td>0.001986</td>
+          <td>0.001966</td>
           <td>0.272727</td>
           <td>False</td>
           <td>False</td>

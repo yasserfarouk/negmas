@@ -19,10 +19,22 @@ from __future__ import annotations
 
 import os
 
+import negmas
+
+# NON_RTD_THEME = "python_docs_theme"
+# NON_RTD_THEME = "groundwork"
 # on_rtd is whether we are on readthedocs.org
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+if on_rtd:
+    import sphinx_rtd_theme
 
-import negmas
+    THEME_NAME = "sphinx_rtd_theme"
+    # THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
+else:
+    import sphinx_rtd_theme
+
+    THEME_NAME = "sphinx_rtd_theme"
+    THEME_PATH = [sphinx_rtd_theme.get_html_theme_path()]
 
 # typing.get_type_hints = lambda obj, *unused: obj
 
@@ -75,7 +87,7 @@ source_parsers = {".md": "recommonmark.parser.CommonMarkParser"}
 master_doc = "index"
 
 # General information about the project.
-project = "negmas"
+project = "NegMAS"
 copyright = "2018, Yasser Mohammad"
 author = "Yasser Mohammad"
 
@@ -119,16 +131,14 @@ todo_include_todos = False
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-# html_context = {
-#     "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
-# }
 
 
 if on_rtd:  # only set the theme if we're building docs locally
-    import sphinx_rtd_theme
-
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    html_context = {
+        "css_files": [
+            "_static/theme_overrides.css"
+        ]  # override wide tables in RTD theme
+    }
     # theme options for sphinx_rtd_theme
     html_theme_options = {
         "collapse_navigation": False,
@@ -139,9 +149,9 @@ if on_rtd:  # only set the theme if we're building docs locally
         "prev_next_buttons_location": "bottom",
         "titles_only": False,
     }
-else:
-    # html_theme = "press"
-    html_theme = "groundwork"
+html_theme = THEME_NAME
+if THEME_PATH:
+    html_theme_path = THEME_PATH
 
 html_sidebars = {
     "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
@@ -229,5 +239,11 @@ automodsumm_inherited_members = True
 autodoc_typehints = "signature"
 set_type_checking_flag = True
 
+# Automatically extract typehints when specified and place them in
+# descriptions of the relevant function/method.
+# autodoc_typehints = "description"
+
+# Don't show class signature with the class' name.
+# autodoc_class_signature = "separated"
 
 # mathjax_path =

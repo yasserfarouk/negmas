@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import math
 import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Iterable
 
 from attr import define, field
 
+from negmas import warnings
 from negmas.common import PreferencesChange, PreferencesChangeType
 from negmas.sao.common import ResponseType
 
@@ -51,12 +53,14 @@ class TFTAcceptanceStrategy(AcceptanceStrategy):
         partner_u = float(self.partner_ufun.eval_normalized(offer)) if offer else 1.0
         partner_concession = 1.0 - partner_u
         my_concession = self.recommender(partner_concession, state)
-        assert (
-            -1e-6 <= partner_concession <= 1.0000001
-        ), f"{partner_concession} is negative or above 1"
-        assert (
-            -1e-6 <= my_concession <= 1.0000001
-        ), f"{my_concession} is negative or above 1"
+        if not math.isfinite(my_concession):
+            warnings.warn(
+                f"Got {my_concession} for concession which is unacceptable. Will use no concession"
+            )
+            my_concession = 0.0
+        if not (-1e-6 <= my_concession <= 1.0000001):
+            warnings.warn(f"{my_concession} is negative or above 1")
+            my_concession = 0.0
         u = 1.0 - float(my_concession)
         if self.negotiator.ufun.eval_normalized(offer) >= u:
             return ResponseType.ACCEPT_OFFER
