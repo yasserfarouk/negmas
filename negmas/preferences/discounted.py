@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
@@ -139,6 +140,13 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             ),
             **kwargs,
         )
+
+    # @lru_cache(100)
+    # def eval_normalized(self, offer: Outcome | None, above_reserve: bool = True, expected_limits: bool = True) -> Value:
+    #     """
+    #     Caches the top 100 values as the  normalized value for exponentially discounted ufun does not change with time.
+    #     """
+    #     return super().eval_normalized(offer, above_reserve, expected_limits)
 
     def eval_on_state(
         self,

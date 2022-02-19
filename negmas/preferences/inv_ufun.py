@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Iterable
+from typing import Iterable, Protocol
 
 from negmas.outcomes import Outcome
 
@@ -61,6 +61,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
     def some(
         self,
         rng: float | tuple[float, float],
+        normalized: bool,
         n: int | None = None,
     ) -> list[Outcome]:
         """
@@ -75,14 +76,23 @@ class SamplingInverseUtilityFunction(InverseUFun):
             - If the outcome-space is discrete, this method will return all outcomes in the given range
 
         """
+        if not isinstance(rng, Iterable):
+            rng = (rng - 1e-5, rng + 1e-5)
         if not n:
             n = self.max_samples_per_call
+        else:
+            n *= 3
         if not self._ufun.outcome_space:
             return []
-        return list(self._ufun.outcome_space.sample(n, False, False))
+        outcomes = list(self._ufun.outcome_space.sample(n, False, False))
+        mn, mx = rng
+        u = self.ufun.eval_normalized if normalized else self.ufun.eval
+        return [_ for _ in outcomes if mn <= u(_) <= mx]
 
-    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        some = self.some(rng)
+    def worst_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
+        some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
             rng = (rng, rng)
         worst_util, worst = float("inf"), None
@@ -92,8 +102,10 @@ class SamplingInverseUtilityFunction(InverseUFun):
                 worst_util, worst = util, o
         return worst
 
-    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        some = self.some(rng)
+    def best_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
+        some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
             rng = (rng, rng)
         best_util, best = float("-inf"), None
@@ -131,6 +143,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         self.max_cache_size = max_cache_size
         self.levels = levels
         self._initialized = False
+        self._ordered_outcomes: list[tuple[float, Outcome]] = []
 
     @property
     def initialized(self):
@@ -139,6 +152,10 @@ class PresortingInverseUtilityFunction(InverseUFun):
     @property
     def ufun(self):
         return self._ufun
+
+    def reset(self) -> None:
+        self._initialized = False
+        self._orddered_outcomes = []
 
     def init(self):
         outcome_space = self._ufun.outcome_space
@@ -163,13 +180,31 @@ class PresortingInverseUtilityFunction(InverseUFun):
             outcomes = list(os.sample(self.max_cache_size, False, False))
         else:
             outcomes = list(os.enumerate())[: self.max_cache_size]
-        utils = [float(self._ufun(_)) for _ in outcomes]
+        utils = [
+            float(self._ufun.eval_normalized(_, above_reserve=False)) for _ in outcomes
+        ]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
         self._initialized = True
+
+    def _normalize_range(
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+    ) -> tuple[float, float]:
+        if not isinstance(rng, Iterable):
+            rng = (rng - 1e-5, rng + 1e-5)
+        if normalized:
+            return rng
+        mn, mx = self._min, self._max
+        d = mx - mn
+        if d < 1e-8:
+            return tuple(1.0 for _ in rng)
+        return tuple((_ - mn) / d for _ in rng)
 
     def all(
         self,
         rng: float | tuple[float, float],
+        normalized: bool,
     ) -> list[Outcome]:
         """
         Finds all outcomes with in the given utility value range
@@ -187,7 +222,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             raise ValueError(f"Unkonwn outcome space. Cannot invert the ufun")
 
         if os_.is_discrete():
-            return self.some(rng)
+            return self.some(rng, normalized)
         raise ValueError(
             f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
         )
@@ -195,6 +230,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
     def some(
         self,
         rng: float | tuple[float, float],
+        normalized: bool,
         n: int | None = None,
     ) -> list[Outcome]:
         """
@@ -211,8 +247,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         if not self._ufun.is_stationary():
             self.init()
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
+        rng = self._normalize_range(rng, normalized)
         mn, mx = rng
         # todo use bisection
         results = []
@@ -222,50 +257,54 @@ class PresortingInverseUtilityFunction(InverseUFun):
             if util < mn:
                 break
             results.append(w)
-            if n and len(results) >= n:
-                return results
+        if n and len(results) >= n:
+            return random.sample(results, n)
         return results
 
-    def worst_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def worst_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
         if not self._ufun.is_stationary():
             self.init()
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
+        rng = self._normalize_range(rng, normalized)
         mn, mx = rng
-        for i, (util, _) in enumerate(self._ordered_outcomes):
-            if util >= mn:
-                continue
-            ubefore, wbefore = self._ordered_outcomes[i - 1 if i > 0 else 0]
-            if ubefore > mx:
-                return None
-            return wbefore
-        ubefore, wbefore = self._ordered_outcomes[-1]
-        if ubefore > mx:
+        if not self._ordered_outcomes:
             return None
+        wbefore = self._ordered_outcomes[0][1]
+        for i, (util, w) in enumerate(self._ordered_outcomes):
+            if util > mx:
+                continue
+            if util < mn:
+                return wbefore
+            wbefore = w
         return wbefore
 
-    def best_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def best_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
         if not self._ufun.is_stationary():
             self.init()
-        if not isinstance(rng, Iterable):
-            rng = (rng, rng)
+        rng = self._normalize_range(rng, normalized)
         mn, mx = rng
         for util, w in self._ordered_outcomes:
-            if util <= mx:
-                if util < mn:
-                    return None
-                return w
+            if util > mx:
+                continue
+            if util < mn:
+                return None
+            return w
         return None
 
-    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
-        lst = self.some(rng)
+    def one_in(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
+        lst = self.some(rng, normalized)
         if not lst:
             return None
         return lst[random.randint(0, len(lst) - 1)]
 
     def within_fractions(self, rng: tuple[float, float]) -> list[Outcome]:
         """
-        Finds outocmes within the given fractions of utility values
+        Finds outocmes within the given fractions of utility values (the fractions must be between zero and one)
         """
         if not self._ufun.is_stationary():
             self.init()
@@ -284,6 +323,26 @@ class PresortingInverseUtilityFunction(InverseUFun):
             self.init()
         rng = (max(rng[0], 0), min(rng[1], len(self._ordered_outcomes)))
         return [_[1] for _ in self._ordered_outcomes[rng[0] : rng[1]]]
+
+    def min(self) -> float:
+        """
+        Finds the minimum utility value
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        if not self._ordered_outcomes:
+            raise ValueError(f"No outcomes to find the best")
+        return self._ordered_outcomes[-1][0]
+
+    def max(self) -> float:
+        """
+        Finds the maximum utility value
+        """
+        if not self._ufun.is_stationary():
+            self.init()
+        if not self._ordered_outcomes:
+            raise ValueError(f"No outcomes to find the best")
+        return self._ordered_outcomes[0][0]
 
     def worst(self) -> Outcome:
         """

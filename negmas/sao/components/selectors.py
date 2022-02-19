@@ -130,7 +130,7 @@ def make_inverter(
         ufun = RankOnlyUtilityFunction(ufun, randomize_equal=False, name=ufun.name)
     if ufun_inverter:
         return ufun_inverter(ufun)
-    return PresortingInverseUtilityFunction(ufun)
+    return PresortingInverseUtilityFunction(ufun, max_cache_size=max_cardinality)
 
 
 class OfferFilterProtocol(Protocol):

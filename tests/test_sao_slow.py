@@ -39,10 +39,7 @@ from negmas.sao import (
     all_negotiator_types,
 )
 from negmas.sao.negotiators.nice import NiceNegotiator
-from negmas.sao.negotiators.titfortat import (
-    NaiveTitForTatNegotiator,
-    TitForTatNegotiator,
-)
+from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
 
 exception_str = "Custom Exception"
 
@@ -1477,7 +1474,8 @@ def try_negotiator(
 # @pytest.mark.parametrize("negotiator", [MultiplicativeParetoFollowingTBNegotiator])
 @given(negotiator=st.sampled_from(ALL_BUILTIN_NEGOTIATORS))
 @example(negotiator=NiceNegotiator)
-@example(negotiator=TitForTatNegotiator)
+@example(negotiator=NaiveTitForTatNegotiator)
+@settings(deadline=100_000)
 def test_specific_negotiator_buy_selling(negotiator):
     try_negotiator(negotiator, plot=False)
     # import matplotlib.pyplot as plt

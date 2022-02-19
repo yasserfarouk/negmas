@@ -34,6 +34,7 @@ from .crisp import *
 from .prob import *
 from .ops import *
 from .complex import *
+from .value_fun import *
 
 __all__ = (
     base.__all__
@@ -49,4 +50,5 @@ __all__ = (
     + prob.__all__
     + ops.__all__
     + complex.__all__
+    + value_fun.__all__
 )

@@ -1,5 +1,5 @@
 import hypothesis.strategies as st
-from hypothesis import example, given
+from hypothesis import example, given, settings
 from pytest import mark
 
 import negmas
@@ -24,6 +24,7 @@ NEGTYPES = all_negotiator_types()
     rejector=negmas.sao.components.acceptance.EndImmediately,
     avoid_ultimatum=True,
 )
+@settings(deadline=500000)
 def test_do_nothing_never_gets_agreements(opp, start, rejector, avoid_ultimatum):
     agent = make_boa(acceptance=rejector(), offering=NoneOfferingStrategy())
     issues: list[Issue] = [

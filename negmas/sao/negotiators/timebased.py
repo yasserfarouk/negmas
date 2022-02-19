@@ -62,7 +62,7 @@ def make_offer_selector(
     | Literal["best"]
     | Literal["worst"]
     | None = None,
-) -> Callable[[tuple[float, float]], Outcome | None]:
+) -> Callable[[tuple[float, float], bool], Outcome | None]:
     """
     Generates a callable that can be used to select a specific outcome in a range of utility values.
 
@@ -74,7 +74,7 @@ def make_offer_selector(
     if selector is None:
         return inverse_ufun.one_in
     if isinstance(selector, Callable):
-        return lambda x: selector(inverse_ufun.some(x))
+        return lambda x: selector(inverse_ufun.some(x, normalized=False))
     if selector == "best":
         return inverse_ufun.best_in
     if selector == "worst":
