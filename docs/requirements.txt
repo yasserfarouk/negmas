@@ -156,3 +156,4 @@ sphinx-press-theme
 groundwork-sphinx-theme
 python-docs-theme
 sphinx-sizzle-theme
+-e .
