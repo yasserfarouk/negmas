@@ -56,7 +56,7 @@ TFT_NEGOTIATORS = [
 ALL_BUILTIN_NEGOTIATORS = [
     get_class(f"negmas.sao.negotiators.{x}")
     for x in negmas.sao.negotiators.__all__
-    if x not in ["SAONegotiator", "UtilBasedNegotiator"]
+    if x not in ["SAONegotiator", "UtilBasedNegotiator", "make_boa", "MakeBoa"]
 ]
 
 

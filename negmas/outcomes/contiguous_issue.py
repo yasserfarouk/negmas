@@ -8,26 +8,24 @@ import numpy as np
 
 from negmas.helpers.numeric import sample
 from negmas.outcomes.base_issue import DiscreteIssue, Issue
-from negmas.outcomes.cardinal_issue import DiscreteCardinalIssue
 from negmas.outcomes.range_issue import RangeIssue
 
 __all__ = ["ContiguousIssue"]
 
 
-class ContiguousIssue(RangeIssue, DiscreteCardinalIssue):
+class ContiguousIssue(RangeIssue, DiscreteIssue):
     """
-    A `RangeIssue` (also a `DiscreteCardinalIssue`) representing a contiguous range of integers.
+    A `RangeIssue` (also a `DiscreteIssue`) representing a contiguous range of integers.
     """
 
     def __init__(
         self,
         values: int | tuple[int, int],
         name: str | None = None,
-        id=None,
     ) -> None:
         if isinstance(values, numbers.Integral):
             values = (0, int(values) - 1)
-        super().__init__(values, name, id)
+        super().__init__(values, name)
         self._n_values = values[1] - values[0] + 1  # type: ignore
 
     def _to_xml_str(self, indx):

@@ -91,6 +91,18 @@ class Distribution(Protocol):
     def is_gaussian(self) -> bool:
         """Returns true if this is a gaussian distribution"""
 
+    @abstractmethod
+    def __sub__(self, other) -> Distribution:
+        """Returns the distribution for the difference between samples of `self` and `other`"""
+
+    @abstractmethod
+    def __add__(self, other) -> Distribution:
+        """Returns the distribution for the sum of samples of `self` and `other`"""
+
+    @abstractmethod
+    def __mul__(self, weight: float) -> Distribution:
+        """Returns the distribution for the multiplicaiton of samples of `self` with `weight`"""
+
     def __float__(self) -> float:
         """Converts to a float (usually by calling mean())"""
         return self.mean()
@@ -136,156 +148,6 @@ class Distribution(Protocol):
         if isinstance(other, numbers.Real):
             return self.min > other
         return self.min > other.max
-
-    def is_crisp(self) -> bool:
-        """Returns true if this is a distribution with all probability at one point (delta(v))"""
-        return self.scale < EPSILON / 1000
-
-    @abstractmethod
-    def __sub__(self, other) -> Distribution:
-        """Returns the distribution for the difference between samples of `self` and `other`"""
-
-    @abstractmethod
-    def __add__(self, other) -> Distribution:
-        """Returns the distribution for the sum of samples of `self` and `other`"""
-
-    @abstractmethod
-    def __mul__(self, weight: float) -> Distribution:
-        """Returns the distribution for the multiplicaiton of samples of `self` with `weight`"""
-
-
-class Real(Distribution):
-    """A real number implementing the `Distribution` interface"""
-
-    def __init__(
-        self,
-        loc: int | float | numbers.Real = 0.0,
-        type: str = "",
-        scale: float = 0.0,
-        **kwargs,
-    ):
-        loc = float(loc)
-        if not (0 <= scale <= EPSILON):
-            raise ValueError(
-                f"Cannot construct a Real with this scale ({scale}) It must be zero"
-            )
-        self._loc: float = loc
-        self._scale = 0.0
-        # todo: check that this works. I think it does not
-        super().__init__(type=type)
-
-    def type(self) -> str:
-        return "uniform"
-
-    def mean(self) -> float:
-        """Finds the mean"""
-        return self._loc
-
-    def prob(self, val: float) -> float:
-        """Returns the probability for the given value"""
-        return 1.0 if self == val < EPSILON else 0.0
-
-    def cum_prob(self, mn: float, mx: float) -> float:
-        """Returns the probability for the given range"""
-        return int(mn <= self.loc <= mx)
-
-    def sample(self, size: int = 1) -> np.ndarray:
-        """Samples `size` elements from the distribution"""
-        return self._loc * np.ones(size)
-
-    @property
-    def loc(self) -> float:
-        """Returns the location of the distributon (usually mean)"""
-        return self._loc
-
-    @property
-    def scale(self) -> float:
-        """Returns the scale of the distribution (may be std. dev.)"""
-        return 0.0
-
-    @property
-    def min(self) -> float:
-        """Returns the minimum"""
-        return self._loc
-
-    @property
-    def max(self) -> float:
-        """Returns the maximum"""
-        return self._loc
-
-    def __str__(self):
-        """Converts to a readable string"""
-        return str(float(self._loc))
-
-    __repr__ = __str__
-
-    def __copy__(self):
-        """Copies the distribution"""
-        return Real(type="", loc=self.loc)
-
-    def __deepcopy__(self, memo):
-        """Performs deep copying"""
-        return Real(loc=self.loc)
-
-    def __eq__(self, other):
-        """Checks for equality of the two distributions"""
-        if isinstance(other, Distribution):
-            return other.scale < EPSILON and abs(other.loc - self.loc) < EPSILON
-        if isinstance(other, float):
-            return abs(self.loc - other) < EPSILON
-        raise ValueError(f"Cannot compare CrispValues with {type(other)}")
-
-    def __ne__(self, other):
-        """Checks for ineqlaity of the distributions"""
-        return not self == other
-
-    def __lt__(self, other):
-        """Check that a sample from `self` is ALWAYS less than a sample from other `other`"""
-        if isinstance(other, float):
-            return super().__lt__(other)
-        return self.max < other.min
-
-    def __le__(self, other):
-        """Check that a sample from `self` is ALWAYS less or equal a sample from other `other`"""
-        if isinstance(other, float):
-            return super().__le__(other)
-        return self.max <= other.min
-
-    def __gt__(self, other):
-        """Check that a sample from `self` is ALWAYS greater than a sample from other `other`"""
-        if isinstance(other, float):
-            return super().__gt__(other)
-        return self.min > other.max
-
-    def __ge__(self, other):
-        """Check that a sample from `self` is ALWAYS greater or equal a sample from other `other`"""
-        if isinstance(other, float):
-            return super().__ge__(other)
-        return self.min >= other.max
-
-    def __sub__(self, other):
-        """Returns the distribution for the difference between samples of `self` and `other`"""
-        if isinstance(other, float):
-            return super().__sub__(other)
-        return other.__class__(loc=self.loc - other.loc, scale=other.scale)
-
-    def __add__(self, other):
-        """Returns the distribution for the sum of samples of `self` and `other`"""
-        if isinstance(other, float):
-            return super().__add__(other)
-        return other.__class__(loc=other.loc + self._loc, scale=other.scale)
-
-    def __mul__(self, other):
-        """Returns the distribution for the sum of samples of `self` and `other`"""
-        if isinstance(other, float):
-            return self._loc * other
-        return other * self._loc
-
-    def is_gaussian(self):
-        return True
-
-    def is_uniform(self):
-        return True
 
     def is_crisp(self) -> bool:
         """Returns true if this is a distribution with all probability at one point (delta(v))"""
@@ -477,3 +339,142 @@ def uniform_around(
     if loc + scale > range[1]:
         loc -= loc + scale - range[1]
     return cls(type="uniform", loc=loc, scale=scale)
+
+
+class Real(Distribution):
+    """A real number implementing the `Distribution` interface"""
+
+    def __init__(
+        self,
+        loc: int | float | numbers.Real = 0.0,
+        type: str = "",
+        scale: float = 0.0,
+        **kwargs,
+    ):
+        loc = float(loc)
+        if not (0 <= scale <= EPSILON):
+            raise ValueError(
+                f"Cannot construct a Real with this scale ({scale}) It must be zero"
+            )
+        self._loc: float = loc
+        self._scale = 0.0
+        self._type = type if type else "uniform"
+        # todo: check that this works. I think it does not
+        # super().__init__(type=type if type else "uniform")
+
+    def type(self) -> str:
+        return self._type
+
+    def mean(self) -> float:
+        """Finds the mean"""
+        return self._loc
+
+    def prob(self, val: float) -> float:
+        """Returns the probability for the given value"""
+        return 1.0 if self == val < EPSILON else 0.0
+
+    def cum_prob(self, mn: float, mx: float) -> float:
+        """Returns the probability for the given range"""
+        return int(mn <= self.loc <= mx)
+
+    def sample(self, size: int = 1) -> np.ndarray:
+        """Samples `size` elements from the distribution"""
+        return self._loc * np.ones(size)
+
+    @property
+    def loc(self) -> float:
+        """Returns the location of the distributon (usually mean)"""
+        return self._loc
+
+    @property
+    def scale(self) -> float:
+        """Returns the scale of the distribution (may be std. dev.)"""
+        return 0.0
+
+    @property
+    def min(self) -> float:
+        """Returns the minimum"""
+        return self._loc
+
+    @property
+    def max(self) -> float:
+        """Returns the maximum"""
+        return self._loc
+
+    def __str__(self):
+        """Converts to a readable string"""
+        return str(float(self._loc))
+
+    __repr__ = __str__
+
+    def __copy__(self):
+        """Copies the distribution"""
+        return Real(type="", loc=self.loc)
+
+    def __deepcopy__(self, memo):
+        """Performs deep copying"""
+        return Real(loc=self.loc)
+
+    def __eq__(self, other):
+        """Checks for equality of the two distributions"""
+        if isinstance(other, Distribution):
+            return other.scale < EPSILON and abs(other.loc - self.loc) < EPSILON
+        if isinstance(other, float):
+            return abs(self.loc - other) < EPSILON
+        raise ValueError(f"Cannot compare CrispValues with {type(other)}")
+
+    def __ne__(self, other):
+        """Checks for ineqlaity of the distributions"""
+        return not self == other
+
+    def __lt__(self, other):
+        """Check that a sample from `self` is ALWAYS less than a sample from other `other`"""
+        if isinstance(other, float):
+            return super().__lt__(other)
+        return self.max < other.min
+
+    def __le__(self, other):
+        """Check that a sample from `self` is ALWAYS less or equal a sample from other `other`"""
+        if isinstance(other, float):
+            return super().__le__(other)
+        return self.max <= other.min
+
+    def __gt__(self, other):
+        """Check that a sample from `self` is ALWAYS greater than a sample from other `other`"""
+        if isinstance(other, float):
+            return super().__gt__(other)
+        return self.min > other.max
+
+    def __ge__(self, other):
+        """Check that a sample from `self` is ALWAYS greater or equal a sample from other `other`"""
+        if isinstance(other, float):
+            return super().__ge__(other)
+        return self.min >= other.max
+
+    def __sub__(self, other):
+        """Returns the distribution for the difference between samples of `self` and `other`"""
+        if isinstance(other, float):
+            return super().__sub__(other)
+        return other.__class__(loc=self.loc - other.loc, scale=other.scale)
+
+    def __add__(self, other):
+        """Returns the distribution for the sum of samples of `self` and `other`"""
+        if isinstance(other, float):
+            return super().__add__(other)
+        return other.__class__(loc=other.loc + self._loc, scale=other.scale)
+
+    def __mul__(self, other):
+        """Returns the distribution for the sum of samples of `self` and `other`"""
+        if isinstance(other, float):
+            return self._loc * other
+        return other * self._loc
+
+    def is_gaussian(self):
+        return True
+
+    def is_uniform(self):
+        return True
+
+    def is_crisp(self) -> bool:
+        """Returns true if this is a distribution with all probability at one point (delta(v))"""
+        return self.scale < EPSILON / 1000

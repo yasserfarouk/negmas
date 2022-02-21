@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-class NonLinearAggregationUtilityFunction(UtilityFunction, StationaryMixin):
+class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
     r"""A nonlinear utility function.
 
     Allows for the modeling of a single nonlinear utility function that combines the utilities of different issues.
@@ -122,7 +122,7 @@ class NonLinearAggregationUtilityFunction(UtilityFunction, StationaryMixin):
         return self.f(u)
 
 
-class HyperRectangleUtilityFunction(UtilityFunction, StationaryMixin):
+class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
     """A utility function defined as a set of hyper-volumes.
 
     The utility function that is calulated by combining linearly a set of *probably nonlinear* functions applied in
@@ -295,6 +295,9 @@ class HyperRectangleUtilityFunction(UtilityFunction, StationaryMixin):
         self.bias = bias
         self.adjust_params()
 
+    def to_stationary(self):
+        return self
+
     @classmethod
     def random(
         cls,
@@ -364,7 +367,7 @@ class HyperRectangleUtilityFunction(UtilityFunction, StationaryMixin):
         return u
 
 
-class NonlinearHyperRectangleUtilityFunction(UtilityFunction, StationaryMixin):
+class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
     """A utility function defined as a set of outcome_ranges.
 
 

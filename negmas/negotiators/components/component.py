@@ -28,7 +28,7 @@ __all__ = ["Component"]
 @define
 class Component:
     """
-    A component that can be added to a `ModulerNegotiator`
+    A component that can be added to a `ModularNegotiator`
     """
 
     _negotiator: Negotiator

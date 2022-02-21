@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from negmas.sao import SAOState
     from negmas.sao.negotiators.base import SAONegotiator
 
+    from .offering import OfferingStrategy
+
 __all__ = [
     "LimitedOutcomesAcceptanceStrategy",
     "NegotiatorAcceptanceStrategy",
@@ -35,7 +37,30 @@ __all__ = [
     "AcceptTop",
     "AcceptBest",
     "TFTAcceptanceStrategy",
+    "ACNext",
 ]
+
+
+@define
+class ACNext(AcceptanceStrategy):
+    """
+    Implements the ACnext acceptance strategy based on our next offer.
+
+    Accepts $\omega$ if $\alpha u(my-next-offer) + \beta > u(\omega)$
+    """
+
+    offering_strategy: OfferingStrategy
+    alpha: float = 1.0
+    beta: float = 0.0
+
+    def respond(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        next = self.negotiator.ufun(self.offering_strategy(state))
+        u = self.negotiator.ufun(offer)
+        if self.alpha * next + self.beta > u:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
 
 
 @define

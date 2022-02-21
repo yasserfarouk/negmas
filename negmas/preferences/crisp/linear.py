@@ -13,7 +13,6 @@ from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.preferences.protocols import SingleIssueFun
-from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from ..crisp_ufun import UtilityFunction
@@ -68,7 +67,6 @@ def _random_mapping(issue: "Issue", normalized=False):
 class AffineUtilityFunction(
     StationaryMixin,
     UtilityFunction,
-    XmlSerializable,
 ):
     r"""
     An affine utility function for multi-issue negotiations.
@@ -136,7 +134,7 @@ class AffineUtilityFunction(
                 f"Given args {kwargs}"
             )
         self.issues: list[Issue] | None = (
-            list(self.outcome_space.issues) if self.outcome_space else None
+            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
         )
         if weights is None:
             if not self.issues:
@@ -495,7 +493,6 @@ class LinearUtilityFunction(AffineUtilityFunction):
 class LinearAdditiveUtilityFunction(  # type: ignore
     StationaryMixin,
     UtilityFunction,
-    XmlSerializable,
 ):
     r"""A linear aggregation utility function for multi-issue negotiations.
 
@@ -579,7 +576,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                 f"{type(self.outcome_space)}\nGiven args {kwargs}"
             )
         self.issues: list[Issue] | None = (
-            list(self.outcome_space.issues) if self.outcome_space else None
+            list(self.outcome_space.issues) if self.outcome_space else None  # type: ignore
         )
         if isinstance(values, dict):
             if self.issues is None:

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 __all__ = ["IPUtilityFunction"]
 
 
-class IPUtilityFunction(ProbUtilityFunction, StationaryMixin):
+class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
     """
     Independent Probabilistic Utility Function.
 

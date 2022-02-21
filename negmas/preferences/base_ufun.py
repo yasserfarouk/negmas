@@ -19,7 +19,7 @@ from typing import (
 from negmas import warnings
 from negmas.common import Value
 from negmas.helpers import PathLike
-from negmas.helpers.prob import Distribution
+from negmas.helpers.prob import Distribution, Real, ScipyDistribution
 from negmas.helpers.types import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
@@ -28,17 +28,7 @@ from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .preferences import Preferences
-from .protocols import (
-    BasePref,
-    CardinalRanking,
-    HasRange,
-    HasReservedValue,
-    InverseUFun,
-    OrdinalRanking,
-    PartiallyNormalizable,
-    PartiallyScalable,
-    StationaryConvertible,
-)
+from .protocols import HasReservedValue, InverseUFun
 from .value_fun import make_fun_from_xml
 
 if TYPE_CHECKING:
@@ -53,25 +43,94 @@ __all__ = [
 ]
 
 
+MAX_CARINALITY = 10_000
 T = TypeVar("T", bound="BaseUtilityFunction")
-TP = TypeVar("TP", bound="BaseUtilityFunction")
 
 
-class BaseUtilityFunction(  # type: ignore
-    Preferences,
-    PartiallyNormalizable,
-    PartiallyScalable,
-    HasRange,
-    HasReservedValue,
-    StationaryConvertible,
-    OrdinalRanking,
-    CardinalRanking,
-    BasePref,
-    ABC,
-):
+# PartiallyNormalizable,
+# PartiallyScalable,
+# HasRange,
+# HasReservedValue,
+# StationaryConvertible,
+# OrdinalRanking,
+# CardinalRanking,
+# BasePref,
+class BaseUtilityFunction(Preferences, ABC):
+    """
+    Base class for all utility functions in negmas
+    """
+
+    def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reserved_value = reserved_value
+        self._cached_inverse: InverseUFun | None = None
+        self._cached_inverse_type: Type[InverseUFun] | None = None
+
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
         ...
+
+    def to_stationary(self: T) -> T:
+        raise NotImplementedError(
+            f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun."
+        )
+
+    def minmax(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        max_cardinality=1000,
+        above_reserve=False,
+    ) -> tuple[float, float]:
+        """Finds the range of the given utility function for the given outcomes
+
+        Args:
+            self: The utility function
+            issues: List of issues (optional)
+            outcomes: A collection of outcomes (optional)
+            max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not given)
+            above_reserve: If given, the minimum and maximum will be set to reserved value if they were less than it.
+
+        Returns:
+            (lowest, highest) utilities in that order
+
+        """
+        (worst, best) = self.extreme_outcomes(
+            outcome_space, issues, outcomes, max_cardinality
+        )
+        w, b = self(worst), self(best)
+        if isinstance(w, Distribution):
+            w = w.min
+        if isinstance(b, Distribution):
+            b = b.max
+        if above_reserve and isinstance(self, HasReservedValue):
+            r = self.reserved_value
+            if b < r:
+                b, w = r, r
+            elif w < r:
+                w = r
+        return w, b
+
+    @property
+    def reserved_distribution(self) -> Distribution:
+        return ScipyDistribution(type="uniform", loc=self.reserved_value, scale=0.0)
+
+    def max(self) -> Value:
+        _, mx = self.minmax()
+        return mx
+
+    def min(self) -> Value:
+        mn, _ = self.minmax()
+        return mn
+
+    def best(self) -> Outcome:
+        _, mx = self.extreme_outcomes()
+        return mx
+
+    def worst(self) -> Outcome:
+        mn, _ = self.extreme_outcomes()
+        return mn
 
     def eval_normalized(
         self,
@@ -115,12 +174,6 @@ class BaseUtilityFunction(  # type: ignore
         d = 1 / d
         return (u - mn) * d
 
-    def __init__(self, *args, reserved_value: float = float("-inf"), **kwargs):
-        super().__init__(*args, **kwargs)
-        self.reserved_value = reserved_value
-        self._cached_inverse: InverseUFun | None = None
-        self._cached_inverse_type: Type[InverseUFun] | None = None
-
     def invert(self, inverter: Type[InverseUFun] | None = None) -> InverseUFun:
         """
         Inverts the ufun, initializes it and caches the result.
@@ -141,11 +194,58 @@ class BaseUtilityFunction(  # type: ignore
     def is_volatile(self) -> bool:
         return True
 
-    def is_stationary(self) -> bool:
-        return False
+    def is_session_dependent(self) -> bool:
+        return True
 
     def is_state_dependent(self) -> bool:
         return True
+
+    def scale_min(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
+        return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)
+
+    def scale_max(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
+        return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)
+
+    def normalize_for(
+        self: T,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | int | None = None,
+        minmax: tuple[float, float] | None = None,
+        **kwargs,
+    ) -> T:
+        max_cardinality: int = MAX_CARINALITY
+        outcome_space = None
+        if minmax is not None:
+            mn, mx = minmax
+        else:
+            check_one_at_most(outcome_space, issues, outcomes)
+            outcome_space = os_or_none(outcome_space, issues, outcomes)
+            if not outcome_space:
+                outcome_space = self.outcome_space
+            if not outcome_space:
+                raise ValueError(
+                    "Cannot find the outcome-space to normalize for. "
+                    "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
+                )
+            mn, mx = self.minmax(outcome_space, max_cardinality=max_cardinality)
+
+        scale = float(to[1] - to[0]) / float(mx - mn)
+
+        # u = self.shift_by(-mn, shift_reserved=True)
+        u = self.scale_by(scale, scale_reserved=True)
+        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
+
+    def normalize(
+        self: T,
+        to: tuple[float, float] = (0.0, 1.0),
+        minmax: tuple[float, float] | None = None,
+        **kwargs,
+    ) -> T:
+        return self.normalize_for(
+            to, outcome_space=self.outcome_space, minmax=minmax, **kwargs
+        )
 
     def scale_by(
         self: T, scale: float, scale_reserved=True
@@ -702,6 +802,9 @@ class BaseUtilityFunction(  # type: ignore
                 issue_info[issue_key].update(info)
                 mytype = info["type"]
                 # vtype = info["vtype"]
+                if domain_issues_dict is None:
+                    raise ValueError(f"unknown domain-issue-dict!!!")
+
                 current_issue = domain_issues_dict[issue_key]
 
                 if mytype == "discrete":
@@ -846,6 +949,28 @@ class BaseUtilityFunction(  # type: ignore
         if ignore_discount:
             discount_factor = None
         return u, discount_factor
+
+    def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
+        return self.difference_prob(first, second) >= 0.0
+
+    def difference(self, first: Outcome | None, second: Outcome | None) -> float:
+        """
+        Returns a numeric difference between the utility of the two given outcomes
+        """
+        return float(self(first)) - float(self(second))
+
+    def difference_prob(
+        self, first: Outcome | None, second: Outcome | None
+    ) -> Distribution:
+        """
+        Returns a numeric difference between the utility of the two given outcomes
+        """
+        f, s = self(first), self(second)
+        if not isinstance(f, Distribution):
+            f = Real(f)
+        if not isinstance(s, Distribution):
+            s = Real(s)
+        return f - s
 
 
 class _General:

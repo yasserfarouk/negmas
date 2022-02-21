@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from negmas.common import PreferencesChange
@@ -10,8 +11,6 @@ from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 from negmas.types import NamedObject
 
-from .protocols import BasePref, HasReservedOutcome
-
 __all__ = ["Preferences"]
 
 if TYPE_CHECKING:
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
     from negmas.outcomes.protocols import OutcomeSpace
 
 
-class Preferences(NamedObject, HasReservedOutcome, BasePref):
+class Preferences(NamedObject, ABC):
     """
     Base class for all preferences.
 
@@ -48,6 +47,35 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref):
         self.outcome_space = os_or_none(outcome_space, issues, outcomes)
         self.reserved_outcome = reserved_outcome  # type: ignore
         self._changes: list[PreferencesChange] = []
+
+    @abstractmethod
+    def is_volatile(self):
+        """
+        Does the utiltiy of an outcome depend on factors outside the negotiation?
+
+
+        Remarks:
+            - A volatile preferences is one that can change even for the same mechanism state due to outside influence
+        """
+
+    @abstractmethod
+    def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
+        """
+        Is `first` at least as good as `second`
+        """
+        ...
+
+    @abstractmethod
+    def is_session_dependent(self):
+        """
+        Does the utiltiy of an outcome depend on the `NegotiatorMechanismInterface`?
+        """
+
+    @abstractmethod
+    def is_state_dependent(self):
+        """
+        Does the utiltiy of an outcome depend on the negotiation state?
+        """
 
     def to_dict(self) -> dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
@@ -101,3 +129,71 @@ class Preferences(NamedObject, HasReservedOutcome, BasePref):
         while isinstance(u, DiscountedUtilityFunction):
             u = u.ufun
         return self.type
+
+    def is_stationary(self) -> bool:
+        """Are the preferences stationary (i.e. repeated calls return the same value for any preferences comparion or evaluaton method)?"""
+        return (
+            not self.is_state_dependent()
+            and not self.is_volatile()
+            and not self.is_session_dependent()
+        )
+
+    def is_better(self, first: Outcome | None, second: Outcome | None) -> bool:
+        """
+        Compares two offers using the `ufun` returning whether the first is strictly better than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+
+        Remarks:
+
+            - Should raise `ValueError` if the comparison cannot be done
+
+        """
+        return self.is_not_worse(first, second) and not self.is_not_worse(second, first)
+
+    def is_equivalent(self, first: Outcome | None, second: Outcome | None) -> bool:
+        """
+        Compares two offers using the `ufun` returning whether the first is strictly equivelent than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+
+        Remarks:
+
+            - Should raise `ValueError` if the comparison cannot be done
+
+        """
+        return self.is_not_worse(first, second) and self.is_not_worse(second, first)
+
+    def is_not_better(self, first: Outcome, second: Outcome | None) -> bool:
+        """
+        Compares two offers using the `ufun` returning whether the first is worse or equivalent than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+
+        Remarks:
+
+            - Should raise `ValueError` if the comparison cannot be done
+
+        """
+        return self.is_not_worse(second, first)
+
+    def is_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
+        """
+        Compares two offers using the `ufun` returning whether the first is strictly worse than the second
+
+        Args:
+            first: First outcome to be compared
+            second: Second outcome to be compared
+
+        Remarks:
+
+            - Should raise `ValueError` if the comparison cannot be done
+
+        """
+        return not self.is_not_worse(first, second)

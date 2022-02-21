@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 __all__ = ["ProbRandomUtilityFunction"]
 
 
-class ProbRandomUtilityFunction(ProbUtilityFunction, StationaryMixin):
+class ProbRandomUtilityFunction(StationaryMixin, ProbUtilityFunction):
     """A random utility function for a discrete outcome space"""
 
     def __init__(

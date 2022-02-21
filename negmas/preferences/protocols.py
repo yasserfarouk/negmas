@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from abc import abstractmethod
 from os import PathLike
 from typing import (
@@ -14,10 +13,9 @@ from typing import (
 )
 
 from negmas.common import Value
-from negmas.helpers.prob import Distribution, Real, ScipyDistribution
+from negmas.helpers.prob import Distribution
 from negmas.outcomes import Outcome, OutcomeSpace
 from negmas.protocols import HasMinMax, XmlSerializable
-from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 if TYPE_CHECKING:
     from negmas.outcomes.base_issue import Issue
@@ -83,7 +81,7 @@ class BasePref(Protocol):
         """Returns the utility_function base type ignoring discounting and similar wrappings."""
 
     @abstractmethod
-    def is_volatile(self):
+    def is_volatile(self) -> bool:
         """
         Does the utiltiy of an outcome depend on factors outside the negotiation?
 
@@ -93,20 +91,20 @@ class BasePref(Protocol):
         """
 
     @abstractmethod
-    def is_session_dependent(self):
+    def is_session_dependent(self) -> bool:
         """
         Does the utiltiy of an outcome depend on the `NegotiatorMechanismInterface`?
         """
 
     @abstractmethod
-    def is_state_dependent(self):
+    def is_state_dependent(self) -> bool:
         """
         Does the utiltiy of an outcome depend on the negotiation state?
         """
 
+    @abstractmethod
     def is_stationary(self) -> bool:
         """Is the ufun stationary (i.e. utility value of an outcome is a constant)?"""
-        return not self.is_state_dependent() and not self.is_volatile()
 
 
 @runtime_checkable
@@ -124,7 +122,7 @@ class HasReservedValue(Protocol):
 
     @property
     def reserved_distribution(self) -> Distribution:
-        return ScipyDistribution(type="uniform", loc=self.reserved_value, scale=0.0)
+        ...
 
 
 @runtime_checkable
@@ -164,6 +162,7 @@ class Ordinal(BasePref, Protocol):
 
         """
 
+    @abstractmethod
     def is_better(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is strictly better than the second
@@ -177,8 +176,8 @@ class Ordinal(BasePref, Protocol):
             - Should raise `ValueError` if the comparison cannot be done
 
         """
-        return self.is_not_worse(first, second) and not self.is_not_worse(second, first)
 
+    @abstractmethod
     def is_equivalent(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is strictly equivelent than the second
@@ -192,8 +191,8 @@ class Ordinal(BasePref, Protocol):
             - Should raise `ValueError` if the comparison cannot be done
 
         """
-        return self.is_not_worse(first, second) and self.is_not_worse(second, first)
 
+    @abstractmethod
     def is_not_better(self, first: Outcome, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is worse or equivalent than the second
@@ -207,8 +206,8 @@ class Ordinal(BasePref, Protocol):
             - Should raise `ValueError` if the comparison cannot be done
 
         """
-        return self.is_not_worse(second, first)
 
+    @abstractmethod
     def is_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
         """
         Compares two offers using the `ufun` returning whether the first is strictly worse than the second
@@ -222,7 +221,6 @@ class Ordinal(BasePref, Protocol):
             - Should raise `ValueError` if the comparison cannot be done
 
         """
-        return not self.is_not_worse(first, second)
 
 
 @runtime_checkable
@@ -243,9 +241,6 @@ class CardinalProb(Ordinal, Protocol):
         Returns a numeric difference between the utility of the two given outcomes
         """
 
-    def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
-        return self.difference_prob(first, second) >= 0.0
-
 
 @runtime_checkable
 class CardinalCrisp(CardinalProb, Protocol):
@@ -258,17 +253,6 @@ class CardinalCrisp(CardinalProb, Protocol):
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
-
-    def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
-        return self.difference(first, second) > 0
-
-    def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
-        """
-        Returns a numeric difference between the utility of the two given outcomes
-        """
-        return ScipyDistribution(
-            loc=self.difference(first, second), scale=0.0, type="uniform"
-        )
 
 
 @runtime_checkable
@@ -307,24 +291,6 @@ class UFun(CardinalProb, Protocol):
         """
         ...
 
-    def difference(self, first: Outcome, second: Outcome) -> Value:
-        u1 = self(first)
-        u2 = self(second)
-        if isinstance(u1, float):
-            u1 = Real(u1)
-        if isinstance(u2, float):
-            u2 = Real(u2)
-        return u1 - u2  # type: ignore
-
-    def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
-        u1 = self(first)
-        u2 = self(second)
-        if isinstance(u1, float):
-            u1 = Real(u1)
-        if isinstance(u2, float):
-            u2 = Real(u2)
-        return u1 - u2  # type: ignore
-
     @abstractmethod
     def minmax(self) -> tuple[float, float]:
         """
@@ -346,7 +312,7 @@ class UFunCrisp(UFun, Protocol):
         ...
 
     def to_stationary(self: T) -> T:
-        return self
+        ...
 
 
 @runtime_checkable
@@ -457,6 +423,7 @@ class InverseUFun(Protocol):
             - If the ufun outcome space is discrete **all** outcomes in the range are returned
         """
 
+    @abstractmethod
     def one_in(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
@@ -467,7 +434,6 @@ class InverseUFun(Protocol):
             rng: The range (or single value) of utility values to search for outcomes
             normalized: if `True`, the input `rng` will be understood as ranging from 0-1 (1=max, 0=min) independent of the ufun actual range
         """
-        return random.choice(self.some(rng, normalized))
 
     @abstractmethod
     def best_in(
@@ -526,24 +492,6 @@ class InverseUFun(Protocol):
             - May be different from the maximum of the whole ufun if there is approximation
         """
 
-    def minmax(self) -> tuple[float, float]:
-        """
-        Finds the minimum and maximum utility values that can be returned.
-
-        Remarks:
-            These may be different from the results of `ufun.minmax()` as they can be approximate.
-        """
-        return self.min(), self.max()
-
-    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
-        """
-        Finds the worst and best outcomes that can be returned.
-
-        Remarks:
-            These may be different from the results of `ufun.extreme_outcomes()` as they can be approximate.
-        """
-        return self.worst(), self.best()
-
     @abstractmethod
     def worst(self) -> Outcome:
         """
@@ -556,13 +504,31 @@ class InverseUFun(Protocol):
         Finds the best  outcome
         """
 
+    @abstractmethod
+    def minmax(self) -> tuple[float, float]:
+        """
+        Finds the minimum and maximum utility values that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.minmax()` as they can be approximate.
+        """
+
+    @abstractmethod
+    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
+        """
+        Finds the worst and best outcomes that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.extreme_outcomes()` as they can be approximate.
+        """
+
+    @abstractmethod
     def __call__(
         self, rng: float | tuple[float, float], normalized: bool
     ) -> Outcome | None:
         """
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """
-        return self.one_in(rng, normalized)
 
 
 @runtime_checkable
@@ -590,25 +556,8 @@ class HasRange(HasMinMax, UFun, Protocol):
             (lowest, highest) utilities in that order
 
         """
-        (worst, best) = self.extreme_outcomes(
-            outcome_space, issues, outcomes, max_cardinality
-        )
-        if isinstance(self, UFunCrisp):
-            return self(worst), self(best)
-        w, b = self(worst), self(best)
-        if isinstance(w, Distribution):
-            w = w.min
-        if isinstance(b, Distribution):
-            b = b.max
-        if above_reserve and isinstance(self, HasReservedValue):
-            r = self.reserved_value
-            if b < r:
-                b, w = r, r
-            elif w < r:
-                w = r
-        return w, b
+        ...
 
-    @abstractmethod
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -628,22 +577,31 @@ class HasRange(HasMinMax, UFun, Protocol):
             (worst, best) outcomes
 
         """
+        ...
 
     def max(self) -> Value:
-        _, mx = self.minmax()
-        return mx
+        """
+        Returns maximum utility
+        """
+        ...
 
     def min(self) -> Value:
-        mn, _ = self.minmax()
-        return mn
+        """
+        Returns minimum utility
+        """
+        ...
 
     def best(self) -> Outcome:
-        _, mx = self.extreme_outcomes()
-        return mx
+        """
+        Returns best outcome
+        """
+        ...
 
     def worst(self) -> Outcome:
-        mn, _ = self.extreme_outcomes()
-        return mn
+        """
+        Returns worst outcome
+        """
+        ...
 
 
 @runtime_checkable
@@ -684,7 +642,7 @@ class SingleIssueFun(Fun, Protocol):
 
     @property
     def dim(self) -> int:
-        return 1
+        ...
 
     def minmax(self, input: Issue) -> tuple[float, float]:
         ...
@@ -698,24 +656,11 @@ class SingleIssueFun(Fun, Protocol):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         ...
 
-    @classmethod
-    def from_dict(cls, d: dict) -> "SingleIssueFun":
-        if isinstance(d, cls):
-            return d
-        _ = d.pop(PYTHON_CLASS_IDENTIFIER, None)
-        return cls(**deserialize(d))  # type: ignore Concrete classes will have constructor params
-
     def min(self, input: Issue) -> float:
-        mn, _ = self.minmax(input)
-        return mn
+        ...
 
     def max(self, input: Issue) -> float:
-        _, mx = self.minmax(input)
-        return mx
-
-    def to_dict(self) -> dict[str, Any]:
-
-        return serialize(vars(self))  # type: ignore Not sure but it should be OK
+        ...
 
 
 @runtime_checkable
@@ -829,16 +774,6 @@ class PartiallyScalable(Scalable, BasePref, Protocol):
     ) -> PartiallyScalable:
         ...
 
-    def scale_min(
-        self, to: float, rng: tuple[float, float] | None = None
-    ) -> PartiallyScalable:
-        return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)  # type: ignore
-
-    def scale_max(
-        self, to: float, rng: tuple[float, float] | None = None
-    ) -> PartiallyScalable:
-        return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)  # type: ignore
-
 
 N = TypeVar("N", bound="Normalizable")
 
@@ -869,9 +804,7 @@ class PartiallyNormalizable(PartiallyScalable, PartiallyShiftable, Protocol):
         minmax: tuple[float, float] | None = None,
         **kwargs,
     ) -> TP:
-        return self.normalize_for(
-            to, outcome_space=self.outcome_space, minmax=minmax, **kwargs  # type: ignore
-        )
+        ...
 
     def normalize_for(
         self: TP,

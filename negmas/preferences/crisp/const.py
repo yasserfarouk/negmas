@@ -5,7 +5,6 @@ from typing import List
 
 from negmas.helpers import get_full_type_name, make_range
 from negmas.outcomes import Issue, Outcome
-from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
 from ..base import Value
@@ -15,7 +14,7 @@ from ..mixins import StationaryMixin
 __all__ = ["ConstUtilityFunction"]
 
 
-class ConstUtilityFunction(StationaryMixin, UtilityFunction, XmlSerializable):
+class ConstUtilityFunction(StationaryMixin, UtilityFunction):
     """
     A utility function that returns the same value for all outcomes.
 

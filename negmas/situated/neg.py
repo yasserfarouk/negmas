@@ -336,8 +336,8 @@ class NegWorld(NoContractExecutionMixin, World):
         self._n_negs_per_copmetitor = defaultdict(int)
         self._normalize_scores = normalize_scores
         self._preferences_ranges = None
-        if not all(isinstance(_, HasRange) for _ in domain.ufuns):
-            raise ValueError(f"Not all ufuns has a range!!!")
+        # if not all(isinstance(_, HasRange) for _ in domain.ufuns):
+        #     raise ValueError(f"Not all ufuns has a range!!!")
         if self._normalize_scores:
             self._preferences_ranges = [
                 u.minmax() for u in domain.ufuns  # type: ignore We already check just above

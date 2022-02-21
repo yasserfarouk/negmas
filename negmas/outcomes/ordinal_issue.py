@@ -22,7 +22,7 @@ def generate_values(n: int) -> list[str]:
     return list(f"{_:0{width}d}" for _ in range(n))
 
 
-class OrdinalIssue(Issue, ABC):
+class OrdinalIssue(Issue):
     """
     An `Issue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
     """
@@ -39,11 +39,11 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
     A `DiscreteIssue` that have some defined ordering of outcomes but not necessarily a meaningful difference function between its values.
     """
 
-    def __init__(self, values, name=None, id=None) -> None:
+    def __init__(self, values, name=None) -> None:
         """
         `values` can be an integer and in this case, values will be strings
         """
-        super().__init__(values, name, id)
+        super().__init__(values, name)
         if isinstance(values, int):
             values = generate_values(values)
         else:

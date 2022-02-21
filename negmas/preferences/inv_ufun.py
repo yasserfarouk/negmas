@@ -115,16 +115,45 @@ class SamplingInverseUtilityFunction(InverseUFun):
                 best_util, best = util, o
         return best
 
-    def one_in(self, rng: float | tuple[float, float]) -> Outcome | None:
+    def one_in(
+        self, rng: float | tuple[float, float], normalized: float
+    ) -> Outcome | None:
         if not self._ufun.outcome_space:
             return None
         if not isinstance(rng, Iterable):
-            rng = (rng, rng)
+            rng = (rng - 1e-5, rng + 1e-5)
+        u = self.ufun.eval_normalized if normalized else self.ufun.eval
         for _ in range(self.max_samples_per_call):
             o = list(self._ufun.outcome_space.sample(1))[0]
-            if rng[0] + 1e-7 <= self._ufun(o) <= rng[1] - 1e-7:
+            if rng[0] <= u(o) <= rng[1]:
                 return o
         return None
+
+    def minmax(self) -> tuple[float, float]:
+        """
+        Finds the minimum and maximum utility values that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.minmax()` as they can be approximate.
+        """
+        return self.min(), self.max()
+
+    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
+        """
+        Finds the worst and best outcomes that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.extreme_outcomes()` as they can be approximate.
+        """
+        return self.worst(), self.best()
+
+    def __call__(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
+        """
+        Calling an inverse ufun directly is equivalent to calling `one_in()`
+        """
+        return self.one_in(rng, normalized)
 
 
 class PresortingInverseUtilityFunction(InverseUFun):
@@ -363,3 +392,29 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if not self._ordered_outcomes:
             raise ValueError(f"No outcomes to find the best")
         return self._ordered_outcomes[0][1]
+
+    def minmax(self) -> tuple[float, float]:
+        """
+        Finds the minimum and maximum utility values that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.minmax()` as they can be approximate.
+        """
+        return self.min(), self.max()
+
+    def extreme_outcomes(self) -> tuple[Outcome, Outcome]:
+        """
+        Finds the worst and best outcomes that can be returned.
+
+        Remarks:
+            These may be different from the results of `ufun.extreme_outcomes()` as they can be approximate.
+        """
+        return self.worst(), self.best()
+
+    def __call__(
+        self, rng: float | tuple[float, float], normalized: bool
+    ) -> Outcome | None:
+        """
+        Calling an inverse ufun directly is equivalent to calling `one_in()`
+        """
+        return self.one_in(rng, normalized)

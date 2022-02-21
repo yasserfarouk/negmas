@@ -10,10 +10,10 @@ import numpy as np
 
 from negmas import warnings
 from negmas.helpers.numeric import sample
+from negmas.helpers.strings import unique_name
 from negmas.helpers.types import get_full_type_name
 from negmas.protocols import HasMinMax
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
-from negmas.types import NamedObject
 
 if TYPE_CHECKING:
     from .common import Outcome
@@ -110,7 +110,7 @@ def make_issue(values, *args, **kwargs):
     return CategoricalIssue(values, *args, **kwargs)
 
 
-class Issue(NamedObject, HasMinMax, Iterable, ABC):
+class Issue(HasMinMax, Iterable, ABC):
     """
     Base class of all issues in NegMAS
     """
@@ -119,9 +119,8 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         self,
         values,
         name: Optional[str] = None,
-        id=None,
     ) -> None:
-        super().__init__(name, id=id)
+        self.name = name if name else unique_name("issue", add_time=False, sep="")
         self._value_type = object
         self._values = values
         self._n_values = float("inf")
@@ -219,7 +218,6 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         return cls(
             values=d.get("values", None),
             name=d.get("name", None),
-            id=d.get("id", None),
         )
 
     def to_dict(self):
@@ -231,7 +229,6 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
             **d,
             values=serialize(self.values),
             name=self.name,
-            id=self.id,
             n_values=self._n_values,
         )
 
@@ -398,7 +395,7 @@ class Issue(NamedObject, HasMinMax, Iterable, ABC):
         )
 
 
-class DiscreteIssue(Issue, ABC):
+class DiscreteIssue(Issue):
     """
     An `Issue` with a discrete set of values.
     """

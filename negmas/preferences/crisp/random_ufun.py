@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 __all__ = ["RandomUtilityFunction"]
 
 
-class RandomUtilityFunction(UtilityFunction, StationaryMixin):
+class RandomUtilityFunction(StationaryMixin, UtilityFunction):
     """A random utility function for a discrete outcome space"""
 
     def __init__(
