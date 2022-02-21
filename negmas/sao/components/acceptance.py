@@ -53,10 +53,10 @@ class ACNext(AcceptanceStrategy):
     alpha: float = 1.0
     beta: float = 0.0
 
-    def respond(self, state, offer):
+    def __call__(self, state, offer):
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
-        next = self.negotiator.ufun(self.offering_strategy(state))
+        next = float(self.negotiator.ufun(self.offering_strategy(state)))
         u = self.negotiator.ufun(offer)
         if self.alpha * next + self.beta > u:
             return ResponseType.ACCEPT_OFFER
@@ -72,7 +72,7 @@ class TFTAcceptanceStrategy(AcceptanceStrategy):
     partner_ufun: UFunModel
     recommender: ConcessionRecommender
 
-    def respond(self, state, offer):
+    def __call__(self, state, offer):
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         partner_u = float(self.partner_ufun.eval_normalized(offer)) if offer else 1.0
@@ -98,7 +98,7 @@ class RandomAcceptanceStrategy(AcceptanceStrategy):
     p_rejection: float = 0.25
     p_ending: float = 0.1
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         r = random.random()
         if r <= self.p_acceptance + 1e-8:
             return ResponseType.ACCEPT_OFFER
@@ -124,7 +124,7 @@ class AcceptBest(AcceptanceStrategy):
         if not self.negotiator or not self.negotiator.ufun:
             return
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
 
@@ -159,7 +159,7 @@ class AcceptTop(AcceptanceStrategy):
         ):
             self.negotiator.ufun.invert().init()
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         top_k = self.negotiator.ufun.invert().within_indices((0, self.k))
@@ -184,7 +184,7 @@ class AcceptAbove(AcceptanceStrategy):
         if not self.negotiator or not self.negotiator.ufun:
             return
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         if (
@@ -201,7 +201,7 @@ class EndImmediately(AcceptanceStrategy):
     Rejects immediately anything
     """
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         return ResponseType.END_NEGOTIATION
 
 
@@ -211,7 +211,7 @@ class RejectAlways(AcceptanceStrategy):
     Rejects everything
     """
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         return ResponseType.REJECT_OFFER
 
 
@@ -221,7 +221,7 @@ class AcceptImmediately(AcceptanceStrategy):
     Accepts immediately anything
     """
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         return ResponseType.ACCEPT_OFFER
 
 
@@ -252,7 +252,7 @@ class LimitedOutcomesAcceptanceStrategy(AcceptanceStrategy):
             prob=dict(zip(outcomes, prob)), p_ending=p_ending
         )
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         if random.random() < self.p_ending - 1e-12:
             return ResponseType.END_NEGOTIATION
         if self.prob is None:
@@ -274,7 +274,7 @@ class NegotiatorAcceptanceStrategy(AcceptanceStrategy):
 
     acceptor: SAONegotiator
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         return self.acceptor.respond(state, offer)
 
 
@@ -305,7 +305,7 @@ class ConcensusAcceptanceStrategy(AcceptanceStrategy, ABC):
         Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
         """
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
             response = s.respond(state, offer)
