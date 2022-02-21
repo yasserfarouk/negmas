@@ -123,7 +123,7 @@ class SAOComponent(Component):
 @define
 class AcceptanceStrategy(SAOComponent):
     @abstractmethod
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def respond(self, state: SAOState, offer: Outcome | None) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
@@ -140,6 +140,9 @@ class AcceptanceStrategy(SAOComponent):
 
         """
 
+    def __call__(self, state: SAOState, offer: Outcome | None) -> ResponseType:
+        return self.respond(state, offer)
+
     def __or__(self, s: AcceptanceStrategy):
         from .acceptance import AnyAcceptanceStrategy
 
@@ -147,12 +150,30 @@ class AcceptanceStrategy(SAOComponent):
             raise ValueError(f"Cannot combine strategies with different negotiators")
         return AnyAcceptanceStrategy([self, s])
 
+    def __not__(self):
+        return RejectionStrategy(self)
+
     def __and__(self, s: AcceptanceStrategy):
         from .acceptance import AllAcceptanceStrategies
 
         if self.negotiator != s.negotiator:
             raise ValueError(f"Cannot combine strategies with different negotiators")
         return AllAcceptanceStrategies([self, s])
+
+
+@define
+class RejectionStrategy(AcceptanceStrategy):
+    """
+    Reverses the decision of an acceptance strategy (Rejects if the original was accepting and Accepts in any other case)
+    """
+
+    a: AcceptanceStrategy
+
+    def respond(self, state: SAOState, offer: Outcome | None) -> ResponseType:
+        response = self.a(state, offer)
+        if response == ResponseType.ACCEPT_OFFER:
+            return ResponseType.REJECT_OFFER
+        return ResponseType.ACCEPT_OFFER
 
 
 @define
@@ -171,6 +192,9 @@ class OfferingStrategy(SAOComponent):
             - This function guarantees that no agents can propose something with a utility value
 
         """
+
+    def __call__(self, state: SAOState) -> Outcome | None:
+        return self.propose(state)
 
     def __or__(self, s: OfferingStrategy):
         from .offering import RandomConcensusOfferingStrategy
