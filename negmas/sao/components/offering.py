@@ -49,7 +49,7 @@ class TFTOfferingStrategy(OfferingStrategy):
     stochastic: bool = False
     _partner_offer: Outcome | None = field(init=False, default=None)
 
-    def propose(self, state):
+    def __call__(self, state):
         if not self.negotiator or not self.negotiator.ufun:
             return None
         partner_u = (
@@ -96,7 +96,7 @@ class OfferBest(OfferingStrategy):
             return
         _, self._best = self.negotiator.ufun.extreme_outcomes()
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def __call__(self, state: SAOState) -> Outcome | None:
         return self._best
 
 
@@ -126,7 +126,7 @@ class OfferTop(OfferingStrategy):
         ):
             self.negotiator.ufun.invert().init()
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def __call__(self, state: SAOState) -> Outcome | None:
         if not self.negotiator or not self.negotiator.ufun:
             return None
         top_k = self.negotiator.ufun.invert().within_indices((0, self.k))
@@ -141,7 +141,7 @@ class NoneOfferingStrategy(OfferingStrategy):
     Always offers `None` which means it never gets an agreement.
     """
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def __call__(self, state: SAOState) -> Outcome | None:
         return None
 
 
@@ -151,7 +151,7 @@ class RandomOfferingStrategy(OfferingStrategy):
     Always offers `None` which means it never gets an agreement.
     """
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def __call__(self, state: SAOState) -> Outcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
         return self.negotiator.nmi.random_outcomes(1)[0]
@@ -167,7 +167,7 @@ class LimitedOutcomesOfferingStrategy(OfferingStrategy):
     prob: list[float] | None = None
     p_ending: float = 0.0
 
-    def propose(self, state: SAOState, retry=False) -> Outcome | None:
+    def __call__(self, state: SAOState, retry=False) -> Outcome | None:
         if not self.negotiator or not self.negotiator.nmi:
             return None
         if random.random() < self.p_ending - 1e-7:
@@ -199,7 +199,7 @@ class NegotiatorOfferingStrategy(OfferingStrategy):
 
     proposer: SAONegotiator = field(kw_only=True)
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def __call__(self, state: SAOState) -> Outcome | None:
         return self.proposer.propose(state)
 
 
@@ -232,7 +232,7 @@ class ConcensusOfferingStrategy(OfferingStrategy, ABC):
         Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
         """
 
-    def propose(self, state: SAOState) -> Outcome | None:
+    def __call__(self, state: SAOState) -> Outcome | None:
         selected, selected_indices = [], []
         for i, s in enumerate(self.strategies):
             response = s.propose(state)

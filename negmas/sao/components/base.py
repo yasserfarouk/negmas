@@ -122,7 +122,6 @@ class SAOComponent(Component):
 
 @define
 class AcceptanceStrategy(SAOComponent):
-    @abstractmethod
     def respond(self, state: SAOState, offer: Outcome | None) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
@@ -139,7 +138,9 @@ class AcceptanceStrategy(SAOComponent):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
+        return self(state, offer)
 
+    @abstractmethod
     def __call__(self, state: SAOState, offer: Outcome | None) -> ResponseType:
         return self.respond(state, offer)
 
@@ -169,7 +170,7 @@ class RejectionStrategy(AcceptanceStrategy):
 
     a: AcceptanceStrategy
 
-    def respond(self, state: SAOState, offer: Outcome | None) -> ResponseType:
+    def __call__(self, state: SAOState, offer: Outcome | None) -> ResponseType:
         response = self.a(state, offer)
         if response == ResponseType.ACCEPT_OFFER:
             return ResponseType.REJECT_OFFER
@@ -178,7 +179,8 @@ class RejectionStrategy(AcceptanceStrategy):
 
 @define
 class OfferingStrategy(SAOComponent):
-    @abstractmethod
+    _current_offer: tuple[int, Outcome | None] = field(init=False, default=(-1, None))
+
     def propose(self, state: SAOState) -> Outcome | None:
         """Propose an offer or None to refuse.
 
@@ -192,9 +194,14 @@ class OfferingStrategy(SAOComponent):
             - This function guarantees that no agents can propose something with a utility value
 
         """
+        if self._current_offer[0] != state.step:
+            offer = self(state)
+            self._current_offer = (state.step, offer)
+        return self._current_offer[1]
 
+    @abstractmethod
     def __call__(self, state: SAOState) -> Outcome | None:
-        return self.propose(state)
+        ...
 
     def __or__(self, s: OfferingStrategy):
         from .offering import RandomConcensusOfferingStrategy
