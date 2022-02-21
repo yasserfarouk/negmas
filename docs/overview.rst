@@ -306,10 +306,36 @@ NegMAS supports a variety of ``Issue`` types.
     print(issue2)
 
 
-.. parsed-literal::
 
-    TVxoHhOQTAWzrEZU: ['to be', 'not to be']
-    The Problem: ['to be', 'not to be']
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">issueTVxoHhOQ: <span style="font-weight: bold">[</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">]</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">issueTVxoHhOQ: <span style="font-weight: bold">[</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">]</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">The Problem: <span style="font-weight: bold">[</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">]</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">The Problem: <span style="font-weight: bold">[</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">]</span>
+    </pre>
+
 
 
 -  Using a single integer to give an issue which takes any value from
@@ -321,9 +347,20 @@ NegMAS supports a variety of ``Issue`` types.
     print(issue3)
 
 
-.. parsed-literal::
 
-    number of items: (0, 9)
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">number of items: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">number of items: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">)</span>
+    </pre>
+
 
 
 -  Using a ``tuple`` with a lower and upper real-valued boundaries to
@@ -336,9 +373,20 @@ NegMAS supports a variety of ``Issue`` types.
     print(issue4)
 
 
-.. parsed-literal::
 
-    cost: (0.0, 1.0)
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">cost: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">cost: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span><span style="font-weight: bold">)</span>
+    </pre>
+
 
 
 The ``Issue`` class provides some useful functions. For example you can
@@ -347,6 +395,14 @@ find the ``cardinality`` of any issue using:
 .. code:: ipython3
 
     [issue2.cardinality, issue3.cardinality, issue4.cardinality]
+
+
+
+
+.. parsed-literal::
+
+    [2, 10, inf]
+
 
 
 
@@ -373,12 +429,28 @@ discrete or continuous:
 
 
 
+
+
+.. parsed-literal::
+
+    ['categorical', True, False]
+
+
+
 It is possible to check the total cardinality for a set of issues:
 
 .. code:: ipython3
 
     [num_outcomes([issue1, issue2, issue3, issue4]), # expected inf
      num_outcomes([issue1, issue2, issue3])] # expected 40 = 2 * 2 * 10
+
+
+
+
+.. parsed-literal::
+
+    [inf, 40]
+
 
 
 
@@ -404,9 +476,19 @@ You can pick random valid or invalid values for the issue:
 
 .. parsed-literal::
 
-    [['to be', '20220219H112412903289W1q6gdElto be20220219H1124129033533sAHogUt'],
-     [9, 12],
-     [0.6976970707821888, 1.303414685774959]]
+    [['to be', '20220221H195628127744Xb7dNW1qto be20220221H195628127785P44ir3sA'],
+     [6, 13],
+     [0.2601332542192585, 2.0043986330300445]]
+
+
+
+
+
+.. parsed-literal::
+
+    [['to be', '20220221H195628127744Xb7dNW1qto be20220221H195628127785P44ir3sA'],
+     [6, 13],
+     [0.2601332542192585, 2.0043986330300445]]
 
 
 
@@ -425,12 +507,68 @@ from them using ``value_generator``. Notice that ``all`` and
         print(e)
 
 
-.. parsed-literal::
 
-    ('to be', 'not to be')
-    ('to be', 'not to be')
-    (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    Cannot enumerate all values of a continuous issue
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'to be'</span>, <span style="color: #008000; text-decoration-color: #008000">'not to be'</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Cannot enumerate all values of a continuous issue
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Cannot enumerate all values of a continuous issue
+    </pre>
+
 
 
 Outcomes
@@ -477,6 +615,14 @@ examples:
 
 
 
+
+
+.. parsed-literal::
+
+    [True, False]
+
+
+
 It is not necessary for an outcome to assign a value for *all* issues to
 be considered *valid*. For example the following outcomes are all valid
 for the last three issues given above:
@@ -487,6 +633,14 @@ for the last three issues given above:
         outcome_is_valid({'The Problem': 'to be'}, [issue2, issue3, issue4]),
         outcome_is_valid({'The Problem': 'to be', 'number of items': 5}, [issue2, issue3, issue4])
     ]
+
+
+
+
+.. parsed-literal::
+
+    [True, True]
+
 
 
 
@@ -516,6 +670,14 @@ same way.
 
 
 
+
+
+.. parsed-literal::
+
+    [True, False]
+
+
+
 It is also important for some applications to check if an outcome is
 ``complete`` in the sense that it assigns a *valid* value to every issue
 in the given set of issues. This can be done using the
@@ -528,6 +690,14 @@ in the given set of issues. This can be done using the
         outcome_is_complete(invalid_outcome, [issue2, issue3, issue4]),          # invalid -> incomplete -> False
         outcome_is_complete({'The Problem': 'to be'}, [issue2, issue3, issue4])  # incomplete -> False
     ]
+
+
+
+
+.. parsed-literal::
+
+    [True, False, False]
+
 
 
 
@@ -582,6 +752,14 @@ It is easy to check whether a specific outcome is within a given range:
 
 
 
+
+
+.. parsed-literal::
+
+    [True, False]
+
+
+
 In general outcome ranges constraint outcomes depending on the type of
 the constraint:
 
@@ -609,9 +787,20 @@ set of issues and can be created using ``make_os`` function:
     print(type(myos))
 
 
-.. parsed-literal::
 
-    <class 'negmas.outcomes.outcome_space.CartesianOutcomeSpace'>
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.outcomes.outcome_space.CartesianOutcomeSpace'</span><span style="font-weight: bold">&gt;</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'negmas.outcomes.outcome_space.CartesianOutcomeSpace'</span><span style="font-weight: bold">&gt;</span>
+    </pre>
+
 
 
 A special case of ``CartesianOutcomeSpace`` is a
@@ -701,10 +890,36 @@ This means that both of the following are valid utility values
     print(u2)
 
 
-.. parsed-literal::
 
-    1.0
-    U(0.0, 1.0)
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">U</span><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span><span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">U</span><span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span><span style="font-weight: bold">)</span>
+    </pre>
+
 
 
 Preferences
@@ -814,6 +1029,14 @@ a simple example:
 
 
 
+
+
+.. parsed-literal::
+
+    30.0
+
+
+
 Note that we used ``StationaryUtilityFunction`` as the base class to
 inform users of the ``ConstUtilityFunction`` class that it represents a
 stationary ufun which means that it is OK to cache results of calls to
@@ -827,15 +1050,21 @@ change or evolution of them during negotiations. For example this
 .. code:: ipython3
 
     class MoodyUtilityFunction(UtilityFunction):
-        def __init__(self, mood='good'):
+        def __init__(self, mood='good', stationary=False):
             super().__init__()
             self.mood = mood
+            self._stationary = stationary
+
+        def to_stationary(self):
+            return MoodyUtilityFunction(mood=self.mood, stationary=True)
 
         def eval(self, offer):
             if self.mood not in ('good', 'bad'):
                 raise ValueError(f"Cannot calculate utility for {offer}")
             return float(offer[COST]) if self.mood == 'good' else 0.1 * offer[COST]
         def set_mood(self, mood):
+            if self._stationary:
+                return
             self.mood = mood
 
         def xml(self):
@@ -855,11 +1084,52 @@ change or evolution of them during negotiations. For example this
         print(f'Utility in good mood of {offer} is undecidable: {e}')
 
 
-.. parsed-literal::
 
-    Utility in good mood of (10,) is 10.0
-    Utility in bad mood of (10,) is 1.0
-    Utility in good mood of (10,) is undecidable: Cannot calculate utility for (10,)
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Utility in good mood of <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span> is <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Utility in good mood of <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span> is <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Utility in bad mood of <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span> is <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Utility in bad mood of <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span> is <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Utility in good mood of <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span> is undecidable: Cannot calculate utility for <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Utility in good mood of <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span> is undecidable: Cannot calculate utility for <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>,<span style="font-weight: bold">)</span>
+    </pre>
+
 
 
 Notice that (as the last example shows) utility functions can return
@@ -1002,9 +1272,20 @@ different options:
     print(buyer_utility((1.0, 3, 'not delivered')))
 
 
-.. parsed-literal::
 
-    0.5
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.5</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.5</span>
+    </pre>
+
 
 
 Now what happens if we offer to deliver the items:
@@ -1014,9 +1295,20 @@ Now what happens if we offer to deliver the items:
     print(buyer_utility((1.0, 3, 'delivered')))
 
 
-.. parsed-literal::
 
-    1.5
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.5</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.5</span>
+    </pre>
+
 
 
 And if delivery was accompanied with an increase in price
@@ -1026,9 +1318,20 @@ And if delivery was accompanied with an increase in price
     print(buyer_utility((1.8, 3, 'delivered')))
 
 
-.. parsed-literal::
 
-    0.7
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.7</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.7</span>
+    </pre>
+
 
 
 It is clear that this buyer will still accept that increase of price
@@ -1045,6 +1348,14 @@ more readable:
                      issues=buyer_utility.issues
                     )
     )
+
+
+
+
+.. parsed-literal::
+
+    0.7
+
 
 
 
@@ -1087,9 +1398,20 @@ We can now evaluate different options similar to the case for the buyer:
     print(seller_utility((1.0, 3, 'not delivered')))
 
 
-.. parsed-literal::
 
-    0.6666666666666666
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.6666666666666666</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.6666666666666666</span>
+    </pre>
+
 
 
 .. code:: ipython3
@@ -1097,9 +1419,20 @@ We can now evaluate different options similar to the case for the buyer:
     print(seller_utility((1.0, 3, 'delivered')))
 
 
-.. parsed-literal::
 
-    0.16666666666666663
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.16666666666666663</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.16666666666666663</span>
+    </pre>
+
 
 
 .. code:: ipython3
@@ -1107,9 +1440,20 @@ We can now evaluate different options similar to the case for the buyer:
     print(seller_utility((1.8, 3, 'delivered')))
 
 
-.. parsed-literal::
 
-    0.7
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.7</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.7</span>
+    </pre>
+
 
 
 Hyper Rectangle Utility Functions
@@ -1142,11 +1486,52 @@ can be represented as follows:
     print(seller_utility({'price': 1.8, 'number of items': 3, 'delivery': 'delivered'}))
 
 
-.. parsed-literal::
 
-    0.6666666666666666
-    0.16666666666666663
-    0.7
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.6666666666666666</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.6666666666666666</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.16666666666666663</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.16666666666666663</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.7</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.7</span>
+    </pre>
+
 
 
 This function recovered exactly the same values as the
@@ -1207,12 +1592,28 @@ constraints:
 
 
 
+
+
+.. parsed-literal::
+
+    22.25
+
+
+
 -  An outcome that falls in the range of the global and first local
    constraints only:
 
 .. code:: ipython3
 
     f([1.5, 1.5, 1.0])
+
+
+
+
+.. parsed-literal::
+
+    6.0
+
 
 
 
@@ -1230,9 +1631,20 @@ constraints:
     print(f([1.5, 1.5]))
 
 
-.. parsed-literal::
 
-    None
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    </pre>
+
 
 
 Notice that in this case, no utility is calculated because we do not
@@ -1255,9 +1667,20 @@ or not. To allow such cases, the initializer of
     print(g([1.5, 1.5]))
 
 
-.. parsed-literal::
 
-    7.0
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7.0</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7.0</span>
+    </pre>
+
 
 
 Nonlinear Hyper Rectangle Utility Functions
@@ -1285,36 +1708,73 @@ module for more details
 
 .. code:: ipython3
 
-    from pprint import pprint
-    pprint(list(_ for _ in negmas.preferences.__all__ if _.endswith("Function")))
+    print(list(_ for _ in negmas.preferences.__all__ if _.endswith("Function")))
 
 
-.. parsed-literal::
 
-    ['BaseUtilityFunction',
-     'UtilityFunction',
-     'ProbUtilityFunction',
-     'PresortingInverseUtilityFunction',
-     'SamplingInverseUtilityFunction',
-     'DiscountedUtilityFunction',
-     'ConstUtilityFunction',
-     'LinearUtilityAggregationFunction',
-     'LinearAdditiveUtilityFunction',
-     'LinearUtilityFunction',
-     'AffineUtilityFunction',
-     'MappingUtilityFunction',
-     'NonLinearAggregationUtilityFunction',
-     'HyperRectangleUtilityFunction',
-     'NonlinearHyperRectangleUtilityFunction',
-     'RandomUtilityFunction',
-     'RankOnlyUtilityFunction',
-     'ProbMappingUtilityFunction',
-     'IPUtilityFunction',
-     'ILSUtilityFunction',
-     'UniformUtilityFunction',
-     'ProbRandomUtilityFunction',
-     'WeightedUtilityFunction',
-     'ComplexNonlinearUtilityFunction']
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">[</span>
+        <span style="color: #008000; text-decoration-color: #008000">'BaseUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'UtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ProbUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'PresortingInverseUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'SamplingInverseUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'DiscountedUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ConstUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'LinearUtilityAggregationFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'LinearAdditiveUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'LinearUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'AffineUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'MappingUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'NonLinearAggregationUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'HyperRectangleUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'NonlinearHyperRectangleUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'RandomUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'RankOnlyUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ProbMappingUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'IPUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ILSUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'UniformUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ProbRandomUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'WeightedUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ComplexNonlinearUtilityFunction'</span>
+    <span style="font-weight: bold">]</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">[</span>
+        <span style="color: #008000; text-decoration-color: #008000">'BaseUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'UtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ProbUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'PresortingInverseUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'SamplingInverseUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'DiscountedUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ConstUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'LinearUtilityAggregationFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'LinearAdditiveUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'LinearUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'AffineUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'MappingUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'NonLinearAggregationUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'HyperRectangleUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'NonlinearHyperRectangleUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'RandomUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'RankOnlyUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ProbMappingUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'IPUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ILSUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'UniformUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ProbRandomUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'WeightedUtilityFunction'</span>,
+        <span style="color: #008000; text-decoration-color: #008000">'ComplexNonlinearUtilityFunction'</span>
+    <span style="font-weight: bold">]</span>
+    </pre>
+
 
 
 Utility Helpers and Analysis Tools
@@ -1537,6 +1997,14 @@ provided protocols. This is an example of a full negotiation session:
 
 
 
+
+
+.. parsed-literal::
+
+    (3,)
+
+
+
 You can create a new protocol by overriding a single function in the
 ``Protocol`` class.
 
@@ -1608,6 +2076,14 @@ any built-in protocol:
 
 
 
+
+
+.. parsed-literal::
+
+    (3,)
+
+
+
 The negotiation ran with the expected results
 
 Our mechanism keeps a history in the form of a list of
@@ -1659,44 +2135,72 @@ Our mechanism keeps a history in the form of a list of
       <tbody>
         <tr>
           <th>0</th>
-          <td>True</td>
+          <td>False</td>
           <td>False</td>
           <td>True</td>
           <td>0</td>
-          <td>0.000742</td>
+          <td>0.001417</td>
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
-          <td>None</td>
-          <td>None</td>
-          <td>2</td>
-          <td>False</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>True</td>
-          <td>False</td>
-          <td>True</td>
-          <td>1</td>
-          <td>0.001438</td>
-          <td>0.181818</td>
-          <td>False</td>
-          <td>False</td>
-          <td>None</td>
+          <td>(3,)</td>
           <td>None</td>
           <td>2</td>
           <td>False</td>
           <td></td>
         </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>running</th>
+          <th>waiting</th>
+          <th>started</th>
+          <th>step</th>
+          <th>time</th>
+          <th>relative_time</th>
+          <th>broken</th>
+          <th>timedout</th>
+          <th>agreement</th>
+          <th>results</th>
+          <th>n_negotiators</th>
+          <th>has_error</th>
+          <th>error_details</th>
+        </tr>
+      </thead>
+      <tbody>
         <tr>
-          <th>2</th>
+          <th>0</th>
           <td>False</td>
           <td>False</td>
           <td>True</td>
-          <td>2</td>
-          <td>0.001966</td>
-          <td>0.272727</td>
+          <td>0</td>
+          <td>0.001417</td>
+          <td>0.090909</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1759,9 +2263,20 @@ did previously
     print(f"Agreement: {p.state.agreement}")
 
 
-.. parsed-literal::
 
-    Agreement: (3,)
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,<span style="font-weight: bold">)</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,<span style="font-weight: bold">)</span>
+    </pre>
+
 
 
 We can now check the history again (showing few of the attributes only)
@@ -1824,14 +2339,232 @@ to confirm that the current offer and its source are stored.
           <td>0.090909</td>
           <td>False</td>
           <td>False</td>
-          <td>(2,)</td>
+          <td>(5,)</td>
           <td>seller</td>
         </tr>
         <tr>
           <th>1</th>
           <td>1</td>
-          <td>(3,)</td>
+          <td>None</td>
           <td>0.181818</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.272727</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.363636</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.454545</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>0.545455</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>6</th>
+          <td>6</td>
+          <td>None</td>
+          <td>0.636364</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>7</th>
+          <td>7</td>
+          <td>None</td>
+          <td>0.727273</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>8</th>
+          <td>8</td>
+          <td>None</td>
+          <td>0.818182</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>9</th>
+          <td>9</td>
+          <td>(3,)</td>
+          <td>0.909091</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(3,)</td>
+          <td>buyer</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>step</th>
+          <th>agreement</th>
+          <th>relative_time</th>
+          <th>timedout</th>
+          <th>broken</th>
+          <th>current_offer</th>
+          <th>current_offerer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>None</td>
+          <td>0.090909</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.181818</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.272727</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(5,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.363636</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.454545</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>0.545455</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>6</th>
+          <td>6</td>
+          <td>None</td>
+          <td>0.636364</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>7</th>
+          <td>7</td>
+          <td>None</td>
+          <td>0.727273</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>8</th>
+          <td>8</td>
+          <td>None</td>
+          <td>0.818182</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>9</th>
+          <td>9</td>
+          <td>(3,)</td>
+          <td>0.909091</td>
           <td>False</td>
           <td>False</td>
           <td>(3,)</td>
@@ -1856,9 +2589,20 @@ acceptable outcomes in our case):
     show_history(p)
 
 
-.. parsed-literal::
 
-    Agreement: None
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    </pre>
+
 
 
 
@@ -1900,7 +2644,7 @@ acceptable outcomes in our case):
           <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1910,7 +2654,7 @@ acceptable outcomes in our case):
           <td>0.285714</td>
           <td>False</td>
           <td>False</td>
-          <td>(1,)</td>
+          <td>(4,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1920,7 +2664,7 @@ acceptable outcomes in our case):
           <td>0.428571</td>
           <td>False</td>
           <td>False</td>
-          <td>(5,)</td>
+          <td>(2,)</td>
           <td>seller</td>
         </tr>
         <tr>
@@ -1930,7 +2674,7 @@ acceptable outcomes in our case):
           <td>0.571429</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(1,)</td>
           <td>buyer</td>
         </tr>
         <tr>
@@ -1950,7 +2694,105 @@ acceptable outcomes in our case):
           <td>0.857143</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>step</th>
+          <th>agreement</th>
+          <th>relative_time</th>
+          <th>timedout</th>
+          <th>broken</th>
+          <th>current_offer</th>
+          <th>current_offerer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>None</td>
+          <td>0.142857</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.285714</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.428571</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.571429</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.714286</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(2,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>0.857143</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
           <td>buyer</td>
         </tr>
       </tbody>
@@ -1973,9 +2815,20 @@ agree upon:
     show_history(p)
 
 
-.. parsed-literal::
 
-    Agreement: (3,)
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    </pre>
+
+
+
+
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Agreement: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>
+    </pre>
+
 
 
 
@@ -2013,12 +2866,160 @@ agree upon:
         <tr>
           <th>0</th>
           <td>0</td>
-          <td>(3,)</td>
+          <td>None</td>
           <td>0.142857</td>
           <td>False</td>
           <td>False</td>
-          <td>(3,)</td>
+          <td>(0,)</td>
           <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.285714</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.428571</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(0,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.571429</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.714286</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(0,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>0.857143</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>step</th>
+          <th>agreement</th>
+          <th>relative_time</th>
+          <th>timedout</th>
+          <th>broken</th>
+          <th>current_offer</th>
+          <th>current_offerer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>None</td>
+          <td>0.142857</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(0,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>1</td>
+          <td>None</td>
+          <td>0.285714</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(1,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>2</td>
+          <td>None</td>
+          <td>0.428571</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(0,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>3</td>
+          <td>None</td>
+          <td>0.571429</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>4</td>
+          <td>None</td>
+          <td>0.714286</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(0,)</td>
+          <td>seller</td>
+        </tr>
+        <tr>
+          <th>5</th>
+          <td>5</td>
+          <td>None</td>
+          <td>0.857143</td>
+          <td>False</td>
+          <td>False</td>
+          <td>(4,)</td>
+          <td>buyer</td>
         </tr>
       </tbody>
     </table>

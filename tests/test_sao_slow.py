@@ -56,7 +56,17 @@ TFT_NEGOTIATORS = [
 ALL_BUILTIN_NEGOTIATORS = [
     get_class(f"negmas.sao.negotiators.{x}")
     for x in negmas.sao.negotiators.__all__
-    if x not in ["SAONegotiator", "UtilBasedNegotiator", "make_boa", "MakeBoa"]
+    if x
+    not in [
+        "SAONegotiator",
+        "UtilBasedNegotiator",
+        "make_boa",
+        "MakeBoa",
+        "SAOModularNegotiator",
+        "BOANegotiator",
+        "ControlledSAONegotiator",
+        "MAPNegotiator",
+    ]
 ]
 
 
@@ -1480,3 +1490,9 @@ def test_specific_negotiator_buy_selling(negotiator):
     try_negotiator(negotiator, plot=False)
     # import matplotlib.pyplot as plt
     # plt.show(block=True)
+
+
+if __name__ == "__main__":
+    from rich import print
+
+    print(ALL_BUILTIN_NEGOTIATORS)
