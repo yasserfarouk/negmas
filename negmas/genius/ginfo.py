@@ -264,7 +264,7 @@ GENIUS_INFO = {
         "multilateral": True,
         "bilateral": False,
         "reservation": None,
-        "discounting": None,
+        "discounting": True,
         "uncertainty": False,
         "elicitation": False,
     },
