@@ -22,7 +22,7 @@ __all__ = [
 
 class ModularNegotiator(Negotiator):
     """
-    A generic moduler negotiator that can combine multiple negotiation `Component` s.
+    A generic modular negotiator that can combine multiple negotiation `Component` s.
 
 
     This class simply holds a list of components and call them on every event.

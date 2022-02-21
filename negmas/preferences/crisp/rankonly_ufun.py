@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 __all__ = ["RankOnlyUtilityFunction"]
 
 
-class RankOnlyUtilityFunction(UtilityFunction, StationaryMixin):
+class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
     """
     A utility function that keeps trak of outcome order onlyself.
 

@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.helpers import get_class, make_range
 from negmas.outcomes import Issue, Outcome
-from negmas.protocols import XmlSerializable
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .base import Value
@@ -17,9 +16,7 @@ from .mixins import StateDependentUFunMixin
 __all__ = ["LinDiscountedUFun", "ExpDiscountedUFun", "DiscountedUtilityFunction"]
 
 
-class DiscountedUtilityFunction(
-    StateDependentUFunMixin, BaseUtilityFunction, XmlSerializable
-):
+class DiscountedUtilityFunction(StateDependentUFunMixin, BaseUtilityFunction):
     """Base class for all discounted ufuns"""
 
     def __init__(self, ufun: BaseUtilityFunction, **kwargs):
@@ -28,6 +25,9 @@ class DiscountedUtilityFunction(
 
     def is_state_dependent(self):
         return True
+
+    def to_stationary(self):
+        return self.ufun.to_stationary()
 
 
 class ExpDiscountedUFun(DiscountedUtilityFunction):

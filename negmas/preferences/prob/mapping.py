@@ -19,7 +19,7 @@ from ..prob_ufun import ProbUtilityFunction
 __all__ = ["ProbMappingUtilityFunction"]
 
 
-class ProbMappingUtilityFunction(ProbUtilityFunction, StationaryMixin):
+class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
     """
     Outcome mapping utility function.
 

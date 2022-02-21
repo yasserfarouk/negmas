@@ -20,7 +20,7 @@ from ..mixins import StationaryMixin
 __all__ = ["MappingUtilityFunction"]
 
 
-class MappingUtilityFunction(UtilityFunction, StationaryMixin):
+class MappingUtilityFunction(StationaryMixin, UtilityFunction):
     """
     Outcome mapping utility function.
 

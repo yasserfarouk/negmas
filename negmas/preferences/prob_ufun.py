@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-class ProbUtilityFunction(_General, BaseUtilityFunction, UFunProb):
+class ProbUtilityFunction(_General, BaseUtilityFunction):
     """A probablistic utility function. One that returns a probability distribution when called"""
 
     @abstractmethod
@@ -267,4 +267,4 @@ class ProbAdapter(ProbUtilityFunction):
         return v
 
     def to_stationary(self):
-        return self._ufun.to_stationary()
+        return ProbAdapter(self._ufun.to_stationary())

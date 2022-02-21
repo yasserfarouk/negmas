@@ -11,7 +11,7 @@ from ..prob_ufun import ProbUtilityFunction
 __all__ = ["ILSUtilityFunction", "UniformUtilityFunction"]
 
 
-class ILSUtilityFunction(ProbUtilityFunction, StationaryMixin):
+class ILSUtilityFunction(StationaryMixin, ProbUtilityFunction):
     """
     A utility function which represents the loc and scale deviations as any crisp ufun
     """
@@ -33,7 +33,7 @@ class ILSUtilityFunction(ProbUtilityFunction, StationaryMixin):
         return ScipyDistribution(self._type, loc=loc, scale=scale)
 
 
-class UniformUtilityFunction(ILSUtilityFunction, StationaryMixin):
+class UniformUtilityFunction(ILSUtilityFunction):
     """
     A utility function which represents the loc and scale deviations as any crisp ufun
     """
@@ -42,10 +42,16 @@ class UniformUtilityFunction(ILSUtilityFunction, StationaryMixin):
         super().__init__("uniform", loc, scale, *args, *kwargs)
 
 
-class GaussialUtilityFunction(ILSUtilityFunction, StationaryMixin):
+class GaussianUtilityFunction(ILSUtilityFunction):
     """
     A utility function which represents the mean and std deviations as any crisp ufun
     """
 
     def __init__(self, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
         super().__init__("norm", loc, scale, *args, *kwargs)
+
+
+NormalUtilityFunction = GaussianUtilityFunction
+"""
+An alias for `GaussianUtilityFunction`
+"""

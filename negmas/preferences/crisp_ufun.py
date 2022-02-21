@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 
+from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.protocols import OutcomeSpace
 
 from .base_ufun import BaseUtilityFunction, _General
-from .protocols import UFunCrisp
 from .value_fun import MAX_CARINALITY
 
 if TYPE_CHECKING:
@@ -24,8 +24,12 @@ __all__ = [
 T = TypeVar("T", bound="UtilityFunction")
 
 
-class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
+class UtilityFunction(_General, BaseUtilityFunction):
     """Base for all crisp ufuns"""
+
+    @abstractmethod
+    def eval(self, offer: Outcome) -> float:
+        ...
 
     def __call__(self, offer: Outcome | None) -> float:
         """Calculate the utility_function value for a given outcome.
@@ -51,9 +55,13 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
             return self.reserved_value
         return self.eval(offer)
 
-    @abstractmethod
-    def eval(self, offer: Outcome) -> float:
-        ...
+    def eval_normalized(
+        self,
+        offer: Outcome | None,
+        above_reserve: bool = True,
+        expected_limits: bool = True,
+    ) -> float:
+        return float(super().eval_normalized(offer, above_reserve, expected_limits))
 
     def to_crisp(self) -> UtilityFunction:
         return self
@@ -234,6 +242,17 @@ class UtilityFunction(_General, BaseUtilityFunction, UFunCrisp):
         u = self.scale_by(scale, scale_reserved=True)
         return u.shift_by(to[0] - scale * mn, shift_reserved=True)
 
+    def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
+        return self.difference(first, second) > 0
+
+    def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
+        """
+        Returns a numeric difference between the utility of the two given outcomes
+        """
+        return ScipyDistribution(
+            loc=self.difference(first, second), scale=0.0, type="uniform"
+        )
+
 
 class CrispAdapter(UtilityFunction):
     """
@@ -247,4 +266,4 @@ class CrispAdapter(UtilityFunction):
         return float(self._prob.eval(offer))
 
     def to_stationary(self):
-        return self._prob.to_stationary()
+        return CrispAdapter(prob=self._prob.to_stationary())

@@ -52,6 +52,14 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             weights = [1.0] * len(self.values)
         self.weights = list(weights)
 
+    def to_stationary(self):
+        return WeightedUtilityFunction(
+            ufuns=[_.to_stationary() for _ in self.values],
+            weights=self.weights,
+            name=self.name,
+            id=self.id,
+        )
+
     @classmethod
     def random(
         cls,
@@ -140,6 +148,14 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         super().__init__(**kwargs)
         self.ufuns = list(ufuns)
         self.combination_function = combination_function
+
+    def to_stationary(self):
+        return ComplexNonlinearUtilityFunction(
+            ufuns=[_.to_stationary() for _ in self.ufuns],
+            combination_function=self.combination_function,
+            name=self.name,
+            id=self.id,
+        )
 
     @classmethod
     def random(

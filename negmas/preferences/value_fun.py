@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from functools import lru_cache, reduce
 from math import cos, e, log, pow, sin
 from operator import add
-from random import choice
 from typing import Any, Callable, Iterable
+
+from attr import asdict, define
 
 from negmas.helpers.misc import (
     monotonic_minmax,
@@ -18,6 +19,7 @@ from negmas.helpers.misc import (
 from negmas.helpers.types import is_lambda_function
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .protocols import MultiIssueFun, SingleIssueFun
 
@@ -44,8 +46,36 @@ __all__ = [
 ]
 
 
-@dataclass
-class TableFun(SingleIssueFun):
+class BaseFun(ABC):
+    @property
+    def dim(self) -> int:
+        return 1
+
+    @abstractmethod
+    def minmax(self, input: Issue) -> tuple[float, float]:
+        ...
+
+    @classmethod
+    def from_dict(cls, d: dict):
+        if isinstance(d, cls):
+            return d
+        _ = d.pop(PYTHON_CLASS_IDENTIFIER, None)
+        return cls(**deserialize(d))  # type: ignore Concrete classes will have constructor params
+
+    def to_dict(self) -> dict[str, Any]:
+        return serialize(asdict(self))  # type: ignore
+
+    def min(self, input: Issue) -> float:
+        mn, _ = self.minmax(input)
+        return mn
+
+    def max(self, input: Issue) -> float:
+        _, mx = self.minmax(input)
+        return mx
+
+
+@define
+class TableFun(BaseFun):
     d: dict
 
     def __call__(self, x):
@@ -88,8 +118,8 @@ class TableFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class AffineFun(SingleIssueFun):
+@define
+class AffineFun(BaseFun):
     slope: float
     bias: float = 0
 
@@ -123,8 +153,8 @@ class AffineFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class IdentityFun(SingleIssueFun):
+@define
+class IdentityFun(BaseFun):
     def __call__(self, x: float):
         return x
 
@@ -142,8 +172,8 @@ class IdentityFun(SingleIssueFun):
         return LinearFun(1.0).xml(indx, issue, bias)
 
 
-@dataclass
-class ConstFun(SingleIssueFun):
+@define
+class ConstFun(BaseFun):
     bias: float
 
     def __call__(self, x: float):
@@ -163,8 +193,8 @@ class ConstFun(SingleIssueFun):
         return AffineFun(0.0, self.bias).xml(indx, issue, bias)
 
 
-@dataclass
-class LinearFun(SingleIssueFun):
+@define
+class LinearFun(BaseFun):
     slope: float
 
     @property
@@ -188,8 +218,8 @@ class LinearFun(SingleIssueFun):
         return AffineFun(self.slope, 0.0).xml(indx, issue, bias)
 
 
-@dataclass
-class LambdaFun(SingleIssueFun):
+@define
+class LambdaFun(BaseFun):
     f: Callable[[Any], float]
     bias: float = 0
     min_value: float | None = None
@@ -247,8 +277,8 @@ class LambdaFun(SingleIssueFun):
         )
 
 
-@dataclass
-class QuadraticFun(SingleIssueFun):
+@define
+class QuadraticFun(BaseFun):
     a2: float
     a1: float
     bias: float = 0
@@ -297,8 +327,8 @@ class QuadraticFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class PolynomialFun(SingleIssueFun):
+@define
+class PolynomialFun(BaseFun):
     a: tuple[float]
     bias: float = 0
 
@@ -341,8 +371,8 @@ class PolynomialFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class TriangularFun(SingleIssueFun):
+@define
+class TriangularFun(BaseFun):
     start: float
     middle: float
     end: float
@@ -392,8 +422,8 @@ class TriangularFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class ExponentialFun(SingleIssueFun):
+@define
+class ExponentialFun(BaseFun):
     tau: float
     bias: float = 0
     base: float = e
@@ -431,8 +461,8 @@ class ExponentialFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class CosFun(SingleIssueFun):
+@define
+class CosFun(BaseFun):
     multiplier: float = 1.0
     bias: float = 0.0
     phase: float = 0.0
@@ -479,8 +509,8 @@ class CosFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class SinFun(SingleIssueFun):
+@define
+class SinFun(BaseFun):
     multiplier: float = 1.0
     bias: float = 0.0
     phase: float = 0.0
@@ -527,8 +557,8 @@ class SinFun(SingleIssueFun):
         return output
 
 
-@dataclass
-class LogFun(SingleIssueFun):
+@define
+class LogFun(BaseFun):
     tau: float
     bias: float = 0
     base: float = e
@@ -572,7 +602,7 @@ class LogFun(SingleIssueFun):
         return output
 
 
-@dataclass
+@define
 class TableMultiFun(MultiIssueFun):
     d: dict[tuple, Any]
 
@@ -604,7 +634,7 @@ class TableMultiFun(MultiIssueFun):
         raise NotImplementedError()
 
 
-@dataclass
+@define
 class AffineMultiFun(MultiIssueFun):
     slope: tuple[float, ...]
     bias: float = 0
@@ -631,7 +661,7 @@ class AffineMultiFun(MultiIssueFun):
         raise NotImplementedError()
 
 
-@dataclass
+@define
 class LinearMultiFun(MultiIssueFun):
     slope: tuple[float, ...]
 
@@ -659,7 +689,7 @@ class LinearMultiFun(MultiIssueFun):
         raise NotImplementedError()
 
 
-@dataclass
+@define
 class LambdaMultiFun(MultiIssueFun):
     f: Callable[[Any], float]
     bias: float = 0
@@ -693,7 +723,7 @@ class LambdaMultiFun(MultiIssueFun):
         raise NotImplementedError()
 
 
-def make_fun_from_xml(item) -> tuple[SingleIssueFun, str]:
+def make_fun_from_xml(item) -> tuple[BaseFun, str]:
 
     if item.attrib["ftype"] == "linear":
         offset = item.attrib.get(

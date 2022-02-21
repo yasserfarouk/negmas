@@ -19,8 +19,8 @@ class ContinuousIssue(RangeIssue):
     A `RangeIssue` representing a continous range of real numbers with finite limits.
     """
 
-    def __init__(self, values, name=None, id=None, n_levels=DEFAULT_LEVELS) -> None:
-        super().__init__(values, name=name, id=id)
+    def __init__(self, values, name=None, n_levels=DEFAULT_LEVELS) -> None:
+        super().__init__(values, name=name)
         self._n_levels = n_levels
         self.delta = (self.max_value - self.min_value) / self._n_levels
 

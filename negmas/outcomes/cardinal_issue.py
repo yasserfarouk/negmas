@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from negmas.outcomes.ordinal_issue import DiscreteOrdinalIssue, OrdinalIssue
 
-__all__ = ["CardinalIssue", "DiscreteCardinalIssue"]
+__all__ = ["CardinalIssue"]
 
 
 class CardinalIssue(OrdinalIssue):
@@ -10,8 +10,8 @@ class CardinalIssue(OrdinalIssue):
     An `Issue` for which differences between values are meaningful.
     """
 
-    def __init__(self, values, name=None, id=None) -> None:
-        super().__init__(values, name, id)
+    def __init__(self, values, name=None) -> None:
+        super().__init__(values, name)
         try:
             for _ in range(10):
                 self.rand_valid() - self.rand_valid()  # type: ignore

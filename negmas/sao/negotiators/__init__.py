@@ -2,6 +2,7 @@
 Implements negotiators for the SAO mechanism.
 """
 from .base import *
+from .modular import *
 from .limited import *
 from .tough import *
 from .controlled import *
@@ -14,6 +15,7 @@ from .nice import *
 
 __all__ = (
     base.__all__
+    + modular.__all__
     + limited.__all__
     + tough.__all__
     + controlled.__all__
