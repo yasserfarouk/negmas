@@ -74,7 +74,7 @@ def test_buy_sell_asp_asp():
 
 @pytest.mark.skipif(
     not NEGMAS_RUN_TEMP_FAILING,
-    "Not always getting to an greement. This is not a bug necesarily but should be investigated",
+    reason="Not always getting to an greement. This is not a bug necesarily but should be investigated",
 )
 def test_buy_sell_tft_tft():
     # todo: find out why this is not always getting and agreeming
