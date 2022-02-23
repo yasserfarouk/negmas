@@ -1,6 +1,17 @@
 History
 =======
 
+* caching offer in the offering strategy
+* Avoids repeated calls to the offering strategy in SAOModuler if it was
+  called for example by the acceptance strategy then again by the mechanism.
+* Purifying protocols
+* correcting info for ANAC 2014
+* Implementing not for AcceptanceStrategy and adding RejectionStrategy to invert the decision of an AcceptanceStrategy
+* Supporting normalized ufuns in TFT
+* Added ZeroSumModel as a simple opponent model (assumes a zero-sum negotiation)
+* Refactored NTFT to use this model
+* Removed the unnecesasry ConcessionEstimator classes
+
 Release 0.9.0
 -------------
 
