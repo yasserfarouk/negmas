@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Callable, Iterable
 
 from attr import define, field
 
@@ -38,7 +38,152 @@ __all__ = [
     "AcceptBest",
     "TFTAcceptanceStrategy",
     "ACNext",
+    "ACLast",
+    "ACLastKReceived",
+    "ACLastFractionReceived",
+    "ACTime",
+    "ACConst",
 ]
+
+
+@define
+class ACConst(AcceptanceStrategy):
+    """
+    Accepts $\omega$ if $\alpha u(my-next-offer) + \beta > f(u(\text{utils of offers received in the last k steps))$
+    """
+
+    c: float = 0.9
+    alpha: float = 1.0
+    beta: float = 0.0
+
+    def __call__(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        u = float(self.negotiator.ufun(offer))
+        if self.alpha * u + self.beta > self.c:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+    def after_join(self, nmi) -> None:
+        k = nmi.n_steps if self.k <= 0 else self.k
+        self._best = [float("inf")] * k
+
+    def before_responding(self, state: SAOState, offer: Outcome | None):
+        if not self.negotiator or not self.negotiator.ufun:
+            return
+        self._best.append(float(self.negotiator.ufun(offer)))
+        self._best = self._best[1:]
+
+
+@define
+class ACLastKReceived(AcceptanceStrategy):
+    """
+    Accepts $\omega$ if $\alpha u(my-next-offer) + \beta > f(u(\text{utils of offers received in the last k steps))$
+    """
+
+    k: int = 0
+    alpha: float = 1.0
+    beta: float = 0.0
+    op: Callable[[list[float]], float] = max
+    _best: list[float] = field(init=False, default=[])
+
+    def __call__(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        best = self.op(self._best)
+
+        u = float(self.negotiator.ufun(offer))
+        if self.alpha * u + self.beta > best:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+    def after_join(self, nmi) -> None:
+        k = nmi.n_steps if self.k <= 0 else self.k
+        self._best = [float("inf")] * k
+
+    def before_responding(self, state: SAOState, offer: Outcome | None):
+        if not self.negotiator or not self.negotiator.ufun:
+            return
+        self._best.append(float(self.negotiator.ufun(offer)))
+        self._best = self._best[1:]
+
+
+@define
+class ACLastFractionReceived(AcceptanceStrategy):
+    """
+    Accepts $\omega$ if $\alpha u(my-next-offer) + \beta > f(u(\text{utils of offers received in the given fraction of time}))$
+    """
+
+    fraction: float = 1.0
+    alpha: float = 1.0
+    beta: float = 0.0
+    op: Callable[[list[float]], float] = max
+    _best: list[tuple[float, float]] = field(init=False, default=[])
+
+    def __call__(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        cutoff = state.relative_time - self.fraction
+        lst = []
+        for i in range(len(self._best) - 1, -1, -1):
+            if self._best[i][1] < cutoff:
+                self._best = self._best[i:]
+                break
+            lst.append(self._best[i][0])
+        best = self.op(lst)
+
+        u = float(self.negotiator.ufun(offer))
+        if self.alpha * u + self.beta > best:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+    def before_responding(self, state: SAOState, offer: Outcome | None):
+        if not self.negotiator or not self.negotiator.ufun:
+            return
+        self._best.append((float(self.negotiator.ufun(offer)), state.relative_time))
+
+
+@define
+class ACLast(AcceptanceStrategy):
+    """
+    Implements the AClast acceptance strategy based on our last offer.
+
+    Accepts $\omega$ if $\alpha u(my-next-offer) + \beta > u(\omega)$
+    """
+
+    last_offer_util: float = field(init=False, default=float("inf"))
+    alpha: float = 1.0
+    beta: float = 0.0
+
+    def __call__(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun:
+            return ResponseType.REJECT_OFFER
+        last = self.last_offer_util
+        u = float(self.negotiator.ufun(offer))
+        if self.alpha * u + self.beta > last:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+    def after_proposing(self, state: SAOState, offer: Outcome | None):
+        if not self.negotiator or not self.negotiator.ufun:
+            return
+        self.last_offer_util = float(self.negotiator.ufun(offer))
+
+
+@define
+class ACTime(AcceptanceStrategy):
+    """
+    Implements the ACnext acceptance strategy based on our next offer.
+
+    Accepts $\omega$ if $\alpha u(my-next-offer) + \beta > u(\omega)$
+    """
+
+    tau: float
+
+    def __call__(self, state, offer):
+        if state.relative_time > self.tau:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
 
 
 @define
@@ -57,8 +202,8 @@ class ACNext(AcceptanceStrategy):
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         next = float(self.negotiator.ufun(self.offering_strategy(state)))
-        u = self.negotiator.ufun(offer)
-        if self.alpha * next + self.beta > u:
+        u = float(self.negotiator.ufun(offer))
+        if self.alpha * u + self.beta > next:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
