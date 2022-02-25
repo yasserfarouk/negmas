@@ -19,8 +19,8 @@ random.seed(0)
 
 
 class MyMechanism(Mechanism):
-    def __init__(self, dynamic_entry=True):
-        super().__init__(outcomes=20, n_steps=10, dynamic_entry=dynamic_entry)
+    def __init__(self, dynamic_entry=True, **kwargs):
+        super().__init__(outcomes=20, n_steps=10, dynamic_entry=dynamic_entry, **kwargs)
         self.current = 0
 
     def round(self) -> MechanismRoundResult:
@@ -178,8 +178,8 @@ def test_different_capability_types(mechanism):
     assert mechanism.is_satisfying({**c, "ilist": 9})
 
 
-def test_can_accept_more_agents(mechanism):
-    mechanism.max_n_agents = 2
+def test_can_accept_more_agents():
+    mechanism = MyMechanism(max_n_agents=2)
     assert mechanism.can_accept_more_agents() is True
     mechanism.add(RandomNegotiator(), ufun=MappingUtilityFunction(lambda x: 5.0))
     assert mechanism.can_accept_more_agents() is True
@@ -229,7 +229,7 @@ def test_mechanisms_get_some_rounds():
 
 
 # def test_alternating_offers_mechanism():
-#     p = SAOMechanism(outcomes=10, n_steps=10, dynamic_entry=False, publish_n_acceptances=True, publish_proposer=True)
+#     p = SAOMechanism(outcomes=10, n_steps=10, dynamic_entry=False)
 #     to_be_offered = [(0,), (1,), (2,)]
 #     to_be_accepted = [(2,)]
 #     a1 = LimitedOutcomesNegotiator(acceptable_outcomes=to_be_offered, outcomes=10)
@@ -250,8 +250,6 @@ def test_alternating_offers_mechanism_fails_on_no_offerer():
         outcomes=10,
         n_steps=10,
         dynamic_entry=False,
-        publish_n_acceptances=True,
-        publish_proposer=True,
     )
     to_be_offered = [(0,), (1,), (2,)]
     to_be_accepted = [(2,)]

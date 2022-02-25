@@ -185,7 +185,7 @@ class NegotiatorInfo:
     """Type of the negotiator as a string"""
 
 
-@define(frozen=True)
+@define
 class MechanismState:
     """Encapsulates the mechanism state at any point"""
 
@@ -221,12 +221,15 @@ class MechanismState:
     error_details: str = ""
     """Details of the error if any"""
 
-    def __copy__(self):
-        return MechanismState(**self.__dict__)
+    def __hash__(self):
+        return hash(self.asdict())
 
-    def __deepcopy__(self, memodict={}):
-        d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
-        return MechanismState(**d)
+    #     def __copy__(self):
+    #         return MechanismState(**self.__dict__)
+    #
+    #     def __deepcopy__(self, memodict={}):
+    #         d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
+    #         return MechanismState(**d)
 
     @property
     def ended(self):
@@ -267,36 +270,37 @@ class NegotiatorMechanismInterface:
     """All information of a negotiation visible to negotiators."""
 
     id: str
-    n_outcomes: int | float
-    outcome_space: OutcomeSpace
-    time_limit: float
-    step_time_limit: float
-    negotiator_time_limit: float
-    n_steps: int | None
-    dynamic_entry: bool
-    max_n_agents: int | None
-    mechanism: Mechanism
-    annotation: dict[str, Any] = field(default=dict)
-
-    def __copy__(self):
-        return NegotiatorMechanismInterface(**vars(self))
-
-    def __deepcopy__(self, memodict={}):
-        d = {k: deepcopy(v, memo=memodict) for k, v in vars(self).items()}
-        if "_mechanism" in d.keys():
-            del d["_mechanism"]
-        return NegotiatorMechanismInterface(**d)
-
     """Mechanism session ID. That is unique for all mechanisms"""
+    n_outcomes: int | float
     """Number of outcomes which may be `float('inf')` indicating infinity"""
+    outcome_space: OutcomeSpace
     """Negotiation agenda as as an `OutcomeSpace` object. The most common type is `CartesianOutcomeSpace` which represents the cartesian product of a list of issues"""
+    time_limit: float
     """The time limit in seconds for this negotiation session. None indicates infinity"""
+    step_time_limit: float
     """The time limit in seconds for each step of ;this negotiation session. None indicates infinity"""
+    negotiator_time_limit: float
     """The time limit in seconds to wait for negotiator responses of this negotiation session. None indicates infinity"""
+    n_steps: int | None
     """The allowed number of steps for this negotiation. None indicates infinity"""
+    dynamic_entry: bool
     """Whether it is allowed for agents to enter/leave the negotiation after it starts"""
+    max_n_agents: int | None
     """Maximum allowed number of agents in the session. None indicates no limit"""
+    mechanism: Mechanism
+    """A reference to the mechanism. MUST NEVER BE USED BY NEGOTIATORS. **must be treated as a private member**"""
+    annotation: dict[str, Any] = field(default=dict)
     """An arbitrary annotation as a `dict[str, Any]` that is always available for all agents"""
+
+    #     def __copy__(self):
+    #         return NegotiatorMechanismInterface(**vars(self))
+    #
+    #     def __deepcopy__(self, memodict={}):
+    #         d = {k: deepcopy(v, memo=memodict) for k, v in vars(self).items()}
+    #         if "_mechanism" in d.keys():
+    #             del d["_mechanism"]
+    #         return NegotiatorMechanismInterface(**d)
+    #
 
     @property
     def cartesian_outcome_space(self) -> CartesianOutcomeSpace:

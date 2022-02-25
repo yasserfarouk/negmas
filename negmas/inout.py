@@ -410,6 +410,7 @@ def load_genius_domain_from_folder(
 
         >>> import pkg_resources
         >>> from negmas import load_genius_domain_from_folder
+        >>> from negmas import AspirationNegotiator
 
         Try loading and running a domain with predetermined agents:
         >>> domain = load_genius_domain_from_folder(

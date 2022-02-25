@@ -99,9 +99,9 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
             - If you need a list then use something like:
 
             >>> from negmas.outcomes import make_issue
-            >>> list(make_issue(5).value_generator())
+            >>> list(make_issue(5).ordered_value_generator())
             [0, 1, 2, 3, 4]
-            >>> list(int(10 * _) for _ in make_issue((0.0, 1.0)).value_generator(11))
+            >>> list(int(10 * _) for _ in make_issue((0.0, 1.0)).ordered_value_generator(11))
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
         """

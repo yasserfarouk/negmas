@@ -53,19 +53,10 @@ class SAOState(MechanismState):
     new_offerer_agents: list[str] = field(default=list)
     last_negotiator: str | None = None
 
-    def __copy__(self):
-        return SAOState(**self.__dict__)
-
-    def __deepcopy__(self, memodict={}):
-        d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
-        return SAOState(**d)
-
 
 @define
 class SAONMI(NegotiatorMechanismInterface):
     end_on_no_response: bool = True
-    publish_proposer: bool = True
-    publish_n_acceptances: bool = False
 
 
 @lru_cache(1)

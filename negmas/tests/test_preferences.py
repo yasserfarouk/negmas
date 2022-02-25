@@ -27,7 +27,7 @@ from negmas.preferences.ops import normalize, scale_max
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
 def test_preferences_range_linear_late_issues(n_issues):
-    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    issues = tuple(make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues))
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0, issues=issues)
     assert ufun([0.0] * n_issues) == 0.0
@@ -39,7 +39,7 @@ def test_preferences_range_linear_late_issues(n_issues):
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
 def test_preferences_range_linear(n_issues):
-    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    issues = tuple(make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues))
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = LinearUtilityFunction(weights=rs, reserved_value=0.0, issues=issues)
     assert ufun([0.0] * n_issues) == 0.0
@@ -51,7 +51,7 @@ def test_preferences_range_linear(n_issues):
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
 def test_preferences_range_general(n_issues):
-    issues = [make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues)]
+    issues = tuple(make_issue(values=(0.0, 1.0), name=f"i{i}") for i in range(n_issues))
     rs = [(i + 1.0) * random.random() for i in range(n_issues)]
     ufun = MappingUtilityFunction(
         mapping=lambda x: sum(r * v for r, v in zip(rs, x)),

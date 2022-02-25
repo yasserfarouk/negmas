@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import copy
 import random
-from dataclasses import dataclass
+
+from attr import define, field
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome
 
 
-@dataclass
+@define
 class GAState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    dominant_outcomes: list[Outcome | None] = None
+    dominant_outcomes: list[Outcome | None] = field(default=list)
 
 
 class GAMechanism(Mechanism):
@@ -43,11 +44,9 @@ class GAMechanism(Mechanism):
         self.population = self.generate(self.n_population)
 
         self.dominant_outcomes = self.population[:]
+        self._current_state.dominant_outcomes = self.dominant_outcomes
 
         self.ranks = {}
-
-    def extra_state(self):
-        return dict(dominant_outcomes=self.dominant_outcomes)
 
     def crossover(self, outcome1: Outcome, outcome2: Outcome) -> Outcome:
         """Uniform crossover"""
@@ -113,6 +112,7 @@ class GAMechanism(Mechanism):
                     break
             else:
                 self.dominant_outcomes.append(outcomes[target])
+        self._current_state.dominant_outcomes = self.dominant_outcomes
 
     def round(self) -> MechanismRoundResult:
         self.update_ranks()

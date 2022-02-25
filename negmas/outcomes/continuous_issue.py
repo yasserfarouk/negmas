@@ -89,13 +89,7 @@ class ContinuousIssue(RangeIssue):
         compact=False,
         endpoints=True,
     ) -> Generator[float, None, None]:
-        if n is None or not math.isfinite(n):
-            raise ValueError(f"Cannot generate {n} values from issue: {self}")
-        n = int(n)
-        yield from (
-            _ * (self._values[1] - self._values[0]) / (n - 1) + self._values[0]
-            for _ in sample(n, n, grid=grid, compact=compact, endpoints=endpoints)
-        )
+        return self.ordered_value_generator(n, grid, compact, endpoints)
 
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False

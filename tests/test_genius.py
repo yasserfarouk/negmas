@@ -200,7 +200,7 @@ def test_genius_agents_run_using_hypothesis(
     neg = domain.make_session([a1, a2], n_steps=STEPLIMIT, time_limit=None)
     if neg is None:
         raise ValueError(f"Failed to lead domain from {base_folder}")
-    neg._enable_callbacks = True
+    neg._extra_callbacks = True
     neg.run()
     GeniusBridge.clean()
 

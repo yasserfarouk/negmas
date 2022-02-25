@@ -5,6 +5,8 @@ import pytest
 from negmas.outcomes import generate_issues
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace
 
+from .fixtures import bissue, cissue, dissue, hamlet, uissue
+
 
 def test_type(hamlet, cissue, dissue):
     assert cissue.type == "continuous", "Continuous type passes"

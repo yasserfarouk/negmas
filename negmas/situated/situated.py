@@ -834,13 +834,7 @@ class MechanismFactory:
             if mechanisms and mechanisms.get(mechanism_name, None) is not None:
                 mechanism_params.update(mechanisms[mechanism_name])
         try:
-            d = dict(
-                n_steps=self.neg_n_steps,
-                time_limit=self.neg_time_limit,
-                step_time_limit=self.neg_step_time_limit,
-            )
-            d = d.update(mechanism_params)
-            mechanism = instantiate(class_name=mechanism_name, **d)
+            mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
         except Exception as e:
             s_ = exception2str()
             self.world.mechanism_exceptions[self.world.current_step].append(s_)
@@ -3317,9 +3311,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         }
         if negotiation.annotation:
             record.update(to_flat_dict(negotiation.annotation))
-        dd = vars(mechanism.state)
+        dd = mechanism.state.asdict()
         dd = {(k if k not in record.keys() else f"{k}_neg"): v for k, v in dd.items()}
-        dd["history"] = [vars(_) for _ in mechanism.history]
+        dd["history"] = [_.asdict() for _ in mechanism.history]
         if hasattr(mechanism, "negotiator_offers"):
             dd["offers"] = {
                 n.owner.id
