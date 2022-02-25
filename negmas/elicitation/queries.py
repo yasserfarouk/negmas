@@ -5,14 +5,13 @@ import operator
 import pprint
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Iterable, Sequence
 
 from negmas.preferences.preferences import Preferences
 
 from ..common import NegotiatorMechanismInterface, Value
 from ..helpers.prob import ScipyDistribution
 from ..outcomes import Outcome
-from ..preferences import UtilityFunction
 from .common import _loc, _upper
 
 __all__ = [

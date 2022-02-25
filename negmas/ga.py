@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import random
 from dataclasses import dataclass
-from typing import List, Optional
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome

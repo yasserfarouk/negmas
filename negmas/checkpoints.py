@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable
 
 import numpy as np
 

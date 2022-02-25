@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Iterable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Iterable, TypeVar
 
 import numpy as np
 from numpy.ma.core import sqrt
 
 from negmas import warnings
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
-from negmas.outcomes.common import check_one_at_most, os_or_none
+from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 

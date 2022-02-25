@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from textwrap import shorten
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 import negmas.warnings as warnings
 from negmas.common import (

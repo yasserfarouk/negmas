@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from os import PathLike
-from typing import Any, Protocol, Type, TypeVar
+from typing import Any, Protocol, TypeVar
 
 __all__ = ["XmlSerializable", "DictSerializable"]
 

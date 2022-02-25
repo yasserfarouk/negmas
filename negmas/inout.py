@@ -122,7 +122,7 @@ class Scenario:
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
                 u.ufun = LinearAdditiveUtilityFunction(
-                    values=tuple(TableFun(dict(zip(souts, [v(_) for _ in outcomes])))),
+                    values=(TableFun(dict(zip(souts, [v(_) for _ in outcomes]))),),
                     bias=0.0,
                     reserved_value=v.reserved_value,
                     name=v.name,
@@ -132,7 +132,7 @@ class Scenario:
                 continue
             ufuns.append(
                 LinearAdditiveUtilityFunction(
-                    values=tuple(TableFun(dict(zip(souts, [u(_) for _ in outcomes])))),
+                    values=(TableFun(dict(zip(souts, [u(_) for _ in outcomes]))),),
                     bias=0.0,
                     reserved_value=u.reserved_value,
                     name=u.name,

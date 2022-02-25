@@ -12,7 +12,7 @@ import os
 import pathlib
 from os import PathLike
 from pathlib import Path
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable
 
 import dill as pickle
 import inflect

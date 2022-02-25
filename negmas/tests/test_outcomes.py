@@ -2,14 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from negmas import (
-    enumerate_issues,
-    issues_from_outcomes,
-    make_issue,
-    outcome_in_range,
-    outcome_is_valid,
-)
-from negmas.tests.fixtures import *
+from negmas import enumerate_issues, issues_from_outcomes, make_issue, outcome_is_valid
 
 
 def test_dict_outcomes(issues, valid_outcome_dict, invalid_outcome_dict):

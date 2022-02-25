@@ -8,7 +8,7 @@ from ..components import TFTAcceptanceStrategy, TFTOfferingStrategy, ZeroSumMode
 from .modular import MAPNegotiator
 
 if TYPE_CHECKING:
-    from negmas.common import PreferencesChange
+    pass
 
 
 __all__ = [

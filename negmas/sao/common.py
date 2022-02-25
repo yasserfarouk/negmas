@@ -6,7 +6,7 @@ from __future__ import annotations
 from copy import deepcopy
 from enum import Enum
 from functools import lru_cache
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from attr import define, field
 

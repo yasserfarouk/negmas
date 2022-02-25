@@ -6,7 +6,7 @@ from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, Collection, List, Union
+from typing import TYPE_CHECKING, Collection
 
 import numpy as np
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 from ..common import NegotiatorMechanismInterface
 from ..mechanisms import Mechanism, MechanismRoundResult, MechanismState

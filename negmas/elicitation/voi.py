@@ -28,7 +28,7 @@ except ImportError:
         ">> pip install negmas[elicitation]",
         NegmasImportWarning,
     )
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable
 
 from ..common import MechanismState, Value
 from ..modeling import AdaptiveDiscreteAcceptanceModel

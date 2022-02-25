@@ -88,19 +88,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from os import PathLike
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Collection, Iterable, Iterator
 
 import matplotlib.pyplot as plt
 import numpy as np

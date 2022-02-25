@@ -11,7 +11,7 @@ from negmas.preferences.mixins import StationaryMixin
 from ..base import SAOComponent
 
 if TYPE_CHECKING:
-    from negmas import PreferencesChange, ResponseType, Value
+    from negmas import PreferencesChange, Value
     from negmas.outcomes import Outcome
 
 __all__ = [

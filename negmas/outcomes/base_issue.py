@@ -4,7 +4,7 @@ import math
 import numbers
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable
 
 import numpy as np
 

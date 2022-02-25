@@ -76,7 +76,7 @@ def test_genius_agent(init_genius):
     # print(f'{len(p.history)} bids exchanged')
     u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
     u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
+    u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
     #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
@@ -124,7 +124,7 @@ def test_genius_agent_top2016_caduceus_first(init_genius):
     # print(f'{len(p.history)} bids exchanged')
     u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
     u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
+    u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
     #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
@@ -221,7 +221,7 @@ def test_genius_agent_top2016_yx_second(init_genius):
     # print(f'{len(p.history)} bids exchanged')
     u1 = np.array([float(first.ufun(s.current_offer)) for s in p.history])
     u2 = np.array([float(second.ufun(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
+    u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
     #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
@@ -267,7 +267,7 @@ def test_genius_agent_step_limit(init_genius):
     # print(f'{len(p.history)} bids exchanged')
     u1 = np.array([float(atlas3.ufun(s.current_offer)) for s in p.history])
     u2 = np.array([float(agentx.ufun(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
+    u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
     #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')
@@ -308,7 +308,7 @@ def test_genius_agent_step_long_session(init_genius):
     # print(f'{len(p.history)} bids exchanged')
     u1 = np.array([float(a1._preferences(s.current_offer)) for s in p.history])
     u2 = np.array([float(a2._preferences(s.current_offer)) for s in p.history])
-    welfare = u1 + u2
+    u1 + u2
     # print(
     #     f'Negotiator 1: {u1.mean()}({u1.std()})[{u1.min()}, {u1.max()}]\nNegotiator 2: {u2.mean()}({u2.std()})[{u1.min()}, {u1.max()}]'
     #     f'\nWelfare: {welfare.mean()}({welfare.std()})[{welfare.min()}, {welfare.max()}]')

@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from functools import lru_cache
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from negmas.common import MechanismState, NegotiatorMechanismInterface, Value
+    from negmas.common import MechanismState, NegotiatorMechanismInterface
     from negmas.negotiators import Negotiator
     from negmas.outcomes.common import Outcome
-    from negmas.preferences import BaseUtilityFunction
 
 __all__ = [
     "VolatileUFunMixin",

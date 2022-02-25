@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 from abc import abstractmethod
-from typing import TYPE_CHECKING, TypeVar
+from typing import TypeVar
 
 import numpy as np
 

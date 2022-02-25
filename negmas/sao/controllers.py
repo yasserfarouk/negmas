@@ -7,7 +7,7 @@ import itertools
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from negmas.preferences.protocols import UFun
 

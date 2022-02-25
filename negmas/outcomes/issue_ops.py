@@ -6,7 +6,7 @@ import numbers
 import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
 
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 
