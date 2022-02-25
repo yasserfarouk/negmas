@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Iterable
 import numpy as np
 
 from negmas.generics import iget, ikeys, ivalues
-from negmas.helpers import ScipyDistribution
+from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 
 from ...helpers.prob import (

@@ -14,23 +14,13 @@ import pathlib
 import random
 import time
 import traceback
-from multiprocessing import current_process
-from socket import gethostname
-
-from negmas import warnings
-
-try:
-    import distributed
-except:
-    ENABLE_DASK = False
-else:
-    ENABLE_DASK = True
 from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import partial
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, current_process
 from os import PathLike
 from pathlib import Path
+from socket import gethostname
 from typing import Any, Callable, Iterable, Sequence
 
 import numpy as np
@@ -39,17 +29,17 @@ import yaml
 from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
+from negmas import warnings
 from negmas.helpers import (
-    dump,
     get_class,
     get_full_type_name,
     humanize_time,
     import_by_name,
-    load,
     shortest_unique_names,
-    truncated_mean,
     unique_name,
 )
+from negmas.helpers.inout import dump, load
+from negmas.helpers.numeric import truncated_mean
 from negmas.serialization import serialize, to_flat_dict
 from negmas.situated import Agent, World, save_stats
 
@@ -1197,6 +1187,12 @@ def _get_executor(
     method, verbose, scheduler_ip=None, scheduler_port=None, total_timeout=None
 ):
     """Returns an exeuctor object which has a submit method to submit calls to run worlds"""
+    try:
+        import distributed
+    except:
+        ENABLE_DASK = False
+    else:
+        ENABLE_DASK = True
     if method == "dask":
         if not ENABLE_DASK:
             raise RuntimeError(

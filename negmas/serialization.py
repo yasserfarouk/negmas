@@ -15,14 +15,13 @@ from negmas import warnings
 
 from .helpers import (
     TYPE_START,
-    dump,
     get_class,
     get_full_type_name,
     is_jsonable,
     is_lambda_or_partial_function,
     is_not_lambda_nor_partial_function,
-    load,
 )
+from .helpers.inout import dump, load
 
 __all__ = [
     "serialize",

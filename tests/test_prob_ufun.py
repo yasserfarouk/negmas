@@ -1,4 +1,5 @@
-from negmas import IPUtilityFunction, ScipyDistribution
+from negmas.helpers.prob import ScipyDistribution
+from negmas.preferences import IPUtilityFunction
 
 
 def test_construction():

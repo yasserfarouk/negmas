@@ -4,7 +4,8 @@ import random
 from typing import Any, Callable
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
-from negmas.helpers import get_class, make_range
+from negmas.helpers import get_class
+from negmas.helpers.numeric import make_range
 from negmas.outcomes import Issue, Outcome
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 

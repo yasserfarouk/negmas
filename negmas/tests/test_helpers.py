@@ -5,13 +5,12 @@ from enum import Enum
 import pytest
 
 from negmas.helpers import (
-    ConfigReader,
     create_loggers,
-    is_nonzero_file,
     pretty_string,
     shortest_unique_names,
     unique_name,
 )
+from negmas.helpers.inout import ConfigReader, is_nonzero_file
 
 
 def test_shortest_names():

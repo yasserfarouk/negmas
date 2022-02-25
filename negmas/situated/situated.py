@@ -90,27 +90,23 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Callable, Collection, Iterable, Iterator
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
-from matplotlib.axis import Axis
 
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Event, EventLogger, EventSink, EventSource, Notifier
 from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import (
-    ConfigReader,
-    add_records,
     create_loggers,
-    dump,
     exception2str,
     get_class,
     humanize_time,
     instantiate,
     unique_name,
 )
+from negmas.helpers.inout import ConfigReader, add_records, dump
 from negmas.mechanisms import Mechanism
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue, Outcome, outcome2dict
@@ -232,6 +228,7 @@ NegotiationRequestInfo = namedtuple(
 
 def show_edge_colors():
     """Plots the edge colors used with their meaning"""
+    import matplotlib.pyplot as plt
 
     colors = {}
     for t in EDGE_TYPES:
@@ -4952,6 +4949,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 A networkx graph representing the world if together==True else a list of graphs one for each item in what
 
             """
+
+            import matplotlib.pyplot as plt
+            from matplotlib.axis import Axis
+
             if not self.construct_graphs:
                 self.logwarning(
                     "Asked to draw a world simulation without enabling `construct_graphs`. Will be ignored"

@@ -5,8 +5,9 @@ from typing import Callable, Iterable
 
 import numpy as np
 
+from negmas.common import Distribution
 from negmas.generics import gmap
-from negmas.helpers import Distribution, get_full_type_name
+from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.base_issue import DiscreteIssue
 from negmas.outcomes.common import os_or_none

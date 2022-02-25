@@ -5,8 +5,8 @@ from abc import abstractmethod
 from typing import Any, Generator
 
 from negmas import warnings
-from negmas.helpers import sample, unique_name
-from negmas.helpers.numeric import is_float_type, is_int_type
+from negmas.helpers import unique_name
+from negmas.helpers.numeric import is_float_type, is_int_type, sample
 from negmas.outcomes.base_issue import DiscreteIssue, Issue
 
 __all__ = ["OrdinalIssue", "DiscreteOrdinalIssue"]

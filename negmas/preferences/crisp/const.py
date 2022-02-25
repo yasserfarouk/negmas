@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import random
 
-from negmas.helpers import get_full_type_name, make_range
+from negmas.helpers import get_full_type_name
+from negmas.helpers.numeric import make_range
 from negmas.outcomes import Issue, Outcome
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER
 
