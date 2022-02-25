@@ -36,13 +36,13 @@ def sissue():
 
 
 @fixture()
-def issues(cissue, dissue, sissue):
-    return [cissue, dissue, sissue]
+def int_issues():
+    return generate_issues([5], [10])
 
 
 @fixture()
-def int_issues():
-    return generate_issues([5], [10])
+def issues(cissue, dissue, sissue):
+    return [cissue, dissue, sissue]
 
 
 @fixture()

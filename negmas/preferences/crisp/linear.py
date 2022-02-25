@@ -332,20 +332,16 @@ class AffineUtilityFunction(
         Creates a new utility function that is normalized based on input conditions.
 
         Args:
-            outcomes: A set of outcomes to limit our attention to. If not given,
-                      the whole ufun is normalized
             to: The minimum and maximum value to normalize to. If either is None, it is ignored.
                  This means that passing `(None, 1.0)` will normalize the ufun so that the maximum
                  is `1` but will not guarantee any limit for the minimum and so on.
-            epsilon: A small allowed error in normalization
-            max_cardinality: Maximum ufun evaluations to conduct
+             outcome_space: the outcome space to normalize within
         """
         epsilon: float = 1e-8
-        max_cardinality: int = 1000
         if outcome_space is None:
             outcome_space = self.outcome_space
 
-        mn, mx = self.minmax(outcome_space, max_cartinality=max_cardinality)
+        mn, mx = self.minmax(outcome_space)
 
         if sum(self._weights) < epsilon:
             raise ValueError(

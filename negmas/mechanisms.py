@@ -3,15 +3,17 @@ Provides interfaces for defining negotiation mechanisms.
 """
 from __future__ import annotations
 
+import copy
 import pprint
 import random
 import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import dataclass
 from os import PathLike
 from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable
+
+from attrs import define
 
 from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
@@ -35,28 +37,28 @@ if TYPE_CHECKING:
 __all__ = ["Mechanism", "MechanismRoundResult"]
 
 
-@dataclass
+@define(frozen=True)
 class MechanismRoundResult:
     """
     Represents the results of a negotiation round (step). This is what `round()` should return.
     """
 
     broken: bool = False
-    timedout: bool = False
-    agreement: Collection[Outcome] | Outcome | None = None
-    error: bool = False
-    error_details: str = ""
-    waiting: bool = False
-    exceptions: dict[str, list[str]] | None = None
-    times: dict[str, float] | None = None
     """True only if END_NEGOTIATION was selected by one agent"""
+    timedout: bool = False
     """True if a timeout occurred. Usually not used"""
+    agreement: Collection[Outcome] | Outcome | None = None
     """The agreement if any. Allows for a single outcome or a collection of outcomes"""
+    error: bool = False
     """True if an error occurred in the mechanism"""
+    error_details: str = ""
     """Error message"""
+    waiting: bool = False
     """whether to consider that the round is still running and call the round method again without increasing
     the step number"""
+    exceptions: dict[str, list[str]] | None = None
     """A mapping from negotiator ID to a list of exceptions raised by that negotiator in this round"""
+    times: dict[str, float] | None = None
     """A mapping from negotiator ID to the time it consumed during this round"""
 
 
@@ -110,7 +112,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
         state_factory=MechanismState,
-        enable_callbacks=False,
+        extra_callbacks=False,
         checkpoint_every: int = 1,
         checkpoint_folder: PathLike | None = None,
         checkpoint_filename: str = None,
@@ -171,6 +173,20 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # if self.nmi.outcomes is not None:
         #     self.nmi.outcomes = tuple(self.nmi.outcomes)
         self._state_factory = state_factory
+        self._current_state = state_factory(
+            running=False,
+            broken=False,
+            timedout=False,
+            started=False,
+            has_error=False,
+            error_details="",
+            waiting=False,
+            agreement=None,
+            n_negotiators=0,
+            step=0,
+            time=0.0,
+            relative_time=0.0,
+        )
 
         self._requirements = {}
         self._negotiators = []
@@ -178,19 +194,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._negotiator_index: dict[str, int] = dict()
         self._roles = []
         self._start_time = None
-        self._started = False
-        self._step = 0
-        self._n_accepting_agents = 0
-        self._broken = False
-        self._agreement = None
-        self._timedout = False
-        self._running = False
-        self._error = False
-        self._error_details = ""
-        self._waiting = False
         self.__discrete_os = None
         self.__discrete_outcomes = None
-        self._enable_callbacks = enable_callbacks
+        self._extra_callbacks = extra_callbacks
 
         self.agents_of_role = defaultdict(list)
         self.role_of_agent = {}
@@ -324,7 +330,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return None
 
         relative_step = (
-            (self._step + 1) / (self.nmi.n_steps + 1)
+            (self._current_state.step + 1) / (self.nmi.n_steps + 1)
             if self.nmi.n_steps is not None
             else -1.0
         )
@@ -339,7 +345,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         if self.nmi.n_steps is None:
             return None
 
-        return self.nmi.n_steps - self._step
+        return self.nmi.n_steps - self._current_state.step
 
     @property
     def requirements(self):
@@ -475,33 +481,34 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """Whether the agent can enter the negotiation now."""
         return self.can_accept_more_agents() and self.can_participate(agent)
 
-    def extra_state(self) -> dict[str, Any] | None:
-        """Returns any extra state information to be kept in the `state` and `history` properties"""
-        return dict()
+    # def extra_state(self) -> dict[str, Any] | None:
+    #     """Returns any extra state information to be kept in the `state` and `history` properties"""
+    #     return dict()
 
     @property
     def state(self):
         """Returns the current state. Override `extra_state` if you want to keep extra state"""
-        d = dict(
-            running=self._running,
-            step=self._step,
-            time=self.time,
-            relative_time=self.relative_time,
-            broken=self._broken,
-            timedout=self._timedout,
-            started=self._started,
-            agreement=self._agreement,
-            n_negotiators=len(self.negotiators),
-            has_error=self._error,
-            error_details=self._error_details,
-            waiting=self._waiting,
-        )
-        d2 = self.extra_state()
-        if d2:
-            d.update(d2)
-        return self._state_factory(
-            **d,
-        )
+        return self._current_state
+        # d = dict(
+        #     running=self._current_state.running,
+        #     step=self._current_state.step,
+        #     time=self.time,
+        #     relative_time=self.relative_time,
+        #     broken=self._current_state.broken,
+        #     timedout=self._current_state.timedout,
+        #     started=self._current_state.started,
+        #     agreement=self._current_state.agreement,
+        #     n_negotiators=len(self.negotiators),
+        #     has_error=self._current_state.has_error,
+        #     error_details=self._current_state.error_details,
+        #     waiting=self._current_state.waiting,
+        # )
+        # d2 = self.extra_state()
+        # if d2:
+        #     d.update(d2)
+        # return self._state_factory(
+        #     **d,
+        # )
 
     def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
         return self.nmi
@@ -580,6 +587,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             role=role,
         ):
             self._negotiators.append(negotiator)
+            self._current_state.n_negotiators += 1
             self._negotiator_map[negotiator.id] = negotiator
             self._negotiator_index[negotiator.id] = len(self._negotiators) - 1
             self._roles.append(role)
@@ -619,7 +627,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self._negotiators.remove(negotiator)
         self._negotiator_map.pop(negotiator.id)
         self._negotiator_index.pop(negotiator.id)
-        if self._enable_callbacks:
+        if self._extra_callbacks:
             negotiator.on_leave(self.nmi.state)
         return True
 
@@ -669,21 +677,22 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def agreement(self):
-        return self._agreement
+        return self._current_state.agreement
 
     @property
     def n_outcomes(self):
         return self.nmi.n_outcomes
 
     @property
-    def issues(self) -> list[Issue] | None:
-        if hasattr(self.nmi.outcome_space, "issues"):
-            return self.nmi.outcome_space.issues  # type: ignore
-        return None
+    def issues(self) -> list[Issue]:
+        """
+        Returns the issues of the outcomespace. Will raise an exception if the outcome space has no defined issues
+        """
+        return self.nmi.outcome_space.issues  # type: ignore
 
     @property
     def completed(self):
-        return self.agreement is not None or self._broken
+        return self.agreement is not None or self._current_state.broken
 
     @property
     def n_steps(self):
@@ -695,7 +704,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def running(self):
-        return self._running
+        return self._current_state.running
 
     @property
     def dynamic_entry(self):
@@ -705,14 +714,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_n_agents(self):
         return self.nmi.max_n_agents
 
-    @max_n_agents.setter
-    def max_n_agents(self, n: int):
-        self.nmi.max_n_agents = n
-
     @property
     def state4history(self) -> Any:
         """Returns the state as it should be stored in the history"""
-        return self.state
+        return copy.deepcopy(self._current_state)
 
     def _add_to_history(self, state4history):
         if len(self._history) == 0:
@@ -732,7 +737,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             - When overriding this function you **MUST** call the base class version
         """
         state = self.state
-        if self._enable_callbacks:
+        if self._extra_callbacks:
             for a in self.negotiators:
                 a.on_mechanism_error(state)
 
@@ -796,10 +801,14 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # end with a timeout if condition is met
         if (
             (self.time > self.time_limit)
-            or (self.nmi.n_steps and self._step >= self.nmi.n_steps)
+            or (self.nmi.n_steps and self._current_state.step >= self.nmi.n_steps)
             or self.time > self._hidden_time_limit
         ):
-            self._running, self._broken, self._timedout = False, False, True
+            (
+                self._current_state.running,
+                self._current_state.broken,
+                self._current_state.timedout,
+            ) = (False, False, True)
             self.on_negotiation_end()
             return self.state
 
@@ -809,27 +818,39 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             if self.nmi.dynamic_entry:
                 return self.state
             else:
-                self._running, self._broken, self._timedout = False, False, False
+                (
+                    self._current_state.running,
+                    self._current_state.broken,
+                    self._current_state.timedout,
+                ) = (False, False, False)
                 self.on_negotiation_end()
                 return self.state
 
         # if the mechanism states that it is broken, timedout or ended with
         # agreement, report that
-        if self._broken or self._timedout or self._agreement is not None:
-            self._running = False
+        if (
+            self._current_state.broken
+            or self._current_state.timedout
+            or self._current_state.agreement is not None
+        ):
+            self._current_state.running = False
             self.on_negotiation_end()
             return self.state
 
-        if not self._running:
+        if not self._current_state.running:
             # if we did not start, just start
-            self._running = True
-            self._step = 0
+            self._current_state.running = True
+            self._current_state.step = 0
             self._start_time = time.perf_counter()
-            self._started = True
+            self._current_state.started = True
             state = self.state
             # if the mechanism indicates that it cannot start, keep trying
             if self.on_negotiation_start() is False:
-                self._agreement, self._broken, self._timedout = None, False, False
+                (
+                    self._current_state.agreement,
+                    self._current_state.broken,
+                    self._current_state.timedout,
+                ) = (None, False, False)
                 return self.state
             for a in self.negotiators:
                 a._on_negotiation_start(state=state)
@@ -840,21 +861,27 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             if (remaining_steps is not None and remaining_steps <= 0) or (
                 remaining_time is not None and remaining_time <= 0.0
             ):
-                self._running = False
-                self._agreement, self._broken, self._timedout = None, False, True
+                self._current_state.running = False
+                (
+                    self._current_state.agreement,
+                    self._current_state.broken,
+                    self._current_state.timedout,
+                ) = (None, False, True)
                 self.on_negotiation_end()
                 return self.state
 
         # send round start only if the mechanism is not waiting for anyone
         # TODO check this.
-        if not self._waiting and self._enable_callbacks:
+        if not self._current_state.waiting and self._extra_callbacks:
             for agent in self._negotiators:
                 agent.on_round_start(state)
 
         # run a round of the mechanism and get the new state
-        step_start = time.perf_counter() if not self._waiting else self._last_start
+        step_start = (
+            time.perf_counter() if not self._current_state.waiting else self._last_start
+        )
         self._last_start = step_start
-        self._waiting = False
+        self._current_state.waiting = False
         result = self.round()
         step_time = time.perf_counter() - step_start
         self._stats["round_times"].append(step_time)
@@ -871,44 +898,63 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                     self._stats["exceptions"][k] += v
 
         # update current state variables from the result of the round just run
-        self._error, self._error_details, self._waiting = (
+        (
+            self._current_state.has_error,
+            self._current_state.error_details,
+            self._current_state.waiting,
+        ) = (
             result.error,
             result.error_details,
             result.waiting,
         )
-        if self._error:
+        if self._current_state.has_error:
             self.on_mechanism_error()
         if (
             self.nmi.step_time_limit is not None
             and step_time > self.nmi.step_time_limit
         ):
-            self._broken, self._timedout, self._agreement = False, True, None
+            (
+                self._current_state.broken,
+                self._current_state.timedout,
+                self._current_state.agreement,
+            ) = (False, True, None)
         else:
-            self._broken, self._timedout, self._agreement = (
+            (
+                self._current_state.broken,
+                self._current_state.timedout,
+                self._current_state.agreement,
+            ) = (
                 result.broken,
                 result.timedout,
                 result.agreement,
             )
-        if (self._agreement is not None) or self._broken or self._timedout:
-            self._running = False
+        if (
+            (self._current_state.agreement is not None)
+            or self._current_state.broken
+            or self._current_state.timedout
+        ):
+            self._current_state.running = False
 
         # now switch to the new state
         state = self.state
-        if not self._waiting:
+        if not self._current_state.waiting:
             state4history = self.state4history
-            if self._enable_callbacks:
+            if self._extra_callbacks:
                 for agent in self._negotiators:
                     agent.on_round_end(state)
             self._add_to_history(state4history)
             # we only indicate a new step if no one is waiting
-            self._step += 1
-        if not self._running:
+            self._current_state.step += 1
+            self._current_state.time = self.time
+            self._current_state.relative_time = self.relative_time
+
+        if not self._current_state.running:
             self.on_negotiation_end()
         return self.state
 
     def __next__(self) -> MechanismState:
         result = self.step()
-        if not self._running:
+        if not self._current_state.running:
             raise StopIteration
 
         return result
@@ -917,21 +963,29 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         """
         Aborts the negotiation
         """
-        self._error, self._error_details, self._waiting = (
+        (
+            self._current_state.has_error,
+            self._current_state.error_details,
+            self._current_state.waiting,
+        ) = (
             True,
             "Uncaught Exception",
             False,
         )
         self.on_mechanism_error()
-        self._broken, self._timedout, self._agreement = (True, False, None)
+        (
+            self._current_state.broken,
+            self._current_state.timedout,
+            self._current_state.agreement,
+        ) = (True, False, None)
         state = self.state
         state4history = self.state4history
-        self._running = False
-        if self._enable_callbacks:
+        self._current_state.running = False
+        if self._extra_callbacks:
             for agent in self._negotiators:
                 agent.on_round_end(state)
         self._add_to_history(state4history)
-        self._step += 1
+        self._current_state.step += 1
         self.on_negotiation_end()
         return state
 
@@ -1020,7 +1074,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             start_time = time.perf_counter()
             for _ in self:
                 if time.perf_counter() - start_time > timeout:
-                    self._running, self._timedout, self._broken = False, True, False
+                    (
+                        self._current_state.running,
+                        self._current_state.timedout,
+                        self._current_state.broken,
+                    ) = (False, True, False)
                     self.on_negotiation_end()
                     break
         return self.state
@@ -1035,7 +1093,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @property
     def current_step(self):
-        return self._step
+        return self._current_state.step
 
     def _get_preferencess(self):
         preferences = []

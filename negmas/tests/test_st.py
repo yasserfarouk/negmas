@@ -20,7 +20,7 @@ def test_can_work(n_negotiators, n_outcomes, n_steps):
     assert mechanism.state.step == 0
     mechanism.step()
     assert mechanism.state.step == 1
-    assert mechanism.current_offer is not None
+    assert mechanism.state.current_offer is not None
     mechanism.run()
     assert mechanism.agreement is not None
 
@@ -36,6 +36,6 @@ def test_hill_climbing_mechanism(n_negotiators, n_outcomes):
     assert mechanism.state.step == 0
     mechanism.step()
     assert mechanism.state.step == 1
-    assert mechanism.current_offer is not None
+    assert mechanism.state.current_offer is not None
     mechanism.run()
     assert mechanism.agreement is not None

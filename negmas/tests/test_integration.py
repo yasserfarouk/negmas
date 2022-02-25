@@ -67,11 +67,7 @@ def test_buy_sell_session():
     state = session.run()
     import matplotlib.pyplot as plt
 
-    session.plot()
-    plt.show()
-    print(session.full_trace)
-    print(vars(state))
-    assert state.agreement is not None
+    assert state.agreement is not None, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
 
 
 if __name__ == "__main__":

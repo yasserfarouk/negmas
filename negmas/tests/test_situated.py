@@ -99,9 +99,9 @@ class DummyWorld(World):
 
 
 class DummyAgent(Agent):
-    def __init__(self, name=None):
-        super().__init__(name=name)
-        self.id = name
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.id = self.name
         self.__current_step = 0
 
     def init(self):
@@ -284,7 +284,7 @@ class ExceptionAgent(Agent):
         results.append(f"{self.name}: step {self.__current_step}")
 
 
-def test_world_has_times(capsys):
+def test_world_has_times():
     import time
 
     world = DummyWorld(n_steps=10)
@@ -298,7 +298,7 @@ def test_world_has_times(capsys):
     assert 0.0 < sum(world.times.values()) < t
 
 
-def test_world_records_exceptions(capsys):
+def test_world_records_exceptions():
     pass
 
     world = DummyWorld(n_steps=10, ignore_agent_exceptions=True)
@@ -319,7 +319,7 @@ def test_world_records_exceptions(capsys):
         assert sum(world.n_total_agent_exceptions.values()) == 20
 
 
-def test_world_runs_with_some_negs(capsys):
+def test_world_runs_with_some_negs():
     global results
     results = []
     world = DummyWorld(n_steps=10)

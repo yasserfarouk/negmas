@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import time
 from copy import deepcopy
-from dataclasses import dataclass, field
+
+from attrs import define, field
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome
@@ -15,11 +16,11 @@ __all__ = [
 ]
 
 
-@dataclass
+@define
 class MTState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    current_offers: list[Outcome | None] = field(default_factory=list)
+    current_offers: list[Outcome | None] = field(factory=list)
 
 
 class VetoMTMechanism(Mechanism):
@@ -57,11 +58,11 @@ class VetoMTMechanism(Mechanism):
         self.add_requirements(
             {"compare-binary": True}
         )  # assert that all agents must have compare-binary capability
-        self.current_offers: list[Outcome | None] = (
+        self._current_state.current_offers: list[Outcome | None] = (
             initial_outcomes if initial_outcomes is not None else [None] * n_texts
         )
         """The current offer"""
-        self.initial_outcomes = deepcopy(self.current_offers.copy)
+        self.initial_outcomes = deepcopy(self._current_state.current_offers)
         """The initial offer"""
         self.last_responses = (
             [list(_) for _ in initial_responses]
@@ -72,11 +73,6 @@ class VetoMTMechanism(Mechanism):
         self.initial_responses = deepcopy(self.last_responses)
         """The initial set of responses. See the remarks of this class to understand its role."""
         self.epsilon = epsilon
-
-    def extra_state(self):
-        return dict(
-            current_offers=deepcopy(self.current_offers),
-        )
 
     def next_outcome(self, outcome: Outcome | None) -> Outcome | None:
         """Generate the next outcome given some outcome.
@@ -92,7 +88,7 @@ class VetoMTMechanism(Mechanism):
 
     def round(self) -> MechanismRoundResult:
         """Single round of the protocol"""
-        for i, current_offer in enumerate(self.current_offers):
+        for i, current_offer in enumerate(self._current_state.current_offers):
             new_offer = self.next_outcome(current_offer)
             responses = []
 
@@ -110,12 +106,12 @@ class VetoMTMechanism(Mechanism):
             self.last_responses = responses
 
             if all(responses):
-                self.current_offers[i] = new_offer
+                self._current_state.current_offers[i] = new_offer
 
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
-        self._agreement = self.current_offers
+        self._agreement = self._current_state.current_offers
 
         super().on_negotiation_end()

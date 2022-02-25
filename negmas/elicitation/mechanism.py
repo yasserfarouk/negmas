@@ -191,7 +191,7 @@ class SAOElicitingMechanism(SAOMechanism):
             max_n_agents=2,
             dynamic_entry=False,
             name=name,
-            enable_callbacks=True,
+            extra_callbacks=True,
         )
         if elicitor_reserved_value is None:
             elicitor_reserved_value = 0.0

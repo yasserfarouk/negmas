@@ -23,7 +23,6 @@ from negmas.helpers.types import get_class
 from negmas.outcomes import Outcome, make_issue
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences import LinearUtilityFunction, MappingUtilityFunction
-from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun
 from negmas.sao import (
     AdditiveParetoFollowingTBNegotiator,
     AspirationNegotiator,
@@ -395,7 +394,7 @@ def test_exceptions_are_saved():
     mechanism.step()
     mechanism.step()
     assert mechanism.state.step == 1
-    assert mechanism._current_offer is not None
+    assert mechanism.state.current_offer is not None
     assert len(mechanism.stats) == 3
     stats = mechanism.stats
     assert "times" in stats.keys()
@@ -423,7 +422,7 @@ def test_round_n_agents(n_negotiators):
     assert mechanism.state.step == 0
     mechanism.step()
     assert mechanism.state.step == 1
-    assert mechanism._current_offer is not None
+    assert mechanism.state.current_offer is not None
 
 
 @mark.parametrize(["n_negotiators"], [(2,), (3,)])
@@ -449,15 +448,14 @@ def test_mechanism_runs_with_offering_not_accepting(n_negotiators, oia):
         mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
     assert mechanism.state.step == 0
     mechanism.step()
-    assert mechanism._current_proposer
-    assert mechanism._current_proposer.name == "agent0"
-    assert mechanism._n_accepting == n_negotiators + int(oia) - 1
+    assert mechanism._current_proposer and mechanism._current_proposer.name == "agent0"
+    assert mechanism.state.n_acceptances == n_negotiators + int(oia) - 1
     assert (mechanism.agreement is not None) is oia
     if mechanism.agreement is not None:
         return
     mechanism.step()
     assert mechanism._current_proposer.name == "agent0"
-    assert mechanism._n_accepting == n_negotiators
+    assert mechanism.state.n_acceptances == n_negotiators
     assert mechanism.agreement is not None
 
 
@@ -1134,7 +1132,7 @@ def test_times_are_calculated(n_outcomes, n_negotiators, n_steps):
     time.sleep(0.01)
     duration = time.perf_counter() - _strt
     # assert mechanism.current_step == n_steps
-    assert mechanism._current_offer is not None
+    assert mechanism.state.current_offer is not None
     assert len(mechanism.stats) == 3
     stats = mechanism.stats
     assert "round_times" in stats.keys()
@@ -1394,6 +1392,26 @@ def _run_neg(agents, utils, outcome_space):
 )
 @settings(deadline=10_000, max_examples=10)
 def test_bilateral_timebased(typ, linear, starting, opp):
+    if opp is None and starting:
+        return
+    if opp is None:
+        opp = typ
+    if starting:
+        a1 = typ(name=f"{typ.__name__}[0]")
+        a2 = opp(name=f"{opp.__name__}[1]")
+    else:
+        a1 = opp(name=f"{opp.__name__}[0]")
+        a2 = typ(name=f"{typ.__name__}[1]")
+    u1, u2, outcome_space = make_linear() if linear else make_mapping()
+    _run_neg((a1, a2), (u1, u2), outcome_space)
+
+
+def test_bilateral_timebased_example():
+    typ = negmas.sao.negotiators.timebased.TimeBasedNegotiator
+    linear = False
+    starting = False
+    opp = None
+
     if opp is None and starting:
         return
     if opp is None:

@@ -55,8 +55,6 @@ class SAOMechanism(Mechanism):
         annotation: A key-value mapping to keep around. Accessible through the AMI but not used by the mechanism.
         end_on_no_response: End the negotiation if any negotiator returns NO_RESPONSE from `respond`/`counter` or returns
                             REJECT_OFFER then refuses to give an offer (by returning `None` from `proposee/`counter`).
-        publish_proposer: Put the last proposer in the state.
-        publish_n_acceptances: Put the number of acceptances an offer got so far in the state.
         enable_callbacks: Enable callbacks like on_round_start, etc. Note that on_negotiation_end is always received
                           by the negotiators no matter what is the setting for this parameter.
         avoid_ultimatum: If true, a proposal is taken from every agent in the first round then all of them are discarded
@@ -90,12 +88,10 @@ class SAOMechanism(Mechanism):
     def __init__(
         self,
         dynamic_entry=False,
-        enable_callbacks=False,
+        extra_callbacks=False,
         end_on_no_response=True,
-        publish_proposer=True,
-        publish_n_acceptances=True,
         avoid_ultimatum=False,
-        check_offers=True,
+        check_offers=False,
         enforce_issue_types=False,
         cast_offers=False,
         ignore_negotiator_exceptions=False,
@@ -106,10 +102,10 @@ class SAOMechanism(Mechanism):
         sync_calls: bool = False,
         **kwargs,
     ):
+        kwargs["state_factory"] = SAOState
         super().__init__(
             dynamic_entry=dynamic_entry,
-            state_factory=SAOState,
-            enable_callbacks=enable_callbacks,
+            extra_callbacks=extra_callbacks,
             name=name,
             **kwargs,
         )
@@ -123,9 +119,7 @@ class SAOMechanism(Mechanism):
             )
         self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
-        self.params["publish_proposer"] = publish_proposer
-        self.params["publish_n_acceptances"] = publish_n_acceptances
-        self.params["enable_callbacks"] = enable_callbacks
+        self.params["enable_callbacks"] = extra_callbacks
         self.params["avoid_ultimatum"] = avoid_ultimatum
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
@@ -138,21 +132,17 @@ class SAOMechanism(Mechanism):
         self.params["max_wait"] = self._n_max_waits
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
         self.allow_offering_just_rejected_outcome = allow_offering_just_rejected_outcome
+        self.end_negotiation_on_refusal_to_propose = end_on_no_response
+        self.check_offers = check_offers
         self._enforce_issue_types = enforce_issue_types
         self._cast_offers = cast_offers
-        self._current_offer = None
-        self._current_proposer = None
+
         self._last_checked_negotiator = -1
+        self._current_proposer = None
         self._frozen_neg_list = None
-        self._n_accepting = 0
         self._avoid_ultimatum = n_steps is not None and avoid_ultimatum
         self._ultimatum_avoided = False
-        self.end_negotiation_on_refusal_to_propose = end_on_no_response
-        self.publish_proposer = publish_proposer
-        self.publish_n_acceptances = publish_n_acceptances
-        self.check_offers = check_offers
         self._no_responses = 0
-        self._new_offers = []
         self._offering_is_accepting = offering_is_accepting
         self._n_waits = 0
         self._waiting_time: dict[str, float] = defaultdict(float)
@@ -183,56 +173,24 @@ class SAOMechanism(Mechanism):
             )
         return added
 
-    # def join(
-    #     self,
-    #     nmi: NegotiatorMechanismInterface,
-    #     state: MechanismState,
-    #     *,
-    #     preferences: Optional["Preferences"] = None,
-    #     role: str = "negotiator",
-    # ) -> bool:
-    #     if not super().join(nmi, state, preferences=preferences, role=role):
-    #         return False
-    #     if not self.nmi.dynamic_entry and not any(
-    #         [a.capabilities.get("propose", False) for a in self.negotiators]
-    #     ):
-    #         self._current_proposer = None
-    #         self._last_checked_negotiator = -1
-    #         self._current_offer = None
-    #         self._n_accepting = 0
-    #         return False
-    #     return True
-
     def set_sync_call(self, v: bool):
         self._sync_call = v
 
-    def extra_state(self):
+    def _agent_info(self):
         current_proposer_agent = (
             self._current_proposer.owner if self._current_proposer else None
         )
-        if current_proposer_agent and self.publish_proposer:
+        if current_proposer_agent:
             current_proposer_agent = current_proposer_agent.id
         new_offerer_agents = []
-        for neg_id, _ in self._new_offers:
+        for neg_id, _ in self._current_state.new_offers:
             neg = self._negotiator_map.get(neg_id, None)
             agent = neg.owner if neg else None
-            if agent is not None and self.publish_proposer:
+            if agent is not None:
                 new_offerer_agents.append(agent.id)
             else:
                 new_offerer_agents.append(None)
-        return dict(
-            current_offer=self._current_offer,
-            new_offers=self._new_offers,
-            current_proposer=self._current_proposer.id
-            if self._current_proposer and self.publish_proposer
-            else None,
-            current_proposer_agent=current_proposer_agent,
-            n_acceptances=self._n_accepting if self.publish_n_acceptances else 0,
-            new_offerer_agents=new_offerer_agents,
-            last_negotiator=self.negotiators[self._last_checked_negotiator].name
-            if self._last_checked_negotiator >= 0
-            else "---",
-        )
+        return current_proposer_agent, new_offerer_agents
 
     def _stop_waiting(self, negotiator_id):
         self._waiting_time[negotiator_id] = 0.0
@@ -243,7 +201,7 @@ class SAOMechanism(Mechanism):
     def round(self) -> MechanismRoundResult:
         """implements a round of the Stacked Alternating Offers Protocol."""
         if self._frozen_neg_list is None:
-            self._new_offers = []
+            self._current_state.new_offers = []
         negotiators: list[SAONegotiator] = self.negotiators
         n_negotiators = len(negotiators)
         # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
@@ -270,7 +228,7 @@ class SAOMechanism(Mechanism):
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
-                        self._n_accepting = 0
+                        self._current_state.n_acceptances = 0
                         response = negotiator.counter(*args, **kwargs)
                     else:
                         response = negotiator.counter(*args, **kwargs)
@@ -301,7 +259,7 @@ class SAOMechanism(Mechanism):
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
-                        self._n_accepting = 0
+                        self._current_state.n_acceptances = 0
                         response = TimeoutCaller.run(fun, timeout=timeout)
                     else:
                         response = TimeoutCaller.run(fun, timeout=timeout)
@@ -375,7 +333,7 @@ class SAOMechanism(Mechanism):
                 )
         # if this is the first step (or no one has offered yet) which means that there is no _current_offer
         if (
-            self._current_offer is None
+            self._current_state.current_offer is None
             and n_proposers > 1
             and self._avoid_ultimatum
             and not self._ultimatum_avoided
@@ -502,12 +460,25 @@ class SAOMechanism(Mechanism):
             resp = responses[selected]
             neg = proposers[responders[selected]]
             _first_proposer = proposer_indices[responders[selected]]
-            self._n_accepting = 1 if self._offering_is_accepting else 0
-            self._current_offer = resp.outcome
-            self._current_proposer = neg
-            self._last_checked_negotiator = _first_proposer
-            self._new_offers.append((neg.id, resp.outcome))
             self._selected_first = _first_proposer
+            self._last_checked_negotiator = _first_proposer
+            self._current_state.current_offer = resp.outcome
+            self._current_state.new_offers.append((neg.id, resp.outcome))
+            self._current_proposer = neg
+            self._current_state.current_proposer = neg.id
+            self._current_state.n_acceptances = 1 if self._offering_is_accepting else 0
+            self._current_state.last_negotiator = (
+                self.negotiators[self._last_checked_negotiator].name
+                if self._last_checked_negotiator >= 0
+                else "---",
+            )
+            (
+                self._current_proposer_agent,
+                self._current_state.new_offerer_agents,
+            ) = self._agent_info()
+
+            # current_proposer_agent=current_proposer_agent,
+            # new_offerer_agents=new_offerer_agents,
             return MechanismRoundResult(
                 broken=False,
                 timedout=False,
@@ -530,7 +501,7 @@ class SAOMechanism(Mechanism):
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
             resp, has_exceptions = _safe_counter(
-                neg, state=self.state, offer=self._current_offer
+                neg, state=self.state, offer=self._current_state.current_offer
             )
             if has_exceptions:
                 return MechanismRoundResult(
@@ -556,7 +527,9 @@ class SAOMechanism(Mechanism):
                 self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
                 self._waiting_time[neg.id] += time.perf_counter() - strt
                 self._last_checked_negotiator = (neg_indx - 1) % n_negotiators
-                offered = {self._negotiator_index[_[0]] for _ in self._new_offers}
+                offered = {
+                    self._negotiator_index[_[0]] for _ in self._current_state.new_offers
+                }
                 did_not_offer = sorted(
                     list(set(range(n_negotiators)).difference(offered))
                 )
@@ -587,14 +560,14 @@ class SAOMechanism(Mechanism):
                     times=times,
                     exceptions=exceptions,
                 )
-            if self._enable_callbacks:
-                if self._current_offer is not None:
+            if self._extra_callbacks:
+                if self._current_state.current_offer is not None:
                     for other in self.negotiators:
                         if other is not neg:
                             other.on_partner_response(
                                 state=self.state,
                                 partner_id=neg.id,
-                                outcome=self._current_offer,
+                                outcome=self._current_state.current_offer,
                                 response=resp.response,
                             )
             if resp.response == ResponseType.NO_RESPONSE:
@@ -627,12 +600,12 @@ class SAOMechanism(Mechanism):
                     exceptions=exceptions,
                 )
             if resp.response == ResponseType.ACCEPT_OFFER:
-                self._n_accepting += 1
-                if self._n_accepting == n_negotiators:
+                self._current_state.n_acceptances += 1
+                if self._current_state.n_acceptances == n_negotiators:
                     return MechanismRoundResult(
                         broken=False,
                         timedout=False,
-                        agreement=self._current_offer,
+                        agreement=self._current_state.current_offer,
                         times=times,
                         exceptions=exceptions,
                     )
@@ -640,7 +613,7 @@ class SAOMechanism(Mechanism):
                 proposal = resp.outcome
                 if (
                     not self.allow_offering_just_rejected_outcome
-                    and proposal == self._current_offer
+                    and proposal == self._current_state.current_offer
                 ):
                     proposal = None
                 if proposal is None:
@@ -655,19 +628,31 @@ class SAOMechanism(Mechanism):
                             times=times,
                             exceptions=exceptions,
                         )
-                    self._n_accepting = 0
+                    self._current_state.n_acceptances = 0
                 else:
-                    self._n_accepting = 1 if self._offering_is_accepting else 0
-                    if self._enable_callbacks:
+                    self._current_state.n_acceptances = (
+                        1 if self._offering_is_accepting else 0
+                    )
+                    if self._extra_callbacks:
                         for other in self.negotiators:
                             if other is neg:
                                 continue
                             other.on_partner_proposal(
                                 partner_id=neg.id, offer=proposal, state=self.state
                             )
-                self._current_offer = proposal
+                self._current_state.current_offer = proposal
                 self._current_proposer = neg
-                self._new_offers.append((neg.id, proposal))
+                self._current_state.current_proposer = neg.id
+                self._current_state.new_offers.append((neg.id, proposal))
+                self._current_state.last_negotiator = (
+                    self.negotiators[self._last_checked_negotiator].name
+                    if self._last_checked_negotiator >= 0
+                    else "---",
+                )
+                (
+                    self._current_proposer_agent,
+                    self._current_state.new_offerer_agents,
+                ) = self._agent_info()
 
         return MechanismRoundResult(
             broken=False,
@@ -801,6 +786,13 @@ class SAOMechanism(Mechanism):
     def offers(self) -> list[Outcome]:
         """Returns the negotiation history as a list of offers"""
         return [o for _, o in self.trace]
+
+    @property
+    def _step(self):
+        """
+        A private property used by the checkpoint system
+        """
+        return self._current_state.step
 
     def plot(
         self,
