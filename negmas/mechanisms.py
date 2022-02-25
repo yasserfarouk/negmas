@@ -11,16 +11,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from os import PathLike
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Iterable,
-    Optional,
-    Set,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable
 
 from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
@@ -37,6 +28,7 @@ from negmas.types import NamedObject
 
 if TYPE_CHECKING:
     from negmas.outcomes.base_issue import Issue
+    from negmas.outcomes.protocols import DiscreteOutcomeSpace
     from negmas.preferences import Preferences
     from negmas.preferences.base_ufun import BaseUtilityFunction
 
@@ -166,8 +158,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             dynamic_entry=dynamic_entry,
             max_n_agents=max_n_agents,
             annotation=annotation if annotation is not None else dict(),
+            mechanism=self,
         )
-        self.nmi._mechanism = self
 
         self._history: list[MechanismState] = []
         self._stats: dict[str, Any] = dict()

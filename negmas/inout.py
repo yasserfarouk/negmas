@@ -4,10 +4,11 @@ Defines import/export functionality
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Type
+from typing import Callable, Iterable, Sequence
+
+from attr import define
 
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
@@ -32,7 +33,7 @@ __all__ = [
 ]
 
 
-@dataclass
+@define
 class Scenario:
     """
     A class representing a negotiation domain
@@ -68,7 +69,7 @@ class Scenario:
         Save domain and ufun files to the `path` as XML.
         """
         path.mkdir(parents=True, exist_ok=True)
-        domain_name = self.agenda.name.split("/")[-1]
+        domain_name = self.agenda.name.split("/")[-1] if self.agenda.name else "domain"
         ufun_names = [_.name.split("/")[-1] for _ in self.ufuns]
         self.agenda.to_genius(path / domain_name)
         for ufun, name in zip(self.ufuns, ufun_names):
@@ -121,7 +122,7 @@ class Scenario:
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
                 u.ufun = LinearAdditiveUtilityFunction(
-                    values=[TableFun(dict(zip(souts, [v(_) for _ in outcomes])))],
+                    values=tuple(TableFun(dict(zip(souts, [v(_) for _ in outcomes])))),
                     bias=0.0,
                     reserved_value=v.reserved_value,
                     name=v.name,
@@ -131,7 +132,7 @@ class Scenario:
                 continue
             ufuns.append(
                 LinearAdditiveUtilityFunction(
-                    values=[TableFun(dict(zip(souts, [u(_) for _ in outcomes])))],
+                    values=tuple(TableFun(dict(zip(souts, [u(_) for _ in outcomes])))),
                     bias=0.0,
                     reserved_value=u.reserved_value,
                     name=u.name,
