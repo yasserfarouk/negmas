@@ -5,8 +5,9 @@ from typing import Iterable
 
 import numpy as np
 
+from negmas.common import Distribution
 from negmas.generics import gmap
-from negmas.helpers import Distribution, get_full_type_name
+from negmas.helpers import get_full_type_name
 from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.protocols import OutcomeSpace

@@ -5,7 +5,8 @@ from functools import lru_cache, partial
 from typing import Any, Callable, Iterable, Mapping
 
 from negmas import warnings
-from negmas.helpers import get_full_type_name, make_range
+from negmas.helpers import get_full_type_name
+from negmas.helpers.numeric import make_range
 from negmas.helpers.prob import EPSILON
 from negmas.outcomes import Issue, Outcome
 from negmas.outcomes.base_issue import DiscreteIssue

@@ -3,7 +3,8 @@ from __future__ import annotations
 from random import choice, random
 from typing import TYPE_CHECKING
 
-from negmas.helpers.prob import Distribution, ScipyDistribution
+from negmas.common import Distribution
+from negmas.helpers.prob import ScipyDistribution
 
 from ..mixins import StationaryMixin
 from ..prob_ufun import ProbUtilityFunction

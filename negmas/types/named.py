@@ -17,7 +17,8 @@ from typing import Any, Literal, overload
 
 import dill
 
-from ..helpers import dump, get_full_type_name, load, shorten, unique_name
+from ..helpers import get_full_type_name, shorten, unique_name
+from ..helpers.inout import dump, load
 
 __all__ = ["NamedObject"]
 

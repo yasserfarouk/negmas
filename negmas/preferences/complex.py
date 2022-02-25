@@ -3,7 +3,8 @@ from __future__ import annotations
 import random
 from typing import Any, Callable, Iterable
 
-from negmas.helpers import get_full_type_name, get_one_int
+from negmas.helpers import get_full_type_name
+from negmas.helpers.numeric import get_one_int
 from negmas.outcomes import Outcome
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 

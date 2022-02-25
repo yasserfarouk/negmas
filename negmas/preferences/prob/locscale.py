@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from negmas.helpers import ScipyDistribution
+from negmas.helpers.prob import ScipyDistribution
 from negmas.outcomes import Outcome
 
 from ...helpers.prob import ScipyDistribution

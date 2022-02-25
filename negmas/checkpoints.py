@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from negmas.helpers import load
+from negmas.helpers.inout import load
 from negmas.types import NamedObject
 
 

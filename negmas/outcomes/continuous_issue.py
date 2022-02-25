@@ -7,7 +7,6 @@ from typing import Generator
 
 import numpy as np
 
-from negmas.helpers.numeric import sample
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.range_issue import RangeIssue
 
