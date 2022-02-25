@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import random
-from typing import Any, Dict
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -36,7 +36,6 @@ from .voi import (
     BaseElicitor,
     EStrategy,
     MeanExpector,
-    Optional,
     Query,
     RangeConstraint,
     VOIElicitor,
@@ -174,7 +173,7 @@ class SAOElicitingMechanism(SAOMechanism):
         update_related_queries=True,
         resolution=0.1,
         cost_assuming_titration=False,
-        name: Optional[str] = None,
+        name: str | None = None,
     ):
         self.elicitation_state = {}
         initial_priors = priors

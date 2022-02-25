@@ -8,7 +8,6 @@ import random
 import time
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome
@@ -278,14 +277,14 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         neighbors = []
         for i, issue in enumerate(self.issues):
             values = []
-            if isinstance(issue.values, List):
+            if isinstance(issue.values, list):
                 values = issue.values
             if isinstance(issue.values, int):
                 values = [
                     max(0, outcome[i] - 1),
                     min(outcome[i] + 1, issue.values),
                 ]
-            if isinstance(issue.values, Tuple):
+            if isinstance(issue.values, tuple):
                 delta = random.random() * (issue.values[0] - issue.values[0])
                 values.append(max(issue.values[0], outcome[i] - delta))
                 values.append(min(outcome[i] + delta, issue.values[0]))

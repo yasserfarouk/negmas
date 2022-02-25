@@ -5,7 +5,7 @@ Implements serialization to and from strings and secondary storage.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Type
+from typing import Any, Iterable, Type
 
 import cloudpickle
 import numpy as np

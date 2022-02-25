@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any, Generator
 
 from negmas import warnings

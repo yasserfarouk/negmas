@@ -6,7 +6,6 @@ from __future__ import annotations
 import time
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome

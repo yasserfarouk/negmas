@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import numbers
 import random
-from typing import Any, Generator
+from typing import Generator
 
 import numpy as np
 

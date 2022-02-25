@@ -7,7 +7,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Iterable
 
 from negmas import warnings
 
@@ -207,7 +207,7 @@ class Notifiable:
         try:
             self.__notification_handlers[notification_type].remove(callback)
             return True
-        except (ValueError, IndexError, AttributeError) as e:
+        except (ValueError, IndexError, AttributeError):
             return False
 
     def on_notification(self, notification: Notification, notifier: str) -> None:

@@ -31,18 +31,7 @@ from functools import partial
 from multiprocessing import cpu_count
 from os import PathLike
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Iterable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -61,7 +50,7 @@ from negmas.helpers import (
     truncated_mean,
     unique_name,
 )
-from negmas.serialization import deserialize, serialize, to_flat_dict
+from negmas.serialization import serialize, to_flat_dict
 from negmas.situated import Agent, World, save_stats
 
 __all__ = [

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import numbers
 import random
-from abc import ABC, abstractmethod
-from typing import List, Tuple, Union
+from abc import abstractmethod
 
 import numpy as np
 
@@ -12,7 +11,6 @@ from negmas.helpers.prob import Distribution, Real, ScipyDistribution
 from negmas.outcomes import Outcome
 
 from .base_ufun import BaseUtilityFunction, _General
-from .protocols import UFunProb
 
 __all__ = [
     "ProbUtilityFunction",

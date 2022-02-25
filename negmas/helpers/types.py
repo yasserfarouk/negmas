@@ -10,7 +10,7 @@ import json
 from enum import Enum
 from os import PathLike
 from types import FunctionType, LambdaType
-from typing import Any, Callable, Type, Union
+from typing import Any, Callable, Type
 
 import stringcase
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import time
 from abc import abstractmethod
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable
 
 import numpy as np
 

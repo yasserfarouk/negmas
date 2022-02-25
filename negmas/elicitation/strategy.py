@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, Union
-
 from ..common import NegotiatorMechanismInterface, Value
 from ..helpers.prob import ScipyDistribution
 from ..preferences import IPUtilityFunction

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Collection, Dict, List, Optional, Set
+from typing import Any, Callable, Collection
 
 import hypothesis.strategies as st
 import pytest

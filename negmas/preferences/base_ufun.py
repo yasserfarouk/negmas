@@ -4,17 +4,7 @@ import math
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from os import PathLike
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, Iterable, TypeVar
 
 from negmas import warnings
 from negmas.common import Value
@@ -28,7 +18,7 @@ from negmas.outcomes.protocols import IndependentIssuesOS, OutcomeSpace
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
 from .preferences import Preferences
-from .protocols import HasReservedValue, InverseUFun
+from .protocols import InverseUFun
 from .value_fun import make_fun_from_xml
 
 if TYPE_CHECKING:

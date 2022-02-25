@@ -8,7 +8,7 @@ collections (e.g. `list`, `tuple`, `generator`) or even `Callable`\ s without aw
 other modules of the library.
 
 """
-from typing import Any, Callable, Dict, Iterable, Mapping, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Mapping, Sequence, Union
 
 __all__ = [
     "IterableMapping",  # A mapping combining dicts, lists, tuples, and generators

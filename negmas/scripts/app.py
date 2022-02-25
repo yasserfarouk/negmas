@@ -366,7 +366,7 @@ def create(
     steps = (steps_min, steps_max)
 
     if worlds_per_config is None:
-        n_comp = len(all_competitors)
+        len(all_competitors)
         n_worlds = permutation_size * runs * configs
 
         if n_worlds > warning_n_runs:

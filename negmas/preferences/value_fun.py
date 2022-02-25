@@ -21,7 +21,7 @@ from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.contiguous_issue import ContiguousIssue
 from negmas.serialization import PYTHON_CLASS_IDENTIFIER, deserialize, serialize
 
-from .protocols import MultiIssueFun, SingleIssueFun
+from .protocols import MultiIssueFun
 
 MAX_CARINALITY = 10_000
 

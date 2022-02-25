@@ -5,7 +5,7 @@ import random
 import time
 from heapq import heapify, heappop
 from math import sqrt
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable
 
 import numpy as np
 import scipy.optimize as opt

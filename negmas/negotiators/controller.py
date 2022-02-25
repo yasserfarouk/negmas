@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from negmas.common import MechanismState, NegotiatorMechanismInterface
 from negmas.events import Notification

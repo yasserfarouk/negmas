@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from ..common import MechanismState, NegotiatorMechanismInterface, Value
 from ..negotiators.helpers import PolyAspiration

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import random
-from typing import List
 
 from negmas.helpers import get_full_type_name, make_range
 from negmas.outcomes import Issue, Outcome

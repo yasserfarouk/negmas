@@ -3,7 +3,7 @@ Common datastructures used in the outcomes module.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from negmas.outcomes.issue_ops import issues_from_outcomes
 
@@ -70,7 +70,6 @@ def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
         - A `CartesianOutcomeSpace` will be created if an outcome-space is not given
         - If outcomes is given or all issues are discrete, a `DiscreteCartesianOutcomeSpace` will be created
     """
-    from negmas.outcomes.issue_ops import make_issue
     from negmas.outcomes.outcome_space import make_os
 
     if outcome_space:
@@ -93,7 +92,6 @@ def ensure_os(outcome_space, issues, outcomes) -> OutcomeSpace:
         - A `CartesianOutcomeSpace` will be created if an outcome-space is not given
         - If outcomes is given or all issues are discrete, a `DiscreteCartesianOutcomeSpace` will be created
     """
-    from negmas.outcomes.issue_ops import make_issue
     from negmas.outcomes.outcome_space import make_os
 
     if outcome_space:

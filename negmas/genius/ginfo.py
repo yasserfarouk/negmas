@@ -4,7 +4,6 @@ Keeps information about ANAC competitions and Genius Agents
 from __future__ import annotations
 
 import itertools
-from typing import List, Optional, Set, Tuple
 
 __all__ = [
     "GENIUS_INFO",

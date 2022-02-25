@@ -68,8 +68,6 @@ def plot_offer_utilities(
     ignore_markers_limit=50,
     show_reserved=True,
 ):
-    import matplotlib.gridspec as gridspec
-    import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
 
     map_ = make_callable(name_map)
@@ -172,7 +170,6 @@ def plot_2dutils(
     colormap: str = "jet",
     ax: Axes | None = None,  # type: ignore
 ):
-    import matplotlib.gridspec as gridspec
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
 
@@ -192,7 +189,7 @@ def plot_2dutils(
         offering_negotiators = list({_.negotiator for _ in trace})
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
-    xrange = max(_[0] for _ in utils) - min(_[0] for _ in utils)
+    max(_[0] for _ in utils) - min(_[0] for _ in utils)
     yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
     frontier, frontier_outcome = pareto_frontier(
         ufuns=plotting_ufuns,
@@ -409,7 +406,6 @@ def plot_mechanism_run(
     common_legend=True,
 ):
     import matplotlib.gridspec as gridspec
-    import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
 
     if negotiators is None:

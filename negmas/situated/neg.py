@@ -6,25 +6,13 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Collection, Iterable
 
 from negmas import MechanismState, NegotiatorMechanismInterface
 from negmas.helpers import get_class, get_full_type_name, instantiate
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Issue
 from negmas.preferences import Preferences
-from negmas.preferences.protocols import HasRange
 from negmas.serialization import deserialize, serialize, to_flat_dict
 from negmas.situated import (
     Action,
@@ -258,8 +246,6 @@ class NegDomain:
 
 class _NegPartner(NegAgent):
     """A `NegAgent` representing a partner that is not being evaluated"""
-
-    pass
 
 
 class _NegAWI(AgentWorldInterface):

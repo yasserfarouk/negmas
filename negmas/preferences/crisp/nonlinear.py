@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Union
+from typing import Callable, Iterable
 
-from negmas.generics import GenericMapping, gmap, iget, ikeys
+from negmas.generics import GenericMapping, gmap, ikeys
 from negmas.helpers import get_full_type_name
 from negmas.outcomes import Issue, Outcome, OutcomeRange, outcome_in_range
 from negmas.outcomes.outcome_space import CartesianOutcomeSpace

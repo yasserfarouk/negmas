@@ -41,7 +41,7 @@ import socket
 import subprocess
 import time
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any
 
 import psutil
 from py4j.java_gateway import (

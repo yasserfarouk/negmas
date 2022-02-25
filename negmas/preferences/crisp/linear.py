@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from functools import lru_cache, partial
-from typing import Any, Callable, Iterable, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping
 
 from negmas import warnings
 from negmas.helpers import get_full_type_name, make_range

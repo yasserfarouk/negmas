@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Iterable, Protocol
+from typing import Iterable
 
 from negmas.outcomes import Outcome
 

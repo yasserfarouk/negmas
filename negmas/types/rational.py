@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from negmas import warnings
 
-from ..common import PreferencesChange, PreferencesChangeType
+from ..common import PreferencesChange
 from .named import NamedObject
 
 if TYPE_CHECKING:
