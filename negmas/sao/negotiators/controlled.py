@@ -22,7 +22,7 @@ class ControlledSAONegotiator(SAONegotiator):
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.propose(self.id, state)  # type: ignore
 
-    def respond(self, state: MechanismState, offer: Outcome) -> "ResponseType":
+    def respond(self, state: MechanismState, offer: Outcome) -> ResponseType:
         """Calls parent controller"""
         if self._Negotiator__parent:  # type: ignore
             return self._Negotiator__parent.respond(self.id, state, offer)  # type: ignore

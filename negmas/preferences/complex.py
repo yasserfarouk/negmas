@@ -43,7 +43,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     def __init__(
         self,
         ufuns: Iterable[BaseUtilityFunction],
-        weights: Optional[Iterable[float]] = None,
+        weights: Iterable[float] | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -113,7 +113,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             u += util * w  # type: ignore
         return u
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
@@ -123,7 +123,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         )
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]):
+    def from_dict(cls, d: dict[str, Any]):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufuns"] = [deserialize(_) for _ in d["ufuns"]]
         return cls(**d)
@@ -182,7 +182,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
             **kwargs,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
         return dict(
@@ -191,13 +191,13 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         )
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]):
+    def from_dict(cls, d: dict[str, Any]):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufuns"] = deserialize(d["ufuns"])
         d["combination_function"] = deserialize(d["combination_function"])
         return cls(**d)
 
-    def eval(self, offer: "Outcome") -> Value:
+    def eval(self, offer: Outcome) -> Value:
         """Calculate the utility_function value for a given outcome.
 
         Args:

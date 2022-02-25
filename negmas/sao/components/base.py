@@ -140,19 +140,12 @@ class AcceptanceStrategy(SAOComponent):
         """
         return self(state, offer)
 
+    def __not__(self):
+        return RejectionStrategy(self)
+
     @abstractmethod
     def __call__(self, state: SAOState, offer: Outcome | None) -> ResponseType:
         return self.respond(state, offer)
-
-    def __or__(self, s: AcceptanceStrategy):
-        from .acceptance import AnyAcceptanceStrategy
-
-        if self.negotiator != s.negotiator:
-            raise ValueError(f"Cannot combine strategies with different negotiators")
-        return AnyAcceptanceStrategy([self, s])
-
-    def __not__(self):
-        return RejectionStrategy(self)
 
     def __and__(self, s: AcceptanceStrategy):
         from .acceptance import AllAcceptanceStrategies
@@ -160,6 +153,13 @@ class AcceptanceStrategy(SAOComponent):
         if self.negotiator != s.negotiator:
             raise ValueError(f"Cannot combine strategies with different negotiators")
         return AllAcceptanceStrategies([self, s])
+
+    def __or__(self, s: AcceptanceStrategy):
+        from .acceptance import AnyAcceptanceStrategy
+
+        if self.negotiator != s.negotiator:
+            raise ValueError(f"Cannot combine strategies with different negotiators")
+        return AnyAcceptanceStrategy([self, s])
 
 
 @define
@@ -203,19 +203,19 @@ class OfferingStrategy(SAOComponent):
     def __call__(self, state: SAOState) -> Outcome | None:
         ...
 
-    def __or__(self, s: OfferingStrategy):
-        from .offering import RandomConcensusOfferingStrategy
-
-        if self.negotiator != s.negotiator:
-            raise ValueError(f"Cannot combine strategies with different negotiators")
-        return RandomConcensusOfferingStrategy([self, s])
-
     def __and__(self, s: OfferingStrategy):
         from .offering import UnanimousConcensusOfferingStrategy
 
         if self.negotiator != s.negotiator:
             raise ValueError(f"Cannot combine strategies with different negotiators")
         return UnanimousConcensusOfferingStrategy([self, s])
+
+    def __or__(self, s: OfferingStrategy):
+        from .offering import RandomConcensusOfferingStrategy
+
+        if self.negotiator != s.negotiator:
+            raise ValueError(f"Cannot combine strategies with different negotiators")
+        return RandomConcensusOfferingStrategy([self, s])
 
 
 ProposalStrategy = OfferingStrategy

@@ -93,6 +93,14 @@ class Preferences(NamedObject, ABC):
         d["outcome_space"] = deserialize(d.get("outcome_space", None))
         return cls(**d)
 
+    def is_stationary(self) -> bool:
+        """Are the preferences stationary (i.e. repeated calls return the same value for any preferences comparion or evaluaton method)?"""
+        return (
+            not self.is_state_dependent()
+            and not self.is_volatile()
+            and not self.is_session_dependent()
+        )
+
     def changes(self) -> list[PreferencesChange]:
         if self.is_stationary():
             return []
@@ -129,14 +137,6 @@ class Preferences(NamedObject, ABC):
         while isinstance(u, DiscountedUtilityFunction):
             u = u.ufun
         return self.type
-
-    def is_stationary(self) -> bool:
-        """Are the preferences stationary (i.e. repeated calls return the same value for any preferences comparion or evaluaton method)?"""
-        return (
-            not self.is_state_dependent()
-            and not self.is_volatile()
-            and not self.is_session_dependent()
-        )
 
     def is_better(self, first: Outcome | None, second: Outcome | None) -> bool:
         """

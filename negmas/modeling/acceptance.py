@@ -54,16 +54,28 @@ class DiscreteAcceptanceModel(ABC):
         self.outcomes = outcomes
         self.indx = dict(zip(outcomes, range(len(outcomes))))
 
-    def probability_of_acceptance(self, outcome: "Outcome"):
+    @abstractmethod
+    def probability_of_acceptance_indx(self, outcome_index: int) -> float:
+        raise NotImplementedError()
+
+    def probability_of_acceptance(self, outcome: Outcome):
         indx = self.indx.get(outcome, None)
         if indx is None:
             return 0.0
         return self.probability_of_acceptance_indx(indx)
 
-    def update_rejected(self, outcome: "Outcome"):
+    @abstractmethod
+    def update_rejected_indx(self, outcome_index: int):
+        raise NotImplementedError()
+
+    def update_rejected(self, outcome: Outcome):
         if outcome is None:
             return
         return self.update_rejected_indx(self.indx[outcome])
+
+    @abstractmethod
+    def update_offered_indx(self, outcome_index: int):
+        raise NotImplementedError()
 
     def update_offered(self, outcome):
         if outcome is None:
@@ -78,25 +90,13 @@ class DiscreteAcceptanceModel(ABC):
             [self.probability_of_acceptance_indx(_) for _ in range(len(self.outcomes))]
         )
 
-    @abstractmethod
-    def probability_of_acceptance_indx(self, outcome_index: int) -> float:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def update_rejected_indx(self, outcome_index: int):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def update_offered_indx(self, outcome_index: int):
-        raise NotImplementedError()
-
 
 class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     def __init__(
         self,
         outcomes: Collection[Outcome],
         n_negotiators: int = 2,
-        prob: Union[float, List[float]] = 0.5,
+        prob: float | list[float] = 0.5,
         end_prob=0.0,
         p_accept_after_reject=0.0,
         p_reject_after_accept=0.0,
@@ -132,11 +132,11 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     def from_negotiation(
         cls,
         nmi: NegotiatorMechanismInterface,
-        prob: Union[float, list] = 0.5,
+        prob: float | list = 0.5,
         end_prob=0.0,
         p_accept_after_reject=0.0,
         p_reject_after_accept=0.0,
-    ) -> "AdaptiveDiscreteAcceptanceModel":
+    ) -> AdaptiveDiscreteAcceptanceModel:
         if not nmi.n_outcomes or nmi.outcomes is None:
             raise ValueError(
                 "Cannot initialize this simple opponents model for a negotiation with uncountable outcomes"
@@ -217,7 +217,7 @@ class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     def __init__(
         self,
         outcomes: Collection[Outcome],
-        opponents: Union["SAONegotiator", Collection["SAONegotiator"]],
+        opponents: SAONegotiator | Collection[SAONegotiator],
     ):
         super().__init__(outcomes=outcomes)
         if not isinstance(opponents, Collection):
@@ -248,7 +248,7 @@ class PeekingProbabilisticDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     def __init__(
         self,
         outcomes: Collection[Outcome],
-        opponents: Union["SAONegotiator", Collection["SAONegotiator"]],
+        opponents: SAONegotiator | Collection[SAONegotiator],
     ):
         super().__init__(outcomes=outcomes)
         if not isinstance(opponents, Collection):
@@ -275,8 +275,8 @@ class AggregatingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
     def __init__(
         self,
         outcomes: Collection[Outcome],
-        models: List[DiscreteAcceptanceModel],
-        weights: List[float] = None,
+        models: list[DiscreteAcceptanceModel],
+        weights: list[float] = None,
     ):
         super().__init__(outcomes=outcomes)
         if weights is None:
@@ -319,7 +319,7 @@ class UncertainOpponentModel(AggregatingDiscreteAcceptanceModel):
     def __init__(
         self,
         outcomes: Collection[Outcome],
-        opponents: Union["SAONegotiator", Collection["SAONegotiator"]],
+        opponents: SAONegotiator | Collection[SAONegotiator],
         uncertainty: float = 0.5,
         adaptive: bool = False,
         rejection_discount: float = 0.95,

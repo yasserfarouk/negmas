@@ -15,7 +15,7 @@ from .outcomes import Outcome
 class GAState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    dominant_outcomes: List[Optional["Outcome"]] = None
+    dominant_outcomes: list[Outcome | None] = None
 
 
 class GAMechanism(Mechanism):
@@ -27,6 +27,9 @@ class GAMechanism(Mechanism):
         n_population: The number of outcomes for each generation
         mutate_rate: The rate of mutation
     """
+
+    def generate(self, n: int) -> list[Outcome]:
+        return self.random_outcomes(n)
 
     def __init__(
         self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
@@ -47,10 +50,7 @@ class GAMechanism(Mechanism):
     def extra_state(self):
         return dict(dominant_outcomes=self.dominant_outcomes)
 
-    def generate(self, n: int) -> List[Outcome]:
-        return self.random_outcomes(n)
-
-    def crossover(self, outcome1: "Outcome", outcome2: "Outcome") -> "Outcome":
+    def crossover(self, outcome1: Outcome, outcome2: Outcome) -> Outcome:
         """Uniform crossover"""
         outcome = list(copy.deepcopy(outcome1))
         for i in range(len(self.issues)):
@@ -59,15 +59,15 @@ class GAMechanism(Mechanism):
 
         return tuple(outcome)
 
-    def mutate(self, outcome: "Outcome") -> "Outcome":
+    def mutate(self, outcome: Outcome) -> Outcome:
         """Uniform crossover with random outcome"""
         return self.crossover(outcome, self.generate(1)[0])
 
-    def select(self, outcomes: List["Outcome"]) -> List["Outcome"]:
+    def select(self, outcomes: list[Outcome]) -> list[Outcome]:
         """Select Pareto optimal outcomes"""
         return self.dominant_outcomes
 
-    def next_generation(self, parents: List["Outcome"]) -> List[Outcome]:
+    def next_generation(self, parents: list[Outcome]) -> list[Outcome]:
         """Generate the next generation from parents"""
         self.population = parents[:]
         for _ in range(self.n_population - len(self.dominant_outcomes)):

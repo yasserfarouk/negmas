@@ -3,12 +3,7 @@ from __future__ import annotations
 import math
 import pathlib
 import uuid
-from typing import Callable
-
-import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
+from typing import TYPE_CHECKING, Callable
 
 from negmas.helpers.misc import make_callable
 from negmas.outcomes.base_issue import Issue
@@ -18,6 +13,9 @@ from negmas.outcomes.protocols import OutcomeSpace
 from negmas.preferences.crisp_ufun import UtilityFunction
 from negmas.preferences.ops import nash_point, pareto_frontier
 from negmas.sao.mechanism import TraceElement
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 __all__ = ["plot_offer_utilities", "plot_mechanism_run", "plot_2dutils"]
 
@@ -37,7 +35,18 @@ PARETO_SCALE = 1.5
 def get_cmap(n, name="jet"):
     """Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name."""
+    import matplotlib.pyplot as plt
+
     return plt.cm.get_cmap(name, n)
+
+
+def make_colors_and_markers(colors, markers, n: int, colormap="jet"):
+    if not colors:
+        cmap = get_cmap(n, colormap)
+        colors = [cmap(i) for i in range(n)]
+    if not markers:
+        markers = [ALL_MARKERS[i % len(ALL_MARKERS)] for i in range(n)]
+    return colors, markers
 
 
 def plot_offer_utilities(
@@ -59,6 +68,10 @@ def plot_offer_utilities(
     ignore_markers_limit=50,
     show_reserved=True,
 ):
+    import matplotlib.gridspec as gridspec
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+
     map_ = make_callable(name_map)
     if ax is None:
         _, ax = plt.subplots()
@@ -159,6 +172,10 @@ def plot_2dutils(
     colormap: str = "jet",
     ax: Axes | None = None,  # type: ignore
 ):
+    import matplotlib.gridspec as gridspec
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+
     if ax is None:
         _, ax = plt.subplots()
     ax: Axes
@@ -168,11 +185,11 @@ def plot_2dutils(
         if outcome_space:
             outcomes = list(outcome_space.enumerate_or_sample(10, 1000))
     if not outcomes:
-        outcomes = list(set(_.offer for _ in trace))
+        outcomes = list({_.offer for _ in trace})
     if not outcome_space:
         outcome_space = make_os(issues=issues, outcomes=outcomes)
     if not offering_negotiators:
-        offering_negotiators = list(set(_.negotiator for _ in trace))
+        offering_negotiators = list({_.negotiator for _ in trace})
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
     xrange = max(_[0] for _ in utils) - min(_[0] for _ in utils)
@@ -370,15 +387,6 @@ def plot_2dutils(
     )
 
 
-def make_colors_and_markers(colors, markers, n: int, colormap="jet"):
-    if not colors:
-        cmap = get_cmap(n, colormap)
-        colors = [cmap(i) for i in range(n)]
-    if not markers:
-        markers = [ALL_MARKERS[i % len(ALL_MARKERS)] for i in range(n)]
-    return colors, markers
-
-
 def plot_mechanism_run(
     mechanism,
     negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
@@ -400,6 +408,10 @@ def plot_mechanism_run(
     ylimits: tuple[float, float] | None = None,
     common_legend=True,
 ):
+    import matplotlib.gridspec as gridspec
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+
     if negotiators is None:
         negotiators = (0, 1)
     if len(negotiators) != 2:

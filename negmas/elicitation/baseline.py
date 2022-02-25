@@ -16,7 +16,7 @@ class DummyElicitor(BaseElicitor):
     A dummy elicitation algorithm that does not do any elicitation.
     """
 
-    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
+    def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
         return self.reserved_value
 
     def can_elicit(self) -> bool:
@@ -27,7 +27,7 @@ class DummyElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
+        preferences: IPUtilityFunction | Distribution | None,
         **kwargs,
     ):
         super().init_elicitation(preferences=preferences, **kwargs)
@@ -42,7 +42,7 @@ class FullKnowledgeElicitor(BaseElicitor):
     to the user ufun.
     """
 
-    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
+    def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
         return self.reserved_value
 
     def can_elicit(self) -> bool:
@@ -53,7 +53,7 @@ class FullKnowledgeElicitor(BaseElicitor):
 
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
+        preferences: IPUtilityFunction | Distribution | None,
         **kwargs,
     ):
         super().init_elicitation(preferences=self.user.ufun)

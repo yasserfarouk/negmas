@@ -176,11 +176,11 @@ class ConfigGenerator(Protocol):
         n_competitors: int,
         n_agents_per_competitor: int,
         agent_names_reveal_type: bool = False,
-        non_competitors: Optional[Tuple[Union[str, Any]]] = None,
-        non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+        non_competitors: tuple[str | Any] | None = None,
+        non_competitor_params: tuple[dict[str, Any]] | None = None,
         compact: bool = False,
         **kwargs,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         ...
 
 
@@ -207,16 +207,16 @@ class ConfigAssigner(Protocol):
 
     def __call__(
         self,
-        config: List[Dict[str, Any]],
+        config: list[dict[str, Any]],
         max_n_worlds: int,
         n_agents_per_competitor: int = 1,
         fair: bool = True,
-        competitors: Sequence[Union[str, Type[Agent]]] = (),
-        params: Sequence[Dict[str, Any]] = (),
-        dynamic_non_competitors: Sequence[Union[str, Type[Agent]]] = None,
-        dynamic_non_competitor_params: Sequence[Dict[str, Any]] = None,
+        competitors: Sequence[str | type[Agent]] = (),
+        params: Sequence[dict[str, Any]] = (),
+        dynamic_non_competitors: Sequence[str | type[Agent]] = None,
+        dynamic_non_competitor_params: Sequence[dict[str, Any]] = None,
         exclude_competitors_from_reassignment: bool = True,
-    ) -> List[List[Dict[str, Any]]]:
+    ) -> list[list[dict[str, Any]]]:
         ...
 
 
@@ -224,25 +224,25 @@ class ConfigAssigner(Protocol):
 class WorldRunResults:
     """Results of a world run"""
 
-    world_names: List[str]
-    """World names (there can be multiple worlds for each scoring call)"""
-    log_file_names: List[str]
-    """Log file names"""
-    names: List[str] = field(default_factory=list, init=False)
-    """Agent names"""
-    ids: List[str] = field(default_factory=list, init=False)
-    """Agent IDs"""
-    scores: List[float] = field(default_factory=list, init=False)
-    """Agent scores"""
-    types: List[str] = field(default_factory=list, init=False)
-    """Agent type names"""
-    extra_scores: Dict[str, List[Dict[str, Any]]] = field(
+    world_names: list[str]
+    log_file_names: list[str]
+    names: list[str] = field(default_factory=list, init=False)
+    ids: list[str] = field(default_factory=list, init=False)
+    scores: list[float] = field(default_factory=list, init=False)
+    types: list[str] = field(default_factory=list, init=False)
+    extra_scores: dict[str, list[dict[str, Any]]] = field(
         default_factory=dict, init=False
     )
+    """World names (there can be multiple worlds for each scoring call)"""
+    """Log file names"""
+    """Agent names"""
+    """Agent IDs"""
+    """Agent scores"""
+    """Agent type names"""
     """The extra-scores (i.e. extra evaluation metrics). Each is a list of records"""
 
 
-def score_adapter(scores_data: Dict[str, Any]) -> WorldRunResults:
+def score_adapter(scores_data: dict[str, Any]) -> WorldRunResults:
     world_names = (
         [scores_data["name"]]
         if isinstance(scores_data["name"], str)
@@ -264,57 +264,57 @@ def score_adapter(scores_data: Dict[str, Any]) -> WorldRunResults:
 
 @dataclass
 class AgentStats:
-    exceptions: Dict[str, List[Tuple[int, str]]] = field(
+    exceptions: dict[str, list[tuple[int, str]]] = field(
         default_factory=lambda: defaultdict(list)
     )
+    negotiator_exceptions: dict[str, list[tuple[int, str]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    times: dict[str, float] = field(default_factory=lambda: defaultdict(float))
+    neg_requests_sent: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    neg_requests_received: dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    neg_requests_rejected: dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    negs_registered: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    negs_succeeded: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    negs_failed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    negs_timedout: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    negs_initiated: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    contracts_concluded: dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    contracts_signed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    contracts_dropped: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    breaches_received: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    breaches_committed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    contracts_erred: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    contracts_nullified: dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    contracts_breached: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    contracts_executed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """All exceptions thrown per agent (not including negotiator exceptions)"""
-    negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = field(
-        default_factory=lambda: defaultdict(list)
-    )
     """All exceptions thrown by negotiators of an agent"""
-    times: Dict[str, float] = field(default_factory=lambda: defaultdict(float))
     """Total execution time per agent"""
-    neg_requests_sent: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiation Requests Sent"""
-    neg_requests_received: Dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
     """Negotiation Requests Received"""
-    neg_requests_rejected: Dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
     """Negotiation requests rejected"""
-    negs_registered: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations registered"""
-    negs_succeeded: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations succeeded"""
-    negs_failed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations failed"""
-    negs_timedout: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations timedout"""
-    negs_initiated: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations initiated"""
-    contracts_concluded: Dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
     """Contracts concluded"""
-    contracts_signed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts signed"""
-    contracts_dropped: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts dropped"""
-    breaches_received: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """breaches received"""
-    breaches_committed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """breaches committed"""
-    contracts_erred: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts erred"""
-    contracts_nullified: Dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
     """Contracts nullified"""
-    contracts_breached: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts breached"""
-    contracts_executed: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts executed"""
 
     def to_record(self, world, label="name"):
@@ -335,7 +335,7 @@ class AgentStats:
         return results
 
     @classmethod
-    def from_records(cls, records: List[Dict[str, Any]], label: str):
+    def from_records(cls, records: list[dict[str, Any]], label: str):
         a = cls()
         if len(records) < 1:
             return a
@@ -359,68 +359,68 @@ class WorldSetRunStats:
     """Statistics kept in the tournament about the set of worlds"""
 
     name: str
-    """Names of the world set separated by ;"""
     planned_n_steps: int
-    """Planned number of steps for each world"""
     executed_n_steps: int
-    """Actually executed number of steps for each world"""
     execution_time: int
-    """Total execution time of each world"""
-    simulation_exceptions: List[Tuple[int, str]] = field(default_factory=list)
-    """Exceptions thrown by the simulator (not including mechanism creation and contract exceptions)"""
-    contract_exceptions: List[Tuple[int, str]] = field(default_factory=list)
-    """Exceptions thrown by the simulator during contract execution"""
-    mechanism_exceptions: List[Tuple[int, str]] = field(default_factory=list)
-    """Exceptions thrown by the simulator during mechanism creation or execution"""
-    other_exceptions: List[str] = field(default_factory=list)
-    """Exceptions raised by tournament running code itself not any world"""
+    simulation_exceptions: list[tuple[int, str]] = field(default_factory=list)
+    contract_exceptions: list[tuple[int, str]] = field(default_factory=list)
+    mechanism_exceptions: list[tuple[int, str]] = field(default_factory=list)
+    other_exceptions: list[str] = field(default_factory=list)
 
     n_agent_exceptions: int = 0
-    """All exceptions thrown per agent (not including negotiator exceptions)"""
     n_negotiator_exceptions: int = 0
-    """All exceptions thrown by negotiators of an agent"""
     mean_agent_time: float = 0.0
-    """Average execution time per agent"""
     n_neg_requests_sent: int = 0
-    """Negotiation Requests Sent"""
     n_neg_requests_received: int = 0
-    """Negotiation Requests Received"""
     n_neg_requests_rejected: int = 0
-    """Negotiation requests rejected"""
     n_negs_registered: int = 0
-    """Negotiations registered"""
     n_negs_succeeded: int = 0
-    """Negotiations succeeded"""
     n_negs_failed: int = 0
-    """Negotiations failed"""
     n_negs_timedout: int = 0
-    """Negotiations timedout"""
     n_negs_initiated: int = 0
-    """Negotiations initiated"""
     n_contracts_concluded: int = 0
-    """Contracts concluded"""
     n_contracts_signed: int = 0
-    """Contracts signed"""
     n_contracts_dropped: int = 0
-    """Contracts dropped"""
     n_breaches_received: int = 0
-    """breaches received"""
     n_breaches_committed: int = 0
-    """breaches committed"""
     n_contracts_erred: int = 0
-    """Contracts erred"""
     n_contracts_nullified: int = 0
-    """Contracts nullified"""
     n_contracts_breached: int = 0
-    """Contracts breached"""
     n_contracts_executed: int = 0
+    """Names of the world set separated by ;"""
+    """Planned number of steps for each world"""
+    """Actually executed number of steps for each world"""
+    """Total execution time of each world"""
+    """Exceptions thrown by the simulator (not including mechanism creation and contract exceptions)"""
+    """Exceptions thrown by the simulator during contract execution"""
+    """Exceptions thrown by the simulator during mechanism creation or execution"""
+    """Exceptions raised by tournament running code itself not any world"""
+    """All exceptions thrown per agent (not including negotiator exceptions)"""
+    """All exceptions thrown by negotiators of an agent"""
+    """Average execution time per agent"""
+    """Negotiation Requests Sent"""
+    """Negotiation Requests Received"""
+    """Negotiation requests rejected"""
+    """Negotiations registered"""
+    """Negotiations succeeded"""
+    """Negotiations failed"""
+    """Negotiations timedout"""
+    """Negotiations initiated"""
+    """Contracts concluded"""
+    """Contracts signed"""
+    """Contracts dropped"""
+    """breaches received"""
+    """breaches committed"""
+    """Contracts erred"""
+    """Contracts nullified"""
+    """Contracts breached"""
     """Contracts executed"""
 
     def to_record(self, world):
         return [vars(self)]
 
     @classmethod
-    def from_records(cls, records: List[Dict[str, Any]]):
+    def from_records(cls, records: list[dict[str, Any]]):
         a = cls(name="", planned_n_steps=0, executed_n_steps=0, execution_time=0.0)
         if len(records) < 1:
             return a
@@ -441,34 +441,34 @@ class WorldSetRunStats:
 @dataclass
 class TournamentResults:
     scores: pd.DataFrame
-    """Scores of individual agent instantiations"""
     total_scores: pd.DataFrame
-    """Total scores collected by competitor types"""
-    winners: List[str]
-    """Winner type name(s) which may be a list"""
+    winners: list[str]
     winners_scores: np.array
-    """Winner score (accumulated)"""
     ttest: pd.DataFrame = None
-    """Results of ttest analysis of the scores"""
     kstest: pd.DataFrame = None
-    """Results of the nonparametric kstest"""
     stats: pd.DataFrame = None
-    """Stats of all worlds"""
     agg_stats: pd.DataFrame = None
-    """Aggregated stats per world"""
     score_stats: pd.DataFrame = None
-    """Score statistics for different competitor types"""
     path: str = None
-    """Path at which tournament results are stored"""
     world_stats: pd.DataFrame = None
-    """Some statistics about each world run"""
     type_stats: pd.DataFrame = None
-    """Some statistics about each type"""
     agent_stats: pd.DataFrame = None
+    params: dict[str, Any] = None
+    extra_scores: dict[str, pd.DataFrame] = None
+    """Scores of individual agent instantiations"""
+    """Total scores collected by competitor types"""
+    """Winner type name(s) which may be a list"""
+    """Winner score (accumulated)"""
+    """Results of ttest analysis of the scores"""
+    """Results of the nonparametric kstest"""
+    """Stats of all worlds"""
+    """Aggregated stats per world"""
+    """Score statistics for different competitor types"""
+    """Path at which tournament results are stored"""
+    """Some statistics about each world run"""
+    """Some statistics about each type"""
     """Some statistics about each agent"""
-    params: Dict[str, Any] = None
     """Parameters of the tournament"""
-    extra_scores: Dict[str, pd.DataFrame] = None
     """Extra scores returned from the scoring function. This can be used to have multi-dimensional scoring"""
 
     def __str__(self):
@@ -486,13 +486,13 @@ class TournamentResults:
 
 
 def combine_partially_run_worlds(
-    tournament_path: Union[str, Path],
+    tournament_path: str | Path,
     min_time_fraction: float = 0.0,
     min_real_time: float = 0.0,
     min_n_steps: int = 0,
     min_n_attempts: int = 0,
     dry_run: bool = False,
-) -> List[Path]:
+) -> list[Path]:
     """
     Combines partially run worlds by saving their last-saved results as final.
 
@@ -517,162 +517,26 @@ def combine_partially_run_worlds(
     """
 
 
-def run_world(
-    world_params: dict,
-    dry_run: bool = False,
-    save_world_stats: bool = True,
-    attempts_path=None,
-    max_attempts=float("inf"),
-    verbose=False,
-) -> Tuple[
-    str,
-    List[str],
-    Optional[WorldRunResults],
-    Optional[WorldSetRunStats],
-    Optional[AgentStats],
-    Optional[AgentStats],
-]:
-    """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
-
-    Args:
-        world_params: World info dict. See remarks for its parameters
-        dry_run: If true, the world will not be run. Only configs will be saved
-        save_world_stats: If true, saves individual world stats
-        attempts_path: The folder containing attempts information
-        max_attempts: The maximum number of trials to run a world simulation
-
-    Remarks:
-
-        The `world_params` dict should have the following members:
-
-            - name: world name [Defaults to random]
-            - log_file_name: file name to store the world log [Defaults to random]
-            - __dir_name: directory to store the world stats [Defaults to random]
-            - __world_generator: full name of the world generator function (including its module) [Required]
-            - __score_calculator: full name of the score calculator function [Required]
-            - __tournament_name: name of the tournament [Defaults to random]
-            - others: values of all other keys are passed to the world generator as kwargs
-    """
-    world_generator = world_params.get("__world_generator", None)
-    score_calculator = world_params.get("__score_calculator", None)
-    tournament_name = world_params.get("__tournament_name", unique_name(base=""))
-    assert world_generator and score_calculator, (
-        f"Cannot run without specifying both a world generator and a score "
-        f"calculator"
-    )
-
-    world_generator = import_by_name(world_generator)
-    score_calculator = import_by_name(score_calculator)
-    default_name = unique_name(base="")
-    world_params["name"] = world_params.get("name", default_name)
-    world_name = world_params["name"]
-    default_dir = (
-        Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
-    ).absolute()
-    world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
-    world_params["log_folder"] = world_params.get("__dir_name", str(default_dir))
-    world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
-    # delete the parameters not used by _run_worlds
-    for k in ("__world_generator", "__tournament_name", "__score_calculator"):
-        if k in world_params.keys():
-            world_params.pop(k, None)
-    return _run_worlds(
-        worlds_params=[world_params],
-        world_generator=world_generator,
-        score_calculator=score_calculator,
-        dry_run=dry_run,
-        save_world_stats=save_world_stats,
-        attempts_path=attempts_path,
-        max_attempts=max_attempts,
-        verbose=verbose,
-    )
+def _path(path: str | PathLike) -> Path:
+    """Creates an absolute path from given path which can be a string"""
+    if isinstance(path, str):
+        if path.startswith("~"):
+            path = Path.home() / ("/".join(path.split("/")[1:]))
+    return pathlib.Path(path).absolute()
 
 
-def run_worlds(
-    worlds_params: List[dict],
-    dry_run: bool = False,
-    save_world_stats: bool = True,
-    attempts_path=None,
-    max_attempts=float("inf"),
-    verbose=False,
-) -> Tuple[
-    str,
-    List[str],
-    Optional[WorldRunResults],
-    Optional[WorldSetRunStats],
-    Optional[AgentStats],
-    Optional[AgentStats],
-]:
-    """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
-
-    Args:
-        worlds_params: list of World info dicts. See remarks for its parameters
-        dry_run: If true, the world will not be run. Only configs will be saved
-        save_world_stats: If true, saves individual world stats
-        attempts_path: The path containing attempts information
-        max_attempts: Maximum number of trials to run a simulation
-
-    Remarks:
-
-        Each dict in `worlds_params` dict should have the following members:
-
-            - name: world name [Defaults to random]
-            - log_file_name: file name to store the world log [Defaults to random]
-            - __dir_name: directory to store the world stats [Defaults to random]
-            - __world_generator: full name of the world generator function (including its module) [Required]
-            - __score_calculator: full name of the score calculator function [Required]
-            - __tournament_name: name of the tournament [Defaults to random]
-            - others: values of all other keys are passed to the world generator as kwargs
-    """
-    params = []
-    if len(worlds_params) < 1:
-        return (
-            _hash(worlds_params),
-            # WorldRunResults(world_names=[""], log_file_names=[""]),
-            None,
-            None,
-        )
-    world_generator, score_calculator = None, None
-    for world_params in worlds_params:
-        world_generator = world_params.get("__world_generator", None)
-        score_calculator = world_params.get("__score_calculator", None)
-        tournament_name = world_params.get("__tournament_name", unique_name(base=""))
-        assert world_generator and score_calculator, (
-            f"Cannot run without specifying both a world generator and a score "
-            f"calculator"
-        )
-        world_generator = import_by_name(world_generator)
-        score_calculator = import_by_name(score_calculator)
-        default_name = unique_name(base="")
-        world_params["name"] = world_params.get("name", default_name)
-        world_name = world_params["name"]
-        default_dir = (
-            Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
-        ).absolute()
-        world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
-        world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
-        # delete the parameters not used by _run_worlds
-        for k in ("__world_generator", "__tournament_name", "__score_calculator"):
-            if k in world_params.keys():
-                world_params.pop(k, None)
-        params.append(world_params)
-    return _run_worlds(
-        worlds_params=params,
-        world_generator=world_generator,
-        score_calculator=score_calculator,
-        dry_run=dry_run,
-        save_world_stats=save_world_stats,
-        attempts_path=attempts_path,
-        max_attempts=max_attempts,
-        verbose=verbose,
-    )
+def _run_id(config_set):
+    names = [c["world_params"]["name"] for c in config_set]
+    if len(names) == 1:
+        return names[0] + _hash(config_set)[:6]
+    return names[0] + _hash(names[1:])[:8] + _hash(config_set)[:6]
 
 
 def _run_worlds(
-    worlds_params: List[Dict[str, Any]],
+    worlds_params: list[dict[str, Any]],
     world_generator: WorldGenerator,
-    score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
-    world_progress_callback: Callable[[Optional[World]], None] = None,
+    score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults],
+    world_progress_callback: Callable[[World | None], None] = None,
     dry_run: bool = False,
     save_world_stats: bool = True,
     override_ran_worlds: bool = False,
@@ -680,13 +544,13 @@ def _run_worlds(
     attempts_path=None,
     max_attempts=float("inf"),
     verbose=False,
-) -> Tuple[
+) -> tuple[
     str,
-    List[str],
-    Optional[WorldRunResults],
-    Optional[WorldSetRunStats],
-    Optional[AgentStats],
-    Optional[AgentStats],
+    list[str],
+    WorldRunResults | None,
+    WorldSetRunStats | None,
+    AgentStats | None,
+    AgentStats | None,
 ]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
@@ -733,53 +597,53 @@ def _run_worlds(
     scoring_context = {}
     run_id = _run_id(worlds_params)
     video_savers, video_saver_params_list, save_videos = [], [], []
-    scores: Optional[WorldRunResults] = None
+    scores: WorldRunResults | None = None
     world_stats, type_stats, agent_stats = None, None, None
 
     simulation_exceptions = []
     mechanism_exceptions = []
     contract_exceptions = []
     other_exceptions = []
-    negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
-    agent_times: Dict[str, float] = defaultdict(float)
-    agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
-    neg_requests_sent: Dict[str, int] = defaultdict(int)
-    neg_requests_received: Dict[str, int] = defaultdict(int)
-    negs_registered: Dict[str, int] = defaultdict(int)
-    negs_succeeded: Dict[str, int] = defaultdict(int)
-    negs_failed: Dict[str, int] = defaultdict(int)
-    negs_timedout: Dict[str, int] = defaultdict(int)
-    negs_initiated: Dict[str, int] = defaultdict(int)
-    contracts_concluded: Dict[str, int] = defaultdict(int)
-    contracts_signed: Dict[str, int] = defaultdict(int)
-    neg_requests_rejected: Dict[str, int] = defaultdict(int)
-    contracts_dropped: Dict[str, int] = defaultdict(int)
-    breaches_received: Dict[str, int] = defaultdict(int)
-    breaches_committed: Dict[str, int] = defaultdict(int)
-    contracts_erred: Dict[str, int] = defaultdict(int)
-    contracts_nullified: Dict[str, int] = defaultdict(int)
-    contracts_executed: Dict[str, int] = defaultdict(int)
-    contracts_breached: Dict[str, int] = defaultdict(int)
-    type_negotiator_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
-    type_agent_times: Dict[str, float] = defaultdict(float)
-    type_agent_exceptions: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
-    type_neg_requests_sent: Dict[str, int] = defaultdict(int)
-    type_neg_requests_received: Dict[str, int] = defaultdict(int)
-    type_negs_registered: Dict[str, int] = defaultdict(int)
-    type_negs_succeeded: Dict[str, int] = defaultdict(int)
-    type_negs_failed: Dict[str, int] = defaultdict(int)
-    type_negs_timedout: Dict[str, int] = defaultdict(int)
-    type_negs_initiated: Dict[str, int] = defaultdict(int)
-    type_contracts_concluded: Dict[str, int] = defaultdict(int)
-    type_contracts_signed: Dict[str, int] = defaultdict(int)
-    type_neg_requests_rejected: Dict[str, int] = defaultdict(int)
-    type_contracts_dropped: Dict[str, int] = defaultdict(int)
-    type_breaches_received: Dict[str, int] = defaultdict(int)
-    type_breaches_committed: Dict[str, int] = defaultdict(int)
-    type_contracts_erred: Dict[str, int] = defaultdict(int)
-    type_contracts_nullified: Dict[str, int] = defaultdict(int)
-    type_contracts_executed: Dict[str, int] = defaultdict(int)
-    type_contracts_breached: Dict[str, int] = defaultdict(int)
+    negotiator_exceptions: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    agent_times: dict[str, float] = defaultdict(float)
+    agent_exceptions: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    neg_requests_sent: dict[str, int] = defaultdict(int)
+    neg_requests_received: dict[str, int] = defaultdict(int)
+    negs_registered: dict[str, int] = defaultdict(int)
+    negs_succeeded: dict[str, int] = defaultdict(int)
+    negs_failed: dict[str, int] = defaultdict(int)
+    negs_timedout: dict[str, int] = defaultdict(int)
+    negs_initiated: dict[str, int] = defaultdict(int)
+    contracts_concluded: dict[str, int] = defaultdict(int)
+    contracts_signed: dict[str, int] = defaultdict(int)
+    neg_requests_rejected: dict[str, int] = defaultdict(int)
+    contracts_dropped: dict[str, int] = defaultdict(int)
+    breaches_received: dict[str, int] = defaultdict(int)
+    breaches_committed: dict[str, int] = defaultdict(int)
+    contracts_erred: dict[str, int] = defaultdict(int)
+    contracts_nullified: dict[str, int] = defaultdict(int)
+    contracts_executed: dict[str, int] = defaultdict(int)
+    contracts_breached: dict[str, int] = defaultdict(int)
+    type_negotiator_exceptions: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    type_agent_times: dict[str, float] = defaultdict(float)
+    type_agent_exceptions: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    type_neg_requests_sent: dict[str, int] = defaultdict(int)
+    type_neg_requests_received: dict[str, int] = defaultdict(int)
+    type_negs_registered: dict[str, int] = defaultdict(int)
+    type_negs_succeeded: dict[str, int] = defaultdict(int)
+    type_negs_failed: dict[str, int] = defaultdict(int)
+    type_negs_timedout: dict[str, int] = defaultdict(int)
+    type_negs_initiated: dict[str, int] = defaultdict(int)
+    type_contracts_concluded: dict[str, int] = defaultdict(int)
+    type_contracts_signed: dict[str, int] = defaultdict(int)
+    type_neg_requests_rejected: dict[str, int] = defaultdict(int)
+    type_contracts_dropped: dict[str, int] = defaultdict(int)
+    type_breaches_received: dict[str, int] = defaultdict(int)
+    type_breaches_committed: dict[str, int] = defaultdict(int)
+    type_contracts_erred: dict[str, int] = defaultdict(int)
+    type_contracts_nullified: dict[str, int] = defaultdict(int)
+    type_contracts_executed: dict[str, int] = defaultdict(int)
+    type_contracts_breached: dict[str, int] = defaultdict(int)
     n_negotiator_exceptions: int = 0
     n_agents_timed = 0
     mean_agent_time: float = 0.0
@@ -1122,11 +986,162 @@ def _run_worlds(
     return run_id, dir_names, scores, world_stats, type_stats, agent_stats
 
 
+def run_world(
+    world_params: dict,
+    dry_run: bool = False,
+    save_world_stats: bool = True,
+    attempts_path=None,
+    max_attempts=float("inf"),
+    verbose=False,
+) -> tuple[
+    str,
+    list[str],
+    WorldRunResults | None,
+    WorldSetRunStats | None,
+    AgentStats | None,
+    AgentStats | None,
+]:
+    """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
+
+    Args:
+        world_params: World info dict. See remarks for its parameters
+        dry_run: If true, the world will not be run. Only configs will be saved
+        save_world_stats: If true, saves individual world stats
+        attempts_path: The folder containing attempts information
+        max_attempts: The maximum number of trials to run a world simulation
+
+    Remarks:
+
+        The `world_params` dict should have the following members:
+
+            - name: world name [Defaults to random]
+            - log_file_name: file name to store the world log [Defaults to random]
+            - __dir_name: directory to store the world stats [Defaults to random]
+            - __world_generator: full name of the world generator function (including its module) [Required]
+            - __score_calculator: full name of the score calculator function [Required]
+            - __tournament_name: name of the tournament [Defaults to random]
+            - others: values of all other keys are passed to the world generator as kwargs
+    """
+    world_generator = world_params.get("__world_generator", None)
+    score_calculator = world_params.get("__score_calculator", None)
+    tournament_name = world_params.get("__tournament_name", unique_name(base=""))
+    assert world_generator and score_calculator, (
+        f"Cannot run without specifying both a world generator and a score "
+        f"calculator"
+    )
+
+    world_generator = import_by_name(world_generator)
+    score_calculator = import_by_name(score_calculator)
+    default_name = unique_name(base="")
+    world_params["name"] = world_params.get("name", default_name)
+    world_name = world_params["name"]
+    default_dir = (
+        Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
+    ).absolute()
+    world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
+    world_params["log_folder"] = world_params.get("__dir_name", str(default_dir))
+    world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
+    # delete the parameters not used by _run_worlds
+    for k in ("__world_generator", "__tournament_name", "__score_calculator"):
+        if k in world_params.keys():
+            world_params.pop(k, None)
+    return _run_worlds(
+        worlds_params=[world_params],
+        world_generator=world_generator,
+        score_calculator=score_calculator,
+        dry_run=dry_run,
+        save_world_stats=save_world_stats,
+        attempts_path=attempts_path,
+        max_attempts=max_attempts,
+        verbose=verbose,
+    )
+
+
+def run_worlds(
+    worlds_params: list[dict],
+    dry_run: bool = False,
+    save_world_stats: bool = True,
+    attempts_path=None,
+    max_attempts=float("inf"),
+    verbose=False,
+) -> tuple[
+    str,
+    list[str],
+    WorldRunResults | None,
+    WorldSetRunStats | None,
+    AgentStats | None,
+    AgentStats | None,
+]:
+    """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
+
+    Args:
+        worlds_params: list of World info dicts. See remarks for its parameters
+        dry_run: If true, the world will not be run. Only configs will be saved
+        save_world_stats: If true, saves individual world stats
+        attempts_path: The path containing attempts information
+        max_attempts: Maximum number of trials to run a simulation
+
+    Remarks:
+
+        Each dict in `worlds_params` dict should have the following members:
+
+            - name: world name [Defaults to random]
+            - log_file_name: file name to store the world log [Defaults to random]
+            - __dir_name: directory to store the world stats [Defaults to random]
+            - __world_generator: full name of the world generator function (including its module) [Required]
+            - __score_calculator: full name of the score calculator function [Required]
+            - __tournament_name: name of the tournament [Defaults to random]
+            - others: values of all other keys are passed to the world generator as kwargs
+    """
+    params = []
+    if len(worlds_params) < 1:
+        return (
+            _hash(worlds_params),
+            # WorldRunResults(world_names=[""], log_file_names=[""]),
+            None,
+            None,
+        )
+    world_generator, score_calculator = None, None
+    for world_params in worlds_params:
+        world_generator = world_params.get("__world_generator", None)
+        score_calculator = world_params.get("__score_calculator", None)
+        tournament_name = world_params.get("__tournament_name", unique_name(base=""))
+        assert world_generator and score_calculator, (
+            f"Cannot run without specifying both a world generator and a score "
+            f"calculator"
+        )
+        world_generator = import_by_name(world_generator)
+        score_calculator = import_by_name(score_calculator)
+        default_name = unique_name(base="")
+        world_params["name"] = world_params.get("name", default_name)
+        world_name = world_params["name"]
+        default_dir = (
+            Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
+        ).absolute()
+        world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
+        world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
+        # delete the parameters not used by _run_worlds
+        for k in ("__world_generator", "__tournament_name", "__score_calculator"):
+            if k in world_params.keys():
+                world_params.pop(k, None)
+        params.append(world_params)
+    return _run_worlds(
+        worlds_params=params,
+        world_generator=world_generator,
+        score_calculator=score_calculator,
+        dry_run=dry_run,
+        save_world_stats=save_world_stats,
+        attempts_path=attempts_path,
+        max_attempts=max_attempts,
+        verbose=verbose,
+    )
+
+
 def process_world_run(
     run_id: str,
-    results: Optional[WorldRunResults],
+    results: WorldRunResults | None,
     tournament_name: str,
-) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
+) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     """
     Generates a data-frame with the results of this world run
 
@@ -1444,268 +1459,32 @@ def _divide_into_sets(competitors, n_competitors_per_world):
     return competitor_sets
 
 
-def tournament(
-    competitors: Sequence[Union[str, Type[Agent]]],
-    config_generator: ConfigGenerator,
-    config_assigner: ConfigAssigner,
-    world_generator: WorldGenerator,
-    score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
-    competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
-    n_competitors_per_world: Optional[int] = None,
-    round_robin: bool = False,
-    stage_winners_fraction: float = 0.0,
-    agent_names_reveal_type=False,
-    n_agents_per_competitor=1,
-    n_configs: int = 10,
-    max_worlds_per_config: int = 100,
-    n_runs_per_world: int = 5,
-    max_n_configs: int = None,
-    n_runs_per_config: int = None,
-    tournament_path: str = None,
-    total_timeout: Optional[int] = None,
-    parallelism="parallel",
-    scheduler_ip: Optional[str] = None,
-    scheduler_port: Optional[str] = None,
-    tournament_progress_callback: Callable[
-        [Optional[WorldRunResults], int, int], None
-    ] = None,
-    world_progress_callback: Callable[[Optional[World]], None] = None,
-    non_competitors: Optional[Tuple[Union[str, Any]]] = None,
-    non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
-    dynamic_non_competitors: Optional[Tuple[Union[str, Any]]] = None,
-    dynamic_non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
-    exclude_competitors_from_reassignment: bool = True,
-    name: str = None,
-    verbose: bool = False,
-    configs_only: bool = False,
-    compact: bool = False,
-    print_exceptions: bool = True,
-    metric="median",
-    save_video_fraction: float = 0.0,
-    forced_logs_fraction: float = 0.0,
-    video_params=None,
-    video_saver=None,
-    max_attempts: int = float("inf"),
-    extra_scores_to_use: Optional[str] = None,
-    **kwargs,
-) -> Union[TournamentResults, PathLike]:
-    """
-    Runs a tournament
+def get_world_paths(*, assignments=None, tournament_path=None):
+    """Gets all world paths from a tournament path
 
     Args:
+        assignments: A list of list of world configs
+        tournament_path: A path from which to get the assignments.
 
-        name: Tournament name
-        config_generator: Used to generate unique configs that will be used to evaluate competitors
-        config_assigner: Used to generate assignments of competitors to the configs created by the `config_generator`
-        world_generator: A functions to generate worlds for the tournament that follows the assignments made by the
-                         `config_assigner`
-        score_calculator: A function for calculating the score of all agents in a world *After it finishes running*.
-                          The second parameter is a dict describing any scoring context that may have been added by the
-                          world config generator or assigneer.
-                          The third parameter is a boolean specifying whether this is a dry_run. For dry runs, scores
-                          are not expected but names and types should exist in the returned `WorldRunResults`.
-        competitors: A list of class names for the competitors
-        competitor_params: A list of competitor parameters (used to initialize the competitors).
-        n_competitors_per_world: The number of competitors allowed in every world. It must be >= 1 and
-                                 <= len(competitors) or None.
+    Remarks:
 
-                                 - If None or len(competitors), then all competitors will exist in every world.
-                                 - If 1, then each world will have one competitor
-
-        round_robin: Only effective if 1 < n_competitors_per_world < len(competitors). if True, all
-                                     combinations will be tried otherwise n_competitors_per_world must divide
-                                     len(competitors) and every competitor appears only in one set.
-        stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
-                                            round_robin, it becomes a single stage competition.
-        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
-                                 beginning).
-        n_configs: The number of different world configs (up to competitor assignment) to be generated.
-        max_worlds_per_config: The maximum number of worlds to run per config. If None, then all possible assignments
-                             of competitors within each config will be tried (all permutations).
-        n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
-                          and identical world configuration.
-        n_agents_per_competitor: The number of agents of each competing type to be instantiated in the world.
-        max_n_configs: [Depricated] The number of configs to use (it is replaced by separately setting `n_config`
-                       and `max_worlds_per_config` )
-        n_runs_per_config: [Depricated] The number of runs (simulation) for every config. It is replaced by
-                           `n_runs_per_world`
-        total_timeout: Total timeout for the complete process
-        tournament_path: Path at which to store all results. A new folder with the name of the tournament will be
-                         created at this path. A scores.csv file will keep the scores and logs folder will keep detailed
-                         logs
-        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
-                     distributed! For parallel, you can add the fraction of CPUs to use after a colon (e.g. parallel:0.5
-                     to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
-        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
-        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
-        world_progress_callback: A function to be called after every step of every world run (only allowed for serial
-                                 and parallel evaluation and should be used with cautious).
-        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
-                                      processing
-        non_competitors: A list of agent types that will not be competing but will still exist in the world.
-        non_competitor_params: paramters of non competitor agents
-        dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
-                                 the creation of the final assignment instead when the configuration is created
-        dynamic_non_competitor_params: paramters of dynamic non competitor agents
-        exclude_competitors_from_reassignment: If true, competitors are excluded from the dyanamic non-competitors
-        verbose: Verbosity
-        configs_only: If true, a config file for each
-        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
-        print_exceptions: If true, print all exceptions to screen
-        metric: The metric to use for evaluation
-        save_video_fraction: The fraction of simulations for which to save videos
-        forced_logs_fraction: The fraction of simulations for which to always save logs. Notice that this has no
-                              effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
-        video_params: The parameters to pass to the video saving function
-        video_saver: The parameters to pass to the video saving function after the world
-        max_attempts: The maximum number of times to retry running simulations
-        extra_scores_to_use: The type of extra-scores to use. If None normal scores will be used. Only effective if scores is None.
-        kwargs: Arguments to pass to the `config_generator` function
-
-    Returns:
-        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+        - You must pass assignments xor tournament_path.
 
     """
-    competitors = list(competitors)
-    if name is None:
-        name = unique_name("", add_time=True, rand_digits=3)
-
-    if n_competitors_per_world is None:
-        n_competitors_per_world = len(competitors)
-
-    if not round_robin and not (1 < n_competitors_per_world <= len(competitors)):
-        raise ValueError(
-            f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
-            f"later does not divide the former. You have to set all_competitor_combinations to True"
-        )
-
-    if stage_winners_fraction < 0:
-        stage_winners_fraction = 0
-
-    competitor_indx = dict()
-    for i, c in enumerate(competitors):
-        tname = get_full_type_name(c)
-        ctype = get_class(c)
-        if hasattr(ctype, "_type_name"):
-            tname = ctype._type_name()
-        competitor_indx[tname] = i
-
-    def _run_eval(competitors_, stage_name):
-        final_tournament_path = create_tournament(
-            competitors=competitors_,
-            config_generator=config_generator,
-            config_assigner=config_assigner,
-            world_generator=world_generator,
-            score_calculator=score_calculator,
-            competitor_params=competitor_params,
-            n_competitors_per_world=n_competitors_per_world,
-            round_robin=round_robin,
-            agent_names_reveal_type=agent_names_reveal_type,
-            n_agents_per_competitor=n_agents_per_competitor,
-            n_configs=n_configs,
-            max_worlds_per_config=max_worlds_per_config,
-            n_runs_per_world=n_runs_per_world,
-            max_n_configs=max_n_configs,
-            n_runs_per_config=n_runs_per_config,
-            base_tournament_path=tournament_path,
-            total_timeout=total_timeout,
-            parallelism=parallelism,
-            scheduler_ip=scheduler_ip,
-            scheduler_port=scheduler_port,
-            non_competitors=non_competitors,
-            non_competitor_params=non_competitor_params,
-            dynamic_non_competitors=dynamic_non_competitors,
-            dynamic_non_competitor_params=dynamic_non_competitor_params,
-            exclude_competitors_from_reassignment=exclude_competitors_from_reassignment,
-            name=stage_name,
-            verbose=verbose,
-            compact=compact,
-            save_video_fraction=save_video_fraction,
-            forced_logs_fraction=forced_logs_fraction,
-            video_params=video_params,
-            video_saver=video_saver,
-            **kwargs,
-        )
-        if configs_only:
-            return pathlib.Path(final_tournament_path) / "configs"
-        run_tournament(
-            tournament_path=final_tournament_path,
-            world_generator=world_generator,
-            score_calculator=score_calculator,
-            total_timeout=total_timeout,
-            parallelism=parallelism,
-            scheduler_ip=scheduler_ip,
-            scheduler_port=scheduler_port,
-            tournament_progress_callback=tournament_progress_callback,
-            world_progress_callback=world_progress_callback,
-            verbose=verbose,
-            compact=compact,
-            print_exceptions=print_exceptions,
-            max_attempts=max_attempts,
-        )
-        return evaluate_tournament(
-            tournament_path=final_tournament_path,
-            verbose=verbose,
-            recursive=round_robin,
-            metric=metric,
-            extra_scores_to_use=extra_scores_to_use,
-        )
-
-    def _keep_n(competitors_, results_, n):
-        tscores = results_.total_scores.sort_values(by=["score"], ascending=False)
-        sorted_indices = np.array(
-            [competitor_indx[_] for _ in tscores["agent_type"].values]
-        )[:n]
-        return np.array(competitors_)[sorted_indices].tolist()
-
-    stage = 1
-    while len(competitors) > 1:
-        if verbose:
-            print(
-                f"Stage {stage} started between ({len(competitors)} competitors): {competitors} "
-            )
-        stage_name = name + f"-stage-{stage:04}"
-        if round_robin:
-            n_winners_per_stage = min(
-                max(1, int(stage_winners_fraction * len(competitors))),
-                len(competitors) - 1,
-            )
-            results = _run_eval(competitors, stage_name)
-            if n_winners_per_stage == 1:
-                return results
-            competitors = _keep_n(competitors, results, n_winners_per_stage)
-        else:
-            random.shuffle(competitors)
-            competitor_sets = _divide_into_sets(competitors, n_competitors_per_world)
-
-            next_stage_competitors = []
-            results = None
-            for c in competitor_sets:
-                match_name_ = stage_name + _hash(c)
-                n_winners_per_match = min(
-                    max(1, int(stage_winners_fraction * n_competitors_per_world)),
-                    len(c) - 1,
-                )
-                results = _run_eval(c, match_name_)
-                winners_ = _keep_n(competitors, results, n_winners_per_match)
-                next_stage_competitors += winners_
-            competitors = next_stage_competitors
-            n_competitors_per_world = min(n_competitors_per_world, len(competitors))
-            if len(competitors) == 1:
-                return results
-        stage += 1
-
-
-def _path(path: Union[str, PathLike]) -> Path:
-    """Creates an absolute path from given path which can be a string"""
-    if isinstance(path, str):
-        if path.startswith("~"):
-            path = Path.home() / ("/".join(path.split("/")[1:]))
-    return pathlib.Path(path).absolute()
-
-
-def is_already_run(world_params) -> bool:
-    return False
+    world_paths = set()
+    if assignments is None:
+        try:
+            assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
+            if assignments is None or len(assignments) == 0:
+                assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+        except:
+            assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+    for a in assignments:
+        for w in a:
+            # dir_name = w["world_params"]["log_folder"]
+            dir_name = w["__dir_name"]
+            world_paths.add(_path(dir_name))
+    return world_paths
     # dir_name = pathlib.Path(world_params["__dir_name"])
     # if not dir_name.exists():
     #     return False
@@ -1715,19 +1494,19 @@ def is_already_run(world_params) -> bool:
 
 
 def run_tournament(
-    tournament_path: Union[str, PathLike],
+    tournament_path: str | PathLike,
     world_generator: WorldGenerator = None,
     score_calculator: Callable[
-        [List[World], Dict[str, Any], bool], WorldRunResults
+        [list[World], dict[str, Any], bool], WorldRunResults
     ] = None,
-    total_timeout: Optional[int] = None,
+    total_timeout: int | None = None,
     parallelism="parallel",
-    scheduler_ip: Optional[str] = None,
-    scheduler_port: Optional[str] = None,
+    scheduler_ip: str | None = None,
+    scheduler_port: str | None = None,
     tournament_progress_callback: Callable[
-        [Optional[WorldRunResults], int, int], None
+        [WorldRunResults | None, int, int], None
     ] = None,
-    world_progress_callback: Callable[[Optional[World]], None] = None,
+    world_progress_callback: Callable[[World | None], None] = None,
     verbose: bool = False,
     compact: bool = None,
     print_exceptions: bool = True,
@@ -1977,21 +1756,14 @@ def run_tournament(
         print(f"Tournament completed successfully")
 
 
-def _run_id(config_set):
-    names = [c["world_params"]["name"] for c in config_set]
-    if len(names) == 1:
-        return names[0] + _hash(config_set)[:6]
-    return names[0] + _hash(names[1:])[:8] + _hash(config_set)[:6]
-
-
 def create_tournament(
-    competitors: Sequence[Union[str, Type[Agent]]],
+    competitors: Sequence[str | type[Agent]],
     config_generator: ConfigGenerator,
     config_assigner: ConfigAssigner,
     world_generator: WorldGenerator,
-    score_calculator: Callable[[List[World], Dict[str, Any], bool], WorldRunResults],
-    competitor_params: Optional[Sequence[Dict[str, Any]]] = None,
-    n_competitors_per_world: Optional[int] = None,
+    score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults],
+    competitor_params: Sequence[dict[str, Any]] | None = None,
+    n_competitors_per_world: int | None = None,
     round_robin: bool = True,
     agent_names_reveal_type=False,
     n_agents_per_competitor=1,
@@ -2001,14 +1773,14 @@ def create_tournament(
     max_n_configs: int = None,
     n_runs_per_config: int = None,
     base_tournament_path: str = None,
-    total_timeout: Optional[int] = None,
+    total_timeout: int | None = None,
     parallelism="parallel",
-    scheduler_ip: Optional[str] = None,
-    scheduler_port: Optional[str] = None,
-    non_competitors: Optional[Tuple[Union[str, Any]]] = None,
-    non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
-    dynamic_non_competitors: Optional[Tuple[Union[str, Any]]] = None,
-    dynamic_non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    scheduler_ip: str | None = None,
+    scheduler_port: str | None = None,
+    non_competitors: tuple[str | Any] | None = None,
+    non_competitor_params: tuple[dict[str, Any]] | None = None,
+    dynamic_non_competitors: tuple[str | Any] | None = None,
+    dynamic_non_competitor_params: tuple[dict[str, Any]] | None = None,
     exclude_competitors_from_reassignment: bool = True,
     name: str = None,
     verbose: bool = False,
@@ -2402,8 +2174,110 @@ def create_tournament(
     return tournament_path
 
 
+def extract_basic_stats(filename):
+    """Adjusts world statistics collected during world execution"""
+    data = load(filename)
+    if data is None or len(data) == 0:
+        return None
+    try:
+        data = pd.DataFrame.from_dict(data)
+    except:
+        # adjust lengths. Some columns are longer than others
+        min_len = min(len(_) for _ in data.values())
+        for k, v in data.items():
+            if len(v) == min_len:
+                continue
+            data[k] = data[k][:min_len]
+        data = pd.DataFrame.from_dict(data)
+    data = data.loc[:, [c for c in data.columns if World.is_basic_stat(c)]]
+    data["step"] = list(range(len(data)))
+    data["world"] = filename.parent.name
+    data["path"] = filename.parent.parent
+    return data
+
+
+def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Generates aggregate stats from stats"""
+    if stats is None:
+        return None
+    combined = (
+        stats.loc[
+            :,
+            [c for c in stats.columns if not c.startswith("_") and c not in ("path",)],
+        ]
+        .groupby(["world"])
+        .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
+    )
+
+    def get_last(x):
+        return x.loc[x["step"] == x["step"].max(), :]
+
+    last = stats.groupby(["world"]).apply(get_last)
+    # print("IN COMBINE ---------------")
+    # print(last.columns)
+    # print(last.index)
+    # print("IN COMBINE ---------------")
+    last.columns = [
+        f"{str(c)}_final" if c not in ("world", "path") else c for c in last.columns
+    ]
+    last.set_index("world")
+    last.drop("world", axis=1, inplace=True)
+    combined.columns = combined.columns.to_flat_index()
+    # combined.columns = [
+    #     f"{a[0]}_a{1}" if a not in ("world", "path") else a[0] for a in combined.columns
+    # ]
+    combined = pd.merge(combined, last, on=["world"])
+
+    def adjust_name(s):
+        if isinstance(s, tuple):
+            s = "".join(s)
+        return (
+            s.replace("'", "")
+            .replace('"', "")
+            .replace(" ", "")
+            .replace("(", "")
+            .replace(")", "")
+            .replace("amax", "_max")
+            .replace("amin", "_min")
+            .replace("mean", "_mean")
+            .replace("var", "_var")
+            .replace("median", "_median")
+            .replace("sum", "_sum")
+        )
+
+    combined.columns = [adjust_name(c) for c in combined.columns]
+    return combined
+
+
+def combine_tournament_stats(
+    sources: Iterable[str | PathLike],
+    dest: str | PathLike = None,
+    verbose=False,
+) -> pd.DataFrame:
+    """Combines statistical results of several tournament runs in the destination path."""
+    stats = []
+    for src in sources:
+        src = _path(src)
+        for filename in src.glob(f"**/{STATS_FILE}"):
+            # try:
+            data = extract_basic_stats(filename)
+            if data is None:
+                continue
+            stats.append(data)
+    if len(stats) < 1:
+        if verbose:
+            print("No stats found")
+        return pd.DataFrame()
+    stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True, sort=True)
+    if dest is not None:
+        stats.to_csv(str(_path(dest) / STATS_FILE), index=False)
+        combined = _combine_stats(stats)
+        combined.to_csv(str(_path(dest) / AGGREGATE_STATS_FILE), index=False)
+    return stats
+
+
 def compile_results(
-    path: Union[str, PathLike, Path],
+    path: str | PathLike | Path,
 ):
     path = _path(path)
     if not path.exists():
@@ -2438,45 +2312,45 @@ def compile_results(
         pd.DataFrame.from_records(v).to_csv(path / f"{k}.csv", index=False)
 
 
-def get_world_paths(*, assignments=None, tournament_path=None):
-    """Gets all world paths from a tournament path
+def combine_tournament_results(
+    sources: Iterable[str | PathLike],
+    dest: str | PathLike = None,
+    verbose=False,
+) -> pd.DataFrame:
+    """Combines results of several tournament runs in the destination path."""
 
-    Args:
-        assignments: A list of list of world configs
-        tournament_path: A path from which to get the assignments.
-
-    Remarks:
-
-        - You must pass assignments xor tournament_path.
-
-    """
-    world_paths = set()
-    if assignments is None:
-        try:
-            assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
-            if assignments is None or len(assignments) == 0:
-                assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
-        except:
-            assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
-    for a in assignments:
-        for w in a:
-            # dir_name = w["world_params"]["log_folder"]
-            dir_name = w["__dir_name"]
-            world_paths.add(_path(dir_name))
-    return world_paths
+    scores = []
+    for src in sources:
+        src = _path(src)
+        for filename in src.glob("**/scores.csv"):
+            try:
+                scores.append(pd.read_csv(filename))
+                if verbose:
+                    print(f"Read: {str(filename)}")
+            except:
+                if verbose:
+                    print(f"FAILED {str(filename)}")
+    if len(scores) < 1:
+        if verbose:
+            print("No scores found")
+        return pd.DataFrame()
+    scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
+    if dest is not None:
+        scores.to_csv(str(_path(dest) / SCORES_FILE), index=False)
+    return scores
 
 
 def evaluate_tournament(
-    tournament_path: Optional[Union[str, PathLike, Path]],
-    scores: Optional[pd.DataFrame] = None,
-    stats: Optional[pd.DataFrame] = None,
-    world_stats: Optional[pd.DataFrame] = None,
-    type_stats: Optional[pd.DataFrame] = None,
-    agent_stats: Optional[pd.DataFrame] = None,
-    metric: Union[str, Callable[[pd.DataFrame], float]] = "mean",
+    tournament_path: str | PathLike | Path | None,
+    scores: pd.DataFrame | None = None,
+    stats: pd.DataFrame | None = None,
+    world_stats: pd.DataFrame | None = None,
+    type_stats: pd.DataFrame | None = None,
+    agent_stats: pd.DataFrame | None = None,
+    metric: str | Callable[[pd.DataFrame], float] = "mean",
     verbose: bool = False,
     recursive: bool = True,
-    extra_scores_to_use: Optional[str] = None,
+    extra_scores_to_use: str | None = None,
     compile: bool = True,
 ) -> TournamentResults:
     """
@@ -2687,11 +2561,267 @@ def evaluate_tournament(
     )
 
 
+def tournament(
+    competitors: Sequence[str | type[Agent]],
+    config_generator: ConfigGenerator,
+    config_assigner: ConfigAssigner,
+    world_generator: WorldGenerator,
+    score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults],
+    competitor_params: Sequence[dict[str, Any]] | None = None,
+    n_competitors_per_world: int | None = None,
+    round_robin: bool = False,
+    stage_winners_fraction: float = 0.0,
+    agent_names_reveal_type=False,
+    n_agents_per_competitor=1,
+    n_configs: int = 10,
+    max_worlds_per_config: int = 100,
+    n_runs_per_world: int = 5,
+    max_n_configs: int = None,
+    n_runs_per_config: int = None,
+    tournament_path: str = None,
+    total_timeout: int | None = None,
+    parallelism="parallel",
+    scheduler_ip: str | None = None,
+    scheduler_port: str | None = None,
+    tournament_progress_callback: Callable[
+        [WorldRunResults | None, int, int], None
+    ] = None,
+    world_progress_callback: Callable[[World | None], None] = None,
+    non_competitors: tuple[str | Any] | None = None,
+    non_competitor_params: tuple[dict[str, Any]] | None = None,
+    dynamic_non_competitors: tuple[str | Any] | None = None,
+    dynamic_non_competitor_params: tuple[dict[str, Any]] | None = None,
+    exclude_competitors_from_reassignment: bool = True,
+    name: str = None,
+    verbose: bool = False,
+    configs_only: bool = False,
+    compact: bool = False,
+    print_exceptions: bool = True,
+    metric="median",
+    save_video_fraction: float = 0.0,
+    forced_logs_fraction: float = 0.0,
+    video_params=None,
+    video_saver=None,
+    max_attempts: int = float("inf"),
+    extra_scores_to_use: str | None = None,
+    **kwargs,
+) -> TournamentResults | PathLike:
+    """
+    Runs a tournament
+
+    Args:
+
+        name: Tournament name
+        config_generator: Used to generate unique configs that will be used to evaluate competitors
+        config_assigner: Used to generate assignments of competitors to the configs created by the `config_generator`
+        world_generator: A functions to generate worlds for the tournament that follows the assignments made by the
+                         `config_assigner`
+        score_calculator: A function for calculating the score of all agents in a world *After it finishes running*.
+                          The second parameter is a dict describing any scoring context that may have been added by the
+                          world config generator or assigneer.
+                          The third parameter is a boolean specifying whether this is a dry_run. For dry runs, scores
+                          are not expected but names and types should exist in the returned `WorldRunResults`.
+        competitors: A list of class names for the competitors
+        competitor_params: A list of competitor parameters (used to initialize the competitors).
+        n_competitors_per_world: The number of competitors allowed in every world. It must be >= 1 and
+                                 <= len(competitors) or None.
+
+                                 - If None or len(competitors), then all competitors will exist in every world.
+                                 - If 1, then each world will have one competitor
+
+        round_robin: Only effective if 1 < n_competitors_per_world < len(competitors). if True, all
+                                     combinations will be tried otherwise n_competitors_per_world must divide
+                                     len(competitors) and every competitor appears only in one set.
+        stage_winners_fraction: in [0, 1).  Fraction of agents to to go to the next stage at every stage. If zero, and
+                                            round_robin, it becomes a single stage competition.
+        agent_names_reveal_type: If true then the type of an agent should be readable in its name (most likely at its
+                                 beginning).
+        n_configs: The number of different world configs (up to competitor assignment) to be generated.
+        max_worlds_per_config: The maximum number of worlds to run per config. If None, then all possible assignments
+                             of competitors within each config will be tried (all permutations).
+        n_runs_per_world: Number of runs per world. All of these world runs will have identical competitor assignment
+                          and identical world configuration.
+        n_agents_per_competitor: The number of agents of each competing type to be instantiated in the world.
+        max_n_configs: [Depricated] The number of configs to use (it is replaced by separately setting `n_config`
+                       and `max_worlds_per_config` )
+        n_runs_per_config: [Depricated] The number of runs (simulation) for every config. It is replaced by
+                           `n_runs_per_world`
+        total_timeout: Total timeout for the complete process
+        tournament_path: Path at which to store all results. A new folder with the name of the tournament will be
+                         created at this path. A scores.csv file will keep the scores and logs folder will keep detailed
+                         logs
+        parallelism: Type of parallelism. Can be 'serial' for serial, 'parallel' for parallel and 'distributed' for
+                     distributed! For parallel, you can add the fraction of CPUs to use after a colon (e.g. parallel:0.5
+                     to use half of the CPU in the machine). By defaults parallel uses all CPUs in the machine
+        scheduler_port: Port of the dask scheduler if parallelism is dask, dist, or distributed
+        scheduler_ip:   IP Address of the dask scheduler if parallelism is dask, dist, or distributed
+        world_progress_callback: A function to be called after every step of every world run (only allowed for serial
+                                 and parallel evaluation and should be used with cautious).
+        tournament_progress_callback: A function to be called with `WorldRunResults` after each world finished
+                                      processing
+        non_competitors: A list of agent types that will not be competing but will still exist in the world.
+        non_competitor_params: paramters of non competitor agents
+        dynamic_non_competitors: A list of non-competing agents that are assigned to the simulation dynamically during
+                                 the creation of the final assignment instead when the configuration is created
+        dynamic_non_competitor_params: paramters of dynamic non competitor agents
+        exclude_competitors_from_reassignment: If true, competitors are excluded from the dyanamic non-competitors
+        verbose: Verbosity
+        configs_only: If true, a config file for each
+        compact: If true, compact logs will be created and effort will be made to reduce the memory footprint
+        print_exceptions: If true, print all exceptions to screen
+        metric: The metric to use for evaluation
+        save_video_fraction: The fraction of simulations for which to save videos
+        forced_logs_fraction: The fraction of simulations for which to always save logs. Notice that this has no
+                              effect except if no logs were to be saved otherwise (i.e. `no_logs` is passed as True)
+        video_params: The parameters to pass to the video saving function
+        video_saver: The parameters to pass to the video saving function after the world
+        max_attempts: The maximum number of times to retry running simulations
+        extra_scores_to_use: The type of extra-scores to use. If None normal scores will be used. Only effective if scores is None.
+        kwargs: Arguments to pass to the `config_generator` function
+
+    Returns:
+        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+
+    """
+    competitors = list(competitors)
+    if name is None:
+        name = unique_name("", add_time=True, rand_digits=3)
+
+    if n_competitors_per_world is None:
+        n_competitors_per_world = len(competitors)
+
+    if not round_robin and not (1 < n_competitors_per_world <= len(competitors)):
+        raise ValueError(
+            f"You have {len(competitors)} and you will use {n_competitors_per_world} per world but the "
+            f"later does not divide the former. You have to set all_competitor_combinations to True"
+        )
+
+    if stage_winners_fraction < 0:
+        stage_winners_fraction = 0
+
+    competitor_indx = dict()
+    for i, c in enumerate(competitors):
+        tname = get_full_type_name(c)
+        ctype = get_class(c)
+        if hasattr(ctype, "_type_name"):
+            tname = ctype._type_name()
+        competitor_indx[tname] = i
+
+    def _run_eval(competitors_, stage_name):
+        final_tournament_path = create_tournament(
+            competitors=competitors_,
+            config_generator=config_generator,
+            config_assigner=config_assigner,
+            world_generator=world_generator,
+            score_calculator=score_calculator,
+            competitor_params=competitor_params,
+            n_competitors_per_world=n_competitors_per_world,
+            round_robin=round_robin,
+            agent_names_reveal_type=agent_names_reveal_type,
+            n_agents_per_competitor=n_agents_per_competitor,
+            n_configs=n_configs,
+            max_worlds_per_config=max_worlds_per_config,
+            n_runs_per_world=n_runs_per_world,
+            max_n_configs=max_n_configs,
+            n_runs_per_config=n_runs_per_config,
+            base_tournament_path=tournament_path,
+            total_timeout=total_timeout,
+            parallelism=parallelism,
+            scheduler_ip=scheduler_ip,
+            scheduler_port=scheduler_port,
+            non_competitors=non_competitors,
+            non_competitor_params=non_competitor_params,
+            dynamic_non_competitors=dynamic_non_competitors,
+            dynamic_non_competitor_params=dynamic_non_competitor_params,
+            exclude_competitors_from_reassignment=exclude_competitors_from_reassignment,
+            name=stage_name,
+            verbose=verbose,
+            compact=compact,
+            save_video_fraction=save_video_fraction,
+            forced_logs_fraction=forced_logs_fraction,
+            video_params=video_params,
+            video_saver=video_saver,
+            **kwargs,
+        )
+        if configs_only:
+            return pathlib.Path(final_tournament_path) / "configs"
+        run_tournament(
+            tournament_path=final_tournament_path,
+            world_generator=world_generator,
+            score_calculator=score_calculator,
+            total_timeout=total_timeout,
+            parallelism=parallelism,
+            scheduler_ip=scheduler_ip,
+            scheduler_port=scheduler_port,
+            tournament_progress_callback=tournament_progress_callback,
+            world_progress_callback=world_progress_callback,
+            verbose=verbose,
+            compact=compact,
+            print_exceptions=print_exceptions,
+            max_attempts=max_attempts,
+        )
+        return evaluate_tournament(
+            tournament_path=final_tournament_path,
+            verbose=verbose,
+            recursive=round_robin,
+            metric=metric,
+            extra_scores_to_use=extra_scores_to_use,
+        )
+
+    def _keep_n(competitors_, results_, n):
+        tscores = results_.total_scores.sort_values(by=["score"], ascending=False)
+        sorted_indices = np.array(
+            [competitor_indx[_] for _ in tscores["agent_type"].values]
+        )[:n]
+        return np.array(competitors_)[sorted_indices].tolist()
+
+    stage = 1
+    while len(competitors) > 1:
+        if verbose:
+            print(
+                f"Stage {stage} started between ({len(competitors)} competitors): {competitors} "
+            )
+        stage_name = name + f"-stage-{stage:04}"
+        if round_robin:
+            n_winners_per_stage = min(
+                max(1, int(stage_winners_fraction * len(competitors))),
+                len(competitors) - 1,
+            )
+            results = _run_eval(competitors, stage_name)
+            if n_winners_per_stage == 1:
+                return results
+            competitors = _keep_n(competitors, results, n_winners_per_stage)
+        else:
+            random.shuffle(competitors)
+            competitor_sets = _divide_into_sets(competitors, n_competitors_per_world)
+
+            next_stage_competitors = []
+            results = None
+            for c in competitor_sets:
+                match_name_ = stage_name + _hash(c)
+                n_winners_per_match = min(
+                    max(1, int(stage_winners_fraction * n_competitors_per_world)),
+                    len(c) - 1,
+                )
+                results = _run_eval(c, match_name_)
+                winners_ = _keep_n(competitors, results, n_winners_per_match)
+                next_stage_competitors += winners_
+            competitors = next_stage_competitors
+            n_competitors_per_world = min(n_competitors_per_world, len(competitors))
+            if len(competitors) == 1:
+                return results
+        stage += 1
+
+
+def is_already_run(world_params) -> bool:
+    return False
+
+
 def combine_tournaments(
-    sources: Iterable[Union[str, PathLike]],
-    dest: Union[str, PathLike] = None,
+    sources: Iterable[str | PathLike],
+    dest: str | PathLike = None,
     verbose=False,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """
     Combines contents of several tournament runs in the destination path
     allowing for continuation of the tournament
@@ -2727,133 +2857,3 @@ def combine_tournaments(
     if verbose:
         print(f"=> {len(configs)} base, {len(assignments)} assigned configs.")
     return len(configs), len(assignments)
-
-
-def combine_tournament_results(
-    sources: Iterable[Union[str, PathLike]],
-    dest: Union[str, PathLike] = None,
-    verbose=False,
-) -> pd.DataFrame:
-    """Combines results of several tournament runs in the destination path."""
-
-    scores = []
-    for src in sources:
-        src = _path(src)
-        for filename in src.glob("**/scores.csv"):
-            try:
-                scores.append(pd.read_csv(filename))
-                if verbose:
-                    print(f"Read: {str(filename)}")
-            except:
-                if verbose:
-                    print(f"FAILED {str(filename)}")
-    if len(scores) < 1:
-        if verbose:
-            print("No scores found")
-        return pd.DataFrame()
-    scores: pd.DataFrame = pd.concat(scores, axis=0, ignore_index=True, sort=True)
-    if dest is not None:
-        scores.to_csv(str(_path(dest) / SCORES_FILE), index=False)
-    return scores
-
-
-def extract_basic_stats(filename):
-    """Adjusts world statistics collected during world execution"""
-    data = load(filename)
-    if data is None or len(data) == 0:
-        return None
-    try:
-        data = pd.DataFrame.from_dict(data)
-    except:
-        # adjust lengths. Some columns are longer than others
-        min_len = min(len(_) for _ in data.values())
-        for k, v in data.items():
-            if len(v) == min_len:
-                continue
-            data[k] = data[k][:min_len]
-        data = pd.DataFrame.from_dict(data)
-    data = data.loc[:, [c for c in data.columns if World.is_basic_stat(c)]]
-    data["step"] = list(range(len(data)))
-    data["world"] = filename.parent.name
-    data["path"] = filename.parent.parent
-    return data
-
-
-def combine_tournament_stats(
-    sources: Iterable[Union[str, PathLike]],
-    dest: Union[str, PathLike] = None,
-    verbose=False,
-) -> pd.DataFrame:
-    """Combines statistical results of several tournament runs in the destination path."""
-    stats = []
-    for src in sources:
-        src = _path(src)
-        for filename in src.glob(f"**/{STATS_FILE}"):
-            # try:
-            data = extract_basic_stats(filename)
-            if data is None:
-                continue
-            stats.append(data)
-    if len(stats) < 1:
-        if verbose:
-            print("No stats found")
-        return pd.DataFrame()
-    stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True, sort=True)
-    if dest is not None:
-        stats.to_csv(str(_path(dest) / STATS_FILE), index=False)
-        combined = _combine_stats(stats)
-        combined.to_csv(str(_path(dest) / AGGREGATE_STATS_FILE), index=False)
-    return stats
-
-
-def _combine_stats(stats: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
-    """Generates aggregate stats from stats"""
-    if stats is None:
-        return None
-    combined = (
-        stats.loc[
-            :,
-            [c for c in stats.columns if not c.startswith("_") and c not in ("path",)],
-        ]
-        .groupby(["world"])
-        .agg([np.mean, np.max, np.min, np.sum, np.var, np.median])
-    )
-
-    def get_last(x):
-        return x.loc[x["step"] == x["step"].max(), :]
-
-    last = stats.groupby(["world"]).apply(get_last)
-    # print("IN COMBINE ---------------")
-    # print(last.columns)
-    # print(last.index)
-    # print("IN COMBINE ---------------")
-    last.columns = [
-        f"{str(c)}_final" if c not in ("world", "path") else c for c in last.columns
-    ]
-    last.set_index("world")
-    last.drop("world", axis=1, inplace=True)
-    combined.columns = combined.columns.to_flat_index()
-    # combined.columns = [
-    #     f"{a[0]}_a{1}" if a not in ("world", "path") else a[0] for a in combined.columns
-    # ]
-    combined = pd.merge(combined, last, on=["world"])
-
-    def adjust_name(s):
-        if isinstance(s, tuple):
-            s = "".join(s)
-        return (
-            s.replace("'", "")
-            .replace('"', "")
-            .replace(" ", "")
-            .replace("(", "")
-            .replace(")", "")
-            .replace("amax", "_max")
-            .replace("amin", "_min")
-            .replace("mean", "_mean")
-            .replace("var", "_var")
-            .replace("median", "_median")
-            .replace("sum", "_sum")
-        )
-
-    combined.columns = [adjust_name(c) for c in combined.columns]
-    return combined

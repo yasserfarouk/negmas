@@ -28,25 +28,6 @@ class ModularNegotiator(Negotiator):
     This class simply holds a list of components and call them on every event.
     """
 
-    def __init__(
-        self,
-        *args,
-        components: Iterable[Component],
-        component_names: Iterable[str] | None = None,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self._components: list[Component] = []
-        self.__component_map: dict[str, int] = dict()
-        for c, n in zip(
-            components, component_names if component_names else itertools.repeat(None)
-        ):
-            self.insert_component(c, name=n)
-
-    @property
-    def components(self) -> tuple[Component, ...]:
-        return tuple(self._components)
-
     def insert_component(
         self,
         component: Component,
@@ -73,17 +54,36 @@ class ModularNegotiator(Negotiator):
             name = str(index)
         self.__component_map[name] = len(self._components)
 
-    def remove_component(self, name: str) -> None:
-        """
-        Removes the component with the given name
-        """
-        self.remove_component_at(self.__component_map[name])
+    def __init__(
+        self,
+        *args,
+        components: Iterable[Component],
+        component_names: Iterable[str] | None = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._components: list[Component] = []
+        self.__component_map: dict[str, int] = dict()
+        for c, n in zip(
+            components, component_names if component_names else itertools.repeat(None)
+        ):
+            self.insert_component(c, name=n)
+
+    @property
+    def components(self) -> tuple[Component, ...]:
+        return tuple(self._components)
 
     def remove_component_at(self, index: int) -> None:
         """
         Removes the component at the givne index.
         """
         self._components = self._components[:index] + self._components[index + 1 :]
+
+    def remove_component(self, name: str) -> None:
+        """
+        Removes the component with the given name
+        """
+        self.remove_component_at(self.__component_map[name])
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         """

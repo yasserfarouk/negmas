@@ -720,7 +720,7 @@ def get_name(java_class: str) -> str:
     return java_class.split(".")[-1]
 
 
-def get_java_class(name) -> Optional[str]:
+def get_java_class(name) -> str | None:
     """Returns the java class for the agent with this name if known otherwise it returns None"""
     for class_name in ALL_NEGOTIATORS:
         if name in class_name:
@@ -741,7 +741,7 @@ def get_anac_agents(
     elicitation: bool = None,
     winners_only: bool = False,
     finalists_only: bool = False,
-) -> List[Tuple[str, str]]:
+) -> list[tuple[str, str]]:
     """
     Get Genius agents matching some given criteria
 
@@ -756,7 +756,7 @@ def get_anac_agents(
           with caution.
     """
 
-    def get_agents(year, d) -> List[Tuple[str, str]]:
+    def get_agents(year, d) -> list[tuple[str, str]]:
         lst = tuple(
             d.get("winners", [[]])
             if winners_only
@@ -768,7 +768,7 @@ def get_anac_agents(
             return set(itertools.chain(*lst))
         return set(lst)
 
-    agents: Set[Tuple[str, str]] = set()
+    agents: set[tuple[str, str]] = set()
     if year is None:
         for y in GENIUS_INFO.keys():
             agents = agents.union(

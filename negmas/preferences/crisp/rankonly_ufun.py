@@ -17,7 +17,7 @@ __all__ = ["RankOnlyUtilityFunction"]
 
 
 class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
-    """
+    r"""
     A utility function that keeps trak of outcome order onlyself.
 
     Remarks:
@@ -28,6 +28,9 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
         - The reserved value will also be mapped to an integer giving its rank
 
     """
+
+    def eval(self, outcome: Outcome) -> int | None:
+        return self._mapping.get(outcome, None)
 
     def __init__(
         self,
@@ -80,6 +83,3 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
 
     def to_mapping_ufun(self) -> MappingUtilityFunction:
         return MappingUtilityFunction(self._mapping, outcome_space=self.outcome_space, reserved_value=self.reserved_value)  # type: ignore
-
-    def eval(self, outcome: Outcome) -> int | None:
-        return self._mapping.get(outcome, None)

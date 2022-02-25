@@ -26,44 +26,17 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
     def eval(self, offer: Outcome) -> Distribution:
         ...
 
-    def __call__(self, offer: Outcome | None) -> Distribution:
-        """Calculate the utility_function value for a given outcome.
-
-        Args:
-            offer: The offer to be evaluated.
-
-
-        Remarks:
-
-            - It calls the abstract method `eval` after opationally adjusting the
-              outcome type.
-            - It is preferred to override eval instead of directly overriding this method
-            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the Value.
-            - Return a float from your `eval` implementation.
-            - Return the reserved value if the offer was None
-
-        Returns:
-            The utility of the given outcome
-        """
-        if offer is None:
-            return ScipyDistribution("uniform", loc=self.reserved_value, scale=0.0)
-        v = self.eval(offer)
-        if isinstance(v, float):
-            return Real(v)
-        return v
-
     def to_prob(self) -> ProbUtilityFunction:
         return self
 
     @classmethod
     def generate_bilateral(
         cls,
-        outcomes: Union[int, List[Outcome]],
+        outcomes: int | list[Outcome],
         conflict_level: float = 0.5,
         conflict_delta=0.005,
         scale: float | tuple[float, float] = 0.5,
-    ) -> Tuple["ProbUtilityFunction", "ProbUtilityFunction"]:
+    ) -> tuple[ProbUtilityFunction, ProbUtilityFunction]:
         """Generates a couple of utility functions
 
         Args:
@@ -151,8 +124,8 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
 
     @classmethod
     def generate_random_bilateral(
-        cls, outcomes: Union[int, List[Outcome]], scale: float = 0.5
-    ) -> Tuple["ProbUtilityFunction", "ProbUtilityFunction"]:
+        cls, outcomes: int | list[Outcome], scale: float = 0.5
+    ) -> tuple[ProbUtilityFunction, ProbUtilityFunction]:
         """Generates a couple of utility functions
 
         Args:
@@ -208,10 +181,10 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
     def generate_random(
         cls,
         n: int,
-        outcomes: Union[int, List[Outcome]],
+        outcomes: int | list[Outcome],
         normalized: bool = True,
         scale: float | tuple[float, float] = 0.5,
-    ) -> List["ProbUtilityFunction"]:
+    ) -> list[ProbUtilityFunction]:
         """Generates N mapping utility functions
 
         Args:
@@ -250,6 +223,33 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
                 )
             )
         return ufuns
+
+    def __call__(self, offer: Outcome | None) -> Distribution:
+        """Calculate the utility_function value for a given outcome.
+
+        Args:
+            offer: The offer to be evaluated.
+
+
+        Remarks:
+
+            - It calls the abstract method `eval` after opationally adjusting the
+              outcome type.
+            - It is preferred to override eval instead of directly overriding this method
+            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
+              not possible to calculate the Value.
+            - Return a float from your `eval` implementation.
+            - Return the reserved value if the offer was None
+
+        Returns:
+            The utility of the given outcome
+        """
+        if offer is None:
+            return ScipyDistribution("uniform", loc=self.reserved_value, scale=0.0)
+        v = self.eval(offer)
+        if isinstance(v, float):
+            return Real(v)
+        return v
 
 
 class ProbAdapter(ProbUtilityFunction):

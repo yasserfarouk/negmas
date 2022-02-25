@@ -40,8 +40,12 @@ class Scenario:
 
     agenda: CartesianOutcomeSpace
     ufuns: tuple[UtilityFunction, ...]
-    mechanism_type: Type[Mechanism] | None
+    mechanism_type: type[Mechanism] | None
     mechanism_params: dict
+
+    @property
+    def issues(self) -> tuple[Issue, ...]:
+        return self.agenda.issues
 
     def to_genius_files(self, domain_path: Path, ufun_paths: list[Path]):
         """
@@ -80,14 +84,10 @@ class Scenario:
         return len(self.agenda.issues)
 
     @property
-    def issues(self) -> tuple[Issue, ...]:
-        return self.agenda.issues
-
-    @property
     def issue_names(self) -> list[str]:
         return self.agenda.issue_names
 
-    def to_numeric(self) -> "Scenario":
+    def to_numeric(self) -> Scenario:
         """
         Forces all issues in the domain to become numeric
 
@@ -96,7 +96,7 @@ class Scenario:
         """
         raise NotImplementedError()
 
-    def to_single_issue(self, numeric=False, stringify=True) -> "Scenario":
+    def to_single_issue(self, numeric=False, stringify=True) -> Scenario:
         """
         Forces the domain to have a single issue with all possible outcomes
 
@@ -112,7 +112,6 @@ class Scenario:
             return self
         outcomes = list(self.agenda.enumerate_or_sample())
         sos = self.agenda.to_single_issue(numeric, stringify)
-        sos.name = self.agenda.name
         ufuns = []
         souts = list(sos.issues[0].all)
         for u in self.ufuns:
@@ -184,7 +183,7 @@ class Scenario:
     def scale_min(
         self,
         to: float = 1.0,
-    ) -> "Scenario":
+    ) -> Scenario:
         """Normalizes a utility function to the given range
 
         Args:
@@ -200,7 +199,7 @@ class Scenario:
     def scale_max(
         self,
         to: float = 1.0,
-    ) -> "Scenario":
+    ) -> Scenario:
         """Normalizes a utility function to the given range
 
         Args:
@@ -215,18 +214,14 @@ class Scenario:
 
     def normalize(
         self,
-        rng: Tuple[float, float] = (0.0, 1.0),
-    ) -> "Scenario":
+        to: tuple[float, float] = (0.0, 1.0),
+    ) -> Scenario:
         """Normalizes a utility function to the given range
 
         Args:
-            ufun: The utility function to normalize
-            outcomes: A collection of outcomes to normalize for
             rng: range to normalize to. Default is [0, 1]
-            levels: Number of levels to use for discretizing continuous issues (if any)
-            max_cardinality: Maximum allowed number of outcomes resulting after all discretization is done
         """
-        self.ufuns = tuple(_.normalize(rng) for _ in self.ufuns)  # type: ignore The type is correct
+        self.ufuns = tuple(_.normalize(to) for _ in self.ufuns)  # type: ignore The type is correct
         return self
 
     def discretize(self, levels: int = 10):
@@ -256,7 +251,7 @@ class Scenario:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
-    ) -> "Scenario" | None:
+    ) -> Scenario | None:
         return load_genius_domain_from_folder(
             folder_name=str(path),
             ignore_discount=ignore_discount,
@@ -271,7 +266,7 @@ class Scenario:
         ignore_discount=False,
         ignore_reserved=False,
         safe_parsing=True,
-    ) -> "Scenario" | None:
+    ) -> Scenario | None:
         return load_genius_domain(
             domain,
             [_ for _ in ufuns],
@@ -285,7 +280,7 @@ class Scenario:
 
 def get_domain_issues(
     domain_file_name: PathLike | str,
-    n_discretization: Optional[int] = None,
+    n_discretization: int | None = None,
     safe_parsing=False,
 ) -> Sequence[Issue] | None:
     """
@@ -313,7 +308,7 @@ def get_domain_issues(
 
 def load_genius_domain(
     domain_file_name: PathLike,
-    utility_file_names: Optional[Iterable[PathLike]] = None,
+    utility_file_names: Iterable[PathLike] | None = None,
     ignore_discount=False,
     ignore_reserved=False,
     safe_parsing=True,
@@ -413,7 +408,7 @@ def load_genius_domain_from_folder(
     Examples:
 
         >>> import pkg_resources
-        >>> from negmas import *
+        >>> from negmas import load_genius_domain_from_folder
 
         Try loading and running a domain with predetermined agents:
         >>> domain = load_genius_domain_from_folder(
@@ -492,7 +487,7 @@ def load_genius_domain_from_folder(
 
 def find_domain_and_utility_files(
     folder_name,
-) -> Tuple[Optional[PathLike], List[PathLike]]:
+) -> tuple[PathLike | None, list[PathLike]]:
     """Finds the domain and utility_function files in a folder"""
     files = sorted(listdir(folder_name))
     domain_file_name = None

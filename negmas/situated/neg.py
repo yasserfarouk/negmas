@@ -44,6 +44,115 @@ __all__ = [
 ]
 
 
+class NegAgent(Agent):
+    """Wraps a negotiator for evaluaton"""
+
+    def __init__(
+        self,
+        *args,
+        negotiator_type: str | type[Negotiator],
+        negotiator_params: dict[str, Any] | None = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._negotiator_params = negotiator_params if negotiator_params else dict()
+        self._negotiator_type = get_class(negotiator_type)
+
+    @property
+    def short_type_name(self):
+        """Returns a short name of the type of this entity"""
+        return self._negotiator_type.__name__.replace("Negotiator", "").replace(
+            "Agent", ""
+        )
+
+    @property
+    def type_name(self):
+        """Returns a short name of the type of this entity"""
+        return get_full_type_name(self._negotiator_type)
+
+    @classmethod
+    def _type_name(cls):
+        return cls.__module__ + "." + cls.__name__
+
+    def make_negotiator(self, preferences: Preferences | None = None):
+        """Makes a negotiator of the appropriate type passing it an optional ufun"""
+        return instantiate(
+            self._negotiator_type, preferences=preferences, **self._negotiator_params
+        )
+
+    def _respond_to_negotiation_request(
+        self,
+        initiator: str,
+        partners: list[str],
+        issues: list[Issue],
+        annotation: dict[str, Any],
+        mechanism: NegotiatorMechanismInterface,
+        role: str | None,
+        req_id: str | None,
+    ) -> Negotiator | None:
+        """Responds to any negotiation request by creating a negotiator"""
+        return self.make_negotiator(self.awi.get_preferences(partners.index(self.id)))
+
+    def step(self):
+        """Called by the simulator at every simulation step"""
+
+    def init(self):
+        """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
+
+    def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
+        """Called when a requested negotiation is rejected"""
+
+    def on_neg_request_accepted(
+        self, req_id: str, mechanism: NegotiatorMechanismInterface
+    ):
+        """Called when a requested negotiation is accepted"""
+
+    def on_negotiation_failure(
+        self,
+        partners: list[str],
+        annotation: dict[str, Any],
+        mechanism: NegotiatorMechanismInterface,
+        state: MechanismState,
+    ) -> None:
+        """Called whenever a negotiation ends without agreement"""
+
+    def on_negotiation_success(
+        self, contract: Contract, mechanism: NegotiatorMechanismInterface
+    ) -> None:
+        """Called whenever a negotiation ends with agreement"""
+
+    def on_contract_signed(self, contract: Contract) -> None:
+        """Called whenever a contract is signed by all partners"""
+
+    def on_contract_cancelled(self, contract: Contract, rejectors: list[str]) -> None:
+        """Called whenever at least a partner did not sign the contract"""
+
+    def respond_to_renegotiation_request(
+        self, contract: Contract, breaches: list[Breach], agenda: RenegotiationRequest
+    ) -> Negotiator | None:
+        """Called to respond to a renegotiation request"""
+
+    def on_contract_executed(self, contract: Contract) -> None:
+        """
+        Called after successful contract execution for which the agent is one of the partners.
+        """
+
+    def on_contract_breached(
+        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
+    ) -> None:
+        """
+        Called after complete processing of a contract that involved a breach.
+        """
+
+    def set_renegotiation_agenda(
+        self, contract: Contract, breaches: list[Breach]
+    ) -> RenegotiationRequest | None:
+        """
+        Received by partners in ascending order of their total breach levels in order to set the
+        renegotiation agenda when contract execution fails
+        """
+
+
 def _unwrap_negotiators(types, params):
     """
     Removes the agent wrapping the negotiator for each type
@@ -105,20 +214,20 @@ class NegDomain:
     """
 
     name: str
-    """Domain name"""
     issues: tuple[Issue, ...]
-    """The issue space as a list of issues"""
     ufuns: tuple[Preferences, ...]
-    """The utility functions used by all negotiators in the domain"""
     partner_types: tuple[str | Negotiator, ...]
-    """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
     index: int = 0
-    """The index of the negotiator being evaluated in the list of negotiators passed to the mechanism"""
-    partner_params: tuple[Dict[str, Any] | None, ...] | None = None
-    """Any paramters used to construct partners (must be the same length as `partner_types`)"""
+    partner_params: tuple[dict[str, Any] | None, ...] | None = None
     roles: tuple[str, ...] | None = None
+    annotation: dict[str, Any] | None = None
+    """Domain name"""
+    """The issue space as a list of issues"""
+    """The utility functions used by all negotiators in the domain"""
+    """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
+    """The index of the negotiator being evaluated in the list of negotiators passed to the mechanism"""
+    """Any paramters used to construct partners (must be the same length as `partner_types`)"""
     """Roles of all negotiators (includng the negotiator being evaluated) in order"""
-    annotation: Dict[str, Any] | None = None
     """Any extra annotation to add to the mechanism."""
 
     def to_dict(self):
@@ -145,115 +254,6 @@ class NegDomain:
             roles=d["roles"],
             annotation=deserialize(d["annotation"]),  # type: ignore The type should be correct in the dict
         )
-
-
-class NegAgent(Agent):
-    """Wraps a negotiator for evaluaton"""
-
-    def __init__(
-        self,
-        *args,
-        negotiator_type: Union[str, Type[Negotiator]],
-        negotiator_params: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self._negotiator_params = negotiator_params if negotiator_params else dict()
-        self._negotiator_type = get_class(negotiator_type)
-
-    @property
-    def short_type_name(self):
-        """Returns a short name of the type of this entity"""
-        return self._negotiator_type.__name__.replace("Negotiator", "").replace(
-            "Agent", ""
-        )
-
-    @property
-    def type_name(self):
-        """Returns a short name of the type of this entity"""
-        return get_full_type_name(self._negotiator_type)
-
-    @classmethod
-    def _type_name(cls):
-        return cls.__module__ + "." + cls.__name__
-
-    def make_negotiator(self, preferences: Optional[Preferences] = None):
-        """Makes a negotiator of the appropriate type passing it an optional ufun"""
-        return instantiate(
-            self._negotiator_type, preferences=preferences, **self._negotiator_params
-        )
-
-    def _respond_to_negotiation_request(
-        self,
-        initiator: str,
-        partners: List[str],
-        issues: List[Issue],
-        annotation: Dict[str, Any],
-        mechanism: NegotiatorMechanismInterface,
-        role: Optional[str],
-        req_id: Optional[str],
-    ) -> Optional[Negotiator]:
-        """Responds to any negotiation request by creating a negotiator"""
-        return self.make_negotiator(self.awi.get_preferences(partners.index(self.id)))
-
-    def step(self):
-        """Called by the simulator at every simulation step"""
-
-    def init(self):
-        """Called to initialize the agent **after** the world is initialized. the AWI is accessible at this point."""
-
-    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
-        """Called when a requested negotiation is rejected"""
-
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
-        """Called when a requested negotiation is accepted"""
-
-    def on_negotiation_failure(
-        self,
-        partners: List[str],
-        annotation: Dict[str, Any],
-        mechanism: NegotiatorMechanismInterface,
-        state: MechanismState,
-    ) -> None:
-        """Called whenever a negotiation ends without agreement"""
-
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
-        """Called whenever a negotiation ends with agreement"""
-
-    def on_contract_signed(self, contract: Contract) -> None:
-        """Called whenever a contract is signed by all partners"""
-
-    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
-        """Called whenever at least a partner did not sign the contract"""
-
-    def respond_to_renegotiation_request(
-        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-    ) -> Optional[Negotiator]:
-        """Called to respond to a renegotiation request"""
-
-    def on_contract_executed(self, contract: Contract) -> None:
-        """
-        Called after successful contract execution for which the agent is one of the partners.
-        """
-
-    def on_contract_breached(
-        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
-    ) -> None:
-        """
-        Called after complete processing of a contract that involved a breach.
-        """
-
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: List[Breach]
-    ) -> Optional[RenegotiationRequest]:
-        """
-        Received by partners in ascending order of their total breach levels in order to set the
-        renegotiation agenda when contract execution fails
-        """
 
 
 class _NegPartner(NegAgent):
@@ -290,8 +290,8 @@ class NegWorld(NoContractExecutionMixin, World):
         self,
         *args,
         domain: NegDomain,
-        types: List[Union[Negotiator, NegAgent]],
-        params: Optional[List[Optional[Dict[str, Any]]]] = None,
+        types: list[Negotiator | NegAgent],
+        params: list[dict[str, Any] | None] | None = None,
         agent_names_reveal_type: bool = True,
         compact: bool = False,
         no_logs: bool = False,
@@ -325,14 +325,14 @@ class NegWorld(NoContractExecutionMixin, World):
         if domain.annotation is None:
             domain.annotation = dict()
         self._domain = domain
-        self._received_utility: Dict[str, List[float]] = defaultdict(list)
-        self._partner_utility: Dict[str, List[float]] = defaultdict(list)
-        self._success: Dict[str, bool] = defaultdict(bool)
-        self._received_advantage: Dict[str, List[float]] = defaultdict(list)
-        self._n_agreements_per_cometitor: Dict[str, List[int]] = defaultdict(list)
-        self._partner_advantage: Dict[str, List[float]] = defaultdict(list)
-        self._competitors: Dict[str, NegAgent] = dict()
-        self._partners: Dict[str, NegAgent] = dict()
+        self._received_utility: dict[str, list[float]] = defaultdict(list)
+        self._partner_utility: dict[str, list[float]] = defaultdict(list)
+        self._success: dict[str, bool] = defaultdict(bool)
+        self._received_advantage: dict[str, list[float]] = defaultdict(list)
+        self._n_agreements_per_cometitor: dict[str, list[int]] = defaultdict(list)
+        self._partner_advantage: dict[str, list[float]] = defaultdict(list)
+        self._competitors: dict[str, NegAgent] = dict()
+        self._partners: dict[str, NegAgent] = dict()
         self._n_negs_per_copmetitor = defaultdict(int)
         self._normalize_scores = normalize_scores
         self._preferences_ranges = None
@@ -491,10 +491,10 @@ class NegWorld(NoContractExecutionMixin, World):
     ) -> Collection[Contract]:
         return contracts
 
-    def contract_record(self, contract: Contract) -> Dict[str, Any]:
+    def contract_record(self, contract: Contract) -> dict[str, Any]:
         return to_flat_dict(contract, deep=True)
 
-    def breach_record(self, breach: Breach) -> Dict[str, Any]:
+    def breach_record(self, breach: Breach) -> dict[str, Any]:
         return to_flat_dict(breach, deep=True)
 
     def contract_size(self, contract: Contract) -> float:
@@ -505,21 +505,21 @@ class NegWorld(NoContractExecutionMixin, World):
         pass
 
     def execute_action(
-        self, action: Action, agent: "Agent", callback: Callable = None
+        self, action: Action, agent: Agent, callback: Callable = None
     ) -> bool:
         """Executes the given action by the given agent"""
 
-    def get_private_state(self, agent: "Agent") -> dict:
+    def get_private_state(self, agent: Agent) -> dict:
         """Reads the private state of the given agent"""
 
     def executable_contracts(self) -> Collection[Contract]:
         return []
 
-    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
+    def start_contract_execution(self, contract: Contract) -> set[Breach]:
         return set()
 
     def complete_contract_execution(
-        self, contract: Contract, breaches: List[Breach], resolution: Contract
+        self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
         pass
 

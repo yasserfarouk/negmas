@@ -73,6 +73,56 @@ def _kill_process(proc_pid):
     process.kill()
 
 
+def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
+    """
+    Checks whether a Genius Bridge is running. A genius bridge allows you to use `GeniusNegotiator` objects.
+
+    Remarks:
+
+        You can start a Genius Bridge in at least three ways:
+
+        - execute the python function `init_genius_bridge()` in this module
+        - run "negmas genius" on the terminal
+        - execute `GeniusBridge.start()`
+
+    """
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.connect(("127.0.0.1", port))
+        s.close()
+        # we know someone is listening. Now we check that it is us
+        gateway = JavaGateway(
+            gateway_parameters=GatewayParameters(port=port, auto_close=True),
+            callback_server_parameters=CallbackServerParameters(
+                port=0, daemonize=True, daemonize_connections=True
+            ),
+        )
+        gateway.jvm.System.currentTimeMillis()
+        return True
+    except ConnectionRefusedError:
+        # try:
+        #     s.shutdown(2)
+        # except:
+        #     pass
+        s.close()
+        return False
+    except IndexError:
+        # try:
+        #     s.shutdown(2)
+        # except:
+        #     pass
+        s.close()
+        return False
+    except Py4JNetworkError:
+        # try:
+        #     s.shutdown(2)
+        # except:
+        #     pass
+        s.close()
+        return False
+
+
 def init_genius_bridge(
     path: str = None,
     port: int = DEFAULT_JAVA_PORT,
@@ -148,68 +198,19 @@ def genius_bridge_is_installed() -> bool:
     return (pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar").exists()
 
 
-def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
-    """
-    Checks whether a Genius Bridge is running. A genius bridge allows you to use `GeniusNegotiator` objects.
-
-    Remarks:
-
-        You can start a Genius Bridge in at least three ways:
-
-        - execute the python function `init_genius_bridge()` in this module
-        - run "negmas genius" on the terminal
-        - execute `GeniusBridge.start()`
-
-    """
-    s = socket.socket()
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        s.connect(("127.0.0.1", port))
-        s.close()
-        # we know someone is listening. Now we check that it is us
-        gateway = JavaGateway(
-            gateway_parameters=GatewayParameters(port=port, auto_close=True),
-            callback_server_parameters=CallbackServerParameters(
-                port=0, daemonize=True, daemonize_connections=True
-            ),
-        )
-        gateway.jvm.System.currentTimeMillis()
-        return True
-    except ConnectionRefusedError:
-        # try:
-        #     s.shutdown(2)
-        # except:
-        #     pass
-        s.close()
-        return False
-    except IndexError:
-        # try:
-        #     s.shutdown(2)
-        # except:
-        #     pass
-        s.close()
-        return False
-    except Py4JNetworkError:
-        # try:
-        #     s.shutdown(2)
-        # except:
-        #     pass
-        s.close()
-        return False
-
-
 class GeniusBridge:
-    gateways: Dict[int, "GeniusBridge"] = dict()
-    """Gateways to different genius bridges"""
-    java_processes: Dict[int, Any] = dict()
-    """handles to the java processes running the bridges"""
-    python_ports: Dict[int, int] = dict()
-    """The port used by python's Gateway to connect to the bridge"""
+    gateways: dict[int, GeniusBridge] = dict()
+    java_processes: dict[int, Any] = dict()
+    python_ports: dict[int, int] = dict()
 
     def __init__(
         self,
     ):
         raise RuntimeError(f"Cannot create objects of type GeniusBridge.")
+
+    """Gateways to different genius bridges"""
+    """handles to the java processes running the bridges"""
+    """The port used by python's Gateway to connect to the bridge"""
 
     @classmethod
     def is_running(cls, port: int) -> bool:
@@ -222,6 +223,70 @@ class GeniusBridge:
         return genius_bridge_is_installed()
 
     @classmethod
+    def gateway(cls, port=DEFAULT_JAVA_PORT, force=False):
+        """
+        Finds and returns a gateway for a genius bridge on the given port
+
+        Args:
+            port: The port used by the Jave genius bridge.
+            force: If true, a new gateway is created even if one exists in
+                   the list of gateways available in `GeniusBridge`.gateways.
+        Returns:
+            The gateway if found otherwise an exception will be thrown
+
+        Remarks:
+            - this method does NOT start a bridge. It only connects to a
+              running bridge.
+        """
+        assert port > 0
+        gateway = cls.gateways.get(port, None) if not force else None
+        if gateway is not None:
+            return gateway
+        try:
+            gateway = JavaGateway(
+                gateway_parameters=GatewayParameters(port=port, auto_close=True),
+                callback_server_parameters=CallbackServerParameters(
+                    port=0, daemonize=True, daemonize_connections=True
+                ),
+            )
+            python_port = gateway.get_callback_server().get_listening_port()
+            gateway.java_gateway_server.resetCallbackClient(
+                gateway.java_gateway_server.getCallbackClient().getAddress(),
+                python_port,
+            )
+        except:
+            if gateway is not None:
+                gateway.shutdown()
+                gateway.shutdown_callback_server()
+            return None
+        cls.python_ports[port] = python_port
+        cls.gateways[port] = gateway
+        return gateway
+
+    @classmethod
+    def wait_until_listening(
+        cls,
+        port: int = DEFAULT_JAVA_PORT,
+        timeout: float = 0.5,
+    ) -> bool:
+        """
+        waits until a genius bridge is  listening to the given port
+
+        Args:
+            port: The port to test
+            timeout: Maximum time to wait before returning (in seconds)
+
+        Returns:
+            True if the genius bridge is running any more (success).
+        """
+        if genius_bridge_is_running(port):
+            return True
+        time.sleep(timeout)
+        return TimeoutCaller.run(
+            lambda: genius_bridge_is_running(port), timeout=timeout
+        )
+
+    @classmethod
     def start(
         cls,
         port: int = DEFAULT_JAVA_PORT,
@@ -230,7 +295,7 @@ class GeniusBridge:
         timeout: float = 0,
         force_timeout: bool = True,
         save_logs: bool = False,
-        log_path: Optional[os.PathLike] = None,
+        log_path: os.PathLike | None = None,
         die_on_exit: bool = False,
         use_shell: bool = False,
     ) -> int:
@@ -342,47 +407,6 @@ class GeniusBridge:
         return port if cls.gateway(port, force=True) is not None else 0
 
     @classmethod
-    def gateway(cls, port=DEFAULT_JAVA_PORT, force=False):
-        """
-        Finds and returns a gateway for a genius bridge on the given port
-
-        Args:
-            port: The port used by the Jave genius bridge.
-            force: If true, a new gateway is created even if one exists in
-                   the list of gateways available in `GeniusBridge`.gateways.
-        Returns:
-            The gateway if found otherwise an exception will be thrown
-
-        Remarks:
-            - this method does NOT start a bridge. It only connects to a
-              running bridge.
-        """
-        assert port > 0
-        gateway = cls.gateways.get(port, None) if not force else None
-        if gateway is not None:
-            return gateway
-        try:
-            gateway = JavaGateway(
-                gateway_parameters=GatewayParameters(port=port, auto_close=True),
-                callback_server_parameters=CallbackServerParameters(
-                    port=0, daemonize=True, daemonize_connections=True
-                ),
-            )
-            python_port = gateway.get_callback_server().get_listening_port()
-            gateway.java_gateway_server.resetCallbackClient(
-                gateway.java_gateway_server.getCallbackClient().getAddress(),
-                python_port,
-            )
-        except:
-            if gateway is not None:
-                gateway.shutdown()
-                gateway.shutdown_callback_server()
-            return None
-        cls.python_ports[port] = python_port
-        cls.gateways[port] = gateway
-        return gateway
-
-    @classmethod
     def _close_gateway(cls, port):
         """
         Closes the gateway and removes it from all class dicts.
@@ -421,6 +445,27 @@ class GeniusBridge:
             cls._close_gateway(p)
 
     @classmethod
+    def wait_until_not_listening(
+        cls,
+        port: int = DEFAULT_JAVA_PORT,
+        timeout: float = 0.5,
+    ) -> bool:
+        """
+        waits until the genius bridge is not listening to the given port
+
+        Args:
+            port: The port to test
+            max_sleep: Maximum time to wait before returning (in seconds)
+
+        Returns:
+            True if the genius bridge is NOT running any more (success).
+        """
+        if not genius_bridge_is_running(port):
+            return False
+        time.sleep(timeout)
+        return not genius_bridge_is_running(port)
+
+    @classmethod
     def shutdown(
         cls,
         port: int = DEFAULT_JAVA_PORT,
@@ -448,6 +493,55 @@ class GeniusBridge:
             gateway.entry_point.shutdown()
         except:
             pass
+        if wait:
+            cls.wait_until_not_listening(port)
+        cls._close_gateway(port)
+        return True
+
+    @classmethod
+    def kill(
+        cls,
+        port: int = DEFAULT_JAVA_PORT,
+        wait: bool = True,
+    ) -> bool:
+        """Kills the java bridge connected to this port by asking it to exit"""
+        assert port > 0
+        try:
+            gateway = cls.gateway(port, force=True)
+        except:
+            return False
+        if gateway is None:
+            return False
+        try:
+            gateway.entry_point.kill()
+        except:
+            pass
+        if wait:
+            cls.wait_until_not_listening(port)
+        cls._close_gateway(port)
+        return True
+
+    @classmethod
+    def kill_forced(
+        cls,
+        port: int = DEFAULT_JAVA_PORT,
+        wait: bool = True,
+    ) -> bool:
+        """Kills the java bridge connected to this port forcibly.
+
+        Remarks:
+            - The java bridge process must have been started by this process.
+        """
+        assert port > 0
+        p = cls.java_processes.pop(port, None)
+        if p is None:
+            warnings.warn(
+                f"Attempting to force-kill a genius brdige we did not start "
+                "at port {port}",
+                warnings.NegmasBridgeProcessWarning,
+            )
+            return False
+        _kill_process(p.pid)
         if wait:
             cls.wait_until_not_listening(port)
         cls._close_gateway(port)
@@ -509,50 +603,6 @@ class GeniusBridge:
         return genius_bridge_is_running(port)
 
     @classmethod
-    def wait_until_listening(
-        cls,
-        port: int = DEFAULT_JAVA_PORT,
-        timeout: float = 0.5,
-    ) -> bool:
-        """
-        waits until a genius bridge is  listening to the given port
-
-        Args:
-            port: The port to test
-            timeout: Maximum time to wait before returning (in seconds)
-
-        Returns:
-            True if the genius bridge is running any more (success).
-        """
-        if genius_bridge_is_running(port):
-            return True
-        time.sleep(timeout)
-        return TimeoutCaller.run(
-            lambda: genius_bridge_is_running(port), timeout=timeout
-        )
-
-    @classmethod
-    def wait_until_not_listening(
-        cls,
-        port: int = DEFAULT_JAVA_PORT,
-        timeout: float = 0.5,
-    ) -> bool:
-        """
-        waits until the genius bridge is not listening to the given port
-
-        Args:
-            port: The port to test
-            max_sleep: Maximum time to wait before returning (in seconds)
-
-        Returns:
-            True if the genius bridge is NOT running any more (success).
-        """
-        if not genius_bridge_is_running(port):
-            return False
-        time.sleep(timeout)
-        return not genius_bridge_is_running(port)
-
-    @classmethod
     def kill_threads(
         cls,
         port: int = DEFAULT_JAVA_PORT,
@@ -575,55 +625,6 @@ class GeniusBridge:
             gateway.entry_point.kill_threads(int(wait_time * 1000))
         except:
             pass
-        return True
-
-    @classmethod
-    def kill(
-        cls,
-        port: int = DEFAULT_JAVA_PORT,
-        wait: bool = True,
-    ) -> bool:
-        """Kills the java bridge connected to this port by asking it to exit"""
-        assert port > 0
-        try:
-            gateway = cls.gateway(port, force=True)
-        except:
-            return False
-        if gateway is None:
-            return False
-        try:
-            gateway.entry_point.kill()
-        except:
-            pass
-        if wait:
-            cls.wait_until_not_listening(port)
-        cls._close_gateway(port)
-        return True
-
-    @classmethod
-    def kill_forced(
-        cls,
-        port: int = DEFAULT_JAVA_PORT,
-        wait: bool = True,
-    ) -> bool:
-        """Kills the java bridge connected to this port forcibly.
-
-        Remarks:
-            - The java bridge process must have been started by this process.
-        """
-        assert port > 0
-        p = cls.java_processes.pop(port, None)
-        if p is None:
-            warnings.warn(
-                f"Attempting to force-kill a genius brdige we did not start "
-                "at port {port}",
-                warnings.NegmasBridgeProcessWarning,
-            )
-            return False
-        _kill_process(p.pid)
-        if wait:
-            cls.wait_until_not_listening(port)
-        cls._close_gateway(port)
         return True
 
     @classmethod

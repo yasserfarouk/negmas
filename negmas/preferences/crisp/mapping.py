@@ -106,7 +106,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         d["mapping"] = deserialize(d["mapping"])
         return cls(**d)
 
-    def eval(self, offer: Optional[Outcome]) -> Optional[Distribution | float]:
+    def eval(self, offer: Outcome | None) -> Distribution | float | None:
         # noinspection PyBroadException
         if offer is None:
             return self.reserved_value
@@ -117,7 +117,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
 
         return m
 
-    def xml(self, issues: List[Issue]) -> str:
+    def xml(self, issues: list[Issue]) -> str:
         """
 
         Examples:
@@ -167,9 +167,6 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         output += '<weight index="1" value="1.0">\n</weight>\n'
         return output
 
-    def __str__(self) -> str:
-        return f"mapping: {self.mapping}\ndefault: {self.default}"
-
     @classmethod
     def random(
         cls,
@@ -198,3 +195,6 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
             reserved_value=reserved_value[0]  # type: ignore
             + random.random() * (reserved_value[1] - reserved_value[0]),  # type: ignore
         )
+
+    def __str__(self) -> str:
+        return f"mapping: {self.mapping}\ndefault: {self.default}"

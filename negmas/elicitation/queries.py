@@ -35,11 +35,12 @@ class Constraint(ABC):
 
     def __init__(
         self,
-        full_range: Union[Sequence[Tuple[float, float]], Tuple[float, float]] = (
+        full_range: Sequence[tuple[float, float]]
+        | tuple[float, float] = (
             0.0,
             1.0,
         ),
-        outcomes: List[Outcome] = None,
+        outcomes: list[Outcome] = None,
     ):
         super().__init__()
         self.outcomes = outcomes
@@ -52,32 +53,32 @@ class Constraint(ABC):
 
     @abstractmethod
     def is_satisfied(
-        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
         """
         Whether or not the constraint is satisfied.
         """
 
-    def __str__(self):
-        return pprint.pformat(self.__dict__)
+    @abstractmethod
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> list[ScipyDistribution]:
+        ...
+
+    @abstractmethod
+    def marginal(self, outcome: Outcome) -> ScipyDistribution:
+        ...
 
     def __repr__(self):
         return self.__dict__.__repr__()
 
-    @abstractmethod
-    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[ScipyDistribution]:
-        ...
-
-    @abstractmethod
-    def marginal(self, outcome: "Outcome") -> ScipyDistribution:
-        ...
+    def __str__(self):
+        return pprint.pformat(self.__dict__)
 
 
 class MarginalNeutralConstraint(Constraint):
     """Constraints that do not affect the marginals of any outcomes. These constraints may only affect the joint
     distribution."""
 
-    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[ScipyDistribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> list[ScipyDistribution]:
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
@@ -90,7 +91,7 @@ class MarginalNeutralConstraint(Constraint):
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: "Outcome") -> ScipyDistribution:
+    def marginal(self, outcome: Outcome) -> ScipyDistribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
             return ScipyDistribution(
@@ -111,18 +112,19 @@ class RankConstraint(MarginalNeutralConstraint):
 
     def __init__(
         self,
-        rankings: List[int],
-        full_range: Union[Sequence[Tuple[float, float]], Tuple[float, float]] = (
+        rankings: list[int],
+        full_range: Sequence[tuple[float, float]]
+        | tuple[float, float] = (
             0.0,
             1.0,
         ),
-        outcomes: List[Outcome] = None,
+        outcomes: list[Outcome] = None,
     ):
         super().__init__(full_range=full_range, outcomes=outcomes)
         self.rankings = rankings
 
     def is_satisfied(
-        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
@@ -138,12 +140,13 @@ class ComparisonConstraint(MarginalNeutralConstraint):
 
     def __init__(
         self,
-        op: Union[str, Callable[[Value, Value], bool]],
-        full_range: Union[Sequence[Tuple[float, float]], Tuple[float, float]] = (
+        op: str | Callable[[Value, Value], bool],
+        full_range: Sequence[tuple[float, float]]
+        | tuple[float, float] = (
             0.0,
             1.0,
         ),
-        outcomes: List[Outcome] = None,
+        outcomes: list[Outcome] = None,
     ):
         super().__init__(full_range=full_range, outcomes=outcomes)
         if outcomes is not None and len(outcomes) != 2:
@@ -167,7 +170,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
         self.op = op
 
     def is_satisfied(
-        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
@@ -191,12 +194,13 @@ class RangeConstraint(Constraint):
 
     def __init__(
         self,
-        rng: Tuple = (None, None),
-        full_range: Union[Sequence[Tuple[float, float]], Tuple[float, float]] = (
+        rng: tuple = (None, None),
+        full_range: Sequence[tuple[float, float]]
+        | tuple[float, float] = (
             0.0,
             1.0,
         ),
-        outcomes: List[Outcome] = None,
+        outcomes: list[Outcome] = None,
         eps=1e-5,
     ):
         super().__init__(full_range=full_range, outcomes=outcomes)
@@ -219,7 +223,7 @@ class RangeConstraint(Constraint):
             ]
 
     def is_satisfied(
-        self, preferences: Preferences, outcomes: Optional[Iterable[Outcome]] = None
+        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
     ) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
@@ -237,7 +241,7 @@ class RangeConstraint(Constraint):
                     return False
         return True
 
-    def marginals(self, outcomes: Iterable[Outcome] = None) -> List[ScipyDistribution]:
+    def marginals(self, outcomes: Iterable[Outcome] = None) -> list[ScipyDistribution]:
         if outcomes is None:
             outcomes = self.outcomes
         # this works only for real-valued outcomes.
@@ -250,7 +254,7 @@ class RangeConstraint(Constraint):
             for _ in range(len(outcomes))
         ]
 
-    def marginal(self, outcome: "Outcome") -> ScipyDistribution:
+    def marginal(self, outcome: Outcome) -> ScipyDistribution:
         # this works only for real-valued outcomes.
         if self.outcomes is None:
             return ScipyDistribution(
@@ -276,7 +280,7 @@ class RangeConstraint(Constraint):
 
 @dataclass
 class Answer:
-    outcomes: List[Outcome]
+    outcomes: list[Outcome]
     constraint: Constraint
     cost: float = 0.0
     name: str = ""
@@ -297,8 +301,8 @@ class Answer:
 
 @dataclass
 class Query:
-    answers: List[Answer]
-    probs: List[float]
+    answers: list[Answer]
+    probs: list[float]
     cost: float = 0.0
     name: str = ""
 
@@ -316,17 +320,17 @@ class Query:
 
 @dataclass
 class QResponse:
-    answer: Optional[Answer]
+    answer: Answer | None
     indx: int
     cost: float
 
 
 def possible_queries(
     nmi: NegotiatorMechanismInterface,
-    strategy: "EStrategy",
-    user: "User",
-    outcome: "Outcome" = None,
-) -> List[Tuple[Outcome, List["ScipyDistribution"], float]]:
+    strategy: EStrategy,
+    user: User,
+    outcome: Outcome = None,
+) -> list[tuple[Outcome, list[ScipyDistribution], float]]:
     """Gets all queries that could be asked for that outcome until an exact value of ufun is found.
 
     For each ask,  the following tuple is returned:
@@ -379,8 +383,8 @@ def possible_queries(
 
 
 def next_query(
-    strategy: "EStrategy", user: "User", outcome: "Outcome" = None
-) -> List[Tuple[Outcome, Query, float]]:
+    strategy: EStrategy, user: User, outcome: Outcome = None
+) -> list[tuple[Outcome, Query, float]]:
     """Gets the possible outcomes for the next ask with its cost.
 
     The following tuple is returned:

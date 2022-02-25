@@ -1170,11 +1170,6 @@ Pythonic sense of a duck-typed interface):
 |                                   | normalized to fall in some given  |
 |                                   | range                             |
 +-----------------------------------+-----------------------------------+
-| PartiallyNormalizable             | The utility function can be       |
-|                                   | normalized to fall in some given  |
-|                                   | range for some part of the        |
-|                                   | outcome-space                     |
-+-----------------------------------+-----------------------------------+
 | HasReservedOutcome                | The utility function defines some |
 |                                   | outcome as the default outcome in |
 |                                   | case of disagreement              |

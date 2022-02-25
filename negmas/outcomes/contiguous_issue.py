@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import numbers
 import random
 from typing import Generator
@@ -44,15 +45,20 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
     def all(self) -> Generator[int, None, None]:
         yield from range(self._values[0], self._values[1] + 1)
 
-    def value_generator(
-        self, n: int | None = 10, grid=True, compact=False, endpoints=True
-    ) -> Generator[int, None, None]:
-        yield from self.ordered_value_generator(
-            n, grid=grid, compact=compact, endpoints=endpoints
-        )
+    @property
+    def cardinality(self) -> int:
+        return self.max_value - self.min_value + 1
 
     def ordered_value_generator(
-        self, n: int | None = None, grid=True, compact=False, endpoints=True
+        self, n: int | float | None = None, grid=True, compact=False, endpoints=True
+    ) -> Generator[int, None, None]:
+        m = self.cardinality
+        n = m if n is None or not math.isfinite(n) else int(n)
+        for i in range(n):
+            yield self._values[0] + (i % m)
+
+    def value_generator(
+        self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
         yield from (
             _ + self._values[0]
@@ -102,10 +108,6 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
         """Pick a random *invalid* value"""
 
         return random.randint(self.max_value + 1, 2 * self.max_value)
-
-    @property
-    def cardinality(self) -> int | float:
-        return self.max_value - self.min_value + 1
 
     def is_continuous(self) -> bool:
         return False

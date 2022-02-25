@@ -53,6 +53,271 @@ def num_outcomes(issues: Sequence[Issue]) -> int | float:
     return n
 
 
+def enumerate_discrete_issues(issues: Sequence[DiscreteIssue]) -> list[Outcome]:
+    """
+    Enumerates all outcomes of this set of discrete issues if possible.
+
+    Args:
+        issues: A list of issues
+
+    Returns:
+        list of outcomes
+    """
+    return list(itertools.product(*(_.all for _ in issues)))
+
+
+def sample_outcomes(
+    issues: Sequence[Issue],
+    n_outcomes: int | None = None,
+    min_per_dim: int = 5,
+    expansion_policy=None,
+) -> list[Outcome]:
+    """
+    Discretizes the issue space and returns either a predefined number of outcomes or uniform samples.
+
+    Args:
+        issues: The issues describing the issue space to be discretized
+        n_outcomes: If None then exactly `min_per_dim` bins will be used for every continuous dimension and all outcomes
+        will be returned
+        min_per_dim: Max levels of discretization per dimension
+        expansion_policy: None or 'repeat' or 'null' or 'no'. If repeat, then some of the outcomes will be repeated
+        if None or 'no' then no expansion will happen if the total number of outcomes is less than
+        n_outcomes: If 'null' then expansion will be with None values
+
+    Returns:
+        list of outcomes
+
+    Examples:
+
+        enumberate the whole space
+
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
+        >>> sample_outcomes(issues=issues)
+        [(0.0, 'a'), (0.0, 'b'), (0.25, 'a'), (0.25, 'b'), (0.5, 'a'), (0.5, 'b'), (0.75, 'a'), (0.75, 'b'), (1.0, 'a'), (1.0, 'b')]
+
+        enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
+
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
+        >>> issues[0].is_continuous()
+        True
+        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
+        >>> len(sampled)
+        5
+        >>> len(set(sampled))
+        5
+
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(values=(0, 1), name='Price'), make_issue(values=['a', 'b'], name='Name')]
+        >>> issues[0].is_continuous()
+        False
+        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
+        >>> len(sampled)
+        4
+        >>> len(set(sampled))
+        4
+
+    """
+    from negmas.outcomes import enumerate_discrete_issues
+
+    issues = list(issues)
+    issues = [copy.deepcopy(_) for _ in issues]
+    continuous = []
+    indx = []
+    discrete = []
+    n_disc = 0
+
+    for i, issue in enumerate(issues):
+        if issue.is_continuous():
+            continuous.append(issue)
+            indx.append(i)
+        else:
+            discrete.append(issue)
+            n_disc += issue.cardinality
+
+    if len(continuous) > 0:
+        if n_outcomes is not None:
+            n_per_issue = max(min_per_dim, int(n_outcomes - n_disc) // len(continuous))
+        else:
+            n_per_issue = min_per_dim
+
+        for i, issue in enumerate(continuous):
+            issues[indx[i]] = make_issue(
+                name=issue.name,
+                values=list(
+                    np.linspace(
+                        issue.min_value, issue.max_value, num=n_per_issue, endpoint=True
+                    ).tolist()
+                ),
+            )
+
+    cardinality = 1
+
+    for issue in issues:
+        cardinality *= issue.cardinality
+
+    if cardinality == n_outcomes or n_outcomes is None:
+        return list(
+            enumerate_discrete_issues(issues)  # type: ignore I am  sure that the issues are all discrete by this point
+        )
+
+    if cardinality < n_outcomes:
+        cardinality = int(cardinality)
+        outcomes = list(
+            enumerate_discrete_issues(issues)  # type: ignore I am  sure that the issues are all discrete by this point
+        )
+
+        if expansion_policy == "no" or expansion_policy is None:
+            return outcomes
+        elif expansion_policy == "null":
+            return outcomes + [None] * (n_outcomes - cardinality)
+        elif expansion_policy == "repeat":
+            n_reps = n_outcomes // cardinality
+            n_rem = n_outcomes % cardinality
+
+            if n_reps > 1:
+                for _ in range(n_reps):
+                    outcomes += outcomes
+
+            if n_rem > 0:
+                outcomes += outcomes[:n_rem]
+
+            return outcomes
+    n_per_issue = 1 + int(n_outcomes ** (1 / len(issues)))
+    vals = []
+    n_found = 1
+    for issue in issues:
+        if n_per_issue < 2:
+            vals.append([issue.rand()])
+            continue
+        if issue.cardinality < n_per_issue:
+            vals.append(issue.all)
+            n_found *= issue.cardinality
+        else:
+            vals.append(issue.rand_outcomes(n=n_per_issue, with_replacement=False))
+            n_found *= n_per_issue
+        if n_found >= n_outcomes:
+            n_per_issue = 1
+    outcomes = itertools.product(*vals)
+    return list(outcomes)[:n_outcomes]
+
+
+def _sample_issues(
+    issues: Sequence[Issue],
+    n: int,
+    with_replacement,
+    n_total,
+    old_values,
+    trial,
+    max_trials,
+) -> Iterable[Outcome]:
+    if trial > max_trials:
+        return old_values
+
+    remaining = n - len(old_values)
+    if remaining < 0:
+        return set(list(old_values)[:n])
+    if remaining == 0:
+        return old_values
+
+    samples = []
+
+    for issue in issues:
+        samples.append(
+            issue.rand_outcomes(
+                n=remaining, with_replacement=True, fail_if_not_enough=True
+            )
+        )
+
+    _v = []
+
+    for i in range(remaining):
+        _v.append([s[i] for s in samples])
+
+    new_values = []
+    for value in _v:
+        new_values.append(tuple(value))
+    new_values = set(new_values)
+    values = old_values.union(new_values)
+    remaining = n - len(values)
+    if remaining < 0:
+        return set(list(values)[:n])
+    if remaining < 1:
+        return values
+    return values.union(
+        _sample_issues(
+            issues,
+            remaining,
+            with_replacement,
+            n_total,
+            values,
+            trial + 1,
+            max_trials,
+        )
+    )
+
+
+def sample_issues(
+    issues: Sequence[Issue],
+    n_outcomes: int,
+    with_replacement: bool = True,
+    fail_if_not_enough=True,
+) -> Iterable[Outcome]:
+    """
+    Samples some outcomes from the outcome space defined by the list of issues.
+
+    Args:
+
+        issues: list of issues to sample from
+        n_outcomes: The number of outcomes required
+        with_replacement: Whether sampling is with replacement (allowing repetition)
+        fail_if_not_enough: IF given then an exception is raised if not enough outcomes are available
+
+    Returns:
+
+        a list of outcomes
+
+    Examples:
+
+        >>> from negmas.outcomes import make_issue
+        >>> issues = [make_issue(name='price', values=(0.0, 3.0)), make_issue(name='quantity', values=10)]
+
+        Sampling outcomes as tuples
+
+        >>> samples = sample_issues(issues=issues, n_outcomes=10)
+        >>> len(samples) == 10
+        True
+        >>> type(samples[0]) == tuple
+        True
+
+
+    """
+    n_total = num_outcomes(issues)
+
+    if (
+        n_total is not None
+        and n_total != float("inf")
+        and n_outcomes is not None
+        and n_total < n_outcomes
+        and fail_if_not_enough
+        and not with_replacement
+    ):
+        raise ValueError(
+            f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes"
+        )
+
+    if n_total is not None and n_total != float("inf") and n_outcomes is None:
+        return enumerate_discrete_issues(issues=issues)  # type: ignore I know that these issues are discrete
+    if n_total is None and n_outcomes is None:
+        raise ValueError(
+            f"Cannot sample unknown number of outcomes from continuous outcome spaces"
+        )
+    return list(
+        _sample_issues(issues, n_outcomes, with_replacement, n_total, set(), 0, 10)
+    )
+
+
 def enumerate_issues(
     issues: Sequence[Issue],
     max_cardinality: int | None = None,
@@ -88,24 +353,11 @@ def enumerate_issues(
         return list(tuple(_) for _ in itertools.product(*(_.all for _ in issues)))
 
 
-def enumerate_discrete_issues(issues: Sequence[DiscreteIssue]) -> list[Outcome]:
-    """
-    Enumerates all outcomes of this set of discrete issues if possible.
-
-    Args:
-        issues: A list of issues
-
-    Returns:
-        list of outcomes
-    """
-    return list(itertools.product(*(_.all for _ in issues)))
-
-
 def issues_from_outcomes(
     outcomes: Sequence[Outcome] | int,
     numeric_as_ranges: bool = True,
     issue_names: list[str] | None = None,
-) -> Sequence[DiscreteIssue]:
+) -> tuple[DiscreteIssue]:
     """
     Create a set of issues given some outcomes.
 
@@ -197,16 +449,16 @@ def issues_from_outcomes(
         values[k] = sorted(list(set(vals)))
 
     if numeric_as_ranges:
-        return [  # type: ignore (seems  ok but not sure)
+        return tuple(  # type: ignore (seems  ok but not sure)
             make_issue(values=(v[0], v[-1]), name=n)
             if len(v) > 0
             and (isinstance(v[0], int))
             and all(a == b + 1 for a, b in zip(v[1:], v[:-1]))
             else make_issue(values=v, name=n)
             for n, v in values.items()
-        ]
+        )
     else:
-        return [make_issue(values=v, name=n) for n, v in values.items()]  # type: ignore (seems  ok but not sure)
+        return tuple(make_issue(values=v, name=n) for n, v in values.items())  # type: ignore (seems  ok but not sure)
 
 
 def issues_to_xml_str(issues: Sequence[Issue]) -> str:
@@ -526,10 +778,10 @@ def issues_from_genius(
 
 def generate_issues(
     params: Sequence[
-        Union[int, list[str], tuple[int, int], Callable, tuple[float, float]]
+        int | list[str] | tuple[int, int] | Callable | tuple[float, float]
     ],
-    counts: Optional[list[int]] = None,
-    names: Optional[list[str]] = None,
+    counts: list[int] | None = None,
+    names: list[str] | None = None,
 ) -> tuple[Issue, ...]:
     """
     Generates a set of issues with given parameters. Each is optionally repeated.
@@ -564,7 +816,7 @@ def generate_issues(
 
 
 def discretize_and_enumerate_issues(
-    issues: Sequence[Issue],
+    issues: Iterable[Issue],
     n_discretization: int | None = 10,
     max_cardinality: int = None,
 ) -> list[Outcome]:
@@ -584,258 +836,6 @@ def discretize_and_enumerate_issues(
         for _ in issues
     ]
     return enumerate_issues(issues, max_cardinality=max_cardinality)
-
-
-def sample_outcomes(
-    issues: Sequence[Issue],
-    n_outcomes: Optional[int] = None,
-    min_per_dim: int = 5,
-    expansion_policy=None,
-) -> list["Outcome"]:
-    """
-    Discretizes the issue space and returns either a predefined number of outcomes or uniform samples.
-
-    Args:
-        issues: The issues describing the issue space to be discretized
-        n_outcomes: If None then exactly `min_per_dim` bins will be used for every continuous dimension and all outcomes
-        will be returned
-        min_per_dim: Max levels of discretization per dimension
-        expansion_policy: None or 'repeat' or 'null' or 'no'. If repeat, then some of the outcomes will be repeated
-        if None or 'no' then no expansion will happen if the total number of outcomes is less than
-        n_outcomes: If 'null' then expansion will be with None values
-
-    Returns:
-        list of outcomes
-
-    Examples:
-
-        enumberate the whole space
-
-        >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
-        >>> sample_outcomes(issues=issues)
-        [(0.0, 'a'), (0.0, 'b'), (0.25, 'a'), (0.25, 'b'), (0.5, 'a'), (0.5, 'b'), (0.75, 'a'), (0.75, 'b'), (1.0, 'a'), (1.0, 'b')]
-
-        enumerate with sampling for very large space (we have 10 outcomes in the discretized space)
-
-        >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(values=(0.0, 1.0), name='Price'), make_issue(values=['a', 'b'], name='Name')]
-        >>> issues[0].is_continuous()
-        True
-        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
-        >>> len(sampled)
-        5
-        >>> len(set(sampled))
-        5
-
-        >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(values=(0, 1), name='Price'), make_issue(values=['a', 'b'], name='Name')]
-        >>> issues[0].is_continuous()
-        False
-        >>> sampled=sample_outcomes(issues=issues, n_outcomes=5)
-        >>> len(sampled)
-        4
-        >>> len(set(sampled))
-        4
-
-    """
-    from negmas.outcomes import enumerate_discrete_issues
-
-    issues = list(issues)
-    issues = [copy.deepcopy(_) for _ in issues]
-    continuous = []
-    indx = []
-    discrete = []
-    n_disc = 0
-
-    for i, issue in enumerate(issues):
-        if issue.is_continuous():
-            continuous.append(issue)
-            indx.append(i)
-        else:
-            discrete.append(issue)
-            n_disc += issue.cardinality
-
-    if len(continuous) > 0:
-        if n_outcomes is not None:
-            n_per_issue = max(min_per_dim, int(n_outcomes - n_disc) // len(continuous))
-        else:
-            n_per_issue = min_per_dim
-
-        for i, issue in enumerate(continuous):
-            issues[indx[i]] = make_issue(
-                name=issue.name,
-                values=list(
-                    np.linspace(
-                        issue.min_value, issue.max_value, num=n_per_issue, endpoint=True
-                    ).tolist()
-                ),
-            )
-
-    cardinality = 1
-
-    for issue in issues:
-        cardinality *= issue.cardinality
-
-    if cardinality == n_outcomes or n_outcomes is None:
-        return list(
-            enumerate_discrete_issues(issues)  # type: ignore I am  sure that the issues are all discrete by this point
-        )
-
-    if cardinality < n_outcomes:
-        cardinality = int(cardinality)
-        outcomes = list(
-            enumerate_discrete_issues(issues)  # type: ignore I am  sure that the issues are all discrete by this point
-        )
-
-        if expansion_policy == "no" or expansion_policy is None:
-            return outcomes
-        elif expansion_policy == "null":
-            return outcomes + [None] * (n_outcomes - cardinality)
-        elif expansion_policy == "repeat":
-            n_reps = n_outcomes // cardinality
-            n_rem = n_outcomes % cardinality
-
-            if n_reps > 1:
-                for _ in range(n_reps):
-                    outcomes += outcomes
-
-            if n_rem > 0:
-                outcomes += outcomes[:n_rem]
-
-            return outcomes
-    n_per_issue = 1 + int(n_outcomes ** (1 / len(issues)))
-    vals = []
-    n_found = 1
-    for issue in issues:
-        if n_per_issue < 2:
-            vals.append([issue.rand()])
-            continue
-        if issue.cardinality < n_per_issue:
-            vals.append(issue.all)
-            n_found *= issue.cardinality
-        else:
-            vals.append(issue.rand_outcomes(n=n_per_issue, with_replacement=False))
-            n_found *= n_per_issue
-        if n_found >= n_outcomes:
-            n_per_issue = 1
-    outcomes = itertools.product(*vals)
-    return list(outcomes)[:n_outcomes]
-
-
-def _sample_issues(
-    issues: Sequence[Issue],
-    n: int,
-    with_replacement,
-    n_total,
-    old_values,
-    trial,
-    max_trials,
-) -> Iterable[Outcome]:
-    if trial > max_trials:
-        return old_values
-
-    remaining = n - len(old_values)
-    if remaining < 0:
-        return set(list(old_values)[:n])
-    if remaining == 0:
-        return old_values
-
-    samples = []
-
-    for issue in issues:
-        samples.append(
-            issue.rand_outcomes(
-                n=remaining, with_replacement=True, fail_if_not_enough=True
-            )
-        )
-
-    _v = []
-
-    for i in range(remaining):
-        _v.append([s[i] for s in samples])
-
-    new_values = []
-    for value in _v:
-        new_values.append(tuple(value))
-    new_values = set(new_values)
-    values = old_values.union(new_values)
-    remaining = n - len(values)
-    if remaining < 0:
-        return set(list(values)[:n])
-    if remaining < 1:
-        return values
-    return values.union(
-        _sample_issues(
-            issues,
-            remaining,
-            with_replacement,
-            n_total,
-            values,
-            trial + 1,
-            max_trials,
-        )
-    )
-
-
-def sample_issues(
-    issues: Sequence[Issue],
-    n_outcomes: int,
-    with_replacement: bool = True,
-    fail_if_not_enough=True,
-) -> Iterable[Outcome]:
-    """
-    Samples some outcomes from the outcome space defined by the list of issues.
-
-    Args:
-
-        issues: list of issues to sample from
-        n_outcomes: The number of outcomes required
-        with_replacement: Whether sampling is with replacement (allowing repetition)
-        fail_if_not_enough: IF given then an exception is raised if not enough outcomes are available
-
-    Returns:
-
-        a list of outcomes
-
-    Examples:
-
-        >>> from negmas.outcomes import make_issue
-        >>> issues = [make_issue(name='price', values=(0.0, 3.0)), make_issue(name='quantity', values=10)]
-
-        Sampling outcomes as tuples
-
-        >>> samples = sample_issues(issues=issues, n_outcomes=10)
-        >>> len(samples) == 10
-        True
-        >>> type(samples[0]) == tuple
-        True
-
-
-    """
-    n_total = num_outcomes(issues)
-
-    if (
-        n_total is not None
-        and n_total != float("inf")
-        and n_outcomes is not None
-        and n_total < n_outcomes
-        and fail_if_not_enough
-        and not with_replacement
-    ):
-        raise ValueError(
-            f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes"
-        )
-
-    if n_total is not None and n_total != float("inf") and n_outcomes is None:
-        return enumerate_discrete_issues(issues=issues)  # type: ignore I know that these issues are discrete
-    if n_total is None and n_outcomes is None:
-        raise ValueError(
-            f"Cannot sample unknown number of outcomes from continuous outcome spaces"
-        )
-    return list(
-        _sample_issues(issues, n_outcomes, with_replacement, n_total, set(), 0, 10)
-    )
 
 
 def combine_issues(

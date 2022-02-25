@@ -58,6 +58,49 @@ def gmap(group: GenericMapping, param: Any) -> Any:
     return group[param]  # type: ignore
 
 
+def iget(x: IterableMapping, _key: Any, default=None) -> Any:
+    """Get an item from an IterableMapping
+
+    Args:
+        x: the generic mapping
+        _key: key (must be immutable)
+        default: default value if no value attached with the key is found
+
+    Examples:
+
+        Example with a list
+
+        >>> [iget([10, 20, 30], _) for _ in (0, 2,1, -1, 4)]
+        [10, 30, 20, 30, None]
+
+        Example with a dictionary
+
+        >>> [iget({'a':10, 'b':20, 'c':30}, _) for _ in ('a', 'c','b', -1, 'd')]
+        [10, 30, 20, None, None]
+
+        Example with a tuple
+
+        >>> [iget((10, 20, 30), _) for _ in (0, 2,1, -1, 4)]
+        [10, 30, 20, 30, None]
+
+        Example with a generator
+
+        >>> [iget(range(10, 40, 10), _) for _ in (0, 2,1, -1, 4)]
+        [10, 30, 20, 30, None]
+
+    Returns:
+
+    """
+
+    if isinstance(x, Dict):
+        return x.get(_key, default)
+
+    try:
+        return x[_key]  # type: ignore
+    except IndexError:
+        return default
+
+
 def gget(x: GenericMapping, _key: Any, default=None) -> Any:
     """Get an item from an IterableMapping
 
@@ -104,7 +147,7 @@ def gget(x: GenericMapping, _key: Any, default=None) -> Any:
         return iget(x, _key, default)  # type: ignore
 
 
-def ienumerate(x: IterableMapping) -> Iterable[Tuple[Any, Any]]:
+def ienumerate(x: IterableMapping) -> Iterable[tuple[Any, Any]]:
     """Enumerates a GenericMapping.
 
     Args:
@@ -224,46 +267,3 @@ def ikeys(x: IterableMapping) -> Iterable[Any]:
         return list(x.keys())
     else:
         return range(len(x))  # type: ignore
-
-
-def iget(x: IterableMapping, _key: Any, default=None) -> Any:
-    """Get an item from an IterableMapping
-
-    Args:
-        x: the generic mapping
-        _key: key (must be immutable)
-        default: default value if no value attached with the key is found
-
-    Examples:
-
-        Example with a list
-
-        >>> [iget([10, 20, 30], _) for _ in (0, 2,1, -1, 4)]
-        [10, 30, 20, 30, None]
-
-        Example with a dictionary
-
-        >>> [iget({'a':10, 'b':20, 'c':30}, _) for _ in ('a', 'c','b', -1, 'd')]
-        [10, 30, 20, None, None]
-
-        Example with a tuple
-
-        >>> [iget((10, 20, 30), _) for _ in (0, 2,1, -1, 4)]
-        [10, 30, 20, 30, None]
-
-        Example with a generator
-
-        >>> [iget(range(10, 40, 10), _) for _ in (0, 2,1, -1, 4)]
-        [10, 30, 20, 30, None]
-
-    Returns:
-
-    """
-
-    if isinstance(x, Dict):
-        return x.get(_key, default)
-
-    try:
-        return x[_key]  # type: ignore
-    except IndexError:
-        return default

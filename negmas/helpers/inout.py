@@ -58,6 +58,22 @@ _inflect_engine = inflect.engine()
 
 class ConfigReader:
     @classmethod
+    def _split_key(cls, key: str) -> tuple[str, str | None]:
+        """Splits the key into a key name and a class name
+
+        Remarks:
+
+            - Note that if the given key has multiple colons the first two will be parsed as key name: class name and
+              the rest will be ignored. This can be used to add comments
+
+        """
+        keys = key.split(":")
+        if len(keys) == 1:
+            return keys[0], None
+        else:
+            return keys[0], keys[1]
+
+    @classmethod
     def _parse_children_config(cls, children, scope):
         """Parses children in the given scope"""
         remaining_children = {}
@@ -110,25 +126,7 @@ class ConfigReader:
         return myconfig, remaining_children, setters
 
     @classmethod
-    def _split_key(cls, key: str) -> tuple[str, Optional[str]]:
-        """Splits the key into a key name and a class name
-
-        Remarks:
-
-            - Note that if the given key has multiple colons the first two will be parsed as key name: class name and
-              the rest will be ignored. This can be used to add comments
-
-        """
-        keys = key.split(":")
-        if len(keys) == 1:
-            return keys[0], None
-        else:
-            return keys[0], keys[1]
-
-    @classmethod
-    def read_config(
-        cls, config: Union[str, dict], section: str = None
-    ) -> dict[str, Any]:
+    def read_config(cls, config: str | dict, section: str = None) -> dict[str, Any]:
         """
         Reads the configuration from a file or a dict and prepares it for parsing
 
@@ -183,7 +181,7 @@ class ConfigReader:
     @classmethod
     def from_config(
         cls,
-        config: Union[str, dict],
+        config: str | dict,
         section: str = None,
         ignore_children: bool = True,
         try_parsing_children: bool = True,
@@ -248,7 +246,7 @@ class ConfigReader:
                 )
             )
 
-        def _set_simple_config(key, v) -> Optional[dict[str, Any]]:
+        def _set_simple_config(key, v) -> dict[str, Any] | None:
             """Sets a simple value v for key taken into accout its class and the class we are constructing"""
             key_name, class_name = cls._split_key(key)
             _setter = "set_" + key_name
@@ -359,7 +357,7 @@ class NpDecorder(json.JSONDecoder):
 
 def dump(
     d: Any,
-    file_name: Union[str, os.PathLike, pathlib.Path],
+    file_name: str | os.PathLike | pathlib.Path,
     sort_keys=True,
     compact=False,
 ) -> None:
@@ -413,7 +411,7 @@ def dump(
         raise ValueError(f"Unknown extension {file_name.suffix} for {file_name}")
 
 
-def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
+def load(file_name: str | os.PathLike | pathlib.Path) -> Any:
     """
     Loads an object depending on the extension of the file given. If the filename given has no extension,
     `DEFAULT_DUMP_EXTENSION` will be used
@@ -451,9 +449,9 @@ def load(file_name: Union[str, os.PathLike, pathlib.Path]) -> Any:
 
 
 def add_records(
-    file_name: Union[str, os.PathLike],
+    file_name: str | os.PathLike,
     data: Any,
-    col_names: Optional[list[str]] = None,
+    col_names: list[str] | None = None,
     raise_exceptions=False,
 ) -> None:
     """

@@ -43,31 +43,6 @@ SPECIAL_FIELDS = ("_NamedObject__uuid", "_NamedObject__name")
 SPECIAL_FIELDS_SHORT_NAMES = ("id", "name")
 
 
-def to_flat_dict(value, deep=True, add_type_field=False) -> Dict[str, Any]:
-    """
-    Encodes the given value as a flat dictionary
-
-    Args:
-        value: The value to be converted to a flat dictionary
-        deep: Converting all sub-objects
-        add_type_field: If true, a special field for the object type will be added
-
-    Returns:
-
-    """
-    d = serialize(value, add_type_field=add_type_field, deep=deep)
-    if d is None:
-        return {}
-    if not isinstance(d, dict):
-        raise ValueError(
-            f"value is of type {type(value)} cannot be converted to a flat dict"
-        )
-    for k, v in d.items():
-        if isinstance(v, list) or isinstance(v, tuple):
-            d[k] = str(v)
-    return json_normalize(d, errors="ignore", sep="_").to_dict(orient="records")[0]
-
-
 def serialize(
     value,
     deep=True,
@@ -259,12 +234,37 @@ def serialize(
     return value
 
 
+def to_flat_dict(value, deep=True, add_type_field=False) -> dict[str, Any]:
+    """
+    Encodes the given value as a flat dictionary
+
+    Args:
+        value: The value to be converted to a flat dictionary
+        deep: Converting all sub-objects
+        add_type_field: If true, a special field for the object type will be added
+
+    Returns:
+
+    """
+    d = serialize(value, add_type_field=add_type_field, deep=deep)
+    if d is None:
+        return {}
+    if not isinstance(d, dict):
+        raise ValueError(
+            f"value is of type {type(value)} cannot be converted to a flat dict"
+        )
+    for k, v in d.items():
+        if isinstance(v, list) or isinstance(v, tuple):
+            d[k] = str(v)
+    return json_normalize(d, errors="ignore", sep="_").to_dict(orient="records")[0]
+
+
 def deserialize(
     d: Any,
     deep=True,
     remove_type_field=True,
     keep_private=False,
-    fallback_class_name: Optional[str] = None,
+    fallback_class_name: str | None = None,
 ):
     """Decodes a dict/object coming from `serialize`
 

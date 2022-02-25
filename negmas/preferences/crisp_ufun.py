@@ -1,21 +1,18 @@
 from __future__ import annotations
 
+import math
 import random
 from abc import abstractmethod
 from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 
+from negmas import warnings
 from negmas.helpers.prob import Distribution, ScipyDistribution
 from negmas.outcomes import Issue, Outcome
-from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.protocols import OutcomeSpace
 
 from .base_ufun import BaseUtilityFunction, _General
-from .value_fun import MAX_CARINALITY
-
-if TYPE_CHECKING:
-    from .complex import WeightedUtilityFunction
 
 __all__ = [
     "UtilityFunction",
@@ -31,44 +28,8 @@ class UtilityFunction(_General, BaseUtilityFunction):
     def eval(self, offer: Outcome) -> float:
         ...
 
-    def __call__(self, offer: Outcome | None) -> float:
-        """Calculate the utility_function value for a given outcome.
-
-        Args:
-            offer: The offer to be evaluated.
-
-
-        Remarks:
-
-            - It calls the abstract method `eval` after opationally adjusting the
-              outcome type.
-            - It is preferred to override eval instead of directly overriding this method
-            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the Value.
-            - Return a float from your `eval` implementation.
-            - Return the reserved value if the offer was None
-
-        Returns:
-            The utility of the given outcome
-        """
-        if offer is None:
-            return self.reserved_value
-        return self.eval(offer)
-
-    def eval_normalized(
-        self,
-        offer: Outcome | None,
-        above_reserve: bool = True,
-        expected_limits: bool = True,
-    ) -> float:
-        return float(super().eval_normalized(offer, above_reserve, expected_limits))
-
     def to_crisp(self) -> UtilityFunction:
         return self
-
-    def __getitem__(self, offer: Outcome | None) -> float | None:
-        """Overrides [] operator to call the ufun allowing it to act as a mapping"""
-        return self(offer)
 
     @classmethod
     def generate_bilateral(
@@ -76,7 +37,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
         outcomes: int | list[Outcome],
         conflict_level: float = 0.5,
         conflict_delta=0.005,
-    ) -> tuple["UtilityFunction", "UtilityFunction"]:
+    ) -> tuple[UtilityFunction, UtilityFunction]:
         """Generates a couple of utility functions
 
         Args:
@@ -140,7 +101,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
     @classmethod
     def generate_random_bilateral(
         cls, outcomes: int | list[Outcome]
-    ) -> tuple["UtilityFunction", "UtilityFunction"]:
+    ) -> tuple[UtilityFunction, UtilityFunction]:
         """Generates a couple of utility functions
 
         Args:
@@ -171,7 +132,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
     @classmethod
     def generate_random(
         cls, n: int, outcomes: int | list[Outcome], normalized: bool = True
-    ) -> list["UtilityFunction"]:
+    ) -> list[UtilityFunction]:
         """Generates N mapping utility functions
 
         Args:
@@ -199,49 +160,6 @@ class UtilityFunction(_General, BaseUtilityFunction):
             )
         return ufuns
 
-    def normalize_for(
-        self: T,
-        to: tuple[float, float] = (0.0, 1.0),
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        minmax: tuple[float, float] | None = None,
-    ) -> T | WeightedUtilityFunction:
-        """
-        Creates a new utility function that is normalized based on input conditions.
-
-        Args:
-            to: The minimum and maximum value to normalize to. If either is None, it is ignored.
-                 This means that passing `(None, 1.0)` will normalize the ufun so that the maximum
-                 is `1` but will not guarantee any limit for the minimum and so on.
-            outcomes: A set of outcomes to limit our attention to. If not given,
-                      the whole ufun is normalized
-            outcome_space: The outcome-space to focus on when normalizing
-            minmax: The current minimum and maximum to use for normalization. Pass if known to avoid
-                  calculating them using the outcome-space given or defined for the ufun.
-        """
-        max_cardinality: int = MAX_CARINALITY
-        outcome_space = None
-        if minmax is not None:
-            mn, mx = minmax
-        else:
-            check_one_at_most(outcome_space, issues, outcomes)
-            outcome_space = os_or_none(outcome_space, issues, outcomes)
-            if not outcome_space:
-                outcome_space = self.outcome_space
-            if not outcome_space:
-                raise ValueError(
-                    "Cannot find the outcome-space to normalize for. "
-                    "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
-                )
-            mn, mx = self.minmax(outcome_space, max_cardinality=max_cardinality)
-
-        scale = (to[1] - to[0]) / (mx - mn)
-
-        # u = self.shift_by(-mn, shift_reserved=True)
-        u = self.scale_by(scale, scale_reserved=True)
-        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
-
     def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
         return self.difference(first, second) > 0
 
@@ -252,6 +170,107 @@ class UtilityFunction(_General, BaseUtilityFunction):
         return ScipyDistribution(
             loc=self.difference(first, second), scale=0.0, type="uniform"
         )
+
+    def minmax(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        max_cardinality=1000,
+        above_reserve=False,
+    ) -> tuple[float, float]:
+        """Finds the range of the given utility function for the given outcomes
+
+        Args:
+            self: The utility function
+            issues: List of issues (optional)
+            outcomes: A collection of outcomes (optional)
+            max_cardinality: the maximum number of outcomes to try sampling (if sampling is used and outcomes are not given)
+            above_reserve: If given, the minimum and maximum will be set to reserved value if they were less than it.
+
+        Returns:
+            (lowest, highest) utilities in that order
+
+        """
+        (worst, best) = self.extreme_outcomes(
+            outcome_space, issues, outcomes, max_cardinality
+        )
+        w, b = self(worst), self(best)
+        if above_reserve:
+            r = self.reserved_value
+            if r is None:
+                return w, b
+            if b < r:
+                b, w = r, r
+            elif w < r:
+                w = r
+        return w, b
+
+    def eval_normalized(
+        self,
+        offer: Outcome | None,
+        above_reserve: bool = True,
+        expected_limits: bool = True,
+    ) -> float:
+        """
+        Evaluates the ufun normalizing the result between zero and one
+
+        Args:
+            offer (Outcome | None): offer
+            above_reserve (bool): If True, zero corresponds to the reserved value not the minimum
+            expected_limits (bool): If True, the expectation of the utility limits will be used for normalization instead of the maximum range and minimum lowest limit
+
+        Remarks:
+            - If the maximum and the minium are equal, finite and above reserve, will return 1.0.
+            - If the maximum and the minium are equal, initinte or below reserve, will return 0.0.
+            - For probabilistic ufuns, a distribution will still be returned.
+            - The minimum and maximum will be evaluated freshly every time. If they are already caached in the ufun, the cache will be used.
+
+        """
+        r = self.reserved_value
+        u = self.eval(offer) if offer else r
+        mn, mx = self.minmax()
+        if above_reserve:
+            if mx < r:
+                mx = mn = float("-inf")
+            elif mn < r:
+                mn = r
+        d = mx - mn
+        if d < 1e-5:
+            warnings.warn(
+                f"Ufun has equal max and min. The outcome will be normalized to zero if they were finite otherwise 1.0: {mn=}, {mx=}, {r=}, {u=}"
+            )
+            return 1.0 if math.isfinite(mx) else 0.0
+        d = 1 / d
+        return (u - mn) * d
+
+    def __call__(self, offer: Outcome | None) -> float:
+        """Calculate the utility_function value for a given outcome.
+
+        Args:
+            offer: The offer to be evaluated.
+
+
+        Remarks:
+
+            - It calls the abstract method `eval` after opationally adjusting the
+              outcome type.
+            - It is preferred to override eval instead of directly overriding this method
+            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
+              not possible to calculate the Value.
+            - Return a float from your `eval` implementation.
+            - Return the reserved value if the offer was None
+
+        Returns:
+            The utility of the given outcome
+        """
+        if offer is None:
+            return self.reserved_value
+        return self.eval(offer)
+
+    def __getitem__(self, offer: Outcome | None) -> float | None:
+        """Overrides [] operator to call the ufun allowing it to act as a mapping"""
+        return self(offer)
 
 
 class CrispAdapter(UtilityFunction):

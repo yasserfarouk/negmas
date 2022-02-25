@@ -94,11 +94,24 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         normalized=True,
         dist_limits=(0.0, 1.0),
         **kwargs,
-    ) -> "IPUtilityFunction":
+    ) -> IPUtilityFunction:
         """Generates a random ufun of the given type"""
         raise NotImplementedError("random hyper-rectangle ufuns are not implemented")
 
-    def distribution(self, outcome: "Outcome") -> Distribution:
+    def key(self, outcome: Outcome):
+        """
+        Returns the key of the given outcome in self.distributions.
+
+        Args:
+            outcome:
+
+        Returns:
+            tuple
+
+        """
+        return outcome
+
+    def distribution(self, outcome: Outcome) -> Distribution:
         """
         Returns the distributon associated with a specific outcome
         Args:
@@ -110,13 +123,76 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         return self.distributions[self.key(outcome)]
 
     @classmethod
+    def from_mapping(
+        cls,
+        mapping: dict[Outcome, Value],
+        range: tuple[float, float] = (0.0, 1.0),
+        uncertainty: float = 0.5,
+        variability: float = 0.0,
+        reserved_value: float = float("-inf"),
+    ) -> IPUtilityFunction:
+        """
+        Generates a distribution from which `u` may have been sampled
+        Args:
+            mapping: mapping from outcomes to float values
+            range: range of the utility_function values
+            uncertainty: uncertainty level
+            variability: The variability within the ufun
+            reserved_value: The reserved value
+
+        Examples:
+
+            - No uncertainty
+            >>> mapping = dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.0)
+            >>> print(p)
+            {('o1',): 0.3, ('o2',): 0.7}
+
+            - Full uncertainty
+            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=1.0)
+            >>> print(p)
+            {('o1',): U(0.0, 1.0), ('o2',): U(0.0, 1.0)}
+
+            - some uncertainty
+            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
+            >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.1)
+            >>> print([_.scale for _ in p.distributions.values()])
+            [0.1, 0.1]
+            >>> for k, v in p.distributions.items():
+            ...     assert v.loc <= mapping[k]
+
+        Returns:
+            a new IPUtilityFunction
+        """
+        outcomes = list(mapping.keys())
+        if isinstance(uncertainty, Iterable):
+            uncertainties = uncertainty
+        elif variability <= 0.0:
+            uncertainties = [uncertainty] * len(outcomes)
+        else:
+            uncertainties = (
+                uncertainty
+                + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty
+            ).tolist()
+
+        return IPUtilityFunction(
+            outcomes=outcomes,
+            distributions=[
+                uniform_around(value=float(mapping[o]), uncertainty=u, range=range)
+                for o, u in zip(outcomes, uncertainties)
+            ],
+            reserved_value=reserved_value,
+        )
+
+    @classmethod
     def from_preferences(
         cls,
         u: ProbMappingUtilityFunction,
-        range: Tuple[float, float] = (0.0, 1.0),
+        range: tuple[float, float] = (0.0, 1.0),
         uncertainty: float = 0.5,
         variability: float = 0.0,
-    ) -> "IPUtilityFunction":
+    ) -> IPUtilityFunction:
         """
         Generates a distribution from which `u` may have been sampled
         Args:
@@ -174,74 +250,8 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
             reserved_value=u.reserved_value,
         )
 
-    @classmethod
-    def from_mapping(
-        cls,
-        mapping: Dict["Outcome", "Value"],
-        range: Tuple[float, float] = (0.0, 1.0),
-        uncertainty: float = 0.5,
-        variability: float = 0.0,
-        reserved_value: float = float("-inf"),
-    ) -> "IPUtilityFunction":
-        """
-        Generates a distribution from which `u` may have been sampled
-        Args:
-            mapping: mapping from outcomes to float values
-            range: range of the utility_function values
-            uncertainty: uncertainty level
-            variability: The variability within the ufun
-            reserved_value: The reserved value
-
-        Examples:
-
-            - No uncertainty
-            >>> mapping = dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
-            >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.0)
-            >>> print(p)
-            {('o1',): 0.3, ('o2',): 0.7}
-
-            - Full uncertainty
-            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
-            >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=1.0)
-            >>> print(p)
-            {('o1',): U(0.0, 1.0), ('o2',): U(0.0, 1.0)}
-
-            - some uncertainty
-            >>> mapping=dict(zip([('o1',), ('o2',)], [0.3, 0.7]))
-            >>> p = IPUtilityFunction.from_mapping(mapping, uncertainty=0.1)
-            >>> print([_.scale for _ in p.distributions.values()])
-            [0.1, 0.1]
-            >>> for k, v in p.distributions.items():
-            ...     assert v.loc <= mapping[k]
-
-        Returns:
-            a new IPUtilityFunction
-        """
-        outcomes = list(mapping.keys())
-        if isinstance(uncertainty, Iterable):
-            uncertainties = uncertainty
-        elif variability <= 0.0:
-            uncertainties = [uncertainty] * len(outcomes)
-        else:
-            uncertainties = (
-                uncertainty
-                + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty
-            ).tolist()
-
-        return IPUtilityFunction(
-            outcomes=outcomes,
-            distributions=[
-                uniform_around(value=float(mapping[o]), uncertainty=u, range=range)
-                for o, u in zip(outcomes, uncertainties)
-            ],
-            reserved_value=reserved_value,
-        )
-
     def is_state_dependent(self):
         return True
-
-    def __str__(self):
-        return pprint.pformat(self.distributions)
 
     def sample(self) -> MappingUtilityFunction:
         """
@@ -265,20 +275,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
             mapping={o: d.sample(1)[0] for o, d in self.distributions.items()}
         )
 
-    def key(self, outcome: Outcome):
-        """
-        Returns the key of the given outcome in self.distributions.
-
-        Args:
-            outcome:
-
-        Returns:
-            tuple
-
-        """
-        return outcome
-
-    def eval(self, offer: "Outcome") -> Distribution:
+    def eval(self, offer: Outcome) -> Distribution:
         """Calculate the utility_function value for a given outcome.
 
         Args:
@@ -297,5 +294,8 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
             offer = tuple(ivalues(offer))
         return self.distributions[offer]
 
-    def xml(self, issues: List[Issue]) -> str:
+    def xml(self, issues: list[Issue]) -> str:
         raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
+
+    def __str__(self):
+        return pprint.pformat(self.distributions)

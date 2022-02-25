@@ -128,6 +128,31 @@ def do_run(
     return neg
 
 
+def do_test_same_ufun(agent_factory, base_folder, n_steps, time_limit, n_trials=3):
+    # check that it will get to an agreement sometimes if the same ufun
+    # is used for both agents
+    from random import randint
+
+    for _ in range(n_trials):
+        indx = randint(0, 1)
+        neg = do_run(
+            agent_factory,
+            base_folder,
+            indx,
+            indx,
+            False,
+            agent_factory,
+            n_steps,
+            time_limit,
+        )
+        if neg.agreement is not None:
+            break
+    else:
+        assert (
+            False
+        ), f"failed to get an agreement in {n_trials} trials even using the same ufun\n{neg.trace}"  # type: ignore It makes not sense to have n_trials == 0 so we are safe
+
+
 def do_test_genius_agent(
     AgentFactory, must_agree_if_same_preferences=True, java_class_name=None
 ):
@@ -172,31 +197,6 @@ def do_test_genius_agent(
         ):
             continue
         do_test_same_ufun(AgentFactory, base_folder, STEPLIMIT, None, 3)
-
-
-def do_test_same_ufun(agent_factory, base_folder, n_steps, time_limit, n_trials=3):
-    # check that it will get to an agreement sometimes if the same ufun
-    # is used for both agents
-    from random import randint
-
-    for _ in range(n_trials):
-        indx = randint(0, 1)
-        neg = do_run(
-            agent_factory,
-            base_folder,
-            indx,
-            indx,
-            False,
-            agent_factory,
-            n_steps,
-            time_limit,
-        )
-        if neg.agreement is not None:
-            break
-    else:
-        assert (
-            False
-        ), f"failed to get an agreement in {n_trials} trials even using the same ufun\n{neg.trace}"  # type: ignore It makes not sense to have n_trials == 0 so we are safe
 
     # GeniusBridge.clean()
 

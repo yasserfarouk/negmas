@@ -39,18 +39,18 @@ class SAOResponse:
     """A response to an offer given by an agent in the alternating offers protocol"""
 
     response: ResponseType = ResponseType.NO_RESPONSE
-    outcome: Optional[Outcome] = None
+    outcome: Outcome | None = None
 
 
 @dataclass
 class SAOState(MechanismState):
-    current_offer: Optional[Outcome] = None
-    current_proposer: Optional[str] = None
-    current_proposer_agent: Optional[str] = None
+    current_offer: Outcome | None = None
+    current_proposer: str | None = None
+    current_proposer_agent: str | None = None
     n_acceptances: int = 0
-    new_offers: List[Tuple[str, Outcome]] = field(default_factory=list)
-    new_offerer_agents: List[str] = field(default_factory=list)
-    last_negotiator: Optional[str] = None
+    new_offers: list[tuple[str, Outcome]] = field(default_factory=list)
+    new_offerer_agents: list[str] = field(default_factory=list)
+    last_negotiator: str | None = None
 
     def __copy__(self):
         return SAOState(**self.__dict__)
@@ -68,7 +68,7 @@ class SAONMI(NegotiatorMechanismInterface):
 
 
 @lru_cache(1)
-def all_negotiator_types() -> list["SAONegotiator"]:
+def all_negotiator_types() -> list[SAONegotiator]:
     """
     Returns all the negotiator types defined in negmas.sao.negotiators
     """

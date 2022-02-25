@@ -24,18 +24,14 @@ class ControlledNegotiator(Negotiator):
     """
 
     def __getattribute__(self, item):
-        if (
-            item
-            in (
-                "id",
-                "name",
-                "on_preferences_changed",
-                "has_preferences",
-                "preferences",
-                "reserved_value",
-            )
-            or item.startswith("_")
-        ):
+        if item in (
+            "id",
+            "name",
+            "on_preferences_changed",
+            "has_preferences",
+            "preferences",
+            "reserved_value",
+        ) or item.startswith("_"):
             return super().__getattribute__(item)
         parent = super().__getattribute__("__dict__").get("_Negotiator__parent", None)
         if parent is None:

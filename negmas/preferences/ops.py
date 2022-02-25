@@ -8,6 +8,7 @@ from numpy.ma.core import sqrt
 
 from negmas import warnings
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
+from negmas.outcomes.common import check_one_at_most, os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
 from negmas.outcomes.protocols import OutcomeSpace
 
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 
     from negmas.preferences.prob_ufun import ProbUtilityFunction
 
-    from .complex import WeightedUtilityFunction
+    from .base_ufun import BaseUtilityFunction
     from .crisp_ufun import UtilityFunction
     from .discounted import DiscountedUtilityFunction
 
@@ -175,10 +176,10 @@ def _pareto_frontier(
 def nash_point(
     ufuns: Iterable[UtilityFunction],
     frontier: Iterable[tuple[float]],
-    outcome_space: Optional[OutcomeSpace] = None,
-    issues: Optional[list[Issue]] = None,
-    outcomes: Optional[list[Outcome]] = None,
-) -> tuple[Optional[tuple[float, ...]], Optional[int]]:
+    outcome_space: OutcomeSpace | None = None,
+    issues: tuple[Issue] | None = None,
+    outcomes: tuple[Outcome] | None = None,
+) -> tuple[tuple[float, ...] | None, int | None]:
     """
     Calculates the nash point on the pareto frontier of a negotiation
 
@@ -230,7 +231,7 @@ def pareto_frontier(
     ufuns: Iterable[UtilityFunction],
     outcomes: Iterable[Outcome] = None,
     issues: Iterable[Issue] = None,
-    n_discretization: Optional[int] = 10,
+    n_discretization: int | None = 10,
     sort_by_welfare=False,
 ) -> tuple[list[tuple[float, ...]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
@@ -291,13 +292,12 @@ def scale_max(
 
 
 def normalize(
-    ufun: UFunType,
+    ufun: BaseUtilityFunction,
     to: tuple[float, float] = (0.0, 1.0),
     outcome_space: OutcomeSpace | None = None,
     issues: list[Issue] | None = None,
     outcomes: list[Outcome] | None = None,
-    minmax: tuple[float, float] | None = None,
-) -> UFunType | WeightedUtilityFunction:
+) -> BaseUtilityFunction:
     """Normalizes a utility function to the given range
 
     Args:
@@ -309,9 +309,10 @@ def normalize(
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
 
     """
-    return ufun.normalize_for(
-        to, issues=issues, outcome_space=outcome_space, outcomes=outcomes, minmax=minmax
-    )
+    outcome_space = os_or_none(outcome_space, issues, outcomes)
+    if outcome_space is None:
+        return ufun.normalize(to)
+    return ufun.normalize_for(to, outcome_space=outcome_space)
 
 
 def sample_outcome_with_utility(
@@ -401,10 +402,10 @@ def minmax(
 
 
 def opposition_level(
-    ufuns: list["UtilityFunction"],
-    max_utils: Union[float, tuple[float, float]] = 1.0,  # type: ignore
-    outcomes: Union[int, list[Outcome]] = None,
-    issues: list["Issue"] = None,
+    ufuns: list[UtilityFunction],
+    max_utils: float | tuple[float, float] = 1.0,  # type: ignore
+    outcomes: int | list[Outcome] = None,
+    issues: list[Issue] = None,
     max_tests: int = 10000,
 ) -> float:
     """
@@ -468,9 +469,9 @@ def opposition_level(
 
 
 def conflict_level(
-    u1: "UtilityFunction",
-    u2: "UtilityFunction",
-    outcomes: Union[int, list[Outcome]],
+    u1: UtilityFunction,
+    u2: UtilityFunction,
+    outcomes: int | list[Outcome],
     max_tests: int = 10000,
 ) -> float:
     """
@@ -535,9 +536,9 @@ def conflict_level(
 
 
 def winwin_level(
-    u1: "UtilityFunction",
-    u2: "UtilityFunction",
-    outcomes: Union[int, list[Outcome]],
+    u1: UtilityFunction,
+    u2: UtilityFunction,
+    outcomes: int | list[Outcome],
     max_tests: int = 10000,
 ) -> float:
     """

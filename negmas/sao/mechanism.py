@@ -101,7 +101,7 @@ class SAOMechanism(Mechanism):
         ignore_negotiator_exceptions=False,
         offering_is_accepting=True,
         allow_offering_just_rejected_outcome=True,
-        name: Optional[str] = None,
+        name: str | None = None,
         max_wait: int = sys.maxsize,
         sync_calls: bool = False,
         **kwargs,
@@ -155,18 +155,18 @@ class SAOMechanism(Mechanism):
         self._new_offers = []
         self._offering_is_accepting = offering_is_accepting
         self._n_waits = 0
-        self._waiting_time: Dict[str, float] = defaultdict(float)
-        self._waiting_start: Dict[str, float] = defaultdict(lambda: float("inf"))
+        self._waiting_time: dict[str, float] = defaultdict(float)
+        self._waiting_start: dict[str, float] = defaultdict(lambda: float("inf"))
         self._selected_first = 0
 
     def add(
         self,
-        negotiator: "SAONegotiator",
+        negotiator: SAONegotiator,
         *,
-        preferences: Optional["Preferences"] = None,
-        role: Optional[str] = None,
+        preferences: Preferences | None = None,
+        role: str | None = None,
         **kwargs,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         from ..genius.negotiator import GeniusNegotiator
 
         added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
@@ -244,7 +244,7 @@ class SAOMechanism(Mechanism):
         """implements a round of the Stacked Alternating Offers Protocol."""
         if self._frozen_neg_list is None:
             self._new_offers = []
-        negotiators: List["SAONegotiator"] = self.negotiators
+        negotiators: list[SAONegotiator] = self.negotiators
         n_negotiators = len(negotiators)
         # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
         times = defaultdict(float, self._waiting_time)
@@ -678,7 +678,7 @@ class SAOMechanism(Mechanism):
         )
 
     @property
-    def full_trace(self) -> List[TraceElement]:
+    def full_trace(self) -> list[TraceElement]:
         """Returns the negotiation history as a list of relative_time/step/negotiator/offer tuples"""
 
         def response(state: SAOState):
@@ -705,7 +705,7 @@ class SAOMechanism(Mechanism):
         def not_equal(a, b):
             return any(x != y for x, y in zip(a, b))
 
-        self._history: List[SAOState]
+        self._history: list[SAOState]
         # if the agreement does not appear as the last offer in the trace, add it.
         # this should not happen though!!
         if (
@@ -727,7 +727,7 @@ class SAOMechanism(Mechanism):
         return offers
 
     @property
-    def extended_trace(self) -> List[Tuple[int, str, Outcome]]:
+    def extended_trace(self) -> list[tuple[int, str, Outcome]]:
         """Returns the negotiation history as a list of step/negotiator/offer tuples"""
         offers = []
         for state in self._history:
@@ -737,7 +737,7 @@ class SAOMechanism(Mechanism):
         def not_equal(a, b):
             return any(x != y for x, y in zip(a, b))
 
-        self._history: List[SAOState]
+        self._history: list[SAOState]
         # if the agreement does not appear as the last offer in the trace, add it.
         # this should not happen though!!
         if (
@@ -756,7 +756,7 @@ class SAOMechanism(Mechanism):
         return offers
 
     @property
-    def trace(self) -> List[Tuple[str, Outcome]]:
+    def trace(self) -> list[tuple[str, Outcome]]:
         """Returns the negotiation history as a list of negotiator/offer tuples"""
         offers = []
         for state in self._history:
@@ -783,13 +783,13 @@ class SAOMechanism(Mechanism):
 
         return offers
 
-    def negotiator_offers(self, negotiator_id: str) -> List[Outcome]:
+    def negotiator_offers(self, negotiator_id: str) -> list[Outcome]:
         """Returns the offers given by a negotiator (in order)"""
         return [o for n, o in self.trace if n == negotiator_id]
 
     def negotiator_full_trace(
         self, negotiator_id: str
-    ) -> List[Tuple[float, float, int, Outcome, str]]:
+    ) -> list[tuple[float, float, int, Outcome, str]]:
         """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
         return [
             (t, rt, s, o, r)
@@ -798,13 +798,13 @@ class SAOMechanism(Mechanism):
         ]
 
     @property
-    def offers(self) -> List[Outcome]:
+    def offers(self) -> list[Outcome]:
         """Returns the negotiation history as a list of offers"""
         return [o for _, o in self.trace]
 
     def plot(
         self,
-        plotting_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
+        plotting_negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
         save_fig: bool = False,
         path: str = None,
         fig_name: str = None,

@@ -33,6 +33,7 @@ from .value_fun import make_fun_from_xml
 
 if TYPE_CHECKING:
     from negmas.preferences import (
+        ConstUtilityFunction,
         ProbUtilityFunction,
         UtilityFunction,
         WeightedUtilityFunction,
@@ -47,7 +48,6 @@ MAX_CARINALITY = 10_000
 T = TypeVar("T", bound="BaseUtilityFunction")
 
 
-# PartiallyNormalizable,
 # PartiallyScalable,
 # HasRange,
 # HasReservedValue,
@@ -64,7 +64,7 @@ class BaseUtilityFunction(Preferences, ABC):
         super().__init__(*args, **kwargs)
         self.reserved_value = reserved_value
         self._cached_inverse: InverseUFun | None = None
-        self._cached_inverse_type: Type[InverseUFun] | None = None
+        self._cached_inverse_type: type[InverseUFun] | None = None
 
     @abstractmethod
     def eval(self, offer: Outcome) -> Value:
@@ -74,6 +74,35 @@ class BaseUtilityFunction(Preferences, ABC):
         raise NotImplementedError(
             f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun."
         )
+
+    def extreme_outcomes(
+        self,
+        outcome_space: OutcomeSpace | None = None,
+        issues: Iterable[Issue] | None = None,
+        outcomes: Iterable[Outcome] | None = None,
+        max_cardinality=1000,
+    ) -> tuple[Outcome, Outcome]:
+        check_one_at_most(outcome_space, issues, outcomes)
+        outcome_space = os_or_none(outcome_space, issues, outcomes)
+        if not outcome_space:
+            outcome_space = self.outcome_space
+        if outcome_space and not outcomes:
+            outcomes = outcome_space.enumerate_or_sample(
+                max_cardinality=max_cardinality
+            )
+        if not outcomes:
+            raise ValueError("Cannot find outcomes to use for finding extremes")
+        mn, mx = float("inf"), float("-inf")
+        worst, best = None, None
+        for o in outcomes:
+            u = self(o)
+            if u < mn:
+                worst, mn = o, u
+            if u > mx:
+                best, mx = o, u
+        if worst is None or best is None:
+            raise ValueError(f"Cound not find worst and best outcomes for {self}")
+        return worst, best
 
     def minmax(
         self,
@@ -104,8 +133,10 @@ class BaseUtilityFunction(Preferences, ABC):
             w = w.min
         if isinstance(b, Distribution):
             b = b.max
-        if above_reserve and isinstance(self, HasReservedValue):
+        if above_reserve:
             r = self.reserved_value
+            if r is None:
+                return w, b
             if b < r:
                 b, w = r, r
             elif w < r:
@@ -174,7 +205,7 @@ class BaseUtilityFunction(Preferences, ABC):
         d = 1 / d
         return (u - mn) * d
 
-    def invert(self, inverter: Type[InverseUFun] | None = None) -> InverseUFun:
+    def invert(self, inverter: type[InverseUFun] | None = None) -> InverseUFun:
         """
         Inverts the ufun, initializes it and caches the result.
         """
@@ -200,53 +231,6 @@ class BaseUtilityFunction(Preferences, ABC):
     def is_state_dependent(self) -> bool:
         return True
 
-    def scale_min(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
-        return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)
-
-    def scale_max(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
-        return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)
-
-    def normalize_for(
-        self: T,
-        to: tuple[float, float] = (0.0, 1.0),
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | int | None = None,
-        minmax: tuple[float, float] | None = None,
-        **kwargs,
-    ) -> T:
-        max_cardinality: int = MAX_CARINALITY
-        outcome_space = None
-        if minmax is not None:
-            mn, mx = minmax
-        else:
-            check_one_at_most(outcome_space, issues, outcomes)
-            outcome_space = os_or_none(outcome_space, issues, outcomes)
-            if not outcome_space:
-                outcome_space = self.outcome_space
-            if not outcome_space:
-                raise ValueError(
-                    "Cannot find the outcome-space to normalize for. "
-                    "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
-                )
-            mn, mx = self.minmax(outcome_space, max_cardinality=max_cardinality)
-
-        scale = float(to[1] - to[0]) / float(mx - mn)
-
-        # u = self.shift_by(-mn, shift_reserved=True)
-        u = self.scale_by(scale, scale_reserved=True)
-        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
-
-    def normalize(
-        self: T,
-        to: tuple[float, float] = (0.0, 1.0),
-        minmax: tuple[float, float] | None = None,
-        **kwargs,
-    ) -> T:
-        return self.normalize_for(
-            to, outcome_space=self.outcome_space, minmax=minmax, **kwargs
-        )
-
     def scale_by(
         self: T, scale: float, scale_reserved=True
     ) -> WeightedUtilityFunction | T:
@@ -261,6 +245,97 @@ class BaseUtilityFunction(Preferences, ABC):
             name=self.name,
             reserved_value=r,
         )
+
+    def scale_min_for(
+        self: T,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> T:
+        if rng is None:
+            mn, _ = self.minmax(outcome_space, issues, outcomes)
+        else:
+            mn, _ = rng
+        scale = to / mn
+        return self.scale_by(scale)
+
+    def scale_min(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
+        return self.scale_min_for(to, outcome_space=self.outcome_space, rng=rng)
+
+    def scale_max_for(
+        self: T,
+        to: float,
+        outcome_space: OutcomeSpace | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
+        rng: tuple[float, float] | None = None,
+    ) -> T:
+        if rng is None:
+            _, mx = self.minmax(outcome_space, issues, outcomes)
+        else:
+            _, mx = rng
+        scale = to / mx
+        return self.scale_by(scale)
+
+    def scale_max(self: T, to: float, rng: tuple[float, float] | None = None) -> T:
+        return self.scale_max_for(to, outcome_space=self.outcome_space, rng=rng)
+
+    def normalize_for(
+        self: T,
+        to: tuple[float, float] = (0.0, 1.0),
+        outcome_space: OutcomeSpace | None = None,
+    ) -> T:
+        max_cardinality: int = MAX_CARINALITY
+        if not outcome_space:
+            outcome_space = self.outcome_space
+        if not outcome_space:
+            raise ValueError(
+                "Cannot find the outcome-space to normalize for. "
+                "You must pass outcome_space, issues or outcomes or have the ufun being constructed with one of them"
+            )
+        mn, mx = self.minmax(outcome_space, max_cardinality=max_cardinality)
+
+        d = float(mx - mn)
+        if d < 1e-7:
+            from negmas.preferences.crisp.const import ConstUtilityFunction
+
+            return ConstUtilityFunction(
+                0.0 if mx < self.reserved_value else 1.0,
+                outcome_space=self.outcome_space,
+                name=self.name,
+                reserved_value=1.0 if mn < self.reserved_value else 0.0,
+            )
+
+        scale = float(to[1] - to[0]) / d
+
+        u = self.scale_by(scale, scale_reserved=True)
+        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
+
+    def normalize(
+        self: T,
+        to: tuple[float, float] = (0.0, 1.0),
+    ) -> T | ConstUtilityFunction:
+        from negmas.preferences import ConstUtilityFunction
+
+        if not self.outcome_space:
+            raise ValueError(f"Cannot normalize a ufun without an outcome-space")
+        mn, mx = self.minmax(self.outcome_space, max_cardinality=MAX_CARINALITY)
+
+        d = float(mx - mn)
+        if d < 1e-8:
+            return ConstUtilityFunction(
+                0.0 if mx < self.reserved_value else 1.0,
+                name=self.name,
+                reserved_value=1.0 if mn < self.reserved_value else 0.0,
+            )
+
+        scale = float(to[1] - to[0]) / d
+
+        # u = self.shift_by(-mn, shift_reserved=True)
+        u = self.scale_by(scale, scale_reserved=True)
+        return u.shift_by(to[0] - scale * mn, shift_reserved=True)
 
     def shift_by(
         self: T, offset: float, shift_reserved=True
@@ -291,21 +366,6 @@ class BaseUtilityFunction(Preferences, ABC):
         offset = to - mn
         return self.shift_by(offset)
 
-    def scale_min_for(
-        self: T,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
-    ) -> T:
-        if rng is None:
-            mn, _ = self.minmax(outcome_space, issues, outcomes)
-        else:
-            mn, _ = rng
-        scale = to / mn
-        return self.scale_by(scale)
-
     def shift_max_for(
         self: T,
         to: float,
@@ -320,47 +380,6 @@ class BaseUtilityFunction(Preferences, ABC):
             _, mx = rng
         offset = to - mx
         return self.shift_by(offset)
-
-    def scale_max_for(
-        self: T,
-        to: float,
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        rng: tuple[float, float] | None = None,
-    ) -> T:
-        if rng is None:
-            _, mx = self.minmax(outcome_space, issues, outcomes)
-        else:
-            _, mx = rng
-        scale = to / mx
-        return self.scale_by(scale)
-
-    def argrank(
-        self, outcomes: list[Outcome | None], descending=True
-    ) -> list[list[Outcome | None]]:
-        """
-        Ranks the given list of outcomes with weights. None stands for the null outcome.
-
-        Returns:
-            A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
-
-        """
-        ranks = self.argrank_with_weights(outcomes, descending)
-        return [_[0] for _ in ranks]
-
-    def rank(
-        self, outcomes: list[Outcome | None], descending=True
-    ) -> list[list[Outcome | None]]:
-        """
-        Ranks the given list of outcomes with weights. None stands for the null outcome.
-
-        Returns:
-            A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
-
-        """
-        ranks = self.rank_with_weights(outcomes, descending)
-        return [_[0] for _ in ranks]
 
     def _do_rank(self, vals, descending):
         vals = sorted(vals, key=lambda x: x[1], reverse=descending)
@@ -391,6 +410,19 @@ class BaseUtilityFunction(Preferences, ABC):
         vals = zip(range(len(list(outcomes))), (self(_) for _ in outcomes))
         return self._do_rank(vals, descending)
 
+    def argrank(
+        self, outcomes: list[Outcome | None], descending=True
+    ) -> list[list[Outcome | None]]:
+        """
+        Ranks the given list of outcomes with weights. None stands for the null outcome.
+
+        Returns:
+            A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
+
+        """
+        ranks = self.argrank_with_weights(outcomes, descending)
+        return [_[0] for _ in ranks]
+
     def rank_with_weights(
         self, outcomes: list[Outcome | None], descending=True
     ) -> list[tuple[list[Outcome | None], float]]:
@@ -408,36 +440,24 @@ class BaseUtilityFunction(Preferences, ABC):
         vals = zip(outcomes, (self(_) for _ in outcomes))
         return self._do_rank(vals, descending)
 
+    def rank(
+        self, outcomes: list[Outcome | None], descending=True
+    ) -> list[list[Outcome | None]]:
+        """
+        Ranks the given list of outcomes with weights. None stands for the null outcome.
+
+        Returns:
+            A list of lists of integers giving the outcome index in the input. The list is sorted by utlity value
+
+        """
+        ranks = self.rank_with_weights(outcomes, descending)
+        return [_[0] for _ in ranks]
+
     def eu(self, offer: Outcome | None) -> float:
         """
         calculates the **expected** utility value of the input outcome
         """
         return float(self(offer))
-
-    def __call__(self, offer: Outcome | None) -> Value:
-        """
-        Calculate the utility_function value for a given outcome at the given negotiation state.
-
-        Args:
-            offer: The offer to be evaluated.
-
-
-        Remarks:
-
-            - It calls the abstract method `eval` after opationally adjusting the
-              outcome type.
-            - It is preferred to override eval instead of directly overriding this method
-            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
-              not possible to calculate the Value.
-            - Return a float from your `eval` implementation.
-            - Return the reserved value if the offer was None
-
-        Returns:
-            The utility of the given outcome
-        """
-        if offer is None:
-            return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
-        return self.eval(offer)
 
     def to_crisp(self) -> UtilityFunction:
         from negmas.preferences.crisp_ufun import CrispAdapter
@@ -465,43 +485,14 @@ class BaseUtilityFunction(Preferences, ABC):
         d["outcome_space"] = deserialize(d.get("outcome_space", None))
         return cls(**d)
 
-    def extreme_outcomes(
-        self,
-        outcome_space: OutcomeSpace | None = None,
-        issues: Iterable[Issue] | None = None,
-        outcomes: Iterable[Outcome] | None = None,
-        max_cardinality=1000,
-    ) -> tuple[Outcome, Outcome]:
-        check_one_at_most(outcome_space, issues, outcomes)
-        outcome_space = os_or_none(outcome_space, issues, outcomes)
-        if not outcome_space:
-            outcome_space = self.outcome_space
-        if outcome_space and not outcomes:
-            outcomes = outcome_space.enumerate_or_sample(
-                max_cardinality=max_cardinality
-            )
-        if not outcomes:
-            raise ValueError("Cannot find outcomes to use for finding extremes")
-        mn, mx = float("inf"), float("-inf")
-        worst, best = None, None
-        for o in outcomes:
-            u = self(o)
-            if u < mn:
-                worst, mn = o, u
-            if u > mx:
-                best, mx = o, u
-        if worst is None or best is None:
-            raise ValueError(f"Cound not find worst and best outcomes for {self}")
-        return worst, best
-
     def sample_outcome_with_utility(
         self,
-        rng: Tuple[float, float],
+        rng: tuple[float, float],
         outcome_space: OutcomeSpace | None = None,
-        issues: List[Issue] | None = None,
-        outcomes: List[Outcome] | None = None,
+        issues: list[Issue] | None = None,
+        outcomes: list[Outcome] | None = None,
         n_trials: int = 100,
-    ) -> Optional["Outcome"]:
+    ) -> Outcome | None:
         """
         Samples an outcome in the given utiltity range or return None if not possible
 
@@ -537,120 +528,6 @@ class BaseUtilityFunction(Preferences, ABC):
         return None
 
     @classmethod
-    def from_genius(
-        cls, file_name: PathLike | str, **kwargs
-    ) -> Tuple["BaseUtilityFunction" | None, float | None]:
-        """Imports a utility function from a GENIUS XML file.
-
-        Args:
-
-            file_name (str): File name to import from
-
-        Returns:
-
-            A utility function object (depending on the input file)
-
-
-        Examples:
-
-            >>> from negmas.preferences import UtilityFunction
-            >>> import pkg_resources
-            >>> from negmas.inout import load_genius_domain
-            >>> domain = load_genius_domain(pkg_resources.resource_filename('negmas'
-            ...                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u, d = UtilityFunction.from_genius(file_name = pkg_resources.resource_filename('negmas'
-            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                      , issues=domain.issues)
-            >>> u.__class__.__name__
-            'LinearAdditiveUtilityFunction'
-            >>> u.reserved_value
-            0.0
-            >>> d
-            1.0
-
-        Remarks:
-            See ``from_xml_str`` for all the parameters
-
-        """
-        kwargs["name"] = str(file_name)
-        with open(file_name, "r") as f:
-            xml_str = f.read()
-        return cls.from_xml_str(xml_str=xml_str, **kwargs)
-
-    def to_genius(
-        self, file_name: PathLike | str, issues: Iterable[Issue] = None, **kwargs
-    ):
-        """
-        Exports a utility function to a GENIUS XML file.
-
-        Args:
-
-            file_name (str): File name to export to
-            u: utility function
-            issues: The issues being considered as defined in the domain
-
-        Returns:
-
-            None
-
-
-        Examples:
-
-            >>> from negmas.preferences import UtilityFunction
-            >>> from negmas.inout import load_genius_domain
-            >>> import pkg_resources
-            >>> domain = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
-            ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
-            >>> u, d = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
-            ...                                             , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
-            ...                                             , issues=domain.issues)
-            >>> u.to_genius(discount_factor=d
-            ...     , file_name = pkg_resources.resource_filename('negmas'
-            ...                   , resource_name='tests/data/LaptopConv/Laptop-C-prof1.xml')
-            ...     , issues=domain.issues)
-
-        Remarks:
-            See ``to_xml_str`` for all the parameters
-
-        """
-        with open(file_name, "w") as f:
-            f.write(self.to_xml_str(issues=issues, **kwargs))
-
-    def to_xml_str(self, issues: Iterable[Issue] = None, discount_factor=None) -> str:
-        """
-        Exports a utility function to a well formatted string
-        """
-        if not hasattr(self, "xml"):
-            raise ValueError(
-                f"ufun of type {self.__class__.__name__} has no xml() member and cannot be saved to XML string\nThe ufun params: {self.to_dict()}"
-            )
-        if issues is None:
-            if not isinstance(self.outcome_space, IndependentIssuesOS):
-                raise ValueError(
-                    f"Cannot convert to xml because the outcome-space of the ufun is not a cartesian outcome space"
-                )
-            issues = self.outcome_space.issues
-            n_issues = 0
-        else:
-            issues = list(issues)
-            n_issues = len(issues)
-        output = (
-            f'<utility_space type="any" number_of_issues="{n_issues}">\n'
-            f'<objective index="1" etype="objective" type="objective" description="" name="any">\n'
-        )
-
-        output += self.xml(issues=issues)  # type: ignore
-        if "</objective>" not in output:
-            output += "</objective>\n"
-            if discount_factor is not None:
-                output += f'<discount_factor value="{discount_factor}" />\n'
-        if self.reserved_value != float("-inf") and "<reservation value" not in output:
-            output += f'<reservation value="{self.reserved_value}" />\n'
-        if "</utility_space>" not in output:
-            output += "</utility_space>\n"
-        return output
-
-    @classmethod
     def from_xml_str(
         cls,
         xml_str: str,
@@ -659,7 +536,7 @@ class BaseUtilityFunction(Preferences, ABC):
         ignore_discount=False,
         ignore_reserved=False,
         name: str = None,
-    ) -> Tuple["BaseUtilityFunction" | None, float | None]:
+    ) -> tuple[BaseUtilityFunction | None, float | None]:
         """Imports a utility function from a GENIUS XML string.
 
         Args:
@@ -706,7 +583,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         issues = list(issues)
         ordered_issues: list[Issue] = []
-        domain_issues_dict: Optional[Dict[str, Issue]] = None
+        domain_issues_dict: dict[str, Issue] | None = None
         ordered_issues = issues
         domain_issues_dict = dict(zip([_.name for _ in issues], issues))
         # issue_indices = dict(zip([_.name for _ in issues], range(len(issues))))
@@ -950,14 +827,119 @@ class BaseUtilityFunction(Preferences, ABC):
             discount_factor = None
         return u, discount_factor
 
-    def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
-        return self.difference_prob(first, second) >= 0.0
+    @classmethod
+    def from_genius(
+        cls, file_name: PathLike | str, **kwargs
+    ) -> tuple[BaseUtilityFunction | None, float | None]:
+        """Imports a utility function from a GENIUS XML file.
 
-    def difference(self, first: Outcome | None, second: Outcome | None) -> float:
+        Args:
+
+            file_name (str): File name to import from
+
+        Returns:
+
+            A utility function object (depending on the input file)
+
+
+        Examples:
+
+            >>> from negmas.preferences import UtilityFunction
+            >>> import pkg_resources
+            >>> from negmas.inout import load_genius_domain
+            >>> domain = load_genius_domain(pkg_resources.resource_filename('negmas'
+            ...                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+            >>> u, d = UtilityFunction.from_genius(file_name = pkg_resources.resource_filename('negmas'
+            ...                                      , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                      , issues=domain.issues)
+            >>> u.__class__.__name__
+            'LinearAdditiveUtilityFunction'
+            >>> u.reserved_value
+            0.0
+            >>> d
+            1.0
+
+        Remarks:
+            See ``from_xml_str`` for all the parameters
+
         """
-        Returns a numeric difference between the utility of the two given outcomes
+        kwargs["name"] = str(file_name)
+        with open(file_name) as f:
+            xml_str = f.read()
+        return cls.from_xml_str(xml_str=xml_str, **kwargs)
+
+    def to_xml_str(self, issues: Iterable[Issue] = None, discount_factor=None) -> str:
         """
-        return float(self(first)) - float(self(second))
+        Exports a utility function to a well formatted string
+        """
+        if not hasattr(self, "xml"):
+            raise ValueError(
+                f"ufun of type {self.__class__.__name__} has no xml() member and cannot be saved to XML string\nThe ufun params: {self.to_dict()}"
+            )
+        if issues is None:
+            if not isinstance(self.outcome_space, IndependentIssuesOS):
+                raise ValueError(
+                    f"Cannot convert to xml because the outcome-space of the ufun is not a cartesian outcome space"
+                )
+            issues = self.outcome_space.issues
+            n_issues = 0
+        else:
+            issues = list(issues)
+            n_issues = len(issues)
+        output = (
+            f'<utility_space type="any" number_of_issues="{n_issues}">\n'
+            f'<objective index="1" etype="objective" type="objective" description="" name="any">\n'
+        )
+
+        output += self.xml(issues=issues)  # type: ignore
+        if "</objective>" not in output:
+            output += "</objective>\n"
+            if discount_factor is not None:
+                output += f'<discount_factor value="{discount_factor}" />\n'
+        if self.reserved_value != float("-inf") and "<reservation value" not in output:
+            output += f'<reservation value="{self.reserved_value}" />\n'
+        if "</utility_space>" not in output:
+            output += "</utility_space>\n"
+        return output
+
+    def to_genius(
+        self, file_name: PathLike | str, issues: Iterable[Issue] = None, **kwargs
+    ):
+        """
+        Exports a utility function to a GENIUS XML file.
+
+        Args:
+
+            file_name (str): File name to export to
+            u: utility function
+            issues: The issues being considered as defined in the domain
+
+        Returns:
+
+            None
+
+
+        Examples:
+
+            >>> from negmas.preferences import UtilityFunction
+            >>> from negmas.inout import load_genius_domain
+            >>> import pkg_resources
+            >>> domain = load_genius_domain(domain_file_name=pkg_resources.resource_filename('negmas'
+            ...                                             , resource_name='tests/data/Laptop/Laptop-C-domain.xml'))
+            >>> u, d = UtilityFunction.from_genius(file_name=pkg_resources.resource_filename('negmas'
+            ...                                             , resource_name='tests/data/Laptop/Laptop-C-prof1.xml')
+            ...                                             , issues=domain.issues)
+            >>> u.to_genius(discount_factor=d
+            ...     , file_name = pkg_resources.resource_filename('negmas'
+            ...                   , resource_name='tests/data/LaptopConv/Laptop-C-prof1.xml')
+            ...     , issues=domain.issues)
+
+        Remarks:
+            See ``to_xml_str`` for all the parameters
+
+        """
+        with open(file_name, "w") as f:
+            f.write(self.to_xml_str(issues=issues, **kwargs))
 
     def difference_prob(
         self, first: Outcome | None, second: Outcome | None
@@ -971,6 +953,40 @@ class BaseUtilityFunction(Preferences, ABC):
         if not isinstance(s, Distribution):
             s = Real(s)
         return f - s
+
+    def is_not_worse(self, first: Outcome | None, second: Outcome | None) -> bool:
+        return self.difference_prob(first, second) >= 0.0
+
+    def difference(self, first: Outcome | None, second: Outcome | None) -> float:
+        """
+        Returns a numeric difference between the utility of the two given outcomes
+        """
+        return float(self(first)) - float(self(second))
+
+    def __call__(self, offer: Outcome | None) -> Value:
+        """
+        Calculate the utility_function value for a given outcome at the given negotiation state.
+
+        Args:
+            offer: The offer to be evaluated.
+
+
+        Remarks:
+
+            - It calls the abstract method `eval` after opationally adjusting the
+              outcome type.
+            - It is preferred to override eval instead of directly overriding this method
+            - You cannot return None from overriden eval() functions but raise an exception (ValueError) if it was
+              not possible to calculate the Value.
+            - Return a float from your `eval` implementation.
+            - Return the reserved value if the offer was None
+
+        Returns:
+            The utility of the given outcome
+        """
+        if offer is None:
+            return self.reserved_value  # type: ignore I know that concrete subclasses will be returning the correct type
+        return self.eval(offer)
 
 
 class _General:

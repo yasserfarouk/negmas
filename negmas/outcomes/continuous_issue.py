@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import math
 import numbers
 import random
 from typing import Any, Generator
 
 import numpy as np
 
+from negmas.helpers.numeric import sample
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.range_issue import RangeIssue
 
@@ -56,18 +58,16 @@ class ContinuousIssue(RangeIssue):
             random.random() * (self._values[1] - self._values[0]) + self._values[0]
         )  # type: ignore
 
-    def value_generator(
-        self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
-    ) -> Generator[float, None, None]:
-        yield from self.ordered_value_generator(
-            n, grid=grid, compact=compact, endpoints=endpoints
-        )
-
     def ordered_value_generator(
-        self, n: int | None = DEFAULT_LEVELS, grid=True, compact=False, endpoints=True
+        self,
+        n: int | float | None = DEFAULT_LEVELS,
+        grid=True,
+        compact=False,
+        endpoints=True,
     ) -> Generator[float, None, None]:
-        if n is None:
-            raise ValueError("Real valued issue with no discretization value")
+        if n is None or not math.isfinite(n):
+            raise ValueError(f"Cannot generate {n} values from issue: {self}")
+        n = int(n)
         if grid:
             yield from np.linspace(
                 self._values[0], self._values[1], num=n, endpoint=endpoints
@@ -81,6 +81,21 @@ class ContinuousIssue(RangeIssue):
         yield from (
             (self._values[1] - self._values[0]) * np.random.rand(n) + self._values[0]
         ).tolist()
+
+    def value_generator(
+        self,
+        n: int | float | None = DEFAULT_LEVELS,
+        grid=True,
+        compact=False,
+        endpoints=True,
+    ) -> Generator[float, None, None]:
+        if n is None or not math.isfinite(n):
+            raise ValueError(f"Cannot generate {n} values from issue: {self}")
+        n = int(n)
+        yield from (
+            _ * (self._values[1] - self._values[0]) / (n - 1) + self._values[0]
+            for _ in sample(n, n, grid=grid, compact=compact, endpoints=endpoints)
+        )
 
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False

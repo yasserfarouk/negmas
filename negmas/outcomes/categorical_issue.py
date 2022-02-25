@@ -19,7 +19,7 @@ class CategoricalIssue(DiscreteIssue):
         values = list(values)
         self._n_values = len(values)
         self._value_type = (
-            type(values[0]) if len(set(type(_) for _ in values)) == 1 else object
+            type(values[0]) if len({type(_) for _ in values}) == 1 else object
         )
         if self.is_numeric():
             self.min_value, self.max_value = min(values), max(values)

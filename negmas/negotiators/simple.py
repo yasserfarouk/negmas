@@ -62,7 +62,7 @@ class RealComparatorNegotiator(Negotiator):
         self.capabilities["compare-real"] = True
         self.capabilities["compare-binary"] = True
 
-    def difference(self, first: "Outcome", second: "Outcome") -> float:
+    def difference(self, first: Outcome, second: Outcome) -> float:
         """
         Compares two offers using the `ufun` returning the difference in their utility
 
@@ -78,7 +78,7 @@ class RealComparatorNegotiator(Negotiator):
             raise ValueError(f"Cannot compare outcomes. I have no preferences")
         return self.preferences.difference(first, second)
 
-    def is_better(self, first: "Outcome", second: "Outcome") -> bool | None:
+    def is_better(self, first: Outcome, second: Outcome) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
@@ -225,7 +225,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         self.__preferences_thresholds = thresholds
 
     def compare_nlevels(
-        self, first: "Outcome", second: "Outcome", n: int = 2
+        self, first: Outcome, second: Outcome, n: int = 2
     ) -> int | None:
         """
         Compares two offers using the `ufun` returning an integer in [-n, n] (i.e. 2n+1 possible values) which defines
@@ -272,7 +272,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         return sign * n
 
     def is_better(
-        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
@@ -309,7 +309,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         self.capabilities["compare-binary"] = True
 
     def rank_with_weights(
-        self, outcomes: list["Outcome"] | None, descending=True
+        self, outcomes: list[Outcome] | None, descending=True
     ) -> list[tuple[int, float]]:
         """Ranks the given list of outcomes with weights. None stands for the null outcome. Outcomes of equal utility
         are ordered arbitrarily.
@@ -327,7 +327,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         return self.preferences.rank_with_weights(outcomes, descending)
 
     def is_better(
-        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
@@ -376,7 +376,7 @@ class RankerNegotiator(Negotiator):
         return self.preferences.rank(outcomes, descending)
 
     def is_better(
-        self, first: "Outcome", second: "Outcome", epsilon: float = 1e-10
+        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
     ) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second

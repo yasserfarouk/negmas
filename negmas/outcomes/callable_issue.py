@@ -32,10 +32,17 @@ class CallableIssue(Issue):
     def is_continuous(self) -> bool:
         return False
 
-    def value_generator(
-        self, n: int | None = 10, grid=True, compact=False, endpoints=True
+    def ordered_value_generator(
+        self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
-        if n is None:
+        raise NotImplementedError(
+            "Cannot generate values in order from a Callable issue"
+        )
+
+    def value_generator(
+        self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
+    ) -> Generator[Any, None, None]:
+        if n is None or isinstance(n, float):
             raise ValueError("Real valued issue with no discretization value")
         yield from (self._values() for _ in range(n))
 

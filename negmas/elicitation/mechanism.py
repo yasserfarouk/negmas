@@ -56,7 +56,7 @@ def uniform():
     return ScipyDistribution(type="uniform", loc=loc, scale=scale)
 
 
-def current_aspiration(elicitor, outcome: Outcome, negotiation: "Mechanism") -> float:
+def current_aspiration(elicitor, outcome: Outcome, negotiation: Mechanism) -> float:
     return elicitor.utility_at(negotiation.relative_time)
 
 
@@ -151,110 +151,6 @@ def _end(x):
 
 
 class SAOElicitingMechanism(SAOMechanism):
-    @classmethod
-    def generate_config(
-        cls,
-        cost,
-        n_outcomes: int = None,
-        rand_preferencess=True,
-        conflict: float = None,
-        conflict_delta: float = None,
-        winwin=None,  # only if rand_preferencess is false
-        genius_folder: str = None,
-        n_steps=None,
-        time_limit=None,
-        own_utility_uncertainty=0.5,
-        own_uncertainty_variablility=0.0,
-        own_reserved_value=0.0,
-        own_base_agent="aspiration",
-        opponent_model_uncertainty=0.5,
-        opponent_model_adaptive=False,
-        opponent_proposes=True,
-        opponent_type="best_only",
-        opponent_toughness=0.9,
-        opponent_reserved_value=0.0,
-    ) -> Dict[str, Any]:
-        config = {}
-        if n_steps is None and time_limit is None and "aspiration" in opponent_type:
-            raise ValueError(
-                "Cannot use aspiration negotiators when no step limit or time limit is given"
-            )
-        if n_outcomes is None and genius_folder is None:
-            raise ValueError(
-                "Must specify a folder to run from or a number of outcomes"
-            )
-        if genius_folder is not None:
-            d = load_genius_domain_from_folder(
-                genius_folder,
-                ignore_reserved=opponent_reserved_value is not None,
-                ignore_discount=True,
-            ).to_single_issue(numeric=True)
-            domain = d.make_session(time_limit=120)
-
-            n_outcomes = domain.nmi.n_outcomes  # type: ignore
-            outcomes = domain.outcomes
-            elicitor_indx = 0 + int(random.random() <= 0.5)
-            opponent_indx = 1 - elicitor_indx
-            preferences = d.ufuns[elicitor_indx]
-            preferences.reserved_value = own_reserved_value
-            opp_utility = d.ufuns[opponent_indx]
-            opp_utility.reserved_value = opponent_reserved_value
-        else:
-            outcomes = [(_,) for _ in range(n_outcomes)]
-            if rand_preferencess:
-                preferences, opp_utility = UtilityFunction.generate_random_bilateral(
-                    outcomes=outcomes
-                )
-            else:
-                preferences, opp_utility = UtilityFunction.generate_bilateral(
-                    outcomes=outcomes,
-                    conflict_level=opponent_toughness,
-                    conflict_delta=conflict_delta,
-                    win_win=winwin,
-                )
-            preferences.reserved_value = own_reserved_value
-            domain = SAOMechanism(
-                outcomes=outcomes,
-                n_steps=n_steps,
-                time_limit=time_limit,
-                max_n_agents=2,
-                dynamic_entry=False,
-                cache_outcomes=True,
-            )
-
-        true_utilities = list(preferences.mapping.values())
-        priors = IPUtilityFunction.from_preferences(
-            preferences,
-            uncertainty=own_utility_uncertainty,
-            variability=own_uncertainty_variablility,
-        )
-
-        outcomes = domain.nmi.outcomes
-
-        opponent = create_negotiator(
-            negotiator_type=opponent_type,
-            can_propose=opponent_proposes,
-            preferences=opp_utility,
-            outcomes=outcomes,
-            toughness=opponent_toughness,
-        )
-        opponent_model = UncertainOpponentModel(
-            outcomes=outcomes,
-            uncertainty=opponent_model_uncertainty,
-            opponents=opponent,
-            adaptive=opponent_model_adaptive,
-        )
-        config["n_steps"], config["time_limit"] = n_steps, time_limit
-        config["priors"] = priors
-        config["true_utilities"] = true_utilities
-        config["elicitor_reserved_value"] = own_reserved_value
-        config["cost"] = cost
-        config["opp_utility"] = opp_utility
-        config["opponent_model"] = opponent_model
-        config["opponent"] = opponent
-        config["base_agent"] = own_base_agent
-        return config
-
     def __init__(
         self,
         priors,
@@ -475,6 +371,110 @@ class SAOElicitingMechanism(SAOMechanism):
                 f"I could not add the two negotiators {elicitor.__class__.__name__}, {opponent.__class__.__name__}"
             )
         self.total_time = 0.0
+
+    @classmethod
+    def generate_config(
+        cls,
+        cost,
+        n_outcomes: int = None,
+        rand_preferencess=True,
+        conflict: float = None,
+        conflict_delta: float = None,
+        winwin=None,  # only if rand_preferencess is false
+        genius_folder: str = None,
+        n_steps=None,
+        time_limit=None,
+        own_utility_uncertainty=0.5,
+        own_uncertainty_variablility=0.0,
+        own_reserved_value=0.0,
+        own_base_agent="aspiration",
+        opponent_model_uncertainty=0.5,
+        opponent_model_adaptive=False,
+        opponent_proposes=True,
+        opponent_type="best_only",
+        opponent_toughness=0.9,
+        opponent_reserved_value=0.0,
+    ) -> dict[str, Any]:
+        config = {}
+        if n_steps is None and time_limit is None and "aspiration" in opponent_type:
+            raise ValueError(
+                "Cannot use aspiration negotiators when no step limit or time limit is given"
+            )
+        if n_outcomes is None and genius_folder is None:
+            raise ValueError(
+                "Must specify a folder to run from or a number of outcomes"
+            )
+        if genius_folder is not None:
+            d = load_genius_domain_from_folder(
+                genius_folder,
+                ignore_reserved=opponent_reserved_value is not None,
+                ignore_discount=True,
+            ).to_single_issue(numeric=True)
+            domain = d.make_session(time_limit=120)
+
+            n_outcomes = domain.nmi.n_outcomes  # type: ignore
+            outcomes = domain.outcomes
+            elicitor_indx = 0 + int(random.random() <= 0.5)
+            opponent_indx = 1 - elicitor_indx
+            preferences = d.ufuns[elicitor_indx]
+            preferences.reserved_value = own_reserved_value
+            opp_utility = d.ufuns[opponent_indx]
+            opp_utility.reserved_value = opponent_reserved_value
+        else:
+            outcomes = [(_,) for _ in range(n_outcomes)]
+            if rand_preferencess:
+                preferences, opp_utility = UtilityFunction.generate_random_bilateral(
+                    outcomes=outcomes
+                )
+            else:
+                preferences, opp_utility = UtilityFunction.generate_bilateral(
+                    outcomes=outcomes,
+                    conflict_level=opponent_toughness,
+                    conflict_delta=conflict_delta,
+                    win_win=winwin,
+                )
+            preferences.reserved_value = own_reserved_value
+            domain = SAOMechanism(
+                outcomes=outcomes,
+                n_steps=n_steps,
+                time_limit=time_limit,
+                max_n_agents=2,
+                dynamic_entry=False,
+                cache_outcomes=True,
+            )
+
+        true_utilities = list(preferences.mapping.values())
+        priors = IPUtilityFunction.from_preferences(
+            preferences,
+            uncertainty=own_utility_uncertainty,
+            variability=own_uncertainty_variablility,
+        )
+
+        outcomes = domain.nmi.outcomes
+
+        opponent = create_negotiator(
+            negotiator_type=opponent_type,
+            can_propose=opponent_proposes,
+            preferences=opp_utility,
+            outcomes=outcomes,
+            toughness=opponent_toughness,
+        )
+        opponent_model = UncertainOpponentModel(
+            outcomes=outcomes,
+            uncertainty=opponent_model_uncertainty,
+            opponents=opponent,
+            adaptive=opponent_model_adaptive,
+        )
+        config["n_steps"], config["time_limit"] = n_steps, time_limit
+        config["priors"] = priors
+        config["true_utilities"] = true_utilities
+        config["elicitor_reserved_value"] = own_reserved_value
+        config["cost"] = cost
+        config["opp_utility"] = opp_utility
+        config["opponent_model"] = opponent_model
+        config["opponent"] = opponent
+        config["base_agent"] = own_base_agent
+        return config
 
     def loginfo(self, s: str) -> None:
         """logs nmi-level information

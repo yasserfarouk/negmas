@@ -76,6 +76,37 @@ class MyRaisingNegotiator(AspirationNegotiator):
 
 
 class MySyncController(SAOSyncController):
+    def __init__(
+        self,
+        *args,
+        sleep_seconds=0.2,
+        accept_after=float("inf"),
+        end_after=float("inf"),
+        offer_none_after=float("inf"),
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._sleep_seconds = sleep_seconds
+        self.n_counter_all_calls = 0
+        self.countered_offers: Dict[int, Dict[str, List[Outcome | None]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.received_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.sent_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.sent_responses: Dict[str, Dict[int, List[ResponseType]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        self.wait_states: Dict[str, Dict[int, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
+        self.accept_after = accept_after
+        self.end_after = end_after
+        self.offer_none_after = offer_none_after
+
     def respond(self, negotiator_id, state, offer):
         response = super().respond(negotiator_id, state, offer)
         self.received_offers[negotiator_id][state.step].append(offer)
@@ -137,37 +168,6 @@ class MySyncController(SAOSyncController):
 
     def first_offer(self, negotiator_id: str):
         return self.negotiators[negotiator_id][0].nmi.random_outcomes(1)[0]
-
-    def __init__(
-        self,
-        *args,
-        sleep_seconds=0.2,
-        accept_after=float("inf"),
-        end_after=float("inf"),
-        offer_none_after=float("inf"),
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self._sleep_seconds = sleep_seconds
-        self.n_counter_all_calls = 0
-        self.countered_offers: Dict[int, Dict[str, List[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.received_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.sent_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.sent_responses: Dict[str, Dict[int, List[ResponseType]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.wait_states: Dict[str, Dict[int, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
-        self.accept_after = accept_after
-        self.end_after = end_after
-        self.offer_none_after = offer_none_after
 
 
 class InfiniteLoopNegotiator(RandomNegotiator):

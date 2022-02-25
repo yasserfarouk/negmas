@@ -50,21 +50,21 @@ class MechanismRoundResult:
     """
 
     broken: bool = False
-    """True only if END_NEGOTIATION was selected by one agent"""
     timedout: bool = False
-    """True if a timeout occurred. Usually not used"""
-    agreement: Optional[Union[Collection["Outcome"], "Outcome"]] = None
-    """The agreement if any. Allows for a single outcome or a collection of outcomes"""
+    agreement: Collection[Outcome] | Outcome | None = None
     error: bool = False
-    """True if an error occurred in the mechanism"""
     error_details: str = ""
-    """Error message"""
     waiting: bool = False
+    exceptions: dict[str, list[str]] | None = None
+    times: dict[str, float] | None = None
+    """True only if END_NEGOTIATION was selected by one agent"""
+    """True if a timeout occurred. Usually not used"""
+    """The agreement if any. Allows for a single outcome or a collection of outcomes"""
+    """True if an error occurred in the mechanism"""
+    """Error message"""
     """whether to consider that the round is still running and call the round method again without increasing
     the step number"""
-    exceptions: Optional[dict[str, list[str]]] = None
     """A mapping from negotiator ID to a list of exceptions raised by that negotiator in this round"""
-    times: Optional[dict[str, float]] = None
     """A mapping from negotiator ID to the time it consumed during this round"""
 
 
@@ -116,11 +116,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         negotiator_time_limit: float = None,
         max_n_agents: int = None,
         dynamic_entry=False,
-        annotation: Optional[dict[str, Any]] = None,
+        annotation: dict[str, Any] | None = None,
         state_factory=MechanismState,
         enable_callbacks=False,
         checkpoint_every: int = 1,
-        checkpoint_folder: Optional[PathLike] = None,
+        checkpoint_folder: PathLike | None = None,
         checkpoint_filename: str = None,
         extra_checkpoint_info: dict[str, Any] = None,
         single_checkpoint: bool = True,
@@ -215,6 +215,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
 
     @property
+    def negotiators(self):
+        return self._negotiators
+
+    @property
     def participants(self) -> list[NegotiatorInfo]:
         """Returns a list of all participant names"""
         return [
@@ -222,9 +226,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             for _ in self.negotiators
         ]
 
-    def is_valid(self, outcome: "Outcome"):
+    def is_valid(self, outcome: Outcome):
         """Checks whether the outcome is valid given the issues"""
         return outcome in self.nmi.outcome_space
+
+    @property
+    def outcome_space(self):
+        return self.nmi.outcome_space
 
     def discrete_outcome_space(
         self, levels: int = 5, max_cardinality: int = 100_000
@@ -242,9 +250,13 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         return self.__discrete_os
 
+    @property
+    def outcomes(self):
+        return self.nmi.outcomes
+
     def discrete_outcomes(
         self, levels: int = 5, max_cardinality: int | float = float("inf")
-    ) -> list["Outcome"]:
+    ) -> list[Outcome]:
         """
         A discrete set of outcomes that spans the outcome space
 
@@ -270,7 +282,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         self.__discrete_outcomes = list(self.__discrete_os.enumerate_or_sample())
         return self.__discrete_outcomes
 
-    def random_outcomes(self, n: int = 1) -> list["Outcome"]:
+    def random_outcomes(self, n: int = 1) -> list[Outcome]:
         """Returns random offers.
 
         Args:
@@ -300,7 +312,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return time.perf_counter() - self._start_time
 
     @property
-    def remaining_time(self) -> Optional[float]:
+    def remaining_time(self) -> float | None:
         """Returns remaining time in seconds. None if no time limit is given."""
         if self.nmi.time_limit == float("+inf"):
             return None
@@ -314,7 +326,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return limit
 
     @property
-    def relative_time(self) -> Optional[float]:
+    def relative_time(self) -> float | None:
         """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
         if self.nmi.time_limit == float("+inf") and self.nmi.n_steps is None:
             return None
@@ -330,21 +342,186 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return max([relative_step, relative_time])
 
     @property
-    def remaining_steps(self) -> Optional[int]:
+    def remaining_steps(self) -> int | None:
         """Returns the remaining number of steps until the end of the mechanism run. None if unlimited"""
         if self.nmi.n_steps is None:
             return None
 
         return self.nmi.n_steps - self._step
 
+    @property
+    def requirements(self):
+        """A dictionary specifying the requirements that must be in the capabilities of any agent
+        to join the mechanism.
+
+        """
+        return self._requirements
+
+    @requirements.setter
+    def requirements(
+        self,
+        requirements: dict[
+            str,
+            (
+                tuple[int | float | str, int | float | str]
+                | list
+                | set
+                | int
+                | float
+                | str
+            ),
+        ],
+    ):
+        self._requirements = {
+            k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
+        }
+
+    def is_satisfying(self, capabilities: dict) -> bool:
+        """Checks if the  given capabilities are satisfying mechanism requirements.
+
+        Args:
+            capabilities: capabilities to check
+
+        Returns:
+            bool are the requirements satisfied by the capabilities.
+
+        Remarks:
+
+            - Requirements are also a dict with the following meanings:
+
+                - tuple: Min and max acceptable values
+                - list/set: Any value in the iterable is acceptable
+                - Single value: The capability must match this value
+
+            - Capabilities can also have the same three possibilities.
+
+        """
+        requirements = self.requirements
+        for r, v in requirements.items():
+            if v is None:
+                if r not in capabilities.keys():
+                    return False
+
+                else:
+                    continue
+
+            if r not in capabilities.keys():
+                return False
+
+            if capabilities[r] is None:
+                continue
+
+            c = capabilities[r]
+            if isinstance(c, tuple):
+                # c is range
+                if isinstance(v, tuple):
+                    # both ranges
+                    match = v[0] <= c[0] <= v[1] or v[0] <= c[1] <= v[1]
+                else:
+                    # c is range and cutoff_utility is not a range
+                    match = (
+                        any(c[0] <= _ <= c[1] for _ in v)
+                        if isinstance(v, set)
+                        else c[0] <= v <= c[1]
+                    )
+            elif isinstance(c, list) or isinstance(c, set):
+                # c is list
+                if isinstance(v, tuple):
+                    # c is a list and cutoff_utility is a range
+                    match = any(v[0] <= _ <= v[1] for _ in c)
+                else:
+                    # c is a list and cutoff_utility is not a range
+                    match = any(_ in v for _ in c) if isinstance(v, set) else v in c
+            else:
+                # c is a single value
+                if isinstance(v, tuple):
+                    # c is a singlton and cutoff_utility is a range
+                    match = v[0] <= c <= v[1]
+                else:
+                    # c is a singlton and cutoff_utility is not a range
+                    match = c in v if isinstance(v, set) else c == v
+            if not match:
+                return False
+
+        return True
+
+    def can_participate(self, agent: Negotiator) -> bool:
+        """Checks if the agent can participate in this type of negotiation in general.
+
+        Args:
+            agent:
+
+        Returns:
+            bool: True if it  can
+
+        Remarks:
+            The only reason this may return `False` is if the mechanism requires some requirements
+            that are not within the capabilities of the agent.
+
+            When evaluating compatibility, the agent is considered incapable of participation if any
+            of the following conditions hold:
+            * A mechanism requirement is not in the capabilities of the agent
+            * A mechanism requirement is in the capabilities of the agent by the values required for it
+              is not in the values announced by the agent.
+
+            An agent that lists a `None` value for a capability is announcing that it can work with all its
+            values. On the other hand, a mechanism that lists a requirement as None announces that it accepts
+            any value for this requirement as long as it exist in the agent
+
+        """
+        return self.is_satisfying(agent.capabilities)
+
+    def can_accept_more_agents(self) -> bool:
+        """Whether the mechanism can **currently** accept more negotiators."""
+        return (
+            True
+            if self.nmi.max_n_agents is None or self._negotiators is None
+            else len(self._negotiators) < self.nmi.max_n_agents
+        )
+
+    def can_enter(self, agent: Negotiator) -> bool:
+        """Whether the agent can enter the negotiation now."""
+        return self.can_accept_more_agents() and self.can_participate(agent)
+
+    def extra_state(self) -> dict[str, Any] | None:
+        """Returns any extra state information to be kept in the `state` and `history` properties"""
+        return dict()
+
+    @property
+    def state(self):
+        """Returns the current state. Override `extra_state` if you want to keep extra state"""
+        d = dict(
+            running=self._running,
+            step=self._step,
+            time=self.time,
+            relative_time=self.relative_time,
+            broken=self._broken,
+            timedout=self._timedout,
+            started=self._started,
+            agreement=self._agreement,
+            n_negotiators=len(self.negotiators),
+            has_error=self._error,
+            error_details=self._error_details,
+            waiting=self._waiting,
+        )
+        d2 = self.extra_state()
+        if d2:
+            d.update(d2)
+        return self._state_factory(
+            **d,
+        )
+
+    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
+        return self.nmi
+
     def add(
         self,
-        negotiator: "Negotiator",
+        negotiator: Negotiator,
         *,
-        preferences: Optional[Preferences] = None,
-        role: Optional[str] = None,
-        ufun: Optional[BaseUtilityFunction] = None,
-    ) -> Optional[bool]:
+        preferences: Preferences | None = None,
+        role: str | None = None,
+        ufun: BaseUtilityFunction | None = None,
+    ) -> bool | None:
         """Add an agent to the negotiation.
 
         Args:
@@ -419,11 +596,19 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return True
         return None
 
-    def get_negotiator(self, nid: str) -> Optional["Negotiator"]:
+    def get_negotiator(self, nid: str) -> Negotiator | None:
         """Returns the negotiator with the given ID if present in the negotiation"""
         return self._negotiator_map.get(nid, None)
 
-    def remove(self, negotiator: "Negotiator") -> Optional[bool]:
+    def can_leave(self, agent: Negotiator) -> bool:
+        """Can the agent leave now?"""
+        return (
+            True
+            if self.nmi.dynamic_entry
+            else not self.nmi.state.running and agent in self._negotiators
+        )
+
+    def remove(self, negotiator: Negotiator) -> bool | None:
         """Remove the agent from the negotiation.
 
         Args:
@@ -475,10 +660,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return self._negotiator_index.get(nid, None)
 
     @property
-    def negotiators(self):
-        return self._negotiators
-
-    @property
     def negotiator_ids(self) -> list[str]:
         return [_.id for _ in self._negotiators]
 
@@ -495,136 +676,12 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return [_.name for _ in self._negotiators]
 
     @property
-    def requirements(self):
-        """A dictionary specifying the requirements that must be in the capabilities of any agent
-        to join the mechanism.
-
-        """
-        return self._requirements
-
-    @requirements.setter
-    def requirements(
-        self,
-        requirements: dict[
-            str,
-            Union[
-                tuple[Union[int, float, str], Union[int, float, str]],
-                list,
-                Set,
-                Union[int, float, str],
-            ],
-        ],
-    ):
-        self._requirements = {
-            k: set(v) if isinstance(v, list) else v for k, v in requirements.items()
-        }
-
-    @property
     def agreement(self):
         return self._agreement
-
-    def is_satisfying(self, capabilities: dict) -> bool:
-        """Checks if the  given capabilities are satisfying mechanism requirements.
-
-        Args:
-            capabilities: capabilities to check
-
-        Returns:
-            bool are the requirements satisfied by the capabilities.
-
-        Remarks:
-
-            - Requirements are also a dict with the following meanings:
-
-                - tuple: Min and max acceptable values
-                - list/set: Any value in the iterable is acceptable
-                - Single value: The capability must match this value
-
-            - Capabilities can also have the same three possibilities.
-
-        """
-        requirements = self.requirements
-        for r, v in requirements.items():
-            if v is None:
-                if r not in capabilities.keys():
-                    return False
-
-                else:
-                    continue
-
-            if r not in capabilities.keys():
-                return False
-
-            if capabilities[r] is None:
-                continue
-
-            c = capabilities[r]
-            if isinstance(c, tuple):
-                # c is range
-                if isinstance(v, tuple):
-                    # both ranges
-                    match = v[0] <= c[0] <= v[1] or v[0] <= c[1] <= v[1]
-                else:
-                    # c is range and cutoff_utility is not a range
-                    match = (
-                        any(c[0] <= _ <= c[1] for _ in v)
-                        if isinstance(v, set)
-                        else c[0] <= v <= c[1]
-                    )
-            elif isinstance(c, list) or isinstance(c, set):
-                # c is list
-                if isinstance(v, tuple):
-                    # c is a list and cutoff_utility is a range
-                    match = any(v[0] <= _ <= v[1] for _ in c)
-                else:
-                    # c is a list and cutoff_utility is not a range
-                    match = any(_ in v for _ in c) if isinstance(v, set) else v in c
-            else:
-                # c is a single value
-                if isinstance(v, tuple):
-                    # c is a singlton and cutoff_utility is a range
-                    match = v[0] <= c <= v[1]
-                else:
-                    # c is a singlton and cutoff_utility is not a range
-                    match = c in v if isinstance(v, set) else c == v
-            if not match:
-                return False
-
-        return True
-
-    def can_participate(self, agent: "Negotiator") -> bool:
-        """Checks if the agent can participate in this type of negotiation in general.
-
-        Args:
-            agent:
-
-        Returns:
-            bool: True if it  can
-
-        Remarks:
-            The only reason this may return `False` is if the mechanism requires some requirements
-            that are not within the capabilities of the agent.
-
-            When evaluating compatibility, the agent is considered incapable of participation if any
-            of the following conditions hold:
-            * A mechanism requirement is not in the capabilities of the agent
-            * A mechanism requirement is in the capabilities of the agent by the values required for it
-              is not in the values announced by the agent.
-
-            An agent that lists a `None` value for a capability is announcing that it can work with all its
-            values. On the other hand, a mechanism that lists a requirement as None announces that it accepts
-            any value for this requirement as long as it exist in the agent
-
-        """
-        return self.is_satisfying(agent.capabilities)
 
     @property
     def n_outcomes(self):
         return self.nmi.n_outcomes
-
-    @property
-    def outcome_space(self):
-        return self.nmi.outcome_space
 
     @property
     def issues(self) -> list[Issue] | None:
@@ -635,10 +692,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     @property
     def completed(self):
         return self.agreement is not None or self._broken
-
-    @property
-    def outcomes(self):
-        return self.nmi.outcomes
 
     @property
     def n_steps(self):
@@ -664,62 +717,70 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def max_n_agents(self, n: int):
         self.nmi.max_n_agents = n
 
-    def can_accept_more_agents(self) -> bool:
-        """Whether the mechanism can **currently** accept more negotiators."""
-        return (
-            True
-            if self.nmi.max_n_agents is None or self._negotiators is None
-            else len(self._negotiators) < self.nmi.max_n_agents
-        )
-
-    def can_leave(self, agent: "Negotiator") -> bool:
-        """Can the agent leave now?"""
-        return (
-            True
-            if self.nmi.dynamic_entry
-            else not self.nmi.state.running and agent in self._negotiators
-        )
-
-    def can_enter(self, agent: "Negotiator") -> bool:
-        """Whether the agent can enter the negotiation now."""
-        return self.can_accept_more_agents() and self.can_participate(agent)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self) -> MechanismState:
-        result = self.step()
-        if not self._running:
-            raise StopIteration
-
-        return result
-
-    def abort(self) -> MechanismState:
-        """
-        Aborts the negotiation
-        """
-        self._error, self._error_details, self._waiting = (
-            True,
-            "Uncaught Exception",
-            False,
-        )
-        self.on_mechanism_error()
-        self._broken, self._timedout, self._agreement = (True, False, None)
-        state = self.state
-        state4history = self.state4history
-        self._running = False
-        if self._enable_callbacks:
-            for agent in self._negotiators:
-                agent.on_round_end(state)
-        self._add_to_history(state4history)
-        self._step += 1
-        self.on_negotiation_end()
-        return state
-
     @property
     def state4history(self) -> Any:
         """Returns the state as it should be stored in the history"""
         return self.state
+
+    def _add_to_history(self, state4history):
+        if len(self._history) == 0:
+            self._history.append(state4history)
+            return
+        last = self._history[-1]
+        if last["step"] == state4history:
+            self._history[-1] = state4history
+            return
+        self._history.append(state4history)
+
+    def on_mechanism_error(self) -> None:
+        """
+        Called when there is a mechanism error
+
+        Remarks:
+            - When overriding this function you **MUST** call the base class version
+        """
+        state = self.state
+        if self._enable_callbacks:
+            for a in self.negotiators:
+                a.on_mechanism_error(state)
+
+    def on_negotiation_end(self) -> None:
+        """
+        Called at the end of each negotiation.
+
+        Remarks:
+            - When overriding this function you **MUST** call the base class version
+        """
+        state = self.state
+        for a in self.negotiators:
+            a._on_negotiation_end(state)
+        self.announce(
+            Event(
+                type="negotiation_end",
+                data={
+                    "agreement": self.agreement,
+                    "state": state,
+                    "annotation": self.nmi.annotation,
+                },
+            )
+        )
+        self.checkpoint_final_step()
+
+    def on_negotiation_start(self) -> bool:
+        """Called before starting the negotiation. If it returns False then negotiation will end immediately"""
+        return True
+
+    @abstractmethod
+    def round(self) -> MechanismRoundResult:
+        """Implements a single step of the mechanism. Override this!
+
+        Returns:
+            MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.
+
+        """
+        raise NotImplementedError(
+            "You must inherit from Mechanism and override its round() function"
+        )
 
     def step(self) -> MechanismState:
         """Runs a single step of the mechanism.
@@ -853,19 +914,38 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self.on_negotiation_end()
         return self.state
 
-    def _add_to_history(self, state4history):
-        if len(self._history) == 0:
-            self._history.append(state4history)
-            return
-        last = self._history[-1]
-        if last["step"] == state4history:
-            self._history[-1] = state4history
-            return
-        self._history.append(state4history)
+    def __next__(self) -> MechanismState:
+        result = self.step()
+        if not self._running:
+            raise StopIteration
+
+        return result
+
+    def abort(self) -> MechanismState:
+        """
+        Aborts the negotiation
+        """
+        self._error, self._error_details, self._waiting = (
+            True,
+            "Uncaught Exception",
+            False,
+        )
+        self.on_mechanism_error()
+        self._broken, self._timedout, self._agreement = (True, False, None)
+        state = self.state
+        state4history = self.state4history
+        self._running = False
+        if self._enable_callbacks:
+            for agent in self._negotiators:
+                agent.on_round_end(state)
+        self._add_to_history(state4history)
+        self._step += 1
+        self.on_negotiation_end()
+        return state
 
     @classmethod
     def runall(
-        cls, mechanisms: list["Mechanism"], keep_order=True, method="serial"
+        cls, mechanisms: list[Mechanism], keep_order=True, method="serial"
     ) -> list[MechanismState | None]:
         """
         Runs all mechanisms
@@ -911,7 +991,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     @classmethod
     def stepall(
-        cls, mechanisms: list["Mechanism"], keep_order=True
+        cls, mechanisms: list[Mechanism], keep_order=True
     ) -> list[MechanismState]:
         """
         Step all mechanisms
@@ -953,44 +1033,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                     break
         return self.state
 
-    def on_mechanism_error(self) -> None:
-        """
-        Called when there is a mechanism error
-
-        Remarks:
-            - When overriding this function you **MUST** call the base class version
-        """
-        state = self.state
-        if self._enable_callbacks:
-            for a in self.negotiators:
-                a.on_mechanism_error(state)
-
-    def on_negotiation_end(self) -> None:
-        """
-        Called at the end of each negotiation.
-
-        Remarks:
-            - When overriding this function you **MUST** call the base class version
-        """
-        state = self.state
-        for a in self.negotiators:
-            a._on_negotiation_end(state)
-        self.announce(
-            Event(
-                type="negotiation_end",
-                data={
-                    "agreement": self.agreement,
-                    "state": state,
-                    "annotation": self.nmi.annotation,
-                },
-            )
-        )
-        self.checkpoint_final_step()
-
-    def on_negotiation_start(self) -> bool:
-        """Called before starting the negotiation. If it returns False then negotiation will end immediately"""
-        return True
-
     @property
     def history(self):
         return self._history
@@ -1003,29 +1045,11 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def current_step(self):
         return self._step
 
-    @property
-    def state(self):
-        """Returns the current state. Override `extra_state` if you want to keep extra state"""
-        d = dict(
-            running=self._running,
-            step=self._step,
-            time=self.time,
-            relative_time=self.relative_time,
-            broken=self._broken,
-            timedout=self._timedout,
-            started=self._started,
-            agreement=self._agreement,
-            n_negotiators=len(self.negotiators),
-            has_error=self._error,
-            error_details=self._error_details,
-            waiting=self._waiting,
-        )
-        d2 = self.extra_state()
-        if d2:
-            d.update(d2)
-        return self._state_factory(
-            **d,
-        )
+    def _get_preferencess(self):
+        preferences = []
+        for a in self.negotiators:
+            preferences.append(a.preferences)
+        return preferences
 
     def pareto_frontier(
         self, max_cardinality=None, sort_by_welfare=True
@@ -1053,46 +1077,24 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         ufuns = self._get_preferencess()
         if not frontier:
             frontier, _ = self.pareto_frontier(max_cardinality)
-        outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
+        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
         nash_utils, indx = nash_point(ufuns, frontier, outcomes=outcomes)
         if not nash_utils or indx is None:
             raise ValueError("Cannot find the nash-point")
         return nash_utils, frontier[indx]
+
+    def plot(self, **kwargs):
+        """A method for plotting a negotiation session"""
+
+    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
+        warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
+        return self.nmi
+
+    def __iter__(self):
+        return self
 
     def __str__(self):
         d = self.__dict__.copy()
         return pprint.pformat(d)
 
     __repr__ = __str__
-
-    def _get_preferencess(self):
-        preferences = []
-        for a in self.negotiators:
-            preferences.append(a.preferences)
-        return preferences
-
-    def plot(self, **kwargs):
-        """A method for plotting a negotiation session"""
-
-    @abstractmethod
-    def round(self) -> MechanismRoundResult:
-        """Implements a single step of the mechanism. Override this!
-
-        Returns:
-            MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.
-
-        """
-        raise NotImplementedError(
-            "You must inherit from Mechanism and override its round() function"
-        )
-
-    def extra_state(self) -> Optional[dict[str, Any]]:
-        """Returns any extra state information to be kept in the `state` and `history` properties"""
-        return dict()
-
-    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
-        warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
-        return self.nmi
-
-    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
-        return self.nmi
