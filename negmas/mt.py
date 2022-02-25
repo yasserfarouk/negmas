@@ -20,7 +20,7 @@ __all__ = [
 class MTState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    current_offers: List[Optional[Outcome]] = field(default_factory=list)
+    current_offers: list[Outcome | None] = field(default_factory=list)
 
 
 class VetoMTMechanism(Mechanism):
@@ -49,8 +49,8 @@ class VetoMTMechanism(Mechanism):
         epsilon: float = 1e-6,
         n_texts: int = 10,
         initial_outcomes: list[Outcome | None] | None = None,
-        initial_responses: Tuple[Tuple[bool]] = None,
-        **kwargs
+        initial_responses: tuple[tuple[bool]] = None,
+        **kwargs,
     ):
         kwargs["state_factory"] = MTState
         super().__init__(*args, **kwargs)
@@ -79,7 +79,7 @@ class VetoMTMechanism(Mechanism):
             current_offers=deepcopy(self.current_offers),
         )
 
-    def next_outcome(self, outcome: Optional[Outcome]) -> Optional[Outcome]:
+    def next_outcome(self, outcome: Outcome | None) -> Outcome | None:
         """Generate the next outcome given some outcome.
 
         Args:

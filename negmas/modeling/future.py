@@ -19,7 +19,7 @@ class FutureUtilityRegressor:
         self.regressor = regressor_factory(**kwargs)
         self.inverse_regressor = regressor_factory(**kwargs)
 
-    def fit(self, times, utils) -> "FutureUtilityRegressor":
+    def fit(self, times, utils) -> FutureUtilityRegressor:
         times, utils = np.array(times), np.array(utils)
         times = times.flatten().reshape((len(times), 1))
         utils = utils.flatten().reshape((len(utils), 1))

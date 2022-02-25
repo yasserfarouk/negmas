@@ -198,7 +198,7 @@ class BestOfferSelector(OfferSelector):
             return None
         if not outcomes:
             return None
-        return sorted([(self._negotiator.ufun(_), _) for _ in outcomes], reverse=True)[
+        return sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=True)[
             0
         ][1]
 
@@ -220,7 +220,7 @@ class MedianOfferSelector(OfferSelector):
         if not outcomes:
             return None
         ordered = sorted(
-            [(self._negotiator.ufun(_), _) for _ in outcomes], reverse=False
+            ((self._negotiator.ufun(_), _) for _ in outcomes), reverse=False
         )
         return ordered[len(ordered) // 2][1]
 
@@ -241,7 +241,7 @@ class WorstOfferSelector(OfferSelector):
             return None
         if not outcomes:
             return None
-        return sorted([(self._negotiator.ufun(_), _) for _ in outcomes], reverse=False)[
+        return sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=False)[
             0
         ][1]
 

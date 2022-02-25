@@ -18,7 +18,7 @@ def make_boa(
     model: Model | None = None,
     extra_components: list[SAOComponent] | None = None,
     extra_component_names: list[str] | None = None,
-    **kwargs
+    **kwargs,
 ):
     """
     A negotiator that is  constructed from three components:
@@ -40,7 +40,7 @@ def make_boa(
         extra_components=extra_components,
         extra_component_names=extra_component_names,
         type_name="BOANegotiator",
-        **kwargs
+        **kwargs,
     )
 
 
@@ -64,7 +64,7 @@ class BOANegotiator(MAPNegotiator):
         model: Model | None = None,
         extra_components: list[SAOComponent] | None = None,
         extra_component_names: list[str] | None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             acceptance=acceptance,
@@ -74,5 +74,5 @@ class BOANegotiator(MAPNegotiator):
             extra_components=extra_components,
             extra_component_names=extra_component_names,
             type_name="BOANegotiator",
-            **kwargs
+            **kwargs,
         )

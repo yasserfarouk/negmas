@@ -54,6 +54,10 @@ class KindConcessionRecommender(ConcessionRecommender):
     def set_inverter(self, inverter: UtilityInverter | None) -> None:
         self.inverter = inverter
 
+    def set_negotiator(self, negotiator: SAONegotiator) -> None:
+        super().set_negotiator(negotiator)
+        self._did_my_kindness = False
+
     def __call__(self, partner_concession: Value, state: SAOState) -> float:
         """
         Returns an estimate of the concession to be made given the partner_concession
@@ -89,7 +93,3 @@ class KindConcessionRecommender(ConcessionRecommender):
                 break
             i += 1
         return concession
-
-    def set_negotiator(self, negotiator: SAONegotiator) -> None:
-        super().set_negotiator(negotiator)
-        self._did_my_kindness = False

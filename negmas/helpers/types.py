@@ -39,7 +39,7 @@ class ReturnCause(Enum):
     FAILURE = 2
 
 
-def get_full_type_name(t: Union[Type[Any], Callable, str]) -> str:
+def get_full_type_name(t: type[Any] | Callable | str) -> str:
     """
     Gets the ful typename of a type. You *should not* pass an instance to this function but it may just work.
 
@@ -70,11 +70,11 @@ def import_by_name(full_name: str) -> Any:
 
 
 def get_class(
-    class_name: Union[str, Type],
+    class_name: str | type,
     module_name: str = None,
     scope: dict = None,
     allow_nonstandard_names=False,
-) -> Type:
+) -> type:
     """Imports and creates a class object for the given class name"""
     if not isinstance(class_name, str):
         return class_name
@@ -104,7 +104,7 @@ def get_class(
 
 
 def instantiate(
-    class_name: Union[str, Type], module_name: str = None, scope: dict = None, **kwargs
+    class_name: str | type, module_name: str = None, scope: dict = None, **kwargs
 ) -> Any:
     """Imports and instantiates an object of a class"""
     return get_class(class_name, module_name)(**kwargs)

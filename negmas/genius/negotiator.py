@@ -64,13 +64,13 @@ class GeniusNegotiator(SAONegotiator):
 
     def __init__(
         self,
-        preferences: Optional[UtilityFunction] = None,
+        preferences: UtilityFunction | None = None,
         name: str = None,
         parent: Controller = None,
-        owner: "Agent" = None,  # type: ignore
+        owner: Agent = None,  # type: ignore
         java_class_name: str = None,
-        domain_file_name: Union[str, pathlib.Path] = None,
-        utility_file_name: Union[str, pathlib.Path] = None,
+        domain_file_name: str | pathlib.Path = None,
+        utility_file_name: str | pathlib.Path = None,
         can_propose=True,
         auto_load_java: bool = True,
         port: int = DEFAULT_JAVA_PORT,
@@ -132,6 +132,10 @@ class GeniusNegotiator(SAONegotiator):
         self.connected = False
 
     @property
+    def is_connected(self):
+        return self.connected and self.java is not None
+
+    @property
     def port(self):
         # if a port was not specified then we just set any random empty port to be used
         if not self.is_connected and self._port <= 0:
@@ -143,14 +147,14 @@ class GeniusNegotiator(SAONegotiator):
         self._port = port
 
     @classmethod
-    def robust_negotiators(cls) -> List[str]:
+    def robust_negotiators(cls) -> list[str]:
         """
         Returns a list of genius agents that were tested and seem to be robustly working with negmas
         """
         return TESTED_NEGOTIATORS
 
     @classmethod
-    def negotiators(cls, agent_based=True, party_based=True) -> List[str]:
+    def negotiators(cls, agent_based=True, party_based=True) -> list[str]:
         """
         Returns a list of all available agents in genius 8.4.0
 
@@ -188,7 +192,7 @@ class GeniusNegotiator(SAONegotiator):
         auto_load_java: bool = False,
         can_propose=True,
         name: str = None,
-    ) -> "GeniusNegotiator":
+    ) -> GeniusNegotiator:
         """
         Returns an agent with a random class name
 
@@ -218,10 +222,6 @@ class GeniusNegotiator(SAONegotiator):
             can_propose=can_propose,
             name=name,
         )
-
-    @property
-    def is_connected(self):
-        return self.connected and self.java is not None
 
     def _create(self):
         """Creates the corresponding java agent"""
@@ -318,6 +318,20 @@ class GeniusNegotiator(SAONegotiator):
             utility_file.close()
             self._temp_preferences_file = True
         return result
+
+    def _outcome2str(self, outcome):
+        output = ""
+        if not self.issue_names:
+            nmi = self.nmi
+            if not nmi:
+                raise ValueError("Cannot send outcome to java without an NMI")
+            self.issue_names = [_.name for _ in nmi.cartesian_outcome_space.issues]
+        outcome_dict = dict(zip(self.issue_names, outcome))
+        for i, v in outcome_dict.items():
+            # todo check that the order here will be correct!!
+            output += f"{i}{INTERNAL_SEP}{v}{ENTRY_SEP}"
+        output = output[: -len(ENTRY_SEP)]
+        return output
 
     def destroy_java_counterpart(self, state=None) -> None:
         if self.__started and not self.__destroyed:
@@ -472,7 +486,7 @@ class GeniusNegotiator(SAONegotiator):
             pass
 
     @property
-    def relative_time(self) -> Optional[float]:
+    def relative_time(self) -> float | None:
         if self.nmi is None or not self.nmi.state.started:
             return 0
         if self.nmi is not None and self.nmi.state.ended:
@@ -491,49 +505,7 @@ class GeniusNegotiator(SAONegotiator):
             f"Agent {self.name} (jid: {self.java_uuid}) of type {self.java_class_name}"
         )
 
-    def counter(self, state: SAOState, offer: Optional["Outcome"]):
-        if offer is None and self._my_last_offer is not None and self._strict:
-            raise ValueError(f"{self._me()} got counter with a None offer.")
-        if offer is not None:
-            received = self.java.receive_message(  # type: ignore
-                self.java_uuid,
-                state.current_proposer,
-                "Offer",
-                self._outcome2str(offer),
-                state.step,
-            )
-            if self._strict and received == FAILED:
-                raise ValueError(
-                    f"{self._me()} failed to receive message in step {state.step}"
-                )
-        response, outcome = self.parse(
-            self.java.choose_action(self.java_uuid, state.step)  # type: ignore
-        )
-        if response is None or (
-            self._strict
-            and (
-                response
-                not in (
-                    ResponseType.REJECT_OFFER,
-                    ResponseType.ACCEPT_OFFER,
-                    ResponseType.END_NEGOTIATION,
-                )
-                or (response == ResponseType.REJECT_OFFER and outcome is None)
-            )
-        ):
-            raise ValueError(
-                f"{self._me()} returned a None counter offer in step {state.step}"
-            )
-
-        self._my_last_offer = outcome
-        return SAOResponse(response, outcome)
-
-    def propose(self, state):
-        raise ValueError(
-            f"{self._me()}: propose should never be called directly on GeniusNegotiator"
-        )
-
-    def parse(self, action: str) -> Tuple[ResponseType, Optional["Outcome"]]:
+    def parse(self, action: str) -> tuple[ResponseType, Outcome | None]:
         """
         Parses an action into a ResponseType and an Outcome (if one is included)
         Args:
@@ -607,19 +579,47 @@ class GeniusNegotiator(SAONegotiator):
             )
         return response, tuple(outcome) if outcome else None
 
-    def _outcome2str(self, outcome):
-        output = ""
-        if not self.issue_names:
-            nmi = self.nmi
-            if not nmi:
-                raise ValueError("Cannot send outcome to java without an NMI")
-            self.issue_names = [_.name for _ in nmi.cartesian_outcome_space.issues]
-        outcome_dict = dict(zip(self.issue_names, outcome))
-        for i, v in outcome_dict.items():
-            # todo check that the order here will be correct!!
-            output += f"{i}{INTERNAL_SEP}{v}{ENTRY_SEP}"
-        output = output[: -len(ENTRY_SEP)]
-        return output
+    def counter(self, state: SAOState, offer: Outcome | None):
+        if offer is None and self._my_last_offer is not None and self._strict:
+            raise ValueError(f"{self._me()} got counter with a None offer.")
+        if offer is not None:
+            received = self.java.receive_message(  # type: ignore
+                self.java_uuid,
+                state.current_proposer,
+                "Offer",
+                self._outcome2str(offer),
+                state.step,
+            )
+            if self._strict and received == FAILED:
+                raise ValueError(
+                    f"{self._me()} failed to receive message in step {state.step}"
+                )
+        response, outcome = self.parse(
+            self.java.choose_action(self.java_uuid, state.step)  # type: ignore
+        )
+        if response is None or (
+            self._strict
+            and (
+                response
+                not in (
+                    ResponseType.REJECT_OFFER,
+                    ResponseType.ACCEPT_OFFER,
+                    ResponseType.END_NEGOTIATION,
+                )
+                or (response == ResponseType.REJECT_OFFER and outcome is None)
+            )
+        ):
+            raise ValueError(
+                f"{self._me()} returned a None counter offer in step {state.step}"
+            )
+
+        self._my_last_offer = outcome
+        return SAOResponse(response, outcome)
+
+    def propose(self, state):
+        raise ValueError(
+            f"{self._me()}: propose should never be called directly on GeniusNegotiator"
+        )
 
     def __str__(self):
         name = super().__str__().split("/")

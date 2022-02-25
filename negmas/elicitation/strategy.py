@@ -56,56 +56,7 @@ class EStrategy:
             "dpingpong{f}",
         ]
 
-    def apply(
-        self, user: "User", outcome: "Outcome"
-    ) -> Tuple[Optional[Value], Optional["QResponse"]]:
-        """Do the elicitation and incur the cost.
-
-        Remarks:
-
-            - This function returns a uniform distribution whenever it returns a distribution
-            - Can return `None` which indicates that elicitation failed
-            - If it could find an exact value, it will return a `float` not a `Distribution`
-
-        """
-
-        lower, upper, _ = self.lower, self.upper, self.outcomes
-        index = self.indices[outcome]
-        lower, upper = lower[index], upper[index]
-        epsilon = self.resolution
-
-        if abs(upper - lower) < epsilon:
-            return (upper + lower) / 2, None
-
-        if self.stop_at_cost and abs(upper - lower) < 2 * user.cost:
-            return (upper + lower) / 2, None
-
-        reply = None
-        query = self.next_query(outcome=outcome)
-        if query is not None:
-            reply = user.ask(query)
-            if reply is None or reply.answer is None:
-                return (
-                    ScipyDistribution(type="uniform", loc=lower, scale=upper - lower),
-                    None,
-                )
-            lower_new, upper_new = (
-                reply.answer.constraint.range[0],
-                reply.answer.constraint.range[1],
-            )
-            if abs(upper_new - lower_new) >= abs(upper - lower):
-                upper_new = lower_new = (upper_new + lower_new) / 2
-            self.lower[index], self.upper[index] = lower_new, upper_new
-            lower, upper = lower_new, upper_new
-        if self.strategy == "exact":
-            u = user.ufun(outcome)
-        elif abs(upper - lower) < epsilon or query is None:
-            u = (upper + lower) / 2
-        else:
-            u = ScipyDistribution(type="uniform", loc=lower, scale=upper - lower)
-        return u, reply
-
-    def next_query(self, outcome: "Outcome") -> Optional[Query]:
+    def next_query(self, outcome: Outcome) -> Query | None:
         lower, upper, outcomes = self.lower, self.upper, self.outcomes
         index = self.indices[outcome]
         lower, upper = lower[index], upper[index]
@@ -256,7 +207,56 @@ class EStrategy:
 
         return query
 
-    def utility_estimate(self, outcome: "Outcome") -> Value:
+    def apply(
+        self, user: User, outcome: Outcome
+    ) -> tuple[Value | None, QResponse | None]:
+        """Do the elicitation and incur the cost.
+
+        Remarks:
+
+            - This function returns a uniform distribution whenever it returns a distribution
+            - Can return `None` which indicates that elicitation failed
+            - If it could find an exact value, it will return a `float` not a `Distribution`
+
+        """
+
+        lower, upper, _ = self.lower, self.upper, self.outcomes
+        index = self.indices[outcome]
+        lower, upper = lower[index], upper[index]
+        epsilon = self.resolution
+
+        if abs(upper - lower) < epsilon:
+            return (upper + lower) / 2, None
+
+        if self.stop_at_cost and abs(upper - lower) < 2 * user.cost:
+            return (upper + lower) / 2, None
+
+        reply = None
+        query = self.next_query(outcome=outcome)
+        if query is not None:
+            reply = user.ask(query)
+            if reply is None or reply.answer is None:
+                return (
+                    ScipyDistribution(type="uniform", loc=lower, scale=upper - lower),
+                    None,
+                )
+            lower_new, upper_new = (
+                reply.answer.constraint.range[0],
+                reply.answer.constraint.range[1],
+            )
+            if abs(upper_new - lower_new) >= abs(upper - lower):
+                upper_new = lower_new = (upper_new + lower_new) / 2
+            self.lower[index], self.upper[index] = lower_new, upper_new
+            lower, upper = lower_new, upper_new
+        if self.strategy == "exact":
+            u = user.ufun(outcome)
+        elif abs(upper - lower) < epsilon or query is None:
+            u = (upper + lower) / 2
+        else:
+            u = ScipyDistribution(type="uniform", loc=lower, scale=upper - lower)
+        return u, reply
+
+    def utility_estimate(self, outcome: Outcome) -> Value:
         """Gets a probability distribution of the Negotiator for this outcome without elicitation. Costs nothing"""
         indx = self.indices[outcome]
         scale = self.upper[indx] - self.lower[indx]
@@ -266,9 +266,9 @@ class EStrategy:
 
     def until(
         self,
-        outcome: "Outcome",
-        user: "User",
-        dist: Union[List[Value], Value],
+        outcome: Outcome,
+        user: User,
+        dist: list[Value] | Value,
     ) -> Value:
         if isinstance(dist, list):
             targets = [

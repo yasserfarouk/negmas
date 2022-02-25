@@ -51,8 +51,8 @@ class Negotiator(Rational, Notifiable, ABC):
         name: str = None,
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
-        parent: "Controller" = None,
-        owner: "Agent" = None,
+        parent: Controller = None,
+        owner: Agent = None,
         id: str = None,
         type_name: str = None,
     ) -> None:
@@ -92,6 +92,12 @@ class Negotiator(Rational, Notifiable, ABC):
         """Sets the owner"""
         self.__owner = owner
 
+    def _set_pref_os(self):
+        if self.nmi and self._preferences:
+            self.__saved_pref_os = self._preferences.outcome_space
+            self.__saved_prefs = self._preferences
+            self._preferences.outcome_space = self.nmi.outcome_space
+
     def set_preferences(self, value: Preferences, force=False) -> Preferences | None:
         if self._nmi is None:
             self._preferences = value
@@ -109,18 +115,12 @@ class Negotiator(Rational, Notifiable, ABC):
             self.__saved_prefs.outcome_space = self.__saved_pref_os
             self.__saved_prefs = None
 
-    def _set_pref_os(self):
-        if self.nmi and self._preferences:
-            self.__saved_pref_os = self._preferences.outcome_space
-            self.__saved_prefs = self._preferences
-            self._preferences.outcome_space = self.nmi.outcome_space
-
     @property
     def parent(self) -> Controller | None:
         """Returns the parent controller"""
         return self.__parent
 
-    def before_death(self, cntxt: Dict[str, Any]) -> bool:
+    def before_death(self, cntxt: dict[str, Any]) -> bool:
         """
         Called whenever the parent is about to kill this negotiator.
 
@@ -135,7 +135,7 @@ class Negotiator(Rational, Notifiable, ABC):
         self._preferences = self._init_preferences
         self._role = None
 
-    def is_acceptable_as_agreement(self, outcome: "Outcome") -> bool:
+    def is_acceptable_as_agreement(self, outcome: Outcome) -> bool:
         """
         Whether the given outcome is acceptable as a final agreement of a negotiation.
 
@@ -153,7 +153,7 @@ class Negotiator(Rational, Notifiable, ABC):
             return False
         return self.ufun(outcome) >= self.reserved_value
 
-    def isin(self, negotiation_id: Optional[str]) -> bool:
+    def isin(self, negotiation_id: str | None) -> bool:
         """
         Is that agent participating in the given negotiation?
         Tests if the agent is participating in the given negotiation.
@@ -173,7 +173,7 @@ class Negotiator(Rational, Notifiable, ABC):
         return self.nmi.id == negotiation_id
 
     @property
-    def capabilities(self) -> Dict[str, Any]:
+    def capabilities(self) -> dict[str, Any]:
         """Agent capabilities"""
         return self._capabilities
 
@@ -262,15 +262,6 @@ class Negotiator(Rational, Notifiable, ABC):
             self._preferences = preferences
         return True
 
-    def _on_negotiation_start(self, state: MechanismState) -> None:
-        """
-        Internally called by the mechanism when the negotiation is about to start
-        """
-        if self._preferences:
-            self._set_pref_os()
-            super().set_preferences(self._preferences, force=True)
-        self.on_negotiation_start(state)
-
     def on_negotiation_start(self, state: MechanismState) -> None:
         """
         A call back called at each negotiation start
@@ -286,6 +277,15 @@ class Negotiator(Rational, Notifiable, ABC):
             - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
 
         """
+
+    def _on_negotiation_start(self, state: MechanismState) -> None:
+        """
+        Internally called by the mechanism when the negotiation is about to start
+        """
+        if self._preferences:
+            self._set_pref_os()
+            super().set_preferences(self._preferences, force=True)
+        self.on_negotiation_start(state)
 
     def on_round_start(self, state: MechanismState) -> None:
         """
@@ -342,6 +342,20 @@ class Negotiator(Rational, Notifiable, ABC):
         """
         self._dissociate()
 
+    def on_negotiation_end(self, state: MechanismState) -> None:
+        """
+        A call back called at each negotiation end
+
+        Args:
+            state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
+
+        Remarks:
+            - The default behavior is to do nothing.
+            - Override this to hook some action
+            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
+
+        """
+
     def _on_negotiation_end(self, state: MechanismState) -> None:
         """
         A call back called at each negotiation end
@@ -357,20 +371,6 @@ class Negotiator(Rational, Notifiable, ABC):
         """
         self.on_negotiation_end(state)
         self._reset_pref_os()
-
-    def on_negotiation_end(self, state: MechanismState) -> None:
-        """
-        A call back called at each negotiation end
-
-        Args:
-            state: `MechanismState` or one of its descendants giving the state at which the negotiation ended.
-
-        Remarks:
-            - The default behavior is to do nothing.
-            - Override this to hook some action
-            - `on_negotiation_start` and `on_negotiation_end` will always be called once for every agent.
-
-        """
 
     def on_notification(self, notification: Notification, notifier: str):
         """

@@ -63,14 +63,14 @@ class Controller(Rational):
 
     def __init__(
         self,
-        default_negotiator_type: Union[str, Type[ControlledNegotiator]] = None,
-        default_negotiator_params: Dict[str, Any] = None,
-        parent: Union["Controller", "Agent"] = None,
+        default_negotiator_type: str | type[ControlledNegotiator] = None,
+        default_negotiator_params: dict[str, Any] = None,
+        parent: Controller | Agent = None,
         auto_kill: bool = True,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._negotiators: Dict[str, NegotiatorInfo] = {}
+        self._negotiators: dict[str, NegotiatorInfo] = {}
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
@@ -81,7 +81,7 @@ class Controller(Rational):
         self._auto_kill = auto_kill
 
     @property
-    def negotiators(self) -> Dict[str, NegotiatorInfo]:
+    def negotiators(self) -> dict[str, NegotiatorInfo]:
         """
         Returns a dictionary mapping negotiator ID to the a tuple containing
         the negotiator and its context.
@@ -89,7 +89,7 @@ class Controller(Rational):
         return self._negotiators
 
     @property
-    def active_negotiators(self) -> Dict[str, NegotiatorInfo]:
+    def active_negotiators(self) -> dict[str, NegotiatorInfo]:
         """
         Returns the negotiators whose negotiations are running.
 
@@ -104,7 +104,7 @@ class Controller(Rational):
         }
 
     @property
-    def states(self) -> Dict[str, MechanismState]:
+    def states(self) -> dict[str, MechanismState]:
         """
         Gets the current states of all negotiations as a mapping from negotiator ID to mechanism.
         """
@@ -114,31 +114,6 @@ class Controller(Rational):
                 (self._negotiators[k][0]._nmi.state for k in self._negotiators.keys()),
             )
         )
-
-    def create_negotiator(
-        self,
-        negotiator_type: str | ControlledNegotiatorType | None = None,
-        name: str = None,
-        cntxt: Any = None,
-        **kwargs,
-    ) -> ControlledNegotiatorType:
-        """
-        Creates a negotiator passing it the context
-
-        Args:
-            negotiator_type: Type of the negotiator to be created
-            name: negotiator name
-            cntxt: The context to be associated with this negotiator.
-            **kwargs: any key-value pairs to be passed to the negotiator constructor
-
-        Returns:
-
-            The negotiator to be controlled. None for failure
-
-        """
-        new_negotiator = self.make_negotiator(negotiator_type, name, **kwargs)
-        self.add_negotiator(new_negotiator)
-        return new_negotiator
 
     def make_negotiator(
         self,
@@ -192,6 +167,31 @@ class Controller(Rational):
         if negotiator is not None:
             self._negotiators[negotiator.id] = NegotiatorInfo(negotiator, cntxt)
 
+    def create_negotiator(
+        self,
+        negotiator_type: str | ControlledNegotiatorType | None = None,
+        name: str = None,
+        cntxt: Any = None,
+        **kwargs,
+    ) -> ControlledNegotiatorType:
+        """
+        Creates a negotiator passing it the context
+
+        Args:
+            negotiator_type: Type of the negotiator to be created
+            name: negotiator name
+            cntxt: The context to be associated with this negotiator.
+            **kwargs: any key-value pairs to be passed to the negotiator constructor
+
+        Returns:
+
+            The negotiator to be controlled. None for failure
+
+        """
+        new_negotiator = self.make_negotiator(negotiator_type, name, **kwargs)
+        self.add_negotiator(new_negotiator)
+        return new_negotiator
+
     def call(self, negotiator: ControlledNegotiator, method: str, *args, **kwargs):
         """
         Calls the given method on the given negotiator safely without causing
@@ -234,7 +234,7 @@ class Controller(Rational):
             negotiator._Negotiator__parent = None
             self._negotiators.pop(negotiator_id, None)
 
-    def partner_negotiator_ids(self, negotiator_id: str) -> Optional[List[str]]:
+    def partner_negotiator_ids(self, negotiator_id: str) -> list[str] | None:
         """
         Finds the negotiator ID negotiating with one of our negotiators.
 
@@ -247,7 +247,7 @@ class Controller(Rational):
             return None
         return [_ for _ in negotiator.nmi.negotiator_ids if _ != negotiator_id]
 
-    def partner_negotiator_names(self, negotiator_id: str) -> Optional[List[str]]:
+    def partner_negotiator_names(self, negotiator_id: str) -> list[str] | None:
         """
         Finds the negotiator names negotiating with one of our negotiators.
 
@@ -260,7 +260,7 @@ class Controller(Rational):
             return None
         return [_ for _ in negotiator.nmi.negotiator_names if _ != negotiator.name]
 
-    def partner_agent_ids(self, negotiator_id: str) -> Optional[List[str]]:
+    def partner_agent_ids(self, negotiator_id: str) -> list[str] | None:
         """
         Finds the agent ID negotiating with one of our negotiators.
 
@@ -274,7 +274,7 @@ class Controller(Rational):
         me = negotiator.owner.id if negotiator.owner else ""
         return [_ for _ in negotiator.nmi.agent_ids if _ and _ != me]
 
-    def partner_agent_names(self, negotiator_id: str) -> Optional[List[str]]:
+    def partner_agent_names(self, negotiator_id: str) -> list[str] | None:
         """
         Finds the negotiator names negotiating with one of our negotiators.
 
@@ -294,7 +294,7 @@ class Controller(Rational):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Preferences | None = None,
         role: str = "negotiator",
     ) -> bool:
         """
@@ -320,7 +320,7 @@ class Controller(Rational):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Preferences | None = None,
         role: str = "negotiator",
     ) -> None:
         """
@@ -341,8 +341,8 @@ class Controller(Rational):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
-        ufun: Optional["BaseUtilityFunction"] = None,
+        preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
         """

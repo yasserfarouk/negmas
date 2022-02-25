@@ -49,6 +49,9 @@ class TFTOfferingStrategy(OfferingStrategy):
     stochastic: bool = False
     _partner_offer: Outcome | None = field(init=False, default=None)
 
+    def before_responding(self, state: SAOState, offer: Outcome | None):
+        self._partner_offer = offer
+
     def __call__(self, state):
         if not self.negotiator or not self.negotiator.ufun:
             return None
@@ -75,9 +78,6 @@ class TFTOfferingStrategy(OfferingStrategy):
         return self.negotiator.ufun.invert().worst_in(
             (target_utility, 1.0), normalized=True
         )
-
-    def before_responding(self, state: SAOState, offer: Outcome | None):
-        self._partner_offer = offer
 
 
 @define

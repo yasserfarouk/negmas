@@ -48,6 +48,12 @@ class TimeoutCaller:
     pool = None
 
     @classmethod
+    def get_pool(cls):
+        if cls.pool is None:
+            cls.pool = ThreadPoolExecutor()
+        return cls.pool
+
+    @classmethod
     def run(cls, to_run, timeout: float):
         if is_single_thread():
             return to_run()
@@ -59,12 +65,6 @@ class TimeoutCaller:
         except TimeoutError as s:
             future.cancel()
             raise s
-
-    @classmethod
-    def get_pool(cls):
-        if cls.pool is None:
-            cls.pool = ThreadPoolExecutor()
-        return cls.pool
 
     @classmethod
     def cleanup(cls):

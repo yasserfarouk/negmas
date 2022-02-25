@@ -38,11 +38,11 @@ def neg_config_generator(
     domains: Generator[NegDomain, None, None],
     n_agents_per_competitor: int = 1,
     agent_names_reveal_type: bool = False,
-    non_competitors: Optional[Tuple[Union[str, NegAgent]]] = None,
-    non_competitor_params: Optional[Tuple[Dict[str, Any]]] = None,
+    non_competitors: tuple[str | NegAgent] | None = None,
+    non_competitor_params: tuple[dict[str, Any]] | None = None,
     compact: bool = False,
     **kwargs,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Used internally to generate the configuration of a world.
 
@@ -89,16 +89,16 @@ def neg_config_generator(
 
 
 def neg_config_assigner(
-    config: List[Dict[str, Any]],
+    config: list[dict[str, Any]],
     max_n_worlds: int = 1,
     n_agents_per_competitor: int = 1,
     fair: bool = True,
-    competitors: Sequence[Union[Type[Negotiator], Type[Agent]]] = (),
-    params: Sequence[Dict[str, Any]] = (),
-    dynamic_non_competitors: Optional[List[Type[Agent]]] = None,
-    dynamic_non_competitor_params: Optional[List[Dict[str, Any]]] = None,
+    competitors: Sequence[type[Negotiator] | type[Agent]] = (),
+    params: Sequence[dict[str, Any]] = (),
+    dynamic_non_competitors: list[type[Agent]] | None = None,
+    dynamic_non_competitor_params: list[dict[str, Any]] | None = None,
     exclude_competitors_from_reassignment: bool = True,
-) -> List[List[Dict[str, Any]]]:
+) -> list[list[dict[str, Any]]]:
     """
     Assigns agents to the world configuration.
 
@@ -128,8 +128,8 @@ def neg_world_generator(**kwargs):
 
 
 def neg_score_calculator(
-    worlds: List[NegWorld],
-    scoring_context: Dict[str, Any],
+    worlds: list[NegWorld],
+    scoring_context: dict[str, Any],
     dry_run: bool,
     scoring_method: str = "received_utility",
 ) -> WorldRunResults:
@@ -198,9 +198,9 @@ def _update_kwargs(kwargs, domains, competitors):
 
 
 def create_neg_tournament(
-    competitors: Sequence[Union[str, Type[Agent]]],
+    competitors: Sequence[str | type[Agent]],
     domains: Generator[NegDomain, None, None],
-    competitor_params: Optional[Sequence[Optional[dict]]] = None,
+    competitor_params: Sequence[dict | None] | None = None,
     **kwargs,
 ) -> PathLike:
     """
@@ -246,11 +246,11 @@ def create_neg_tournament(
 
 
 def neg_tournament(
-    competitors: Sequence[Union[str, Type[Agent], Type[Negotiator]]],
+    competitors: Sequence[str | type[Agent] | type[Negotiator]],
     domains: Generator[NegDomain, None, None],
-    competitor_params: Optional[Sequence[Optional[dict]]] = None,
+    competitor_params: Sequence[dict | None] | None = None,
     **kwargs,
-) -> Union[TournamentResults, PathLike]:
+) -> TournamentResults | PathLike:
     """
     Runs a tournament
 
@@ -306,13 +306,13 @@ def neg_tournament(
 
 
 def random_discrete_domains(
-    issues: List[Union[Issue, Union[int, Tuple[int, int]]]],
-    partners: List[Negotiator],
+    issues: list[Issue | int | tuple[int, int]],
+    partners: list[Negotiator],
     n_negotiators=2,
-    positions: Union[int, Tuple[int, int]] = None,
+    positions: int | tuple[int, int] = None,
     normalized=True,
     ufun_type=LinearUtilityFunction,
-    roles: Optional[List[str]] = None,
+    roles: list[str] | None = None,
     partner_extraction_method="round-robin",
 ) -> Generator[NegDomain, None, None]:
     """
@@ -393,7 +393,7 @@ def random_discrete_domains(
                     )
 
 
-def domains_from_list(domains: List[NegDomain]):
+def domains_from_list(domains: list[NegDomain]):
     """
     Creats an appropriate `NegDomain` generator from a list/tuple of domains
     """

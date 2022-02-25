@@ -48,7 +48,7 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
             values = generate_values(values)
         else:
             values = list(values)
-        types = set(type(_) for _ in values)
+        types = {type(_) for _ in values}
         if len(types) == 1:
             type_ = list(types)[0]
         elif all(is_int_type(_) for _ in types):

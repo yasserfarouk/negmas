@@ -65,7 +65,7 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         d["mapping"] = deserialize(d["mapping"])
         return cls(**d)
 
-    def eval(self, offer: Optional[Outcome]) -> Optional[Distribution | float]:
+    def eval(self, offer: Outcome | None) -> Distribution | float | None:
         # noinspection PyBroadException
         if offer is None:
             return self.reserved_value
@@ -76,11 +76,8 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
 
         return m
 
-    def xml(self, issues: List[Issue]) -> str:
+    def xml(self, issues: list[Issue]) -> str:
         raise NotImplementedError(f"Cannot save ProbMappingUtilityFunction to xml")
-
-    def __str__(self) -> str:
-        return f"mapping: {self.mapping}\ndefault: {self.default}"
 
     @classmethod
     def random(
@@ -116,3 +113,6 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
             reserved_value=reserved_value[0]  # type: ignore
             + random.random() * (reserved_value[1] - reserved_value[0]),  # type: ignore
         )
+
+    def __str__(self) -> str:
+        return f"mapping: {self.mapping}\ndefault: {self.default}"

@@ -67,9 +67,6 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
 
     """
 
-    def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
-
     def __init__(
         self,
         values: dict[str, GenericMapping] | list[GenericMapping] | None,
@@ -97,6 +94,9 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
         self.values = values
         self.f = f
 
+    def xml(self, issues: list[Issue]) -> str:
+        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
+
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         return dict(
@@ -112,7 +112,7 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
             d[k] = deserialize(d.get(k, None))
         return cls(**d)
 
-    def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
+    def eval(self, offer: Outcome | None) -> float | None:
         if offer is None:
             return self.reserved_value
         if self.values is None:
@@ -194,7 +194,31 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
 
     """
 
-    def xml(self, issues: List[Issue]) -> str:
+    def adjust_params(self):
+        if self.weights is None:
+            self.weights = [1.0] * len(self.outcome_ranges)
+
+    def __init__(
+        self,
+        outcome_ranges: Iterable[OutcomeRange],
+        utilities: list[float] | list[OutcomeUtilityMapping],
+        weights: list[float] | None = None,
+        ignore_issues_not_in_input=False,
+        ignore_failing_range_utilities=False,
+        bias: float = 0.0,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.outcome_ranges = list(outcome_ranges)
+        self.mappings = list(utilities)
+        self.weights = list(weights) if weights else ([1.0] * len(self.outcome_ranges))
+        self.ignore_issues_not_in_input = ignore_issues_not_in_input
+        self.ignore_failing_range_utilities = ignore_failing_range_utilities
+        self.bias = bias
+        self.adjust_params()
+
+    def xml(self, issues: list[Issue]) -> str:
         """Represents the function as XML
 
         Args:
@@ -275,26 +299,6 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         output += "    </ufun>\n</utility_function>"
         return output
 
-    def __init__(
-        self,
-        outcome_ranges: Iterable[OutcomeRange],
-        utilities: Union[List[float], List[OutcomeUtilityMapping]],
-        weights: Optional[List[float]] = None,
-        ignore_issues_not_in_input=False,
-        ignore_failing_range_utilities=False,
-        bias: float = 0.0,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.outcome_ranges = list(outcome_ranges)
-        self.mappings = list(utilities)
-        self.weights = list(weights) if weights else ([1.0] * len(self.outcome_ranges))
-        self.ignore_issues_not_in_input = ignore_issues_not_in_input
-        self.ignore_failing_range_utilities = ignore_failing_range_utilities
-        self.bias = bias
-        self.adjust_params()
-
     def to_stationary(self):
         return self
 
@@ -329,11 +333,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
             d[k] = deserialize(d.get(k, None))
         return cls(**d)
 
-    def adjust_params(self):
-        if self.weights is None:
-            self.weights = [1.0] * len(self.outcome_ranges)
-
-    def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
+    def eval(self, offer: Outcome | None) -> float | None:
         if offer is None:
             return self.reserved_value
         u = self.bias
@@ -378,15 +378,12 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
            name: name of the utility function. If None a random name will be generated
     """
 
-    def xml(self, issues: List[Issue]) -> str:
-        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
-
     def __init__(
         self,
         hypervolumes: Iterable[OutcomeRange],
-        mappings: List[OutcomeUtilityMapping],
-        f: Callable[[List[float]], float],
-        name: Optional[str] = None,
+        mappings: list[OutcomeUtilityMapping],
+        f: Callable[[list[float]], float],
+        name: str | None = None,
         reserved_value: float = float("-inf"),
         id=None,
     ) -> None:
@@ -398,6 +395,9 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         self.hypervolumes = hypervolumes
         self.mappings = mappings
         self.f = f
+
+    def xml(self, issues: list[Issue]) -> str:
+        raise NotImplementedError(f"Cannot convert {self.__class__.__name__} to xml")
 
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
@@ -416,7 +416,7 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
             d[k] = deserialize(d.get(k, None))
         return cls(**d)
 
-    def eval(self, offer: Optional["Outcome"]) -> Optional[float]:
+    def eval(self, offer: Outcome | None) -> float | None:
         if offer is None:
             return self.reserved_value
         if not isinstance(self.hypervolumes, Iterable):

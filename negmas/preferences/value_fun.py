@@ -78,9 +78,6 @@ class BaseFun(ABC):
 class TableFun(BaseFun):
     d: dict
 
-    def __call__(self, x):
-        return self.d[x]
-
     @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
         return nonmonotonic_minmax(input, self)
@@ -117,14 +114,14 @@ class TableFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x):
+        return self.d[x]
+
 
 @define
 class AffineFun(BaseFun):
     slope: float
     bias: float = 0
-
-    def __call__(self, x: float):
-        return x * self.slope + self.bias
 
     @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
@@ -152,32 +149,13 @@ class AffineFun(BaseFun):
         output += "</issue>\n"
         return output
 
-
-@define
-class IdentityFun(BaseFun):
     def __call__(self, x: float):
-        return x
-
-    @lru_cache
-    def minmax(self, input: Issue) -> tuple[float, float]:
-        return (input.min_value, input.max_value)
-
-    def shift_by(self, offset: float) -> ConstFun:
-        return ConstFun(bias=offset)
-
-    def scale_by(self, scale: float) -> LinearFun:
-        return LinearFun(slope=scale)
-
-    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
-        return LinearFun(1.0).xml(indx, issue, bias)
+        return x * self.slope + self.bias
 
 
 @define
 class ConstFun(BaseFun):
     bias: float
-
-    def __call__(self, x: float):
-        return self.bias
 
     @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
@@ -192,6 +170,9 @@ class ConstFun(BaseFun):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         return AffineFun(0.0, self.bias).xml(indx, issue, bias)
 
+    def __call__(self, x: float):
+        return self.bias
+
 
 @define
 class LinearFun(BaseFun):
@@ -200,9 +181,6 @@ class LinearFun(BaseFun):
     @property
     def bias(sef):
         return 0.0
-
-    def __call__(self, x: float):
-        return x * self.slope
 
     @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
@@ -216,6 +194,28 @@ class LinearFun(BaseFun):
 
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         return AffineFun(self.slope, 0.0).xml(indx, issue, bias)
+
+    def __call__(self, x: float):
+        return x * self.slope
+
+
+@define
+class IdentityFun(BaseFun):
+    @lru_cache
+    def minmax(self, input: Issue) -> tuple[float, float]:
+        return (input.min_value, input.max_value)
+
+    def shift_by(self, offset: float) -> ConstFun:
+        return ConstFun(bias=offset)
+
+    def scale_by(self, scale: float) -> LinearFun:
+        return LinearFun(slope=scale)
+
+    def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
+        return LinearFun(1.0).xml(indx, issue, bias)
+
+    def __call__(self, x: float):
+        return x
 
 
 @define
@@ -231,9 +231,6 @@ class LambdaFun(BaseFun):
         if not is_lambda_function(self.f):
             f = self.f
             self.f = lambda x: f(x)
-
-    def __call__(self, x: Any) -> float:
-        return self.f(x) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -276,15 +273,15 @@ class LambdaFun(BaseFun):
             f"LambdaFun with a continuous issue cannot be converted to XML"
         )
 
+    def __call__(self, x: Any) -> float:
+        return self.f(x) + self.bias
+
 
 @define
 class QuadraticFun(BaseFun):
     a2: float
     a1: float
     bias: float = 0
-
-    def __call__(self, x: float):
-        return self.a2 * x * x + self.a1 * x + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -326,14 +323,14 @@ class QuadraticFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        return self.a2 * x * x + self.a1 * x + self.bias
+
 
 @define
 class PolynomialFun(BaseFun):
     a: tuple[float]
     bias: float = 0
-
-    def __call__(self, x: float):
-        return reduce(add, [b * pow(x, p + 1) for p, b in enumerate(self.a)], self.bias)
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -370,6 +367,9 @@ class PolynomialFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        return reduce(add, [b * pow(x, p + 1) for p, b in enumerate(self.a)], self.bias)
+
 
 @define
 class TriangularFun(BaseFun):
@@ -377,13 +377,6 @@ class TriangularFun(BaseFun):
     middle: float
     end: float
     bias: float = 0
-
-    def __call__(self, x: float):
-        bias1, slope1 = self.start, (self.middle - self.start)
-        bias2, slope2 = self.middle, (self.middle - self.end)
-        return self.bias + (
-            bias1 + slope1 * float(x) if x < self.middle else bias2 + slope2 * float(x)
-        )
 
     def shift_by(self, offset: float) -> TriangularFun:
         return TriangularFun(
@@ -421,15 +414,19 @@ class TriangularFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        bias1, slope1 = self.start, (self.middle - self.start)
+        bias2, slope2 = self.middle, (self.middle - self.end)
+        return self.bias + (
+            bias1 + slope1 * float(x) if x < self.middle else bias2 + slope2 * float(x)
+        )
+
 
 @define
 class ExponentialFun(BaseFun):
     tau: float
     bias: float = 0
     base: float = e
-
-    def __call__(self, x: float):
-        return pow(self.base, self.tau * x) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -460,6 +457,9 @@ class ExponentialFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        return pow(self.base, self.tau * x) + self.bias
+
 
 @define
 class CosFun(BaseFun):
@@ -467,9 +467,6 @@ class CosFun(BaseFun):
     bias: float = 0.0
     phase: float = 0.0
     amplitude: float = 1.0
-
-    def __call__(self, x: float):
-        return self.amplitude * (cos(self.multiplier * x + self.phase)) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -508,6 +505,9 @@ class CosFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        return self.amplitude * (cos(self.multiplier * x + self.phase)) + self.bias
+
 
 @define
 class SinFun(BaseFun):
@@ -515,9 +515,6 @@ class SinFun(BaseFun):
     bias: float = 0.0
     phase: float = 0.0
     amplitude: float = 1.0
-
-    def __call__(self, x: float):
-        return self.amplitude * (sin(self.multiplier * x + self.phase)) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -556,6 +553,9 @@ class SinFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        return self.amplitude * (sin(self.multiplier * x + self.phase)) + self.bias
+
 
 @define
 class LogFun(BaseFun):
@@ -563,9 +563,6 @@ class LogFun(BaseFun):
     bias: float = 0
     base: float = e
     scale: float = 1.0
-
-    def __call__(self, x: float):
-        return self.scale * log(self.tau * x, base=self.base) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -601,13 +598,13 @@ class LogFun(BaseFun):
         output += "</issue>\n"
         return output
 
+    def __call__(self, x: float):
+        return self.scale * log(self.tau * x, base=self.base) + self.bias
+
 
 @define
 class TableMultiFun(MultiIssueFun):
     d: dict[tuple, Any]
-
-    def __call__(self, x):
-        return self.d[x]
 
     @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
@@ -633,14 +630,14 @@ class TableMultiFun(MultiIssueFun):
     def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
         raise NotImplementedError()
 
+    def __call__(self, x):
+        return self.d[x]
+
 
 @define
 class AffineMultiFun(MultiIssueFun):
     slope: tuple[float, ...]
     bias: float = 0
-
-    def __call__(self, x: tuple):
-        return reduce(add, [a * b for a, b in zip(self.slope, x)], self.bias)
 
     @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
@@ -660,6 +657,9 @@ class AffineMultiFun(MultiIssueFun):
     def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
         raise NotImplementedError()
 
+    def __call__(self, x: tuple):
+        return reduce(add, [a * b for a, b in zip(self.slope, x)], self.bias)
+
 
 @define
 class LinearMultiFun(MultiIssueFun):
@@ -668,9 +668,6 @@ class LinearMultiFun(MultiIssueFun):
     @property
     def bias(self):
         return 0
-
-    def __call__(self, x: tuple):
-        return reduce(add, [a * b for a, b in zip(self.slope, x)], 0)
 
     @lru_cache
     def minmax(self, input: Iterable[Issue]) -> tuple[float, float]:
@@ -688,6 +685,9 @@ class LinearMultiFun(MultiIssueFun):
     def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
         raise NotImplementedError()
 
+    def __call__(self, x: tuple):
+        return reduce(add, [a * b for a, b in zip(self.slope, x)], 0)
+
 
 @define
 class LambdaMultiFun(MultiIssueFun):
@@ -695,9 +695,6 @@ class LambdaMultiFun(MultiIssueFun):
     bias: float = 0
     min_value: float | None = None
     max_value: float | None = None
-
-    def __call__(self, x: Any) -> float:
-        return self.f(x) + self.bias
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
@@ -721,6 +718,9 @@ class LambdaMultiFun(MultiIssueFun):
 
     def xml(self, indx: int, issues: list[Issue], bias=0) -> str:
         raise NotImplementedError()
+
+    def __call__(self, x: Any) -> float:
+        return self.f(x) + self.bias
 
 
 def make_fun_from_xml(item) -> tuple[BaseFun, str]:

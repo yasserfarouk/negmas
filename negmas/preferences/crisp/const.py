@@ -46,12 +46,12 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         return cls(**d)
 
-    def eval(self, offer: "Outcome") -> Value:
+    def eval(self, offer: Outcome) -> Value:
         if offer is None:
             return self.reserved_value
         return self.value
 
-    def xml(self, issues: List[Issue]) -> str:
+    def xml(self, issues: list[Issue]) -> str:
         from negmas.preferences.crisp.linear import AffineUtilityFunction
 
         return AffineUtilityFunction(
@@ -62,9 +62,6 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
             id=self.id,
         ).xml(issues)
 
-    def __str__(self):
-        return str(self.value)
-
     @classmethod
     def random(
         cls,
@@ -73,7 +70,7 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         normalized=True,
         value_range=(0.0, 1.0),
         **kwargs,
-    ) -> "ConstUtilityFunction":
+    ) -> ConstUtilityFunction:
         """Generates a random ufun of the given type"""
         reserved_value = make_range(reserved_value)
         value_range = make_range(value_range)
@@ -88,3 +85,6 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
             + reserved_value[0]
         )
         return cls(**kwargs)
+
+    def __str__(self):
+        return str(self.value)

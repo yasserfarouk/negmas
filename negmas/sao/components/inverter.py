@@ -168,6 +168,18 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
             adjusted[-1] += self.eps
         return tuple(adjusted)
 
+    @property
+    def tolerance(self):
+        return self.eps
+
+    @property
+    def ufun_max(self):
+        return self.max
+
+    @property
+    def ufun_min(self):
+        return self.min
+
     def __call__(
         self, urange: tuple[float, float], state: SAOState
     ) -> Sequence[Outcome]:
@@ -188,23 +200,15 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
             return [outcomes]  # type: ignore
         return outcomes
 
-    @property
-    def tolerance(self):
-        return self.eps
-
-    @property
-    def ufun_max(self):
-        return self.max
-
-    @property
-    def ufun_min(self):
-        return self.min
-
 
 class UtilityInverter(SAOComponent):
     """
     A component that can recommend an outcome based on utility
     """
+
+    def set_negotiator(self, negotiator: SAONegotiator) -> None:
+        super().set_negotiator(negotiator)
+        self.recommender.set_negotiator(negotiator)
 
     def __init__(
         self,
@@ -230,15 +234,26 @@ class UtilityInverter(SAOComponent):
         )
         self.set_negotiator(None)  # type: ignore (It is OK. We do not really need to pass this at all here.)
 
-    def set_negotiator(self, negotiator: SAONegotiator) -> None:
-        super().set_negotiator(negotiator)
-        self.recommender.set_negotiator(negotiator)
-
     def on_preferences_changed(self, changes: list[PreferencesChange]):
         self.recommender.on_preferences_changed(changes)
 
     def before_proposing(self, state: SAOState):
         self.recommender.before_proposing(state)
+
+    def scale_utilities(self, urange):
+        return self.recommender.scale_utilities(urange)
+
+    @property
+    def tolerance(self):
+        return self.recommender.eps
+
+    @property
+    def ufun_max(self):
+        return self.recommender.max
+
+    @property
+    def ufun_min(self):
+        return self.recommender.min
 
     def __call__(self, urange: tuple[float, float], state: SAOState) -> Outcome | None:
         """
@@ -259,18 +274,3 @@ class UtilityInverter(SAOComponent):
         if not outcome:
             return self.recommender.best
         return outcome
-
-    def scale_utilities(self, urange):
-        return self.recommender.scale_utilities(urange)
-
-    @property
-    def tolerance(self):
-        return self.recommender.eps
-
-    @property
-    def ufun_max(self):
-        return self.recommender.max
-
-    @property
-    def ufun_min(self):
-        return self.recommender.min

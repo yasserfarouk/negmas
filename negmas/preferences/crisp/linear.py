@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from functools import partial
+from functools import lru_cache, partial
 from typing import Any, Callable, Iterable, Mapping, Optional
 
 from negmas import warnings
@@ -37,7 +37,7 @@ def _rand_mapping_normalized(x, mx, mn, r):
     return r * (x - mn) / (mx - mn)
 
 
-def _random_mapping(issue: "Issue", normalized=False):
+def _random_mapping(issue: Issue, normalized=False):
     r = random.random()
     if issue.is_numeric():
         return (
@@ -169,7 +169,7 @@ class AffineUtilityFunction(
     def values(self):
         return self._values
 
-    def eval(self, offer: Optional["Outcome"]) -> float | None:
+    def eval(self, offer: Outcome | None) -> float | None:
         if offer is None:
             return self.reserved_value
         return self._bias + sum(w * v for w, v in zip(self._weights, offer))
@@ -235,9 +235,6 @@ class AffineUtilityFunction(
             output += f'<weight index="{len(self._weights) + 1}" value="{self._bias}">\n</weight>\n'
         return output
 
-    def __str__(self):
-        return f"w: {self._weights}, b: {self._bias}"
-
     @classmethod
     def random(
         cls,
@@ -269,7 +266,7 @@ class AffineUtilityFunction(
             bias = 0.0
         else:
             weights = [2 * (random.random() - 0.5) for _ in range(n_issues)]
-            bias = sum([2 * (random.random() - 0.5) * _ for _ in weights])
+            bias = sum(2 * (random.random() - 0.5) * _ for _ in weights)
         ufun = cls(
             weights=weights,
             bias=bias,
@@ -330,9 +327,6 @@ class AffineUtilityFunction(
         self,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | None = None,
-        minmax: tuple[float, float] | None = None,
     ) -> ConstUtilityFunction | AffineUtilityFunction:  # type: ignore
         """
         Creates a new utility function that is normalized based on input conditions.
@@ -346,17 +340,12 @@ class AffineUtilityFunction(
             epsilon: A small allowed error in normalization
             max_cardinality: Maximum ufun evaluations to conduct
         """
-        epsilon: float = 1e-6
+        epsilon: float = 1e-8
         max_cardinality: int = 1000
-        if not outcome_space:
+        if outcome_space is None:
             outcome_space = self.outcome_space
-        if to[0] is None and to[1] is None:
-            return self
 
-        if minmax is not None:
-            mn, mx = minmax
-        else:
-            mn, mx = self.minmax(outcome_space, issues, outcomes, max_cardinality)
+        mn, mx = self.minmax(outcome_space, max_cartinality=max_cardinality)
 
         if sum(self._weights) < epsilon:
             raise ValueError(
@@ -366,16 +355,17 @@ class AffineUtilityFunction(
         if abs(mx - to[1]) < epsilon and abs(mn - to[0]) < epsilon:
             return self
 
-        if abs(mx - mn) < epsilon and (to[1] - to[0]) < epsilon:
-            scale = 1.0
-        elif abs(mx - mn) < epsilon:
-            from negmas.preferences.crisp.const import ConstUtilityFunction
+        if abs(mx - mn) < epsilon:
+            if (to[1] - to[0]) < epsilon:
+                scale = 1.0
+            else:
+                from negmas.preferences.crisp.const import ConstUtilityFunction
 
-            return ConstUtilityFunction(
-                to[1],
-                outcome_space=outcome_space,
-                name=self.name,
-            )
+                return ConstUtilityFunction(
+                    to[1],
+                    outcome_space=outcome_space,
+                    name=self.name,
+                )
         else:
             scale = (to[1] - to[0]) / (mx - mn)
         if scale < 0:
@@ -384,10 +374,21 @@ class AffineUtilityFunction(
             )
         bias = to[1] - scale * mx + self._bias * scale
         weights = [_ * scale for _ in self._weights]
+        if abs(bias) < epsilon:
+            return LinearUtilityFunction(
+                weights, outcome_space=outcome_space, name=self.name
+            )
         return AffineUtilityFunction(
             weights, bias, outcome_space=outcome_space, name=self.name
         )
 
+    def normalize(
+        self,
+        to: tuple[float, float] = (0.0, 1.0),
+    ) -> ConstUtilityFunction | AffineUtilityFunction | LinearUtilityFunction:  # type: ignore
+        return self.normalize_for(to, self.outcome_space)
+
+    @lru_cache
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -458,6 +459,9 @@ class AffineUtilityFunction(
             return tuple(worst_outcome), tuple(best_outcome)
 
         return super().extreme_outcomes(original_os, issues, outcomes, max_cardinality)
+
+    def __str__(self):
+        return f"w: {self._weights}, b: {self._bias}"
 
 
 class LinearUtilityFunction(AffineUtilityFunction):
@@ -632,7 +636,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
     def weights(self):
         return self._weights
 
-    def eval(self, offer: Optional["Outcome"]) -> float | None:
+    def eval(self, offer: Outcome | None) -> float | None:
         if offer is None:
             return self.reserved_value
         u = self._bias
@@ -715,9 +719,6 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             output += f'<weight index="{len(self.weights) + 1}" value="{self._bias}">\n</weight>\n'
         return output
 
-    def __str__(self):
-        return f"u: {self.values}\n w: {self.weights}"
-
     def to_dict(self):
         d = {PYTHON_CLASS_IDENTIFIER: get_full_type_name(type(self))}
         d.update(super().to_dict())
@@ -736,6 +737,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
+    @lru_cache
     def extreme_outcomes(
         self,
         outcome_space: OutcomeSpace | None = None,
@@ -812,7 +814,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     @classmethod
     def random(
-        cls, issues: list["Issue"], reserved_value=(0.0, 1.0), normalized=True, **kwargs
+        cls, issues: list[Issue], reserved_value=(0.0, 1.0), normalized=True, **kwargs
     ):
         # from negmas.preferences.ops import normalize
 
@@ -840,7 +842,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     def shift_by(
         self, offset: float, shift_reserved: bool = True, change_bias_only: bool = False
-    ) -> "LinearAdditiveUtilityFunction":
+    ) -> LinearAdditiveUtilityFunction:
         if change_bias_only:
             return LinearAdditiveUtilityFunction(
                 values=self.values,  # type: ignore
@@ -871,7 +873,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         scale_reserved: bool = True,
         change_weights_only: bool = False,
         normalize_weights: bool = False,
-    ) -> "LinearAdditiveUtilityFunction":
+    ) -> LinearAdditiveUtilityFunction:
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
 
@@ -899,6 +901,9 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             else (self.reserved_value * wscale * scale),
             name=self.name,
         )
+
+    def __str__(self):
+        return f"u: {self.values}\n w: {self.weights}"
 
 
 LinearUtilityAggregationFunction = LinearAdditiveUtilityFunction

@@ -91,7 +91,7 @@ class BaseVOIElicitor(BaseElicitor):
     def __init__(
         self,
         strategy: EStrategy,
-        user: "User",
+        user: User,
         *,
         dynamic_query_set=False,
         queries=None,
@@ -118,10 +118,56 @@ class BaseVOIElicitor(BaseElicitor):
         self.update_related_queries = update_related_queries
         self.total_voi = 0.0
 
+    @abstractmethod
+    def _query_eeu(
+        self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
+    ) -> float:
+        """
+        Find the eeu value associated with this query and return it with
+        the query index.
+
+        Args:
+            query: The query object
+            qindex: The index of the query in the queries list
+            outcome: The outcome about which is this query
+            cost: The cost of asking the query
+            outcome_index: The index of the outcome in the outcomes list
+            eu_policy: The expected utility policy
+            eeu: The current EEU
+
+        Remarks:
+            - Should return - EEU
+
+        """
+
+    def init_query_eeus(self) -> None:
+        """Updates the heap eeu_query which has records of (-EEU, quesion)"""
+        queries = self.queries
+        eu_policy, eeu = self.eu_policy, self.current_eeu
+        eeu_query = []
+        for qindex, current in enumerate(queries):
+            outcome, query, cost = current
+            if query is None or outcome is None:
+                continue
+            outcome_index = self.indices[outcome]
+            qeeu = self._query_eeu(
+                query, qindex, outcome, cost, outcome_index, eu_policy, eeu
+            )
+            eeu_query.append((qeeu, qindex))
+        heapify(eeu_query)
+        self.eeu_query = eeu_query
+
+    @abstractmethod
+    def init_optimal_policy(self) -> None:
+        """Gets the optimal policy given Negotiator utility_priors.
+
+        The optimal plicy should be sorted ascendingly
+        on -EU or -EU * Acceptance"""
+
     def init_elicitation(
         self,
-        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
-        queries: Optional[List[Query]] = None,
+        preferences: IPUtilityFunction | Distribution | None,
+        queries: list[Query] | None = None,
         **kwargs,
     ) -> None:
         """
@@ -174,7 +220,7 @@ class BaseVOIElicitor(BaseElicitor):
         self.init_query_eeus()
         self._elicitation_time += time.perf_counter() - strt_time
 
-    def best_offer(self, state: MechanismState) -> Tuple[Optional["Outcome"], float]:
+    def best_offer(self, state: MechanismState) -> tuple[Outcome | None, float]:
         """
         The best offer and its corresponding utility
 
@@ -209,7 +255,7 @@ class BaseVOIElicitor(BaseElicitor):
         """Always can elicit"""
         return True
 
-    def best_offers(self, n: int) -> List[Tuple[Optional["Outcome"], float]]:
+    def best_offers(self, n: int) -> list[tuple[Outcome | None, float]]:
         """Returns the best offer repeated n times"""
         return [self.best_offer()] * n
 
@@ -217,7 +263,7 @@ class BaseVOIElicitor(BaseElicitor):
         """Called every round before trying to elicit. Does nothing"""
 
     def on_opponent_model_updated(
-        self, outcomes: List[Outcome], old: List[float], new: List[float]
+        self, outcomes: list[Outcome], old: list[float], new: list[float]
     ) -> None:
         """
         Called whenever the opponent model is updated.
@@ -236,7 +282,7 @@ class BaseVOIElicitor(BaseElicitor):
             self.init_query_eeus()
 
     def update_optimal_policy(
-        self, index: int, outcome: "Outcome", oldu: float, newu: float
+        self, index: int, outcome: Outcome, oldu: float, newu: float
     ):
         """Updates the optimal policy after a change to the utility value
         of some outcome.
@@ -252,6 +298,19 @@ class BaseVOIElicitor(BaseElicitor):
         """
         if oldu != newu:
             self.init_optimal_policy()
+
+    def add_query(self, qeeu: tuple[float, int]) -> None:
+        """Adds a query to the heap of queries
+
+        Args:
+            qeeu: A Tuple giving (-EEU, query_index)
+
+        Remarks:
+            - Note that the first member of the tuple is **minus** the EEU
+            - The sedond member of the tuple is an index of the query in
+              the queries list (not the query itself).
+        """
+        heappush(self.eeu_query, qeeu)
 
     def elicit_single(self, state: MechanismState):
         """
@@ -358,67 +417,8 @@ class BaseVOIElicitor(BaseElicitor):
         self.elicitation_history.append((query, newu, state.step, self.current_eeu))
         return True
 
-    def init_query_eeus(self) -> None:
-        """Updates the heap eeu_query which has records of (-EEU, quesion)"""
-        queries = self.queries
-        eu_policy, eeu = self.eu_policy, self.current_eeu
-        eeu_query = []
-        for qindex, current in enumerate(queries):
-            outcome, query, cost = current
-            if query is None or outcome is None:
-                continue
-            outcome_index = self.indices[outcome]
-            qeeu = self._query_eeu(
-                query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-            )
-            eeu_query.append((qeeu, qindex))
-        heapify(eeu_query)
-        self.eeu_query = eeu_query
-
-    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
+    def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
         raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
-
-    def add_query(self, qeeu: Tuple[float, int]) -> None:
-        """Adds a query to the heap of queries
-
-        Args:
-            qeeu: A Tuple giving (-EEU, query_index)
-
-        Remarks:
-            - Note that the first member of the tuple is **minus** the EEU
-            - The sedond member of the tuple is an index of the query in
-              the queries list (not the query itself).
-        """
-        heappush(self.eeu_query, qeeu)
-
-    @abstractmethod
-    def init_optimal_policy(self) -> None:
-        """Gets the optimal policy given Negotiator utility_priors.
-
-        The optimal plicy should be sorted ascendingly
-        on -EU or -EU * Acceptance"""
-
-    @abstractmethod
-    def _query_eeu(
-        self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-    ) -> float:
-        """
-        Find the eeu value associated with this query and return it with
-        the query index.
-
-        Args:
-            query: The query object
-            qindex: The index of the query in the queries list
-            outcome: The outcome about which is this query
-            cost: The cost of asking the query
-            outcome_index: The index of the outcome in the outcomes list
-            eu_policy: The expected utility policy
-            eeu: The current EEU
-
-        Remarks:
-            - Should return - EEU
-
-        """
 
 
 class VOIElicitor(BaseVOIElicitor):
@@ -673,7 +673,7 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
     def init_query_eeus(self) -> None:
         pass
 
-    def add_query(self, qeeu: Tuple[float, int]) -> None:
+    def add_query(self, qeeu: tuple[float, int]) -> None:
         pass
 
     def _query_eeu(
@@ -705,11 +705,11 @@ class VOIOptimalElicitor(BaseElicitor):
 
     def __init__(
         self,
-        user: "User",
+        user: User,
         *,
         base_negotiator: SAONegotiator = AspirationNegotiator(),
         adaptive_answer_probabilities=True,
-        expector_factory: Union[Expector, Callable[[], Expector]] = MeanExpector,
+        expector_factory: Expector | Callable[[], Expector] = MeanExpector,
         single_elicitation_per_round=False,
         continue_eliciting_past_reserved_val=False,
         epsilon=0.001,
@@ -718,9 +718,10 @@ class VOIOptimalElicitor(BaseElicitor):
         each_outcome_once=False,
         update_related_queries=True,
         prune=True,
-        opponent_model_factory: Optional[
-            Callable[["NegotiatorMechanismInterface"], "DiscreteAcceptanceModel"]
-        ] = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
+        opponent_model_factory: None
+        | (
+            Callable[[NegotiatorMechanismInterface], DiscreteAcceptanceModel]
+        ) = lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
     ) -> None:
         super().__init__(
             strategy=None,
@@ -750,141 +751,7 @@ class VOIOptimalElicitor(BaseElicitor):
         self.resolution = resolution
         self.prune = prune
 
-    def init_elicitation(
-        self,
-        preferences: Optional[Union["IPUtilityFunction", "Distribution"]],
-        queries: Optional[List[Query]] = None,
-    ) -> None:
-        super().init_elicitation(preferences=preferences)
-        if queries is not None:
-            raise ValueError(
-                f"self.__class__.__name__ does not allow the user to specify queries"
-            )
-        strt_time = time.perf_counter()
-        nmi = self._nmi
-        self.eus = np.array([_.mean() for _ in self.utility_distributions()])
-        self.offerable_outcomes = nmi.outcomes
-        self.init_optimal_policy()
-        self.init_query_eeus()
-        self._elicitation_time += time.perf_counter() - strt_time
-
-    def best_offer(self, state: MechanismState) -> Tuple[Optional["Outcome"], float]:
-        """Maximum Expected Utility at a given aspiration level (alpha)
-
-        Args:
-            state:
-        """
-        if self.each_outcome_once:
-            # todo this needs correction. When I opp from the eu_policy, all eeu_query become wrong
-            if len(self.eu_policy) < 1:
-                self.init_optimal_policy()
-            _, outcome_index = self.eu_policy.pop()
-        else:
-            outcome_index = self.eu_policy[0][1]
-        if self.eus[outcome_index] < self.reserved_value:
-            return None, self.reserved_value
-        return (
-            self._nmi.outcomes[outcome_index],
-            self.expect(
-                self.preferences(self._nmi.outcomes[outcome_index]), state=state
-            ),
-        )
-
-    def can_elicit(self) -> bool:
-        return True
-
-    def before_eliciting(self):
-        pass
-
-    def on_opponent_model_updated(
-        self, outcomes: List[Outcome], old: List[float], new: List[float]
-    ) -> None:
-        if any(o != n for o, n in zip(old, new)):
-            self.init_optimal_policy()
-            self.init_query_eeus()
-
-    def update_optimal_policy(
-        self, index: int, outcome: "Outcome", oldu: float, newu: float
-    ):
-        """Updates the optimal policy after a change happens to some utility"""
-        if oldu != newu:
-            self.init_optimal_policy()
-
-    def elicit_single(self, state: MechanismState):
-        if self.eeu_query is not None and len(self.eeu_query) < 1:
-            return False
-        if not self.can_elicit():
-            return False
-        eeu, q = heappop(self.eeu_query)
-        if q is None or -eeu <= self.current_eeu:
-            return False
-        if (not self.continue_eliciting_past_reserved_val) and (
-            -eeu - (self.user.cost_of_asking() + self.elicitation_cost)
-            < self.reserved_value
-        ):
-            return False
-        outcome, query, _ = self.queries[q]
-        if query is None:
-            return False
-        self.queries[q] = (None, None, None)
-        oldu = self.preferences.distributions[outcome]
-        if _scale(oldu) < 1e-7:
-            return False
-        u = self.user.ask(query)
-        newu = u.answer.constraint.marginal(outcome)
-        if self.queries_of_outcome is not None:
-            if _scale(newu) > 1e-7:
-                newu = newu & oldu
-                newmin, newmax = newu.loc, newu.scale + newu.loc
-                good_queries = []
-                for i, qind in enumerate(self.queries_of_outcome.get(outcome, [])):
-                    _o, _q, _c = self.queries[qind]
-                    if _q is None:
-                        continue
-                    answers = _q.answers
-                    tokeep = []
-                    for j, ans in enumerate(answers):
-                        rng = ans.constraint.range
-                        if newmin == rng[0] and newmax == rng[1]:
-                            continue
-                        if newmin <= rng[0] <= newmax or rng[0] <= newmin <= rng[1]:
-                            tokeep.append(j)
-                    if len(tokeep) < 2:
-                        self.queries[i] = None, None, None
-                        continue
-                    good_queries.append(qind)
-                    if len(tokeep) < len(answers):
-                        ans = _q.answers
-                        self.queries[i].answers = [ans[j] for j in tokeep]
-                self.queries_of_outcome[outcome] = good_queries
-            else:
-                for i, _ in enumerate(self.queries_of_outcome.get(outcome, [])):
-                    self.queries[i] = None, None, None
-                    self.queries_of_outcome[outcome] = []
-        self.total_voi += -eeu - self.current_eeu
-        outcome_index = self.indices[outcome]
-        if _scale(newu) < 1e-7:
-            self.preferences.distributions[outcome] = newu
-        else:
-            self.preferences.distributions[outcome] = newu & oldu
-        eu = float(newu)
-        self.eus[outcome_index] = eu
-        self.update_optimal_policy(
-            index=outcome_index, outcome=outcome, oldu=float(oldu), newu=eu
-        )
-        self._update_query_eeus(
-            k=outcome_index,
-            outcome=outcome,
-            s=self.s,
-            p=self.p,
-            n=self._nmi.n_outcomes,
-            eeu=self.current_eeu,
-            eus=[-_[0] for _ in self.eu_policy],
-        )
-        self.elicitation_history.append((query, newu, state.step, self.current_eeu))
-        return True
-
-    def _update_query_eeus(self, k: int, outcome: "Outcome", s, p, n, eeu, eus):
+    def _update_query_eeus(self, k: int, outcome: Outcome, s, p, n, eeu, eus):
         """Updates the best query for a single outcome"""
         this_outcome_solutions = []
         m = self.opponent_model.probability_of_acceptance(outcome)
@@ -996,12 +863,6 @@ class VOIOptimalElicitor(BaseElicitor):
                 k=k, outcome=outcomes[outcome_indx], s=s, p=p, n=n, eeu=eeu, eus=eus
             )
 
-    def utility_on_rejection(self, outcome: "Outcome", state: MechanismState) -> Value:
-        raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
-
-    def add_query(self, qeeu: Tuple[float, int]) -> None:
-        heappush(self.eeu_query, qeeu)
-
     def init_optimal_policy(self) -> None:
         """Gets the optimal policy given Negotiator utility_priors"""
         nmi = self._nmi
@@ -1035,6 +896,146 @@ class VOIOptimalElicitor(BaseElicitor):
         self.outcome_in_policy = {}
         for j, pp in enumerate(self.eu_policy):
             self.outcome_in_policy[pp[1]] = pp
+
+    def init_elicitation(
+        self,
+        preferences: IPUtilityFunction | Distribution | None,
+        queries: list[Query] | None = None,
+    ) -> None:
+        super().init_elicitation(preferences=preferences)
+        if queries is not None:
+            raise ValueError(
+                f"self.__class__.__name__ does not allow the user to specify queries"
+            )
+        strt_time = time.perf_counter()
+        nmi = self._nmi
+        self.eus = np.array([_.mean() for _ in self.utility_distributions()])
+        self.offerable_outcomes = nmi.outcomes
+        self.init_optimal_policy()
+        self.init_query_eeus()
+        self._elicitation_time += time.perf_counter() - strt_time
+
+    def best_offer(self, state: MechanismState) -> tuple[Outcome | None, float]:
+        """Maximum Expected Utility at a given aspiration level (alpha)
+
+        Args:
+            state:
+        """
+        if self.each_outcome_once:
+            # todo this needs correction. When I opp from the eu_policy, all eeu_query become wrong
+            if len(self.eu_policy) < 1:
+                self.init_optimal_policy()
+            _, outcome_index = self.eu_policy.pop()
+        else:
+            outcome_index = self.eu_policy[0][1]
+        if self.eus[outcome_index] < self.reserved_value:
+            return None, self.reserved_value
+        return (
+            self._nmi.outcomes[outcome_index],
+            self.expect(
+                self.preferences(self._nmi.outcomes[outcome_index]), state=state
+            ),
+        )
+
+    def can_elicit(self) -> bool:
+        return True
+
+    def before_eliciting(self):
+        pass
+
+    def on_opponent_model_updated(
+        self, outcomes: list[Outcome], old: list[float], new: list[float]
+    ) -> None:
+        if any(o != n for o, n in zip(old, new)):
+            self.init_optimal_policy()
+            self.init_query_eeus()
+
+    def update_optimal_policy(
+        self, index: int, outcome: Outcome, oldu: float, newu: float
+    ):
+        """Updates the optimal policy after a change happens to some utility"""
+        if oldu != newu:
+            self.init_optimal_policy()
+
+    def elicit_single(self, state: MechanismState):
+        if self.eeu_query is not None and len(self.eeu_query) < 1:
+            return False
+        if not self.can_elicit():
+            return False
+        eeu, q = heappop(self.eeu_query)
+        if q is None or -eeu <= self.current_eeu:
+            return False
+        if (not self.continue_eliciting_past_reserved_val) and (
+            -eeu - (self.user.cost_of_asking() + self.elicitation_cost)
+            < self.reserved_value
+        ):
+            return False
+        outcome, query, _ = self.queries[q]
+        if query is None:
+            return False
+        self.queries[q] = (None, None, None)
+        oldu = self.preferences.distributions[outcome]
+        if _scale(oldu) < 1e-7:
+            return False
+        u = self.user.ask(query)
+        newu = u.answer.constraint.marginal(outcome)
+        if self.queries_of_outcome is not None:
+            if _scale(newu) > 1e-7:
+                newu = newu & oldu
+                newmin, newmax = newu.loc, newu.scale + newu.loc
+                good_queries = []
+                for i, qind in enumerate(self.queries_of_outcome.get(outcome, [])):
+                    _o, _q, _c = self.queries[qind]
+                    if _q is None:
+                        continue
+                    answers = _q.answers
+                    tokeep = []
+                    for j, ans in enumerate(answers):
+                        rng = ans.constraint.range
+                        if newmin == rng[0] and newmax == rng[1]:
+                            continue
+                        if newmin <= rng[0] <= newmax or rng[0] <= newmin <= rng[1]:
+                            tokeep.append(j)
+                    if len(tokeep) < 2:
+                        self.queries[i] = None, None, None
+                        continue
+                    good_queries.append(qind)
+                    if len(tokeep) < len(answers):
+                        ans = _q.answers
+                        self.queries[i].answers = [ans[j] for j in tokeep]
+                self.queries_of_outcome[outcome] = good_queries
+            else:
+                for i, _ in enumerate(self.queries_of_outcome.get(outcome, [])):
+                    self.queries[i] = None, None, None
+                    self.queries_of_outcome[outcome] = []
+        self.total_voi += -eeu - self.current_eeu
+        outcome_index = self.indices[outcome]
+        if _scale(newu) < 1e-7:
+            self.preferences.distributions[outcome] = newu
+        else:
+            self.preferences.distributions[outcome] = newu & oldu
+        eu = float(newu)
+        self.eus[outcome_index] = eu
+        self.update_optimal_policy(
+            index=outcome_index, outcome=outcome, oldu=float(oldu), newu=eu
+        )
+        self._update_query_eeus(
+            k=outcome_index,
+            outcome=outcome,
+            s=self.s,
+            p=self.p,
+            n=self._nmi.n_outcomes,
+            eeu=self.current_eeu,
+            eus=[-_[0] for _ in self.eu_policy],
+        )
+        self.elicitation_history.append((query, newu, state.step, self.current_eeu))
+        return True
+
+    def utility_on_rejection(self, outcome: Outcome, state: MechanismState) -> Value:
+        raise ValueError("utility_on_rejection should never be called on VOI Elicitors")
+
+    def add_query(self, qeeu: tuple[float, int]) -> None:
+        heappush(self.eeu_query, qeeu)
 
 
 OQA = VOIElicitor

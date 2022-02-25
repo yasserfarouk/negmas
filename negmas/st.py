@@ -20,8 +20,8 @@ __all__ = ["VetoSTMechanism", "HillClimbingSTMechanism"]
 class STState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    current_offer: Optional["Outcome"] = None
-    new_offer: Optional["Outcome"] = None
+    current_offer: Outcome | None = None
+    new_offer: Outcome | None = None
 
 
 class VetoSTMechanism(Mechanism):
@@ -48,7 +48,7 @@ class VetoSTMechanism(Mechanism):
         *args,
         epsilon: float = 1e-6,
         initial_outcome=None,
-        initial_responses: Tuple[bool] = tuple(),
+        initial_responses: tuple[bool] = tuple(),
         **kwargs,
     ):
         kwargs["state_factory"] = STState
@@ -75,7 +75,7 @@ class VetoSTMechanism(Mechanism):
             new_offer=deepcopy(self.new_offer),
         )
 
-    def next_outcome(self, outcome: Optional["Outcome"]) -> Optional["Outcome"]:
+    def next_outcome(self, outcome: Outcome | None) -> Outcome | None:
         """Generate the next outcome given some outcome.
 
         Args:
@@ -117,7 +117,7 @@ class VetoSTMechanism(Mechanism):
 
     def plot(
         self,
-        visible_negotiators: Union[Tuple[int, int], Tuple[str, str]] = (0, 1),
+        visible_negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
         show_all_offers=False,
         **kwargs,
     ):
@@ -269,6 +269,36 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         **kwargs: keyword arguments to be passed to the base Mechanism
     """
 
+    def neighbors(self, outcome: Outcome) -> list[Outcome]:
+        """Returns all neighbors
+
+        Neighbor is an outcome that differs any one of the issues from the original outcome.
+        """
+
+        neighbors = []
+        for i, issue in enumerate(self.issues):
+            values = []
+            if isinstance(issue.values, List):
+                values = issue.values
+            if isinstance(issue.values, int):
+                values = [
+                    max(0, outcome[i] - 1),
+                    min(outcome[i] + 1, issue.values),
+                ]
+            if isinstance(issue.values, Tuple):
+                delta = random.random() * (issue.values[0] - issue.values[0])
+                values.append(max(issue.values[0], outcome[i] - delta))
+                values.append(min(outcome[i] + delta, issue.values[0]))
+
+            for value in values:
+                neighbor = list(deepcopy(outcome))
+                if neighbor[i] == value:
+                    continue
+                neighbor[i] = value
+                neighbors.append(tuple(neighbor))
+
+        return neighbors
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -282,7 +312,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         self.current_offer = self.initial_outcome
         self.possible_offers = self.neighbors(self.current_offer)
 
-    def next_outcome(self, outcome: "Outcome") -> Optional["Outcome"]:
+    def next_outcome(self, outcome: Outcome) -> Outcome | None:
         """Generate the next outcome given some outcome.
 
         Args:
@@ -322,33 +352,3 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             self.possible_offers = self.neighbors(self.current_offer)
 
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
-
-    def neighbors(self, outcome: "Outcome") -> List["Outcome"]:
-        """Returns all neighbors
-
-        Neighbor is an outcome that differs any one of the issues from the original outcome.
-        """
-
-        neighbors = []
-        for i, issue in enumerate(self.issues):
-            values = []
-            if isinstance(issue.values, List):
-                values = issue.values
-            if isinstance(issue.values, int):
-                values = [
-                    max(0, outcome[i] - 1),
-                    min(outcome[i] + 1, issue.values),
-                ]
-            if isinstance(issue.values, Tuple):
-                delta = random.random() * (issue.values[0] - issue.values[0])
-                values.append(max(issue.values[0], outcome[i] - delta))
-                values.append(min(outcome[i] + delta, issue.values[0]))
-
-            for value in values:
-                neighbor = list(deepcopy(outcome))
-                if neighbor[i] == value:
-                    continue
-                neighbor[i] = value
-                neighbors.append(tuple(neighbor))
-
-        return neighbors

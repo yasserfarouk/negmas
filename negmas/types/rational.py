@@ -46,22 +46,6 @@ class Rational(NamedObject):
 
     """
 
-    def __init__(
-        self,
-        name: str = None,
-        preferences: Preferences | None = None,
-        ufun: BaseUtilityFunction | None = None,
-        id: str = None,
-        type_name: str = None,
-    ):
-        super().__init__(name, type_name=type_name, id=id)
-        if ufun:
-            preferences = ufun
-        self._init_preferences = preferences
-        self._preferences = None
-        if preferences is not None:
-            self.set_preferences(preferences)
-
     def _set_pref_owner(self):
         if not self._preferences:
             return
@@ -75,10 +59,19 @@ class Rational(NamedObject):
 
         self._preferences.owner = self
 
-    @property
-    def preferences(self) -> Preferences | None:
-        """The utility function attached to that object"""
-        return self._preferences
+    def on_preferences_changed(self, changes: list[PreferencesChange]):
+        """
+        Called to inform the entity that its ufun has changed.
+
+        Args:
+            changes: An ordered list of changes that happened.
+
+        Remarks:
+
+            - You MUST call the super() version of this function either before or after your code when you are overriding
+              it.
+            - The most general form of change is `PreferencesChange.General` which indicates that you cannot trust anything you knew about the ufun anymore
+        """
 
     def set_preferences(
         self, value: Preferences | None, force=False
@@ -102,6 +95,27 @@ class Rational(NamedObject):
             self._set_pref_owner()
         if id(value) != id(old):
             self.on_preferences_changed([PreferencesChange()])
+        return self._preferences
+
+    def __init__(
+        self,
+        name: str = None,
+        preferences: Preferences | None = None,
+        ufun: BaseUtilityFunction | None = None,
+        id: str = None,
+        type_name: str = None,
+    ):
+        super().__init__(name, type_name=type_name, id=id)
+        if ufun:
+            preferences = ufun
+        self._init_preferences = preferences
+        self._preferences = None
+        if preferences is not None:
+            self.set_preferences(preferences)
+
+    @property
+    def preferences(self) -> Preferences | None:
+        """The utility function attached to that object"""
         return self._preferences
 
     @property
@@ -210,17 +224,3 @@ class Rational(NamedObject):
         ):
             return float("nan")
         return self._preferences.reserved_value
-
-    def on_preferences_changed(self, changes: list[PreferencesChange]):
-        """
-        Called to inform the entity that its ufun has changed.
-
-        Args:
-            changes: An ordered list of changes that happened.
-
-        Remarks:
-
-            - You MUST call the super() version of this function either before or after your code when you are overriding
-              it.
-            - The most general form of change is `PreferencesChange.General` which indicates that you cannot trust anything you knew about the ufun anymore
-        """

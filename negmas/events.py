@@ -40,7 +40,7 @@ class EventSource:
 
     def __init__(self):
         super().__init__()
-        self.__sinks: Dict[Optional[str], List[EventSink]] = defaultdict(list)
+        self.__sinks: dict[str | None, list[EventSink]] = defaultdict(list)
 
     def announce(self, event: Event):
         """Raises an event and informs all event sinks that are registered for notifications
@@ -51,7 +51,7 @@ class EventSource:
         for sink in sinks:
             sink.on_event(event=event, sender=self)
 
-    def register_listener(self, event_type: Optional[str], listener: "EventSink"):
+    def register_listener(self, event_type: str | None, listener: EventSink):
         """Registers a listener for the given event_type.
 
         Args:
@@ -73,7 +73,11 @@ class EventSink:
 def myvars(x):
     if not x:
         return x
-    return {k: v for k in dir(x) if not k.startswith("_") and not k.endswith("_")}
+    return {
+        k: v
+        for k, v in vars(x).items()
+        if not k.startswith("_") and not k.endswith("_")
+    }
 
 
 class EventLogger(EventSink):
@@ -85,7 +89,7 @@ class EventLogger(EventSink):
         types: The types of events to save. If None, all events will be saved
     """
 
-    def __init__(self, file_name: Union[str, Path], types: List[str] = None):
+    def __init__(self, file_name: str | Path, types: list[str] = None):
         file_name = Path(file_name)
         file_name.parent.mkdir(parents=True, exist_ok=True)
         self._file_name = file_name
@@ -144,7 +148,7 @@ class Notification:
 class Notifier(NamedObject):
     """An object that can notify other objects"""
 
-    def notify(self, notifiable: "Notifiable", notification: Notification):
+    def notify(self, notifiable: Notifiable, notification: Notification):
         notifiable.on_notification_(notification=notification, notifier=self.id)
 
 
@@ -167,14 +171,14 @@ class Notifiable:
 
         """
         if not hasattr(self, "__notification_handlers"):
-            self.__notification_handlers: Dict[
-                str, List[Callable[[Notification, str], bool]]
+            self.__notification_handlers: dict[
+                str, list[Callable[[Notification, str], bool]]
             ] = defaultdict(list)
         self.__notification_handlers[notification_type].append(callback)
 
     def handlers(
         self, notification_type: str
-    ) -> List[Callable[[Notification, str], bool]]:
+    ) -> list[Callable[[Notification, str], bool]]:
         """
         Gets the list of handlers registered for some notification type. This list can be modified in place to change
         the order of handlers for example. It is NOT a copy.
@@ -206,6 +210,19 @@ class Notifiable:
         except (ValueError, IndexError, AttributeError) as e:
             return False
 
+    def on_notification(self, notification: Notification, notifier: str) -> None:
+        """
+        Called when a notification is received and is not handled by any registered handler
+
+        Args:
+            notification: The notification received
+            notifier: The notifier ID
+
+        Remarks:
+
+            - override this method to provide a catch-all notification handling method.
+        """
+
     def on_notification_(self, notification: Notification, notifier: str) -> bool:
         """
         Called when a notification is received. Do NOT directly override this method
@@ -225,16 +242,3 @@ class Notifiable:
         except (IndexError, ValueError, AttributeError):
             self.on_notification(notification, notifier)
             return False
-
-    def on_notification(self, notification: Notification, notifier: str) -> None:
-        """
-        Called when a notification is received and is not handled by any registered handler
-
-        Args:
-            notification: The notification received
-            notifier: The notifier ID
-
-        Remarks:
-
-            - override this method to provide a catch-all notification handling method.
-        """

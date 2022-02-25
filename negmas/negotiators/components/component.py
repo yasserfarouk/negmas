@@ -55,7 +55,7 @@ class Component:
         *,
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
-        role: str = "negotiator"
+        role: str = "negotiator",
     ) -> bool:
         """
         A call back called before joining a negotiation to confirm that we can join it.

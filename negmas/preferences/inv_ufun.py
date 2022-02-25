@@ -230,32 +230,6 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return tuple(1.0 for _ in rng)
         return tuple((_ - mn) / d for _ in rng)
 
-    def all(
-        self,
-        rng: float | tuple[float, float],
-        normalized: bool,
-    ) -> list[Outcome]:
-        """
-        Finds all outcomes with in the given utility value range
-
-        Args:
-            rng: The range. If a value, outcome utilities must match it exactly
-
-        Remarks:
-            - If issues or outcomes are not None, then init_inverse will be called first
-            - If the outcome-space is discrete, this method will return all outcomes in the given range
-
-        """
-        os_ = self._ufun.outcome_space
-        if not os_:
-            raise ValueError(f"Unkonwn outcome space. Cannot invert the ufun")
-
-        if os_.is_discrete():
-            return self.some(rng, normalized)
-        raise ValueError(
-            f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
-        )
-
     def some(
         self,
         rng: float | tuple[float, float],
@@ -289,6 +263,32 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if n and len(results) >= n:
             return random.sample(results, n)
         return results
+
+    def all(
+        self,
+        rng: float | tuple[float, float],
+        normalized: bool,
+    ) -> list[Outcome]:
+        """
+        Finds all outcomes with in the given utility value range
+
+        Args:
+            rng: The range. If a value, outcome utilities must match it exactly
+
+        Remarks:
+            - If issues or outcomes are not None, then init_inverse will be called first
+            - If the outcome-space is discrete, this method will return all outcomes in the given range
+
+        """
+        os_ = self._ufun.outcome_space
+        if not os_:
+            raise ValueError(f"Unkonwn outcome space. Cannot invert the ufun")
+
+        if os_.is_discrete():
+            return self.some(rng, normalized)
+        raise ValueError(
+            f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
+        )
 
     def worst_in(
         self, rng: float | tuple[float, float], normalized: bool

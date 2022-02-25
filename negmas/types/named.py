@@ -242,6 +242,20 @@ class NamedObject:
         ...
 
     @classmethod
+    def checkpoint_info(cls, file_name: Path | str) -> dict[str, Any]:
+        """
+        Returns the information associated with a dump of the object saved in the given file
+
+        Args:
+            file_name: Name of the object
+
+        Returns:
+
+        """
+        file_name = Path(file_name).absolute()
+        return load(file_name.parent / (file_name.name + ".json"))
+
+    @classmethod
     def from_checkpoint(
         cls, file_name: Path | str, return_info=False
     ) -> NamedObject | tuple[NamedObject, dict[str, Any]]:
@@ -269,20 +283,6 @@ class NamedObject:
         if return_info:
             return obj, cls.checkpoint_info(file_name)
         return obj
-
-    @classmethod
-    def checkpoint_info(cls, file_name: Path | str) -> dict[str, Any]:
-        """
-        Returns the information associated with a dump of the object saved in the given file
-
-        Args:
-            file_name: Name of the object
-
-        Returns:
-
-        """
-        file_name = Path(file_name).absolute()
-        return load(file_name.parent / (file_name.name + ".json"))
 
     @property
     def type_name(self) -> str:

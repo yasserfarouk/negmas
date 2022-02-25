@@ -118,13 +118,19 @@ class Issue(HasMinMax, Iterable, ABC):
     def __init__(
         self,
         values,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> None:
         self.name = name if name else unique_name("issue", add_time=False, sep="")
         self._value_type = object
         self._values = values
         self._n_values = float("inf")
         self.min_value, self.max_value = None, None
+
+    def __copy__(self):
+        return make_issue(name=self.name, values=self._values)
+
+    def __deepcopy__(self, memodict={}):
+        return make_issue(name=self.name, values=self._values)
 
     @property
     def value_type(self):
@@ -140,17 +146,6 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         return self._values
 
-    def has_finite_limits(self) -> bool:
-        """
-        Checks whether the minimum and maximum values of the issue are known and are finite
-        """
-        return (
-            self.has_limits()
-            and self.is_numeric()
-            and math.isfinite(self.min_value)
-            and math.isfinite(self.max_value)
-        )
-
     def has_limits(self) -> bool:
         """
         Checks whether the minimum and maximum values of the issue are known
@@ -162,6 +157,17 @@ class Issue(HasMinMax, Iterable, ABC):
         Checks that each value of this issue is a number
         """
         return issubclass(self._value_type, numbers.Number)
+
+    def has_finite_limits(self) -> bool:
+        """
+        Checks whether the minimum and maximum values of the issue are known and are finite
+        """
+        return (
+            self.has_limits()
+            and self.is_numeric()
+            and math.isfinite(self.min_value)
+            and math.isfinite(self.max_value)
+        )
 
     def is_integer(self) -> bool:
         """
@@ -177,6 +183,19 @@ class Issue(HasMinMax, Iterable, ABC):
             self._value_type, numbers.Integral
         )
 
+    @abstractmethod
+    def is_continuous(self) -> bool:
+        """
+        The issue has a continuous set of values. Note that this is different from having values that are real (which is tested using `is_float` )
+        """
+        ...
+
+    def is_discrete(self) -> bool:
+        """
+        Checks whether the issue has a discrete set of values. This is different from `is_integer` which checks that the values themselves are integers and `is_discrete_valued` which checks that they are discrete.
+        """
+        return not self.is_continuous()
+
     def is_finite(self) -> bool:
         """
         Checks whether the issue has a discrete set of values
@@ -189,16 +208,14 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         return not self.is_float()
 
-    def is_discrete(self) -> bool:
-        """
-        Checks whether the issue has a discrete set of values. This is different from `is_integer` which checks that the values themselves are integers and `is_discrete_valued` which checks that they are discrete.
-        """
-        return not self.is_continuous()
-
     @property
-    def cardinality(self) -> Union[int, float]:
+    def cardinality(self) -> int | float:
         """The number of possible outcomes for the issue. Returns infinity for continuous and uncountable spaces"""
         return self._n_values
+
+    @abstractmethod
+    def rand(self) -> int | float | str:
+        """Picks a random valid value."""
 
     def rand_valid(self):
         """
@@ -232,46 +249,12 @@ class Issue(HasMinMax, Iterable, ABC):
             n_values=self._n_values,
         )
 
-    def __str__(self):
-        return f"{self.name}: {self._values}"
+    @abstractmethod
+    def is_valid(self, v):
+        """Checks whether the given value is valid for this issue"""
+        ...
 
-    def __repr__(self):
-        return f"Issue({self._values}, {self.name})"
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def __eq__(self, other):
-        return self._values == other.values and self.name == other.name
-
-    def __copy__(self):
-        return make_issue(name=self.name, values=self._values)
-
-    def __len__(self):
-        return self.cardinality
-
-    def __iter__(self):
-        return self.value_generator().__iter__()
-
-    def __contains__(self, item):
-        try:
-            if isinstance(item, Issue):
-                return self.contains(item)
-            return self.is_valid(item)
-        except Exception as e:
-            warnings.warn(
-                f"Testing whether {item} is contained  in {self} threw an exception: {e}. continuing as if it is not",
-                warnings.NegmasCaughtExceptionWarning,
-            )
-        return False
-
-    def __getitem__(self, indx):
-        return self.value_at(indx)
-
-    def __deepcopy__(self, memodict={}):
-        return make_issue(name=self.name, values=self._values)
-
-    def contains(self, issue: "Issue") -> bool:
+    def contains(self, issue: Issue) -> bool:
         """
         Checks weather this issue contains the input issue (i.e. every value in the input issue is in this issue)
         """
@@ -286,20 +269,72 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         return self.__class__.__name__.lower().replace("issue", "")
 
-    def to_discrete(
-        self, n: int | None = 10, grid=True, compact=True, endpoints=True
-    ) -> DiscreteIssue:
+    @abstractmethod
+    def ordered_value_generator(
+        self, n: int | float | None = None, grid=True, compact=False, endpoints=True
+    ) -> Generator[int, None, None]:
         """
-        Converts the issue to a discrete issue by samling from it. If the issue is already discret it will just return itself
+        A generator that generates at most `n` values (in a stable order)
+
 
         Args:
-            n (int | None): Number of values in the resulting discrete issue. This will be ignored if the issue is already discrete
+            n: The number of samples. If inf or None, all values will be generated but when the issue is infinite, it will just fail
+            grid: Sample on a grid (equally distanced as much as possible)
+            compact: If True, the samples will be choosen near each other (see endpoints though)
+            endpoints: If given, the first and last index are guaranteed to be in the samples
+
+        Remarks:
+            - This function returns a generator for the case when the number of values is very large.
+            - If the order is not defined for this issue, this generator will still generate values in the same order every time it is called.
+            - If you need a list then use something like:
+
+            >>> from negmas.outcomes import make_issue
+            >>> list(make_issue(5).value_generator())
+            [0, 1, 2, 3, 4]
+            >>> list(int(10 * _) for _ in make_issue((0.0, 1.0)).value_generator(11))
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        """
+
+    @abstractmethod
+    def value_generator(
+        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
+    ) -> Generator[Any, None, None]:
+        """
+        A generator that generates at most `n` values (in any order)
+
+
+        Args:
+            grid: Sample on a grid (equally distanced as much as possible)
+            compact: If True, the samples will be choosen near each other (see endpoints though)
+            endpoints: If given, the first and last index are guaranteed to be in the samples
+
+        Remarks:
+            - This function returns a generator for the case when the number of values is very large.
+            - If you need a list then use something like:
+
+            >>> from negmas.outcomes import make_issue
+            >>> list(make_issue(5).value_generator())
+            [0, 1, 2, 3, 4]
+            >>> list(int(10 * _) for _ in make_issue((0.0, 1.0)).value_generator(11))
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        """
+
+    def to_discrete(
+        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
+    ) -> DiscreteIssue:
+        """
+        Converts the issue to a discrete issue by samling from it.
+
+        If the issue is already discret it will just return itself. This method cannot be used to reduce the cardinality of a discrete issue.
+
+        Args:
+            n (int | float | None): Number of values in the resulting discrete issue. This will be ignored if the issue is already discrete. The only allowed float value is `float("inf")`. If any other float is passed, it will be silently cast to an int
             grid (bool): Sample on a grid
             compact (bool): Sample around the center
             endpoints (bool): Always incllude minimum and maximum  values
 
-        Returns:
-            DiscreteIssue:
         """
         from negmas.outcomes.categorical_issue import CategoricalIssue
 
@@ -323,42 +358,6 @@ class Issue(HasMinMax, Iterable, ABC):
         ...
 
     @abstractmethod
-    def is_continuous(self) -> bool:
-        """
-        The issue has a continuous set of values. Note that this is different from having values that are real (which is tested using `is_float` )
-        """
-        ...
-
-    @abstractmethod
-    def value_generator(
-        self, n: int | None = 10, grid=True, compact=True, endpoints=True
-    ) -> Generator[Any, None, None]:
-        """
-        A generator that generates at most `n` values (in any order)
-
-
-        Args:
-            grid: Sample on a grid (equally distanced as much as possible)
-            compact: If True, the samples will be choosen near each other (see endpoints though)
-            endpoints: If given, the first and last index are guaranteed to be in the samples
-
-        Remarks:
-            - This function returns a generator for the case when the number of values is very large.
-            - If you need a list then use something like:
-
-            >>> from negmas.outcomes import make_issue
-            >>> list(make_issue(5).value_generator())
-            [0, 1, 2, 3, 4]
-            >>> list(int(10 * _) for _ in make_issue((0.0, 1.0)).value_generator(11))
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-        """
-
-    @abstractmethod
-    def rand(self) -> Union[int, float, str]:
-        """Picks a random valid value."""
-
-    @abstractmethod
     def rand_outcomes(
         self, n: int, with_replacement=False, fail_if_not_enough=False
     ) -> list:
@@ -378,11 +377,6 @@ class Issue(HasMinMax, Iterable, ABC):
     def rand_invalid(self):
         """Pick a random *invalid* value"""
 
-    @abstractmethod
-    def is_valid(self, v):
-        """Checks whether the given value is valid for this issue"""
-        ...
-
     @property
     def all(self) -> Generator[Any, None, None]:
         """
@@ -393,6 +387,39 @@ class Issue(HasMinMax, Iterable, ABC):
         raise ValueError(
             f"The issue ({self}) is not discrete and `all` cannot be called on it"
         )
+
+    def __getitem__(self, indx):
+        return self.value_at(indx)
+
+    def __iter__(self):
+        return self.value_generator().__iter__()
+
+    def __contains__(self, item):
+        try:
+            if isinstance(item, Issue):
+                return self.contains(item)
+            return self.is_valid(item)
+        except Exception as e:
+            warnings.warn(
+                f"Testing whether {item} is contained  in {self} threw an exception: {e}. continuing as if it is not",
+                warnings.NegmasCaughtExceptionWarning,
+            )
+        return False
+
+    def __len__(self):
+        return self.cardinality
+
+    def __eq__(self, other):
+        return self._values == other.values and self.name == other.name
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __repr__(self):
+        return f"Issue({self._values}, {self.name})"
+
+    def __str__(self):
+        return f"{self.name}: {self._values}"
 
 
 class DiscreteIssue(Issue):
@@ -424,14 +451,24 @@ class DiscreteIssue(Issue):
 
         """
 
-    def value_generator(
-        self, n: int | None = 10, grid=True, compact=True, endpoints=True
+    def ordered_value_generator(
+        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
     ) -> Generator[Any, None, None]:
+        m = self.cardinality
+        n = m if n is None or not math.isfinite(n) else int(n)
+
+        for i in range(n):
+            yield self._values[i % m]
+
+    def value_generator(
+        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
+    ) -> Generator[Any, None, None]:
+        m = self.cardinality
+        n = m if n is None or not math.isfinite(n) else int(n)
+
         yield from (
             self._values[_]
-            for _ in sample(
-                self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints
-            )
+            for _ in sample(m, n, grid=grid, compact=compact, endpoints=endpoints)
         )
 
     def value_at(self, index: int):

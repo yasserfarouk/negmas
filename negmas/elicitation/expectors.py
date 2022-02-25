@@ -15,7 +15,7 @@ class Expector(ABC):
     reduction method that receives a utility value and return a real number.
     """
 
-    def __init__(self, nmi: Optional[NegotiatorMechanismInterface] = None):
+    def __init__(self, nmi: NegotiatorMechanismInterface | None = None):
         self.nmi = nmi
 
     @abstractmethod
@@ -70,11 +70,11 @@ class BalancedExpector(Expector):
 class AspiringExpector(Expector):
     def __init__(
         self,
-        nmi: Optional[NegotiatorMechanismInterface] = None,
+        nmi: NegotiatorMechanismInterface | None = None,
         max_aspiration=1.0,
-        aspiration_type: Union[
-            Literal["linear"], Literal["conceder"], Literal["boulware"], float
-        ] = "linear",
+        aspiration_type: (
+            Literal["linear"] | Literal["conceder"] | Literal["boulware"] | float
+        ) = "linear",
     ):
         Expector.__init__(self, nmi=nmi)
         self.__asp = PolyAspiration(max_aspiration, aspiration_type)

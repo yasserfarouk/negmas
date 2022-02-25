@@ -25,7 +25,7 @@ __all__ = [
 class Offer:
     """Defines an offer"""
 
-    outcome: "Outcome"
+    outcome: Outcome
     left: bool
     temp: bool
     partner: str = None
@@ -39,8 +39,8 @@ class ChainAMI(NegotiatorMechanismInterface):
     def __init__(
         self,
         *args,
-        parent: "ChainNegotiationsMechanism",
-        negotiator: "ChainNegotiator",
+        parent: ChainNegotiationsMechanism,
+        negotiator: ChainNegotiator,
         level: int,
         **kwargs,
     ):
@@ -65,7 +65,7 @@ class ChainNegotiator(Negotiator, ABC):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Preferences | None = None,
         role: str = "negotiator",
     ) -> bool:
         to_join = super().join(nmi, state, preferences=preferences, role=role)
@@ -112,7 +112,7 @@ class ChainNegotiator(Negotiator, ABC):
 
     @abstractmethod
     def respond(
-        self, state: MechanismState, outcome: "Outcome", from_left: bool, temp: bool
+        self, state: MechanismState, outcome: Outcome, from_left: bool, temp: bool
     ) -> ResponseType:
         """
         Called to respond to an offer
@@ -140,7 +140,7 @@ class MultiChainNegotiator(Negotiator, ABC):
         nmi: NegotiatorMechanismInterface,
         state: MechanismState,
         *,
-        preferences: Optional["Preferences"] = None,
+        preferences: Preferences | None = None,
         role: str = "negotiator",
     ) -> bool:
         to_join = super().join(nmi, state, preferences=preferences, role=role)
@@ -189,7 +189,7 @@ class MultiChainNegotiator(Negotiator, ABC):
     def respond(
         self,
         state: MechanismState,
-        outcome: "Outcome",
+        outcome: Outcome,
         from_left: bool,
         temp: bool,
         source: str,
@@ -212,12 +212,12 @@ class MultiChainNegotiator(Negotiator, ABC):
 class ChainNegotiationsMechanism(Mechanism):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__chain: List[Optional[ChainNegotiator]] = []
+        self.__chain: list[ChainNegotiator | None] = []
         self.__next_agent = 0
         self.__last_proposal: Offer = None
         self.__last_proposer_index: int = -1
-        self.__agreements: Dict[int, Outcome] = defaultdict(lambda: None)
-        self.__temp_agreements: Dict[int, Outcome] = defaultdict(lambda: None)
+        self.__agreements: dict[int, Outcome] = defaultdict(lambda: None)
+        self.__temp_agreements: dict[int, Outcome] = defaultdict(lambda: None)
 
     def _get_ami(
         self, negotiator: Negotiator, role: str
@@ -250,12 +250,12 @@ class ChainNegotiationsMechanism(Mechanism):
 
     def add(
         self,
-        negotiator: "Negotiator",
+        negotiator: Negotiator,
         *,
-        preferences: Optional[Preferences] = None,
-        role: Optional[str] = None,
+        preferences: Preferences | None = None,
+        role: str | None = None,
         **kwargs,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if role is None:
             raise ValueError(
                 "You cannot join this protocol without specifying the role. "
@@ -272,6 +272,12 @@ class ChainNegotiationsMechanism(Mechanism):
             return
         self.__chain += [None] * (level - len(self.__chain) + 1)
         self.__chain[level] = negotiator
+
+    def _update_next(self) -> None:
+        if self.__last_proposal.left:
+            self.__next_agent = (self.__last_proposer_index - 1) % len(self.__chain)
+        else:
+            self.__next_agent = (self.__last_proposer_index + 1) % len(self.__chain)
 
     def round(self) -> MechanismRoundResult:
 
@@ -358,12 +364,6 @@ class ChainNegotiationsMechanism(Mechanism):
         self._update_next()
         return MechanismRoundResult()
 
-    def _update_next(self) -> None:
-        if self.__last_proposal.left:
-            self.__next_agent = (self.__last_proposer_index - 1) % len(self.__chain)
-        else:
-            self.__next_agent = (self.__last_proposer_index + 1) % len(self.__chain)
-
     def on_confirm(self, level: int, left: bool) -> None:
         """
         Called by negotiators to confirm their temporary accepted agreements
@@ -386,16 +386,16 @@ class ChainNegotiationsMechanism(Mechanism):
 class MultiChainNegotiationsMechanism(Mechanism):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__chain: List[List[MultiChainNegotiator]] = []
+        self.__chain: list[list[MultiChainNegotiator]] = []
         self.__next_agent_level = 0
         self.__next_agent_number = 0
         self.__last_proposal: Offer = None
         self.__last_proposer_level: int = -1
         self.__last_proposer_number: int = -1
-        self.__agreements: Dict[int, Agreement] = defaultdict(lambda: None)
-        self.__temp_agreements: Dict[int, Agreement] = defaultdict(lambda: None)
-        self.__level: Dict[str, int] = {}
-        self.__number: Dict[str, int] = {}
+        self.__agreements: dict[int, Agreement] = defaultdict(lambda: None)
+        self.__temp_agreements: dict[int, Agreement] = defaultdict(lambda: None)
+        self.__level: dict[str, int] = {}
+        self.__number: dict[str, int] = {}
 
     def _get_ami(
         self, negotiator: Negotiator, role: str
@@ -428,12 +428,12 @@ class MultiChainNegotiationsMechanism(Mechanism):
 
     def add(
         self,
-        negotiator: "Negotiator",
+        negotiator: Negotiator,
         *,
-        preferences: Optional[Preferences] = None,
-        role: Optional[str] = None,
+        preferences: Preferences | None = None,
+        role: str | None = None,
         **kwargs,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if role is None:
             raise ValueError(
                 "You cannot join this protocol without specifying the role. "
@@ -452,6 +452,17 @@ class MultiChainNegotiationsMechanism(Mechanism):
         self.__chain[level].append(negotiator)
         self.__level[negotiator.id] = level
         self.__number[negotiator.id] = len(self.__chain[level]) - 1
+
+    def _update_next(self) -> None:
+        if self.__last_proposal.left:
+            self.__next_agent_level = (self.__last_proposer_level - 1) % len(
+                self.__chain
+            )
+        else:
+            self.__next_agent_level = (self.__last_proposer_level + 1) % len(
+                self.__chain
+            )
+        self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
     def round(self) -> MechanismRoundResult:
 
@@ -542,17 +553,6 @@ class MultiChainNegotiationsMechanism(Mechanism):
         self.__last_proposer_number = self.__next_agent_number
         self._update_next()
         return MechanismRoundResult()
-
-    def _update_next(self) -> None:
-        if self.__last_proposal.left:
-            self.__next_agent_level = (self.__last_proposer_level - 1) % len(
-                self.__chain
-            )
-        else:
-            self.__next_agent_level = (self.__last_proposer_level + 1) % len(
-                self.__chain
-            )
-        self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
     def on_confirm(self, level: int, left: bool) -> None:
         """

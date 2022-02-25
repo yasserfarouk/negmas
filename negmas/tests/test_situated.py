@@ -26,8 +26,18 @@ results = []  # will keep results not to use printing
 
 
 class DummyWorld(World):
+    def __init__(self, n_steps=10000, negotiation_speed=20, **kwargs):
+        super().__init__(
+            n_steps=n_steps,
+            negotiation_speed=negotiation_speed,
+            neg_n_steps=10,
+            neg_time_limit=10,
+            **kwargs,
+        )
+        self.the_agents = []
+
     def complete_contract_execution(
-        self, contract: Contract, breaches: List[Breach], resolved: bool
+        self, contract: Contract, breaches: list[Breach], resolved: bool
     ) -> None:
         pass
 
@@ -40,17 +50,7 @@ class DummyWorld(World):
     def contract_size(self, contract: Contract) -> float:
         return 0.0
 
-    def __init__(self, n_steps=10000, negotiation_speed=20, **kwargs):
-        super().__init__(
-            n_steps=n_steps,
-            negotiation_speed=negotiation_speed,
-            neg_n_steps=10,
-            neg_time_limit=10,
-            **kwargs,
-        )
-        self.the_agents = []
-
-    def join(self, x: "Agent", simulation_priority: int = 0):
+    def join(self, x: Agent, simulation_priority: int = 0):
         super().join(x=x, simulation_priority=simulation_priority)
         self.the_agents.append(x)
 
@@ -71,26 +71,26 @@ class DummyWorld(World):
     ) -> Collection[Contract]:
         return contracts
 
-    def contract_record(self, contract: Contract) -> Dict[str, Any]:
+    def contract_record(self, contract: Contract) -> dict[str, Any]:
         return contract.__dict__
 
-    def start_contract_execution(self, contract: Contract) -> Set[Breach]:
+    def start_contract_execution(self, contract: Contract) -> set[Breach]:
         return set()
 
     def _process_breach(
-        self, contract: Contract, breaches: List[Breach], force_immediate_signing=True
-    ) -> Optional[Contract]:
+        self, contract: Contract, breaches: list[Breach], force_immediate_signing=True
+    ) -> Contract | None:
         return None
 
     def breach_record(self, breach: Breach):
         return breach.__dict__
 
     def execute_action(
-        self, action: Action, agent: "Agent", callback: Callable = None
+        self, action: Action, agent: Agent, callback: Callable = None
     ) -> bool:
         return True
 
-    def get_private_state(self, agent: "Agent") -> Any:
+    def get_private_state(self, agent: Agent) -> Any:
         s = {"partners": [_ for _ in self.the_agents if _ is not agent]}
         return s
 
@@ -99,19 +99,24 @@ class DummyWorld(World):
 
 
 class DummyAgent(Agent):
+    def __init__(self, name=None):
+        super().__init__(name=name)
+        self.id = name
+        self.__current_step = 0
+
     def init(self):
         pass
 
     def _respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
-        issues: List[Issue],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        issues: list[Issue],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
-        role: Optional[str],
-        req_id: Optional[str],
-    ) -> Optional[Negotiator]:
+        role: str | None,
+        req_id: str | None,
+    ) -> Negotiator | None:
         negotiator = AspirationNegotiator(
             preferences=MappingUtilityFunction(
                 mapping=lambda x: 1.0 - x[0] / 10.0, issues=issues
@@ -119,7 +124,7 @@ class DummyAgent(Agent):
         )
         return negotiator
 
-    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+    def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
     def on_neg_request_accepted(
@@ -129,8 +134,8 @@ class DummyAgent(Agent):
 
     def on_negotiation_failure(
         self,
-        partners: List[str],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
@@ -144,34 +149,29 @@ class DummyAgent(Agent):
     def on_contract_signed(self, contract: Contract) -> None:
         pass
 
-    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+    def on_contract_cancelled(self, contract: Contract, rejectors: list[str]) -> None:
         pass
 
-    def sign_contract(self, contract: Contract) -> Optional[str]:
+    def sign_contract(self, contract: Contract) -> str | None:
         return self.id
 
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
     def on_contract_breached(
-        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
     ) -> None:
         pass
 
     def set_renegotiation_agenda(
-        self, contract: Contract, breaches: List[Breach]
-    ) -> Optional[RenegotiationRequest]:
+        self, contract: Contract, breaches: list[Breach]
+    ) -> RenegotiationRequest | None:
         return None
 
     def respond_to_renegotiation_request(
-        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-    ) -> Optional[Negotiator]:
+        self, contract: Contract, breaches: list[Breach], agenda: RenegotiationRequest
+    ) -> Negotiator | None:
         return None
-
-    def __init__(self, name=None):
-        super().__init__(name=name)
-        self.id = name
-        self.__current_step = 0
 
     def step(self):
         global results
@@ -191,19 +191,24 @@ class DummyAgent(Agent):
 
 
 class ExceptionAgent(Agent):
+    def __init__(self, name=None):
+        super().__init__(name=name)
+        self.id = name
+        self.__current_step = 0
+
     def init(self):
         pass
 
     def _respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
-        issues: List[Issue],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        issues: list[Issue],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
-        role: Optional[str],
-        req_id: Optional[str],
-    ) -> Optional[Negotiator]:
+        role: str | None,
+        req_id: str | None,
+    ) -> Negotiator | None:
         negotiator = AspirationNegotiator(
             preferences=MappingUtilityFunction(
                 mapping=lambda x: 1.0 - x[0] / 10.0,
@@ -212,7 +217,7 @@ class ExceptionAgent(Agent):
         )
         return negotiator
 
-    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+    def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
     def on_neg_request_accepted(
@@ -222,8 +227,8 @@ class ExceptionAgent(Agent):
 
     def on_negotiation_failure(
         self,
-        partners: List[str],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
@@ -237,34 +242,29 @@ class ExceptionAgent(Agent):
     def on_contract_signed(self, contract: Contract) -> None:
         pass
 
-    def on_contract_cancelled(self, contract: Contract, rejectors: List[str]) -> None:
+    def on_contract_cancelled(self, contract: Contract, rejectors: list[str]) -> None:
         pass
 
-    def sign_contract(self, contract: Contract) -> Optional[str]:
+    def sign_contract(self, contract: Contract) -> str | None:
         return self.id
 
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
     def on_contract_breached(
-        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
     ) -> None:
         pass
 
     def set_renegotiation_agenda(
-        self, contract: Contract, breaches: List[Breach]
-    ) -> Optional[RenegotiationRequest]:
+        self, contract: Contract, breaches: list[Breach]
+    ) -> RenegotiationRequest | None:
         return None
 
     def respond_to_renegotiation_request(
-        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-    ) -> Optional[Negotiator]:
+        self, contract: Contract, breaches: list[Breach], agenda: RenegotiationRequest
+    ) -> Negotiator | None:
         return None
-
-    def __init__(self, name=None):
-        super().__init__(name=name)
-        self.id = name
-        self.__current_step = 0
 
     def step(self):
         global results

@@ -23,7 +23,7 @@ class ElicitationRecord:
     cost: float
     query: Query
     answer_index: int
-    step: Optional[int] = None
+    step: int | None = None
 
     def __str__(self):
         if self.step is None:
@@ -49,10 +49,10 @@ class User(Rational):
         super().__init__(*args, **kwargs)
         self.cost = cost
         self.total_cost = 0.0
-        self._elicited_queries: List[ElicitationRecord] = []
+        self._elicited_queries: list[ElicitationRecord] = []
         self.nmi = nmi
 
-    def set(self, preferences: Optional[Preferences] = None, cost: float = None):
+    def set(self, preferences: Preferences | None = None, cost: float = None):
         """
         Sets the ufun and/or cost for this user        <`0:desc`>
 
@@ -75,7 +75,7 @@ class User(Rational):
             else MappingUtilityFunction(lambda x: None)
         )
 
-    def ask(self, q: Optional[Query]) -> QResponse:
+    def ask(self, q: Query | None) -> QResponse:
         """Query the user and get a response."""
         if q is None:
             return QResponse(answer=None, indx=-1, cost=0.0)
@@ -100,7 +100,7 @@ class User(Rational):
         return QResponse(answer=None, indx=-1, cost=q.cost)
 
     def cost_of_asking(
-        self, q: Optional[Query] = None, answer_id: int = -1, estimate_answer_cost=True
+        self, q: Query | None = None, answer_id: int = -1, estimate_answer_cost=True
     ) -> float:
         """
         Returns the cost of asking the given `Quers`.
@@ -132,7 +132,7 @@ class User(Rational):
         """
         return constraint.is_satisfied(self.ufun, outcomes=outcomes)
 
-    def elicited_queries(self) -> List[ElicitationRecord]:
+    def elicited_queries(self) -> list[ElicitationRecord]:
         """Returns a list of elicited queries.
 
         For each elicited query, the following dataclass is returned:

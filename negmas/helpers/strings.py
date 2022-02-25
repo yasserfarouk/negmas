@@ -74,6 +74,50 @@ def shorten(name: str, length: int = 4, common_parts=COMMON_NAME_PARTS) -> str:
     return "".join(caps[:length])
 
 
+def unique_name(
+    base,
+    add_time=True,
+    add_host=False,
+    rand_digits=8,
+    sep="/",
+) -> str:
+    """Return a unique name.
+
+    Can be used to return a unique directory name on the givn base.
+
+    Args:
+        base: (any): base path/string (it is converted to string whatever it is)
+        add_time (bool, optional): Defaults to True. Add current time
+        rand_digits (int, optional): Defaults to 8. The number of random
+            characters to add to the name
+
+    Examples:
+
+        >>> a = unique_name('')
+        >>> len(a) == 8 + 1 + 6 + 8 + 6
+        True
+
+    Returns:
+        str: The unique name.
+
+    """
+    base = str(base)
+    _time, rand_part = "", ""
+    host_part = socket.gethostname() if add_host else ""
+    if rand_digits > 0:
+        rand_part = "".join(
+            random.choices(string.digits + string.ascii_letters, k=rand_digits)
+        )
+    if add_time:
+        _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S%f")
+    sub = _time + host_part + rand_part
+    if len(sub) == 0:
+        return base
+    if len(base) == 0:
+        return sub
+    return f"{str(base)}{sep}{sub}"
+
+
 def shortest_unique_names(
     strs: list[str], sep=".", max_compression=False, guarantee_unique=False
 ):
@@ -207,73 +251,6 @@ def camel_case(
     return "".join(parts)
 
 
-def unique_name(
-    base,
-    add_time=True,
-    add_host=False,
-    rand_digits=8,
-    sep="/",
-) -> str:
-    """Return a unique name.
-
-    Can be used to return a unique directory name on the givn base.
-
-    Args:
-        base: (any): base path/string (it is converted to string whatever it is)
-        add_time (bool, optional): Defaults to True. Add current time
-        rand_digits (int, optional): Defaults to 8. The number of random
-            characters to add to the name
-
-    Examples:
-
-        >>> a = unique_name('')
-        >>> len(a) == 8 + 1 + 6 + 8 + 6
-        True
-
-    Returns:
-        str: The unique name.
-
-    """
-    base = str(base)
-    _time, rand_part = "", ""
-    host_part = socket.gethostname() if add_host else ""
-    if rand_digits > 0:
-        rand_part = "".join(
-            random.choices(string.digits + string.ascii_letters, k=rand_digits)
-        )
-    if add_time:
-        _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S%f")
-    sub = _time + host_part + rand_part
-    if len(sub) == 0:
-        return base
-    if len(base) == 0:
-        return sub
-    return f"{str(base)}{sep}{sub}"
-
-
-def pretty_string(src, tab_size=2, compact=False) -> str:
-    """Recursively print nested elements.
-
-    Args:
-        src (Any): The source to be converted to a printable string
-        tab_size (int): Tab size in spaces
-        compact (bool): If true the output is  converted into a single line
-
-    Returns:
-        str: The pretty version of the input
-
-    Remarks:
-        - This function assumes that the patterns `` "`` and ``":`` do not appear anywhere in the input.
-          If they appear, the space, : will be removed.
-    """
-    s = _pretty_string(src, dpth=0, current_key="", tab_size=tab_size)
-    if compact:
-        return s.replace("\n", "")
-
-    else:
-        return s.replace(' "', " ").replace('":', ":")
-
-
 def _pretty_string(src, dpth=0, current_key="", tab_size=2) -> str:
     """Recursively print nested elements.
 
@@ -306,6 +283,29 @@ def _pretty_string(src, dpth=0, current_key="", tab_size=2) -> str:
         else:
             output += tabs(dpth) + "%s" % src
     return output
+
+
+def pretty_string(src, tab_size=2, compact=False) -> str:
+    """Recursively print nested elements.
+
+    Args:
+        src (Any): The source to be converted to a printable string
+        tab_size (int): Tab size in spaces
+        compact (bool): If true the output is  converted into a single line
+
+    Returns:
+        str: The pretty version of the input
+
+    Remarks:
+        - This function assumes that the patterns `` "`` and ``":`` do not appear anywhere in the input.
+          If they appear, the space, : will be removed.
+    """
+    s = _pretty_string(src, dpth=0, current_key="", tab_size=tab_size)
+    if compact:
+        return s.replace("\n", "")
+
+    else:
+        return s.replace(' "', " ").replace('":', ":")
 
 
 def exception2str(limit=None, chain=True) -> str:

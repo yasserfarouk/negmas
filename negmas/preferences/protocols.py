@@ -39,7 +39,6 @@ __all__ = [
     "PartiallyShiftable",
     "PartiallyScalable",
     "Normalizable",
-    "PartiallyNormalizable",
     "HasRange",
     "InverseUFun",
     "IndIssues",
@@ -57,7 +56,7 @@ class XmlSerializableUFun(XmlSerializable, Protocol):
 
     @classmethod
     def from_genius(
-        cls: Type[X], issues: list[Issue], file_name: PathLike, **kwargs
+        cls: type[X], issues: list[Issue], file_name: PathLike, **kwargs
     ) -> X:
         ...
 
@@ -259,9 +258,6 @@ class CardinalCrisp(CardinalProb, Protocol):
 class UFun(CardinalProb, Protocol):
     """Can be called to map an `Outcome` to a `Distribution` or a `float`"""
 
-    def __call__(self, offer: Outcome | None) -> Value:
-        ...
-
     def eval(self, offer: Outcome) -> Value:
         """
         Evaluates the ufun without normalization (See `eval_normalized` )
@@ -297,6 +293,9 @@ class UFun(CardinalProb, Protocol):
         Finds the minimum and maximum for the ufun
         """
 
+    def __call__(self, offer: Outcome | None) -> Value:
+        ...
+
 
 T = TypeVar("T", bound="UFunCrisp")
 
@@ -305,13 +304,13 @@ T = TypeVar("T", bound="UFunCrisp")
 class UFunCrisp(UFun, Protocol):
     """Can be called to map an `Outcome` to a `float`"""
 
-    def __call__(self, offer: Outcome | None) -> float:
-        ...
-
     def eval(self, offer: Outcome) -> float:
         ...
 
     def to_stationary(self: T) -> T:
+        ...
+
+    def __call__(self, offer: Outcome | None) -> float:
         ...
 
 
@@ -319,11 +318,11 @@ class UFunCrisp(UFun, Protocol):
 class UFunProb(UFun, Protocol):
     """Can be called to map an `Outcome` to a `Distribution`"""
 
-    def __call__(self, offer: Outcome | None) -> Distribution:
-        ...
-
     @abstractmethod
     def eval(self, offer: Outcome) -> Distribution:
+        ...
+
+    def __call__(self, offer: Outcome | None) -> Distribution:
         ...
 
 
@@ -617,9 +616,6 @@ class IndIssues(BasePref, Protocol):
 class Fun(Protocol):
     """A value function mapping values from one or more issues to a real number"""
 
-    def __call__(self, x) -> float:
-        ...
-
     @property
     def dim(self) -> int:
         ...
@@ -633,6 +629,9 @@ class Fun(Protocol):
 
     @abstractmethod
     def scale_by(self, scale: float) -> Fun:
+        ...
+
+    def __call__(self, x) -> float:
         ...
 
 
@@ -667,9 +666,6 @@ class SingleIssueFun(Fun, Protocol):
 class MultiIssueFun(Fun, Protocol):
     """A value function mapping values from **multiple** issues to a real number"""
 
-    def __call__(self, x: tuple) -> float:
-        ...
-
     @property
     def dim(self) -> int:
         ...
@@ -684,6 +680,9 @@ class MultiIssueFun(Fun, Protocol):
         ...
 
     def xml(self, indx: int, issues: list[Issue], bias=0.0) -> str:
+        ...
+
+    def __call__(self, x: tuple) -> float:
         ...
 
 
@@ -786,35 +785,7 @@ class Normalizable(Shiftable, Scalable, Protocol):
     def normalize(
         self: N,
         to: tuple[float, float] = (0.0, 1.0),
-        minmax: tuple[float, float] | None = None,
     ) -> N:
-        ...
-
-
-TP = TypeVar("TP", bound="PartiallyNormalizable")
-
-
-@runtime_checkable
-class PartiallyNormalizable(PartiallyScalable, PartiallyShiftable, Protocol):
-    """Can be normalized to a given range of values for a given part of the outcome space (default is 0-1)"""
-
-    def normalize(
-        self: TP,
-        to: tuple[float, float] = (0.0, 1.0),
-        minmax: tuple[float, float] | None = None,
-        **kwargs,
-    ) -> TP:
-        ...
-
-    def normalize_for(
-        self: TP,
-        to: tuple[float, float] = (0.0, 1.0),
-        outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | None = None,
-        outcomes: list[Outcome] | int | None = None,
-        minmax: tuple[float, float] | None = None,
-        **kwargs,
-    ) -> TP:
         ...
 
 

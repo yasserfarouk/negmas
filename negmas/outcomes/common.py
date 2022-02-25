@@ -59,7 +59,7 @@ def check_one_and_only(outcome_space, issues, outcomes) -> None:
         raise ValueError("You cannot pass `issues` and `outcomes`")
 
 
-def os_or_none(outcome_space, issues, outcomes) -> "OutcomeSpace" | None:
+def os_or_none(outcome_space, issues, outcomes) -> OutcomeSpace | None:
     """
     Returns an outcome space from either an outcome-space, a list of issues, a list of outcomes, or the number of outcomes
 
@@ -82,7 +82,7 @@ def os_or_none(outcome_space, issues, outcomes) -> "OutcomeSpace" | None:
     return make_os(issues_from_outcomes(outcomes))
 
 
-def ensure_os(outcome_space, issues, outcomes) -> "OutcomeSpace":
+def ensure_os(outcome_space, issues, outcomes) -> OutcomeSpace:
     """
     Returns an outcome space from either an outcome-space, a list of issues, a list of outcomes, or the number of outcomes
 

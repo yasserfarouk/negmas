@@ -46,7 +46,6 @@ except:
 n_completed = 0
 n_total = 0
 
-JNEGMAS_JAR_NAME = "jnegmas-0.2.6-all.jar"
 GENIUS_JAR_NAME = "geniusbridge.jar"
 
 DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
@@ -162,11 +161,6 @@ def tournament(ctx, ignore_warnings):
     help="A semicolon (;) separated list of agent types to use for the competition.",
 )
 @click.option(
-    "--jcompetitors",
-    "--java-competitors",
-    help="A semicolon (;) separated list of agent types to use for the competition.",
-)
-@click.option(
     "--non-competitors",
     help="A semicolon (;) separated list of agent types to exist in the worlds as non-competitors "
     "(their scores will not be calculated).",
@@ -219,12 +213,6 @@ def tournament(ctx, ignore_warnings):
     "paths on linux/mac and a ; separated list in windows",
 )
 @click.option(
-    "--java-interop-class",
-    default="",
-    help="The full name of a class that is used to represent Java agents to the python envirnment. It is only used"
-    " if jcompetitors was passed",
-)
-@click.option(
     "--config-generator",
     default="",
     help="The full path to a configuration generator function that is used to generate"
@@ -265,7 +253,6 @@ def create(
     max_runs,
     competitors,
     world_config,
-    jcompetitors,
     non_competitors,
     compact,
     agents,
@@ -280,7 +267,6 @@ def create(
     config_generator,
     assigner,
     scorer,
-    java_interop_class,
 ):
     if len(config_generator is None or config_generator.strip()) == 0:
         print(
@@ -322,20 +308,6 @@ def create(
 
         return -1
 
-    if (
-        jcompetitors is not None
-        and len(jcompetitors) > 0
-        and len(java_interop_class.strip()) == 0
-    ):
-        print(
-            f"ERROR: You are passing java competitors but not java interop "
-            f"class (use --java-interop-class "
-            f" to pass the name of that class or do not pass java competitors"
-            f" [--jcompetitors])"
-        )
-
-        return -5
-
     if len(path) > 0:
         sys.path.append(path)
     kwargs = {}
@@ -373,21 +345,6 @@ def create(
 
     all_competitors = competitors.split(";")
     all_competitors_params = [dict() for _ in range(len(all_competitors))]
-
-    if jcompetitors is not None and len(jcompetitors) > 0:
-        jcompetitor_params = [{"java_class_name": _} for _ in jcompetitors.split(";")]
-        jcompetitors = [java_interop_class] * len(jcompetitor_params)
-        all_competitors += jcompetitors
-        all_competitors_params += jcompetitor_params
-        print("You are using some Java agents. The tournament MUST run serially")
-
-        if not jnegmas_bridge_is_running():
-            print(
-                "Error: You are using java competitors but jnegmas bridge is not running\n\nTo correct this issue"
-                " run the following command IN A DIFFERENT TERMINAL because it will block:\n\n"
-                "$ negmas jnegmas"
-            )
-            exit(1)
 
     permutation_size = 1
     recommended = runs * configs * permutation_size
@@ -442,10 +399,6 @@ def create(
                 None if max_runs is None else int(round(max_runs / (configs * runs)))
             )
 
-    if len(jcompetitors) > 0:
-        print("You are using java-competitors. The tournament will be run serially")
-        parallelism = "serial"
-
     non_competitor_params = None
 
     if len(non_competitors) < 1:
@@ -482,14 +435,68 @@ def create(
         log_negotiations=log_negs,
         ignore_agent_exceptions=not raise_exceptions,
         ignore_contract_execution_exceptions=not raise_exceptions,
-        parallelism=parallelism,
         **kwargs,
     )
-
+    results = Path(results)
     ctx.obj["tournament_name"] = results.name
     ctx.obj["tournament_log_folder"] = log
     ctx.obj["compact"] = compact
     print(f"Saved all configs to {str(results)}\nTournament name is {results.name}")
+
+
+def display_results(results, metric, significance):
+    if metric == "truncated_mean":
+        print(
+            tabulate(
+                results.total_scores.sort_values(by="score", ascending=False),
+                headers="keys",
+                tablefmt="psql",
+            )
+        )
+        print(
+            tabulate(
+                results.score_stats.sort_values(by="median", ascending=False),
+                headers="keys",
+                tablefmt="psql",
+            )
+        )
+    else:
+        viewmetric = ["50%" if metric == "median" else metric]
+        print(
+            tabulate(
+                results.score_stats.sort_values(by=viewmetric, ascending=False),
+                headers="keys",
+                tablefmt="psql",
+            )
+        )
+
+    if significance:
+        if metric in ("mean", "sum", "tuncated_mean"):
+            print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
+        else:
+            print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
+
+    try:
+        agg_stats = results.agg_stats.loc[
+            :,
+            [
+                "n_negotiations_sum",
+                "n_contracts_concluded_sum",
+                "n_contracts_signed_sum",
+                "n_contracts_executed_sum",
+                "activity_level_sum",
+            ],
+        ]
+        agg_stats.columns = [
+            "negotiated",
+            "concluded",
+            "signed",
+            "executed",
+            "business",
+        ]
+        print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
+    except:
+        pass
 
 
 @tournament.command(help="Runs/continues a tournament")
@@ -742,61 +749,6 @@ def _path(path) -> Path:
     return Path(path).absolute()
 
 
-def display_results(results, metric, significance):
-    if metric == "truncated_mean":
-        print(
-            tabulate(
-                results.total_scores.sort_values(by="score", ascending=False),
-                headers="keys",
-                tablefmt="psql",
-            )
-        )
-        print(
-            tabulate(
-                results.score_stats.sort_values(by="median", ascending=False),
-                headers="keys",
-                tablefmt="psql",
-            )
-        )
-    else:
-        viewmetric = ["50%" if metric == "median" else metric]
-        print(
-            tabulate(
-                results.score_stats.sort_values(by=viewmetric, ascending=False),
-                headers="keys",
-                tablefmt="psql",
-            )
-        )
-
-    if significance:
-        if metric in ("mean", "sum", "tuncated_mean"):
-            print(tabulate(results.ttest, headers="keys", tablefmt="psql"))
-        else:
-            print(tabulate(results.kstest, headers="keys", tablefmt="psql"))
-
-    try:
-        agg_stats = results.agg_stats.loc[
-            :,
-            [
-                "n_negotiations_sum",
-                "n_contracts_concluded_sum",
-                "n_contracts_signed_sum",
-                "n_contracts_executed_sum",
-                "activity_level_sum",
-            ],
-        ]
-        agg_stats.columns = [
-            "negotiated",
-            "concluded",
-            "signed",
-            "executed",
-            "business",
-        ]
-        print(tabulate(agg_stats.describe(), headers="keys", tablefmt="psql"))
-    except:
-        pass
-
-
 @tournament.command(help="Combine multiple tournaments at the given base path(s)")
 @click.argument(
     "path",
@@ -913,31 +865,6 @@ def genius(path, port, debug, timeout):
         pass
 
 
-@cli.command(help="Start the bridge to JNegMAS (to use Java agents in worlds)")
-@click.option(
-    "--path",
-    "-p",
-    default="auto",
-    help='Path to jnegmas*.jar with. Use "auto" to '
-    "read the path from ~/negmas/config.json."
-    "\n\tConfig key is jnegmas_jar"
-    "\nYou can download the latest version of this jar from: "
-    "http://www.yasserm.com/scml/jnegmas-all.jar",
-)
-@click.option(
-    "--port",
-    "-r",
-    default=0,
-    help="Port to run the jnegmas on. Pass 0 for the default value",
-)
-@click_config_file.configuration_option()
-def jnegmas(path, port):
-    init_jnegmas_bridge(path=path if path != "auto" else None, port=port)
-    input(
-        "Press C^c to quit. You may also need to kill any remaining java processes manually"
-    )
-
-
 def download_and_set(key, url, file_name):
     """
     Downloads a file and sets the corresponding key in ~/negmas/config.json
@@ -964,14 +891,6 @@ def download_and_set(key, url, file_name):
     config[key] = str(jar_path)
     with open(config_file, "w") as f:
         json.dump(config, fp=f, sort_keys=True, indent=4)
-
-
-@cli.command(help="Downloads jnegmas and updates your settings")
-def jnegmas_setup():
-    url = f"http://www.yasserm.com/scml/{JNEGMAS_JAR_NAME}"
-    print(f"Downloading: {url}", end="", flush=True)
-    download_and_set(key="jnegmas_jar", url=url, file_name="jnegmas.jar")
-    print(" done successfully")
 
 
 @cli.command(help="Downloads the genius bridge and updates your settings")

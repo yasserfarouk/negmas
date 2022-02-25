@@ -44,8 +44,8 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     def __init__(
         self,
         ufun: BaseUtilityFunction,
-        discount: Optional[float] = None,
-        factor: Union[str, Callable[["MechanismState"], float]] = "step",
+        discount: float | None = None,
+        factor: str | Callable[[MechanismState], float] = "step",
         name=None,
         reserved_value: Value = float("-inf"),
         dynamic_reservation=True,
@@ -65,9 +65,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     ) -> tuple[float, float]:
         return self.ufun.minmax(outcome_space, issues, outcomes, max_cardinality)
 
-    def shift_by(
-        self, offset: float, shift_reserved: bool = True
-    ) -> "ExpDiscountedUFun":
+    def shift_by(self, offset: float, shift_reserved: bool = True) -> ExpDiscountedUFun:
         return ExpDiscountedUFun(
             outcome_space=self.outcome_space,
             ufun=self.ufun.shift_by(offset, shift_reserved),
@@ -80,9 +78,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             dynamic_reservation=self.dynamic_reservation,
         )
 
-    def scale_by(
-        self, scale: float, scale_reserved: bool = True
-    ) -> "ExpDiscountedUFun":
+    def scale_by(self, scale: float, scale_reserved: bool = True) -> ExpDiscountedUFun:
         return ExpDiscountedUFun(
             outcome_space=self.outcome_space,
             ufun=self.ufun.scale_by(scale, scale_reserved),
@@ -95,7 +91,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             dynamic_reservation=self.dynamic_reservation,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = super().to_dict()
         return dict(
             **d,
@@ -106,7 +102,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         )
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]):
+    def from_dict(cls, d: dict[str, Any]):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
@@ -118,11 +114,11 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         reserved_value=(0.0, 1.0),
         normalized=True,
         discount_range=(0.8, 1.0),
-        base_preferences_type: Union[
-            str, Type[BaseUtilityFunction]
-        ] = "negmas.LinearAdditiveUtilityFunction",
+        base_preferences_type: (
+            str | type[BaseUtilityFunction]
+        ) = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
-    ) -> "ExpDiscountedUFun":
+    ) -> ExpDiscountedUFun:
         """Generates a random ufun of the given type"""
         reserved_value = make_range(reserved_value)
         discount_range = make_range(discount_range)
@@ -163,9 +159,9 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             factor = getattr(state, self.factor)
         else:
             factor = self.factor(state)
-        return (self.discount ** factor) * u
+        return (self.discount**factor) * u
 
-    def xml(self, issues: List[Issue]) -> str:
+    def xml(self, issues: list[Issue]) -> str:
         if not hasattr(self.ufun, "xml"):
             raise ValueError(
                 f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
@@ -182,12 +178,6 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             output += "/>\n"
         return output
 
-    def __str__(self):
-        return f"{self.ufun.type}-cost:{self.discount} based on {self.factor}"
-
-    def __getattr__(self, item):
-        return getattr(self.ufun, item)
-
     @property
     def base_type(self):
         return self.ufun.type
@@ -195,6 +185,12 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
     @property
     def type(self):
         return self.ufun.type + "_exponentially_discounted"
+
+    def __getattr__(self, item):
+        return getattr(self.ufun, item)
+
+    def __str__(self):
+        return f"{self.ufun.type}-cost:{self.discount} based on {self.factor}"
 
 
 class LinDiscountedUFun(DiscountedUtilityFunction):
@@ -213,8 +209,8 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
     def __init__(
         self,
         ufun: BaseUtilityFunction,
-        cost: Optional[float] = None,
-        factor: Union[str, Callable[["MechanismState"], float]] = "current_step",
+        cost: float | None = None,
+        factor: str | Callable[[MechanismState], float] = "current_step",
         power: float | None = 1.0,
         name=None,
         reserved_value: Value = float("-inf"),
@@ -233,7 +229,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         self.power = power
         self.dynamic_reservation = dynamic_reservation
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = super().to_dict()
         return dict(
             **d,
@@ -245,7 +241,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         )
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]):
+    def from_dict(cls, d: dict[str, Any]):
         d.pop(PYTHON_CLASS_IDENTIFIER, None)
         d["ufun"] = deserialize(d["ufun"])
         return cls(**d)
@@ -267,7 +263,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             factor = self.factor(state)
         return u - ((factor * self.cost) ** self.power)
 
-    def xml(self, issues: List[Issue]) -> str:
+    def xml(self, issues: list[Issue]) -> str:
         if not hasattr(self.ufun, "xml"):
             raise ValueError(
                 f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
@@ -287,12 +283,6 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
 
         return output
 
-    def __str__(self):
-        return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
-
-    def __getattr__(self, item):
-        return getattr(self.ufun, item)
-
     @property
     def base_type(self):
         return self.ufun.type
@@ -309,10 +299,10 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         normalized=True,
         cost_range=(0.8, 1.0),
         power_range=(0.0, 1.0),
-        base_preferences_type: Type[BaseUtilityFunction]
+        base_preferences_type: type[BaseUtilityFunction]
         | str = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
-    ) -> "LinDiscountedUFun":
+    ) -> LinDiscountedUFun:
         """Generates a random ufun of the given type"""
         reserved_value = make_range(reserved_value)
         cost_range = make_range(cost_range)
@@ -333,3 +323,9 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             ),
             **kwargs,
         )
+
+    def __getattr__(self, item):
+        return getattr(self.ufun, item)
+
+    def __str__(self):
+        return f"{self.ufun.type}-cost:{self.cost} raised to {self.power} based on {self.factor}"
