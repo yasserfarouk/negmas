@@ -10,7 +10,6 @@ import os
 import pathlib
 import random
 import tempfile
-from typing import List, Optional, Tuple, Union
 
 from negmas import warnings
 from negmas.outcomes.base_issue import Issue
@@ -436,8 +435,8 @@ class GeniusNegotiator(SAONegotiator):
         if timeout is None or math.isinf(timeout) or timeout < 0:
             timeout = DEFAULT_GENIUS_NEGOTIATOR_TIMEOUT
 
-        if info._mechanism:
-            timeout = min(timeout, info._mechanism._hidden_time_limit)
+        if info.mechanism:
+            timeout = min(timeout, info.mechanism._hidden_time_limit)
 
         if n_steps * n_seconds > 0:
             if n_steps < 0:

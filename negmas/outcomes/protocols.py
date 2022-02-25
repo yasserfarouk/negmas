@@ -58,10 +58,7 @@ class OutcomeSpace(Container, Protocol):
         ...
 
     def to_discrete(
-        self,
-        levels: int | float = 5,
-        max_cardinality: int | float = float("inf"),
-        **kwargs,
+        self, levels: int | float = 5, max_cardinality: int | float = float("inf")
     ) -> DiscreteOutcomeSpace:
         """
         Returns a **stable** finite outcome space. If the outcome-space is already finite. It shoud return itself.

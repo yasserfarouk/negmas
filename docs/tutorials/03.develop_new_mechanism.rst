@@ -305,7 +305,7 @@ this information.
 
 .. code:: ipython3
 
-    @dataclass
+    @define
     class RubinsteinMechanismState(MechanismState):
         discounts: Tuple[float, float] = (1.0, 1.0)
 

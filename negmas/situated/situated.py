@@ -754,12 +754,6 @@ class MechanismFactory:
         responses: Iterator[tuple[Negotiator, str]],
         partners: list[Agent],
     ) -> Mechanism:
-        if self.neg_n_steps is not None:
-            mechanism.nmi.n_steps = self.neg_n_steps
-        if self.neg_time_limit is not None:
-            mechanism.nmi.time_limit = self.neg_time_limit
-        if self.neg_step_time_limit is not None:
-            mechanism.nmi.step_time_limit = self.neg_step_time_limit
         for partner in partners:
             mechanism.register_listener(event_type="negotiation_end", listener=partner)
 
@@ -799,7 +793,7 @@ class MechanismFactory:
     def _start_negotiation(
         self,
         mechanism_name,
-        mechanism_params,
+        mechanism_params: dict[str, Any],
         roles,
         caller,
         partners,
@@ -852,7 +846,13 @@ class MechanismFactory:
             if mechanisms and mechanisms.get(mechanism_name, None) is not None:
                 mechanism_params.update(mechanisms[mechanism_name])
         try:
-            mechanism = instantiate(class_name=mechanism_name, **mechanism_params)
+            d = dict(
+                n_steps=self.neg_n_steps,
+                time_limit=self.neg_time_limit,
+                step_time_limit=self.neg_step_time_limit,
+            )
+            d = d.update(mechanism_params)
+            mechanism = instantiate(class_name=mechanism_name, **d)
         except Exception as e:
             s_ = exception2str()
             self.world.mechanism_exceptions[self.world.current_step].append(s_)

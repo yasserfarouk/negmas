@@ -6,9 +6,11 @@ This module does not import anything from the library except during type checkin
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass, field, fields
 from enum import Enum, auto, unique
 from typing import TYPE_CHECKING, Any, Iterable, Protocol, Union, runtime_checkable
+
+from attr import define, field
+from attrs import asdict
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
@@ -37,9 +39,6 @@ class Distribution(Protocol):
     """
     A protocol representing a probability distribution
     """
-
-    def __init__(self, type: str, **kwargs):
-        """Constructor"""
 
     def type(self) -> str:
         """Returns the distribution type (e.g. uniform, normal, ...)"""
@@ -166,43 +165,61 @@ class PreferencesChangeType(Enum):
     UncertaintyIncreased = auto()
 
 
-@dataclass
+@define(frozen=True)
 class PreferencesChange:
     type: PreferencesChangeType = PreferencesChangeType.General
     data: Any = None
 
 
-@dataclass
+@define(frozen=True)
 class NegotiatorInfo:
     """
     Keeps information about a negotiator. Mostly for use with controllers.
     """
 
     name: str
-    id: str
-    type: str
     """Name of this negotiator"""
+    id: str
     """ID unique to this negotiator"""
+    type: str
     """Type of the negotiator as a string"""
 
 
-@dataclass
+@define(frozen=True)
 class MechanismState:
     """Encapsulates the mechanism state at any point"""
 
     running: bool = False
+    """Whether the negotiation has started and did not yet finish"""
     waiting: bool = False
+    """Whether the negotiation is waiting for some negotiator to respond"""
     started: bool = False
+    """Whether the negotiation has started"""
     step: int = 0
+    """The current round of the negotiation"""
     time: float = 0.0
+    """The current real time of the negotiation."""
     relative_time: float = 0.0
+    """A number in the period [0, 1] giving the relative time of the negotiation.
+    Relative time is calculated as ``max(step/n_steps, time/time_limit)``.
+    """
     broken: bool = False
+    """True if the negotiation has started and ended with an END_NEGOTIATION"""
     timedout: bool = False
+    """True if the negotiation was timedout"""
     agreement: Outcome | None = None
+    """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
     results: Outcome | OutcomeSpace | None = None
+    """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
+    outcomes or even a complete outcome space.
+    """
     n_negotiators: int = 0
+    """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports
+    dynamic entry"""
     has_error: bool = False
+    """Does the mechanism have any errors"""
     error_details: str = ""
+    """Details of the error if any"""
 
     def __copy__(self):
         return MechanismState(**self.__dict__)
@@ -210,25 +227,6 @@ class MechanismState:
     def __deepcopy__(self, memodict={}):
         d = {k: deepcopy(v, memo=memodict) for k, v in self.__dict__.items()}
         return MechanismState(**d)
-
-    """Whether the negotiation has started and did not yet finish"""
-    """Whether the negotiation is waiting for some negotiator to respond"""
-    """Whether the negotiation has started"""
-    """The current round of the negotiation"""
-    """The current real time of the negotiation."""
-    """A number in the period [0, 1] giving the relative time of the negotiation.
-    Relative time is calculated as ``max(step/n_steps, time/time_limit)``.
-    """
-    """True if the negotiation has started and ended with an END_NEGOTIATION"""
-    """True if the negotiation was timedout"""
-    """Agreement at the end of the negotiation (it is always None until an agreement is reached)."""
-    """In its simplest form, an agreement is a single outcome (or None for failure). Nevertheless, it can be a list of
-    outcomes or even a complete outcome space.
-    """
-    """Number of agents currently in the negotiation. Notice that this may change over time if the mechanism supports
-    dynamic entry"""
-    """Does the mechanism have any errors"""
-    """Details of the error if any"""
 
     @property
     def ended(self):
@@ -244,26 +242,27 @@ class MechanismState:
 
     def asdict(self):
         """Converts the outcome to a dict containing all fields"""
-        return {_.name: self.__dict__[_.name] for _ in fields(self)}
+        return asdict(self)
 
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
-        return self.__dict__[item]
+        return getattr(self, item)
 
-    def __hash__(self):
-        return hash(str(self))
-
-    def __eq__(self, other):
-        return self.__hash__() == other.__hash__()
-
-    def __repr__(self):
-        return self.__dict__.__repr__()
-
-    def __str__(self):
-        return str(self.__dict__)
+    # def __hash__(self):
+    #     return hash(str(self))
 
 
-@dataclass
+#     def __eq__(self, other):
+#         return self.__hash__() == other.__hash__()
+#
+#     def __repr__(self):
+#         return self.__dict__.__repr__()
+#
+#     def __str__(self):
+#         return str(self.__dict__)
+
+
+@define(frozen=True)
 class NegotiatorMechanismInterface:
     """All information of a negotiation visible to negotiators."""
 
@@ -276,8 +275,8 @@ class NegotiatorMechanismInterface:
     n_steps: int | None
     dynamic_entry: bool
     max_n_agents: int | None
-    _mechanism: Mechanism = field(init=False)
-    annotation: dict[str, Any] = field(default_factory=dict)
+    mechanism: Mechanism
+    annotation: dict[str, Any] = field(default=dict)
 
     def __copy__(self):
         return NegotiatorMechanismInterface(**vars(self))
@@ -322,12 +321,12 @@ class NegotiatorMechanismInterface:
         """
         Returns a stable discrete version of the given outcome-space
         """
-        return self._mechanism.discrete_outcome_space(levels, max_cardinality)
+        return self.mechanism.discrete_outcome_space(levels, max_cardinality)
 
     @property
     def params(self):
         """Returns the parameters used to initialize the mechanism."""
-        return self._mechanism.params
+        return self.mechanism.params
 
     def random_outcomes(self, n: int = 1) -> list[Outcome]:
         """
@@ -341,7 +340,7 @@ class NegotiatorMechanismInterface:
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self._mechanism.random_outcomes(n=n)
+        return self.mechanism.random_outcomes(n=n)
 
     def discrete_outcomes(
         self, max_cardinality: int | float = float("inf")
@@ -357,11 +356,11 @@ class NegotiatorMechanismInterface:
             list[Outcome]: list of `n` or less outcomes
 
         """
-        return self._mechanism.discrete_outcomes(max_cardinality=max_cardinality)
+        return self.mechanism.discrete_outcomes(max_cardinality=max_cardinality)
 
     @property
     def issues(self) -> tuple[Issue, ...]:
-        os = self._mechanism.outcome_space
+        os = self.mechanism.outcome_space
         if hasattr(os, "issues"):
             return os.issues  # type: ignore I am just checking that the attribute issues exists
         raise ValueError(
@@ -374,14 +373,14 @@ class NegotiatorMechanismInterface:
         from negmas.outcomes.protocols import DiscreteOutcomeSpace
 
         return (
-            self._mechanism.outcome_space.enumerate()
-            if isinstance(self._mechanism.outcome_space, DiscreteOutcomeSpace)
+            self.mechanism.outcome_space.enumerate()
+            if isinstance(self.mechanism.outcome_space, DiscreteOutcomeSpace)
             else None
         )
 
     @property
     def participants(self) -> list[NegotiatorInfo]:
-        return self._mechanism.participants
+        return self.mechanism.participants
 
     @property
     def state(self) -> MechanismState:
@@ -394,7 +393,7 @@ class NegotiatorMechanismInterface:
               protocol by accessing this property.
 
         """
-        return self._mechanism.state
+        return self.mechanism.state
 
     @property
     def requirements(self) -> dict:
@@ -404,7 +403,7 @@ class NegotiatorMechanismInterface:
         Returns:
             - A dict of str/Any pairs giving the requirements
         """
-        return self._mechanism.requirements
+        return self.mechanism.requirements
 
     @property
     def n_negotiators(self) -> int:
@@ -414,22 +413,22 @@ class NegotiatorMechanismInterface:
     @property
     def negotiator_ids(self) -> list[str]:
         """Gets the IDs of all negotiators"""
-        return self._mechanism.negotiator_ids
+        return self.mechanism.negotiator_ids
 
     @property
     def negotiator_names(self) -> list[str]:
         """Gets the namess of all negotiators"""
-        return self._mechanism.negotiator_names
+        return self.mechanism.negotiator_names
 
     @property
     def agent_ids(self) -> list[str]:
         """Gets the IDs of all agents owning all negotiators"""
-        return self._mechanism.agent_ids
+        return self.mechanism.agent_ids
 
     @property
     def agent_names(self) -> list[str]:
         """Gets the names of all agents owning all negotiators"""
-        return self._mechanism.agent_names
+        return self.mechanism.agent_names
 
     def keys(self):
         return self.__dict__.keys()
@@ -439,28 +438,11 @@ class NegotiatorMechanismInterface:
 
     def asdict(self):
         """Converts the object to a dict containing all fields"""
-        return {_.name: self.__dict__[_.name] for _ in fields(self)}
+        return asdict(self)
 
     def __getitem__(self, item):
         """Makes the outcome type behave like a dict"""
-        return self.__dict__[item]
-
-    def __eq__(self, other):
-        d1 = self.__dict__
-        d2 = other.__dict__
-        for k in d1.keys():
-            if d2[k] != d1[k]:
-                return False
-        return True
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def __repr__(self):
-        return self.__dict__.__repr__()
-
-    def __str__(self):
-        return str(self.__dict__)
+        return getattr(self, item)
 
 
 AgentMechanismInterface = NegotiatorMechanismInterface

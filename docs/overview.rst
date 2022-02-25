@@ -2222,7 +2222,7 @@ filling it in the mechanism:
 
     from dataclasses import dataclass
 
-    @dataclass
+    @define
     class MyState(MechanismState):
         current_offer: Outcome = None
         current_offerer: str = "none"
