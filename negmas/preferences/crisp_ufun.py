@@ -193,7 +193,10 @@ class UtilityFunction(_General, BaseUtilityFunction):
 
         """
         (worst, best) = self.extreme_outcomes(
-            outcome_space, issues, outcomes, max_cardinality
+            outcome_space,
+            tuple(issues) if issues else issues,
+            tuple(outcomes) if outcomes else outcomes,
+            max_cardinality,
         )
         w, b = self(worst), self(best)
         if above_reserve:
