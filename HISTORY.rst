@@ -1,6 +1,21 @@
 History
 =======
 
+Release 0.9.2
+-------------
+
+* Improving caching
+* Renaming modeling advanced module to models
+* optimizing imports
+* removing the need for extra_state()
+* changing some of the core classes to use attrs
+* switching to setup.cfg and adding pytoml.yml
+* performance improvement and code sorting
+* more basic acceptance strategies
+
+Release 0.9.1
+-------------
+
 * caching offer in the offering strategy
 * Avoids repeated calls to the offering strategy in SAOModuler if it was
   called for example by the acceptance strategy then again by the mechanism.
@@ -16,7 +31,7 @@ Release 0.9.0
 -------------
 
 This is a major release and it is **not** backward compatible. Please reference
-the upgrare guide at the upgrdade guide_.
+the upgrade guide at the upgrdade guide_.
 
 .. _guide: http://yasserm.com/negmas/upgrade_guide.html
 
