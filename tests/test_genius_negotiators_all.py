@@ -79,6 +79,8 @@ from negmas.genius.gnegotiators import (
 from negmas.inout import Scenario
 from negmas.sao.negotiators import ToughNegotiator
 
+from .switches import NEGMAS_FASTRUN, NEGMAS_RUN_GENIUS
+
 TIMELIMIT = 30
 STEPLIMIT = 50
 
@@ -94,8 +96,7 @@ DOMAINS = [
     # "tests/data/Laptop",
 ]
 
-SKIP_CONDITION = not os.environ.get("NEGMAS_LONG_TEST", False)
-# SKIP_CONDITION = False
+SKIP_CONDITION = NEGMAS_FASTRUN or not NEGMAS_RUN_GENIUS
 
 
 def do_run(
