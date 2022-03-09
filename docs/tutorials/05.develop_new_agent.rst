@@ -32,7 +32,10 @@ code which is self explanatory this time.
             pass
 
         def respond_to_negotiation_request(
-            self, initiator: str, partners: List[str], mechanism: NegotiatorMechanismInterface
+            self,
+            initiator: str,
+            partners: List[str],
+            mechanism: NegotiatorMechanismInterface,
         ) -> Optional[Negotiator]:
             # just us a random negotiator for everything
             return RandomNegotiator()
@@ -52,6 +55,18 @@ We can now start world simulations using our new world and agent
 
 .. parsed-literal::
 
+
+      0%|                                                                                                                                                                                        | 0/10 [00:00<?, ?it/s]
+     10%|█████████████████▌                                                                                                                                                              | 1/10 [00:00<00:01,  6.98it/s]
+     20%|███████████████████████████████████▏                                                                                                                                            | 2/10 [00:00<00:03,  2.40it/s]
+     30%|████████████████████████████████████████████████████▊                                                                                                                           | 3/10 [00:01<00:03,  1.85it/s]
+     40%|██████████████████████████████████████████████████████████████████████▍                                                                                                         | 4/10 [00:01<00:03,  1.86it/s]
+     50%|████████████████████████████████████████████████████████████████████████████████████████                                                                                        | 5/10 [00:02<00:03,  1.60it/s]
+     60%|█████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                                                      | 6/10 [00:03<00:02,  1.50it/s]
+     70%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▏                                                    | 7/10 [00:04<00:01,  1.55it/s]
+     80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                   | 8/10 [00:04<00:01,  1.55it/s]
+     90%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                 | 9/10 [00:05<00:00,  1.47it/s]
+    100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:06<00:00,  1.41it/s]
     100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:06<00:00,  1.59it/s]
 
 
@@ -62,9 +77,9 @@ expect :math:`40` negotiations at every step.
 
 .. code:: ipython3
 
-    plt.plot(world.stats['n_negotiations'])
-    plt.xlabel('Simulation Step')
-    plt.ylabel('N. Negotiations')
+    plt.plot(world.stats["n_negotiations"])
+    plt.xlabel("Simulation Step")
+    plt.ylabel("N. Negotiations")
     plt.show()
 
 
@@ -81,9 +96,10 @@ as a pandas dataframe.
     def stats_df(world):
         return pd.DataFrame(world.stats)
 
-    plt.bar(range(world.n_steps), stats_df(world)['step_time'])
-    plt.xlabel('Simulation Step')
-    plt.ylabel('Time (s)')
+
+    plt.bar(range(world.n_steps), stats_df(world)["step_time"])
+    plt.xlabel("Simulation Step")
+    plt.ylabel("Time (s)")
     print()
 
 
@@ -102,9 +118,9 @@ correspond to the total welfare)
 
 .. code:: ipython3
 
-    plt.plot(world.stats['activity_level'])
-    plt.xlabel('Simulation Step')
-    plt.ylabel('Activitiy Level ($)\nTotal Welfare')
+    plt.plot(world.stats["activity_level"])
+    plt.xlabel("Simulation Step")
+    plt.ylabel("Activitiy Level ($)\nTotal Welfare")
     plt.show()
 
 
@@ -116,11 +132,12 @@ We can see a picture of contracting in this world as follows:
 
 .. code:: ipython3
 
-    plt.plot(world.stats['n_contracts_signed'], label='Signed Contracts')
-    plt.plot(world.stats['n_contracts_executed'], label='Executed Contracts')
+    plt.plot(world.stats["n_contracts_signed"], label="Signed Contracts")
+    plt.plot(world.stats["n_contracts_executed"], label="Executed Contracts")
     plt.legend()
-    plt.xlabel('Simulation Step')
-    plt.ylabel('N. Contracts')
+    plt.xlabel("Simulation Step")
+    plt.ylabel("N. Contracts")
+
 
 
 
@@ -139,9 +156,10 @@ We can also check the breaches that happened
 
 .. code:: ipython3
 
-    plt.plot(world.stats['breach_level'])
-    plt.xlabel('Simulation Step')
-    plt.ylabel('Total Breach Level')
+    plt.plot(world.stats["breach_level"])
+    plt.xlabel("Simulation Step")
+    plt.ylabel("Total Breach Level")
+
 
 
 
@@ -163,9 +181,10 @@ We can actually check what happens to ALL agents
     fig, utility = plt.subplots(1, 1)
     snames = sorted(_.name for _ in world.agents.values())
     for name in snames:
-        utility.plot(np.asarray(world.stats[f'total_utility_{name}']), label=name)
-    utility.set(xlabel='Simulation Step', ylabel='Player Total Utility')
-    utility.legend(loc='lower left')
+        utility.plot(np.asarray(world.stats[f"total_utility_{name}"]), label=name)
+    utility.set(xlabel="Simulation Step", ylabel="Player Total Utility")
+    utility.legend(loc="lower left")
+
 
 
 
@@ -209,10 +228,19 @@ attempt:
 
     class SanePerson(Person):
         """An agent that uses a predefined negotiator instead of a random negotiator"""
-        def __init__(self, *args, negotiator_type = AspirationNegotiator, negotiator_params = None, **kwargs):
+
+        def __init__(
+            self,
+            *args,
+            negotiator_type=AspirationNegotiator,
+            negotiator_params=None,
+            **kwargs
+        ):
             super().__init__(*args, **kwargs)
             self.negotiator_type = negotiator_type
-            self.negotiator_params = negotiator_params if negotiator_params is not None else dict()
+            self.negotiator_params = (
+                negotiator_params if negotiator_params is not None else dict()
+            )
 
         def step(self):
             # get IDs of all ogher agents from the AWI
@@ -222,7 +250,9 @@ attempt:
                 # for each negotiation, use a random subset of partners and a random negotiator
                 self.awi.request_negotiation(
                     partners=sample(agents, k=randint(1, 2)),
-                    negotiator=self.negotiator_type(ufun=self.ufun, **self.negotiator_params),
+                    negotiator=self.negotiator_type(
+                        ufun=self.ufun, **self.negotiator_params
+                    ),
                 )
 
         def init(self):
@@ -255,6 +285,28 @@ Let’s try it
 
 .. parsed-literal::
 
+
+      0%|                                                                                                                                                                                        | 0/20 [00:00<?, ?it/s]
+      5%|████████▊                                                                                                                                                                       | 1/20 [00:00<00:02,  8.86it/s]
+     10%|█████████████████▌                                                                                                                                                              | 2/20 [00:28<05:01, 16.78s/it]
+     15%|██████████████████████████▍                                                                                                                                                     | 3/20 [00:53<05:50, 20.63s/it]
+     20%|███████████████████████████████████▏                                                                                                                                            | 4/20 [01:13<05:25, 20.37s/it]
+     25%|████████████████████████████████████████████                                                                                                                                    | 5/20 [01:34<05:09, 20.63s/it]
+     30%|████████████████████████████████████████████████████▊                                                                                                                           | 6/20 [01:58<05:03, 21.66s/it]
+     35%|█████████████████████████████████████████████████████████████▌                                                                                                                  | 7/20 [02:18<04:35, 21.20s/it]
+     40%|██████████████████████████████████████████████████████████████████████▍                                                                                                         | 8/20 [02:42<04:23, 21.92s/it]
+     45%|███████████████████████████████████████████████████████████████████████████████▏                                                                                                | 9/20 [03:02<03:54, 21.28s/it]
+     50%|███████████████████████████████████████████████████████████████████████████████████████▌                                                                                       | 10/20 [03:22<03:30, 21.01s/it]
+     55%|████████████████████████████████████████████████████████████████████████████████████████████████▎                                                                              | 11/20 [03:42<03:06, 20.74s/it]
+     60%|█████████████████████████████████████████████████████████████████████████████████████████████████████████                                                                      | 12/20 [04:03<02:46, 20.80s/it]
+     65%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                                             | 13/20 [04:23<02:24, 20.66s/it]
+     70%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍                                                    | 14/20 [04:44<02:03, 20.51s/it]
+     75%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎                                           | 15/20 [05:05<01:43, 20.76s/it]
+     80%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████                                   | 16/20 [05:23<01:19, 19.99s/it]
+     85%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▊                          | 17/20 [05:44<01:00, 20.18s/it]
+     90%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                 | 18/20 [06:06<00:41, 20.83s/it]
+     95%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 19/20 [06:29<00:21, 21.54s/it]
+    100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [06:50<00:00, 21.39s/it]
     100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [06:50<00:00, 20.54s/it]
 
 
@@ -266,11 +318,14 @@ Let’s check how did our agent do
     snames = sorted(_.name for _ in world.agents.values())
     utils = dict(sane=np.zeros(world.n_steps), rand=np.zeros(world.n_steps))
     for agent_name in (_.name for _ in world.agents.values()):
-        utils[agent_name.split("-")[0]] += np.asarray(world.stats[f'total_utility_{agent_name}'])
+        utils[agent_name.split("-")[0]] += np.asarray(
+            world.stats[f"total_utility_{agent_name}"]
+        )
     for name in utils.keys():
         utility.plot(utils[name], label=name)
-    utility.set(xlabel='Simulation Step', ylabel='Player Total Utility')
-    utility.legend(loc='lower left')
+    utility.set(xlabel="Simulation Step", ylabel="Player Total Utility")
+    utility.legend(loc="lower left")
+
 
 
 

@@ -10,30 +10,37 @@ seller negotiating over a deal using time-based negotiators.
 
     # create negotiation agenda (issues)
     issues = [
-        make_issue(name='price', values=10),
-        make_issue(name='quantity', values=(1, 11)),
-        make_issue(name='delivery_time', values=10)
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
     ]
 
     # create the mechanism
     session = SAOMechanism(issues=issues, n_steps=20)
 
-    #define ufuns
-    seller_utility = LUFun(values={'price': IdentityFun() , 'quantity': LinearFun(0.2) , 'delivery_time': AffineFun(-1, bias=9)},
-                           weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0},
-                           outcome_space=session.outcome_space, reserved_value=15).scale_max(1.0)
+    # define ufuns
+    seller_utility = LUFun(
+        values={
+            "price": IdentityFun(),
+            "quantity": LinearFun(0.2),
+            "delivery_time": AffineFun(-1, bias=9),
+        },
+        weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
+        outcome_space=session.outcome_space,
+        reserved_value=15,
+    ).scale_max(1.0)
     buyer_utility = LUFun(
-            values={
-                'price': AffineFun(-1, bias=9.0),
-                'quantity': LinearFun(0.2),
-                'delivery_time': IdentityFun()
-            },
-            outcome_space=session.outcome_space,
-        reserved_value=10
-        ).scale_max(1.0)
+        values={
+            "price": AffineFun(-1, bias=9.0),
+            "quantity": LinearFun(0.2),
+            "delivery_time": IdentityFun(),
+        },
+        outcome_space=session.outcome_space,
+        reserved_value=10,
+    ).scale_max(1.0)
 
-    session.add(AspirationNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(AspirationNegotiator(name='seller'), ufun=seller_utility)
+    session.add(AspirationNegotiator(name="buyer"), ufun=buyer_utility)
+    session.add(AspirationNegotiator(name="seller"), ufun=seller_utility)
     session.run()
     session.plot()
 
@@ -109,6 +116,7 @@ try to do that
     class RandomNegotiator(SAONegotiator):
         ...
 
+
     try:
         RandomNegotiator()
     except Exception as e:
@@ -160,30 +168,37 @@ the buyer and/or seller negotiators in the code sample we used above:
 
         # create negotiation agenda (issues)
         issues = [
-            make_issue(name='price', values=10),
-            make_issue(name='quantity', values=(1, 11)),
-            make_issue(name='delivery_time', values=10)
+            make_issue(name="price", values=10),
+            make_issue(name="quantity", values=(1, 11)),
+            make_issue(name="delivery_time", values=10),
         ]
 
         # create the mechanism
         session = SAOMechanism(issues=issues, n_steps=n_steps)
 
-        #define ufuns
-        seller_utility = LUFun(values={'price': IdentityFun() , 'quantity': LinearFun(0.2) , 'delivery_time': AffineFun(-1, bias=9)},
-                               weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0},
-                               outcome_space=session.outcome_space, reserved_value=15.0).scale_max(1.0)
+        # define ufuns
+        seller_utility = LUFun(
+            values={
+                "price": IdentityFun(),
+                "quantity": LinearFun(0.2),
+                "delivery_time": AffineFun(-1, bias=9),
+            },
+            weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
+            outcome_space=session.outcome_space,
+            reserved_value=15.0,
+        ).scale_max(1.0)
         buyer_utility = LUFun(
-                values={
-                    'price': AffineFun(-1, bias=9.0),
-                    'quantity': LinearFun(0.2),
-                    'delivery_time': IdentityFun()
-                },
-                outcome_space=session.outcome_space,
-                reserved_value=10.0
-            ).scale_max(1.0)
+            values={
+                "price": AffineFun(-1, bias=9.0),
+                "quantity": LinearFun(0.2),
+                "delivery_time": IdentityFun(),
+            },
+            outcome_space=session.outcome_space,
+            reserved_value=10.0,
+        ).scale_max(1.0)
 
-        session.add(buyer_cls(name='buyer'), ufun=buyer_utility)
-        session.add(seller_cls(name='seller'), ufun=seller_utility)
+        session.add(buyer_cls(name="buyer"), ufun=buyer_utility)
+        session.add(seller_cls(name="seller"), ufun=seller_utility)
         session.run()
         if plot:
             session.plot()
@@ -260,7 +275,9 @@ negotiation ended.
 
 .. code:: ipython3
 
-    ended_at = [try_negotiator(RandomNegotiator, plot=False).state.step for _ in range(1000)]
+    ended_at = [
+        try_negotiator(RandomNegotiator, plot=False).state.step for _ in range(1000)
+    ]
     plt.hist(ended_at)
     plt.show()
 
@@ -295,7 +312,6 @@ Here is how we can add our acceptance strategy:
 .. code:: ipython3
 
     class BetterRandomNegotiator(RandomNegotiator):
-
         def respond(self, state, offer):
             if self.ufun(offer) > 0.9:
                 return ResponseType.ACCEPT_OFFER
@@ -402,7 +418,9 @@ agreement for the agent that accepted it as follows:
 .. code:: ipython3
 
     negotiator_ids = [_.id for _ in s3.negotiators]
-    acceptor = [i for i, _ in enumerate(negotiator_ids) if _ != s3.state.current_proposer][0]
+    acceptor = [i for i, _ in enumerate(negotiator_ids) if _ != s3.state.current_proposer][
+        0
+    ]
     print(s3.negotiators[acceptor].ufun(s3.agreement))
 
 
@@ -426,7 +444,6 @@ default parameters of all negotiators as follows:
 .. code:: ipython3
 
     class BetterRandomNegotiator(RandomNegotiator):
-
         def __init__(self, *args, acceptance_threshold=0.8, **kwargs):
             super().__init__(*args, **kwargs)
             self._th = acceptance_threshold
@@ -462,12 +479,13 @@ explain it:
     from random import choice
     from negmas import PolyAspiration, PresortingInverseUtilityFunction
 
+
     class SmartAspirationNegotiator(SAONegotiator):
-        _inv = None           # The ufun invertor (finds outcomes in a utility range)
-        _partner_first = None # The best offer of the parter (assumed best for it)
-        _min = None           # The minimum of my utility function
-        _max = None           # The maximum of my utility function
-        _best = None          # The best outcome for me
+        _inv = None  # The ufun invertor (finds outcomes in a utility range)
+        _partner_first = None  # The best offer of the parter (assumed best for it)
+        _min = None  # The minimum of my utility function
+        _max = None  # The maximum of my utility function
+        _best = None  # The best outcome for me
 
         def __init__(self, *args, **kwargs):
             # initialize the base SAONegoiator (MUST be done)
@@ -503,7 +521,9 @@ explain it:
 
         def propose(self, state):
             # calculate my current aspiration level (utility level at which I will offer and accept)
-            a = (self._max - self._min) * self._asp.utility_at(state.relative_time) + self._min
+            a = (self._max - self._min) * self._asp.utility_at(
+                state.relative_time
+            ) + self._min
 
             # find some outcomes (all if the outcome space is  discrete) above the aspiration level
             outcomes = self._inv.some((a, self._max), False)
@@ -519,7 +539,7 @@ explain it:
             # otherwise, offer the outcome most similar to the partner's first offer (above the aspiration level)
             nearest, ndist = None, float("inf")
             for o in outcomes:
-                d = sum((a-b) * (a-b) for a, b in zip(o, self._partner_first))
+                d = sum((a - b) * (a - b) for a, b in zip(o, self._partner_first))
                 if d < ndist:
                     nearest, ndist = o, d
             return nearest
@@ -597,6 +617,7 @@ with ``AspriationNegotiator`` on multiple negotiations:
 .. code:: ipython3
 
     from collections import defaultdict
+
     # find the pareto-frontier (it is the same for all negotiations)
     frontier_utils, frontier_outcomes = s.pareto_frontier()
     nash_utils, nash_outcome = s.nash_point()
@@ -604,15 +625,18 @@ with ``AspriationNegotiator`` on multiple negotiations:
 
     # define the distance (Euclidean) to pareto frontier
     def ed(a, b):
-        return math.sqrt(sum((x-y)**2 for x, y in zip(a, b)))
+        return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
 
     def pareto_dist(a, frontier):
         # find the distance to the pareto-front (in outcome-space units)
         return min(ed(a, b) for b in frontier)
 
+
     def nash_diff(a, nash_welfare):
         # find the difference in total welfare between the agreement and nash-agreement
         return nash_welfare - sum(_.ufun(a) for _ in s.negotiators)
+
 
     # collect data about distance of the agreement to the pareto frontier
     n, pdist, ndiff = 100, defaultdict(float), defaultdict(float)
@@ -673,6 +697,7 @@ You can check other negotiators in NegMAS for new ideas:
 .. code:: ipython3
 
     from negmas import all_negotiator_types
+
     print(all_negotiator_types())
 
 

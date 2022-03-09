@@ -14,7 +14,7 @@ from ..helpers import create_loggers, instantiate
 from ..helpers.prob import ScipyDistribution
 from ..inout import load_genius_domain_from_folder
 from ..mechanisms import Mechanism
-from ..modeling import UncertainOpponentModel
+from ..models.acceptance import UncertainOpponentModel
 from ..outcomes import Outcome
 from ..preferences import IPUtilityFunction, MappingUtilityFunction, UtilityFunction
 from ..sao import (

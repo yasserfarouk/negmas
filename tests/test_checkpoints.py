@@ -104,8 +104,9 @@ def checkpoint_every(args):
 #
 
 
-@mark.skip(
-    "Checkpointing is known to fail with UtilityInverter. As this whole thing will be changed, we may just wait for now"
+@mark.xfail(
+    run=False,
+    reason="Checkpointing is known to fail with UtilityInverter. As this whole thing will be changed, we may just wait for now",
 )
 @given(
     checkpoint_every=st.integers(1, 4),

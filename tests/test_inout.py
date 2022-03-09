@@ -193,7 +193,9 @@ def do_enc_dec_trial(tmp, folder_name, with_discounting=True):
         pass
 
 
-@mark.skip("Known to fail. It is the int/discrete issue ambiguity in Genius")
+@mark.xfail(
+    run=False, reason="Known to fail. It is the int/discrete issue ambiguity in Genius"
+)
 @pytest.mark.parametrize("disc", [True, False])
 def test_encoding_decoding_example_AMPOvsCity(tmp_path, disc):
     folder_name = Path(__file__).parent / "data" / "scenarios" / "other" / "AMPOvsCity"

@@ -9,7 +9,7 @@ import numpy as np
 
 from ..common import MechanismState, NegotiatorMechanismInterface, Value
 from ..helpers.prob import ScipyDistribution
-from ..modeling import AdaptiveDiscreteAcceptanceModel
+from ..models.acceptance import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
 from ..preferences import IPUtilityFunction, MappingUtilityFunction
 from ..sao import AspirationNegotiator, ResponseType, SAONegotiator

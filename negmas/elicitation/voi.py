@@ -31,7 +31,7 @@ except ImportError:
 from typing import Callable
 
 from ..common import MechanismState, Value
-from ..modeling import AdaptiveDiscreteAcceptanceModel
+from ..models.acceptance import AdaptiveDiscreteAcceptanceModel
 from ..outcomes import Outcome
 from ..sao import AspirationNegotiator, SAONegotiator
 from .base import BaseElicitor

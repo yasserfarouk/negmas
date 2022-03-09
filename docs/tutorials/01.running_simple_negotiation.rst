@@ -8,44 +8,52 @@ to run negotiations as follows:
 .. code:: ipython3
 
     from negmas import SAOMechanism, TimeBasedConcedingNegotiator, MappingUtilityFunction
-    from pprint import pprint  # for printing
     import random  # for generating random ufuns
+
     random.seed(0)  # for reproducibility
 
     session = SAOMechanism(outcomes=10, n_steps=100)
-    negotiators = [TimeBasedConcedingNegotiator(name=f'a{_}') for _ in range(5)]
+    negotiators = [TimeBasedConcedingNegotiator(name=f"a{_}") for _ in range(5)]
     for negotiator in negotiators:
-        session.add(negotiator, preferences=MappingUtilityFunction(
-            lambda x: random.random() * x[0], outcome_space=session.outcome_space))
+        session.add(
+            negotiator,
+            preferences=MappingUtilityFunction(
+                lambda x: random.random() * x[0], outcome_space=session.outcome_space
+            ),
+        )
 
-    print(vars(session.run()))
+    print(session.run())
 
 
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">{</span>
-        <span style="color: #008000; text-decoration-color: #008000">'running'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'waiting'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'started'</span>: <span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'step'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">81</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'time'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0371744739999968</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'relative_time'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.8118811881188119</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'broken'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'timedout'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'agreement'</span>: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>,<span style="font-weight: bold">)</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'results'</span>: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'n_negotiators'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'has_error'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'error_details'</span>: <span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'current_offer'</span>: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>,<span style="font-weight: bold">)</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'current_proposer'</span>: <span style="color: #008000; text-decoration-color: #008000">'a4-1e6e63d5-b55d-4300-a57b-1e393cdf2dbc'</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'current_proposer_agent'</span>: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'n_acceptances'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'new_offers'</span>: <span style="font-weight: bold">[]</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'new_offerer_agents'</span>: <span style="font-weight: bold">[]</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'last_negotiator'</span>: <span style="color: #008000; text-decoration-color: #008000">'a3'</span>
-    <span style="font-weight: bold">}</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">SAOState</span><span style="font-weight: bold">(</span>
+        <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
+        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">100</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.07181789399999161</span>,
+        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1.0</span>,
+        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>,
+        <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,<span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'a4-d022e890-7522-46ce-ae73-6b5678a7880f'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[</span>
+            <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'a1-930cbcfd-23f6-4498-add6-c3c4436354d2'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>,<span style="font-weight: bold">))</span>,
+            <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'a3-9323c2e4-5ebf-4499-a868-16e1ccf98af2'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span>,<span style="font-weight: bold">))</span>,
+            <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'a4-d022e890-7522-46ce-ae73-6b5678a7880f'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>,<span style="font-weight: bold">))</span>
+        <span style="font-weight: bold">]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>, <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>, <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'a4'</span>
+    <span style="font-weight: bold">)</span>
     </pre>
 
 
@@ -141,72 +149,73 @@ This can be modeled in the following negotiation:
 
 .. code:: ipython3
 
-    from negmas import make_issue, SAOMechanism, NaiveTitForTatNegotiator, TimeBasedConcedingNegotiator
+    from negmas import (
+        make_issue,
+        SAOMechanism,
+        NaiveTitForTatNegotiator,
+        TimeBasedConcedingNegotiator,
+    )
     from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
     from negmas.preferences.value_fun import LinearFun, IdentityFun, AffineFun
 
     # create negotiation agenda (issues)
     issues = [
-        make_issue(name='price', values=10),
-        make_issue(name='quantity', values=(1, 11)),
-        make_issue(name='delivery_time', values=10)
+        make_issue(name="price", values=10),
+        make_issue(name="quantity", values=(1, 11)),
+        make_issue(name="delivery_time", values=10),
     ]
 
     # create the mechanism
     session = SAOMechanism(issues=issues, n_steps=20)
 
     # define buyer and seller utilities
-    seller_utility =  LUFun(
-            values=[
-                IdentityFun(),
-                LinearFun(0.2),
-                AffineFun(-1, bias=9.0)
-            ],
-            outcome_space=session.outcome_space
-        )
+    seller_utility = LUFun(
+        values=[IdentityFun(), LinearFun(0.2), AffineFun(-1, bias=9.0)],
+        outcome_space=session.outcome_space,
+    )
 
     buyer_utility = LUFun(
-            values={
-                'price': AffineFun(-1, bias=9.0),
-                'quantity': LinearFun(0.2),
-                'delivery_time': IdentityFun()
-            },
-            outcome_space=session.outcome_space
-        )
+        values={
+            "price": AffineFun(-1, bias=9.0),
+            "quantity": LinearFun(0.2),
+            "delivery_time": IdentityFun(),
+        },
+        outcome_space=session.outcome_space,
+    )
 
     # create and add buyer and seller negotiators
-    session.add(TimeBasedConcedingNegotiator(name='buyer'), preferences=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name="buyer"), preferences=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
 
     # run the negotiation and show the results
-    print(vars(session.run()))
+    print(session.run())
 
 
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">{</span>
-        <span style="color: #008000; text-decoration-color: #008000">'running'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'waiting'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'started'</span>: <span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'step'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">18</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'time'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.3219836119999968</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'relative_time'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9047619047619048</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'broken'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'timedout'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'agreement'</span>: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'results'</span>: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'n_negotiators'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'has_error'</span>: <span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'error_details'</span>: <span style="color: #008000; text-decoration-color: #008000">''</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'current_offer'</span>: <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">)</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'current_proposer'</span>: <span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'current_proposer_agent'</span>: <span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'n_acceptances'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'new_offers'</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'new_offerer_agents'</span>: <span style="font-weight: bold">[</span><span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span><span style="font-weight: bold">]</span>,
-        <span style="color: #008000; text-decoration-color: #008000">'last_negotiator'</span>: <span style="color: #008000; text-decoration-color: #008000">'seller'</span>
-    <span style="font-weight: bold">}</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">SAOState</span><span style="font-weight: bold">(</span>
+        <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
+        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">18</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.03857990400000233</span>,
+        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.9047619047619048</span>,
+        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
+        <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer'</span>
+    <span style="font-weight: bold">)</span>
     </pre>
 
 
@@ -221,14 +230,15 @@ We can check the negotiation history as well
 .. code:: ipython3
 
     for i, _ in enumerate(session.history):
-        print(f'{i:03}: {_.new_offers}')
+        print(f"{i:03}: {_.new_offers}")
+
 
 
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">000</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">000</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -236,8 +246,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">001</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">001</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -245,8 +255,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">002</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">002</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -254,8 +264,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">003</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">003</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -263,8 +273,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">004</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">004</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -272,8 +282,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">005</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">005</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -281,8 +291,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">006</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">006</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -290,8 +300,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">007</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">007</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -299,8 +309,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">008</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">008</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -308,8 +318,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">009</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">009</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -317,8 +327,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">010</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">010</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -326,8 +336,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">011</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">11</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">011</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -335,8 +345,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">012</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">012</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -344,8 +354,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">013</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">013</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -353,8 +363,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">014</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">014</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -362,8 +372,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">015</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">015</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -371,8 +381,8 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">016</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span><span style="font-weight: bold">))</span>,
-    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-17c46a7c-acfb-4a19-94e7-2a734b44321e'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">5</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">016</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-312f7b80-fb6f-41b5-a921-c09aa6af1ff6'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">4</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span><span style="font-weight: bold">))</span>,
+    <span style="font-weight: bold">(</span><span style="color: #008000; text-decoration-color: #008000">'seller-4a4aa9d1-1b80-453d-918c-44a99d39c335'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">7</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">9</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">6</span><span style="font-weight: bold">))]</span>
     </pre>
 
 
@@ -380,7 +390,7 @@ We can check the negotiation history as well
 
 .. raw:: html
 
-    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">017</span>: <span style="font-weight: bold">[(</span><span style="color: #008000; text-decoration-color: #008000">'buyer-cad6cfad-04c8-4fbb-b27e-994bca372b25'</span>, <span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0</span><span style="font-weight: bold">))]</span>
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">017</span>: <span style="font-weight: bold">[]</span>
     </pre>
 
 
@@ -415,38 +425,49 @@ the delivery time and price to go down. Let’s see what happens:
 
 .. code:: ipython3
 
-    seller_utility = LUFun(values={'price': IdentityFun() , 'quantity': LinearFun(0.2) , 'delivery_time': AffineFun(-1, bias=9)},
-                           weights = {'price': 1.0, 'quantity': 1.0, 'delivery_time': 10.0},
-                           outcome_space=session.outcome_space)
+    seller_utility = LUFun(
+        values={
+            "price": IdentityFun(),
+            "quantity": LinearFun(0.2),
+            "delivery_time": AffineFun(-1, bias=9),
+        },
+        weights={"price": 1.0, "quantity": 1.0, "delivery_time": 10.0},
+        outcome_space=session.outcome_space,
+    )
 
     session = SAOMechanism(issues=issues, n_steps=50)
-    session.add(TimeBasedConcedingNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
-    pprint(session.run().__dict__)
+    session.add(TimeBasedConcedingNegotiator(name="buyer"), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
+    print(session.run())
 
 
-.. parsed-literal::
 
-    {'agreement': (3, 6, 3),
-     'broken': False,
-     'current_offer': (3, 6, 3),
-     'current_proposer': 'buyer-047f173b-0cfe-4ba9-a8e9-616606a6ad6b',
-     'current_proposer_agent': None,
-     'error_details': '',
-     'has_error': False,
-     'last_negotiator': 'seller',
-     'n_acceptances': 2,
-     'n_negotiators': 2,
-     'new_offerer_agents': [None],
-     'new_offers': [('buyer-047f173b-0cfe-4ba9-a8e9-616606a6ad6b', (3, 6, 3))],
-     'relative_time': 0.8627450980392157,
-     'results': None,
-     'running': False,
-     'started': True,
-     'step': 43,
-     'time': 0.3688399680000032,
-     'timedout': False,
-     'waiting': False}
+.. raw:: html
+
+    <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #800080; text-decoration-color: #800080; font-weight: bold">SAOState</span><span style="font-weight: bold">(</span>
+        <span style="color: #808000; text-decoration-color: #808000">running</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">waiting</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">started</span>=<span style="color: #00ff00; text-decoration-color: #00ff00; font-style: italic">True</span>,
+        <span style="color: #808000; text-decoration-color: #808000">step</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">41</span>,
+        <span style="color: #808000; text-decoration-color: #808000">time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.04290402500001278</span>,
+        <span style="color: #808000; text-decoration-color: #808000">relative_time</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">0.8235294117647058</span>,
+        <span style="color: #808000; text-decoration-color: #808000">broken</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">timedout</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">agreement</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">results</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_negotiators</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
+        <span style="color: #808000; text-decoration-color: #808000">has_error</span>=<span style="color: #ff0000; text-decoration-color: #ff0000; font-style: italic">False</span>,
+        <span style="color: #808000; text-decoration-color: #808000">error_details</span>=<span style="color: #008000; text-decoration-color: #008000">''</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_offer</span>=<span style="font-weight: bold">(</span><span style="color: #008080; text-decoration-color: #008080; font-weight: bold">1</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">10</span>, <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">3</span><span style="font-weight: bold">)</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer</span>=<span style="color: #008000; text-decoration-color: #008000">'seller-46c8d8cd-79dc-4696-b130-6e69887f55af'</span>,
+        <span style="color: #808000; text-decoration-color: #808000">current_proposer_agent</span>=<span style="color: #800080; text-decoration-color: #800080; font-style: italic">None</span>,
+        <span style="color: #808000; text-decoration-color: #808000">n_acceptances</span>=<span style="color: #008080; text-decoration-color: #008080; font-weight: bold">2</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offers</span>=<span style="font-weight: bold">[]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">new_offerer_agents</span>=<span style="font-weight: bold">[]</span>,
+        <span style="color: #808000; text-decoration-color: #808000">last_negotiator</span>=<span style="color: #008000; text-decoration-color: #008000">'buyer'</span>
+    <span style="font-weight: bold">)</span>
+    </pre>
+
 
 
 We can check it visually as well:
@@ -481,8 +502,8 @@ this difference by normalizing both ufuns and trying again:
     seller_utility = seller_utility.scale_max(1.0)
     buyer_utility = buyer_utility.scale_max(1.0)
     session = SAOMechanism(issues=issues, n_steps=50)
-    session.add(TimeBasedConcedingNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name="buyer"), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
 
@@ -503,8 +524,8 @@ What happens if we give them more time to negotiate:
 
     session = SAOMechanism(issues=issues, n_steps=5000)
 
-    session.add(TimeBasedConcedingNegotiator(name='buyer'), ufun=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller'), ufun=seller_utility)
+    session.add(TimeBasedConcedingNegotiator(name="buyer"), ufun=buyer_utility)
+    session.add(TimeBasedConcedingNegotiator(name="seller"), ufun=seller_utility)
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
 
@@ -528,8 +549,14 @@ to *linear* instead of the default *boulware*:
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-    session.add(TimeBasedConcedingNegotiator(name='buyer', offering_curve="linear"), ufun=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller', offering_curve="linear"), ufun=seller_utility)
+    session.add(
+        TimeBasedConcedingNegotiator(name="buyer", offering_curve="linear"),
+        ufun=buyer_utility,
+    )
+    session.add(
+        TimeBasedConcedingNegotiator(name="seller", offering_curve="linear"),
+        ufun=seller_utility,
+    )
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
 
@@ -553,8 +580,14 @@ the other?
 .. code:: ipython3
 
     session = SAOMechanism(issues=issues, n_steps=5000)
-    session.add(TimeBasedConcedingNegotiator(name='buyer', offering_curve="boulware"), ufun=buyer_utility)
-    session.add(TimeBasedConcedingNegotiator(name='seller', offering_curve="linear"), ufun=seller_utility)
+    session.add(
+        TimeBasedConcedingNegotiator(name="buyer", offering_curve="boulware"),
+        ufun=buyer_utility,
+    )
+    session.add(
+        TimeBasedConcedingNegotiator(name="seller", offering_curve="linear"),
+        ufun=seller_utility,
+    )
     session.run()
     session.plot(ylimits=(0.0, 1.01), show_reserved=False)
 
