@@ -11,7 +11,7 @@ import numpy as np
 import scipy.optimize as opt
 
 from ..common import MechanismState, Value
-from ..modeling import AdaptiveDiscreteAcceptanceModel
+from ..models.acceptance import AdaptiveDiscreteAcceptanceModel
 from ..negotiators.helpers import PolyAspiration
 from ..outcomes import Outcome
 from ..sao import AspirationNegotiator, SAONegotiator

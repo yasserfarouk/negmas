@@ -554,8 +554,9 @@ def test_pickling_mechanism(tmp_path):
     assert mechanism.state.step == 1
 
 
-@mark.skip(
-    "Checkpointing is known to fail with UtilityInverter. As this whole thing will be changed, we may just wait for now"
+@mark.xfail(
+    run=False,
+    reason="Checkpointing is known to fail with UtilityInverter. As this whole thing will be changed, we may just wait for now",
 )
 def test_checkpointing_mechanism(tmp_path):
     file = tmp_path

@@ -6,9 +6,9 @@ Advanced Negotiation
     :maxdepth: 2
 
     modules/situated
-    modules/modeling/utility
-    modules/modeling/strategy
-    modules/modeling/future
-    modules/modeling/acceptance
+    modules/models/utility
+    modules/models/strategy
+    modules/models/future
+    modules/models/acceptance
     modules/elicitation
     modules/concurrent
