@@ -42,6 +42,8 @@ __all__ = [
     "ACLastKReceived",
     "ACLastFractionReceived",
     "ACTime",
+    "AcceptAfter",
+    "AcceptBetween",
     "ACConst",
 ]
 
@@ -49,28 +51,16 @@ __all__ = [
 @define
 class ACConst(AcceptanceStrategy):
     """
-    Accepts $\\omega$ if $\alpha u(my-next-offer) + \beta > f(u(\text{utils of offers received in the last k steps))$
+    Accepts outcomes with utilities above the given threshold
     """
 
-    c: float = 0.9
-    alpha: float = 1.0
-    beta: float = 0.0
-
-    def after_join(self, nmi) -> None:
-        k = nmi.n_steps if self.k <= 0 else self.k
-        self._best = [float("inf")] * k
-
-    def before_responding(self, state: SAOState, offer: Outcome | None):
-        if not self.negotiator or not self.negotiator.ufun:
-            return
-        self._best.append(float(self.negotiator.ufun(offer)))
-        self._best = self._best[1:]
+    th: float = 0.9
 
     def __call__(self, state, offer):
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
         u = float(self.negotiator.ufun(offer))
-        if self.alpha * u + self.beta > self.c:
+        if u >= self.th:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -144,6 +134,28 @@ class ACLastFractionReceived(AcceptanceStrategy):
 
 
 @define
+class AcceptFinalOffer(AcceptanceStrategy):
+    """
+    Accepts the final offer as long as it is above the reserved value
+    """
+
+    def __call__(self, state, offer):
+        if not self.negotiator or not self.negotiator.ufun or not self.negotiator.nmi:
+            return ResponseType.REJECT_OFFER
+        is_last = (
+            state.step == self.negotiator.nmi.n_steps - 1
+            or self.negotiator.nmi.n_steps == float("inf")
+            and state.relative_time > 0.999999
+        )
+        if (
+            is_last
+            and self.negotiator.ufun(offer) >= self.negotiator.ufun.reserved_value
+        ):
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+
+@define
 class ACLast(AcceptanceStrategy):
     """
     Implements the AClast acceptance strategy based on our last offer.
@@ -171,19 +183,39 @@ class ACLast(AcceptanceStrategy):
 
 
 @define
+class AcceptBetween(AcceptanceStrategy):
+    """
+    Accepts in the given range of relative times.
+
+    """
+
+    min: float
+    max: float = 1.0
+
+    def __call__(self, state, offer):
+        if self.max >= state.relative_time >= self.min:
+            return ResponseType.ACCEPT_OFFER
+        return ResponseType.REJECT_OFFER
+
+
+@define
 class ACTime(AcceptanceStrategy):
     """
-    Implements the ACnext acceptance strategy based on our next offer.
+    Implements the ACtime acceptance strategy based on our next offer.
 
-    Accepts $\\omega$ if $\alpha u(my-next-offer) + \beta > u(\\omega)$
+    Accepts if the relative time is greater than or equal to tau
     """
 
     tau: float
 
     def __call__(self, state, offer):
-        if state.relative_time > self.tau:
+        if state.relative_time >= self.tau:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
+
+
+AcceptAfter = ACTime
+"""An alias for ACTime"""
 
 
 @define
