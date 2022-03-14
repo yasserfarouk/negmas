@@ -1,4 +1,4 @@
-name: CI-Bridge
+name: GeniusBridge
 
 on:
   push:
