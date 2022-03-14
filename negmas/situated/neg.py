@@ -202,20 +202,20 @@ class NegDomain:
     """
 
     name: str
-    issues: tuple[Issue, ...]
-    ufuns: tuple[Preferences, ...]
-    partner_types: tuple[str | Negotiator, ...]
-    index: int = 0
-    partner_params: tuple[dict[str, Any] | None, ...] | None = None
-    roles: tuple[str, ...] | None = None
-    annotation: dict[str, Any] | None = None
     """Domain name"""
+    issues: tuple[Issue, ...]
     """The issue space as a list of issues"""
+    ufuns: tuple[Preferences, ...]
     """The utility functions used by all negotiators in the domain"""
+    partner_types: tuple[str | Negotiator, ...]
     """The types of all partners (other than the agent being evaluated). Its length must be one less than `ufuns`"""
+    index: int = 0
     """The index of the negotiator being evaluated in the list of negotiators passed to the mechanism"""
+    partner_params: tuple[dict[str, Any] | None, ...] | None = None
     """Any paramters used to construct partners (must be the same length as `partner_types`)"""
+    roles: tuple[str, ...] | None = None
     """Roles of all negotiators (includng the negotiator being evaluated) in order"""
+    annotation: dict[str, Any] | None = None
     """Any extra annotation to add to the mechanism."""
 
     def to_dict(self):
@@ -513,6 +513,7 @@ class NegWorld(NoContractExecutionMixin, World):
 if __name__ == "__main__":
     from negmas.genius import genius_bridge_is_running
     from negmas.genius.gnegotiators import Atlas3, NiceTitForTat
+    from negmas.outcomes import Issue
     from negmas.preferences import LinearAdditiveUtilityFunction as U
     from negmas.sao import AspirationNegotiator, NaiveTitForTatNegotiator
     from negmas.situated import save_stats
