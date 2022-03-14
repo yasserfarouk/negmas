@@ -9,8 +9,8 @@ __all__ = [
     "NEGMAS_RUN_TEMP_FAILING",
 ]
 
-NEGMAS_RUNALL_TESTS = (os.environ.get("NEGMAS_RUNALL_TESTS", False),)
-NEGMAS_ON_GITHUB = (os.environ.get("GITHUB_ACTIONS", False),)
+NEGMAS_RUNALL_TESTS = os.environ.get("NEGMAS_RUNALL_TESTS", False)
+NEGMAS_ON_GITHUB = os.environ.get("GITHUB_ACTIONS", False)
 NEGMAS_FASTRUN = os.environ.get(
     "NEGMAS_FASTRUN", NEGMAS_ON_GITHUB and not NEGMAS_RUNALL_TESTS
 )
