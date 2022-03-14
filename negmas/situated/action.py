@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from attr import define
 
 __all__ = ["Action"]
