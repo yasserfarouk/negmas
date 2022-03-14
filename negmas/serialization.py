@@ -51,7 +51,8 @@ def serialize(
     ignore_lambda=False,
     objmem=None,
 ):
-    """Encodes the given value as nothing more complex than simple dict
+    """
+    Encodes the given value as nothing more complex than simple dict
     of either dicts, lists or builtin numeric or string values. The resulting
     dictionary will be json serializable
 

@@ -5,6 +5,7 @@ from typing import Any, Callable, Collection
 
 import hypothesis.strategies as st
 import pytest
+from attr import asdict
 from hypothesis import HealthCheck, given, settings
 
 from negmas import (
@@ -72,7 +73,7 @@ class DummyWorld(World):
         return contracts
 
     def contract_record(self, contract: Contract) -> dict[str, Any]:
-        return contract.__dict__
+        return asdict(contract)
 
     def start_contract_execution(self, contract: Contract) -> set[Breach]:
         return set()

@@ -7,9 +7,9 @@ __email__ = "yasserfarouk@gmail.com"
 __version__ = "0.9.2"
 
 
-from .common import *
-from .types import *
 from .config import *
+from .types import *
+from .common import *
 from .genius import *
 from .inout import *
 from .mechanisms import *
