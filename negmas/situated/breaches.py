@@ -21,7 +21,7 @@ class BreachProcessing(Enum):
     """A meta negotiation is instantiated between victim and perpetrator to set re-negotiation issues."""
 
 
-@define(frozen=True)
+@define
 class Breach:
     contract: Contract
     """The agreement being breached"""
@@ -53,10 +53,11 @@ class Breach:
             "resolved": None,
         }
 
+    def __hash__(self):
+        """The hash depends only on the name"""
+        return self.id.__hash__()
 
-#     def __hash__(self):
-#         """The hash depends only on the name"""
-#         return self.id.__hash__()
+
 #
 #     def __str__(self):
 #         return f"Breach ({self.level} {self.type}) by {self.perpetrator} on {self.contract.id} at {self.step}"
