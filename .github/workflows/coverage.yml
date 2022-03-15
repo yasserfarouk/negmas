@@ -17,6 +17,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
           python -m pip install -e .
+          python -m pip install -r requirements.txt
           pip install pytest
           pip install pytest-cov
           export NEGMAS_SLOW_TEST=True
