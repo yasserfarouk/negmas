@@ -33,13 +33,6 @@ jobs:
           python -m site
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-elicitation.txt
-      - name: "Setting up environment"
-        run: |
-          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
-          python -m pip install jupyter
-          python3 -m ipykernel install --user
       - name: "Install negmas and geinus-bridge"
         run: |
           python -m pip install -e .
@@ -48,6 +41,7 @@ jobs:
         run: "java -jar ~/negmas/files/geniusbridge.jar --silent --no-logs &"
       - name: "Run pytest for ${{ matrix.python-version }}"
         run: |
+          export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
           export NEGMAS_SLOW_TEST=True
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS
