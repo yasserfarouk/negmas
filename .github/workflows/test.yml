@@ -31,6 +31,7 @@ jobs:
       - name: "Setting up environment"
         run: |
           export NEGMAS_IGNORE_TEST_NOTEBOOKS=True
+          export NEGMAS_FASTRUN=True
           python -m pip install jupyter
           python3 -m ipykernel install --user
       - name: "Run pytest for ${{ matrix.python-version }}"
