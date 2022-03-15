@@ -16,17 +16,13 @@ jobs:
           python -m site
           python -m pip install --upgrade pip setuptools wheel pytest
           python -m pip install --upgrade  virtualenv
-          python -m pip install -r requirements.txt
-          python -m pip install -r docs/requirements.txt
-          python -m pip install -r requirements-elicitation.txt
           python -m pip install -e .
           pip install pytest
           pip install pytest-cov
           export NEGMAS_SLOW_TEST=True
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS
-          python -W ignore -m pytest tests/test_genius.py  || python -W ignore -m pytest --last-failed .
-          python -W ignore -m pytest tests/test_inout.py  || python -W ignore -m pytest --last-failed .
+          python -W ignore -m pytest negmas tests  || python -W ignore -m pytest --last-failed .
           export NEGMAS_BRIDGE_OPS=True
           python -W ignore -m pytest tests/test_genius_bridge.py  || python -W ignore -m pytest --last-failed .
     - name: Upload coverage to Codecov
