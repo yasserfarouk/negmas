@@ -20,6 +20,8 @@ jobs:
           python -m pip install -r requirements.txt
           pip install pytest
           pip install pytest-cov
+          python -m pip install jupyter
+          python3 -m ipykernel install --user
           export NEGMAS_SLOW_TEST=True
           export NEGMAS_BRIDGE_OPS
           unset NEGMAS_BRIDGE_OPS
