@@ -17,14 +17,6 @@ def safe_min(a, b):
     return min(a, b)
 
 
-def _path(path) -> Path:
-    """Creates an absolute path from given path which can be a string"""
-    if isinstance(path, str):
-        if path.startswith("~"):
-            path = Path.home() / ("/".join(path.split("/")[1:]))
-    return Path(path).absolute()
-
-
 def deflistdict():
     return defaultdict(list)
 

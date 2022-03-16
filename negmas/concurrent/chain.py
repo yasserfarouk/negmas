@@ -27,7 +27,7 @@ class Offer:
     outcome: Outcome
     left: bool
     temp: bool
-    partner: str = None
+    partner: str | None = None
 
 
 Agreement = namedtuple("Agreement", ["outcome", "negotiators", "level"])
@@ -82,7 +82,7 @@ class ChainNegotiator(Negotiator, ABC):
         Returns:
 
         """
-        self._nmi.confirm(left)
+        return self.nmi.confirm(left)
 
     @abstractmethod
     def on_acceptance(self, state: MechanismState, offer: Offer) -> Offer:

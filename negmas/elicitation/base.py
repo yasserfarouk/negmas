@@ -9,12 +9,14 @@ import numpy as np
 
 from ..common import MechanismState, NegotiatorMechanismInterface, Value
 from ..helpers.prob import ScipyDistribution
-from ..models.acceptance import AdaptiveDiscreteAcceptanceModel
+from ..models.acceptance import AdaptiveDiscreteAcceptanceModel, DiscreteAcceptanceModel
 from ..outcomes import Outcome
-from ..preferences import IPUtilityFunction, MappingUtilityFunction
+from ..preferences import IPUtilityFunction, MappingUtilityFunction, Preferences
 from ..sao import AspirationNegotiator, ResponseType, SAONegotiator
 from .common import _locs, _uppers
-from .expectors import MeanExpector
+from .expectors import Expector, MeanExpector
+from .strategy import EStrategy
+from .user import User
 
 __all__ = ["BaseElicitor"]
 
@@ -125,8 +127,11 @@ class BaseElicitor(SAONegotiator):
 
         """
         nmi = self._nmi
+        if nmi is None:
+            raise ValueError(f"Unkown NMI")
         self.elicitation_history = []
-        self.indices = dict(zip(nmi.outcomes, range(nmi.n_outcomes)))
+        outcomes = list(nmi.discrete_outcomes())
+        self.indices = dict(zip(outcomes, range(len(outcomes))))
         self.offerable_outcomes = []
         self._elicitation_time = 0.0
         if self.opponent_model_factory is None:
@@ -134,7 +139,6 @@ class BaseElicitor(SAONegotiator):
         else:
             self.opponent_model = self.opponent_model_factory(nmi)
             self.base_negotiator.opponent_model = self.opponent_model
-        outcomes = nmi.outcomes
         if preferences is None:
             dists = [
                 ScipyDistribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes

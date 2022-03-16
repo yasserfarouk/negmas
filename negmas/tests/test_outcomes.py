@@ -5,13 +5,10 @@ import pytest
 from negmas import enumerate_issues, issues_from_outcomes, make_issue, outcome_is_valid
 
 from .fixtures import (
-    cissue,
-    dissue,
     int_issues,
     invalid_outcome_dict,
     invalid_outcome_list,
     issues,
-    sissue,
     valid_outcome_dict,
     valid_outcome_list,
 )

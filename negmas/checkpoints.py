@@ -146,7 +146,7 @@ class CheckpointRunner:
             return -1
         return self.__sorted_steps[self._step_index]
 
-    def goto(self, step: int, exact=False) -> step | None:
+    def goto(self, step: int, exact=False) -> int | None:
         """Goes to the nearest step for the given one returning the exact step number.
 
         Args:
@@ -174,6 +174,8 @@ class CheckpointRunner:
         if self._step_index > -1 and step == self.__sorted_steps[self._step_index]:
             return None
         filename = self.__files.get(step)
+        if not filename:
+            raise ValueError(f"step {step} has no file")
         self.__object = self.__object_type.from_checkpoint(filename, return_info=False)
         self._step_index = step_index
         for callback in self.__callbacks:
@@ -247,7 +249,9 @@ class CheckpointRunner:
                 "Cannot copy past checkpoints because no folder for new checkpoints is given"
             )
 
-        if folder is not None:
+        if folder is None:
+            folder = Path()
+        else:
             folder = Path(folder).absolute()
 
         if copy_past_checkpoints:
@@ -258,7 +262,7 @@ class CheckpointRunner:
         x = self.__object
         if isinstance(self.__object, CheckpointMixin):
             CheckpointMixin.checkpoint_init(
-                x,
+                x,  # type: ignore
                 every=every,
                 folder=folder,
                 filename=filename,
