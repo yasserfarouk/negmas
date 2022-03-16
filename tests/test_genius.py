@@ -50,7 +50,7 @@ def test_inclusion_of_sets_in_get_agents():
     for year in GENIUS_INFO.keys():
         winners = get_anac_agents(year=year, winners_only=True)
         finalists = get_anac_agents(year=year, finalists_only=True)
-        everyone = get_anac_agents(year=year)
+        # everyone = get_anac_agents(year=year)
         assert not finalists or all([_ in finalists for _ in winners]), set(
             winners
         ).difference(set(finalists))
@@ -97,10 +97,8 @@ def test_genius_does_not_freeze():
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_old_agent():
-    from pathlib import Path
 
     from negmas.genius import GeniusNegotiator
-    from negmas.inout import load_genius_domain_from_folder
 
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
@@ -135,7 +133,6 @@ def test_old_agent2():
     from pathlib import Path
 
     from negmas.genius import GeniusNegotiator
-    from negmas.inout import load_genius_domain_from_folder
 
     folder_name = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/cameradomain"
@@ -210,7 +207,6 @@ def test_genius_agents_run_using_hypothesis(
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_gets_preferences():
-    agents = ["agents.anac.y2015.Atlas3.Atlas3", "agents.anac.y2015.AgentX.AgentX"]
     base_folder = pkg_resources.resource_filename(
         "negmas", resource_name="tests/data/Laptop"
     )

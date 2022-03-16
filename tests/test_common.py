@@ -4,7 +4,7 @@ import time
 import hypothesis.strategies as st
 from hypothesis import HealthCheck, given, settings
 
-from negmas import Entity, NamedObject
+from negmas import NamedObject
 from negmas.helpers import unique_name
 
 random.seed(time.perf_counter())

@@ -12,7 +12,7 @@ import traceback
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Literal
 
 import numpy as np
 import pandas as pd
@@ -65,6 +65,14 @@ except ImportError:
     nx = None
 
 __all__ = ["World"]
+
+
+def _path(path) -> Path:
+    """Creates an absolute path from given path which can be a string"""
+    if isinstance(path, str):
+        if path.startswith("~"):
+            path = Path.home() / ("/".join(path.split("/")[1:]))
+    return Path(path).absolute()
 
 
 class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, ABC):
@@ -220,7 +228,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         self.logger.info(f"{self._log_header()}: " + s.strip())
 
@@ -409,7 +417,6 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.contract_exceptions: dict[int, list[str]] = defaultdict(list)
         self.agent_exceptions: dict[str, list[tuple[int, str]]] = defaultdict(list)
         self.negotiator_exceptions: dict[str, list[tuple[int, str]]] = defaultdict(list)
-        self.bulletin_board = bulletin_board
         self._negotiations: dict[str, NegotiationInfo] = {}
         self.unsigned_contracts: dict[int, set[Contract]] = defaultdict(set)
         self.breach_processing = breach_processing
@@ -519,8 +526,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.contracts_executed: dict[str, int] = defaultdict(int)
         self.contracts_breached: dict[str, int] = defaultdict(int)
         self.attribs: dict[str, dict[str, Any]] = {}
-        self._sim_start: int = 0
-        self._step_start: int = 0
+        self._sim_start: float = 0
+        self._step_start: float = 0
         if log_stats_every is None or log_stats_every < 1:
             self._stats_file_name = None
             self._stats_dir_name = None
@@ -529,6 +536,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._stats_file_name = stats_file_name.name
             self._stats_dir_name = stats_file_name.parent
 
+        self.bulletin_board: BulletinBoard
         self.set_bulletin_board(bulletin_board=bulletin_board)
         stats_calls = [_ for _ in self.operations if _ == Operations.StatsUpdate]
         self._single_stats_call = len(stats_calls) == 1
@@ -641,7 +649,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         logger = self._agent_logger(aid)
         logger.info(f"{self._log_header()}: " + s.strip())
@@ -656,7 +664,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         logger = self._agent_logger(aid)
         logger.warning(f"{self._log_header()}: " + s.strip())
@@ -671,7 +679,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         logger = self._agent_logger(aid)
         logger.error(f"{self._log_header()}: " + s.strip())
@@ -686,7 +694,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         self.logger.debug(f"{self._log_header()}: " + s.strip())
 
@@ -700,7 +708,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         self.logger.warning(f"{self._log_header()}: " + s.strip())
 
@@ -714,12 +722,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
         if event:
             self.announce(event)
-        if self._no_logs:
+        if self._no_logs or not self.logger:
             return
         self.logger.error(f"{self._log_header()}: " + s.strip())
 
     @property
-    def time(self) -> float | None:
+    def time(self) -> float:
         """Elapsed time since world started in seconds. 0.0 if the world did not start running"""
         if self._start_time is None:
             return 0.0
@@ -734,6 +742,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     @property
     def remaining_time(self) -> float | None:
         """Returns remaining time in seconds. None if no time limit is given."""
+        if not self._start_time:
+            return self.time_limit
         limit = self.time_limit - (time.perf_counter() - self._start_time)
         if limit < 0.0:
             return 0.0
@@ -802,11 +812,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         Returns:
             whatever method returns
         """
+        old_stdout = sys.stdout  # backup current stdout
         if self.disable_agent_printing:
-            old_stdout = sys.stdout  # backup current stdout
             sys.stdout = open(os.devnull, "w")
+        _strt = time.perf_counter()
         try:
-            _strt = time.perf_counter()
             result = method(*args, **kwargs)
             _end = time.perf_counter()
             if self.disable_agent_printing:
@@ -833,8 +843,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def _add_edges(
         self,
-        src: Agent,
-        dst: list[Agent],
+        src: Agent | str,
+        dst: list[Agent | str],
         target: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]],
         bi=False,
         issues: list[Issue] = None,
@@ -1183,6 +1193,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if not self._log_negs:
             return
         mechanism = negotiation.mechanism
+        if not mechanism:
+            return
         negs_folder = str(Path(self._log_folder) / "negotiations")
         os.makedirs(negs_folder, exist_ok=True)
         record = self._make_negotiation_record(negotiation)
@@ -1500,13 +1512,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def _step_negotiations(
         self,
         mechanisms: list[Mechanism],
-        n_steps: int | None,
+        n_steps: int | float | None,
         force_immediate_signing,
-        partners: list[Agent],
-    ) -> tuple[list[Contract], list[bool], int, int, int, int]:
+        partners: list[list[Agent]],
+    ) -> tuple[list[Contract | None], list[bool], int, int, int, int]:
         """Runs all bending negotiations"""
         running = [_ is not None for _ in mechanisms]
-        contracts = [None] * len(mechanisms)
+        contracts: list[Contract | None] = [None] * len(mechanisms)
         indices = list(range(len(mechanisms)))
         n_steps_broken_, n_steps_success_ = 0, 0
         n_broken_, n_success_ = 0, 0
@@ -1574,7 +1586,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._n_negs_per_agent_per_step = defaultdict(int)
         if self.current_step >= self.n_steps:
             return False
-        did_not_start, self._started = self._started, True
+        self._started = True
         if self.current_step == 0:
             self._sim_start = time.perf_counter()
             self._step_start = self._sim_start
@@ -2138,7 +2150,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.negs_registered[partner.id] += 1
         if run_to_completion:
 
-            running = True
+            running, contract = True, None
             while running:
                 contract, running = self._step_a_mechanism(neg.mechanism, True)
 
@@ -2153,7 +2165,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return None, contract, neg.mechanism
         if may_run_immediately and self.immediate_negotiations:
             running = True
-            for i in range(self.negotiation_speed):
+            for _ in range(self.negotiation_speed):
                 contract, running = self._step_a_mechanism(neg.mechanism, False)
                 if not running:
                     self._add_edges(
@@ -2280,12 +2292,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def run_negotiation(
         self,
         caller: Agent,
-        issues: Collection[Issue],
-        partners: Collection[str | Agent],
+        issues: list[Issue],
+        partners: list[str | Agent],
         negotiator: Negotiator,
         preferences: Preferences = None,
         caller_role: str = None,
-        roles: Collection[str] = None,
+        roles: list[str] = None,
         annotation: dict[str, Any] | None = None,
         mechanism_name: str = None,
         mechanism_params: dict[str, Any] = None,
@@ -2554,7 +2566,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             [negs[i].mechanism for i in locs],
             float("inf"),
             True,
-            [negs[i].partners for _ in locs],
+            [negs[i].partners for i in locs],
         )
         for i, loc in enumerate(locs):
             contracts[loc] = cs[i]

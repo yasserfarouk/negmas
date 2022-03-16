@@ -3,7 +3,6 @@ Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
 from __future__ import annotations
 
-from copy import deepcopy
 from enum import Enum
 from functools import lru_cache
 from typing import TYPE_CHECKING
