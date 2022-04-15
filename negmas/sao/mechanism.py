@@ -213,6 +213,7 @@ class SAOMechanism(Mechanism):
         def _safe_counter(
             negotiator, *args, **kwargs
         ) -> tuple[SAOResponse | None, bool]:
+            assert not self.state.waiting or negotiator.id == self.state.new_offerers[-1], f"We are waiting with {self.state.new_offerers[-1]} as the last offerer but we are asking {negotiator.id} to offer\n{self.state}"
             rem = self.remaining_time
             if rem is None:
                 rem = float("inf")
