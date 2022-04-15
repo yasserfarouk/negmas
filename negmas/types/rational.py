@@ -49,7 +49,8 @@ class Rational(NamedObject):
     def _set_pref_owner(self):
         if not self._preferences:
             return
-        if self._preferences.owner is not None and self._preferences.owner is not self:
+        # we here assume that two entities that share an ID can share preferences without warning
+        if self._preferences.owner is not None and self._preferences.owner.id != self.id:
             warnings.warn(
                 f"Entity {self.name} ({self.__class__.__name__}) is "
                 f"assigned preferences belonging to another entity "
