@@ -3,9 +3,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+
 from negmas import Value
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
+from negmas.warnings import NegmasUnexpectedValueWarning, warn
 
 from ...events import Notification
 from ...negotiators import Controller, Negotiator
@@ -112,6 +114,11 @@ class SAONegotiator(Negotiator):
         """
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
+        if not state.running:
+            warn(
+                f"{self.name} asked to propose in a negotiation that is not running:\n{state}"
+            )
+            return None
         return self.propose(state=state)
 
     def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
@@ -183,6 +190,11 @@ class SAONegotiator(Negotiator):
               at least as good as the offer that it would have proposed (and above the reserved value).
 
         """
+        if not state.running:
+            warn(
+                f"{self.name} asked to respond to a negotiation that is not running:\n{state}"
+            )
+            return ResponseType.END_NEGOTIATION
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
         return self.respond(state=state, offer=offer)
