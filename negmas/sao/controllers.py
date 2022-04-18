@@ -315,19 +315,7 @@ class SAOSyncController(SAOController):
         if not self.__first_proposals_collected:
             self.__proposals = self.first_proposals()
             self.__first_proposals_collected = True
-            responses = dict(
-                zip(
-                    self.__proposals.keys(),
-                    (
-                        SAOResponse(ResponseType.REJECT_OFFER, _)
-                        for _ in self.__proposals.values()
-                    ),
-                )
-            )
-        else:
-            responses = self.counter_all(
-                offers=self.__offers, states=self.__offer_states
-            )
+        responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
         for neg in responses.keys():
             saved_response = responses.get(neg, None)
             if saved_response is None:
