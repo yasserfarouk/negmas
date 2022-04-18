@@ -342,6 +342,8 @@ class SAOSyncController(SAOController):
             self.__n_waits[neg] = 0
         self.__offers = dict()
         self.__offer_states = dict()
+        if negotiator_id not in self.__responses:
+            return ResponseType.REJECT_OFFER
         return self.__responses.pop(negotiator_id)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
