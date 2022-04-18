@@ -80,6 +80,13 @@ class Controller(Rational):
         self.__parent = parent
         self._auto_kill = auto_kill
 
+    def reset(self):
+        """
+        Resets the controller and kills any negotiators it may have
+        """
+        for neg in self.negotiators.keys():
+            self.kill_negotiator(neg, True)
+
     @property
     def negotiators(self) -> dict[str, NegotiatorInfo]:
         """
