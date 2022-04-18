@@ -7,7 +7,7 @@ import itertools
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from negmas.preferences.protocols import UFun
 
@@ -53,7 +53,7 @@ class SAOController(Controller):
         self,
         default_negotiator_type=ControlledSAONegotiator,
         default_negotiator_params=None,
-        auto_kill=False,
+        auto_kill=True,
         name=None,
         preferences=None,
         ufun=None,
@@ -98,7 +98,7 @@ class SAOController(Controller):
     def create_negotiator(
         self,
         negotiator_type: str | ControlledNegotiatorType | None = None,
-        name: str = None,
+        name: str | None = None,
         cntxt: Any = None,
         **kwargs,
     ) -> ControlledNegotiatorType:
@@ -195,17 +195,16 @@ class SAOSyncController(SAOController):
 
     def __init__(self, *args, global_ufun=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__offers: dict[str, Outcome] = {}
-        """Keeps the last offer received for each negotiation"""
-        self.__responses: dict[str, ResponseType] = {}
-        """Keeps the next response type for each negotiation"""
-        self.__proposals: dict[str, Outcome | None] = {}
-        """Keeps the next proposal for each negotiation"""
-        self.__offer_states: dict[str, SAOState] = {}
-        """Keeps the last state received for each negotiation"""
-        self.__n_waits: dict[str, int] = defaultdict(int)
-        """The number of contiguous waits sent for every partner"""
         self.__global_ufun = global_ufun
+        self.reset()
+
+    def reset(self):
+        self.__offers: dict[str, Outcome] = dict()
+        self.__responses: dict[str, ResponseType] = dict()
+        self.__proposals: dict[str, Outcome | None] = dict()
+        self.__offer_states: dict[str, SAOState] = dict()
+        self.__n_waits: dict[str, int] = defaultdict(int)
+        self.__first_proposals_collected = False
 
     def first_offer(self, negotiator_id: str) -> Outcome | None:
         """
@@ -248,6 +247,7 @@ class SAOSyncController(SAOController):
         # if there are no proposals yet, get first proposals
         if not self.__proposals:
             self.__proposals = self.first_proposals()
+            self.__first_proposals_collected = True
         # get the saved proposal if it exists and return it
         if negotiator_id in self.__proposals.keys():
             # if some proposal was there, delete it to force the controller to get a new one
@@ -256,6 +256,7 @@ class SAOSyncController(SAOController):
             # if there was no proposal, get one. Note that `None` is a valid proposal
             if self.__global_ufun:
                 self.__proposals = self.first_proposals()
+                self.__first_proposals_collected = True
                 proposal = self.__proposals.pop(negotiator_id)
             else:
                 proposal = self.first_offer(negotiator_id)
@@ -310,20 +311,35 @@ class SAOSyncController(SAOController):
             self.__n_waits[negotiator_id] += 1
             return ResponseType.WAIT
 
-        # we arrive here if we already have all the offers to counter
-        responses = self.counter_all(offers=self.__offers, states=self.__offer_states)
-        for nid in responses.keys():
-            saved_response = responses.get(nid, None)
+        # we arrive here if we already have all the offers to counter. WE may though not have proposed yet
+        if not self.__first_proposals_collected:
+            self.__proposals = self.first_proposals()
+            self.__first_proposals_collected = True
+            responses = dict(
+                zip(
+                    self.__proposals.keys(),
+                    (
+                        SAOResponse(ResponseType.REJECT_OFFER, _)
+                        for _ in self.__proposals.values()
+                    ),
+                )
+            )
+        else:
+            responses = self.counter_all(
+                offers=self.__offers, states=self.__offer_states
+            )
+        for neg in responses.keys():
+            saved_response = responses.get(neg, None)
             if saved_response is None:
-                self.__responses[nid] = ResponseType.REJECT_OFFER
-                self.__proposals[nid] = None
+                self.__responses[neg] = ResponseType.REJECT_OFFER
+                self.__proposals[neg] = None
                 continue
             # register the responses for next time for all other negotiators
-            self.__responses[nid] = saved_response.response
+            self.__responses[neg] = saved_response.response
             # register the proposals to be sent to all agents including this one
-            self.__proposals[nid] = saved_response.outcome
+            self.__proposals[neg] = saved_response.outcome
             # register that we are not waiting anymore on any of the offers we received
-            self.__n_waits[nid] = 0
+            self.__n_waits[neg] = 0
         self.__offers = dict()
         self.__offer_states = dict()
         return self.__responses.pop(negotiator_id)
@@ -339,7 +355,10 @@ class SAOSyncController(SAOController):
             del self.__proposals[negotiator_id]
         if negotiator_id in self.__n_waits.keys():
             del self.__n_waits[negotiator_id]
-        return super().on_negotiation_end(negotiator_id, state)
+        results = super().on_negotiation_end(negotiator_id, state)
+        if not self.negotiators:
+            self.reset()
+        return results
 
 
 class SAORandomSyncController(SAOSyncController):
@@ -743,7 +762,7 @@ class SAOMetaNegotiatorController(SAOController):
 
     """
 
-    def __init__(self, *args, meta_negotiator: SAONegotiator = None, **kwargs):
+    def __init__(self, *args, meta_negotiator: SAONegotiator | None = None, **kwargs):
         super().__init__(*args, **kwargs)
         if meta_negotiator is None:
             meta_negotiator = AspirationNegotiator(
@@ -751,16 +770,16 @@ class SAOMetaNegotiatorController(SAOController):
             )
         self.meta_negotiator = meta_negotiator
 
-    def propose(self, negotiator_id: str, state: MechanismState) -> Outcome | None:
+    def propose(self, negotiator_id: str, state: SAOState) -> Outcome | None:
         """Uses the meta negotiator to propose"""
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         self.meta_negotiator._nmi = negotiator.nmi
         return self.meta_negotiator.propose(state)
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome
+        self, negotiator_id: str, state: SAOState, offer: Outcome
     ) -> ResponseType:
         """Uses the meta negotiator to respond"""
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
@@ -820,7 +839,9 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
         self,
         *args,
         max_aspiration: float = 1.0,
-        aspiration_type: str | int | float = "boulware",
+        aspiration_type: Literal["boulware", "linear", "conceder"]
+        | int
+        | float = "boulware",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
