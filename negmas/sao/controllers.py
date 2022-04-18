@@ -205,6 +205,7 @@ class SAOSyncController(SAOController):
         self.__offer_states: dict[str, SAOState] = dict()
         self.__n_waits: dict[str, int] = defaultdict(int)
         self.__first_proposals_collected = False
+        super().reset()
 
     def first_offer(self, negotiator_id: str) -> Outcome | None:
         """
