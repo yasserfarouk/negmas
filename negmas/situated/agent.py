@@ -139,7 +139,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         extra: dict[str, Any] | None,
     ) -> str:
         """
-        Creates a new `NegotiationRequestInfo` record and returns its ID
+        Creates a new `NegotiationRequestInfo` record and returns itS ID
 
         Args:
             issues: negotiation issues

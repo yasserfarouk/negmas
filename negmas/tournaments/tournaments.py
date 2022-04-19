@@ -2265,7 +2265,7 @@ def combine_tournament_stats(
     if dest is not None:
         stats.to_csv(str(_path(dest) / STATS_FILE), index=False)
         combined = _combine_stats(stats)
-        if combined:
+        if combined is not None:
             combined.to_csv(str(_path(dest) / AGGREGATE_STATS_FILE), index=False)
     return stats
 
