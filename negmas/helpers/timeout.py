@@ -73,7 +73,7 @@ class TimeoutCaller:
                 cls.pool.shutdown(wait=False)
                 for t in cls.pool._threads:
                     # we are using an undocumented private value here. DANGEROUS
-                    del thread._threads_queues[t]
+                    del thread._threads_queues[t]  # type: ignore
             except:
                 warnings.warn(
                     "NegMAS have finished processing but there may be some "

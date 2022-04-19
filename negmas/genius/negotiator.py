@@ -64,17 +64,17 @@ class GeniusNegotiator(SAONegotiator):
     def __init__(
         self,
         preferences: UtilityFunction | None = None,
-        name: str = None,
-        parent: Controller = None,
+        name: str | None = None,
+        parent: Controller | None = None,
         owner: Agent = None,  # type: ignore
-        java_class_name: str = None,
-        domain_file_name: str | pathlib.Path = None,
-        utility_file_name: str | pathlib.Path = None,
+        java_class_name: str | None = None,
+        domain_file_name: str | pathlib.Path | None = None,
+        utility_file_name: str | pathlib.Path | None = None,
         can_propose=True,
         auto_load_java: bool = True,
         port: int = DEFAULT_JAVA_PORT,
-        genius_bridge_path: str = None,
-        strict: bool = None,
+        genius_bridge_path: str | None = None,
+        strict: bool | None = None,
     ):
         super().__init__(
             name=name,
@@ -186,11 +186,11 @@ class GeniusNegotiator(SAONegotiator):
         agent_based=True,
         party_based=True,
         port: int = DEFAULT_JAVA_PORT,
-        domain_file_name: str = None,
-        utility_file_name: str = None,
+        domain_file_name: str | None = None,
+        utility_file_name: str | None = None,
         auto_load_java: bool = False,
         can_propose=True,
-        name: str = None,
+        name: str | None = None,
     ) -> GeniusNegotiator:
         """
         Returns an agent with a random class name

@@ -153,7 +153,7 @@ def shortest_unique_names(
                         strs[i] = strs[i] + a
                         break
                 else:
-                    strs[i] = strs[i] + unique_name("", False, 1, "")
+                    strs[i] = strs[i] + unique_name("", False, False, 1, "")
 
     lsts = [_.split(sep) for _ in strs]
     names = [_[-1] for _ in lsts]

@@ -37,9 +37,9 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
         ufun: BaseUtilityFunction,
         randomize_equal: bool = False,
         eps=1e-7,
-        name: str = None,
-        id: str = None,
-        type_name: str = None,
+        name: str | None = None,
+        id: str | None = None,
+        type_name: str | None = None,
     ):
         if ufun.outcome_space is None:
             raise ValueError(

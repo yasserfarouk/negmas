@@ -36,9 +36,9 @@ class Preferences(NamedObject, ABC):
         self,
         *args,
         outcome_space: OutcomeSpace | None = None,
-        issues: tuple[Issue] = None,
+        issues: tuple[Issue] | None = None,
         outcomes: tuple[Outcome] | int | None = None,
-        reserved_outcome: Outcome = None,
+        reserved_outcome: Outcome | None = None,
         **kwargs,
     ) -> None:
         self.owner = None

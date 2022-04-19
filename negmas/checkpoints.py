@@ -301,11 +301,11 @@ class CheckpointRunner:
         return None
 
     @property
-    def last_step(self) -> int | None:
+    def last_step(self) -> int:
         """Get the  last stored step number (None if it does not exist)"""
         return self.__sorted_steps[-1]
 
     @property
-    def first_step(self) -> int | None:
+    def first_step(self) -> int:
         """Get the  first stored step number (None if it does not exist)"""
         return self.__sorted_steps[0]

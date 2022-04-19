@@ -76,9 +76,9 @@ class MAPNegotiator(SAOModularNegotiator):
     def generate_response(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self._acceptance:
             return ResponseType.REJECT_OFFER
-        return self._acceptance(state, offer)
+        return self._acceptance.respond(state, offer)
 
     def generate_proposal(self, state: SAOState) -> Outcome | None:
         if not self._offering:
             return None
-        return self._offering(state)
+        return self._offering.propose(state)

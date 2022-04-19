@@ -175,7 +175,7 @@ class AffineUtilityFunction(
             return self.reserved_value
         return self._bias + sum(w * v for w, v in zip(self._weights, offer))
 
-    def xml(self, issues: list[Issue] = None) -> str:
+    def xml(self, issues: list[Issue] | None = None) -> str:
         """Generates an XML string representing the utility function
 
         Args:
@@ -648,7 +648,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                 continue
         return u
 
-    def xml(self, issues: list[Issue] = None) -> str:
+    def xml(self, issues: list[Issue] | None = None) -> str:
         """Generates an XML string representing the utility function
 
         Args:

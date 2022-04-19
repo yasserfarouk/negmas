@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-
 from negmas import Value
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
@@ -46,8 +45,8 @@ class SAONegotiator(Negotiator):
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
         name: str | None = None,
-        parent: Controller = None,
-        owner: Agent = None,
+        parent: Controller | None = None,
+        owner: Agent | None = None,
         id: str | None = None,
         type_name: str | None = None,
         can_propose: bool = True,

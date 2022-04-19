@@ -171,6 +171,7 @@ def truncated_mean(
         return np.median(scores) if not return_limits else (np.median(scores), None)  # type: ignore
     else:
         raise ValueError(f"Unknown base for truncated_mean ({base})")
+    assert limits_[0] is not None and limits_[1] is not None
     if len(scores) == 0 or limits_[1] < limits_[0]:
         return float("nan") if not return_limits else (float("nan"), limits_)
     try:

@@ -31,13 +31,13 @@ class MechanismFactory:
         caller: Agent,
         partners: list[Agent],
         roles: list[str] | None = None,
-        annotation: dict[str, Any] = None,
-        neg_n_steps: int = None,
-        neg_time_limit: int = None,
+        annotation: dict[str, Any] | None = None,
+        neg_n_steps: int | None = None,
+        neg_time_limit: int | None = None,
         neg_step_time_limit=None,
         allow_self_negotiation=False,
         log_ufuns_file=None,
-        group: str = None,
+        group: str | None = None,
     ):
         self.mechanism_name, self.mechanism_params = mechanism_name, mechanism_params
         self.caller = caller

@@ -157,7 +157,7 @@ class BulletinBoard(EventSource, ConfigReader):
         section: list[str] | str | None,
         *,
         query: Any | None = None,
-        key: str = None,
+        key: str | None = None,
         query_keys: bool = False,
         value: Any = None,
     ) -> bool:

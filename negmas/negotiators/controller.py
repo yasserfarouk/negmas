@@ -63,9 +63,9 @@ class Controller(Rational):
 
     def __init__(
         self,
-        default_negotiator_type: str | type[ControlledNegotiator] = None,
-        default_negotiator_params: dict[str, Any] = None,
-        parent: Controller | Agent = None,
+        default_negotiator_type: str | type[ControlledNegotiator] | None = None,
+        default_negotiator_params: dict[str, Any] | None = None,
+        parent: Controller | Agent | None = None,
         auto_kill: bool = True,
         **kwargs,
     ):
@@ -74,7 +74,7 @@ class Controller(Rational):
         if default_negotiator_params is None:
             default_negotiator_params = {}
         if isinstance(default_negotiator_type, str):
-            default_negotiator_type = get_class(default_negotiator_type)
+            default_negotiator_type = get_class(default_negotiator_type)  # type: ignore
         self.__default_negotiator_type = default_negotiator_type
         self.__default_negotiator_params = default_negotiator_params
         self.__parent = parent
@@ -125,7 +125,7 @@ class Controller(Rational):
     def make_negotiator(
         self,
         negotiator_type: str | ControlledNegotiatorType | None = None,
-        name: str = None,
+        name: str | None = None,
         **kwargs,
     ) -> ControlledNegotiatorType:
         """
@@ -145,7 +145,7 @@ class Controller(Rational):
         if negotiator_type is None:
             negotiator_type = self.__default_negotiator_type  # type: ignore
         elif isinstance(negotiator_type, str):
-            negotiator_type = get_class(negotiator_type)
+            negotiator_type = get_class(negotiator_type)  # type: ignore
         if negotiator_type is None:
             raise ValueError(
                 "No negotiator type is passed and no default negotiator type is defined for this "
@@ -177,7 +177,7 @@ class Controller(Rational):
     def create_negotiator(
         self,
         negotiator_type: str | ControlledNegotiatorType | None = None,
-        name: str = None,
+        name: str | None = None,
         cntxt: Any = None,
         **kwargs,
     ) -> ControlledNegotiatorType:

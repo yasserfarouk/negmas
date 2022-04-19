@@ -48,7 +48,7 @@ class ChainAMI(NegotiatorMechanismInterface):
         self.__negotiator = negotiator
         self.__level = level
 
-    def confirm(self, parent: bool) -> None:
+    def confirm(self, parent: bool) -> bool:
         return self.__parent.on_confirm(self.__level, parent)
 
 
@@ -57,6 +57,7 @@ class ChainNegotiator(Negotiator, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._nmi: ChainAMI
         self.__level = -1
 
     def join(
@@ -82,7 +83,7 @@ class ChainNegotiator(Negotiator, ABC):
         Returns:
 
         """
-        return self.nmi.confirm(left)
+        return self._nmi.confirm(left)
 
     @abstractmethod
     def on_acceptance(self, state: MechanismState, offer: Offer) -> Offer:
@@ -363,7 +364,7 @@ class ChainNegotiationsMechanism(Mechanism):
         self._update_next()
         return MechanismRoundResult()
 
-    def on_confirm(self, level: int, left: bool) -> None:
+    def on_confirm(self, level: int, left: bool) -> bool:
         """
         Called by negotiators to confirm their temporary accepted agreements
 
@@ -380,6 +381,7 @@ class ChainNegotiationsMechanism(Mechanism):
         if self.__agreements[level] is not None:
             raise ValueError(f"An agreement already exists at level {level}")
         self.__agreements[level] = self.__temp_agreements[level]
+        return True
 
 
 class MultiChainNegotiationsMechanism(Mechanism):

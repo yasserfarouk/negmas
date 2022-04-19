@@ -178,7 +178,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         return ComplexNonlinearUtilityFunction(
             reserved_value=reserved_value,
             ufuns=ufuns,
-            combination_function=lambda vals: sum(w * v for w, v in zip(weights, vals)),
+            combination_function=lambda vals: sum(v * w for w, v in zip(weights, vals)),
             outcome_space=outcome_space,
             **kwargs,
         )

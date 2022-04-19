@@ -20,7 +20,7 @@ __all__ = ["save_stats"]
 def save_stats(
     world: World,
     log_dir: PathLike | str,
-    params: dict[str, Any] = None,
+    params: dict[str, Any] | None = None,
     stats_file_name: str | None = None,
 ):
     """
