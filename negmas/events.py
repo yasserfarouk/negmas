@@ -89,7 +89,7 @@ class EventLogger(EventSink):
         types: The types of events to save. If None, all events will be saved
     """
 
-    def __init__(self, file_name: str | Path, types: list[str] = None):
+    def __init__(self, file_name: str | Path, types: list[str] | None = None):
         file_name = Path(file_name)
         file_name.parent.mkdir(parents=True, exist_ok=True)
         self._file_name = file_name
@@ -123,7 +123,7 @@ class EventLogger(EventSink):
             # return _simplify(myvars(x))
 
         try:
-            sid = sender.id if hasattr(sender, "id") else serialize(sender)
+            sid = sender.id if hasattr(sender, "id") else serialize(sender)  # type: ignore
             d = dict(
                 sender=sid,
                 time=time.perf_counter() - self._start,

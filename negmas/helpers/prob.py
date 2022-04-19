@@ -44,6 +44,12 @@ class Real(Distribution):
         self._scale = 0.0
         self._type = type if type else "uniform"
 
+    def __float__(self) -> float:
+        return self.loc
+
+    def __call__(self, val: float) -> float:
+        return 1.0 if abs(val - self.loc) < 1e-10 else 0.0
+
     @property
     def loc(self) -> float:
         """Returns the location of the distributon (usually mean)"""
@@ -314,17 +320,17 @@ class ScipyDistribution(Distribution):
         """Check that a sample from `self` is ALWAYS less or equal a sample from other `other`"""
         return self < other or self == other
 
-    def __eq__(self, other):
-        if isinstance(other, ScipyDistribution):
-            return (
-                self._type == other._type
-                and abs(self.loc - other.loc) < EPSILON
-                and abs(self.scale - other.scale) < EPSILON
-            )
-
-        if isinstance(other, float):
-            return abs(self.loc - other) < EPSILON and self.loc < EPSILON
-        raise ValueError(f"Cannot compare Distribution with {type(other)}")
+    # def __eq__(self, other):
+    #     if isinstance(other, ScipyDistribution):
+    #         return (
+    #             self._type == other._type
+    #             and abs(self.loc - other.loc) < EPSILON
+    #             and abs(self.scale - other.scale) < EPSILON
+    #         )
+    #
+    #     if isinstance(other, float):
+    #         return abs(self.loc - other) < EPSILON and self.loc < EPSILON
+    #     raise ValueError(f"Cannot compare Distribution with {type(other)}")
 
     def __eq__(self, other) -> bool:
         """Checks for equality of the two distributions"""
@@ -404,11 +410,11 @@ def uniform_around(
         Distribution A uniform distribution around `value` with uncertainty (scale) `uncertainty`
     """
     if uncertainty >= 1.0:
-        return cls(type="uniform", loc=range[0], scale=range[1])
+        return cls(type="uniform", loc=range[0], scale=range[1])  # type: ignore
     if uncertainty <= 0.0:
         return Real(loc=value)
     scale = uncertainty * (range[1] - range[0])
     loc = max(range[0], (random.random() - 1.0) * scale + value)
     if loc + scale > range[1]:
         loc -= loc + scale - range[1]
-    return cls(type="uniform", loc=loc, scale=scale)
+    return cls(type="uniform", loc=loc, scale=scale)  # type: ignore

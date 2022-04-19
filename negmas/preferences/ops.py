@@ -41,15 +41,15 @@ __all__ = [
 
 def make_discounted_ufun(
     ufun: UFunType,
-    cost_per_round: float = None,
-    power_per_round: float = None,
-    discount_per_round: float = None,
-    cost_per_relative_time: float = None,
-    power_per_relative_time: float = None,
-    discount_per_relative_time: float = None,
-    cost_per_real_time: float = None,
-    power_per_real_time: float = None,
-    discount_per_real_time: float = None,
+    cost_per_round: float | None = None,
+    power_per_round: float | None = None,
+    discount_per_round: float | None = None,
+    cost_per_relative_time: float | None = None,
+    power_per_relative_time: float | None = None,
+    discount_per_relative_time: float | None = None,
+    cost_per_real_time: float | None = None,
+    power_per_real_time: float | None = None,
+    discount_per_real_time: float | None = None,
     dynamic_reservation: bool = True,
 ) -> DiscountedUtilityFunction | UFunType:
     from negmas.preferences.discounted import ExpDiscountedUFun, LinDiscountedUFun
@@ -229,8 +229,8 @@ def nash_point(
 
 def pareto_frontier(
     ufuns: Iterable[UtilityFunction],
-    outcomes: Iterable[Outcome] = None,
-    issues: Iterable[Issue] = None,
+    outcomes: Iterable[Outcome] | None = None,
+    issues: Iterable[Issue] | None = None,
     n_discretization: int | None = 10,
     sort_by_welfare=False,
 ) -> tuple[list[tuple[float, ...]], list[int]]:
@@ -404,8 +404,8 @@ def minmax(
 def opposition_level(
     ufuns: list[UtilityFunction],
     max_utils: float | tuple[float, float] = 1.0,  # type: ignore
-    outcomes: int | list[Outcome] = None,
-    issues: list[Issue] = None,
+    outcomes: int | list[Outcome] | None = None,
+    issues: list[Issue] | None = None,
     max_tests: int = 10000,
 ) -> float:
     """

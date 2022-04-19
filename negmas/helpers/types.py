@@ -49,7 +49,7 @@ def get_full_type_name(t: type[Any] | Callable | str) -> str:
         return t
     if not hasattr(t, "__module__") and not hasattr(t, "__name__"):
         t = type(t)
-    return t.__module__ + "." + t.__name__
+    return t.__module__ + "." + t.__name__  # type: ignore
 
 
 def import_by_name(full_name: str) -> Any:
@@ -71,8 +71,8 @@ def import_by_name(full_name: str) -> Any:
 
 def get_class(
     class_name: str | type,
-    module_name: str = None,
-    scope: dict = None,
+    module_name: str | None = None,
+    scope: dict | None = None,
     allow_nonstandard_names=False,
 ) -> type:
     """Imports and creates a class object for the given class name"""
@@ -104,7 +104,10 @@ def get_class(
 
 
 def instantiate(
-    class_name: str | type, module_name: str = None, scope: dict = None, **kwargs
+    class_name: str | type,
+    module_name: str | None = None,
+    scope: dict | None = None,
+    **kwargs,
 ) -> Any:
     """Imports and instantiates an object of a class"""
     return get_class(class_name, module_name)(**kwargs)

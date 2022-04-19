@@ -218,7 +218,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     cancellation_rate = cancellation_fraction
 
-    def loginfo(self, s: str, event: Event = None) -> None:
+    def loginfo(self, s: str, event: Event | None = None) -> None:
         """logs info-level information
 
         Args:
@@ -273,7 +273,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def __init__(
         self,
-        bulletin_board: BulletinBoard = None,
+        bulletin_board: BulletinBoard | None = None,
         n_steps=10000,
         time_limit=60 * 60,
         negotiation_speed=None,
@@ -287,7 +287,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         force_signing=False,
         batch_signing=True,
         breach_processing=BreachProcessing.NONE,
-        mechanisms: dict[str, dict[str, Any]] = None,
+        mechanisms: dict[str, dict[str, Any]] | None = None,
         awi_type: str = "negmas.situated.AgentWorldInterface",
         start_negotiations_immediately: bool = False,
         log_folder=None,
@@ -315,8 +315,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         construct_graphs: bool = False,
         checkpoint_every: int = 1,
         checkpoint_folder: str | Path | None = None,
-        checkpoint_filename: str = None,
-        extra_checkpoint_info: dict[str, Any] = None,
+        checkpoint_filename: str | None = None,
+        extra_checkpoint_info: dict[str, Any] | None = None,
         single_checkpoint: bool = True,
         exist_ok: bool = True,
         operations: Collection[Operations] = (
@@ -332,8 +332,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         info: dict[str, Any] | None = None,
         genius_port: int = DEFAULT_JAVA_PORT,
         disable_agent_printing: bool = False,
-        name: str = None,
-        id: str = None,
+        name: str | None = None,
+        id: str | None = None,
     ):
         self.info = None
         self.disable_agent_printing = disable_agent_printing
@@ -605,7 +605,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             )
         return self._agent_loggers[aid]
 
-    def logdebug_agent(self, aid: str, s: str, event: Event = None) -> None:
+    def logdebug_agent(self, aid: str, s: str, event: Event | None = None) -> None:
         """logs debug to the agent individual log
 
         Args:
@@ -639,7 +639,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def log_folder(self):
         return self._log_folder
 
-    def loginfo_agent(self, aid: str, s: str, event: Event = None) -> None:
+    def loginfo_agent(self, aid: str, s: str, event: Event | None = None) -> None:
         """logs information to the agent individual log
 
         Args:
@@ -654,7 +654,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         logger = self._agent_logger(aid)
         logger.info(f"{self._log_header()}: " + s.strip())
 
-    def logwarning_agent(self, aid: str, s: str, event: Event = None) -> None:
+    def logwarning_agent(self, aid: str, s: str, event: Event | None = None) -> None:
         """logs warning to the agent individual log
 
         Args:
@@ -669,7 +669,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         logger = self._agent_logger(aid)
         logger.warning(f"{self._log_header()}: " + s.strip())
 
-    def logerror_agent(self, aid: str, s: str, event: Event = None) -> None:
+    def logerror_agent(self, aid: str, s: str, event: Event | None = None) -> None:
         """logs information to the agent individual log
 
         Args:
@@ -684,7 +684,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         logger = self._agent_logger(aid)
         logger.error(f"{self._log_header()}: " + s.strip())
 
-    def logdebug(self, s: str, event: Event = None) -> None:
+    def logdebug(self, s: str, event: Event | None = None) -> None:
         """logs debug-level information
 
         Args:
@@ -698,7 +698,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return
         self.logger.debug(f"{self._log_header()}: " + s.strip())
 
-    def logwarning(self, s: str, event: Event = None) -> None:
+    def logwarning(self, s: str, event: Event | None = None) -> None:
         """logs warning-level information
 
         Args:
@@ -712,7 +712,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return
         self.logger.warning(f"{self._log_header()}: " + s.strip())
 
-    def logerror(self, s: str, event: Event = None) -> None:
+    def logerror(self, s: str, event: Event | None = None) -> None:
         """logs error-level information
 
         Args:
@@ -847,8 +847,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         dst: list[Agent | str],
         target: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]],
         bi=False,
-        issues: list[Issue] = None,
-        agreement: dict[str, Any] = None,
+        issues: list[Issue] | None = None,
+        agreement: dict[str, Any] | None = None,
     ):
         """Registers an edge"""
         if not self.construct_graphs:
@@ -1985,7 +1985,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if not self.step():
                 break
 
-    def run_with_progress(self, callback: Callable[[int], None] = None) -> None:
+    def run_with_progress(self, callback: Callable[[int], None] | None = None) -> None:
         """Runs the simulation showing progress, with optional callback"""
         from tqdm import tqdm
 
@@ -2088,7 +2088,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         req_id,
         run_to_completion=False,
         may_run_immediately=True,
-        group: str = None,
+        group: str | None = None,
     ) -> tuple[NegotiationInfo | None, Contract | None, Mechanism | None]:
         """Registers a negotiation and returns the negotiation info"""
         if self._n_negs_per_agent_per_step[caller.id] >= self.neg_quota_step:
@@ -2192,11 +2192,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         caller: Agent,
         issues: list[Issue],
         partners: list[Agent | str],
-        roles: list[str] = None,
+        roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,
-        mechanism_name: str = None,
-        mechanism_params: dict[str, Any] = None,
-        group: str = None,
+        mechanism_name: str | None = None,
+        mechanism_params: dict[str, Any] | None = None,
+        group: str | None = None,
     ) -> bool:
         """
         Requests to start a negotiation with some other agents
@@ -2295,12 +2295,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         issues: list[Issue],
         partners: list[str | Agent],
         negotiator: Negotiator,
-        preferences: Preferences = None,
-        caller_role: str = None,
-        roles: list[str] = None,
+        preferences: Preferences | None = None,
+        caller_role: str | None = None,
+        roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,
-        mechanism_name: str = None,
-        mechanism_params: dict[str, Any] = None,
+        mechanism_name: str | None = None,
+        mechanism_params: dict[str, Any] | None = None,
     ) -> tuple[Contract | None, NegotiatorMechanismInterface | None]:
         """
         Runs a negotiation until completion
@@ -2407,8 +2407,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         issues: list[Issue] | list[list[Issue]],
         partners: list[list[str | Agent]],
         negotiators: list[Negotiator],
-        preferences: list[Preferences] = None,
-        caller_roles: list[str] = None,
+        preferences: list[Preferences] | None = None,
+        caller_roles: list[str] | None = None,
         roles: list[list[str] | None] | None = None,
         annotations: list[dict[str, Any] | None] | None = None,
         mechanism_names: str | list[str] | None = None,
@@ -2739,7 +2739,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self,
             steps: tuple[int, int] | int | None = None,
             what: Collection[str] = EDGE_TYPES,
-            who: Callable[[Agent], bool] = None,
+            who: Callable[[Agent], bool] | None = None,
             together: bool = True,
         ) -> nx.Graph | list[nx.Graph]:
             """
@@ -2787,10 +2787,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self,
             steps: tuple[int, int] | int | None = None,
             what: Collection[str] = DEFAULT_EDGE_TYPES,
-            who: Callable[[Agent], bool] = None,
-            where: Callable[[Agent], int | tuple[float, float]] = None,
+            who: Callable[[Agent], bool] | None = None,
+            where: Callable[[Agent], int | tuple[float, float]] | None = None,
             together: bool = True,
-            axs: Collection[Axis] = None,
+            axs: Collection[Axis] | None = None,
             ncols: int = 4,
             figsize: tuple[int, int] = (15, 15),
             show_node_labels=True,
@@ -2930,9 +2930,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def save_gif(
         self,
-        path: str | Path = None,
+        path: str | Path | None = None,
         what: Collection[str] = EDGE_TYPES,
-        who: Callable[[Agent], bool] = None,
+        who: Callable[[Agent], bool] | None = None,
         together: bool = True,
         draw_every: int = 1,
         fps: int = 5,
@@ -3133,7 +3133,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @abstractmethod
     def execute_action(
-        self, action: Action, agent: Agent, callback: Callable = None
+        self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         """Executes the given action by the given agent"""
 

@@ -131,7 +131,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             + reserved_value[0]
         )
         return cls(
-            get_class(base_preferences_type).random(
+            get_class(base_preferences_type).random(  # type: ignore
                 issues, reserved_value=reserved_value, normalized=normalized
             ),
             **kwargs,
@@ -318,7 +318,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
             + reserved_value[0]
         )
         return cls(
-            get_class(base_preferences_type)._random(
+            get_class(base_preferences_type)._random(  # type: ignore
                 issues, reserved_value=kwargs["reserved_value"], normalized=normalized
             ),
             **kwargs,

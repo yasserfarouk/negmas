@@ -15,7 +15,7 @@ from negmas.outcomes import Outcome
 from negmas.sao import ResponseType
 
 if TYPE_CHECKING:
-    pass
+    from negmas.sao import SAONegotiator
 
 __all__ = [
     "AcceptanceModelType",
@@ -232,7 +232,7 @@ class PeekingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
             if opponent._nmi is None:
                 response = ResponseType.REJECT_OFFER
             else:
-                response = opponent.respond_(state=opponent._nmi.state, offer=outcome)
+                response = opponent.respond_(state=opponent._nmi.state, offer=outcome)  # type: ignore
             if response != ResponseType.ACCEPT_OFFER:
                 return 0.0
         return 1.0
@@ -276,7 +276,7 @@ class AggregatingDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         self,
         outcomes: Collection[Outcome],
         models: list[DiscreteAcceptanceModel],
-        weights: list[float] = None,
+        weights: list[float] | None = None,
     ):
         super().__init__(outcomes=outcomes)
         if weights is None:

@@ -276,7 +276,7 @@ class BaseUtilityFunction(Preferences, ABC):
         self: T,
         to: tuple[float, float] = (0.0, 1.0),
         outcome_space: OutcomeSpace | None = None,
-    ) -> T:
+    ) -> T | ConstUtilityFunction:
         max_cardinality: int = MAX_CARINALITY
         if not outcome_space:
             outcome_space = self.outcome_space
@@ -525,7 +525,7 @@ class BaseUtilityFunction(Preferences, ABC):
         safe_parsing=True,
         ignore_discount=False,
         ignore_reserved=False,
-        name: str = None,
+        name: str | None = None,
     ) -> tuple[BaseUtilityFunction | None, float | None]:
         """Imports a utility function from a GENIUS XML string.
 
@@ -858,7 +858,9 @@ class BaseUtilityFunction(Preferences, ABC):
             xml_str = f.read()
         return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
-    def to_xml_str(self, issues: Iterable[Issue] = None, discount_factor=None) -> str:
+    def to_xml_str(
+        self, issues: Iterable[Issue] | None = None, discount_factor=None
+    ) -> str:
         """
         Exports a utility function to a well formatted string
         """
@@ -893,7 +895,7 @@ class BaseUtilityFunction(Preferences, ABC):
         return output
 
     def to_genius(
-        self, file_name: PathLike | str, issues: Iterable[Issue] = None, **kwargs
+        self, file_name: PathLike | str, issues: Iterable[Issue] | None = None, **kwargs
     ):
         """
         Exports a utility function to a GENIUS XML file.

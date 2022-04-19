@@ -729,15 +729,15 @@ def get_java_class(name) -> str | None:
 
 def get_anac_agents(
     *,
-    year: int = None,
-    linear: bool = None,
-    learning: bool = None,
-    multilateral: bool = None,
-    bilateral: bool = None,
-    reservation: bool = None,
-    discounting: bool = None,
-    uncertainty: bool = None,
-    elicitation: bool = None,
+    year: int | None = None,
+    linear: bool | None = None,
+    learning: bool | None = None,
+    multilateral: bool | None = None,
+    bilateral: bool | None = None,
+    reservation: bool | None = None,
+    discounting: bool | None = None,
+    uncertainty: bool | None = None,
+    elicitation: bool | None = None,
     winners_only: bool = False,
     finalists_only: bool = False,
 ) -> list[tuple[str, str]]:
@@ -755,14 +755,16 @@ def get_anac_agents(
           with caution.
     """
 
-    def get_agents(year, d) -> list[tuple[str, str]]:
-        lst = tuple(
-            d.get("winners", [[]])
-            if winners_only
-            else d.get("finalists", [])
-            if finalists_only
-            else [(_.split(".")[-1], _) for _ in ALL_NEGOTIATORS if str(year) in _]
-        )
+    def get_agents(year, d) -> set[tuple[str, str]]:
+
+        if winners_only:
+            lst = d.get("winners", [[]])
+        elif finalists_only:
+            lst = d.get("finalists", [])
+        else:
+            lst = [_ for _ in ALL_NEGOTIATORS if str(year) in _]
+        lst = [(_.split(".")[-1], _) for _ in lst]
+        lst = tuple(lst)
         if winners_only or finalists_only:
             return set(itertools.chain(*lst))
         return set(lst)

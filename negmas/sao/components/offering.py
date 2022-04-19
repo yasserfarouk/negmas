@@ -188,7 +188,7 @@ class LimitedOutcomesOfferingStrategy(OfferingStrategy):
         if s > 0.999:
             return self.outcomes[-1]
         self.prob = [_ / s for _ in self.prob]
-        return self.propose(state, True)
+        return self.propose(state)
 
 
 @define

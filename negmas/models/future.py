@@ -25,6 +25,7 @@ class FutureUtilityRegressor:
         utils = utils.flatten().reshape((len(utils), 1))
         self.regressor.fit(times, utils)
         self.inverse_regressor.fit(utils, times)
+        return self.inverse_regressor
 
     def predict_utility(self, times) -> np.ndarray:
         times = np.array(times)

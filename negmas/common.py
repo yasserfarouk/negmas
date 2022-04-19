@@ -5,7 +5,6 @@ This module does not import anything from the library except during type checkin
 """
 from __future__ import annotations
 
-from copy import deepcopy
 from enum import Enum, auto, unique
 from typing import TYPE_CHECKING, Any, Iterable, Protocol, Union, runtime_checkable
 

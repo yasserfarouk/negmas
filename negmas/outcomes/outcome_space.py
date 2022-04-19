@@ -49,7 +49,7 @@ DistanceFun = Callable[[Outcome, Outcome, Union[OutcomeSpace, None]], float]
 def make_os(
     issues: Sequence[Issue] | None = None,
     outcomes: Sequence[Outcome] | None = None,
-    name: str = None,
+    name: str | None = None,
 ) -> CartesianOutcomeSpace:
     """
     A factory to create outcome-spaces from lists of `Issue` s or `Outcome` s.
@@ -223,7 +223,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         outcomes: list[Outcome],
         numeric_as_ranges: bool = False,
         issue_names: list[str] | None = None,
-        name: str = None,
+        name: str | None = None,
     ) -> DiscreteCartesianOutcomeSpace:
         return DiscreteCartesianOutcomeSpace(
             issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name
@@ -366,9 +366,9 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
         return self.cardinality
 
     def enumerate(self) -> Iterable[Outcome]:
-        return enumerate_discrete_issues(
-            self.issues
-        )  #  type: ignore I know that all my issues are actually discrete
+        return enumerate_discrete_issues(  #  type: ignore I know that all my issues are actually discrete
+            self.issues  #  type: ignore I know that all my issues are actually discrete
+        )
 
     def limit_cardinality(
         self,

@@ -49,20 +49,22 @@ class VetoMTMechanism(Mechanism):
         epsilon: float = 1e-6,
         n_texts: int = 10,
         initial_outcomes: list[Outcome | None] | None = None,
-        initial_responses: tuple[tuple[bool]] = None,
+        initial_responses: tuple[tuple[bool]] | None = None,
         **kwargs,
     ):
         kwargs["state_factory"] = MTState
         super().__init__(*args, **kwargs)
+        self._current_state: MTState
+        state = self._current_state
 
         self.add_requirements(
             {"compare-binary": True}
         )  # assert that all agents must have compare-binary capability
-        self._current_state.current_offers: list[Outcome | None] = (
+        state.current_offers = (
             initial_outcomes if initial_outcomes is not None else [None] * n_texts
         )
         """The current offer"""
-        self.initial_outcomes = deepcopy(self._current_state.current_offers)
+        self.initial_outcomes = deepcopy(state.current_offers)
         """The initial offer"""
         self.last_responses = (
             [list(_) for _ in initial_responses]
@@ -88,7 +90,8 @@ class VetoMTMechanism(Mechanism):
 
     def round(self) -> MechanismRoundResult:
         """Single round of the protocol"""
-        for i, current_offer in enumerate(self._current_state.current_offers):
+        state: SAOState = self._current_state  # type: ignore
+        for i, current_offer in enumerate(state.current_offers):
             new_offer = self.next_outcome(current_offer)
             responses = []
 
@@ -106,7 +109,7 @@ class VetoMTMechanism(Mechanism):
             self.last_responses = responses
 
             if all(responses):
-                self._current_state.current_offers[i] = new_offer
+                state.current_offers[i] = new_offer
 
         return MechanismRoundResult(broken=False, timedout=False, agreement=None)
 

@@ -50,8 +50,8 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
     def __init__(
         self,
         outcomes: Iterable[Outcome],
-        distributions: Iterable[Distribution] = None,
-        issue_names: Iterable[str] = None,
+        distributions: Iterable[Distribution] | None = None,
+        issue_names: Iterable[str] | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)

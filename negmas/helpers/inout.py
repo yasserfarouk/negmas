@@ -85,7 +85,10 @@ class ConfigReader:
                 if class_name is None:
                     class_name = stringcase.pascalcase(k)
                 the_class = get_class(class_name=class_name, scope=scope)
-                obj, obj_children = the_class.from_config(
+                assert hasattr(
+                    the_class, "from_config"
+                ), f"{the_class} does not have a from_config attribute"
+                obj, obj_children = the_class.from_config(  # type: ignore
                     config=v,
                     ignore_children=False,
                     try_parsing_children=True,
@@ -108,7 +111,10 @@ class ConfigReader:
                 objs = []
                 for current in list(v):
                     the_class = get_class(class_name=class_name, scope=scope)
-                    obj = the_class.from_config(
+                    assert hasattr(
+                        the_class, "from_config"
+                    ), f"{the_class} does not have a from_config attribute"
+                    obj = the_class.from_config(  # type: ignore
                         config=current,
                         ignore_children=True,
                         try_parsing_children=True,
@@ -126,7 +132,9 @@ class ConfigReader:
         return myconfig, remaining_children, setters
 
     @classmethod
-    def read_config(cls, config: str | dict, section: str = None) -> dict[str, Any]:
+    def read_config(
+        cls, config: str | dict, section: str | None = None
+    ) -> dict[str, Any]:
         """
         Reads the configuration from a file or a dict and prepares it for parsing
 
@@ -182,7 +190,7 @@ class ConfigReader:
     def from_config(
         cls,
         config: str | dict,
-        section: str = None,
+        section: str | None = None,
         ignore_children: bool = True,
         try_parsing_children: bool = True,
         scope=None,

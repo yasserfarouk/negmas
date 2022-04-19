@@ -37,6 +37,7 @@ class AWI(AgentWorldInterface):
         self, partners: List[str], negotiator: SAONegotiator
     ) -> bool:
         """A convenient way to request negotiations"""
+        self._world: TripsWorld
         if self.agent.id not in partners:
             partners.append(self.agent.id)
         req_id = self.agent.create_negotiation_request(
@@ -95,7 +96,7 @@ class TripsWorld(World):
         return dict(total_utility=self._total_utility[agent.id])
 
     def execute_action(
-        self, action: Action, agent: "Agent", callback: Callable = None
+        self, action: Action, agent: "Agent", callback: Callable | None = None
     ) -> bool:
         """Executing actions by agents? No actions available"""
         pass

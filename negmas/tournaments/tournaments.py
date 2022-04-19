@@ -12,6 +12,7 @@ import math
 import os
 import pathlib
 import random
+import sys
 import time
 import traceback
 from collections import defaultdict
@@ -128,6 +129,7 @@ class WorldGenerator(Protocol):
 
     def __call__(self, **kwargs) -> World:
         """Generates a world"""
+        ...
 
 
 class ConfigGenerator(Protocol):
@@ -192,8 +194,8 @@ class ConfigAssigner(Protocol):
         fair: bool = True,
         competitors: Sequence[str | type[Agent]] = (),
         params: Sequence[dict[str, Any]] = (),
-        dynamic_non_competitors: Sequence[str | type[Agent]] = None,
-        dynamic_non_competitor_params: Sequence[dict[str, Any]] = None,
+        dynamic_non_competitors: Sequence[str | type[Agent]] | None = None,
+        dynamic_non_competitor_params: Sequence[dict[str, Any]] | None = None,
         exclude_competitors_from_reassignment: bool = True,
     ) -> list[list[dict[str, Any]]]:
         ...
@@ -204,20 +206,20 @@ class WorldRunResults:
     """Results of a world run"""
 
     world_names: list[str]
+    """World names (there can be multiple worlds for each scoring call)"""
     log_file_names: list[str]
+    """Log file names"""
     names: list[str] = field(default_factory=list, init=False)
+    """Agent names"""
     ids: list[str] = field(default_factory=list, init=False)
+    """Agent IDs"""
     scores: list[float] = field(default_factory=list, init=False)
+    """Agent scores"""
     types: list[str] = field(default_factory=list, init=False)
+    """Agent type names"""
     extra_scores: dict[str, list[dict[str, Any]]] = field(
         default_factory=dict, init=False
     )
-    """World names (there can be multiple worlds for each scoring call)"""
-    """Log file names"""
-    """Agent names"""
-    """Agent IDs"""
-    """Agent scores"""
-    """Agent type names"""
     """The extra-scores (i.e. extra evaluation metrics). Each is a list of records"""
 
 
@@ -246,54 +248,54 @@ class AgentStats:
     exceptions: dict[str, list[tuple[int, str]]] = field(
         default_factory=lambda: defaultdict(list)
     )
+    """All exceptions thrown per agent (not including negotiator exceptions)"""
     negotiator_exceptions: dict[str, list[tuple[int, str]]] = field(
         default_factory=lambda: defaultdict(list)
     )
+    """All exceptions thrown by negotiators of an agent"""
     times: dict[str, float] = field(default_factory=lambda: defaultdict(float))
+    """Total execution time per agent"""
     neg_requests_sent: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiation Requests Sent"""
     neg_requests_received: dict[str, int] = field(
         default_factory=lambda: defaultdict(int)
     )
+    """Negotiation Requests Received"""
     neg_requests_rejected: dict[str, int] = field(
         default_factory=lambda: defaultdict(int)
     )
+    """Negotiation requests rejected"""
     negs_registered: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations registered"""
     negs_succeeded: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations succeeded"""
     negs_failed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations failed"""
     negs_timedout: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations timedout"""
     negs_initiated: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Negotiations initiated"""
     contracts_concluded: dict[str, int] = field(
         default_factory=lambda: defaultdict(int)
     )
+    """Contracts concluded"""
     contracts_signed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts signed"""
     contracts_dropped: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts dropped"""
     breaches_received: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """breaches received"""
     breaches_committed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """breaches committed"""
     contracts_erred: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    """Contracts erred"""
     contracts_nullified: dict[str, int] = field(
         default_factory=lambda: defaultdict(int)
     )
-    contracts_breached: dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    contracts_executed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    """All exceptions thrown per agent (not including negotiator exceptions)"""
-    """All exceptions thrown by negotiators of an agent"""
-    """Total execution time per agent"""
-    """Negotiation Requests Sent"""
-    """Negotiation Requests Received"""
-    """Negotiation requests rejected"""
-    """Negotiations registered"""
-    """Negotiations succeeded"""
-    """Negotiations failed"""
-    """Negotiations timedout"""
-    """Negotiations initiated"""
-    """Contracts concluded"""
-    """Contracts signed"""
-    """Contracts dropped"""
-    """breaches received"""
-    """breaches committed"""
-    """Contracts erred"""
     """Contracts nullified"""
+    contracts_breached: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts breached"""
+    contracts_executed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts executed"""
 
     def to_record(self, world, label="name"):
@@ -338,61 +340,60 @@ class WorldSetRunStats:
     """Statistics kept in the tournament about the set of worlds"""
 
     name: str
-    planned_n_steps: int
-    executed_n_steps: int
-    execution_time: int
-    simulation_exceptions: list[tuple[int, str]] = field(default_factory=list)
-    contract_exceptions: list[tuple[int, str]] = field(default_factory=list)
-    mechanism_exceptions: list[tuple[int, str]] = field(default_factory=list)
-    other_exceptions: list[str] = field(default_factory=list)
-
-    n_agent_exceptions: int = 0
-    n_negotiator_exceptions: int = 0
-    mean_agent_time: float = 0.0
-    n_neg_requests_sent: int = 0
-    n_neg_requests_received: int = 0
-    n_neg_requests_rejected: int = 0
-    n_negs_registered: int = 0
-    n_negs_succeeded: int = 0
-    n_negs_failed: int = 0
-    n_negs_timedout: int = 0
-    n_negs_initiated: int = 0
-    n_contracts_concluded: int = 0
-    n_contracts_signed: int = 0
-    n_contracts_dropped: int = 0
-    n_breaches_received: int = 0
-    n_breaches_committed: int = 0
-    n_contracts_erred: int = 0
-    n_contracts_nullified: int = 0
-    n_contracts_breached: int = 0
-    n_contracts_executed: int = 0
     """Names of the world set separated by ;"""
+    planned_n_steps: int
     """Planned number of steps for each world"""
+    executed_n_steps: int
     """Actually executed number of steps for each world"""
+    execution_time: float
     """Total execution time of each world"""
+    simulation_exceptions: list[tuple[int, str]] = field(default_factory=list)
     """Exceptions thrown by the simulator (not including mechanism creation and contract exceptions)"""
+    contract_exceptions: list[tuple[int, str]] = field(default_factory=list)
     """Exceptions thrown by the simulator during contract execution"""
+    mechanism_exceptions: list[tuple[int, str]] = field(default_factory=list)
     """Exceptions thrown by the simulator during mechanism creation or execution"""
+    other_exceptions: list[str] = field(default_factory=list)
     """Exceptions raised by tournament running code itself not any world"""
+    n_agent_exceptions: int = 0
     """All exceptions thrown per agent (not including negotiator exceptions)"""
+    n_negotiator_exceptions: int = 0
     """All exceptions thrown by negotiators of an agent"""
+    mean_agent_time: float = 0.0
     """Average execution time per agent"""
+    n_neg_requests_sent: int = 0
     """Negotiation Requests Sent"""
+    n_neg_requests_received: int = 0
     """Negotiation Requests Received"""
+    n_neg_requests_rejected: int = 0
     """Negotiation requests rejected"""
+    n_negs_registered: int = 0
     """Negotiations registered"""
+    n_negs_succeeded: int = 0
     """Negotiations succeeded"""
+    n_negs_failed: int = 0
     """Negotiations failed"""
+    n_negs_timedout: int = 0
     """Negotiations timedout"""
+    n_negs_initiated: int = 0
     """Negotiations initiated"""
+    n_contracts_concluded: int = 0
     """Contracts concluded"""
+    n_contracts_signed: int = 0
     """Contracts signed"""
+    n_contracts_dropped: int = 0
     """Contracts dropped"""
+    n_breaches_received: int = 0
     """breaches received"""
+    n_breaches_committed: int = 0
     """breaches committed"""
+    n_contracts_erred: int = 0
     """Contracts erred"""
+    n_contracts_nullified: int = 0
     """Contracts nullified"""
+    n_contracts_breached: int = 0
     """Contracts breached"""
+    n_contracts_executed: int = 0
     """Contracts executed"""
 
     def to_record(self, world):
@@ -420,34 +421,34 @@ class WorldSetRunStats:
 @dataclass
 class TournamentResults:
     scores: pd.DataFrame
-    total_scores: pd.DataFrame
-    winners: list[str]
-    winners_scores: np.array
-    ttest: pd.DataFrame = None
-    kstest: pd.DataFrame = None
-    stats: pd.DataFrame = None
-    agg_stats: pd.DataFrame = None
-    score_stats: pd.DataFrame = None
-    path: str = None
-    world_stats: pd.DataFrame = None
-    type_stats: pd.DataFrame = None
-    agent_stats: pd.DataFrame = None
-    params: dict[str, Any] = None
-    extra_scores: dict[str, pd.DataFrame] = None
     """Scores of individual agent instantiations"""
+    total_scores: pd.DataFrame
     """Total scores collected by competitor types"""
+    winners: list[str]
     """Winner type name(s) which may be a list"""
+    winners_scores: np.ndarray
     """Winner score (accumulated)"""
+    ttest: pd.DataFrame | None = None
     """Results of ttest analysis of the scores"""
+    kstest: pd.DataFrame | None = None
     """Results of the nonparametric kstest"""
+    stats: pd.DataFrame | None = None
     """Stats of all worlds"""
+    agg_stats: pd.DataFrame | None = None
     """Aggregated stats per world"""
+    score_stats: pd.DataFrame | None = None
     """Score statistics for different competitor types"""
+    path: str | None = None
     """Path at which tournament results are stored"""
+    world_stats: pd.DataFrame | None = None
     """Some statistics about each world run"""
+    type_stats: pd.DataFrame | None = None
     """Some statistics about each type"""
+    agent_stats: pd.DataFrame | None = None
     """Some statistics about each agent"""
+    params: dict[str, Any] | None = None
     """Parameters of the tournament"""
+    extra_scores: dict[str, pd.DataFrame] | None = None
     """Extra scores returned from the scoring function. This can be used to have multi-dimensional scoring"""
 
     def __str__(self):
@@ -494,6 +495,7 @@ def combine_partially_run_worlds(
     Remarks:
         All conditions must be met for a world to be considered completed
     """
+    ...
 
 
 def _path(path: str | PathLike) -> Path:
@@ -515,7 +517,7 @@ def _run_worlds(
     worlds_params: list[dict[str, Any]],
     world_generator: WorldGenerator,
     score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults],
-    world_progress_callback: Callable[[World | None], None] = None,
+    world_progress_callback: Callable[[World | None], None] | None = None,
     dry_run: bool = False,
     save_world_stats: bool = True,
     override_ran_worlds: bool = False,
@@ -1076,7 +1078,9 @@ def run_worlds(
     if len(worlds_params) < 1:
         return (
             _hash(worlds_params),
-            # WorldRunResults(world_names=[""], log_file_names=[""]),
+            [],
+            None,
+            None,
             None,
             None,
         )
@@ -1145,7 +1149,7 @@ def process_world_run(
 
     """
     if results is None:
-        return []
+        return [], dict()
     log_files, world_names_ = results.log_file_names, results.world_names
     for log_file in log_files:
         if log_file is not None and pathlib.Path(log_file).exists():
@@ -1187,14 +1191,10 @@ def _get_executor(
     method, verbose, scheduler_ip=None, scheduler_port=None, total_timeout=None
 ):
     """Returns an exeuctor object which has a submit method to submit calls to run worlds"""
-    try:
-        import distributed
-    except:
-        ENABLE_DASK = False
-    else:
-        ENABLE_DASK = True
     if method == "dask":
-        if not ENABLE_DASK:
+        try:
+            import distributed
+        except:
             raise RuntimeError(
                 f"The library 'dask' is not installed. You can use parallel/serial tournaments but not "
                 f"dask/distributed. To enable dask/distribued tournaments run:\n\t>> pip install dask[complete]"
@@ -1444,7 +1444,11 @@ def _divide_into_sets(competitors, n_competitors_per_world):
     return competitor_sets
 
 
-def get_world_paths(*, assignments=None, tournament_path=None):
+def get_world_paths(
+    *,
+    assignments: list[list] | None = None,
+    tournament_path: pathlib.Path | None = None,
+):
     """Gets all world paths from a tournament path
 
     Args:
@@ -1457,13 +1461,17 @@ def get_world_paths(*, assignments=None, tournament_path=None):
 
     """
     world_paths = set()
-    if assignments is None:
+    if assignments is None and tournament_path is None:
+        return []
+
+    if assignments is None and tournament_path is not None:
         try:
             assignments = load(tournament_path / ASSIGNED_CONFIGS_PICKLE_FILE)
             if assignments is None or len(assignments) == 0:
                 assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
         except:
             assignments = from_file(tournament_path / ASSIGNED_CONFIGS_JSON_FILE)
+    assert assignments is not None
     for a in assignments:
         for w in a:
             # dir_name = w["world_params"]["log_folder"]
@@ -1480,23 +1488,21 @@ def get_world_paths(*, assignments=None, tournament_path=None):
 
 def run_tournament(
     tournament_path: str | PathLike,
-    world_generator: WorldGenerator = None,
-    score_calculator: Callable[
-        [list[World], dict[str, Any], bool], WorldRunResults
-    ] = None,
+    world_generator: WorldGenerator | None = None,
+    score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults]
+    | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
     scheduler_port: str | None = None,
-    tournament_progress_callback: Callable[
-        [WorldRunResults | None, int, int], None
-    ] = None,
-    world_progress_callback: Callable[[World | None], None] = None,
+    tournament_progress_callback: Callable[[WorldRunResults | None, int, int], None]
+    | None = None,
+    world_progress_callback: Callable[[World | None], None] | None = None,
     verbose: bool = False,
-    compact: bool = None,
+    compact: bool | None = None,
     print_exceptions: bool = True,
     override_ran_worlds: bool = False,
-    max_attempts: int = float("inf"),
+    max_attempts: int = sys.maxsize,
 ) -> None:
     """
     Runs a tournament
@@ -1583,6 +1589,8 @@ def run_tournament(
     attempts = defaultdict(int)
     files_to_remove = []
     for afile in attempts_path.glob("*"):
+
+        n_attempts = 0
         if afile.is_dir():
             continue
         fname = afile.name
@@ -1755,9 +1763,9 @@ def create_tournament(
     n_configs: int = 10,
     max_worlds_per_config: int = 100,
     n_runs_per_world: int = 5,
-    max_n_configs: int = None,
-    n_runs_per_config: int = None,
-    base_tournament_path: str = None,
+    max_n_configs: int | None = None,
+    n_runs_per_config: int | None = None,
+    base_tournament_path: str | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
@@ -1767,7 +1775,7 @@ def create_tournament(
     dynamic_non_competitors: tuple[str | Any] | None = None,
     dynamic_non_competitor_params: tuple[dict[str, Any]] | None = None,
     exclude_competitors_from_reassignment: bool = True,
-    name: str = None,
+    name: str | None = None,
     verbose: bool = False,
     compact: bool = False,
     save_video_fraction: float = 0.0,
@@ -2236,11 +2244,11 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
 
 def combine_tournament_stats(
     sources: Iterable[str | PathLike],
-    dest: str | PathLike = None,
+    dest: str | PathLike | None = None,
     verbose=False,
 ) -> pd.DataFrame:
     """Combines statistical results of several tournament runs in the destination path."""
-    stats = []
+    slist = []
     for src in sources:
         src = _path(src)
         for filename in src.glob(f"**/{STATS_FILE}"):
@@ -2248,16 +2256,17 @@ def combine_tournament_stats(
             data = extract_basic_stats(filename)
             if data is None:
                 continue
-            stats.append(data)
-    if len(stats) < 1:
+            slist.append(data)
+    if len(slist) < 1:
         if verbose:
-            print("No stats found")
+            print("No slist found")
         return pd.DataFrame()
-    stats: pd.DataFrame = pd.concat(stats, axis=0, ignore_index=True, sort=True)
+    stats: pd.DataFrame = pd.concat(slist, axis=0, ignore_index=True, sort=True)
     if dest is not None:
         stats.to_csv(str(_path(dest) / STATS_FILE), index=False)
         combined = _combine_stats(stats)
-        combined.to_csv(str(_path(dest) / AGGREGATE_STATS_FILE), index=False)
+        if combined:
+            combined.to_csv(str(_path(dest) / AGGREGATE_STATS_FILE), index=False)
     return stats
 
 
@@ -2299,7 +2308,7 @@ def compile_results(
 
 def combine_tournament_results(
     sources: Iterable[str | PathLike],
-    dest: str | PathLike = None,
+    dest: str | PathLike | None = None,
     verbose=False,
 ) -> pd.DataFrame:
     """Combines results of several tournament runs in the destination path."""
@@ -2426,8 +2435,11 @@ def evaluate_tournament(
         )
     if verbose:
         print("Calculating Scores")
+    assert scores is not None
     scores = scores.loc[~scores["agent_type"].isnull(), :]
+    assert scores is not None
     scores = scores.loc[scores["agent_type"].str.len() > 0, :]
+    assert scores is not None
     if not isinstance(metric, str):
         total_scores = scores.groupby(["agent_type"])["score"].apply(metric)
     elif metric == "truncated_mean":
@@ -2446,8 +2458,9 @@ def evaluate_tournament(
         raise ValueError(
             f"Unknown metric: {metric}. Supported metrics include mean, median, std, var, sum or a callable"
         )
-    total_scores = total_scores.sort_values(ascending=False).reset_index()
+    total_scores = total_scores.sort_values(ascending=False).reset_index()  # type: ignore
     score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
+    assert total_scores is not None
     winner_table = total_scores.loc[
         total_scores["score"] == total_scores["score"].max(), :
     ]
@@ -2561,23 +2574,22 @@ def tournament(
     n_configs: int = 10,
     max_worlds_per_config: int = 100,
     n_runs_per_world: int = 5,
-    max_n_configs: int = None,
-    n_runs_per_config: int = None,
-    tournament_path: str = None,
+    max_n_configs: int | None = None,
+    n_runs_per_config: int | None = None,
+    tournament_path: str | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
     scheduler_port: str | None = None,
-    tournament_progress_callback: Callable[
-        [WorldRunResults | None, int, int], None
-    ] = None,
-    world_progress_callback: Callable[[World | None], None] = None,
+    tournament_progress_callback: Callable[[WorldRunResults | None, int, int], None]
+    | None = None,
+    world_progress_callback: Callable[[World | None], None] | None = None,
     non_competitors: tuple[str | Any] | None = None,
     non_competitor_params: tuple[dict[str, Any]] | None = None,
     dynamic_non_competitors: tuple[str | Any] | None = None,
     dynamic_non_competitor_params: tuple[dict[str, Any]] | None = None,
     exclude_competitors_from_reassignment: bool = True,
-    name: str = None,
+    name: str | None = None,
     verbose: bool = False,
     configs_only: bool = False,
     compact: bool = False,
@@ -2587,7 +2599,7 @@ def tournament(
     forced_logs_fraction: float = 0.0,
     video_params=None,
     video_saver=None,
-    max_attempts: int = float("inf"),
+    max_attempts: int = sys.maxsize,
     extra_scores_to_use: str | None = None,
     **kwargs,
 ) -> TournamentResults | PathLike:
@@ -2804,7 +2816,7 @@ def is_already_run(world_params) -> bool:
 
 def combine_tournaments(
     sources: Iterable[str | PathLike],
-    dest: str | PathLike = None,
+    dest: str | PathLike | None = None,
     verbose=False,
 ) -> tuple[int, int]:
     """

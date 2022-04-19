@@ -32,7 +32,7 @@ class AgentWorldInterface:
         self._world, self.agent = world, agent
 
     def execute(
-        self, action: Action, callback: Callable[[Action, bool], Any] = None
+        self, action: Action, callback: Callable[[Action, bool], Any] | None = None
     ) -> bool:
         """Executes an action in the world simulation"""
         return self._world.execute_action(
@@ -68,12 +68,12 @@ class AgentWorldInterface:
         issues: Collection[Issue],
         partners: Collection[str | Agent],
         negotiator: Negotiator,
-        preferences: Preferences = None,
-        caller_role: str = None,
-        roles: Collection[str] = None,
+        preferences: Preferences | None = None,
+        caller_role: str | None = None,
+        roles: Collection[str] | None = None,
         annotation: dict[str, Any] | None = None,
-        mechanism_name: str = None,
-        mechanism_params: dict[str, Any] = None,
+        mechanism_name: str | None = None,
+        mechanism_params: dict[str, Any] | None = None,
     ) -> tuple[Contract, NegotiatorMechanismInterface] | None:
         """
         Runs a negotiation until completion
@@ -187,10 +187,10 @@ class AgentWorldInterface:
         issues: list[Issue],
         partners: list[str],
         req_id: str,
-        roles: list[str] = None,
+        roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,
-        mechanism_name: str = None,
-        mechanism_params: dict[str, Any] = None,
+        mechanism_name: str | None = None,
+        mechanism_params: dict[str, Any] | None = None,
         group: str | None = None,
     ) -> bool:
         """

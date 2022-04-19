@@ -50,7 +50,10 @@ class Rational(NamedObject):
         if not self._preferences:
             return
         # we here assume that two entities that share an ID can share preferences without warning
-        if self._preferences.owner is not None and self._preferences.owner.id != self.id:
+        if (
+            self._preferences.owner is not None
+            and self._preferences.owner.id != self.id
+        ):
             warnings.warn(
                 f"Entity {self.name} ({self.__class__.__name__}) is "
                 f"assigned preferences belonging to another entity "
@@ -100,11 +103,11 @@ class Rational(NamedObject):
 
     def __init__(
         self,
-        name: str = None,
+        name: str | None = None,
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
-        id: str = None,
-        type_name: str = None,
+        id: str | None = None,
+        type_name: str | None = None,
     ):
         super().__init__(name, type_name=type_name, id=id)
         if ufun:

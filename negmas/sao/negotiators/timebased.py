@@ -233,7 +233,7 @@ class AspirationNegotiator(TimeBasedConcedingNegotiator):
         self,
         *args,
         max_aspiration=1.0,
-        aspiration_type="boulware",
+        aspiration_type: Literal["boulware", "conceder", "linear"] | float = "boulware",
         stochastic=False,
         presort: bool = False,
         tolerance: float = 0.001,

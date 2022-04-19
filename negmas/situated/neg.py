@@ -491,7 +491,7 @@ class NegWorld(NoContractExecutionMixin, World):
         pass
 
     def execute_action(
-        self, action: Action, agent: Agent, callback: Callable = None
+        self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         """Executes the given action by the given agent"""
 

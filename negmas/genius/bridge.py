@@ -41,6 +41,7 @@ import socket
 import subprocess
 import time
 import traceback
+from pathlib import Path
 from typing import Any
 
 import psutil
@@ -98,7 +99,7 @@ def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
                 port=0, daemonize=True, daemonize_connections=True
             ),
         )
-        gateway.jvm.System.currentTimeMillis()
+        gateway.jvm.System.currentTimeMillis()  # type: ignore
         return True
     except ConnectionRefusedError:
         # try:
@@ -124,7 +125,7 @@ def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
 
 
 def init_genius_bridge(
-    path: str = None,
+    path: Path | str | None = None,
     port: int = DEFAULT_JAVA_PORT,
     debug: bool = False,
     timeout: float = 0,
@@ -163,7 +164,7 @@ def init_genius_bridge(
             warnings.NegmasBridgePathWarning,
         )
         return False
-    path = pathlib.Path(path).expanduser().absolute()
+    path = Path(path).expanduser().absolute()
     if debug:
         params = " --debug"
     else:
@@ -184,9 +185,9 @@ def init_genius_bridge(
             port=0, daemonize=True, daemonize_connections=True
         ),
     )
-    python_port = gateway.get_callback_server().get_listening_port()
-    gateway.java_gateway_server.resetCallbackClient(
-        gateway.java_gateway_server.getCallbackClient().getAddress(), python_port
+    python_port = gateway.get_callback_server().get_listening_port()  # type: ignore
+    gateway.java_gateway_server.resetCallbackClient(  # type: ignore
+        gateway.java_gateway_server.getCallbackClient().getAddress(), python_port  # type: ignore
     )
     return True
 
@@ -195,7 +196,7 @@ def genius_bridge_is_installed() -> bool:
     """
     Checks if geniusbridge is available in the default path location
     """
-    return (pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar").exists()
+    return (Path.home() / "negmas" / "files" / "geniusbridge.jar").exists()
 
 
 class GeniusBridge:
@@ -249,9 +250,9 @@ class GeniusBridge:
                     port=0, daemonize=True, daemonize_connections=True
                 ),
             )
-            python_port = gateway.get_callback_server().get_listening_port()
-            gateway.java_gateway_server.resetCallbackClient(
-                gateway.java_gateway_server.getCallbackClient().getAddress(),
+            python_port = gateway.get_callback_server().get_listening_port()  # type: ignore
+            gateway.java_gateway_server.resetCallbackClient(  # type: ignore
+                gateway.java_gateway_server.getCallbackClient().getAddress(),  # type: ignore
                 python_port,
             )
         except:
@@ -260,7 +261,7 @@ class GeniusBridge:
                 gateway.shutdown_callback_server()
             return None
         cls.python_ports[port] = python_port
-        cls.gateways[port] = gateway
+        cls.gateways[port] = gateway  # type: ignore
         return gateway
 
     @classmethod
@@ -290,7 +291,7 @@ class GeniusBridge:
     def start(
         cls,
         port: int = DEFAULT_JAVA_PORT,
-        path: str = None,
+        path: str | None = None,
         debug: bool = False,
         timeout: float = 0,
         force_timeout: bool = True,
@@ -340,13 +341,13 @@ class GeniusBridge:
                 " to /path/to/your/jar then edit ~/negmas/config.json to read something like\n\n"
                 '{\n\t"genius_bridge_jar": "/path/to/your/jar",\n\t.... rest of the config\n}\n\n'
                 "You can find the jar at http://www.yasserm.com/scml/geniusbridge.jar",
-                warnings.NegMASBridgePathWarning,
+                warnings.NegmasBridgePathWarning,
             )
             return 0
-        path = pathlib.Path(path).expanduser().absolute()  # type: ignore
+        path = Path(path).expanduser().absolute()  # type: ignore
         if log_path is None or not log_path:
             log_path = (
-                pathlib.Path.home()
+                Path.home()
                 / "negmas"
                 / "geniusbridge"
                 / "logs"
@@ -354,7 +355,7 @@ class GeniusBridge:
             ).absolute()
             log_path.parent.mkdir(parents=True, exist_ok=True)
         else:
-            log_path = pathlib.Path(log_path).absolute()
+            log_path = Path(log_path).absolute()
             log_path.parent.mkdir(parents=True, exist_ok=True)
         # if die_on_exit:
         #     if debug:
@@ -416,8 +417,8 @@ class GeniusBridge:
             cls.java_processes.pop(port, None)
             cls.python_ports.pop(port, None)
 
-        gateway.shutdown()
-        gateway.shutdown_callback_server()
+        gateway.shutdown()  # type: ignore
+        gateway.shutdown_callback_server()  # type: ignore
         cls.gateways.pop(port, None)
         cls.java_processes.pop(port, None)
         cls.python_ports.pop(port, None)
@@ -681,5 +682,5 @@ class GeniusBridge:
             )
             raise RuntimeError(e)
         if gateway is None:
-            return None
+            raise RuntimeError(f"Got None as the gateway!!")
         return gateway.entry_point

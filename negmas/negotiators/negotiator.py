@@ -47,13 +47,13 @@ class Negotiator(Rational, Notifiable, ABC):
 
     def __init__(
         self,
-        name: str = None,
+        name: str | None = None,
         preferences: Preferences | None = None,
         ufun: BaseUtilityFunction | None = None,
-        parent: Controller = None,
-        owner: Agent = None,
-        id: str = None,
-        type_name: str = None,
+        parent: Controller | None = None,
+        owner: Agent | None = None,
+        id: str | None = None,
+        type_name: str | None = None,
     ) -> None:
         if ufun is not None:
             preferences = ufun
@@ -71,15 +71,15 @@ class Negotiator(Rational, Notifiable, ABC):
         self.__saved_prefs = None
 
     @property
-    def ami(self) -> NegotiatorMechanismInterface | None:
+    def ami(self) -> NegotiatorMechanismInterface:
         warnings.deprecated(
             "`ami` is depricated and will not be a member of `Negotiator` in the future. Use `nmi` instead."
         )
-        return self._nmi
+        return self._nmi  # type: ignore
 
     @property
-    def nmi(self) -> NegotiatorMechanismInterface | None:
-        return self._nmi
+    def nmi(self) -> NegotiatorMechanismInterface:
+        return self._nmi  # type: ignore
 
     @property
     def owner(self) -> Agent | None:

@@ -15,7 +15,7 @@ from .outcomes import Outcome
 class GAState(MechanismState):
     """Defines extra values to keep in the mechanism state. This is accessible to all negotiators"""
 
-    dominant_outcomes: list[Outcome | None] = field(default=list)
+    dominant_outcomes: list[Outcome] = field(default=list)
 
 
 class GAMechanism(Mechanism):
@@ -36,6 +36,7 @@ class GAMechanism(Mechanism):
     ):
         kwargs["state_factory"] = GAState
         super().__init__(*args, **kwargs)
+        self._current_state: GAState
 
         self.n_population = n_population
 
@@ -77,6 +78,7 @@ class GAMechanism(Mechanism):
                 self.population.append(
                     self.mutate(random.choice(self.dominant_outcomes))
                 )
+        return self.population
 
     def update_ranks(self):
         self.ranks.clear()

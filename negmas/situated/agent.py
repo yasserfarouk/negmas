@@ -40,10 +40,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
 
     def __init__(
         self,
-        name: str = None,
+        name: str | None = None,
         type_postfix: str = "",
-        preferences: Preferences = None,
-        ufun: UtilityFunction = None,
+        preferences: Preferences | None = None,
+        ufun: UtilityFunction | None = None,
     ):
         super().__init__(type_postfix=type_postfix)
         Rational.__init__(self, name=name, preferences=preferences, ufun=ufun)
@@ -168,11 +168,11 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self,
         issues: list[Issue],
         partners: list[str],
-        roles: list[str] = None,
+        roles: list[str] | None = None,
         annotation: dict[str, Any] | None = None,
-        mechanism_name: str = None,
-        mechanism_params: dict[str, Any] = None,
-        negotiator: Negotiator = None,
+        mechanism_name: str | None = None,
+        mechanism_params: dict[str, Any] | None = None,
+        negotiator: Negotiator | None = None,
         extra: dict[str, Any] | None = None,
         group: str | None = None,
     ) -> bool:

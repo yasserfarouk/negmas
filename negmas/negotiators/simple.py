@@ -143,7 +143,7 @@ class NLevelsComparatorNegotiator(Negotiator):
 
     """
 
-    def __init__(self, *args, thresholds: list[float] = None, **kwargs):
+    def __init__(self, *args, thresholds: list[float] | None = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.thresholds = thresholds  # type: ignore I am not sure why
         self.capabilities["compare-nlevels"] = True
@@ -156,7 +156,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         n: int,
         ufun_min: float = 0.0,
         ufun_max: float = 1.0,
-        scale: str | Callable[[float], float] = None,
+        scale: str | Callable[[float], float] | None = None,
     ) -> list[float]:
         """
         Generates thresholds for the n given levels assuming the ufun ranges and scale function
@@ -170,7 +170,7 @@ class NLevelsComparatorNegotiator(Negotiator):
         """
         if scale is not None:
             if isinstance(scale, str):
-                scale = dict(
+                scale = dict(  # type: ignore
                     linear=lambda x: x,
                     log=math.log,
                     exp=math.exp,
