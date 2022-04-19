@@ -39,7 +39,11 @@ class NamedObject:
     """
 
     def __init__(
-        self, name: str = None, *, id: str = None, type_name: str = None
+        self,
+        name: str | None = None,
+        *,
+        id: str | None = None,
+        type_name: str | None = None,
     ) -> None:
         if name is not None:
             name = str(name)
@@ -150,8 +154,8 @@ class NamedObject:
     def checkpoint(
         self,
         path: PathLike,
-        file_name: str = None,
-        info: dict[str, Any] = None,
+        file_name: str | None = None,
+        info: dict[str, Any] | None = None,
         exist_ok: bool = False,
         single_checkpoint: bool = True,
         step_attribs: tuple[str, ...] = (
@@ -231,30 +235,16 @@ class NamedObject:
     @overload
     @classmethod
     def from_checkpoint(
-        cls, file_name: Path | str, return_info=Literal[False]
+        cls, file_name: Path | str, return_info: Literal[False] = False
     ) -> NamedObject:
         ...
 
     @overload
     @classmethod
     def from_checkpoint(
-        cls, file_name: Path | str, return_info=Literal[True]
+        cls, file_name: Path | str, return_info: Literal[True] = True
     ) -> tuple[NamedObject, dict[str, Any]]:
         ...
-
-    @classmethod
-    def checkpoint_info(cls, file_name: Path | str) -> dict[str, Any]:
-        """
-        Returns the information associated with a dump of the object saved in the given file
-
-        Args:
-            file_name: Name of the object
-
-        Returns:
-
-        """
-        file_name = Path(file_name).absolute()
-        return load(file_name.parent / (file_name.name + ".json"))
 
     @classmethod
     def from_checkpoint(
@@ -284,6 +274,20 @@ class NamedObject:
         if return_info:
             return obj, cls.checkpoint_info(file_name)
         return obj
+
+    @classmethod
+    def checkpoint_info(cls, file_name: Path | str) -> dict[str, Any]:
+        """
+        Returns the information associated with a dump of the object saved in the given file
+
+        Args:
+            file_name: Name of the object
+
+        Returns:
+
+        """
+        file_name = Path(file_name).absolute()
+        return load(file_name.parent / (file_name.name + ".json"))
 
     @property
     def type_name(self) -> str:

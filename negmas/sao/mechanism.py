@@ -109,6 +109,7 @@ class SAOMechanism(Mechanism):
             name=name,
             **kwargs,
         )
+        self._current_state: SAOState
         n_steps, time_limit = self.n_steps, self.time_limit
         if (n_steps is None or n_steps == float("inf")) and (
             time_limit is None or time_limit == float("inf")
@@ -177,13 +178,14 @@ class SAOMechanism(Mechanism):
         self._sync_call = v
 
     def _agent_info(self):
+        state = self._current_state
         current_proposer_agent = (
             self._current_proposer.owner if self._current_proposer else None
         )
         if current_proposer_agent:
             current_proposer_agent = current_proposer_agent.id
         new_offerer_agents = []
-        for neg_id, _ in self._current_state.new_offers:
+        for neg_id, _ in state.new_offers:
             neg = self._negotiator_map.get(neg_id, None)
             agent = neg.owner if neg else None
             if agent is not None:
@@ -200,8 +202,9 @@ class SAOMechanism(Mechanism):
 
     def round(self) -> MechanismRoundResult:
         """implements a round of the Stacked Alternating Offers Protocol."""
+        state = self._current_state
         if self._frozen_neg_list is None:
-            self._current_state.new_offers = []
+            state.new_offers = []
         negotiators: list[SAONegotiator] = self.negotiators
         n_negotiators = len(negotiators)
         # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
@@ -213,7 +216,9 @@ class SAOMechanism(Mechanism):
         def _safe_counter(
             negotiator, *args, **kwargs
         ) -> tuple[SAOResponse | None, bool]:
-            assert not self.state.waiting or negotiator.id == self.state.new_offerers[-1], f"We are waiting with {self.state.new_offerers[-1]} as the last offerer but we are asking {negotiator.id} to offer\n{self.state}"
+            assert (
+                not state.waiting or negotiator.id == state.current_proposer
+            ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
             rem = self.remaining_time
             if rem is None:
                 rem = float("inf")
@@ -229,7 +234,7 @@ class SAOMechanism(Mechanism):
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
-                        self._current_state.n_acceptances = 0
+                        state.n_acceptances = 0
                         response = negotiator.counter(*args, **kwargs)
                     else:
                         response = negotiator.counter(*args, **kwargs)
@@ -260,7 +265,7 @@ class SAOMechanism(Mechanism):
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
-                        self._current_state.n_acceptances = 0
+                        state.n_acceptances = 0
                         response = TimeoutCaller.run(fun, timeout=timeout)
                     else:
                         response = TimeoutCaller.run(fun, timeout=timeout)
@@ -334,7 +339,7 @@ class SAOMechanism(Mechanism):
                 )
         # if this is the first step (or no one has offered yet) which means that there is no _current_offer
         if (
-            self._current_state.current_offer is None
+            state.current_offer is None
             and n_proposers > 1
             and self._avoid_ultimatum
             and not self._ultimatum_avoided
@@ -463,19 +468,20 @@ class SAOMechanism(Mechanism):
             _first_proposer = proposer_indices[responders[selected]]
             self._selected_first = _first_proposer
             self._last_checked_negotiator = _first_proposer
-            self._current_state.current_offer = resp.outcome
-            self._current_state.new_offers.append((neg.id, resp.outcome))
+            state.current_offer = resp.outcome
+            state.new_offers.append((neg.id, resp.outcome))
             self._current_proposer = neg
-            self._current_state.current_proposer = neg.id
-            self._current_state.n_acceptances = 1 if self._offering_is_accepting else 0
-            self._current_state.last_negotiator = (
-                self.negotiators[self._last_checked_negotiator].name
-                if self._last_checked_negotiator >= 0
-                else "---",
-            )
+            state.current_proposer = neg.id
+            state.n_acceptances = 1 if self._offering_is_accepting else 0
+            if self._last_checked_negotiator >= 0:
+                state.last_negotiator = self.negotiators[
+                    self._last_checked_negotiator
+                ].name
+            else:
+                state.last_negotiator = ""
             (
                 self._current_proposer_agent,
-                self._current_state.new_offerer_agents,
+                state.new_offerer_agents,
             ) = self._agent_info()
 
             # current_proposer_agent=current_proposer_agent,
@@ -502,7 +508,7 @@ class SAOMechanism(Mechanism):
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
             resp, has_exceptions = _safe_counter(
-                neg, state=self.state, offer=self._current_state.current_offer
+                neg, state=self.state, offer=state.current_offer
             )
             if has_exceptions:
                 return MechanismRoundResult(
@@ -528,9 +534,7 @@ class SAOMechanism(Mechanism):
                 self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
                 self._waiting_time[neg.id] += time.perf_counter() - strt
                 self._last_checked_negotiator = (neg_indx - 1) % n_negotiators
-                offered = {
-                    self._negotiator_index[_[0]] for _ in self._current_state.new_offers
-                }
+                offered = {self._negotiator_index[_[0]] for _ in state.new_offers}
                 did_not_offer = sorted(
                     list(set(range(n_negotiators)).difference(offered))
                 )
@@ -562,13 +566,13 @@ class SAOMechanism(Mechanism):
                     exceptions=exceptions,
                 )
             if self._extra_callbacks:
-                if self._current_state.current_offer is not None:
+                if state.current_offer is not None:
                     for other in self.negotiators:
                         if other is not neg:
                             other.on_partner_response(
                                 state=self.state,
                                 partner_id=neg.id,
-                                outcome=self._current_state.current_offer,
+                                outcome=state.current_offer,
                                 response=resp.response,
                             )
             if resp.response == ResponseType.NO_RESPONSE:
@@ -601,12 +605,12 @@ class SAOMechanism(Mechanism):
                     exceptions=exceptions,
                 )
             if resp.response == ResponseType.ACCEPT_OFFER:
-                self._current_state.n_acceptances += 1
-                if self._current_state.n_acceptances == n_negotiators:
+                state.n_acceptances += 1
+                if state.n_acceptances == n_negotiators:
                     return MechanismRoundResult(
                         broken=False,
                         timedout=False,
-                        agreement=self._current_state.current_offer,
+                        agreement=state.current_offer,
                         times=times,
                         exceptions=exceptions,
                     )
@@ -614,7 +618,7 @@ class SAOMechanism(Mechanism):
                 proposal = resp.outcome
                 if (
                     not self.allow_offering_just_rejected_outcome
-                    and proposal == self._current_state.current_offer
+                    and proposal == state.current_offer
                 ):
                     proposal = None
                 if proposal is None:
@@ -629,11 +633,9 @@ class SAOMechanism(Mechanism):
                             times=times,
                             exceptions=exceptions,
                         )
-                    self._current_state.n_acceptances = 0
+                    state.n_acceptances = 0
                 else:
-                    self._current_state.n_acceptances = (
-                        1 if self._offering_is_accepting else 0
-                    )
+                    state.n_acceptances = 1 if self._offering_is_accepting else 0
                     if self._extra_callbacks:
                         for other in self.negotiators:
                             if other is neg:
@@ -641,18 +643,19 @@ class SAOMechanism(Mechanism):
                             other.on_partner_proposal(
                                 partner_id=neg.id, offer=proposal, state=self.state
                             )
-                self._current_state.current_offer = proposal
+                state.current_offer = proposal
                 self._current_proposer = neg
-                self._current_state.current_proposer = neg.id
-                self._current_state.new_offers.append((neg.id, proposal))
-                self._current_state.last_negotiator = (
-                    self.negotiators[self._last_checked_negotiator].name
-                    if self._last_checked_negotiator >= 0
-                    else "---",
-                )
+                state.current_proposer = neg.id
+                state.new_offers.append((neg.id, proposal))
+                if self._last_checked_negotiator >= 0:
+                    state.last_negotiator = self.negotiators[
+                        self._last_checked_negotiator
+                    ].name
+                else:
+                    state.last_negotiator = ""
                 (
                     self._current_proposer_agent,
-                    self._current_state.new_offerer_agents,
+                    state.new_offerer_agents,
                 ) = self._agent_info()
 
         return MechanismRoundResult(
@@ -799,8 +802,8 @@ class SAOMechanism(Mechanism):
         self,
         plotting_negotiators: tuple[int, int] | tuple[str, str] = (0, 1),
         save_fig: bool = False,
-        path: str = None,
-        fig_name: str = None,
+        path: str | None = None,
+        fig_name: str | None = None,
         ignore_none_offers: bool = True,
         with_lines: bool = True,
         show_agreement: bool = False,

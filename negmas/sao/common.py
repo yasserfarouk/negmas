@@ -48,7 +48,7 @@ class SAOState(MechanismState):
     current_proposer: str | None = None
     current_proposer_agent: str | None = None
     n_acceptances: int = 0
-    new_offers: list[tuple[str, Outcome]] = field(default=list)
+    new_offers: list[tuple[str, Outcome | None]] = field(default=list)
     new_offerer_agents: list[str] = field(default=list)
     last_negotiator: str | None = None
 

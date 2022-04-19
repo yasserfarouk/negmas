@@ -21,8 +21,8 @@ class CheckpointMixin:
         step_attrib: str = "current_step",
         every: int = 1,
         folder: PathLike | None = None,
-        filename: str = None,
-        info: dict[str, Any] = None,
+        filename: str | None = None,
+        info: dict[str, Any] | None = None,
         exist_ok: bool = True,
         single: bool = True,
     ):
@@ -112,8 +112,8 @@ class CheckpointRunner:
     def __init__(
         self,
         folder: str | Path,
-        id: str = None,
-        callback: Callable[[NamedObject, int], None] = None,
+        id: str | None = None,
+        callback: Callable[[NamedObject, int], None] | None = None,
         watch: bool = False,
         object_type: type[NamedObject] = NamedObject,
     ):
@@ -210,8 +210,8 @@ class CheckpointRunner:
         copy_past_checkpoints: bool = False,
         every: int = 1,
         folder: str | Path | None = None,
-        filename: str = None,
-        info: dict[str, Any] = None,
+        filename: str | None = None,
+        info: dict[str, Any] | None = None,
         exist_ok: bool = True,
         single: bool = True,
     ) -> NamedObject | None:
