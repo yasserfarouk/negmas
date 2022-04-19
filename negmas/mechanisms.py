@@ -11,7 +11,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Type, TypeVar
 
 from attrs import define
 
@@ -47,7 +47,7 @@ class MechanismRoundResult:
     """True only if END_NEGOTIATION was selected by one agent"""
     timedout: bool = False
     """True if a timeout occurred. Usually not used"""
-    agreement: Collection[Outcome] | Outcome | None = None
+    agreement: Outcome | None = None
     """The agreement if any. Allows for a single outcome or a collection of outcomes"""
     error: bool = False
     """True if an error occurred in the mechanism"""
@@ -103,26 +103,26 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | int | None = None,
-        n_steps: int = None,
-        time_limit: float = None,
+        n_steps: int | None = None,
+        time_limit: float | None = None,
         hidden_time_limit: float = float("inf"),
-        step_time_limit: float = None,
-        negotiator_time_limit: float = None,
-        max_n_agents: int = None,
+        step_time_limit: float | None = None,
+        negotiator_time_limit: float | None = None,
+        max_n_agents: int | None = None,
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
-        state_factory=MechanismState,
+        state_factory: type[MechanismState] = MechanismState,
         extra_callbacks=False,
         checkpoint_every: int = 1,
         checkpoint_folder: PathLike | None = None,
-        checkpoint_filename: str = None,
-        extra_checkpoint_info: dict[str, Any] = None,
+        checkpoint_filename: str | None = None,
+        extra_checkpoint_info: dict[str, Any] | None = None,
         single_checkpoint: bool = True,
         exist_ok: bool = True,
         name=None,
         genius_port: int = DEFAULT_JAVA_PORT,
-        id: str = None,
-        type_name: str = None,
+        id: str | None = None,
+        type_name: str | None = None,
     ):
         check_one_and_only(outcome_space, issues, outcomes)
         outcome_space = ensure_os(outcome_space, issues, outcomes)
@@ -324,10 +324,10 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return limit
 
     @property
-    def relative_time(self) -> float | None:
+    def relative_time(self) -> float:
         """Returns a number between ``0`` and ``1`` indicating elapsed relative time or steps."""
         if self.nmi.time_limit == float("+inf") and self.nmi.n_steps is None:
-            return None
+            return 0.0
 
         relative_step = (
             (self._current_state.step + 1) / (self.nmi.n_steps + 1)
@@ -486,7 +486,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     #     return dict()
 
     @property
-    def state(self):
+    def state(self) -> MechanismState:
         """Returns the current state. Override `extra_state` if you want to keep extra state"""
         return self._current_state
         # d = dict(
