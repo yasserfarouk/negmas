@@ -84,7 +84,8 @@ class Controller(Rational):
         """
         Resets the controller and kills any negotiators it may have
         """
-        for neg in self.negotiators.keys():
+        negs = list(self.negotiators.keys())
+        for neg in negs:
             self.kill_negotiator(neg, True)
 
     @property
@@ -275,7 +276,7 @@ class Controller(Rational):
 
             negotiator_id: Our negotiator ID
         """
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if not negotiator or not negotiator.nmi:
             return None
         me = negotiator.owner.id if negotiator.owner else ""
