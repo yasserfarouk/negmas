@@ -426,9 +426,10 @@ def test_caudacius_caudacius():
     neg.add(Caduceus(preferences=domain.ufuns[1], strict=True))
     for _ in range(n_steps):
         neg.step()
-        if neg.state.agreement is not None:
+        state: SAOState = neg.state  # type: ignore
+        if state.agreement is not None:
             break
-        new_offers = [_[1] for _ in neg.state.new_offers]
+        new_offers = [_[1] for _ in state.new_offers]
         assert all(
             _ is not None for _ in new_offers
         ), f"failed at {neg.current_step}: {new_offers}"

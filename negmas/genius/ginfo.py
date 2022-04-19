@@ -759,14 +759,16 @@ def get_anac_agents(
 
         if winners_only:
             lst = d.get("winners", [[]])
+            lst = list(itertools.chain(*lst))
         elif finalists_only:
             lst = d.get("finalists", [])
+            lst = list(itertools.chain(*lst))
         else:
             lst = [_ for _ in ALL_NEGOTIATORS if str(year) in _]
-        lst = [(_.split(".")[-1], _) for _ in lst]
-        lst = tuple(lst)
-        if winners_only or finalists_only:
-            return set(itertools.chain(*lst))
+            lst = [(_.split(".")[-1], _) for _ in lst]
+        # lst = tuple(lst)
+        # if winners_only or finalists_only:
+        #     return set(itertools.chain(*lst))
         return set(lst)
 
     agents: set[tuple[str, str]] = set()
