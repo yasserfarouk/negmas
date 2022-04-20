@@ -180,3 +180,7 @@ wiley-report.html
 **/*.html
 **/tmp_notebooks
 **/compiled_notebooks
+NUL:
+NUL*
+**/NUL:
+**/NUL*
