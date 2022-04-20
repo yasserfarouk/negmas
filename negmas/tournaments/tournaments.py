@@ -19,7 +19,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import partial
 from multiprocessing import cpu_count, current_process
-from os import PathLike
 from pathlib import Path
 from socket import gethostname
 from typing import Any, Callable, Iterable, Sequence
@@ -498,7 +497,7 @@ def combine_partially_run_worlds(
     ...
 
 
-def _path(path: str | PathLike) -> Path:
+def _path(path: str | Path) -> Path:
     """Creates an absolute path from given path which can be a string"""
     if isinstance(path, str):
         if path.startswith("~"):
@@ -1487,7 +1486,7 @@ def get_world_paths(
 
 
 def run_tournament(
-    tournament_path: str | PathLike,
+    tournament_path: str | Path,
     world_generator: WorldGenerator | None = None,
     score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults]
     | None = None,
@@ -1538,16 +1537,28 @@ def run_tournament(
     name = params.get("name", tournament_path.name)
     if world_generator is None:
         world_generator = import_by_name(params.get("world_generator_name", None))
+        if world_generator is None:
+            raise ValueError(
+                f"world_generator Not found in the arguments on {str(tournament_path)}"
+            )
     if score_calculator is None:
         score_calculator = import_by_name(params.get("score_calculator_name", None))
+        if score_calculator is None:
+            raise ValueError(
+                f"score_calculator Not found in the arguments on {str(tournament_path)}"
+            )
     if total_timeout is None:
         total_timeout = params.get("total_timeout", None)
+
     if parallelism is None:
         parallelism = params.get("parallelism", "parallel")
+
     if scheduler_port is None:
         scheduler_port = params.get("scheduler_port", None)
+
     if scheduler_ip is None:
         scheduler_ip = params.get("scheduler_ip", None)
+
     if compact is None:
         compact = params.get("compact", False)
 
@@ -1783,7 +1794,7 @@ def create_tournament(
     video_params=None,
     video_saver=None,
     **kwargs,
-) -> PathLike:
+) -> Path:
     """
     Creates a tournament
 
@@ -1851,7 +1862,7 @@ def create_tournament(
         The path at which tournament configs are stored
 
     """
-    if max_n_configs is not None or n_runs_per_config is not None:
+    if max_n_configs is not None and n_runs_per_config is not None:
         n_runs_per_world = (
             n_runs_per_config if n_runs_per_config is not None else n_runs_per_world
         )
@@ -2243,8 +2254,8 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
 
 
 def combine_tournament_stats(
-    sources: Iterable[str | PathLike],
-    dest: str | PathLike | None = None,
+    sources: Iterable[str | Path],
+    dest: str | Path | None = None,
     verbose=False,
 ) -> pd.DataFrame:
     """Combines statistical results of several tournament runs in the destination path."""
@@ -2271,7 +2282,7 @@ def combine_tournament_stats(
 
 
 def compile_results(
-    path: str | PathLike | Path,
+    path: str | Path | Path,
 ):
     path = _path(path)
     if not path.exists():
@@ -2307,8 +2318,8 @@ def compile_results(
 
 
 def combine_tournament_results(
-    sources: Iterable[str | PathLike],
-    dest: str | PathLike | None = None,
+    sources: Iterable[str | Path],
+    dest: str | Path | None = None,
     verbose=False,
 ) -> pd.DataFrame:
     """Combines results of several tournament runs in the destination path."""
@@ -2335,7 +2346,7 @@ def combine_tournament_results(
 
 
 def evaluate_tournament(
-    tournament_path: str | PathLike | Path | None,
+    tournament_path: str | Path | Path | None,
     scores: pd.DataFrame | None = None,
     stats: pd.DataFrame | None = None,
     world_stats: pd.DataFrame | None = None,
@@ -2602,7 +2613,7 @@ def tournament(
     max_attempts: int = sys.maxsize,
     extra_scores_to_use: str | None = None,
     **kwargs,
-) -> TournamentResults | PathLike:
+) -> TournamentResults | Path:
     """
     Runs a tournament
 
@@ -2677,7 +2688,7 @@ def tournament(
         kwargs: Arguments to pass to the `config_generator` function
 
     Returns:
-        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+        `TournamentResults` The results of the tournament or a `Path` giving the location where configs were saved
 
     """
     competitors = list(competitors)
@@ -2815,13 +2826,17 @@ def is_already_run(world_params) -> bool:
 
 
 def combine_tournaments(
-    sources: Iterable[str | PathLike],
-    dest: str | PathLike | None = None,
+    sources: Iterable[str | Path],
+    dest: str | Path,
     verbose=False,
 ) -> tuple[int, int]:
     """
     Combines contents of several tournament runs in the destination path
     allowing for continuation of the tournament
+
+    Args:
+        sources: The sources of tournaments in the filesystem
+        dest: where to store the combined tournament.
 
     Returns:
         Tuple[int, int] The number of base configs and assigned configs combined
