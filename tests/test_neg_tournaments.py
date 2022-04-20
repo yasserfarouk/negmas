@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from negmas.genius import Atlas3, NiceTitForTat, genius_bridge_is_running

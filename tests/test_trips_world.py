@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from random import randint, random, sample, shuffle
@@ -34,7 +36,7 @@ class AWI(AgentWorldInterface):
         return list(_ for _ in self._world.agents.keys() if _ != self.agent.id)
 
     def request_negotiation(
-        self, partners: List[str], negotiator: SAONegotiator
+        self, partners: list[str], negotiator: SAONegotiator
     ) -> bool:
         """A convenient way to request negotiations"""
         self._world: TripsWorld
@@ -68,10 +70,10 @@ class TripsWorld(World):
         kwargs["force_signing"] = True
         kwargs["default_signing_delay"] = 0
         super().__init__(*args, **kwargs)
-        self._contracts: Dict[int, List[Contract]] = defaultdict(list)
-        self._total_utility: Dict[str, float] = defaultdict(float)
-        self._ufuns: Dict[str, UtilityFunction] = dict()
-        self._breach_prob: Dict[str, float] = dict()
+        self._contracts: dict[int, list[Contract]] = defaultdict(list)
+        self._total_utility: dict[str, float] = defaultdict(float)
+        self._ufuns: dict[str, UtilityFunction] = dict()
+        self._breach_prob: dict[str, float] = dict()
 
     def join(self, x, ufun=None, breach_prob=None, **kwargs):
         """Define the ufun and breach-probability for each agent"""
@@ -91,12 +93,12 @@ class TripsWorld(World):
         """What happens in this world? Nothing"""
         pass
 
-    def get_private_state(self, agent: "Agent") -> dict:
+    def get_private_state(self, agent: Agent) -> dict:
         """What is the information available to agents? total utility points"""
         return dict(total_utility=self._total_utility[agent.id])
 
     def execute_action(
-        self, action: Action, agent: "Agent", callback: Callable | None = None
+        self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         """Executing actions by agents? No actions available"""
         pass
@@ -118,7 +120,7 @@ class TripsWorld(World):
         shuffle(contracts)
         return contracts
 
-    def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
+    def start_contract_execution(self, contract: Contract) -> set[Breach] | None:
         """What should happen when a contract comes due?
         1. Find out if it will be breached
         2. If not, add to each agent its utility from the trip
@@ -143,7 +145,7 @@ class TripsWorld(World):
         return set()
 
     def complete_contract_execution(
-        self, contract: Contract, breaches: List[Breach], resolution: Contract
+        self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
         """What happens if a breach was resolved? Nothing. They cannot"""
         pass
@@ -153,11 +155,11 @@ class TripsWorld(World):
         if self._current_step in self._contracts.keys():
             del self._contracts[self.current_step]
 
-    def contract_record(self, contract: Contract) -> Dict[str, Any]:
+    def contract_record(self, contract: Contract) -> dict[str, Any]:
         """Convert the contract into a dictionary for saving"""
         return to_flat_dict(contract)
 
-    def breach_record(self, breach: Breach) -> Dict[str, Any]:
+    def breach_record(self, breach: Breach) -> dict[str, Any]:
         """Convert the breach into a dictionary for saving"""
         return to_flat_dict(breach)
 
@@ -188,24 +190,24 @@ class Person(Agent, ABC):
     def respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
+        partners: list[str],
         mechanism: NegotiatorMechanismInterface,
-    ) -> Optional[Negotiator]:
+    ) -> Negotiator | None:
         ...
 
     def _respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
-        issues: List[Issue],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        issues: list[Issue],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
-        role: Optional[str],
-        req_id: Optional[str],
-    ) -> Optional[Negotiator]:
+        role: str | None,
+        req_id: str | None,
+    ) -> Negotiator | None:
         return self.respond_to_negotiation_request(initiator, partners, mechanism)
 
-    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+    def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
     def on_neg_request_accepted(
@@ -215,8 +217,8 @@ class Person(Agent, ABC):
 
     def on_negotiation_failure(
         self,
-        partners: List[str],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
@@ -228,20 +230,20 @@ class Person(Agent, ABC):
         pass
 
     def set_renegotiation_agenda(
-        self, contract: Contract, breaches: List[Breach]
-    ) -> Optional[RenegotiationRequest]:
+        self, contract: Contract, breaches: list[Breach]
+    ) -> RenegotiationRequest | None:
         pass
 
     def respond_to_renegotiation_request(
-        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-    ) -> Optional[Negotiator]:
+        self, contract: Contract, breaches: list[Breach], agenda: RenegotiationRequest
+    ) -> Negotiator | None:
         pass
 
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
     def on_contract_breached(
-        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
     ) -> None:
         pass
 
@@ -265,9 +267,9 @@ class RandomPerson(Person):
     def respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
+        partners: list[str],
         mechanism: NegotiatorMechanismInterface,
-    ) -> Optional[Negotiator]:
+    ) -> Negotiator | None:
         # just us a random negotiator for everything
         return RandomNegotiator()
 
