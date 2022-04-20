@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import random
 import time
@@ -87,19 +89,19 @@ class MySyncController(SAOSyncController):
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
         self.n_counter_all_calls = 0
-        self.countered_offers: Dict[int, Dict[str, List[Outcome | None]]] = defaultdict(
+        self.countered_offers: dict[int, dict[str, list[Outcome | None]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.received_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
+        self.received_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.sent_offers: Dict[str, Dict[int, List[Outcome | None]]] = defaultdict(
+        self.sent_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.sent_responses: Dict[str, Dict[int, List[ResponseType]]] = defaultdict(
+        self.sent_responses: dict[str, dict[int, list[ResponseType]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.wait_states: Dict[str, Dict[int, int]] = defaultdict(
+        self.wait_states: dict[str, dict[int, int]] = defaultdict(
             lambda: defaultdict(int)
         )
         self.accept_after = accept_after
@@ -198,9 +200,9 @@ class TimeWaster(RandomNegotiator):
         kwargs["p_rejection"] = kwargs.get("p_rejection", pr)
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
-        self.my_offers: Dict[int, Outcome | None] = defaultdict(lambda: None)
-        self.received_offers: Dict[int, Outcome | None] = defaultdict(lambda: None)
-        self.my_responses: Dict[int, ResponseType | None] = defaultdict(lambda: None)
+        self.my_offers: dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.received_offers: dict[int, Outcome | None] = defaultdict(lambda: None)
+        self.my_responses: dict[int, ResponseType | None] = defaultdict(lambda: None)
         self.n_waits = n_waits
         if n_waits:
             self.n_waits = random.randint(0, n_waits)
@@ -482,8 +484,8 @@ def test_mechanism_runall(n_negotiators, oia):
 
 class MySAOSync(SAOSyncController):
     def counter_all(
-        self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
-    ) -> Dict[str, SAOResponse]:
+        self, offers: dict[str, Outcome], states: dict[str, SAOState]
+    ) -> dict[str, SAOResponse]:
         responses = {}
         for nid in offers.keys():
             _, state = offers[nid], states[nid]
