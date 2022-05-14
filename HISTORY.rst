@@ -1,6 +1,23 @@
 History
 =======
 
+Release 0.9.3
+-------------
+
+* feature: added serialization to yaml and json in Scenario
+* feature: adding shorten_type_field to serialize()
+* feature: Adding future annotations for 3.8 compatibility   (tests)
+* bugfix: resetting() controllers now kills negs.
+* bugfix: Ensuring that counter_all() is called every step for SAOSyncController
+* enhancement: extra check in SyncController
+* enhancement: Rejects offers for unregistered negotiators
+* bugfix: SAOSyncController not receiving first_proposals before counter_all
+* enhancement: SAOMechanism extra assertions
+* enhancement: improved type annotations
+* feature: Adding ExpAspiration time curve
+* feature: Adding more acceptance strategies
+* enhancement: Restructuring the situated module
+
 Release 0.9.2
 -------------
 
