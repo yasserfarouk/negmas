@@ -13,7 +13,7 @@ from collections import defaultdict
 from os import PathLike
 from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Type, TypeVar
 
-from attrs import define
+from attr import define
 
 from negmas import warnings
 from negmas.checkpoints import CheckpointMixin

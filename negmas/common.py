@@ -8,8 +8,7 @@ from __future__ import annotations
 from enum import Enum, auto, unique
 from typing import TYPE_CHECKING, Any, Iterable, Protocol, Union, runtime_checkable
 
-from attr import define, field
-from attrs import asdict
+from attr import asdict, define, field
 
 if TYPE_CHECKING:
     from .mechanisms import Mechanism
