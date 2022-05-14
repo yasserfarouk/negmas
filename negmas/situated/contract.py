@@ -7,7 +7,7 @@ from attr import define, field
 
 if TYPE_CHECKING:
     from negmas.common import MechanismState
-    from negmas.outcomes import Issue, Outcome, OutcomeSpace
+    from negmas.outcomes import Issue
 
 __all__ = ["Contract"]
 
@@ -16,10 +16,10 @@ __all__ = ["Contract"]
 class Contract:
     """A agreement definition which encapsulates an agreement with partners and extra information"""
 
+    agreement: dict[str, Any] = field(factory=dict, hash=False)
+    """The actual agreement of the negotiation in the form of an `Outcome` in the `Issue` space defined by `issues`"""
     partners: tuple[str] = field(factory=tuple, converter=tuple)
     """The partners"""
-    agreement: Outcome | OutcomeSpace | None = field(default=None, hash=False)
-    """The actual agreement of the negotiation in the form of an `Outcome` in the `Issue` space defined by `issues`"""
     annotation: dict[str, Any] = field(factory=dict, hash=False)
     """Misc. information to be kept with the agreement."""
     issues: tuple[Issue] = field(factory=tuple, converter=tuple)

@@ -1109,17 +1109,16 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             raise ValueError(
                 "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
             )
+        outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
         frontier, indices = pareto_frontier(
             ufuns=ufuns,
             n_discretization=None,
             sort_by_welfare=sort_by_welfare,
-            outcomes=self.discrete_outcomes(max_cardinality=max_cardinality),
+            outcomes=outcomes,
         )
         if frontier is None:
             raise ValueError("Cound not find the pareto-frontier")
-        return frontier, [
-            self.discrete_outcomes(max_cardinality=max_cardinality)[_] for _ in indices
-        ]
+        return frontier, [outcomes[_] for _ in indices]
 
     def nash_point(
         self, max_cardinality=None, frontier: list[tuple[float]] | None = None

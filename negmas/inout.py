@@ -6,12 +6,14 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from attr import define
 
+from negmas.helpers.inout import dump
 from negmas.outcomes.outcome_space import make_os
 from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
+from negmas.serialization import PYTHON_CLASS_IDENTIFIER, serialize
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
@@ -19,7 +21,12 @@ from .outcomes import CartesianOutcomeSpace, Issue, issues_from_genius
 from .preferences import (
     DiscountedUtilityFunction,
     UtilityFunction,
+    conflict_level,
     make_discounted_ufun,
+    nash_point,
+    opposition_level,
+    pareto_frontier,
+    winwin_level,
 )
 from .preferences.value_fun import TableFun
 from .sao import SAOMechanism
@@ -31,6 +38,8 @@ __all__ = [
     "find_domain_and_utility_files",
     "get_domain_issues",
 ]
+
+STATS_MAX_CARDINALITY = 100_1000
 
 
 @define
@@ -245,6 +254,180 @@ class Scenario:
         for u in self.ufuns:
             u.reserved_value = r
         return self
+
+    def calc_stats(
+        self, max_cardinality: int = STATS_MAX_CARDINALITY
+    ) -> dict[str, Any]:
+        """
+        Calculates and returns several stats corresponding to the domain
+
+        Args:
+            max_cardinality (int): The maximum number of outcomes considered when calculating the stats.
+
+        Returns:
+            A dictionary with the compiled stats
+        """
+        agenda, ufuns = self.agenda, self.ufuns
+        outcomes = tuple(agenda.enumerate_or_sample(max_cardinality=max_cardinality))
+        frontier_utils, frontier_indices = pareto_frontier(
+            ufuns, outcomes=outcomes, sort_by_welfare=True
+        )
+        frontier_outcomes = tuple(
+            outcomes[_] for _ in frontier_indices if _ is not None
+        )
+        nash_utils, nash_indx = nash_point(ufuns, frontier_utils, outcome_space=agenda)
+        nash_outcome = outcomes[nash_indx] if nash_indx else None
+        minmax = [u.minmax() for u in ufuns]
+        nu, no, ol, cl, wl, fu, fo = (
+            dict(),
+            dict(),
+            dict(),
+            dict(),
+            dict(),
+            dict(),
+            dict(),
+        )
+        opposition = opposition_level(
+            ufuns,
+            max_utils=tuple(_[1] for _ in minmax),
+            outcomes=outcomes,
+            max_tests=max_cardinality,
+        )
+        for i, u1 in enumerate(ufuns):
+            if not u1:
+                continue
+            for j, u2 in enumerate(ufuns[i + 1 :]):
+                if not u2:
+                    continue
+                us = (u1, u2)
+                fu_, findx = pareto_frontier(
+                    us, outcomes=outcomes, sort_by_welfare=True
+                )
+                fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = fu_, [
+                    outcomes[_] for _ in findx
+                ]
+                nu[(u1.name, u2.name)], nindx = nash_point(
+                    (u1, u2), fu_, outcomes=outcomes
+                )
+                no[(u1.name, u2.name)] = outcomes[nindx] if nindx else None
+                ol[(u1.name, u2.name)] = opposition_level(
+                    (u1, u2),
+                    outcomes=outcomes,
+                    max_utils=(minmax[i][1], minmax[j][1]),
+                    max_tests=max_cardinality,
+                )
+                cl[(u1.name, u2.name)] = conflict_level(
+                    u1, u2, outcomes=outcomes, max_tests=max_cardinality
+                )
+                wl[(u1.name, u2.name)] = winwin_level(
+                    u1, u2, outcomes=outcomes, max_tests=max_cardinality
+                )
+
+        return dict(
+            frontier_utils=frontier_utils,
+            frontier_outcomes=frontier_outcomes,
+            nash_utils=nash_utils,
+            nash_outcome=nash_outcome,
+            opposition_level=opposition,
+            bilateral_nash_utils=nu,
+            bilateral_nash_outcome=no,
+            bilateral_conflict_level=cl,
+            bilateral_opposition_level=ol,
+            bilateral_winwin_levl=wl,
+            bilateral_frontier_utils=fu,
+            bilateral_frontier_outcomes=fo,
+        )
+
+    def serialize(self) -> dict[str, Any]:
+        """
+        Converts the current scenario into a serializable dict.
+
+        Remarks:
+            Rturns a dictionary with the following keys:
+                - domain: The agenda/outcome-space
+                - ufuns: A list of utility functions
+        """
+
+        def get_name(x, default):
+            if not x:
+                return str(default)
+            return x.split("/")[-1].replace(".xml", "")
+
+        def adjust(
+            d,
+            default_name,
+            remove_dunder=False,
+            adjust_name=True,
+            ignored=("id", "n_values", "outcome_space"),
+            rename={PYTHON_CLASS_IDENTIFIER: "type"},
+        ):
+            if isinstance(d, list) or isinstance(d, tuple):
+                return [
+                    adjust(_, default_name, remove_dunder, adjust_name, ignored)
+                    for _ in d
+                ]
+            if not isinstance(d, dict):
+                return d
+            if adjust_name and "name" in d:
+                d["name"] = get_name(d["name"], default_name)
+            if d.get(PYTHON_CLASS_IDENTIFIER, "").startswith("negmas."):
+                d[PYTHON_CLASS_IDENTIFIER] = d[PYTHON_CLASS_IDENTIFIER].split(".")[-1]
+            for old, new in rename.items():
+                if old in d.keys():
+                    d[new] = d[old]
+                    del d[old]
+            for i in ignored:
+                if i in d.keys():
+                    del d[i]
+            for k, v in d.items():
+                d[k] = adjust(
+                    v,
+                    default_name,
+                    remove_dunder=remove_dunder,
+                    adjust_name=False,
+                    ignored=ignored,
+                )
+            if not remove_dunder:
+                return d
+            d = {k: v for k, v in d.items() if not k.startswith("__")}
+            return d
+
+        domain = adjust(
+            serialize(self.agenda, shorten_type_field=True, add_type_field=True),
+            "domain",
+        )
+        ufuns = [
+            adjust(serialize(u, shorten_type_field=True, add_type_field=True), i)
+            for i, u in enumerate(self.ufuns)
+        ]
+        return dict(domain=domain, ufuns=ufuns)
+
+    def to_yaml(self, folder: Path | str) -> None:
+        """
+        Saves the scenario as yaml
+        Args:
+            folder: The destiation path
+        """
+        self.dumpas(folder, "yml")
+
+    def to_json(self, folder: Path | str) -> None:
+        """
+        Saves the scenario as json
+        Args:
+            folder: The destiation path
+        """
+        self.dumpas(folder, "json")
+
+    def dumpas(self, folder: Path | str, type="yml") -> None:
+        """
+        Dumps the scenrio in the given file format.
+        """
+        folder = Path(folder)
+        folder.mkdir(parents=True, exist_ok=True)
+        serialized = self.serialize()
+        dump(serialized["domain"], folder / f"{serialized['domain']['name']}.{type}")
+        for u in serialized["ufuns"]:
+            dump(u, folder / f"{u['name']}.{type}")
 
     @staticmethod
     def from_genius_folder(

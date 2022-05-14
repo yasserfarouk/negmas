@@ -402,7 +402,7 @@ def dump(
                 indent=2 if not compact else None,
                 cls=NpEncoder,
             )
-    elif file_name.suffix == ".yaml":
+    elif file_name.suffix in (".yaml", ".yml"):
         with open(file_name, "w") as f:
             yaml.safe_dump(d, f)
     elif file_name.suffix == ".pickle":
