@@ -49,7 +49,7 @@ def serialize(
     keep_private=False,
     ignore_methods=True,
     ignore_lambda=False,
-    shorten_type_field=True,
+    shorten_type_field=False,
     objmem=None,
 ):
     """
@@ -237,7 +237,7 @@ def serialize(
 
 
 def to_flat_dict(
-    value, deep=True, add_type_field=False, shorten_type_field=True
+    value, deep=True, add_type_field=False, shorten_type_field=False
 ) -> dict[str, Any]:
     """
     Encodes the given value as a flat dictionary
