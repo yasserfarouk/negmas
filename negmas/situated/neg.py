@@ -494,9 +494,11 @@ class NegWorld(NoContractExecutionMixin, World):
         self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         """Executes the given action by the given agent"""
+        ...
 
     def get_private_state(self, agent: Agent) -> dict:
         """Reads the private state of the given agent"""
+        ...
 
     def executable_contracts(self) -> Collection[Contract]:
         return []
