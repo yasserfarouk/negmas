@@ -12,3 +12,4 @@ python-docs-theme
 sphinx-sizzle-theme
 nbformat
 nbsphinx
+nb2plots

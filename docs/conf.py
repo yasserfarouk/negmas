@@ -58,7 +58,7 @@ extensions = [
     "sphinx_automodapi.automodapi",
     "sphinx.ext.intersphinx",
     "sphinx_automodapi.smart_resolver",
-    "nb2plots",
+    # "nb2plots",
     "sphinx.ext.mathjax",
     "sphinx_autodoc_typehints",
     "sphinx_autodoc_annotation",
