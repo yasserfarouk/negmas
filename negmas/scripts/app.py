@@ -9,12 +9,12 @@ import sys
 import urllib.request
 from functools import partial
 from pathlib import Path
-from pprint import pprint
 from time import perf_counter
 
 import click
 import click_config_file
 import yaml
+from rich import print
 from tabulate import tabulate
 
 import negmas
@@ -408,9 +408,9 @@ def create(
         non_competitors = non_competitors.split(";")
 
     print(f"Tournament will be run between {len(all_competitors)} agents: ")
-    pprint(all_competitors)
+    print(all_competitors)
     print("Non-competitors are: ")
-    pprint(non_competitors)
+    print(non_competitors)
     results = create_tournament(
         competitors=all_competitors,
         competitor_params=all_competitors_params,
