@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.9.4
+-------------
+
+* removing dependence on tqdm and printing by rich
+* using rich progressbar in run_with_progress
+
 Release 0.9.3
 -------------
 
