@@ -1987,10 +1987,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def run_with_progress(self, callback: Callable[[int], None] | None = None) -> None:
         """Runs the simulation showing progress, with optional callback"""
-        from tqdm import tqdm
+        from rich.progress import track
 
         self._start_time = time.perf_counter()
-        for _ in tqdm(range(self.n_steps)):
+        for _ in track(range(self.n_steps)):
             if self.time >= self.time_limit:
                 break
             if not self.step():
