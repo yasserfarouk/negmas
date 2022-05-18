@@ -293,7 +293,7 @@ class NamedObject:
     def type_name(self) -> str:
         if self.__type_name:
             return self.__type_name
-        return self.__class__.__name__
+        return get_full_type_name(self.__class__)
 
     @property
     def short_type_name(self) -> str:
