@@ -116,10 +116,9 @@ def serialize(
         return None
 
     def get_type_field(value):
-        t = value.__class__.__module__ + "." + value.__class__.__name__
         if shorten_type_field and t.startswith("negmas."):
             return value.__class__.__name__
-        return t
+        return value.__class__.__module__ + "." + value.__class__.__name__
 
     if isinstance(value, dict):
         if not deep:
