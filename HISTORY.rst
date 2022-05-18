@@ -1,6 +1,12 @@
 History
 =======
 
+Release 0.9.5
+-------------
+
+* defaulting to full type name in NamedObject
+* Removing a couple of warnings
+
 Release 0.9.4
 -------------
 
