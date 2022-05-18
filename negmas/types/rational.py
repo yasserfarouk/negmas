@@ -49,17 +49,18 @@ class Rational(NamedObject):
     def _set_pref_owner(self):
         if not self._preferences:
             return
+        # todo: re-enable this after making sure scml does not raise it
         # we here assume that two entities that share an ID can share preferences without warning
-        if (
-            self._preferences.owner is not None
-            and self._preferences.owner.id != self.id
-        ):
-            warnings.warn(
-                f"Entity {self.name} ({self.__class__.__name__}) is "
-                f"assigned preferences belonging to another entity "
-                f"({self._preferences.owner.name} of type {self.__class__.__name__})!!",
-                warnings.NegmasDoubleAssignmentWarning,
-            )
+        # if (
+        #     self._preferences.owner is not None
+        #     and self._preferences.owner.id != self.id
+        # ):
+        #     warnings.warn(
+        #         f"Entity {self.name} ({self.__class__.__name__}) is "
+        #         f"assigned preferences belonging to another entity "
+        #         f"({self._preferences.owner.name} of type {self.__class__.__name__})!!",
+        #         warnings.NegmasDoubleAssignmentWarning,
+        #     )
 
         self._preferences.owner = self
 

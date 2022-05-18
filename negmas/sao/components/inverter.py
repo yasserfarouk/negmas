@@ -127,11 +127,11 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self.inv is None or self.max is None or self.min is None:
-            warn(
-                f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
-                f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
-                NegmasUnexpectedValueWarning,
-            )
+            # warn(
+            #     f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
+            #     f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
+            #     NegmasUnexpectedValueWarning,
+            # )
             self.on_preferences_changed([PreferencesChange()])
         if self.inv is None or self.max is None or self.min is None:
             raise ValueError(
@@ -154,11 +154,11 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
         if self._negotiator is None:
             raise ValueError("Unknown negotiator in a component")
         if self.max is None or self.min is None or self.best is None:
-            warn(
-                f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
-                f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
-                NegmasUnexpectedValueWarning,
-            )
+            # warn(
+            #     f"It seems that on_prefrences_changed() was not called until propose for a ufun of type {self._negotiator.ufun.__class__.__name__}"
+            #     f" for negotiator {self._negotiator.id} of type {self.__class__.__name__}",
+            #     NegmasUnexpectedValueWarning,
+            # )
             self.on_preferences_changed([PreferencesChange()])
         if self.max is None or self.min is None:
             raise ValueError("Cannot find extreme outcomes.")
