@@ -22,7 +22,7 @@ import stringcase
 import yaml
 
 from negmas import warnings
-from negmas.config import NEGMAS_CONFIG
+from negmas.config import negmas_config
 
 from .types import TYPE_START, get_class, get_full_type_name, is_jsonable
 
@@ -40,7 +40,7 @@ BYTES_START = "__BYTES__:"
 PATH_START = "__PATH__:"
 """Maps from a single issue to a Negotiator function."""
 
-DEFAULT_DUMP_EXTENSION = NEGMAS_CONFIG.get("default_dump_extension", "json")
+DEFAULT_DUMP_EXTENSION = negmas_config("default_dump_extension", "json")
 
 
 def is_nonzero_file(fpath: PathLike) -> bool:

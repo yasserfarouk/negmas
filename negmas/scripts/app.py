@@ -18,6 +18,7 @@ from rich import print
 from tabulate import tabulate
 
 import negmas
+from negmas.config import negmas_config
 from negmas.genius.common import DEFAULT_JAVA_PORT
 from negmas.helpers import humanize_time, unique_name
 from negmas.helpers.inout import load
@@ -55,7 +56,7 @@ DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 def default_log_path():
     """Default location for all logs"""
 
-    return Path.home() / "negmas" / "logs"
+    return Path(negmas_config("log_base", Path.home() / "negmas" / "logs"))
 
 
 def default_tournament_path():
