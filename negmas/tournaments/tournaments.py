@@ -30,6 +30,7 @@ from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas import warnings
+from negmas.config import negmas_config
 from negmas.helpers import (
     get_class,
     get_full_type_name,
@@ -77,6 +78,9 @@ def from_file(f):
     # return deserialize(eval(s))
 
 
+TOURNAMENTS_BASE_PATH = Path(
+    negmas_config("tournaments_base", Path.home() / "negmas" / "tournaments")
+)
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 # files created before running worlds
 PARAMS_FILE = "params.json"
@@ -1015,9 +1019,7 @@ def run_world(
     default_name = unique_name(base="")
     world_params["name"] = world_params.get("name", default_name)
     world_name = world_params["name"]
-    default_dir = (
-        Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
-    ).absolute()
+    default_dir = (TOURNAMENTS_BASE_PATH / tournament_name / world_name).absolute()
     world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
     world_params["log_folder"] = world_params.get("__dir_name", str(default_dir))
     world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
@@ -1097,9 +1099,7 @@ def run_worlds(
         default_name = unique_name(base="")
         world_params["name"] = world_params.get("name", default_name)
         world_name = world_params["name"]
-        default_dir = (
-            Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
-        ).absolute()
+        default_dir = (TOURNAMENTS_BASE_PATH / tournament_name / world_name).absolute()
         world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
         world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
         # delete the parameters not used by _run_worlds
@@ -1776,7 +1776,7 @@ def create_tournament(
     n_runs_per_world: int = 5,
     max_n_configs: int | None = None,
     n_runs_per_config: int | None = None,
-    base_tournament_path: str | None = None,
+    base_tournament_path: Path | str | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
@@ -1897,7 +1897,7 @@ def create_tournament(
     #         f"later does not divide the former. You have to set all_competitor_combinations to True"
     #     )
     if base_tournament_path is None:
-        base_tournament_path = str(pathlib.Path.home() / "negmas" / "tournaments")
+        base_tournament_path = str(TOURNAMENTS_BASE_PATH)
 
     # original_tournament_path = base_tournament_path
     base_tournament_path = _path(base_tournament_path)
