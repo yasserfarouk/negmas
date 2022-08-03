@@ -52,9 +52,7 @@ class ZeroSumModel(StationaryMixin, UFunModel):
         if not self.negotiator or not self.negotiator.ufun:
             raise ValueError("Negotiator or ufun are not known")
         self._effective_ufun = (
-            self.negotiator.ufun
-            if not self.rank_only
-            else RankOnlyUtilityFunction(self.negotiator.ufun)
+            self.negotiator.ufun if not self.rank_only else RankOnlyUtilityFunction(self.negotiator.ufun)
         )
 
     def eval(self, offer: Outcome) -> Value:
@@ -70,11 +68,7 @@ class ZeroSumModel(StationaryMixin, UFunModel):
     ) -> Value:
         if offer is None:
             return 0.0
-        return (
-            self._effective_ufun.eval_normalized(offer, above_reserve, expected_limits)
-            * -1
-            + 1.0
-        )
+        return self._effective_ufun.eval_normalized(offer, above_reserve, expected_limits) * -1 + 1.0
 
 
 class FrequencyUFunModel(UFunModel):

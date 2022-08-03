@@ -48,9 +48,7 @@ def outcome2dict(outcome: Outcome, issues: Sequence[str | Issue]) -> dict[str, A
     ...
 
 
-def outcome2dict(
-    outcome: Outcome | None, issues: Sequence[str | Issue]
-) -> dict[str, Any] | None:
+def outcome2dict(outcome: Outcome | None, issues: Sequence[str | Issue]) -> dict[str, Any] | None:
     """
     Converts the outcome to a dict no matter what was its type.
 
@@ -98,9 +96,7 @@ def outcome2dict(
         names = {_.name if isinstance(_, Issue) else _ for _ in issues}
         for k in outcome.keys():
             if k not in names:
-                raise ValueError(
-                    f"{k} not in the issue names ({names}). An invalid dict is given!!"
-                )
+                raise ValueError(f"{k} not in the issue names ({names}). An invalid dict is given!!")
         return outcome
 
     return dict(zip([_ if isinstance(_, str) else _.name for _ in issues], outcome))
@@ -170,9 +166,7 @@ def generalized_minkowski_distance(
     if dist_power <= 0 or dist_power == float("inf"):
         if not isinstance(outcome_space, CartesianOutcomeSpace):
             return max(
-                (w * abs(x - y))
-                if (isint(x) or isreal(x)) and (isint(y) or isreal(y))
-                else (w * int(x == y))
+                (w * abs(x - y)) if (isint(x) or isreal(x)) and (isint(y) or isreal(y)) else (w * int(x == y))
                 for w, x, y in zip(weights, a, b)
             )
         d = float("-inf")
@@ -467,10 +461,7 @@ def outcome_in_range(
 
     """
 
-    if (
-        fail_incomplete
-        and len(set(ikeys(outcome_range)).difference(ikeys(outcome))) > 0
-    ):
+    if fail_incomplete and len(set(ikeys(outcome_range)).difference(ikeys(outcome))) > 0:
         return False
 
     for key, value in ienumerate(outcome):

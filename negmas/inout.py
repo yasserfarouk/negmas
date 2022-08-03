@@ -64,9 +64,7 @@ class Scenario:
         domain_path = Path(domain_path)
         ufun_paths = [Path(_) for _ in ufun_paths]
         if len(self.ufuns) != len(ufun_paths):
-            raise ValueError(
-                f"I have {len(self.ufuns)} ufuns but {len(ufun_paths)} paths were passed!!"
-            )
+            raise ValueError(f"I have {len(self.ufuns)} ufuns but {len(ufun_paths)} paths were passed!!")
         domain_path.parent.mkdir(parents=True, exist_ok=True)
         self.agenda.to_genius(domain_path)
         for ufun, path in zip(self.ufuns, ufun_paths):
@@ -164,15 +162,11 @@ class Scenario:
         Generates a ready to run mechanism session for this domain.
         """
         if not self.mechanism_type:
-            raise ValueError(
-                "Cannot create the domain because it has no `mechanism_type`"
-            )
+            raise ValueError("Cannot create the domain because it has no `mechanism_type`")
 
         args = self.mechanism_params
         args.update(kwargs)
-        m = self.mechanism_type(
-            outcome_space=self.agenda, n_steps=n_steps, time_limit=time_limit, **args
-        )
+        m = self.mechanism_type(outcome_space=self.agenda, n_steps=n_steps, time_limit=time_limit, **args)
         if not negotiators:
             return m
         negs: list[Negotiator]
@@ -181,9 +175,7 @@ class Scenario:
         else:
             negs = list(negotiators)
         if len(self.ufuns) != len(negs) or len(negs) < 1:
-            raise ValueError(
-                f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})"
-            )
+            raise ValueError(f"Invalid ufuns ({self.ufuns}) or negotiators ({negotiators})")
         if not roles:
             roles = ["negotiator"] * len(negs)
         for n, r, u in zip(negs, roles, self.ufuns):
@@ -255,9 +247,7 @@ class Scenario:
             u.reserved_value = r
         return self
 
-    def calc_stats(
-        self, max_cardinality: int = STATS_MAX_CARDINALITY
-    ) -> dict[str, Any]:
+    def calc_stats(self, max_cardinality: int = STATS_MAX_CARDINALITY) -> dict[str, Any]:
         """
         Calculates and returns several stats corresponding to the domain
 
@@ -269,12 +259,8 @@ class Scenario:
         """
         agenda, ufuns = self.agenda, self.ufuns
         outcomes = tuple(agenda.enumerate_or_sample(max_cardinality=max_cardinality))
-        frontier_utils, frontier_indices = pareto_frontier(
-            ufuns, outcomes=outcomes, sort_by_welfare=True
-        )
-        frontier_outcomes = tuple(
-            outcomes[_] for _ in frontier_indices if _ is not None
-        )
+        frontier_utils, frontier_indices = pareto_frontier(ufuns, outcomes=outcomes, sort_by_welfare=True)
+        frontier_outcomes = tuple(outcomes[_] for _ in frontier_indices if _ is not None)
         nash_utils, nash_indx = nash_point(ufuns, frontier_utils, outcome_space=agenda)
         nash_outcome = outcomes[nash_indx] if nash_indx else None
         minmax = [u.minmax() for u in ufuns]
@@ -300,15 +286,9 @@ class Scenario:
                 if not u2:
                     continue
                 us = (u1, u2)
-                fu_, findx = pareto_frontier(
-                    us, outcomes=outcomes, sort_by_welfare=True
-                )
-                fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = fu_, [
-                    outcomes[_] for _ in findx
-                ]
-                nu[(u1.name, u2.name)], nindx = nash_point(
-                    (u1, u2), fu_, outcomes=outcomes
-                )
+                fu_, findx = pareto_frontier(us, outcomes=outcomes, sort_by_welfare=True)
+                fu[(u1.name, u2.name)], fo[(u1.name, u2.name)] = fu_, [outcomes[_] for _ in findx]
+                nu[(u1.name, u2.name)], nindx = nash_point((u1, u2), fu_, outcomes=outcomes)
                 no[(u1.name, u2.name)] = outcomes[nindx] if nindx else None
                 ol[(u1.name, u2.name)] = opposition_level(
                     (u1, u2),
@@ -316,12 +296,8 @@ class Scenario:
                     max_utils=(minmax[i][1], minmax[j][1]),
                     max_tests=max_cardinality,
                 )
-                cl[(u1.name, u2.name)] = conflict_level(
-                    u1, u2, outcomes=outcomes, max_tests=max_cardinality
-                )
-                wl[(u1.name, u2.name)] = winwin_level(
-                    u1, u2, outcomes=outcomes, max_tests=max_cardinality
-                )
+                cl[(u1.name, u2.name)] = conflict_level(u1, u2, outcomes=outcomes, max_tests=max_cardinality)
+                wl[(u1.name, u2.name)] = winwin_level(u1, u2, outcomes=outcomes, max_tests=max_cardinality)
 
         return dict(
             frontier_utils=frontier_utils,
@@ -362,10 +338,7 @@ class Scenario:
             rename={PYTHON_CLASS_IDENTIFIER: "type"},
         ):
             if isinstance(d, list) or isinstance(d, tuple):
-                return [
-                    adjust(_, default_name, remove_dunder, adjust_name, ignored)
-                    for _ in d
-                ]
+                return [adjust(_, default_name, remove_dunder, adjust_name, ignored) for _ in d]
             if not isinstance(d, dict):
                 return d
             if adjust_name and "name" in d:
@@ -397,8 +370,7 @@ class Scenario:
             "domain",
         )
         ufuns = [
-            adjust(serialize(u, shorten_type_field=True, add_type_field=True), i)
-            for i, u in enumerate(self.ufuns)
+            adjust(serialize(u, shorten_type_field=True, add_type_field=True), i) for i, u in enumerate(self.ufuns)
         ]
         return dict(domain=domain, ufuns=ufuns)
 
@@ -537,9 +509,7 @@ def load_genius_domain(
             {
                 "ufun": utility,
                 "ufun_name": ufname,
-                "reserved_value_func": utility.reserved_value
-                if utility is not None
-                else float("-inf"),
+                "reserved_value_func": utility.reserved_value if utility is not None else float("-inf"),
                 "discount_factor": discount_factor,
             }
         )

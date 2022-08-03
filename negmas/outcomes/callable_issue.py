@@ -35,9 +35,7 @@ class CallableIssue(Issue):
     def ordered_value_generator(
         self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[Any, None, None]:
-        raise NotImplementedError(
-            "Cannot generate values in order from a Callable issue"
-        )
+        raise NotImplementedError("Cannot generate values in order from a Callable issue")
 
     def value_generator(
         self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
@@ -50,13 +48,10 @@ class CallableIssue(Issue):
         """Picks a random valid value."""
         return self._values()
 
-    def rand_outcomes(
-        self, n: int, with_replacement=False, fail_if_not_enough=False
-    ) -> list:
+    def rand_outcomes(self, n: int, with_replacement=False, fail_if_not_enough=False) -> list:
         if not with_replacement:
             raise ValueError(
-                "'values' is specified as a callable for this issue. Cannot "
-                "sample from it without replacement"
+                "'values' is specified as a callable for this issue. Cannot " "sample from it without replacement"
             )
 
         return [self._values() for _ in range(n)]
@@ -64,9 +59,7 @@ class CallableIssue(Issue):
     def rand_invalid(self):
         """Pick a random *invalid* value"""
 
-        raise ValueError(
-            f"Cannot generate invalid outcomes because values is given as a callable"
-        )
+        raise ValueError(f"Cannot generate invalid outcomes because values is given as a callable")
 
     def is_valid(self):
         raise ValueError("Cannot check the validity of callable issues")

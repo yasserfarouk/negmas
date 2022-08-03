@@ -231,9 +231,7 @@ class MechanismState:
 
     @property
     def ended(self):
-        return self.started and (
-            self.broken or self.timedout or (self.agreement is not None)
-        )
+        return self.started and (self.broken or self.timedout or (self.agreement is not None))
 
     def keys(self):
         return self.__dict__.keys()
@@ -317,9 +315,7 @@ class NegotiatorMechanismInterface:
             )
         return self.outcome_space
 
-    def discrete_outcome_space(
-        self, levels: int = 5, max_cardinality: int = 100_000
-    ) -> DiscreteOutcomeSpace:
+    def discrete_outcome_space(self, levels: int = 5, max_cardinality: int = 100_000) -> DiscreteOutcomeSpace:
         """
         Returns a stable discrete version of the given outcome-space
         """
@@ -344,9 +340,7 @@ class NegotiatorMechanismInterface:
         """
         return self.mechanism.random_outcomes(n=n)
 
-    def discrete_outcomes(
-        self, max_cardinality: int | float = float("inf")
-    ) -> Iterable[Outcome]:
+    def discrete_outcomes(self, max_cardinality: int | float = float("inf")) -> Iterable[Outcome]:
         """
         A discrete set of outcomes that spans the outcome space
 
@@ -365,9 +359,7 @@ class NegotiatorMechanismInterface:
         os = self.mechanism.outcome_space
         if hasattr(os, "issues"):
             return os.issues  # type: ignore I am just checking that the attribute issues exists
-        raise ValueError(
-            f"{os} of type {os.__class__.__name__} has no issues attribute"
-        )
+        raise ValueError(f"{os} of type {os.__class__.__name__} has no issues attribute")
 
     @property
     def outcomes(self) -> Iterable[Outcome] | None:

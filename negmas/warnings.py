@@ -39,9 +39,7 @@ def warn(message, category=NegmasWarning, stacklevel=2, source=None):
 
 def deprecated(message):
     """Issues a deprecation warning"""
-    return warnings.warn(
-        message, category=DeprecationWarning, stacklevel=2, source=None
-    )
+    return warnings.warn(message, category=DeprecationWarning, stacklevel=2, source=None)
 
 
 class NegmasBridgePathWarning(NegmasWarning):

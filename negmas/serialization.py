@@ -142,10 +142,7 @@ def serialize(
     if isinstance(value, (list, tuple)) and not isinstance(value, str):
         objmem = add_to_mem(value, objmem)
         return adjust_dict(
-            type(value)(
-                serialize(_, deep=deep, add_type_field=add_type_field, objmem=objmem)
-                for _ in value
-            )
+            type(value)(serialize(_, deep=deep, add_type_field=add_type_field, objmem=objmem) for _ in value)
         )
     if hasattr(value, "to_dict"):
         converted = value.to_dict()
@@ -235,9 +232,7 @@ def serialize(
     return value
 
 
-def to_flat_dict(
-    value, deep=True, add_type_field=False, shorten_type_field=False
-) -> dict[str, Any]:
+def to_flat_dict(value, deep=True, add_type_field=False, shorten_type_field=False) -> dict[str, Any]:
     """
     Encodes the given value as a flat dictionary
 
@@ -259,9 +254,7 @@ def to_flat_dict(
     if d is None:
         return {}
     if not isinstance(d, dict):
-        raise ValueError(
-            f"value is of type {type(value)} cannot be converted to a flat dict"
-        )
+        raise ValueError(f"value is of type {type(value)} cannot be converted to a flat dict")
     for k, v in d.items():
         if isinstance(v, list) or isinstance(v, tuple):
             d[k] = str(v)
@@ -313,9 +306,7 @@ def deserialize(
             python_class = get_class(python_class_name)
             # we resolve sub-objects first from the dict if deep is specified before calling deserialize on the class
             if deep:
-                d = {
-                    k: deserialize(v, deep=deep) for k, v in d.items() if good_field(k)
-                }
+                d = {k: deserialize(v, deep=deep) for k, v in d.items() if good_field(k)}
             # deserialize needs to do a shallow conversion from a dict as deep conversion is taken care of already.
             if hasattr(python_class, "from_dict"):
                 return python_class.from_dict({k: v for k, v in d.items()})

@@ -34,9 +34,7 @@ def test_from_outcomes():
         make_issue([1, 2, 3], "cost"),
         make_issue(["yes", "no"], "delivery"),
     ]
-    found = issues_from_outcomes(
-        enumerate_issues(issues), issue_names=["price", "cost", "delivery"]
-    )
+    found = issues_from_outcomes(enumerate_issues(issues), issue_names=["price", "cost", "delivery"])
     for i, f in zip(issues, found):
         assert i.name == f.name
         for a, b in zip(sorted(i.all), sorted(f.all)):

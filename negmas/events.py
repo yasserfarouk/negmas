@@ -73,11 +73,7 @@ class EventSink:
 def myvars(x):
     if not x:
         return x
-    return {
-        k: v
-        for k, v in vars(x).items()
-        if not k.startswith("_") and not k.endswith("_")
-    }
+    return {k: v for k, v in vars(x).items() if not k.startswith("_") and not k.endswith("_")}
 
 
 class EventLogger(EventSink):
@@ -133,9 +129,7 @@ class EventLogger(EventSink):
             with open(self._file_name, "a") as f:
                 f.write(f"{json.dumps(d)},\n")
         except Exception as e:
-            warnings.warn(
-                f"Failed to log {str(event)}: {str(e)}", warnings.NegmasLoggingWarning
-            )
+            warnings.warn(f"Failed to log {str(event)}: {str(e)}", warnings.NegmasLoggingWarning)
 
 
 @dataclass
@@ -155,9 +149,7 @@ class Notifier(NamedObject):
 class Notifiable:
     """An object that can be notified"""
 
-    def add_handler(
-        self, notification_type: str, callback: Callable[[Notification, str], bool]
-    ):
+    def add_handler(self, notification_type: str, callback: Callable[[Notification, str], bool]):
         """
         Adds a notification handler to the list of handlers of the given type. These handlers will be called
         in the order in which they are received
@@ -171,14 +163,10 @@ class Notifiable:
 
         """
         if not hasattr(self, "__notification_handlers"):
-            self.__notification_handlers: dict[
-                str, list[Callable[[Notification, str], bool]]
-            ] = defaultdict(list)
+            self.__notification_handlers: dict[str, list[Callable[[Notification, str], bool]]] = defaultdict(list)
         self.__notification_handlers[notification_type].append(callback)
 
-    def handlers(
-        self, notification_type: str
-    ) -> list[Callable[[Notification, str], bool]]:
+    def handlers(self, notification_type: str) -> list[Callable[[Notification, str], bool]]:
         """
         Gets the list of handlers registered for some notification type. This list can be modified in place to change
         the order of handlers for example. It is NOT a copy.
@@ -188,9 +176,7 @@ class Notifiable:
         except (ValueError, IndexError, AttributeError):
             return []
 
-    def remove_handler(
-        self, notification_type: str, callback: Callable[[Notification, str], bool]
-    ) -> bool:
+    def remove_handler(self, notification_type: str, callback: Callable[[Notification, str], bool]) -> bool:
         """
         Removes a notification handler from the list of handlers of the given type.
 

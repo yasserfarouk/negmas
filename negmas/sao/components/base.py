@@ -41,9 +41,7 @@ class SAOComponent(Component):
         Called before offering
         """
 
-    def after_responding(
-        self, state: SAOState, offer: Outcome | None, response: ResponseType
-    ):
+    def after_responding(self, state: SAOState, offer: Outcome | None, response: ResponseType):
         """
         Called before offering
         """
@@ -72,9 +70,7 @@ class SAOComponent(Component):
         on every offer.
         """
 
-    def on_partner_proposal(
-        self, state: SAOState, partner_id: str, offer: Outcome
-    ) -> None:
+    def on_partner_proposal(self, state: SAOState, partner_id: str, offer: Outcome) -> None:
         """
         A callback called by the mechanism when a partner proposes something
 

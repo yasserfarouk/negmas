@@ -10,10 +10,4 @@ from .ginfo import *
 from .gnegotiators import *
 from .negotiator import *
 
-__all__ = (
-    common.__all__
-    + ginfo.__all__
-    + bridge.__all__
-    + negotiator.__all__
-    + gnegotiators.__all__
-)
+__all__ = common.__all__ + ginfo.__all__ + bridge.__all__ + negotiator.__all__ + gnegotiators.__all__

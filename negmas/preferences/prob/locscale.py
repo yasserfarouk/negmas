@@ -16,9 +16,7 @@ class ILSUtilityFunction(StationaryMixin, ProbUtilityFunction):
     A utility function which represents the loc and scale deviations as any crisp ufun
     """
 
-    def __init__(
-        self, type: str, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs
-    ):
+    def __init__(self, type: str, loc: UtilityFunction, scale: UtilityFunction, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._type = type
         self.loc = loc
@@ -27,9 +25,7 @@ class ILSUtilityFunction(StationaryMixin, ProbUtilityFunction):
     def eval(self, offer: Outcome) -> ScipyDistribution:
         loc, scale = self.loc(offer), self.scale(offer)
         if loc is None or scale is None:
-            raise ValueError(
-                f"Cannot calculate loc ({loc}) or scale ({scale}) for offer {offer}"
-            )
+            raise ValueError(f"Cannot calculate loc ({loc}) or scale ({scale}) for offer {offer}")
         return ScipyDistribution(self._type, loc=loc, scale=scale)
 
 

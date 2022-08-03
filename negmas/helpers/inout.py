@@ -85,9 +85,7 @@ class ConfigReader:
                 if class_name is None:
                     class_name = stringcase.pascalcase(k)
                 the_class = get_class(class_name=class_name, scope=scope)
-                assert hasattr(
-                    the_class, "from_config"
-                ), f"{the_class} does not have a from_config attribute"
+                assert hasattr(the_class, "from_config"), f"{the_class} does not have a from_config attribute"
                 obj, obj_children = the_class.from_config(  # type: ignore
                     config=v,
                     ignore_children=False,
@@ -111,9 +109,7 @@ class ConfigReader:
                 objs = []
                 for current in list(v):
                     the_class = get_class(class_name=class_name, scope=scope)
-                    assert hasattr(
-                        the_class, "from_config"
-                    ), f"{the_class} does not have a from_config attribute"
+                    assert hasattr(the_class, "from_config"), f"{the_class} does not have a from_config attribute"
                     obj = the_class.from_config(  # type: ignore
                         config=current,
                         ignore_children=True,
@@ -132,9 +128,7 @@ class ConfigReader:
         return myconfig, remaining_children, setters
 
     @classmethod
-    def read_config(
-        cls, config: str | dict, section: str | None = None
-    ) -> dict[str, Any]:
+    def read_config(cls, config: str | dict, section: str | None = None) -> dict[str, Any]:
         """
         Reads the configuration from a file or a dict and prepares it for parsing
 
@@ -164,9 +158,7 @@ class ConfigReader:
                     if exists(name):
                         config = str(name)
                     else:
-                        name = (
-                            pathlib.Path(os.path.expanduser("~/.negmas")) / config
-                        ).absolute()
+                        name = (pathlib.Path(os.path.expanduser("~/.negmas")) / config).absolute()
                         if exists(name):
                             config = str(name)
                         else:
@@ -236,9 +228,7 @@ class ConfigReader:
 
         myconfig = {}  # parts of the config that can directly be parsed
         children = {}  # parts of the config that need further parsing
-        setters = (
-            []
-        )  # the setters are those configs that have a set_ function for them.
+        setters = []  # the setters are those configs that have a set_ function for them.
 
         def _is_simple(x):
             """Tests whether the input can directly be parsed"""
@@ -247,11 +237,7 @@ class ConfigReader:
                 or isinstance(x, int)
                 or isinstance(x, str)
                 or isinstance(x, float)
-                or (
-                    isinstance(x, Iterable)
-                    and not isinstance(x, dict)
-                    and all(_is_simple(_) for _ in list(x))
-                )
+                or (isinstance(x, Iterable) and not isinstance(x, dict) and all(_is_simple(_) for _ in list(x)))
             )
 
         def _set_simple_config(key, v) -> dict[str, Any] | None:
@@ -262,11 +248,7 @@ class ConfigReader:
             if hasattr(cls, _setter):
                 setters.append((_setter, v))
                 return None
-            params[key_name] = (
-                v
-                if class_name is None
-                else get_class(class_name=class_name, scope=scope)(v)
-            )
+            params[key_name] = v if class_name is None else get_class(class_name=class_name, scope=scope)(v)
             return params
 
         # read the configs key by key and try to parse anything that is simple enough to parse
@@ -301,9 +283,7 @@ class ConfigReader:
                     f"sure that all of the constructor parameters of the class you are creating are simple "
                     f"values like ints floats and strings."
                 )
-            parsed_conf, remaining_children, setters = cls._parse_children_config(
-                children=children, scope=scope
-            )
+            parsed_conf, remaining_children, setters = cls._parse_children_config(children=children, scope=scope)
             myconfig.update(parsed_conf)
             children = remaining_children
 
@@ -328,9 +308,7 @@ class NpEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         elif isinstance(obj, bytes):
-            encoded = base64.b64encode(
-                obj
-            )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+            encoded = base64.b64encode(obj)  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
             return BYTES_START + encoded.decode("ascii")  #
         elif isinstance(obj, Path):
             return PATH_START + str(obj)
@@ -349,17 +327,11 @@ class NpDecorder(json.JSONDecoder):
     def default(self, obj):
         if isinstance(obj, str):
             if obj.startswith(BYTES_START):
-                return base64.b64decode(
-                    obj[BYTES_START:]
-                )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+                return base64.b64decode(obj[BYTES_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
             elif obj.startswith(TYPE_START):
-                return get_class(
-                    obj[TYPE_START:]
-                )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+                return get_class(obj[TYPE_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
             elif obj.startswith(PATH_START):
-                return Path(
-                    obj[PATH_START:]
-                )  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
+                return Path(obj[PATH_START:])  # b'ZGF0YSB0byBiZSBlbmNvZGVk' (notice the "b")
         return super().default(obj)  #  type: ignore
 
 
@@ -483,8 +455,7 @@ def add_records(
 
     """
     if col_names is None and (
-        isinstance(data, dict)
-        or (isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict))
+        isinstance(data, dict) or (isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict))
     ):
         data = pd.json_normalize(data)
     else:

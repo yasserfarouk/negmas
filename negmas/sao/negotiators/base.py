@@ -63,9 +63,7 @@ class SAONegotiator(Negotiator):
         self.__end_negotiation = False
         self.my_last_proposal: Outcome | None = None
         self._my_last_proposal_utility: Value | None = None
-        self.add_capabilities(
-            {"respond": True, "propose": can_propose, "max-proposals": 1}
-        )
+        self.add_capabilities({"respond": True, "propose": can_propose, "max-proposals": 1})
 
     def on_notification(self, notification: Notification, notifier: str):
         """
@@ -114,9 +112,7 @@ class SAONegotiator(Negotiator):
         if not self._capabilities["propose"] or self.__end_negotiation:
             return None
         if not state.running:
-            warn(
-                f"{self.name} asked to propose in a negotiation that is not running:\n{state}"
-            )
+            warn(f"{self.name} asked to propose in a negotiation that is not running:\n{state}")
             return None
         return self.propose(state=state)
 
@@ -190,9 +186,7 @@ class SAONegotiator(Negotiator):
 
         """
         if not state.running:
-            warn(
-                f"{self.name} asked to respond to a negotiation that is not running:\n{state}"
-            )
+            warn(f"{self.name} asked to respond to a negotiation that is not running:\n{state}")
             return ResponseType.END_NEGOTIATION
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
@@ -223,9 +217,7 @@ class SAONegotiator(Negotiator):
             return SAOResponse(response, None)
         return SAOResponse(response, self.propose_(state=state))
 
-    def on_partner_proposal(
-        self, state: SAOState, partner_id: str, offer: Outcome
-    ) -> None:
+    def on_partner_proposal(self, state: SAOState, partner_id: str, offer: Outcome) -> None:
         """
         A callback called by the mechanism when a partner proposes something
 

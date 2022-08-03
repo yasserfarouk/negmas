@@ -114,23 +114,13 @@ class MechanismFactory:
         ):
             return None
         if issues is None:
-            self.world.call(
-                caller, caller.on_neg_request_rejected_, req_id=req_id, by=None
-            )
+            self.world.call(caller, caller.on_neg_request_rejected_, req_id=req_id, by=None)
             return None
-        if (
-            mechanisms is not None
-            and mechanism_name is not None
-            and mechanism_name not in mechanisms.keys()
-        ):
-            self.world.call(
-                caller, caller.on_neg_request_rejected_, req_id=req_id, by=None
-            )
+        if mechanisms is not None and mechanism_name is not None and mechanism_name not in mechanisms.keys():
+            self.world.call(caller, caller.on_neg_request_rejected_, req_id=req_id, by=None)
             return None
         if mechanisms is not None and mechanism_name is not None:
-            mechanism_name = mechanisms[mechanism_name].pop(
-                PROTOCOL_CLASS_NAME_FIELD, mechanism_name
-            )
+            mechanism_name = mechanisms[mechanism_name].pop(PROTOCOL_CLASS_NAME_FIELD, mechanism_name)
         if mechanism_params is None:
             mechanism_params = {}
         if mechanisms and mechanisms.get(mechanism_name, None) is not None:
@@ -189,14 +179,10 @@ class MechanismFactory:
             rej = [_.id for _ in rejectors]
             for r in rej:
                 self.world.neg_requests_rejected[r] += 1
-            self.world.call(
-                caller, caller.on_neg_request_rejected_, req_id=req_id, by=rej
-            )
+            self.world.call(caller, caller.on_neg_request_rejected_, req_id=req_id, by=rej)
             for partner, response in zip(partners, responses):
                 if partner.id != caller.id and response:
-                    self.world.call(
-                        partner, partner.on_neg_request_rejected_, req_id=None, by=rej
-                    )
+                    self.world.call(partner, partner.on_neg_request_rejected_, req_id=None, by=rej)
             self.world.loginfo(
                 f"{caller.name} request was rejected by {[_.name for _ in rejectors]}",
                 Event(

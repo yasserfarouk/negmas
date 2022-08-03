@@ -59,9 +59,7 @@ def current_aspiration(elicitor, outcome: Outcome, negotiation: Mechanism) -> fl
     return elicitor.utility_at(negotiation.relative_time)
 
 
-def create_negotiator(
-    negotiator_type, preferences, can_propose, outcomes, toughness, **kwargs
-):
+def create_negotiator(negotiator_type, preferences, can_propose, outcomes, toughness, **kwargs):
     if negotiator_type == "limited_outcomes":
         if can_propose:
             negotiator = LimitedOutcomesNegotiator(
@@ -223,19 +221,13 @@ class SAOElicitingMechanism(SAOMechanism):
                 toughness=toughness,
             )
             if type_ == "full":
-                return FullElicitor(
-                    strategy=strategy, user=user, base_negotiator=base_negotiator
-                )
+                return FullElicitor(strategy=strategy, user=user, base_negotiator=base_negotiator)
 
             if type_ == "dummy":
-                return DummyElicitor(
-                    strategy=strategy, user=user, base_negotiator=base_negotiator
-                )
+                return DummyElicitor(strategy=strategy, user=user, base_negotiator=base_negotiator)
 
             if type_ == "full_knowledge":
-                return FullKnowledgeElicitor(
-                    strategy=strategy, user=user, base_negotiator=base_negotiator
-                )
+                return FullKnowledgeElicitor(strategy=strategy, user=user, base_negotiator=base_negotiator)
 
             if type_ == "random_deep":
                 return RandomElicitor(
@@ -330,11 +322,7 @@ class SAOElicitingMechanism(SAOMechanism):
                                     name="no",
                                 ),
                             ]
-                            probs = (
-                                [limit, 1.0 - limit]
-                                if rational_answer_probs
-                                else [0.5, 0.5]
-                            )
+                            probs = [limit, 1.0 - limit] if rational_answer_probs else [0.5, 0.5]
                             query = Query(
                                 answers=answers,
                                 cost=qcost,
@@ -396,13 +384,9 @@ class SAOElicitingMechanism(SAOMechanism):
     ) -> dict[str, Any]:
         config = {}
         if n_steps is None and time_limit is None and "aspiration" in opponent_type:
-            raise ValueError(
-                "Cannot use aspiration negotiators when no step limit or time limit is given"
-            )
+            raise ValueError("Cannot use aspiration negotiators when no step limit or time limit is given")
         if n_outcomes is None and genius_folder is None:
-            raise ValueError(
-                "Must specify a folder to run from or a number of outcomes"
-            )
+            raise ValueError("Must specify a folder to run from or a number of outcomes")
         if genius_folder is not None:
             d = load_genius_domain_from_folder(
                 genius_folder,
@@ -422,9 +406,7 @@ class SAOElicitingMechanism(SAOMechanism):
         else:
             outcomes = [(_,) for _ in range(n_outcomes)]
             if rand_preferencess:
-                preferences, opp_utility = UtilityFunction.generate_random_bilateral(
-                    outcomes=outcomes
-                )
+                preferences, opp_utility = UtilityFunction.generate_random_bilateral(outcomes=outcomes)
             else:
                 preferences, opp_utility = UtilityFunction.generate_bilateral(
                     outcomes=outcomes,
@@ -515,9 +497,7 @@ class SAOElicitingMechanism(SAOMechanism):
         start = time.perf_counter()
         _ = super().step()
         self.total_time += time.perf_counter() - start
-        self.loginfo(
-            f"[{self._step}] {self._current_proposer} offered {self._current_offer}"
-        )
+        self.loginfo(f"[{self._step}] {self._current_proposer} offered {self._current_offer}")
         return _
 
     def on_negotiation_start(self):
@@ -530,16 +510,10 @@ class SAOElicitingMechanism(SAOMechanism):
         self.elicitation_state["timedout"] = False
         self.elicitation_state["agreement"] = None
         self.elicitation_state["agreed"] = False
-        self.elicitation_state["utils"] = [
-            0.0 for a in self.negotiators
-        ]  # not even the reserved value
+        self.elicitation_state["utils"] = [0.0 for a in self.negotiators]  # not even the reserved value
         self.elicitation_state["welfare"] = sum(self.elicitation_state["utils"])
-        self.elicitation_state["elicitor"] = self.negotiators[
-            1
-        ].__class__.__name__.replace("Elicitor", "")
-        self.elicitation_state["opponents"] = self.negotiators[
-            0
-        ].__class__.__name__.replace("Aget", "")
+        self.elicitation_state["elicitor"] = self.negotiators[1].__class__.__name__.replace("Elicitor", "")
+        self.elicitation_state["opponents"] = self.negotiators[0].__class__.__name__.replace("Aget", "")
         self.elicitation_state["elicitor_utility"] = self.elicitation_state["utils"][1]
         self.elicitation_state["opponent_utility"] = self.elicitation_state["utils"][0]
         self.elicitation_state["opponent_params"] = str(self.negotiators[0])
@@ -563,9 +537,7 @@ class SAOElicitingMechanism(SAOMechanism):
             import matplotlib.pyplot as plt
 
             if len(self.negotiators) > 2:
-                warnings.warn(
-                    "Cannot visualize negotiations with more than 2 negotiators"
-                )
+                warnings.warn("Cannot visualize negotiations with more than 2 negotiators")
             else:
                 # has_front = int(len(self.outcomes[0]) <2)
                 has_front = 1
@@ -581,9 +553,7 @@ class SAOElicitingMechanism(SAOMechanism):
                 outcomes = self.outcomes
 
                 utils = [tuple(f(o) for f in ufuns) for o in outcomes]
-                agent_names = [
-                    a.__class__.__name__ + ":" + a.name for a in self.negotiators
-                ]
+                agent_names = [a.__class__.__name__ + ":" + a.name for a in self.negotiators]
                 history["offer_index"] = [outcomes.index(_) for _ in history.offer]
                 frontier, frontier_outcome = self.pareto_frontier(sort_by_welfare=True)
                 frontier_outcome_indices = [outcomes.index(_) for _ in frontier_outcome]
@@ -593,18 +563,12 @@ class SAOElicitingMechanism(SAOMechanism):
                 axs_util, axs_outcome = [], []
 
                 agent_names_for_legends = [
-                    agent_names[a]
-                    .split(":")[0]
-                    .replace("Negotiator", "")
-                    .replace("Elicitor", "")
+                    agent_names[a].split(":")[0].replace("Negotiator", "").replace("Elicitor", "")
                     for a in range(n_agents)
                 ]
                 if agent_names_for_legends[0] == agent_names_for_legends[1]:
                     agent_names_for_legends = [
-                        agent_names[a]
-                        .split(":")[0]
-                        .replace("Negotiator", "")
-                        .replace("Elicitor", "")
+                        agent_names[a].split(":")[0].replace("Negotiator", "").replace("Elicitor", "")
                         + agent_names[a].split(":")[1]
                         for a in range(n_agents)
                     ]
@@ -612,20 +576,10 @@ class SAOElicitingMechanism(SAOMechanism):
                 for a in range(n_agents):
                     if a == 0:
                         axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
-                        axs_outcome.append(
-                            fig_outcome.add_subplot(gs_outcome[a, has_front])
-                        )
+                        axs_outcome.append(fig_outcome.add_subplot(gs_outcome[a, has_front]))
                     else:
-                        axs_util.append(
-                            fig_util.add_subplot(
-                                gs_util[a, has_front], sharex=axs_util[0]
-                            )
-                        )
-                        axs_outcome.append(
-                            fig_outcome.add_subplot(
-                                gs_outcome[a, has_front], sharex=axs_outcome[0]
-                            )
-                        )
+                        axs_util.append(fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0]))
+                        axs_outcome.append(fig_outcome.add_subplot(gs_outcome[a, has_front], sharex=axs_outcome[0]))
                     axs_util[-1].set_ylabel(agent_names_for_legends[a])
                     axs_outcome[-1].set_ylabel(agent_names_for_legends[a])
                 for a, (au, ao) in enumerate(zip(axs_util, axs_outcome)):
@@ -640,9 +594,7 @@ class SAOElicitingMechanism(SAOMechanism):
                     h["dist"] = h.offer.apply(elicitor_dist)
                     h["beg"] = h.dist.apply(_beg)
                     h["end"] = h.dist.apply(_end)
-                    h["p_acceptance"] = h.offer.apply(
-                        self.negotiators[1].opponent_model.probability_of_acceptance
-                    )
+                    h["p_acceptance"] = h.offer.apply(self.negotiators[1].opponent_model.probability_of_acceptance)
                     au.plot(h.relative_time, h.end, color="r")
                     au.plot(h.relative_time, h.beg, color="r")
                     au.plot(h.relative_time, h.p_acceptance, color="g")
@@ -729,9 +681,7 @@ class SAOElicitingMechanism(SAOMechanism):
                         pareto_distance = 1e9
                         cu = (ufuns[0](self.agreement), ufuns[1](self.agreement))
                         for pu in frontier:
-                            dist = math.sqrt(
-                                (pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2
-                            )
+                            dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
                             if dist < pareto_distance:
                                 pareto_distance = dist
                         axu.text(
@@ -753,13 +703,9 @@ class SAOElicitingMechanism(SAOMechanism):
         self.elicitation_state["steps"] = self._step + 1
         self.elicitation_state["relative_time"] = self.relative_time
         self.elicitation_state["broken"] = self.state.broken
-        self.elicitation_state["timedout"] = (
-            not self.state.broken and self.state.agreement is None
-        )
+        self.elicitation_state["timedout"] = not self.state.broken and self.state.agreement is None
         self.elicitation_state["agreement"] = self.state.agreement
-        self.elicitation_state["agreed"] = (
-            self.state.agreement is not None and not self.state.broken
-        )
+        self.elicitation_state["agreed"] = self.state.agreement is not None and not self.state.broken
 
         if self.elicitation_state["agreed"]:
             self.elicitation_state["utils"] = [
@@ -770,27 +716,18 @@ class SAOElicitingMechanism(SAOMechanism):
             ]
         else:
             self.elicitation_state["utils"] = [
-                a.reserved_value if a.reserved_value is not None else 0.0
-                for a in self.negotiators
+                a.reserved_value if a.reserved_value is not None else 0.0 for a in self.negotiators
             ]
         self.elicitation_state["welfare"] = sum(self.elicitation_state["utils"])
-        self.elicitation_state["elicitor"] = self.negotiators[
-            1
-        ].__class__.__name__.replace("Elicitor", "")
-        self.elicitation_state["opponents"] = self.negotiators[
-            0
-        ].__class__.__name__.replace("Aget", "")
+        self.elicitation_state["elicitor"] = self.negotiators[1].__class__.__name__.replace("Elicitor", "")
+        self.elicitation_state["opponents"] = self.negotiators[0].__class__.__name__.replace("Aget", "")
         self.elicitation_state["elicitor_utility"] = self.elicitation_state["utils"][1]
         self.elicitation_state["opponent_utility"] = self.elicitation_state["utils"][0]
         self.elicitation_state["opponent_params"] = str(self.negotiators[0])
         self.elicitation_state["elicitor_params"] = str(self.negotiators[1])
-        self.elicitation_state["elicitation_cost"] = self.negotiators[
-            1
-        ].elicitation_cost
+        self.elicitation_state["elicitation_cost"] = self.negotiators[1].elicitation_cost
         self.elicitation_state["total_time"] = self.total_time
-        self.elicitation_state["_elicitation_time"] = self.negotiators[
-            1
-        ].elicitation_time
+        self.elicitation_state["_elicitation_time"] = self.negotiators[1].elicitation_time
         self.elicitation_state["asking_time"] = self.negotiators[1].asking_time
         self.elicitation_state["pareto"], pareto_outcomes = self.pareto_frontier()
         if self.elicitation_state["agreed"]:
@@ -805,21 +742,15 @@ class SAOElicitingMechanism(SAOMechanism):
                     dist = math.sqrt(dist)
                     if dist < min_dist:
                         min_dist = dist
-            self.elicitation_state["pareto_distance"] = (
-                min_dist if min_dist < 1e12 else None
-            )
+            self.elicitation_state["pareto_distance"] = min_dist if min_dist < 1e12 else None
         else:
             self.elicitation_state["pareto_distance"] = None
         try:
-            self.elicitation_state["queries"] = [
-                str(_) for _ in self.negotiators[1].user.elicited_queries()
-            ]
+            self.elicitation_state["queries"] = [str(_) for _ in self.negotiators[1].user.elicited_queries()]
         except:
             self.elicitation_state["queries"] = None
         try:
-            self.elicitation_state["n_queries"] = len(
-                self.negotiators[1].user.elicited_queries()
-            )
+            self.elicitation_state["n_queries"] = len(self.negotiators[1].user.elicited_queries())
         except:
             self.elicitation_state["n_queries"] = None
         if hasattr(self.negotiators[1], "total_voi"):

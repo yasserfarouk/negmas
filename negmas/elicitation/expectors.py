@@ -62,9 +62,7 @@ class BalancedExpector(Expector):
         if isinstance(u, float):
             return u
         else:
-            return state.relative_time * u.loc + (1.0 - state.relative_time) * (
-                u.loc + u.scale
-            )
+            return state.relative_time * u.loc + (1.0 - state.relative_time) * (u.loc + u.scale)
 
 
 class AspiringExpector(Expector):
@@ -72,9 +70,7 @@ class AspiringExpector(Expector):
         self,
         nmi: NegotiatorMechanismInterface | None = None,
         max_aspiration=1.0,
-        aspiration_type: (
-            Literal["linear"] | Literal["conceder"] | Literal["boulware"] | float
-        ) = "linear",
+        aspiration_type: (Literal["linear"] | Literal["conceder"] | Literal["boulware"] | float) = "linear",
     ):
         Expector.__init__(self, nmi=nmi)
         self.__asp = PolyAspiration(max_aspiration, aspiration_type)

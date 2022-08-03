@@ -107,8 +107,7 @@ class Controller(Rational):
         return {
             k: v
             for k, v in self._negotiators.items()
-            if v[0].nmi is not None
-            and (v[0].nmi.state.running or not v[0].nmi.state.started)
+            if v[0].nmi is not None and (v[0].nmi.state.running or not v[0].nmi.state.started)
         }
 
     @property
@@ -149,8 +148,7 @@ class Controller(Rational):
             negotiator_type = get_class(negotiator_type)  # type: ignore
         if negotiator_type is None:
             raise ValueError(
-                "No negotiator type is passed and no default negotiator type is defined for this "
-                "controller"
+                "No negotiator type is passed and no default negotiator type is defined for this " "controller"
             )
         args = self.__default_negotiator_params
         if kwargs:
@@ -374,9 +372,7 @@ class Controller(Rational):
         negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        permission = self.before_join(
-            negotiator, nmi, state, preferences=preferences, role=role
-        )
+        permission = self.before_join(negotiator, nmi, state, preferences=preferences, role=role)
         if not permission:
             return False
         if hasattr(negotiator, "join") and self.call(
@@ -486,15 +482,11 @@ class Controller(Rational):
             self.kill_negotiator(negotiator_id=negotiator_id, force=True)
         return result
 
-    def on_notification(
-        self, negotiator_id: str, notification: Notification, notifier: str
-    ):
+    def on_notification(self, negotiator_id: str, notification: Notification, notifier: str):
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(
-            negotiator, "on_notification", notification=notification, notifier=notifier
-        )
+        return self.call(negotiator, "on_notification", notification=notification, notifier=notifier)
 
     def __str__(self):
         return f"{self.name}"

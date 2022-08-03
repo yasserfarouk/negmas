@@ -43,9 +43,7 @@ class MAPNegotiator(SAOModularNegotiator):
     ):
         components, names = [], []
         if models:
-            for i, (m, n) in enumerate(
-                zip(models, model_names if model_names else itertools.repeat(None))
-            ):
+            for i, (m, n) in enumerate(zip(models, model_names if model_names else itertools.repeat(None))):
                 if not m:
                     continue
                 components.append(m)
@@ -60,9 +58,7 @@ class MAPNegotiator(SAOModularNegotiator):
             extra_components = list(extra_components)
             components += extra_components
             if not extra_component_names:
-                extra_component_names = [
-                    f"extra{i}" for i in range(len(extra_components))
-                ]
+                extra_component_names = [f"extra{i}" for i in range(len(extra_components))]
             names += extra_component_names
         self._acceptance = acceptance
         self._offering = offering

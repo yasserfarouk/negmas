@@ -80,18 +80,14 @@ def plot_offer_utilities(
         axes = [ax, ax.twinx()]
         one_y = False
 
-    colors, markers = make_colors_and_markers(
-        colors, markers, len(plotting_negotiators), colormap
-    )
+    colors, markers = make_colors_and_markers(colors, markers, len(plotting_negotiators), colormap)
 
     if xdim.startswith("step") or xdim.startswith("round"):
         trace_info = [(_.offer, _.step) for _ in trace if _.negotiator == negotiator]
     elif xdim.startswith("time") or xdim.startswith("real"):
         trace_info = [(_.offer, _.time) for _ in trace if _.negotiator == negotiator]
     else:
-        trace_info = [
-            (_.offer, _.relative_time) for _ in trace if _.negotiator == negotiator
-        ]
+        trace_info = [(_.offer, _.relative_time) for _ in trace if _.negotiator == negotiator]
     x = [_[-1] for _ in trace_info]
     for i, (u, neg, a) in enumerate(zip(plotting_ufuns, plotting_negotiators, axes)):
         name = map_(neg)
@@ -114,9 +110,7 @@ def plot_offer_utilities(
             color=colors[i % len(colors)],
             linestyle="solid" if neg == negotiator else "dotted",
             linewidth=2 if neg == negotiator else 1,
-            marker=markers[i % len(markers)]
-            if len(trace_info) < ignore_markers_limit
-            else None,
+            marker=markers[i % len(markers)] if len(trace_info) < ignore_markers_limit else None,
         )
         if reserved:
             a.plot(
@@ -132,9 +126,7 @@ def plot_offer_utilities(
             a.set_ylim(ylimits)
         a.set_ylabel(f"{name} ({i}) utility" if not one_y else "utility")
         if show_legend and len(plotting_negotiators) == 2:
-            a.legend(
-                loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.2)
-            )
+            a.legend(loc=f"upper {'left' if not i else 'right'}", bbox_to_anchor=(i, 1.2))
     if show_legend and len(plotting_negotiators) != 2:
         ax.legend(
             bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
@@ -203,17 +195,12 @@ def plot_2dutils(
     frontier_indices = [
         i
         for i, _ in enumerate(frontier)
-        if _[0] is not None
-        and _[0] > float("-inf")
-        and _[1] is not None
-        and _[1] > float("-inf")
+        if _[0] is not None and _[0] > float("-inf") and _[1] is not None and _[1] > float("-inf")
     ]
     frontier = [frontier[i] for i in frontier_indices]
     frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
 
-    colors, markers = make_colors_and_markers(
-        colors, markers, len(offering_negotiators), colormap
-    )
+    colors, markers = make_colors_and_markers(colors, markers, len(offering_negotiators), colormap)
 
     agreement_utility = tuple(u(agreement) for u in plotting_ufuns)
     unknown_agreement_utility = None in agreement_utility
@@ -231,9 +218,7 @@ def plot_2dutils(
     pareto_distance = float("inf")
     nash_distance = float("inf")
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
-    ax.scatter(
-        f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE)
-    )
+    ax.scatter(f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE))
     ax.set_xlabel(agent_names[0] + f"(0) utility")
     ax.set_ylabel(agent_names[1] + f"(1) utility")
     cu = agreement_utility
@@ -265,10 +250,7 @@ def plot_2dutils(
     )
 
     if show_reserved:
-        ranges = [
-            plotting_ufuns[_].minmax(outcome_space=outcome_space)
-            for _ in range(len(plotting_ufuns))
-        ]
+        ranges = [plotting_ufuns[_].minmax(outcome_space=outcome_space) for _ in range(len(plotting_ufuns))]
         for i, (mn, mx) in enumerate(ranges):
             if any(_ is None or not math.isfinite(_) for _ in (mn, mx)):
                 x = []
@@ -411,9 +393,7 @@ def plot_mechanism_run(
     if negotiators is None:
         negotiators = (0, 1)
     if len(negotiators) != 2:
-        raise ValueError(
-            f"Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators"
-        )
+        raise ValueError(f"Cannot plot the 2D plot for the mechanism run without knowing two plotting negotiators")
     plotting_negotiators = []
     plotting_ufuns = []
     for n in negotiators:
@@ -429,9 +409,7 @@ def plot_mechanism_run(
     fig = plt.figure()
     gs = gridspec.GridSpec(mechanism.nmi.n_negotiators, 2)
     axs = []
-    colors, markers = make_colors_and_markers(
-        colors, markers, len(mechanism.negotiators), colormap
-    )
+    colors, markers = make_colors_and_markers(colors, markers, len(mechanism.negotiators), colormap)
 
     name_map = dict(zip(mechanism.negotiator_ids, mechanism.negotiator_names))
     all_ufuns = [_.ufun for _ in mechanism.negotiators]

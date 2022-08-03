@@ -119,9 +119,7 @@ class BaseVOIElicitor(BaseElicitor):
         self.total_voi = 0.0
 
     @abstractmethod
-    def _query_eeu(
-        self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-    ) -> float:
+    def _query_eeu(self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu) -> float:
         """
         Find the eeu value associated with this query and return it with
         the query index.
@@ -150,9 +148,7 @@ class BaseVOIElicitor(BaseElicitor):
             if query is None or outcome is None:
                 continue
             outcome_index = self.indices[outcome]
-            qeeu = self._query_eeu(
-                query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-            )
+            qeeu = self._query_eeu(query, qindex, outcome, cost, outcome_index, eu_policy, eeu)
             eeu_query.append((qeeu, qindex))
         heapify(eeu_query)
         self.eeu_query = eeu_query
@@ -196,21 +192,14 @@ class BaseVOIElicitor(BaseElicitor):
                 "If you are not using a dynamic query set, then you cannot pass a strategy. It will not be used"
             )
         if not self.dynamic_query_set and self.queries is None and queries is None:
-            raise ValueError(
-                "If you are not using a dynamic query set then you must pass a set of queries"
-            )
+            raise ValueError("If you are not using a dynamic query set then you must pass a set of queries")
         if self.dynamic_query_set and queries is not None:
-            raise ValueError(
-                "You cannot pass a set of queries if you use dynamic ask sets"
-            )
+            raise ValueError("You cannot pass a set of queries if you use dynamic ask sets")
         if not self.dynamic_query_set and queries is not None:
             self.queries += queries
         self.init_optimal_policy()
         if self.dynamic_query_set:
-            self.queries = [
-                (outcome, self.strategy.next_query(outcome), 0.0)
-                for outcome in nmi.outcomes
-            ]
+            self.queries = [(outcome, self.strategy.next_query(outcome), 0.0) for outcome in nmi.outcomes]
         else:
             if self.update_related_queries:
                 queries_of_outcome = defaultdict(list)
@@ -246,9 +235,7 @@ class BaseVOIElicitor(BaseElicitor):
             return None, self.reserved_value
         return (
             self._nmi.outcomes[outcome_index],
-            self.expect(
-                self.preferences(self._nmi.outcomes[outcome_index]), state=state
-            ),
+            self.expect(self.preferences(self._nmi.outcomes[outcome_index]), state=state),
         )
 
     def can_elicit(self) -> bool:
@@ -262,9 +249,7 @@ class BaseVOIElicitor(BaseElicitor):
     def before_eliciting(self):
         """Called every round before trying to elicit. Does nothing"""
 
-    def on_opponent_model_updated(
-        self, outcomes: list[Outcome], old: list[float], new: list[float]
-    ) -> None:
+    def on_opponent_model_updated(self, outcomes: list[Outcome], old: list[float], new: list[float]) -> None:
         """
         Called whenever the opponent model is updated.
 
@@ -281,9 +266,7 @@ class BaseVOIElicitor(BaseElicitor):
             self.init_optimal_policy()
             self.init_query_eeus()
 
-    def update_optimal_policy(
-        self, index: int, outcome: Outcome, oldu: float, newu: float
-    ):
+    def update_optimal_policy(self, index: int, outcome: Outcome, oldu: float, newu: float):
         """Updates the optimal policy after a change to the utility value
         of some outcome.
 
@@ -343,8 +326,7 @@ class BaseVOIElicitor(BaseElicitor):
         if q is None or -eeu <= self.current_eeu:
             return False
         if (not self.continue_eliciting_past_reserved_val) and (
-            -eeu - (self.user.cost_of_asking() + self.elicitation_cost)
-            < self.reserved_value
+            -eeu - (self.user.cost_of_asking() + self.elicitation_cost) < self.reserved_value
         ):
             return False
         outcome, query, cost = self.queries[q]
@@ -396,9 +378,7 @@ class BaseVOIElicitor(BaseElicitor):
             self.preferences.distributions[outcome] = newu & oldu
         eu = float(newu)
         self.eus[outcome_index] = eu
-        self.update_optimal_policy(
-            index=outcome_index, outcome=outcome, oldu=float(oldu), newu=eu
-        )
+        self.update_optimal_policy(index=outcome_index, outcome=outcome, oldu=float(oldu), newu=eu)
         if self.dynamic_query_set:
             o, q, c = outcome, self.strategy.next_query(outcome), 0.0
             if not (o is None or q is None):
@@ -483,9 +463,7 @@ class VOIElicitor(BaseVOIElicitor):
                 _policy = np.array([_[1] for _ in candidate_policy])
                 _eus = np.array([_[0] for _ in candidate_policy])
                 current_eeu = self.eeu(policy=_policy, eus=_eus)
-                if (
-                    current_eeu > best_eeu
-                ):  # all numbers are negative so really that means current_eeu > best_eeu
+                if current_eeu > best_eeu:  # all numbers are negative so really that means current_eeu > best_eeu
                     best_eeu, best_index, eu_policy = current_eeu, i, candidate_policy
             if best_index is not None:
                 indices.remove(best_index)
@@ -495,9 +473,7 @@ class VOIElicitor(BaseVOIElicitor):
         heapify(eu_policy)
         self.eu_policy, self.current_eeu = eu_policy, best_eeu
 
-    def _query_eeu(
-        self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-    ) -> float:
+    def _query_eeu(self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu) -> float:
         current_util = self.preferences(outcome)
         answers = query.answers
         answer_probabilities = query.probs
@@ -564,9 +540,7 @@ class VOIFastElicitor(BaseVOIElicitor):
         for j, pp in enumerate(self.eu_policy):
             self.outcome_in_policy[pp[1]] = pp
 
-    def _query_eeu(
-        self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-    ) -> float:
+    def _query_eeu(self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu) -> float:
         answers = query.answers
         answer_probabilities = query.probs
         answer_eeus = []
@@ -613,12 +587,7 @@ class VOIFastElicitor(BaseVOIElicitor):
                                     - s[old_indx]
                                 )
                             else:
-                                reeu = (
-                                    s_before_dst
-                                    + a * u_new * p[new_indx]
-                                    + eeu
-                                    - s[old_indx]
-                                )
+                                reeu = s_before_dst + a * u_new * p[new_indx] + eeu - s[old_indx]
                 except FloatingPointError:
                     pass
 
@@ -676,9 +645,7 @@ class VOINoUncertaintyElicitor(BaseVOIElicitor):
     def add_query(self, qeeu: tuple[float, int]) -> None:
         pass
 
-    def _query_eeu(
-        self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu
-    ) -> float:
+    def _query_eeu(self, query, qindex, outcome, cost, outcome_index, eu_policy, eeu) -> float:
         return -1.0
 
     def elicit_single(self, state: MechanismState):
@@ -765,16 +732,12 @@ class VOIOptimalElicitor(BaseElicitor):
         sk1, sk, pk = s[k - 1] if k > 0 else 0.0, s[k], p[k]
         for jp in range(k + 1):
             sjp1, sjp = s[jp - 1] if jp > 0 else 0.0, s[jp]
-            if (
-                beta < eus[jp]
-            ):  # ignore cases where it is impossible to go to this low j
+            if beta < eus[jp]:  # ignore cases where it is impossible to go to this low j
                 continue
             for jm in range(k, n):
                 if jp == k and jm == k:
                     continue
-                if (
-                    alpha > eus[jp]
-                ):  # ignore cases where it is impossible to go to this large j
+                if alpha > eus[jp]:  # ignore cases where it is impossible to go to this large j
                     continue
                 try:
                     _, sjm = s[jm - 1] if jm > 0 else 0.0, s[jm]
@@ -787,28 +750,17 @@ class VOIOptimalElicitor(BaseElicitor):
                     if jp < k < jm:  # Problem 1
                         a = (m2 * pjm1 - m * pjp) / (2 * delta)
                         b = (y - z) / delta
-                        c = (
-                            2 * z * beta
-                            + m * pjp * beta * beta
-                            - 2 * y * alpha
-                            - m2 * pjm1 * alpha * alpha
-                        ) / (2 * delta)
+                        c = (2 * z * beta + m * pjp * beta * beta - 2 * y * alpha - m2 * pjm1 * alpha * alpha) / (
+                            2 * delta
+                        )
                     elif jp < k == jm:  # Problem 2
                         a = m * (pk - pjp) / (2 * delta)
                         b = -(2 * z + m * pk * (beta + alpha)) / (2 * delta)
-                        c = (
-                            beta
-                            * (2 * z + m * pjp * beta + m * pk * alpha)
-                            / (2 * delta)
-                        )
+                        c = beta * (2 * z + m * pjp * beta + m * pk * alpha) / (2 * delta)
                     else:  # Problem 3
                         a = (m2 * pjm1 - m * pk) / (2 * delta)
                         b = (2 * y + m * pk * (beta + alpha)) / (2 * delta)
-                        c = (
-                            -alpha
-                            * (2 * y + m * pk * beta + m2 * pjm1 * alpha)
-                            / (2 * delta)
-                        )
+                        c = -alpha * (2 * y + m * pk * beta + m2 * pjm1 * alpha) / (2 * delta)
                     if abs(a) < 1e-6:
                         continue
                     x = -b / (2 * a)
@@ -859,9 +811,7 @@ class VOIOptimalElicitor(BaseElicitor):
         self.eeu_query = []
         heapify(self.eeu_query)
         for k, outcome_indx in enumerate(policy):
-            self._update_query_eeus(
-                k=k, outcome=outcomes[outcome_indx], s=s, p=p, n=n, eeu=eeu, eus=eus
-            )
+            self._update_query_eeus(k=k, outcome=outcomes[outcome_indx], s=s, p=p, n=n, eeu=eeu, eus=eus)
 
     def init_optimal_policy(self) -> None:
         """Gets the optimal policy given Negotiator utility_priors"""
@@ -904,9 +854,7 @@ class VOIOptimalElicitor(BaseElicitor):
     ) -> None:
         super().init_elicitation(preferences=preferences)
         if queries is not None:
-            raise ValueError(
-                f"self.__class__.__name__ does not allow the user to specify queries"
-            )
+            raise ValueError(f"self.__class__.__name__ does not allow the user to specify queries")
         strt_time = time.perf_counter()
         nmi = self._nmi
         self.eus = np.array([_.mean() for _ in self.utility_distributions()])
@@ -932,9 +880,7 @@ class VOIOptimalElicitor(BaseElicitor):
             return None, self.reserved_value
         return (
             self._nmi.outcomes[outcome_index],
-            self.expect(
-                self.preferences(self._nmi.outcomes[outcome_index]), state=state
-            ),
+            self.expect(self.preferences(self._nmi.outcomes[outcome_index]), state=state),
         )
 
     def can_elicit(self) -> bool:
@@ -943,16 +889,12 @@ class VOIOptimalElicitor(BaseElicitor):
     def before_eliciting(self):
         pass
 
-    def on_opponent_model_updated(
-        self, outcomes: list[Outcome], old: list[float], new: list[float]
-    ) -> None:
+    def on_opponent_model_updated(self, outcomes: list[Outcome], old: list[float], new: list[float]) -> None:
         if any(o != n for o, n in zip(old, new)):
             self.init_optimal_policy()
             self.init_query_eeus()
 
-    def update_optimal_policy(
-        self, index: int, outcome: Outcome, oldu: float, newu: float
-    ):
+    def update_optimal_policy(self, index: int, outcome: Outcome, oldu: float, newu: float):
         """Updates the optimal policy after a change happens to some utility"""
         if oldu != newu:
             self.init_optimal_policy()
@@ -966,8 +908,7 @@ class VOIOptimalElicitor(BaseElicitor):
         if q is None or -eeu <= self.current_eeu:
             return False
         if (not self.continue_eliciting_past_reserved_val) and (
-            -eeu - (self.user.cost_of_asking() + self.elicitation_cost)
-            < self.reserved_value
+            -eeu - (self.user.cost_of_asking() + self.elicitation_cost) < self.reserved_value
         ):
             return False
         outcome, query, _ = self.queries[q]
@@ -1016,9 +957,7 @@ class VOIOptimalElicitor(BaseElicitor):
             self.preferences.distributions[outcome] = newu & oldu
         eu = float(newu)
         self.eus[outcome_index] = eu
-        self.update_optimal_policy(
-            index=outcome_index, outcome=outcome, oldu=float(oldu), newu=eu
-        )
+        self.update_optimal_policy(index=outcome_index, outcome=outcome, oldu=float(oldu), newu=eu)
         self._update_query_eeus(
             k=outcome_index,
             outcome=outcome,

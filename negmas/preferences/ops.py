@@ -114,9 +114,7 @@ def make_discounted_ufun(
     return ufun
 
 
-def _pareto_frontier(
-    points, eps=-1e-18, sort_by_welfare=False
-) -> tuple[list[tuple[float]], list[int]]:
+def _pareto_frontier(points, eps=-1e-18, sort_by_welfare=False) -> tuple[list[tuple[float]], list[int]]:
     """Finds the pareto-frontier of a set of points
 
     Args:
@@ -160,9 +158,7 @@ def _pareto_frontier(
                     # neither current nor f dominate each other, append current only if it is not
                     # dominated by anything in frontier
                     for j, (_, g) in enumerate(frontier[i + 1 :]):
-                        if np.all(current == g) or (
-                            np.any(g > current) and not np.any(current > g)
-                        ):
+                        if np.all(current == g) or (np.any(g > current) and not np.any(current > g)):
                             break
                     else:
                         frontier.append((indices[p], current))
@@ -286,9 +282,7 @@ def scale_max(
         UtilityFunction: A utility function that is guaranteed to be normalized for the set of given outcomes
 
     """
-    return ufun.scale_max_for(
-        to, issues=issues, outcome_space=outcome_space, outcomes=outcomes
-    )
+    return ufun.scale_max_for(to, issues=issues, outcome_space=outcome_space, outcomes=outcomes)
 
 
 def normalize(
@@ -339,9 +333,7 @@ def sample_outcome_with_utility(
         - Either issues, or outcomes should be given but not both
 
     """
-    return ufun.sample_outcome_with_utility(
-        rng, outcome_space, issues, outcomes, n_trials
-    )
+    return ufun.sample_outcome_with_utility(rng, outcome_space, issues, outcomes, n_trials)
 
 
 def extreme_outcomes(
@@ -446,16 +438,12 @@ def opposition_level(
     if not isinstance(max_utils, Iterable):
         max_utils: Iterable[float] = [max_utils] * len(ufuns)
     if len(ufuns) != len(max_utils):
-        raise ValueError(
-            f"Cannot use {len(ufuns)} ufuns with only {len(max_utils)} max. utility values"
-        )
+        raise ValueError(f"Cannot use {len(ufuns)} ufuns with only {len(max_utils)} max. utility values")
 
     nearest_val = float("inf")
     for outcome in outcomes:
         v = sum(
-            (1.0 - float(u(outcome)) / max_util) ** 2
-            if max_util
-            else (1.0 - float(u(outcome))) ** 2
+            (1.0 - float(u(outcome)) / max_util) ** 2 if max_util else (1.0 - float(u(outcome))) ** 2
             for max_util, u in zip(max_utils, ufuns)
         )
         if v == float("inf"):

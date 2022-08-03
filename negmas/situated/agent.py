@@ -244,8 +244,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
     def on_event(self, event: Event, sender: EventSource):
         if not isinstance(sender, Mechanism) and not isinstance(sender, Mechanism):
             raise ValueError(
-                f"Sender of the negotiation end event is of type {sender.__class__.__name__} "
-                f"not Mechanism!!"
+                f"Sender of the negotiation end event is of type {sender.__class__.__name__} " f"not Mechanism!!"
             )
 
     @abstractmethod
@@ -280,14 +279,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self._requested_negotiations.pop(req_id, None)
 
     @abstractmethod
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         """Called when a requested negotiation is accepted"""
 
-    def on_neg_request_accepted_(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted_(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         """Called when a requested negotiation is accepted"""
         my_request = req_id is not None
         _request_dict = self._requested_negotiations
@@ -331,14 +326,10 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         self._running_negotiations.pop(mechanism.id, None)
 
     @abstractmethod
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         """Called whenever a negotiation ends with agreement"""
 
-    def on_negotiation_success_(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success_(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         """Called whenever a negotiation ends with agreement"""
         self.on_negotiation_success(contract, mechanism)
         self._unsigned_contracts.add(contract)
@@ -477,9 +468,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
             self.on_contract_cancelled_(contract, r)
 
     @abstractmethod
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: list[Breach]
-    ) -> RenegotiationRequest | None:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: list[Breach]) -> RenegotiationRequest | None:
         """
         Received by partners in ascending order of their total breach levels in order to set the
         renegotiation agenda when contract execution fails
@@ -517,9 +506,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         only after they are signed."""
         return self.id
 
-    def sign_all_contracts(
-        self, contracts: list[Contract]
-    ) -> None | str | dict[str, str | None] | list[str | None]:
+    def sign_all_contracts(self, contracts: list[Contract]) -> None | str | dict[str, str | None] | list[str | None]:
         """Called to sign all contracts concluded in a single step by this agent
 
         Args:
@@ -551,9 +538,7 @@ class Agent(Entity, EventSink, ConfigReader, Notifier, Rational, ABC):
         """
 
     @abstractmethod
-    def on_contract_breached(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
-    ) -> None:
+    def on_contract_breached(self, contract: Contract, breaches: list[Breach], resolution: Contract | None) -> None:
         """
         Called after complete processing of a contract that involved a breach.
 

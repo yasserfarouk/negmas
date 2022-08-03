@@ -23,9 +23,7 @@ class TimeInAgreementMixin:
     def on_contract_signed(self: World, contract: Contract):
         result = super().on_contract_signed(contract=contract)
         if result:
-            self.contracts_per_step[contract.agreement[self._time_field_name]].append(
-                contract
-            )
+            self.contracts_per_step[contract.agreement[self._time_field_name]].append(contract)
         return result
 
     def executable_contracts(self: World) -> Collection[Contract]:
@@ -86,9 +84,7 @@ class NoContractExecutionMixin:
     def start_contract_execution(self, contract: Contract) -> set[Breach]:
         return set()
 
-    def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract
-    ) -> None:
+    def complete_contract_execution(self, contract: Contract, breaches: list[Breach], resolution: Contract) -> None:
         pass
 
 
@@ -98,9 +94,7 @@ class NoResponsesMixin:
     def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         pass
 
     def on_negotiation_failure(
@@ -112,9 +106,7 @@ class NoResponsesMixin:
     ) -> None:
         pass
 
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         pass
 
     def on_contract_signed(self, contract: Contract) -> bool:
@@ -123,9 +115,7 @@ class NoResponsesMixin:
     def on_contract_cancelled(self, contract: Contract, rejectors: list[str]) -> None:
         pass
 
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: list[Breach]
-    ) -> RenegotiationRequest | None:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: list[Breach]) -> RenegotiationRequest | None:
         pass
 
     def respond_to_renegotiation_request(
@@ -136,7 +126,5 @@ class NoResponsesMixin:
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
-    def on_contract_breached(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
-    ) -> None:
+    def on_contract_breached(self, contract: Contract, breaches: list[Breach], resolution: Contract | None) -> None:
         pass

@@ -49,16 +49,12 @@ class RankOnlyUtilityFunction(StationaryMixin, UtilityFunction):
             raise ValueError(
                 f"Cannot create a RankOnly utility function for the given ufun because the outcome space is not discrete\n{ufun.outcome_space}"
             )
-        super().__init__(
-            outcome_space=ufun.outcome_space, name=name, id=id, type_name=type_name
-        )
+        super().__init__(outcome_space=ufun.outcome_space, name=name, id=id, type_name=type_name)
         if math.isinf(ufun.reserved_value):
             outcomes = ufun.outcome_space.enumerate_or_sample()
         else:
             outcomes = chain(ufun.outcome_space.enumerate_or_sample(), [None])
-        ordered: list[tuple[float, Outcome | None]] = [
-            (float(ufun(_)), _) for _ in outcomes
-        ]
+        ordered: list[tuple[float, Outcome | None]] = [(float(ufun(_)), _) for _ in outcomes]
         ordered = sorted(ordered, key=lambda x: x[0], reverse=True)
         ranked: list[tuple[Outcome | None, int]]
         if randomize_equal:

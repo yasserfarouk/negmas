@@ -31,13 +31,9 @@ class AgentWorldInterface:
     def __init__(self, world: World, agent: Agent):
         self._world, self.agent = world, agent
 
-    def execute(
-        self, action: Action, callback: Callable[[Action, bool], Any] | None = None
-    ) -> bool:
+    def execute(self, action: Action, callback: Callable[[Action, bool], Any] | None = None) -> bool:
         """Executes an action in the world simulation"""
-        return self._world.execute_action(
-            action=action, agent=self.agent, callback=callback
-        )
+        return self._world.execute_action(action=action, agent=self.agent, callback=callback)
 
     @property
     def state(self) -> Any:
@@ -232,9 +228,7 @@ class AgentWorldInterface:
 
 
         """
-        partner_agents = [
-            self._world.agents[_] if isinstance(_, str) else _ for _ in partners
-        ]
+        partner_agents = [self._world.agents[_] if isinstance(_, str) else _ for _ in partners]
         return self._world.request_negotiation_about(
             req_id=req_id,
             caller=self.agent,
@@ -348,9 +342,7 @@ class AgentWorldInterface:
         """
         self._world.logerror_agent(self.agent.id, msg)
 
-    def bb_query(
-        self, section: str | list[str] | None, query: Any, query_keys=False
-    ) -> dict[str, Any] | None:
+    def bb_query(self, section: str | list[str] | None, query: Any, query_keys=False) -> dict[str, Any] | None:
         """
         Returns all records in the given section/sections of the bulletin-board that satisfy the query
 
@@ -374,9 +366,7 @@ class AgentWorldInterface:
         """
         if not self._world.bulletin_board:
             return None
-        return self._world.bulletin_board.query(
-            section=section, query=query, query_keys=query_keys
-        )
+        return self._world.bulletin_board.query(section=section, query=query, query_keys=query_keys)
 
     def bb_read(self, section: str, key: str) -> Any | None:
         """

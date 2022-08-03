@@ -78,9 +78,7 @@ def from_file(f):
     # return deserialize(eval(s))
 
 
-TOURNAMENTS_BASE_PATH = Path(
-    negmas_config("tournaments_base", Path.home() / "negmas" / "tournaments")
-)
+TOURNAMENTS_BASE_PATH = Path(negmas_config("tournaments_base", Path.home() / "negmas" / "tournaments"))
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 # files created before running worlds
 PARAMS_FILE = "params.json"
@@ -114,9 +112,7 @@ except:
 
 def _hash(*args) -> str:
     """Generates a unique ID given any inputs"""
-    return hashlib.sha1(
-        ("h" + "".join([str(_) for _ in args])).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha1(("h" + "".join([str(_) for _ in args])).encode("utf-8")).hexdigest()
 
 
 class WorldGenerator(Protocol):
@@ -220,18 +216,12 @@ class WorldRunResults:
     """Agent scores"""
     types: list[str] = field(default_factory=list, init=False)
     """Agent type names"""
-    extra_scores: dict[str, list[dict[str, Any]]] = field(
-        default_factory=dict, init=False
-    )
+    extra_scores: dict[str, list[dict[str, Any]]] = field(default_factory=dict, init=False)
     """The extra-scores (i.e. extra evaluation metrics). Each is a list of records"""
 
 
 def score_adapter(scores_data: dict[str, Any]) -> WorldRunResults:
-    world_names = (
-        [scores_data["name"]]
-        if isinstance(scores_data["name"], str)
-        else scores_data["world_names"]
-    )
+    world_names = [scores_data["name"]] if isinstance(scores_data["name"], str) else scores_data["world_names"]
     paths = scores_data["world_paths"]
     if isinstance(paths, str):
         paths = paths.split(";")
@@ -248,25 +238,17 @@ def score_adapter(scores_data: dict[str, Any]) -> WorldRunResults:
 
 @dataclass
 class AgentStats:
-    exceptions: dict[str, list[tuple[int, str]]] = field(
-        default_factory=lambda: defaultdict(list)
-    )
+    exceptions: dict[str, list[tuple[int, str]]] = field(default_factory=lambda: defaultdict(list))
     """All exceptions thrown per agent (not including negotiator exceptions)"""
-    negotiator_exceptions: dict[str, list[tuple[int, str]]] = field(
-        default_factory=lambda: defaultdict(list)
-    )
+    negotiator_exceptions: dict[str, list[tuple[int, str]]] = field(default_factory=lambda: defaultdict(list))
     """All exceptions thrown by negotiators of an agent"""
     times: dict[str, float] = field(default_factory=lambda: defaultdict(float))
     """Total execution time per agent"""
     neg_requests_sent: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiation Requests Sent"""
-    neg_requests_received: dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
+    neg_requests_received: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiation Requests Received"""
-    neg_requests_rejected: dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
+    neg_requests_rejected: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiation requests rejected"""
     negs_registered: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations registered"""
@@ -278,9 +260,7 @@ class AgentStats:
     """Negotiations timedout"""
     negs_initiated: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Negotiations initiated"""
-    contracts_concluded: dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
+    contracts_concluded: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts concluded"""
     contracts_signed: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts signed"""
@@ -292,9 +272,7 @@ class AgentStats:
     """breaches committed"""
     contracts_erred: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts erred"""
-    contracts_nullified: dict[str, int] = field(
-        default_factory=lambda: defaultdict(int)
-    )
+    contracts_nullified: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts nullified"""
     contracts_breached: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     """Contracts breached"""
@@ -528,14 +506,7 @@ def _run_worlds(
     attempts_path=None,
     max_attempts=float("inf"),
     verbose=False,
-) -> tuple[
-    str,
-    list[str],
-    WorldRunResults | None,
-    WorldSetRunStats | None,
-    AgentStats | None,
-    AgentStats | None,
-]:
+) -> tuple[str, list[str], WorldRunResults | None, WorldSetRunStats | None, AgentStats | None, AgentStats | None,]:
     """Runs a set of worlds (generated from a world generator) and returns stats
 
     Args:
@@ -689,9 +660,7 @@ def _run_worlds(
         running_file = running_folder / f"run{gethostname()}.{current_process().pid}"
         with open(running_file, "w") as rf:
             rf.write(unique_name(f"{gethostname()}.{current_process().pid}", sep="."))
-        attempts_file = attempts_path / unique_name(
-            f"att_{gethostname()}.{current_process().pid}", sep="."
-        )
+        attempts_file = attempts_path / unique_name(f"att_{gethostname()}.{current_process().pid}", sep=".")
         # this should be protected and atomic but who cares. If it completely broke down we will just
         # retry unnecessarily to run some worlds.
         n_attempts = len(list(running_folder.glob("att_*")))
@@ -736,14 +705,7 @@ def _run_worlds(
             world.save_config(dir_name)
             continue
     # try:
-    for (
-        world,
-        world_params_,
-        dir_name,
-        save_video,
-        video_saver,
-        video_saver_params,
-    ) in zip(
+    for (world, world_params_, dir_name, save_video, video_saver, video_saver_params,) in zip(
         worlds,
         worlds_params,
         dir_names,
@@ -872,9 +834,7 @@ def _run_worlds(
             if _:
                 agent_times[aid] += _
                 type_agent_times[w.agents[aid].type_name] += _
-                mean_agent_time = (mean_agent_time * n_agents_timed + _) / (
-                    n_agents_timed + 1
-                )
+                mean_agent_time = (mean_agent_time * n_agents_timed + _) / (n_agents_timed + 1)
                 n_agents_timed += 1
     # except Exception as e:
     #     scores = None
@@ -977,14 +937,7 @@ def run_world(
     attempts_path=None,
     max_attempts=float("inf"),
     verbose=False,
-) -> tuple[
-    str,
-    list[str],
-    WorldRunResults | None,
-    WorldSetRunStats | None,
-    AgentStats | None,
-    AgentStats | None,
-]:
+) -> tuple[str, list[str], WorldRunResults | None, WorldSetRunStats | None, AgentStats | None, AgentStats | None,]:
     """Runs a world and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -1010,8 +963,7 @@ def run_world(
     score_calculator = world_params.get("__score_calculator", None)
     tournament_name = world_params.get("__tournament_name", unique_name(base=""))
     assert world_generator and score_calculator, (
-        f"Cannot run without specifying both a world generator and a score "
-        f"calculator"
+        f"Cannot run without specifying both a world generator and a score " f"calculator"
     )
 
     world_generator = import_by_name(world_generator)
@@ -1046,14 +998,7 @@ def run_worlds(
     attempts_path=None,
     max_attempts=float("inf"),
     verbose=False,
-) -> tuple[
-    str,
-    list[str],
-    WorldRunResults | None,
-    WorldSetRunStats | None,
-    AgentStats | None,
-    AgentStats | None,
-]:
+) -> tuple[str, list[str], WorldRunResults | None, WorldSetRunStats | None, AgentStats | None, AgentStats | None,]:
     """Runs a set of worlds and returns stats. This function is designed to be used with distributed systems like dask.
 
     Args:
@@ -1091,8 +1036,7 @@ def run_worlds(
         score_calculator = world_params.get("__score_calculator", None)
         tournament_name = world_params.get("__tournament_name", unique_name(base=""))
         assert world_generator and score_calculator, (
-            f"Cannot run without specifying both a world generator and a score "
-            f"calculator"
+            f"Cannot run without specifying both a world generator and a score " f"calculator"
         )
         world_generator = import_by_name(world_generator)
         score_calculator = import_by_name(score_calculator)
@@ -1153,19 +1097,14 @@ def process_world_run(
     for log_file in log_files:
         if log_file is not None and pathlib.Path(log_file).exists():
             with open(log_file, "a") as f:
-                f.write(
-                    f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n"
-                )
+                f.write(f"\nPART of TOURNAMENT {tournament_name}. This world run completed successfully\n")
     scores = []
     log_files = [_ if _ is not None else "" for _ in log_files]
     stat_folders = ";".join(
-        str(pathlib.Path(log_file_name).name) if log_file_name else ""
-        for log_file_name in log_files
+        str(pathlib.Path(log_file_name).name) if log_file_name else "" for log_file_name in log_files
     )
     base_folder = str(pathlib.Path(log_files[0]).parent) if log_files[0] else ""
-    for id_, name_, type_, score in zip(
-        results.ids, results.names, results.types, results.scores
-    ):
+    for id_, name_, type_, score in zip(results.ids, results.names, results.types, results.scores):
         d = {
             "agent_name": name_,
             "agent_id": id_,
@@ -1186,9 +1125,7 @@ def process_world_run(
     return scores, results.extra_scores
 
 
-def _get_executor(
-    method, verbose, scheduler_ip=None, scheduler_port=None, total_timeout=None
-):
+def _get_executor(method, verbose, scheduler_ip=None, scheduler_port=None, total_timeout=None):
     """Returns an exeuctor object which has a submit method to submit calls to run worlds"""
     if method == "dask":
         try:
@@ -1425,21 +1362,15 @@ def _divide_into_sets(competitors, n_competitors_per_world):
     if len(competitors) % n_competitors_per_world == 0:
         return (
             np.array(competitors)
-            .reshape(
-                (len(competitors) // n_competitors_per_world, n_competitors_per_world)
-            )
+            .reshape((len(competitors) // n_competitors_per_world, n_competitors_per_world))
             .tolist()
         )
     n_div = (len(competitors) // n_competitors_per_world) * n_competitors_per_world
     divisable = competitors[:n_div]
     competitor_sets = (
-        np.array(divisable)
-        .reshape((len(divisable) // n_competitors_per_world, n_competitors_per_world))
-        .tolist()
+        np.array(divisable).reshape((len(divisable) // n_competitors_per_world, n_competitors_per_world)).tolist()
     )
-    competitor_sets.append(
-        competitors[n_div:] + ([None] * (n_competitors_per_world - n_div))
-    )
+    competitor_sets.append(competitors[n_div:] + ([None] * (n_competitors_per_world - n_div)))
     return competitor_sets
 
 
@@ -1488,14 +1419,12 @@ def get_world_paths(
 def run_tournament(
     tournament_path: str | Path,
     world_generator: WorldGenerator | None = None,
-    score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults]
-    | None = None,
+    score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults] | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
     scheduler_port: str | None = None,
-    tournament_progress_callback: Callable[[WorldRunResults | None, int, int], None]
-    | None = None,
+    tournament_progress_callback: Callable[[WorldRunResults | None, int, int], None] | None = None,
     world_progress_callback: Callable[[World | None], None] | None = None,
     verbose: bool = False,
     compact: bool | None = None,
@@ -1538,15 +1467,11 @@ def run_tournament(
     if world_generator is None:
         world_generator = import_by_name(params.get("world_generator_name", None))
         if world_generator is None:
-            raise ValueError(
-                f"world_generator Not found in the arguments on {str(tournament_path)}"
-            )
+            raise ValueError(f"world_generator Not found in the arguments on {str(tournament_path)}")
     if score_calculator is None:
         score_calculator = import_by_name(params.get("score_calculator_name", None))
         if score_calculator is None:
-            raise ValueError(
-                f"score_calculator Not found in the arguments on {str(tournament_path)}"
-            )
+            raise ValueError(f"score_calculator Not found in the arguments on {str(tournament_path)}")
     if total_timeout is None:
         total_timeout = params.get("total_timeout", None)
 
@@ -1648,9 +1573,7 @@ def run_tournament(
     # serial_timeout_options = ("serial-timeout", "serial_timeout", "t")
     if parallelism is None:
         parallelism = "serial"
-    assert (
-        total_timeout is None or parallelism not in dask_options
-    ), f"Cannot use {parallelism} with a total-timeout"
+    assert total_timeout is None or parallelism not in dask_options, f"Cannot use {parallelism} with a total-timeout"
     assert world_progress_callback is None or parallelism not in dask_options, (
         f"Cannot use {parallelism} with a " f"world callback"
     )
@@ -1688,14 +1611,7 @@ def run_tournament(
                     )
                 continue
             try:
-                (
-                    run_id,
-                    world_paths,
-                    score_,
-                    world_stats_,
-                    type_stats_,
-                    agent_stats_,
-                ) = _run_worlds(
+                (run_id, world_paths, score_, world_stats_, type_stats_, agent_stats_,) = _run_worlds(
                     worlds_params=worlds_params,
                     world_generator=world_generator,
                     world_progress_callback=world_progress_callback,
@@ -1729,9 +1645,7 @@ def run_tournament(
                 if print_exceptions:
                     print(traceback.format_exc())
                     print(e)
-    elif any(parallelism.startswith(_) for _ in multiprocessing_options) or (
-        parallelism in dask_options
-    ):
+    elif any(parallelism.startswith(_) for _ in multiprocessing_options) or (parallelism in dask_options):
         _run_parallel(
             parallelism,
             scheduler_ip,
@@ -1863,9 +1777,7 @@ def create_tournament(
 
     """
     if max_n_configs is not None and n_runs_per_config is not None:
-        n_runs_per_world = (
-            n_runs_per_config if n_runs_per_config is not None else n_runs_per_world
-        )
+        n_runs_per_world = n_runs_per_config if n_runs_per_config is not None else n_runs_per_world
         n_configs = max(1, int(math.log2(max_n_configs)))
         max_worlds_per_config = int(0.5 + max_n_configs / n_configs)
 
@@ -1903,9 +1815,7 @@ def create_tournament(
     base_tournament_path = _path(base_tournament_path)
     tournament_path = (pathlib.Path(base_tournament_path) / name).absolute()
     if tournament_path.exists() and not tournament_path.is_dir():
-        raise ValueError(
-            f"tournament path {str(tournament_path)} is a file. Cannot continue"
-        )
+        raise ValueError(f"tournament path {str(tournament_path)} is a file. Cannot continue")
     if tournament_path.exists():
         raise ValueError(
             f"tournament path {str(tournament_path)} exists. You cannot create two tournaments in the same place"
@@ -1916,11 +1826,7 @@ def create_tournament(
     if competitor_params is None:
         competitor_params = [dict() for _ in range(len(competitors))]
     competitors = [get_full_type_name(_) for _ in competitors]
-    non_competitors = (
-        None
-        if non_competitors is None
-        else [get_full_type_name(_) for _ in non_competitors]
-    )
+    non_competitors = None if non_competitors is None else [get_full_type_name(_) for _ in non_competitors]
     params = dict(
         competitors=competitors,
         competitor_params=competitor_params,
@@ -1958,9 +1864,7 @@ def create_tournament(
     ]
     for i, cs in enumerate(configs):
         for c in cs:
-            c["config_id"] = f"{i:04d}" + unique_name(
-                "", add_time=False, sep="", rand_digits=2
-            )
+            c["config_id"] = f"{i:04d}" + unique_name("", add_time=False, sep="", rand_digits=2)
             c["world_params"]["name"] = c["config_id"]
     to_file(configs, tournament_path / "base_configs")
     if verbose:
@@ -1971,9 +1875,7 @@ def create_tournament(
 
     competitor_info = list(zip(competitors, competitor_params))
     if round_robin:
-        competitor_sets = itertools.combinations(
-            competitor_info, n_competitors_per_world
-        )
+        competitor_sets = itertools.combinations(competitor_info, n_competitors_per_world)
     else:
         comp_ind = list(range(len(competitor_info)))
         random.shuffle(comp_ind)
@@ -1983,21 +1885,15 @@ def create_tournament(
     for effective_competitor_infos in competitor_sets:
         effective_competitors = [_[0] for _ in effective_competitor_infos]
         effective_params = [_[1] for _ in effective_competitor_infos]
-        effective_names = [
-            a + _hash(b)[:4] if b else a for a, b in effective_competitor_infos
-        ]
+        effective_names = [a + _hash(b)[:4] if b else a for a, b in effective_competitor_infos]
         effective_names = shortest_unique_names(effective_names, max_compression=True)
         if verbose:
-            print(
-                f"Running {'|'.join(effective_competitors)} together ({'|'.join(effective_names)})"
-            )
+            print(f"Running {'|'.join(effective_competitors)} together ({'|'.join(effective_names)})")
         myconfigs = copy.deepcopy(configs)
         for conf in myconfigs:
             for c in conf:
                 c["world_params"]["name"] += (
-                    "_"
-                    + "-".join(effective_names)
-                    + unique_name("", add_time=False, rand_digits=4, sep="")
+                    "_" + "-".join(effective_names) + unique_name("", add_time=False, rand_digits=4, sep="")
                 )
         this_assigned = list(
             itertools.chain(
@@ -2026,24 +1922,16 @@ def create_tournament(
         for c in config_set:
             c["world_params"].update(
                 {
-                    "log_folder": str(
-                        (
-                            tournament_path / run_id / c["world_params"]["name"]
-                        ).absolute()
-                    ),
+                    "log_folder": str((tournament_path / run_id / c["world_params"]["name"]).absolute()),
                     "log_to_file": not compact,
                 }
             )
 
     score_calculator_name = (
-        get_full_type_name(score_calculator)
-        if not isinstance(score_calculator, str)
-        else score_calculator
+        get_full_type_name(score_calculator) if not isinstance(score_calculator, str) else score_calculator
     )
     world_generator_name = (
-        get_full_type_name(world_generator)
-        if not isinstance(world_generator, str)
-        else world_generator
+        get_full_type_name(world_generator) if not isinstance(world_generator, str) else world_generator
     )
 
     params["n_worlds"] = len(assigned) * n_runs_per_world
@@ -2087,9 +1975,7 @@ def create_tournament(
                     "__dir_name": str(dir_name),
                 }
             )
-            config["world_params"].update(
-                {"log_file_name": "log.txt", "log_folder": str(dir_name)}
-            )
+            config["world_params"].update({"log_file_name": "log.txt", "log_folder": str(dir_name)})
     if forced_logs_fraction > 1e-5:
         n_logged = max(1, int(len(assigned) * forced_logs_fraction))
         for cs in assigned[:n_logged]:
@@ -2110,11 +1996,7 @@ def create_tournament(
                     if _[subkey].get("log_folder", None) is None:
                         _[subkey].update(
                             dict(
-                                log_folder=str(
-                                    (
-                                        tournament_path / run_id / _[subkey]["name"]
-                                    ).absolute()
-                                ),
+                                log_folder=str((tournament_path / run_id / _[subkey]["name"]).absolute()),
                             )
                         )
 
@@ -2130,11 +2012,7 @@ def create_tournament(
                 if _.get("log_folder", None) is None:
                     _.update(
                         dict(
-                            log_folder=str(
-                                (
-                                    tournament_path / run_id / _["world_params"]["name"]
-                                ).absolute()
-                            ),
+                            log_folder=str((tournament_path / run_id / _["world_params"]["name"]).absolute()),
                         )
                     )
     if save_video_fraction > 1e-5:
@@ -2153,10 +2031,7 @@ def create_tournament(
                 {
                     k: copy.copy(v)
                     if k != "competitors"
-                    else [
-                        get_full_type_name(c) if not isinstance(c, str) else c
-                        for c in v
-                    ]
+                    else [get_full_type_name(c) if not isinstance(c, str) else c for c in v]
                     for k, v in _.items()
                 }
             )
@@ -2221,9 +2096,7 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
     # print(last.columns)
     # print(last.index)
     # print("IN COMBINE ---------------")
-    last.columns = [
-        f"{str(c)}_final" if c not in ("world", "path") else c for c in last.columns
-    ]
+    last.columns = [f"{str(c)}_final" if c not in ("world", "path") else c for c in last.columns]
     last.set_index("world")
     last.drop("world", axis=1, inplace=True)
     combined.columns = combined.columns.to_flat_index()
@@ -2395,9 +2268,7 @@ def evaluate_tournament(
                 print("Compiling results from individual world runs")
             compile_results(tournament_path)
         scores_file = str(
-            tournament_path / SCORES_FILE
-            if extra_scores_to_use is None
-            else f"{extra_scores_to_use}.csv"
+            tournament_path / SCORES_FILE if extra_scores_to_use is None else f"{extra_scores_to_use}.csv"
         )
         world_stats_file = tournament_path / WORLD_STATS_FILE
         type_stats_file = tournament_path / TYPE_STATS_FILE
@@ -2413,16 +2284,12 @@ def evaluate_tournament(
             params = load(params_file)
         if scores is None:
             if recursive:
-                scores = combine_tournament_results(
-                    sources=[tournament_path], dest=None, verbose=verbose
-                )
+                scores = combine_tournament_results(sources=[tournament_path], dest=None, verbose=verbose)
             else:
                 scores = pd.read_csv(scores_file, index_col=None)
 
         if stats is None:
-            stats = combine_tournament_stats(
-                sources=[tournament_path], dest=None, verbose=False
-            )
+            stats = combine_tournament_stats(sources=[tournament_path], dest=None, verbose=False)
     if scores is not None and not isinstance(scores, pd.DataFrame):
         scores = pd.DataFrame(data=scores)
     if stats is not None and not isinstance(stats, pd.DataFrame):
@@ -2473,9 +2340,7 @@ def evaluate_tournament(
     score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
     score_stats.rename(columns={"50%": "median"}, inplace=True)
     assert total_scores is not None
-    winner_table = total_scores.loc[
-        total_scores["score"] == total_scores["score"].max(), :
-    ]
+    winner_table = total_scores.loc[total_scores["score"] == total_scores["score"].max(), :]
     winners = winner_table["agent_type"].values.tolist()
     winner_scores = winner_table["score"].values
     types = list(scores["agent_type"].unique())
@@ -2536,9 +2401,7 @@ def evaluate_tournament(
     if tournament_path is not None:
         tournament_path = pathlib.Path(tournament_path)
         scores.to_csv(str(tournament_path / SCORES_FILE), index_label="index")
-        total_scores.to_csv(
-            str(tournament_path / TOTAL_SCORES_FILE), index_label="index"
-        )
+        total_scores.to_csv(str(tournament_path / TOTAL_SCORES_FILE), index_label="index")
         winner_table.to_csv(str(tournament_path / WINNERS_FILE), index_label="index")
         score_stats.to_csv(str(tournament_path / SCORES_STATS_FILE), index=False)
         ttest_results = pd.DataFrame(data=ttest_results)
@@ -2593,8 +2456,7 @@ def tournament(
     parallelism="parallel",
     scheduler_ip: str | None = None,
     scheduler_port: str | None = None,
-    tournament_progress_callback: Callable[[WorldRunResults | None, int, int], None]
-    | None = None,
+    tournament_progress_callback: Callable[[WorldRunResults | None, int, int], None] | None = None,
     world_progress_callback: Callable[[World | None], None] | None = None,
     non_competitors: tuple[str | Any] | None = None,
     non_competitor_params: tuple[dict[str, Any]] | None = None,
@@ -2779,17 +2641,13 @@ def tournament(
 
     def _keep_n(competitors_, results_, n):
         tscores = results_.total_scores.sort_values(by=["score"], ascending=False)
-        sorted_indices = np.array(
-            [competitor_indx[_] for _ in tscores["agent_type"].values]
-        )[:n]
+        sorted_indices = np.array([competitor_indx[_] for _ in tscores["agent_type"].values])[:n]
         return np.array(competitors_)[sorted_indices].tolist()
 
     stage = 1
     while len(competitors) > 1:
         if verbose:
-            print(
-                f"Stage {stage} started between ({len(competitors)} competitors): {competitors} "
-            )
+            print(f"Stage {stage} started between ({len(competitors)} competitors): {competitors} ")
         stage_name = name + f"-stage-{stage:04}"
         if round_robin:
             n_winners_per_stage = min(

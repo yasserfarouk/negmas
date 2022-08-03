@@ -54,9 +54,7 @@ class VetoSTMechanism(Mechanism):
         kwargs["state_factory"] = STState
         super().__init__(*args, **kwargs)
 
-        self.add_requirements(
-            {"compare-binary": True}
-        )  # assert that all agents must have compare-binary capability
+        self.add_requirements({"compare-binary": True})  # assert that all agents must have compare-binary capability
         self._current_state.current_offer = initial_outcome
         """The current offer"""
         self.initial_outcome = deepcopy(initial_outcome)
@@ -88,9 +86,7 @@ class VetoSTMechanism(Mechanism):
 
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(
-                neg.is_better(new_offer, self._current_state.current_offer) is not False
-            )
+            responses.append(neg.is_better(new_offer, self._current_state.current_offer) is not False)
             if time.perf_counter() - strt > self.nmi.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 
@@ -104,8 +100,7 @@ class VetoSTMechanism(Mechanism):
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
         if self._current_state.current_offer is not None and all(
-            neg.is_acceptable_as_agreement(self._current_state.current_offer)
-            for neg in self.negotiators
+            neg.is_acceptable_as_agreement(self._current_state.current_offer) for neg in self.negotiators
         ):
             self._current_state.agreement = self._current_state.current_offer
 
@@ -164,10 +159,7 @@ class VetoSTMechanism(Mechanism):
         frontier_indices = [
             i
             for i, _ in enumerate(frontier)
-            if _[0] is not None
-            and _[0] > float("-inf")
-            and _[1] is not None
-            and _[1] > float("-inf")
+            if _[0] is not None and _[0] > float("-inf") and _[1] is not None and _[1] > float("-inf")
         ]
         frontier = [frontier[i] for i in frontier_indices]
         frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
@@ -181,9 +173,7 @@ class VetoSTMechanism(Mechanism):
             if a == 0:
                 axs_util.append(fig_util.add_subplot(gs_util[a, has_front]))
             else:
-                axs_util.append(
-                    fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0])
-                )
+                axs_util.append(fig_util.add_subplot(gs_util[a, has_front], sharex=axs_util[0]))
             axs_util[-1].set_ylabel(agent_names[a])
         for a, au in enumerate(axs_util):
             if au is None:
@@ -325,9 +315,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
 
         if len(self.possible_offers) == 0:
             return None
-        return self.possible_offers.pop(
-            random.randint(0, len(self.possible_offers)) - 1
-        )
+        return self.possible_offers.pop(random.randint(0, len(self.possible_offers)) - 1)
 
     def round(self) -> MechanismRoundResult:
         """Single round of the protocol"""
@@ -343,9 +331,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         responses = []
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(
-                neg.is_better(new_offer, self._current_state.current_offer) is not False
-            )
+            responses.append(neg.is_better(new_offer, self._current_state.current_offer) is not False)
             if time.perf_counter() - strt > self.nmi.step_time_limit:
                 return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 

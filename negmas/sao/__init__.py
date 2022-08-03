@@ -12,10 +12,5 @@ from .negotiators import *
 from .plots import *
 
 __all__ = (
-    common.__all__
-    + components.__all__
-    + mechanism.__all__
-    + negotiators.__all__
-    + controllers.__all__
-    + plots.__all__
+    common.__all__ + components.__all__ + mechanism.__all__ + negotiators.__all__ + controllers.__all__ + plots.__all__
 )

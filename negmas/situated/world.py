@@ -181,9 +181,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def breach_fraction(self) -> float:
         """Fraction of signed contracts that led to breaches"""
         n_breaches = sum(self.stats["n_breaches"])
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0])
         return n_breaches / n_signed_contracts if n_signed_contracts != 0 else 0.0
 
     breach_rate = breach_fraction
@@ -214,9 +212,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         that were cancelled."""
         n_negs = sum(self.stats["n_negotiations"])
         n_contracts = self.n_saved_contracts(False)
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0])
         return (1.0 - n_signed_contracts / n_contracts) if n_contracts != 0 else np.nan
 
     cancellation_rate = cancellation_fraction
@@ -236,30 +232,20 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self.logger.info(f"{self._log_header()}: " + s.strip())
 
     def set_bulletin_board(self, bulletin_board):
-        self.bulletin_board = (
-            bulletin_board if bulletin_board is not None else BulletinBoard()
-        )
+        self.bulletin_board = bulletin_board if bulletin_board is not None else BulletinBoard()
         self.bulletin_board.add_section("breaches")
         self.bulletin_board.add_section("stats")
         self.bulletin_board.add_section("settings")
         self.bulletin_board.record("settings", self.n_steps, "n_steps")
         self.bulletin_board.record("settings", self.time_limit, "time_limit")
-        self.bulletin_board.record(
-            "settings", self.negotiation_speed, "negotiation_speed"
-        )
+        self.bulletin_board.record("settings", self.negotiation_speed, "negotiation_speed")
         self.bulletin_board.record("settings", self.neg_n_steps, "neg_n_steps")
         self.bulletin_board.record("settings", self.neg_time_limit, "neg_time_limit")
-        self.bulletin_board.record(
-            "settings", self.neg_step_time_limit, "neg_step_time_limit"
-        )
-        self.bulletin_board.record(
-            "settings", self.default_signing_delay, "default_signing_delay"
-        )
+        self.bulletin_board.record("settings", self.neg_step_time_limit, "neg_step_time_limit")
+        self.bulletin_board.record("settings", self.default_signing_delay, "default_signing_delay")
         self.bulletin_board.record("settings", self.force_signing, "force_signing")
         self.bulletin_board.record("settings", self.batch_signing, "batch_signing")
-        self.bulletin_board.record(
-            "settings", self.breach_processing, "breach_processing"
-        )
+        self.bulletin_board.record("settings", self.breach_processing, "breach_processing")
         self.bulletin_board.record(
             "settings",
             list(self.mechanisms.keys()) if self.mechanisms is not None else [],
@@ -270,9 +256,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self.mechanisms if self.mechanisms is not None else dict(),
             "mechanisms",
         )
-        self.bulletin_board.record(
-            "settings", self.immediate_negotiations, "start_negotiations_immediately"
-        )
+        self.bulletin_board.record("settings", self.immediate_negotiations, "start_negotiations_immediately")
 
     def __init__(
         self,
@@ -373,9 +357,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             else:
                 self._log_folder /= self.name
         if event_file_name:
-            self._event_logger = EventLogger(
-                self._log_folder / event_file_name, types=event_types
-            )
+            self._event_logger = EventLogger(self._log_folder / event_file_name, types=event_types)
             self.register_listener(None, self._event_logger)
         else:
             self._event_logger = None
@@ -383,20 +365,12 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             log_file_name = "log.txt"
         if len(log_file_name) == 0:
             log_to_file = False
-        if (
-            log_folder
-            or log_negotiations
-            or log_stats_every
-            or log_to_file
-            or log_ufuns
-        ):
+        if log_folder or log_negotiations or log_stats_every or log_to_file or log_ufuns:
             self._log_folder.mkdir(parents=True, exist_ok=True)
             self._agent_log_folder = self._log_folder / "_agent_logs"
             self._agent_log_folder.mkdir(parents=True, exist_ok=True)
         self._agent_loggers: dict[str, logging.Logger] = {}
-        self.log_file_name = (
-            str(self._log_folder / log_file_name) if log_to_file else None
-        )
+        self.log_file_name = str(self._log_folder / log_file_name) if log_to_file else None
         self.log_file_level = log_file_level
         self.log_screen_level = log_screen_level
         self.log_to_screen = log_to_screen
@@ -478,39 +452,39 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._edges_negotiation_requests_rejected: dict[
             int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
         ] = defaultdict(deflistdict)
-        self._edges_negotiations_started: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_negotiations_rejected: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_negotiations_succeeded: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_negotiations_failed: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_concluded: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_signed: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_cancelled: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_nullified: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_erred: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_executed: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
-        self._edges_contracts_breached: dict[
-            int, dict[tuple[Agent, Agent], list[dict[str, Any]]]
-        ] = defaultdict(deflistdict)
+        self._edges_negotiations_started: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_negotiations_rejected: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_negotiations_succeeded: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_negotiations_failed: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_concluded: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_signed: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_cancelled: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_nullified: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_erred: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_executed: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
+        self._edges_contracts_breached: dict[int, dict[tuple[Agent, Agent], list[dict[str, Any]]]] = defaultdict(
+            deflistdict
+        )
         self.neg_requests_sent: dict[str, int] = defaultdict(int)
         self.neg_requests_received: dict[str, int] = defaultdict(int)
         self.negs_registered: dict[str, int] = defaultdict(int)
@@ -548,11 +522,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._n_negs_per_agent: dict[str, int] = defaultdict(int)
 
         self.genius_port = (
-            genius_port
-            if genius_port > 0
-            else ANY_JAVA_PORT
-            if genius_port == ANY_JAVA_PORT
-            else get_free_tcp_port()
+            genius_port if genius_port > 0 else ANY_JAVA_PORT if genius_port == ANY_JAVA_PORT else get_free_tcp_port()
         )
         self.params = dict(
             negotiation_speed=negotiation_speed,
@@ -634,8 +604,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 return
             self.logdebug_agent(
                 agent.id,
-                f"Negotiator {negotiator.name} raised: "
-                + str(event.data.get("exception", "Unknown exception")),
+                f"Negotiator {negotiator.name} raised: " + str(event.data.get("exception", "Unknown exception")),
             )
 
     @property
@@ -734,11 +703,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """Elapsed time since world started in seconds. 0.0 if the world did not start running"""
         if self._start_time is None:
             return 0.0
-        if (
-            self.n_steps is not None
-            and self.current_step >= self.n_steps
-            and self.frozen_time > 0.0
-        ):
+        if self.n_steps is not None and self.current_step >= self.n_steps and self.frozen_time > 0.0:
             return self.frozen_time
         return time.perf_counter() - self._start_time
 
@@ -760,9 +725,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if self.time_limit == float("inf") and self.n_steps is None:
             return 0.0
 
-        relative_step = (
-            self.current_step / self.n_steps if self.n_steps is not None else np.nan
-        )
+        relative_step = self.current_step / self.n_steps if self.n_steps is not None else np.nan
         relative_time = self.time / self.time_limit
         return max([relative_step, relative_time])
 
@@ -785,9 +748,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         for v in breach.victims:
             self.breaches_received[v] += 1
         self.breaches_committed[breach.perpetrator] += 1
-        self.bulletin_board.record(
-            section="breaches", key=breach.id, value=self.breach_record(breach)
-        )
+        self.bulletin_board.record(section="breaches", key=breach.id, value=self.breach_record(breach))
 
     @property
     def saved_negotiations(self) -> list[dict[str, Any]]:
@@ -831,16 +792,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if self.disable_agent_printing:
                 sys.stdout = old_stdout  # reset old stdout
             self.times[agent.id] = _end - _strt
-            self.agent_exceptions[agent.id].append(
-                (self._current_step, exception2str())
-            )
+            self.agent_exceptions[agent.id].append((self._current_step, exception2str()))
             self.on_exception(agent, e)
             if not self.ignore_agent_exception:
                 raise e
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.logerror(
-                f"Entity exception @{agent.id}: "
-                f"{traceback.format_tb(exc_traceback)}",
+                f"Entity exception @{agent.id}: " f"{traceback.format_tb(exc_traceback)}",
                 Event("entity-exception", dict(exception=e)),
             )
 
@@ -919,12 +877,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             signatures = [(partner, partner.id) for partner in partners]
             rejectors = []
         else:
-            signatures = list(
-                zip(partners, (_do_sign(contract, partner) for partner in partners))
-            )
-            rejectors = [
-                partner for partner, signature in signatures if signature is None
-            ]
+            signatures = list(zip(partners, (_do_sign(contract, partner) for partner in partners)))
+            rejectors = [partner for partner, signature in signatures if signature is None]
         if len(rejectors) == 0:
             contract.signatures = {a.id: s for a, s in signatures}
             contract.signed_at = self.current_step
@@ -1112,9 +1066,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             contract_rejectors[contract.id].append(agent_id)
                 for contract in unsigned:
                     if contract_signatures[contract.id] == len(contract.partners):
-                        contract.signatures = dict(
-                            zip(contract.partners, contract.partners)
-                        )
+                        contract.signatures = dict(zip(contract.partners, contract.partners))
                         contract.signed_at = self.current_step
                         for partner in contract.partners:
                             agent_signed[partner].append(contract)
@@ -1167,11 +1119,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             "ended_at": self.current_step,
             "mechanism_type": mechanism.__class__.__name__,
             "issues": [str(issue) for issue in negotiation.issues],
-            "final_status": "running"
-            if running
-            else "succeeded"
-            if agreement is not None
-            else "failed",
+            "final_status": "running" if running else "succeeded" if agreement is not None else "failed",
             "failed": agreement is None,
             "agreement": str(agreement),
             "group": negotiation.group,
@@ -1184,9 +1132,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         dd["history"] = [_.asdict() for _ in mechanism.history]
         if hasattr(mechanism, "negotiator_offers"):
             dd["offers"] = {
-                n.owner.id
-                if n.owner
-                else n.name: [_ for _ in mechanism.negotiator_offers(n.id)]
+                n.owner.id if n.owner else n.name: [_ for _ in mechanism.negotiator_offers(n.id)]
                 for n in mechanism.negotiators
             }
         record.update(dd)
@@ -1287,9 +1233,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             result[k] = len(v)
         return result
 
-    def is_valid_agreement(
-        self, negotiation: NegotiationInfo, agreement: Outcome, mechanism: Mechanism
-    ) -> bool:
+    def is_valid_agreement(self, negotiation: NegotiationInfo, agreement: Outcome, mechanism: Mechanism) -> bool:
         """
         Confirms that the agreement is valid given the world rules.
 
@@ -1336,9 +1280,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         )
         self.unsigned_contracts[to_be_signed_at].add(contract)
 
-    def _register_contract(
-        self, mechanism, negotiation, to_be_signed_at
-    ) -> Contract | None:
+    def _register_contract(self, mechanism, negotiation, to_be_signed_at) -> Contract | None:
         partners = negotiation.partners
         if self.save_negotiations:
             _stats = self._make_negotiation_record(negotiation)
@@ -1347,9 +1289,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             return None
         for partner in partners:
             self.negs_succeeded[partner.id] += 1
-        if not self.is_valid_agreement(
-            negotiation, mechanism.state.agreement, mechanism
-        ):
+        if not self.is_valid_agreement(negotiation, mechanism.state.agreement, mechanism):
             return None
         agreement = mechanism.state.agreement
         agreement = outcome2dict(agreement, issues=[_.name for _ in mechanism.issues])
@@ -1386,11 +1326,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 signed = rejectors is not None and len(rejectors) == 0
                 if signed:
                     signed = self.on_contract_signed(contract)
-                sign_status = (
-                    "signed"
-                    if signed
-                    else f"cancelled by {rejectors if rejectors else 'being invalid!!'}"
-                )
+                sign_status = "signed" if signed else f"cancelled by {rejectors if rejectors else 'being invalid!!'}"
             else:
                 sign_status = f"to be signed at {contract.to_be_signed_at}"
             # self.on_contract_processed(contract=contract)
@@ -1445,21 +1381,14 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 break
 
         self.logdebug(
-            f"Negotiation failure between {[_.name for _ in partners]}"
-            f" on annotation {negotiation.annotation} ",
+            f"Negotiation failure between {[_.name for _ in partners]}" f" on annotation {negotiation.annotation} ",
             Event("negotiation-failure", dict(mechanism=mechanism, partners=partners)),
         )
 
     def _tobe_signed_at(self, agreement: Outcome, force_immediate_signing=False) -> int:
-        return (
-            self.current_step
-            if force_immediate_signing
-            else self.current_step + self.default_signing_delay
-        )
+        return self.current_step if force_immediate_signing else self.current_step + self.default_signing_delay
 
-    def _step_a_mechanism(
-        self, mechanism, force_immediate_signing
-    ) -> tuple[Contract | None, bool]:
+    def _step_a_mechanism(self, mechanism, force_immediate_signing) -> tuple[Contract | None, bool]:
         """Steps a mechanism one step.
 
 
@@ -1490,9 +1419,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
             if mechanism.stats["exceptions"]:
                 for nid, exceptions in mechanism.stats["exceptions"].items():
-                    self.negotiator_exceptions[
-                        namap[nid].id if namap[nid] else "Unknown"
-                    ].append(
+                    self.negotiator_exceptions[namap[nid].id if namap[nid] else "Unknown"].append(
                         list(zip(itertools.repeat(self._current_step), exceptions))
                     )
 
@@ -1617,9 +1544,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if self.time >= self.time_limit:
                 return False
 
-        self.loginfo(
-            f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents"
-        )
+        self.loginfo(f"{len(self._negotiations)} Negotiations/{len(self.agents)} Agents")
 
         # initialize stats
         # ----------------
@@ -1639,11 +1564,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         def _run_negotiations(n_steps: int | None = None):
             """Runs all bending negotiations"""
             nonlocal n_steps_broken, n_steps_success, n_broken, n_success
-            mechanisms = list(
-                (_.mechanism, _.partners)
-                for _ in self._negotiations.values()
-                if _ is not None
-            )
+            mechanisms = list((_.mechanism, _.partners) for _ in self._negotiations.values() if _ is not None)
             (
                 _,
                 _,
@@ -1651,22 +1572,16 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 n_steps_success_,
                 n_broken_,
                 n_success_,
-            ) = self._step_negotiations(
-                [_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms]
-            )
+            ) = self._step_negotiations([_[0] for _ in mechanisms], n_steps, False, [_[1] for _ in mechanisms])
             if self.time >= self.time_limit:
                 return
             n_total_broken = n_broken + n_broken_
             if n_total_broken > 0:
-                n_steps_broken = (
-                    n_steps_broken * n_broken + n_steps_broken_ * n_broken_
-                ) / n_total_broken
+                n_steps_broken = (n_steps_broken * n_broken + n_steps_broken_ * n_broken_) / n_total_broken
                 n_broken = n_total_broken
             n_total_success = n_success + n_success_
             if n_total_success > 0:
-                n_steps_success = (
-                    n_steps_success * n_success + n_steps_success_ * n_success_
-                ) / n_total_success
+                n_steps_success = (n_steps_success * n_success + n_steps_success_ * n_success_) / n_total_success
                 n_success = n_total_success
 
         def _step_agents():
@@ -1701,15 +1616,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             # execute contracts that are executable at this step
             # --------------------------------------------------
             nonlocal n_new_breaches, n_new_contract_executions, n_new_contract_errors, n_new_contract_nullifications, activity_level, blevel
-            current_contracts = [
-                _ for _ in self.executable_contracts() if _.nullified_at < 0
-            ]
+            current_contracts = [_ for _ in self.executable_contracts() if _.nullified_at < 0]
             if len(current_contracts) > 0:
                 # remove expired contracts
                 executed = set()
-                current_contracts = self.order_contracts_for_execution(
-                    current_contracts
-                )
+                current_contracts = self.order_contracts_for_execution(current_contracts)
 
                 for contract in current_contracts:
                     if self.time >= self.time_limit:
@@ -1721,17 +1632,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     except Exception as e:
                         for p in contract.partners:
                             self.contracts_erred[p] += 1
-                        self.contract_exceptions[self._current_step].append(
-                            exception2str()
-                        )
+                        self.contract_exceptions[self._current_step].append(exception2str())
                         contract.executed_at = self.current_step
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["executed_at"] = -1
                         self._saved_contracts[contract.id]["dropped_at"] = -1
                         self._saved_contracts[contract.id]["nullified_at"] = -1
-                        self._saved_contracts[contract.id][
-                            "erred_at"
-                        ] = self._current_step
+                        self._saved_contracts[contract.id]["erred_at"] = self._current_step
                         self._add_edges(
                             contract.partners[0],
                             contract.partners,
@@ -1743,8 +1650,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             raise e
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         self.logerror(
-                            f"Contract exception @{str(contract)}: "
-                            f"{traceback.format_tb(exc_traceback)}",
+                            f"Contract exception @{str(contract)}: " f"{traceback.format_tb(exc_traceback)}",
                             Event(
                                 "contract-exception",
                                 dict(contract=contract, exception=e),
@@ -1757,9 +1663,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["executed_at"] = -1
                         self._saved_contracts[contract.id]["dropped_at"] = -1
-                        self._saved_contracts[contract.id][
-                            "nullified_at"
-                        ] = self._current_step
+                        self._saved_contracts[contract.id]["nullified_at"] = self._current_step
                         self._add_edges(
                             contract.partners[0],
                             contract.partners,
@@ -1777,9 +1681,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             self.contracts_executed[p] += 1
                         self._saved_contracts[contract.id]["breaches"] = ""
                         self._saved_contracts[contract.id]["dropped_at"] = -1
-                        self._saved_contracts[contract.id][
-                            "executed_at"
-                        ] = self._current_step
+                        self._saved_contracts[contract.id]["executed_at"] = self._current_step
                         self._add_edges(
                             contract.partners[0],
                             contract.partners,
@@ -1809,12 +1711,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self._saved_contracts[contract.id]["dropped_at"] = -1
                         self._saved_contracts[contract.id]["erred_at"] = -1
                         self._saved_contracts[contract.id]["breaches"] = "; ".join(
-                            f"{_.perpetrator}:{_.type}({_.level})"
-                            for _ in contract_breaches
+                            f"{_.perpetrator}:{_.type}({_.level})" for _ in contract_breaches
                         )
-                        breachers = {
-                            (_.perpetrator, tuple(_.victims)) for _ in contract_breaches
-                        }
+                        breachers = {(_.perpetrator, tuple(_.victims)) for _ in contract_breaches}
                         for breacher, victims in breachers:
                             if isinstance(victims, str) or isinstance(victims, Agent):
                                 victims = [victims]
@@ -1833,9 +1732,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                     dict(contract=contract, breach=b),
                                 ),
                             )
-                        resolution = self._process_breach(
-                            contract, list(contract_breaches)
-                        )
+                        resolution = self._process_breach(contract, list(contract_breaches))
                         if resolution is None:
                             n_new_breaches += 1
                             blevel += sum(_.level for _ in contract_breaches)
@@ -1852,9 +1749,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                                     ),
                                 ),
                             )
-                        self.complete_contract_execution(
-                            contract, list(contract_breaches), resolution
-                        )
+                        self.complete_contract_execution(contract, list(contract_breaches), resolution)
                         self.loginfo(
                             f"Executed {str(contract)}",
                             Event("contract-executed", dict(contract=contract)),
@@ -1903,19 +1798,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         # remove all negotiations that are completed
         # ------------------------------------------
-        completed = list(
-            k
-            for k, _ in self._negotiations.items()
-            if _ is not None and _.mechanism.completed
-        )
+        completed = list(k for k, _ in self._negotiations.items() if _ is not None and _.mechanism.completed)
         for key in completed:
             self._negotiations.pop(key, None)
 
         # update stats
         # ------------
-        self._stats["n_registered_negotiations_before"].append(
-            _n_registered_negotiations_before
-        )
+        self._stats["n_registered_negotiations_before"].append(_n_registered_negotiations_before)
         self._stats["n_contracts_executed"].append(n_new_contract_executions)
         self._stats["n_contracts_erred"].append(n_new_contract_errors)
         self._stats["n_contracts_nullified"].append(n_new_contract_nullifications)
@@ -2125,27 +2014,19 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             neg_n_steps=self.neg_n_steps,
             neg_time_limit=self.neg_time_limit,
             neg_step_time_limit=self.neg_step_time_limit,
-            log_ufuns_file=str(Path(self._log_folder) / "ufuns.csv")
-            if self._log_ufuns
-            else None,
+            log_ufuns_file=str(Path(self._log_folder) / "ufuns.csv") if self._log_ufuns else None,
         )
         neg = factory.init()
         if neg is None:
-            self._add_edges(
-                caller, partners, self._edges_negotiations_rejected, issues=issues
-            )
+            self._add_edges(caller, partners, self._edges_negotiations_rejected, issues=issues)
             return None, None, None
         if neg.mechanism is None:
-            self._add_edges(
-                caller, partners, self._edges_negotiations_rejected, issues=issues
-            )
+            self._add_edges(caller, partners, self._edges_negotiations_rejected, issues=issues)
             return neg, None, None
         self.__n_negotiations += 1
         self._n_negs_per_agent_per_step[caller.id] += 1
         self._n_negs_per_agent[caller.id] += 1
-        self._add_edges(
-            caller, partners, self._edges_negotiations_started, issues=issues
-        )
+        self._add_edges(caller, partners, self._edges_negotiations_started, issues=issues)
         # if not run_to_completion:
         self._negotiations[neg.mechanism.uuid] = neg
         self.negs_initiated[caller.id] += 1
@@ -2160,9 +2041,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             self._add_edges(
                 caller,
                 partners,
-                self._edges_negotiations_succeeded
-                if contract is not None
-                else self._edges_negotiations_failed,
+                self._edges_negotiations_succeeded if contract is not None else self._edges_negotiations_failed,
                 issues=issues,
             )
             return None, contract, neg.mechanism
@@ -2174,9 +2053,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                     self._add_edges(
                         caller,
                         partners,
-                        self._edges_negotiations_succeeded
-                        if contract is not None
-                        else self._edges_negotiations_failed,
+                        self._edges_negotiations_succeeded if contract is not None else self._edges_negotiations_failed,
                         issues=issues,
                     )
                     return None, contract, neg.mechanism
@@ -2236,17 +2113,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if roles is None:
             if isinstance(partners, str) or isinstance(partners, Agent):
                 partners = [partners]
-            if (
-                len(partners) == 1
-                and isinstance(partners[0], str)
-                and partners[0] != caller.id
-            ):
+            if len(partners) == 1 and isinstance(partners[0], str) and partners[0] != caller.id:
                 partners = [caller.id, partners[0]]
-            if (
-                len(partners) == 1
-                and isinstance(partners[0], Agent)
-                and partners[0] != caller
-            ):
+            if len(partners) == 1 and isinstance(partners[0], Agent) and partners[0] != caller:
                 partners = [caller, partners[0]]
         self.loginfo(
             f"{caller.name} requested negotiation "
@@ -2284,9 +2153,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         self._add_edges(
             caller,
             partners,
-            self._edges_negotiation_requests_accepted
-            if success
-            else self._edges_negotiation_requests_rejected,
+            self._edges_negotiation_requests_accepted if success else self._edges_negotiation_requests_rejected,
             issues=issues,
         )
 
@@ -2340,17 +2207,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if roles is None:
             if isinstance(partners, str) or isinstance(partners, Agent):
                 partners = [partners]
-            if (
-                len(partners) == 1
-                and isinstance(partners[0], str)
-                and partners[0] != caller.id
-            ):
+            if len(partners) == 1 and isinstance(partners[0], str) and partners[0] != caller.id:
                 partners = [caller.id, partners[0]]
-            if (
-                len(partners) == 1
-                and isinstance(partners[0], Agent)
-                and partners[0] != caller
-            ):
+            if len(partners) == 1 and isinstance(partners[0], Agent) and partners[0] != caller:
                 partners = [caller, partners[0]]
         partners = [self.agents[_] if isinstance(_, str) else _ for _ in partners]
         self.loginfo(
@@ -2394,13 +2253,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             mechanism.run()
             if mechanism.agreement is None:
                 contract = None
-                self._register_failed_negotiation(
-                    mechanism=mechanism.nmi, negotiation=neg
-                )
+                self._register_failed_negotiation(mechanism=mechanism.nmi, negotiation=neg)
             else:
-                contract = self._register_contract(
-                    mechanism.nmi, neg, self._tobe_signed_at(mechanism.agreement, True)
-                )
+                contract = self._register_contract(mechanism.nmi, neg, self._tobe_signed_at(mechanism.agreement, True))
             return contract, mechanism.nmi
         return None, None
 
@@ -2453,15 +2308,11 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
         """
         group = unique_name(base="NG")
-        partners = [
-            [self.agents[_] if isinstance(_, str) else _ for _ in p] for p in partners
-        ]
+        partners = [[self.agents[_] if isinstance(_, str) else _ for _ in p] for p in partners]
         n_negs = len(partners)
         if isinstance(issues[0], Issue):
             issues = [issues] * n_negs
-        if roles is None or not (
-            isinstance(roles, list) and isinstance(roles[0], list)
-        ):
+        if roles is None or not (isinstance(roles, list) and isinstance(roles[0], list)):
             roles = [roles] * n_negs
         if annotations is None or isinstance(annotations, dict):
             annotations = [annotations] * n_negs
@@ -2492,15 +2343,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             ),
         )
         negs = []
-        for (
-            issue,
-            partner,
-            role,
-            annotation,
-            mech_name,
-            mech_param,
-            negotiator_,
-        ) in zip(
+        for (issue, partner, role, annotation, mech_name, mech_param, negotiator_,) in zip(
             issues,
             partners,
             roles,
@@ -2512,17 +2355,9 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             if role is None:
                 if isinstance(partner, str) or isinstance(partner, Agent):
                     partner = [partner]
-            if (
-                len(partner) == 1
-                and isinstance(partner[0], str)
-                and partner[0] != caller.id
-            ):
+            if len(partner) == 1 and isinstance(partner[0], str) and partner[0] != caller.id:
                 partner = [caller.id, partners[0]]
-            if (
-                len(partner) == 1
-                and isinstance(partner[0], Agent)
-                and partner[0] != caller
-            ):
+            if len(partner) == 1 and isinstance(partner[0], Agent) and partner[0] != caller:
                 partner = [caller, partner[0]]
             req_id = caller.create_negotiation_request(
                 issues=issue,
@@ -2555,9 +2390,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         completed = [False] * n_negs
         contracts = [None] * n_negs
         amis = [None] * n_negs
-        for i, (neg, crole, ufun, negotiator) in enumerate(
-            zip(negs, caller_roles, preferences, negotiators)
-        ):
+        for i, (neg, crole, ufun, negotiator) in enumerate(zip(negs, caller_roles, preferences, negotiators)):
             completed[i] = neg is None or (neg.mechanism is None) or negotiator is None
             if completed[i]:
                 continue
@@ -2620,33 +2453,23 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     @property
     def executed_contracts(self) -> list[dict[str, Any]]:
-        return list(
-            _ for _ in self._saved_contracts.values() if _.get("executed_at", -1) >= 0
-        )
+        return list(_ for _ in self._saved_contracts.values() if _.get("executed_at", -1) >= 0)
 
     @property
     def signed_contracts(self) -> list[dict[str, Any]]:
-        return list(
-            _ for _ in self._saved_contracts.values() if _.get("signed_at", -1) >= 0
-        )
+        return list(_ for _ in self._saved_contracts.values() if _.get("signed_at", -1) >= 0)
 
     @property
     def nullified_contracts(self) -> list[dict[str, Any]]:
-        return list(
-            _ for _ in self._saved_contracts.values() if _.get("nullified_at", -1) >= 0
-        )
+        return list(_ for _ in self._saved_contracts.values() if _.get("nullified_at", -1) >= 0)
 
     @property
     def erred_contracts(self) -> list[dict[str, Any]]:
-        return list(
-            _ for _ in self._saved_contracts.values() if _.get("erred_at", -1) >= 0
-        )
+        return list(_ for _ in self._saved_contracts.values() if _.get("erred_at", -1) >= 0)
 
     @property
     def cancelled_contracts(self) -> list[dict[str, Any]]:
-        return list(
-            _ for _ in self._saved_contracts.values() if not _.get("signed_at", -1) < 0
-        )
+        return list(_ for _ in self._saved_contracts.values() if not _.get("signed_at", -1) < 0)
 
     def save_config(self, file_name: str):
         """
@@ -2678,9 +2501,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 key=lambda x: x[1],
             ):
                 agent = self.agents[agent_name]
-                agenda = agent.set_renegotiation_agenda(
-                    contract=contract, breaches=breaches
-                )
+                agenda = agent.set_renegotiation_agenda(contract=contract, breaches=breaches)
                 if agenda is None:
                     continue
                 negotiators = []
@@ -2709,9 +2530,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                         self._register_contract(
                             mechanism=mechanism,
                             negotiation=None,
-                            to_be_signed_at=self._tobe_signed_at(
-                                mechanism.agreement, force_immediate_signing
-                            ),
+                            to_be_signed_at=self._tobe_signed_at(mechanism.agreement, force_immediate_signing),
                         )
                         break
         elif self.breach_processing == BreachProcessing.META_NEGOTIATION:
@@ -2827,9 +2646,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
             from matplotlib.axis import Axis
 
             if not self.construct_graphs:
-                self.logwarning(
-                    "Asked to draw a world simulation without enabling `construct_graphs`. Will be ignored"
-                )
+                self.logwarning("Asked to draw a world simulation without enabling `construct_graphs`. Will be ignored")
                 return [None, None]
             if steps is None:
                 steps = self.current_step
@@ -2885,37 +2702,25 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                             if clr == c:
                                 lst.append(edges[i])
                     for lst, clr in zip(edgelists, clist):
-                        nx.draw_networkx_edges(
-                            g, pos, edgelist=g.edges, edge_color=clr, ax=axs[0]
-                        )
+                        nx.draw_networkx_edges(g, pos, edgelist=g.edges, edge_color=clr, ax=axs[0])
                     if show_edge_labels:
                         info = [_ for _ in g.edges.data("weight")]
                         weights = [str(_[2]) for _ in info if _[2] > 1]
                         edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                        nx.draw_networkx_edge_labels(
-                            g, pos, dict(zip(edges, weights)), ax=axs[0]
-                        )
+                        nx.draw_networkx_edge_labels(g, pos, dict(zip(edges, weights)), ax=axs[0])
                 if show_node_labels:
-                    nx.draw_networkx_labels(
-                        g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0]
-                    )
+                    nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=axs[0])
             else:
                 for g, ax, title in zip(graphs, axs, titles):
                     nx.draw_networkx_nodes(g, pos, ax=ax)
-                    nx.draw_networkx_edges(
-                        g, pos, edgelist=g.edges, edge_color=EDGE_COLORS[title], ax=ax
-                    )
+                    nx.draw_networkx_edges(g, pos, edgelist=g.edges, edge_color=EDGE_COLORS[title], ax=ax)
                     if show_edge_labels:
                         info = [_ for _ in g.edges.data("weight")]
                         weights = [str(_[2]) for _ in info if _[2] > 1]
                         edges = [(_[0], _[1]) for _ in info if _[2] > 1]
-                        nx.draw_networkx_edge_labels(
-                            g, pos, dict(zip(edges, weights)), ax=ax
-                        )
+                        nx.draw_networkx_edge_labels(g, pos, dict(zip(edges, weights)), ax=ax)
                     if show_node_labels:
-                        nx.draw_networkx_labels(
-                            g, pos, dict(zip(g.nodes, g.nodes)), ax=ax
-                        )
+                        nx.draw_networkx_labels(g, pos, dict(zip(g.nodes, g.nodes)), ax=ax)
                     ax.set_ylabel(title)
             total_time = time.perf_counter() - self._sim_start
             step = max(steps)
@@ -3001,45 +2806,35 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
     def contract_execution_fraction(self) -> float:
         """Fraction of signed contracts successfully executed with no breaches, or errors"""
         n_executed = sum(self.stats["n_contracts_executed"])
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0])
         return n_executed / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def contract_dropping_fraction(self) -> float:
         """Fraction of signed contracts that were never executed because they were signed to late to be executable"""
         n_dropped = sum(self.stats["n_contracts_dropped"])
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0])
         return n_dropped / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def contract_err_fraction(self) -> float:
         """Fraction of signed contracts that caused exception during their execution"""
         n_erred = sum(self.stats["n_contracts_erred"])
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0])
         return n_erred / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def contract_nullification_fraction(self) -> float:
         """Fraction of signed contracts were nullified by the system (e.g. due to bankruptcy)"""
         n_nullified = sum(self.stats["n_contracts_nullified"])
-        n_signed_contracts = len(
-            [_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0]
-        )
+        n_signed_contracts = len([_ for _ in self._saved_contracts.values() if _["signed_at"] >= 0])
         return n_nullified / n_signed_contracts if n_signed_contracts > 0 else 0.0
 
     @property
     def breach_level(self) -> float:
         """The average breach level per contract"""
         blevel = np.nansum(self.stats["breach_level"])
-        n_contracts = sum(self.stats["n_contracts_executed"]) + sum(
-            self.stats["n_breaches"]
-        )
+        n_contracts = sum(self.stats["n_contracts_executed"]) + sum(self.stats["n_breaches"])
         return blevel / n_contracts if n_contracts > 0 else 0.0
 
     @abstractmethod
@@ -3088,9 +2883,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         return
 
     @abstractmethod
-    def order_contracts_for_execution(
-        self, contracts: Collection[Contract]
-    ) -> Collection[Contract]:
+    def order_contracts_for_execution(self, contracts: Collection[Contract]) -> Collection[Contract]:
         """Orders the contracts in a specific time-step that are about to be executed"""
         return contracts
 
@@ -3119,9 +2912,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         return set()
 
     @abstractmethod
-    def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract
-    ) -> None:
+    def complete_contract_execution(self, contract: Contract, breaches: list[Breach], resolution: Contract) -> None:
         """
         Called after breach resolution is completed for contracts for which some potential breaches occurred.
 
@@ -3135,9 +2926,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         """
 
     @abstractmethod
-    def execute_action(
-        self, action: Action, agent: Agent, callback: Callable | None = None
-    ) -> bool:
+    def execute_action(self, action: Action, agent: Agent, callback: Callable | None = None) -> bool:
         """Executes the given action by the given agent"""
 
     @abstractmethod

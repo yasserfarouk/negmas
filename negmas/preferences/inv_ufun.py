@@ -89,9 +89,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
         u = self.ufun.eval_normalized if normalized else self.ufun.eval
         return [_ for _ in outcomes if mn <= u(_) <= mx]
 
-    def worst_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def worst_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
             rng = (rng, rng)
@@ -102,9 +100,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
                 worst_util, worst = util, o
         return worst
 
-    def best_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def best_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         some = self.some(rng, normalized)
         if not isinstance(rng, Iterable):
             rng = (rng, rng)
@@ -115,9 +111,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
                 best_util, best = util, o
         return best
 
-    def one_in(
-        self, rng: float | tuple[float, float], normalized: float
-    ) -> Outcome | None:
+    def one_in(self, rng: float | tuple[float, float], normalized: float) -> Outcome | None:
         if not self._ufun.outcome_space:
             return None
         if not isinstance(rng, Iterable):
@@ -147,9 +141,7 @@ class SamplingInverseUtilityFunction(InverseUFun):
         """
         return self.worst(), self.best()
 
-    def __call__(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def __call__(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         """
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """
@@ -165,9 +157,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
     values is then cached.
     """
 
-    def __init__(
-        self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 100_000
-    ):
+    def __init__(self, ufun: BaseUtilityFunction, levels: int = 10, max_cache_size: int = 100_000):
         self._ufun = ufun
         self.max_cache_size = max_cache_size
         self.levels = levels
@@ -191,9 +181,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         if outcome_space is None:
             raise ValueError("Cannot find the outcome space.")
         self._worst, self._best = self._ufun.extreme_outcomes()
-        self._min, self._max = float(self._ufun(self._worst)), float(
-            self._ufun(self._best)
-        )
+        self._min, self._max = float(self._ufun(self._worst)), float(self._ufun(self._best))
         self._range = self._max - self._min
         self._offset = self._min / self._range if self._range > 1e-5 else self._min
         for l in range(self.levels, 0, -1):
@@ -209,9 +197,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             outcomes = list(os.sample(self.max_cache_size, False, False))
         else:
             outcomes = list(os.enumerate())[: self.max_cache_size]
-        utils = [
-            float(self._ufun.eval_normalized(_, above_reserve=False)) for _ in outcomes
-        ]
+        utils = [float(self._ufun.eval_normalized(_, above_reserve=False)) for _ in outcomes]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
         self._initialized = True
 
@@ -290,9 +276,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             f"Cannot find all outcomes in a range for a continous outcome space (there is in general an infinite number of them)"
         )
 
-    def worst_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def worst_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         if not self._ufun.is_stationary():
             self.init()
         rng = self._normalize_range(rng, normalized)
@@ -308,9 +292,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             wbefore = w
         return wbefore
 
-    def best_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def best_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         if not self._ufun.is_stationary():
             self.init()
         rng = self._normalize_range(rng, normalized)
@@ -323,9 +305,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             return w
         return None
 
-    def one_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def one_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         lst = self.some(rng, normalized)
         if not lst:
             return None
@@ -411,9 +391,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
         """
         return self.worst(), self.best()
 
-    def __call__(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def __call__(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         """
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """

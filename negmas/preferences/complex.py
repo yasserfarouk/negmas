@@ -73,10 +73,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     ) -> WeightedUtilityFunction:
         """Generates a random ufun of the given type"""
         n = get_one_int(n_ufuns)
-        ufuns = [
-            random.choice(ufun_types).random(outcome_space, 0, normalized)
-            for _ in range(n)
-        ]
+        ufuns = [random.choice(ufun_types).random(outcome_space, 0, normalized) for _ in range(n)]
         weights = [random.random() for _ in range(n)]
         return WeightedUtilityFunction(
             reserved_value=reserved_value,
@@ -108,9 +105,7 @@ class WeightedUtilityFunction(_DependenceMixin, BaseUtilityFunction):
         for f, w in zip(self.values, self.weights):
             util = f(offer)
             if util is None or w is None:
-                raise ValueError(
-                    f"Cannot calculate utility for {offer}\n\t UFun {str(f)}\n\t with vars\n{vars(f)}"
-                )
+                raise ValueError(f"Cannot calculate utility for {offer}\n\t UFun {str(f)}\n\t with vars\n{vars(f)}")
             u += util * w  # type: ignore
         return u
 
@@ -170,10 +165,7 @@ class ComplexNonlinearUtilityFunction(_DependenceMixin, BaseUtilityFunction):
     ) -> ComplexNonlinearUtilityFunction:
         """Generates a random ufun of the given type"""
         n = get_one_int(n_ufuns)
-        ufuns = [
-            random.choice(ufun_types).random(outcome_space, 0, normalized)
-            for _ in range(n)
-        ]
+        ufuns = [random.choice(ufun_types).random(outcome_space, 0, normalized) for _ in range(n)]
         weights = [random.random() for _ in range(n)]
         return ComplexNonlinearUtilityFunction(
             reserved_value=reserved_value,

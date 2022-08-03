@@ -37,9 +37,7 @@ class Real(Distribution):
     ):
         loc = float(loc)
         if not (0 <= scale <= EPSILON):
-            raise ValueError(
-                f"Cannot construct a Real with this scale ({scale}) It must be zero"
-            )
+            raise ValueError(f"Cannot construct a Real with this scale ({scale}) It must be zero")
         self._loc: float = loc
         self._scale = 0.0
         self._type = type if type else "uniform"
@@ -252,9 +250,7 @@ class ScipyDistribution(Distribution):
 
     def mean(self) -> float:
         if self._type != "uniform":
-            raise NotImplementedError(
-                "Only uniform distributions are supported for now"
-            )
+            raise NotImplementedError("Only uniform distributions are supported for now")
         if self.scale < 1e-6:
             return float(self.loc)
         mymean = self._dist.mean()
@@ -305,9 +301,7 @@ class ScipyDistribution(Distribution):
 
     def __mul__(self, weight: float):
         if isinstance(weight, float) and self._type in ("uniform", "normal"):
-            self._dist = self._make_dist(
-                self._type, self.loc * weight, self.scale * weight
-            )
+            self._dist = self._make_dist(self._type, self.loc * weight, self.scale * weight)
         raise NotImplementedError()
 
     def __lt__(self, other) -> bool:
@@ -339,11 +333,7 @@ class ScipyDistribution(Distribution):
         return (
             self.loc == other.loc
             and self.scale == other.scale
-            and (
-                isinstance(other, Real)
-                or isinstance(self, Real)
-                or self.type == other.type
-            )
+            and (isinstance(other, Real) or isinstance(self, Real) or self.type == other.type)
         )
 
     def __ne__(self, other) -> bool:
@@ -377,18 +367,14 @@ class ScipyDistribution(Distribution):
 class UniformDistribution(ScipyDistribution):
     """A `ScipyDistribution` reprsenting a unifrom distribution"""
 
-    def __init__(
-        self, loc: float = 0.0, scale: float = 1.0, *, type: str = "uniform", **kwargs
-    ) -> None:
+    def __init__(self, loc: float = 0.0, scale: float = 1.0, *, type: str = "uniform", **kwargs) -> None:
         super().__init__(loc=loc, scale=scale, type="uniform", **kwargs)
 
 
 class NormalDistribution(ScipyDistribution):
     """A `ScipyDistribution` reprsenting a unifrom distribution"""
 
-    def __init__(
-        self, loc: float = 0.0, scale: float = 1.0, *, type: str = "norm", **kwargs
-    ) -> None:
+    def __init__(self, loc: float = 0.0, scale: float = 1.0, *, type: str = "norm", **kwargs) -> None:
         super().__init__(loc=loc, scale=scale, type="norm", **kwargs)
 
 

@@ -47,11 +47,7 @@ class NamedObject:
     ) -> None:
         if name is not None:
             name = str(name)
-        self.__uuid = (
-            (f"{name}-" if name is not None else "") + str(uuid.uuid4())
-            if not id
-            else id
-        )
+        self.__uuid = (f"{name}-" if name is not None else "") + str(uuid.uuid4()) if not id else id
         if name is None or len(name) == 0:
             name = unique_name("", add_time=False, rand_digits=16)
         self.__name = name
@@ -221,9 +217,7 @@ class NamedObject:
         )
 
         if (not exist_ok) and full_file_name.exists():
-            raise ValueError(
-                f"{str(full_file_name)} already exists. Pass exist_ok=True if you want to override it"
-            )
+            raise ValueError(f"{str(full_file_name)} already exists. Pass exist_ok=True if you want to override it")
 
         with open(full_file_name, "wb") as f:
             dill.dump(self, f)
@@ -234,9 +228,7 @@ class NamedObject:
 
     @overload
     @classmethod
-    def from_checkpoint(
-        cls, file_name: Path | str, return_info: Literal[False] = False
-    ) -> NamedObject:
+    def from_checkpoint(cls, file_name: Path | str, return_info: Literal[False] = False) -> NamedObject:
         ...
 
     @overload

@@ -61,9 +61,7 @@ class BaseUtilityFunction(Preferences, ABC):
         ...
 
     def to_stationary(self: T) -> T:
-        raise NotImplementedError(
-            f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun."
-        )
+        raise NotImplementedError(f"I do not know how to convert a ufun of type {self.type_name} to a stationary ufun.")
 
     def extreme_outcomes(
         self,
@@ -77,9 +75,7 @@ class BaseUtilityFunction(Preferences, ABC):
         if not outcome_space:
             outcome_space = self.outcome_space
         if outcome_space and not outcomes:
-            outcomes = outcome_space.enumerate_or_sample(
-                max_cardinality=max_cardinality
-            )
+            outcomes = outcome_space.enumerate_or_sample(max_cardinality=max_cardinality)
         if not outcomes:
             raise ValueError("Cannot find outcomes to use for finding extremes")
         mn, mx = float("inf"), float("-inf")
@@ -115,9 +111,7 @@ class BaseUtilityFunction(Preferences, ABC):
             (lowest, highest) utilities in that order
 
         """
-        (worst, best) = self.extreme_outcomes(
-            outcome_space, issues, outcomes, max_cardinality
-        )
+        (worst, best) = self.extreme_outcomes(outcome_space, issues, outcomes, max_cardinality)
         w, b = self(worst), self(best)
         if isinstance(w, Distribution):
             w = w.min
@@ -201,9 +195,7 @@ class BaseUtilityFunction(Preferences, ABC):
         """
         from .inv_ufun import PresortingInverseUtilityFunction
 
-        if self._cached_inverse and (
-            inverter is None or self._cached_inverse_type == inverter
-        ):
+        if self._cached_inverse and (inverter is None or self._cached_inverse_type == inverter):
             return self._cached_inverse
         if inverter is None:
             inverter = PresortingInverseUtilityFunction
@@ -221,9 +213,7 @@ class BaseUtilityFunction(Preferences, ABC):
     def is_state_dependent(self) -> bool:
         return True
 
-    def scale_by(
-        self: T, scale: float, scale_reserved=True
-    ) -> WeightedUtilityFunction | T:
+    def scale_by(self: T, scale: float, scale_reserved=True) -> WeightedUtilityFunction | T:
         if scale < 0:
             raise ValueError(f"Cannot scale with a negative multiplier ({scale})")
         from negmas.preferences.complex import WeightedUtilityFunction
@@ -327,9 +317,7 @@ class BaseUtilityFunction(Preferences, ABC):
         u = self.scale_by(scale, scale_reserved=True)
         return u.shift_by(to[0] - scale * mn, shift_reserved=True)
 
-    def shift_by(
-        self: T, offset: float, shift_reserved=True
-    ) -> WeightedUtilityFunction | T:
+    def shift_by(self: T, offset: float, shift_reserved=True) -> WeightedUtilityFunction | T:
         from negmas.preferences.complex import WeightedUtilityFunction
         from negmas.preferences.crisp.const import ConstUtilityFunction
 
@@ -400,9 +388,7 @@ class BaseUtilityFunction(Preferences, ABC):
         vals = zip(range(len(list(outcomes))), (self(_) for _ in outcomes))
         return self._do_rank(vals, descending)
 
-    def argrank(
-        self, outcomes: list[Outcome | None], descending=True
-    ) -> list[list[Outcome | None]]:
+    def argrank(self, outcomes: list[Outcome | None], descending=True) -> list[list[Outcome | None]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
 
@@ -430,9 +416,7 @@ class BaseUtilityFunction(Preferences, ABC):
         vals = zip(outcomes, (self(_) for _ in outcomes))
         return self._do_rank(vals, descending)
 
-    def rank(
-        self, outcomes: list[Outcome | None], descending=True
-    ) -> list[list[Outcome | None]]:
+    def rank(self, outcomes: list[Outcome | None], descending=True) -> list[list[Outcome | None]]:
         """
         Ranks the given list of outcomes with weights. None stands for the null outcome.
 
@@ -510,9 +494,7 @@ class BaseUtilityFunction(Preferences, ABC):
         for o in outcome_space.sample(n_trials, with_replacement=False):
             if o is None:
                 continue
-            assert (
-                o in outcome_space
-            ), f"Sampled outcome {o} which is not in the outcome-space {outcome_space}"
+            assert o in outcome_space, f"Sampled outcome {o} which is not in the outcome-space {outcome_space}"
             if rng[0] - 1e-6 <= float(self(o)) <= rng[1] + 1e-6:
                 return o
         return None
@@ -603,9 +585,7 @@ class BaseUtilityFunction(Preferences, ABC):
             uweight = float(ufun.attrib.get("weight", 1))
             uagg = ufun.attrib.get("aggregation", "sum")
             if uagg != "sum":
-                raise ValueError(
-                    f"Hypervolumes combined using {uagg} are not supported (only sum is supported)"
-                )
+                raise ValueError(f"Hypervolumes combined using {uagg} are not supported (only sum is supported)")
             total_util = utiltype(0)
             rects = []
             rect_utils = []
@@ -648,19 +628,12 @@ class BaseUtilityFunction(Preferences, ABC):
                         rects += _r
                         rect_utils += _u
                 if not ufun_found:
-                    raise ValueError(
-                        f"Cannot find ufun tag inside a utility_function tag"
-                    )
+                    raise ValueError(f"Cannot find ufun tag inside a utility_function tag")
             elif child.tag == "issue":
                 indx = int(child.attrib["index"]) - 1
                 issue_key = child.attrib["name"]
-                if (
-                    domain_issues_dict is not None
-                    and issue_key not in domain_issues_dict.keys()
-                ):
-                    raise ValueError(
-                        f"Issue {issue_key} is not in the input issue names ({domain_issues_dict.keys()})"
-                    )
+                if domain_issues_dict is not None and issue_key not in domain_issues_dict.keys():
+                    raise ValueError(f"Issue {issue_key} is not in the input issue names ({domain_issues_dict.keys()})")
                 issue_info[issue_key] = {"name": issue_key, "index": indx}
                 issue_keys[indx] = issue_key
                 info = {"type": "discrete", "etype": "discrete", "vtype": "discrete"}
@@ -677,9 +650,7 @@ class BaseUtilityFunction(Preferences, ABC):
                 if mytype == "discrete":
                     found_issues[issue_key] = dict()
                     if current_issue.is_continuous():
-                        raise ValueError(
-                            f"Got a {mytype} issue but expected a continuous valued issue"
-                        )
+                        raise ValueError(f"Got a {mytype} issue but expected a continuous valued issue")
                 elif mytype in ("integer", "real"):
                     lower = current_issue.min_value
                     upper = current_issue.max_value
@@ -695,9 +666,7 @@ class BaseUtilityFunction(Preferences, ABC):
                             )
                     if mytype == "integer":
                         if current_issue.is_continuous():
-                            raise ValueError(
-                                f"Got a {mytype} issue but expected a continuous valued issue"
-                            )
+                            raise ValueError(f"Got a {mytype} issue but expected a continuous valued issue")
                         lower, upper = int(lower), int(upper)  # type: ignore
                     else:
                         lower, upper = float(lower), float(upper)  # type: ignore
@@ -713,9 +682,7 @@ class BaseUtilityFunction(Preferences, ABC):
                 for item in child:
                     if item.tag == "item":
                         if mytype != "discrete":
-                            raise ValueError(
-                                f"cannot specify item utilities for not-discrete type: {mytype}"
-                            )
+                            raise ValueError(f"cannot specify item utilities for not-discrete type: {mytype}")
                         all_numeric = False
                         item_indx = int(item.attrib["index"]) - 1
                         item_name = item.attrib.get("value", None)
@@ -732,14 +699,11 @@ class BaseUtilityFunction(Preferences, ABC):
                             item_name = float(item_name)
                         if not current_issue.is_valid(item_name):
                             raise ValueError(
-                                f"Value {item_name} is not in the domain issue values: "
-                                f"{current_issue.values}"
+                                f"Value {item_name} is not in the domain issue values: " f"{current_issue.values}"
                             )
                         val = item.attrib.get("evaluation", None)
                         if val is None:
-                            raise ValueError(
-                                f"Item {item_name} of issue {issue_key} has no evaluation attribute!!"
-                            )
+                            raise ValueError(f"Item {item_name} of issue {issue_key} has no evaluation attribute!!")
                         float(val)
                         found_issues[issue_key][item_name] = float(val)
                         found_values = True
@@ -754,9 +718,7 @@ class BaseUtilityFunction(Preferences, ABC):
 
         # add utilities specified not as hyper-rectangles
         if not all_numeric and all(_.is_numeric() for _ in issues):
-            raise ValueError(
-                "Some found issues are not numeric but all input issues are"
-            )
+            raise ValueError("Some found issues are not numeric but all input issues are")
         u = None
         if len(found_issues) > 0:
             if all_numeric:
@@ -818,9 +780,7 @@ class BaseUtilityFunction(Preferences, ABC):
         return u, discount_factor
 
     @classmethod
-    def from_genius(
-        cls, file_name: PathLike | str, **kwargs
-    ) -> tuple[BaseUtilityFunction | None, float | None]:
+    def from_genius(cls, file_name: PathLike | str, **kwargs) -> tuple[BaseUtilityFunction | None, float | None]:
         """Imports a utility function from a GENIUS XML file.
 
         Args:
@@ -858,9 +818,7 @@ class BaseUtilityFunction(Preferences, ABC):
             xml_str = f.read()
         return cls.from_xml_str(xml_str=xml_str, **kwargs)
 
-    def to_xml_str(
-        self, issues: Iterable[Issue] | None = None, discount_factor=None
-    ) -> str:
+    def to_xml_str(self, issues: Iterable[Issue] | None = None, discount_factor=None) -> str:
         """
         Exports a utility function to a well formatted string
         """
@@ -894,9 +852,7 @@ class BaseUtilityFunction(Preferences, ABC):
             output += "</utility_space>\n"
         return output
 
-    def to_genius(
-        self, file_name: PathLike | str, issues: Iterable[Issue] | None = None, **kwargs
-    ):
+    def to_genius(self, file_name: PathLike | str, issues: Iterable[Issue] | None = None, **kwargs):
         """
         Exports a utility function to a GENIUS XML file.
 
@@ -933,9 +889,7 @@ class BaseUtilityFunction(Preferences, ABC):
         with open(file_name, "w") as f:
             f.write(self.to_xml_str(issues=issues, **kwargs))
 
-    def difference_prob(
-        self, first: Outcome | None, second: Outcome | None
-    ) -> Distribution:
+    def difference_prob(self, first: Outcome | None, second: Outcome | None) -> Distribution:
         """
         Returns a numeric difference between the utility of the two given outcomes
         """

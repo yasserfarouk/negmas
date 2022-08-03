@@ -62,11 +62,8 @@ class ControlledSAONegotiator(SAONegotiator):
             controller to inform it that joining is completed if joining was
             successful.
         """
-        permission = (
-            self._Negotiator__parent is None  # type: ignore
-            or self._Negotiator__parent.before_join(  # type: ignore
-                self.id, nmi, state, preferences=preferences, role=role
-            )
+        permission = self._Negotiator__parent is None or self._Negotiator__parent.before_join(  # type: ignore  # type: ignore
+            self.id, nmi, state, preferences=preferences, role=role
         )
         if not permission:
             return False

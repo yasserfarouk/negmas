@@ -125,12 +125,8 @@ def test_tit_for_tat_negotiators_agree_in_the_middle():
     # print(a2offers)
     assert a1offers[0] == (99,), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
     assert a2offers[0] == (0,), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
-    assert (
-        neg.state.agreement is not None
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
-    assert (
-        40 <= neg.state.agreement[0] <= 60
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    assert neg.state.agreement is not None, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    assert 40 <= neg.state.agreement[0] <= 60, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
     # for i, offer in enumerate(_[0] for _ in a1offers):
     #     assert i == 0 or offer <= a1offers[i - 1][0] + 2, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
     # for i, offer in enumerate(_[0] for _ in a2offers):
@@ -145,15 +141,11 @@ def test_top_only_negotiator():
     neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
     neg.add(
         a1,
-        preferences=MappingUtilityFunction(
-            dict(zip(outcomes, u1)), outcome_space=neg.outcome_space
-        ),
+        preferences=MappingUtilityFunction(dict(zip(outcomes, u1)), outcome_space=neg.outcome_space),
     )
     neg.add(
         a2,
-        preferences=MappingUtilityFunction(
-            dict(zip(outcomes, 22 - u1)), outcome_space=neg.outcome_space
-        ),
+        preferences=MappingUtilityFunction(dict(zip(outcomes, 22 - u1)), outcome_space=neg.outcome_space),
     )
     neg.run()
     assert neg.state.timedout
@@ -173,15 +165,11 @@ def test_tft_propose():
     neg = SAOMechanism(outcomes=outcomes, n_steps=10, avoid_ultimatum=False)
     neg.add(
         a1,
-        preferences=MappingUtilityFunction(
-            dict(zip(outcomes, u1)), outcome_space=neg.outcome_space
-        ),
+        preferences=MappingUtilityFunction(dict(zip(outcomes, u1)), outcome_space=neg.outcome_space),
     )
     neg.add(
         a2,
-        preferences=MappingUtilityFunction(
-            dict(zip(outcomes, 22 - u1)), outcome_space=neg.outcome_space
-        ),
+        preferences=MappingUtilityFunction(dict(zip(outcomes, 22 - u1)), outcome_space=neg.outcome_space),
     )
     neg.step()
     proposal = neg.negotiator_offers(neg.negotiators[0].id)[0]
@@ -229,9 +217,7 @@ def test_tit_for_tat_against_asp_negotiators():
         dict(zip(outcomes, (1 - np.linspace(0.0, 1.0, len(outcomes))).tolist())),
         outcomes=outcomes,
     )
-    neg = SAOMechanism(
-        outcomes=outcomes, n_steps=20, avoid_ultimatum=False, time_limit=None
-    )
+    neg = SAOMechanism(outcomes=outcomes, n_steps=20, avoid_ultimatum=False, time_limit=None)
     neg.add(a1, preferences=u1)
     neg.add(a2, preferences=u2)
     neg.run()
@@ -240,12 +226,8 @@ def test_tit_for_tat_against_asp_negotiators():
     assert a1offers[0] == (9,), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
     # assert a2offers[0] == (0,)
     for i, offer in enumerate(_[0] for _ in a2offers):
-        assert (
-            i == 0 or offer >= a2offers[i - 1][0]
-        ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
-    assert (
-        neg.state.agreement is not None
-    ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+        assert i == 0 or offer >= a2offers[i - 1][0], f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+    assert neg.state.agreement is not None, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
     assert neg.state.agreement in (
         (1,),
         (2,),
@@ -255,9 +237,7 @@ def test_tit_for_tat_against_asp_negotiators():
         (6,),
     ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
     for i, offer in enumerate(_[0] for _ in a1offers):
-        assert (
-            i == 0 or offer <= a1offers[i - 1][0] + 2
-        ), f"{neg.plot()}{plt.show()}{neg.extended_trace}"
+        assert i == 0 or offer <= a1offers[i - 1][0] + 2, f"{neg.plot()}{plt.show()}{neg.extended_trace}"
 
 
 def test_best_only_asp_negotiator():
@@ -279,10 +259,7 @@ def test_best_only_asp_negotiator():
     a1offers = neg.negotiator_offers(a1.id)
     a2offers = neg.negotiator_offers(a2.id)
     if len(a1offers) > 0:
-        assert (
-            len(set(a1offers)) <= 2
-            and min(u1(_) for _ in a1offers if _ is not None) >= 0.9
-        )
+        assert len(set(a1offers)) <= 2 and min(u1(_) for _ in a1offers if _ is not None) >= 0.9
     assert len(set(a2offers)) >= 1
 
 

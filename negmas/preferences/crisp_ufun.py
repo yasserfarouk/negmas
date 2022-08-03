@@ -99,9 +99,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
         )
 
     @classmethod
-    def generate_random_bilateral(
-        cls, outcomes: int | list[Outcome]
-    ) -> tuple[UtilityFunction, UtilityFunction]:
+    def generate_random_bilateral(cls, outcomes: int | list[Outcome]) -> tuple[UtilityFunction, UtilityFunction]:
         """Generates a couple of utility functions
 
         Args:
@@ -130,9 +128,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
         )
 
     @classmethod
-    def generate_random(
-        cls, n: int, outcomes: int | list[Outcome], normalized: bool = True
-    ) -> list[UtilityFunction]:
+    def generate_random(cls, n: int, outcomes: int | list[Outcome], normalized: bool = True) -> list[UtilityFunction]:
         """Generates N mapping utility functions
 
         Args:
@@ -155,9 +151,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
             if normalized:
                 u1 -= u1.min()
                 u1 /= u1.max()
-            ufuns.append(
-                MappingUtilityFunction(dict(zip(outcomes, u1)), outcomes=outcomes)
-            )
+            ufuns.append(MappingUtilityFunction(dict(zip(outcomes, u1)), outcomes=outcomes))
         return ufuns
 
     def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
@@ -167,9 +161,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
         """
         Returns a numeric difference between the utility of the two given outcomes
         """
-        return ScipyDistribution(
-            loc=self.difference(first, second), scale=0.0, type="uniform"
-        )
+        return ScipyDistribution(loc=self.difference(first, second), scale=0.0, type="uniform")
 
     def minmax(
         self,

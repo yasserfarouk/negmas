@@ -96,12 +96,7 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
                 dict(
                     zip(
                         outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u1
-                        ),
+                        (ScipyDistribution(type="unifomr", loc=_, scale=get_one_float(scale)) for _ in u1),
                     )
                 )
             ),
@@ -109,12 +104,7 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
                 dict(
                     zip(
                         outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u2
-                        ),
+                        (ScipyDistribution(type="unifomr", loc=_, scale=get_one_float(scale)) for _ in u2),
                     )
                 )
             ),
@@ -151,12 +141,7 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
                 dict(
                     zip(
                         outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u1
-                        ),
+                        (ScipyDistribution(type="unifomr", loc=_, scale=get_one_float(scale)) for _ in u1),
                     )
                 )
             ),
@@ -164,12 +149,7 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
                 dict(
                     zip(
                         outcomes,
-                        (
-                            ScipyDistribution(
-                                type="unifomr", loc=_, scale=get_one_float(scale)
-                            )
-                            for _ in u2
-                        ),
+                        (ScipyDistribution(type="unifomr", loc=_, scale=get_one_float(scale)) for _ in u2),
                     )
                 )
             ),
@@ -210,12 +190,7 @@ class ProbUtilityFunction(_General, BaseUtilityFunction):
                     dict(
                         zip(
                             outcomes,
-                            (
-                                ScipyDistribution(
-                                    type="unifomr", loc=_, scale=get_one_float(scale)
-                                )
-                                for _ in u1
-                            ),
+                            (ScipyDistribution(type="unifomr", loc=_, scale=get_one_float(scale)) for _ in u1),
                         )
                     )
                 )

@@ -72,11 +72,7 @@ def test_issue_generation_defaults():
     options = ["a", "b", "c"]
     issues = generate_issues([(0.0, 1.0), options, 5])
     assert len(issues) == 3
-    assert (
-        issues[0].is_continuous()
-        and issues[0]._values[0] == 0.0
-        and issues[0]._values[1] == 1.0
-    )
+    assert issues[0].is_continuous() and issues[0]._values[0] == 0.0 and issues[0]._values[1] == 1.0
     for i, o in enumerate(options):
         assert issues[1]._values[i] == o
     assert issues[2]._values == (0, 4)

@@ -22,8 +22,7 @@ __all__ = [
 ]
 LOGS_BASE_DIR = Path(negmas_config("log_base", Path.home() / "negmas" / "logs"))
 COMMON_LOG_FILE_NAME = str(
-    Path(LOGS_BASE_DIR)
-    / "{}_{}.txt".format("log", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    Path(LOGS_BASE_DIR) / "{}_{}.txt".format("log", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 )
 
 MODULE_LOG_FILE_NAME: dict[str, str] = dict()

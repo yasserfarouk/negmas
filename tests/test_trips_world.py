@@ -35,9 +35,7 @@ class AWI(AgentWorldInterface):
         """List of all other agent IDs"""
         return list(_ for _ in self._world.agents.keys() if _ != self.agent.id)
 
-    def request_negotiation(
-        self, partners: list[str], negotiator: SAONegotiator
-    ) -> bool:
+    def request_negotiation(self, partners: list[str], negotiator: SAONegotiator) -> bool:
         """A convenient way to request negotiations"""
         self._world: TripsWorld
         if self.agent.id not in partners:
@@ -49,9 +47,7 @@ class AWI(AgentWorldInterface):
             annotation=dict(),
             extra=dict(negotiator_id=negotiator.id),
         )
-        return self.request_negotiation_about(
-            issues=self._world.ISSUES, partners=partners, req_id=req_id
-        )
+        return self.request_negotiation_about(issues=self._world.ISSUES, partners=partners, req_id=req_id)
 
 
 class TripsWorld(World):
@@ -64,9 +60,7 @@ class TripsWorld(World):
     def __init__(self, *args, **kwargs):
         """Initialize the world"""
         kwargs["awi_type"] = AWI
-        kwargs["negotiation_quota_per_step"] = kwargs.get(
-            "negotiation_quota_per_step", 8
-        )
+        kwargs["negotiation_quota_per_step"] = kwargs.get("negotiation_quota_per_step", 8)
         kwargs["force_signing"] = True
         kwargs["default_signing_delay"] = 0
         super().__init__(*args, **kwargs)
@@ -80,11 +74,7 @@ class TripsWorld(World):
         super().join(x, **kwargs)
         weights = (np.random.rand(len(self.ISSUES)) - 0.5).tolist()
         x.ufun = (
-            LinearUtilityFunction(
-                weights=weights, reserved_value=0.0, issues=self.ISSUES
-            )
-            if ufun is None
-            else ufun
+            LinearUtilityFunction(weights=weights, reserved_value=0.0, issues=self.ISSUES) if ufun is None else ufun
         )
         self._ufuns[x.id] = x.ufun
         self._breach_prob[x.id] = random() * 0.1 if breach_prob is None else breach_prob
@@ -97,9 +87,7 @@ class TripsWorld(World):
         """What is the information available to agents? total utility points"""
         return dict(total_utility=self._total_utility[agent.id])
 
-    def execute_action(
-        self, action: Action, agent: Agent, callback: Callable | None = None
-    ) -> bool:
+    def execute_action(self, action: Action, agent: Agent, callback: Callable | None = None) -> bool:
         """Executing actions by agents? No actions available"""
         pass
 
@@ -113,9 +101,7 @@ class TripsWorld(World):
         Ones that were signed the previous step"""
         return self._contracts[self.current_step]
 
-    def order_contracts_for_execution(
-        self, contracts: Collection[Contract]
-    ) -> Collection[Contract]:
+    def order_contracts_for_execution(self, contracts: Collection[Contract]) -> Collection[Contract]:
         """What should be the order of contract execution? Random"""
         shuffle(contracts)
         return contracts
@@ -139,14 +125,10 @@ class TripsWorld(World):
         if len(breaches) > 0:
             return set(breaches)
         for aid in contract.partners:
-            self._total_utility[aid] += self._ufuns[aid](
-                dict2outcome(contract.agreement, issues=self.ISSUES)
-            )
+            self._total_utility[aid] += self._ufuns[aid](dict2outcome(contract.agreement, issues=self.ISSUES))
         return set()
 
-    def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract
-    ) -> None:
+    def complete_contract_execution(self, contract: Contract, breaches: list[Breach], resolution: Contract) -> None:
         """What happens if a breach was resolved? Nothing. They cannot"""
         pass
 
@@ -167,10 +149,7 @@ class TripsWorld(World):
         """How good is a contract? Welfare"""
         if contract.agreement is None:
             return 0.0
-        return sum(
-            self._ufuns[aid](dict2outcome(contract.agreement, issues=self.ISSUES))
-            for aid in contract.partners
-        )
+        return sum(self._ufuns[aid](dict2outcome(contract.agreement, issues=self.ISSUES)) for aid in contract.partners)
 
     def post_step_stats(self):
         for aid, agent in self.agents.items():
@@ -210,9 +189,7 @@ class Person(Agent, ABC):
     def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         pass
 
     def on_negotiation_failure(
@@ -224,14 +201,10 @@ class Person(Agent, ABC):
     ) -> None:
         pass
 
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         pass
 
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: list[Breach]
-    ) -> RenegotiationRequest | None:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: list[Breach]) -> RenegotiationRequest | None:
         pass
 
     def respond_to_renegotiation_request(
@@ -242,9 +215,7 @@ class Person(Agent, ABC):
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
-    def on_contract_breached(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
-    ) -> None:
+    def on_contract_breached(self, contract: Contract, breaches: list[Breach], resolution: Contract | None) -> None:
         pass
 
 

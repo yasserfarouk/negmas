@@ -46,9 +46,7 @@ class XmlSerializableUFun(XmlSerializable, Protocol):
     """Can be serialized to XML format (compatible with GENIUS)"""
 
     @classmethod
-    def from_genius(
-        cls: type[X], issues: list[Issue], file_name: PathLike, **kwargs
-    ) -> X:
+    def from_genius(cls: type[X], issues: list[Issue], file_name: PathLike, **kwargs) -> X:
         ...
 
     @abstractmethod
@@ -322,9 +320,7 @@ class OrdinalRanking(Protocol):
     """Outcomes can be ranked. Supports equality"""
 
     @abstractmethod
-    def rank(
-        self, outcomes: list[Outcome | None], descending=True
-    ) -> list[list[Outcome | None]]:
+    def rank(self, outcomes: list[Outcome | None], descending=True) -> list[list[Outcome | None]]:
         """Ranks the given list of outcomes with weights. `None` stands for the null outcome.
 
         Returns:
@@ -333,9 +329,7 @@ class OrdinalRanking(Protocol):
         """
 
     @abstractmethod
-    def argrank(
-        self, outcomes: list[Outcome | None], descending=True
-    ) -> list[list[int | None]]:
+    def argrank(self, outcomes: list[Outcome | None], descending=True) -> list[list[int | None]]:
         """Ranks the given list of outcomes with weights. None stands for the null outcome.
 
         Returns:
@@ -397,9 +391,7 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def some(
-        self, rng: float | tuple[float, float], normalized: bool, n: int | None = None
-    ) -> list[Outcome]:
+    def some(self, rng: float | tuple[float, float], normalized: bool, n: int | None = None) -> list[Outcome]:
         """
         Finds a list of outcomes with utilities in the given range.
 
@@ -414,9 +406,7 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def one_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def one_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         """
         Finds an outcmoe with the given utility value.
 
@@ -426,9 +416,7 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def best_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def best_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         """
         Finds an outcome with highest utility within the given range
 
@@ -438,9 +426,7 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def worst_in(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def worst_in(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         """
         Finds an outcome with lowest utility within the given range
 
@@ -513,9 +499,7 @@ class InverseUFun(Protocol):
         """
 
     @abstractmethod
-    def __call__(
-        self, rng: float | tuple[float, float], normalized: bool
-    ) -> Outcome | None:
+    def __call__(self, rng: float | tuple[float, float], normalized: bool) -> Outcome | None:
         """
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """
@@ -786,7 +770,5 @@ class Randomizable(Protocol):
 
     @classmethod
     @abstractmethod
-    def random(
-        cls, outcome_space, reserved_value, normalized=True, **kwargs
-    ) -> Randomizable:
+    def random(cls, outcome_space, reserved_value, normalized=True, **kwargs) -> Randomizable:
         """Generates a random ufun of the given type"""

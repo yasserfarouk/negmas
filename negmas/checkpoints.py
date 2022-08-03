@@ -123,11 +123,7 @@ class CheckpointRunner:
         else:
             pattern = "*id*.json"
         self.__infos = [load(_) for _ in self.__folder.glob(pattern)]
-        self.__files = dict(
-            zip(
-                (_["step"] for _ in self.__infos), (_["filename"] for _ in self.__infos)
-            )
-        )
+        self.__files = dict(zip((_["step"] for _ in self.__infos), (_["filename"] for _ in self.__infos)))
         self.__sorted_steps = sorted(list(self.__files.keys()))
         self._step_index = -1
         self.__object: NamedObject | None = None
@@ -235,19 +231,13 @@ class CheckpointRunner:
         """
         if self.__object is None:
             return None
-        if (
-            not isinstance(self.__object, CheckpointMixin)
-            and folder is not None
-            and every > 0
-        ):
+        if not isinstance(self.__object, CheckpointMixin) and folder is not None and every > 0:
             raise ValueError(
                 f"Object of type {self.__object.__class__.__name__} is not implementing the "
                 f"CheckpointMixin. It cannot be forked"
             )
         if copy_past_checkpoints and folder is None:
-            raise ValueError(
-                "Cannot copy past checkpoints because no folder for new checkpoints is given"
-            )
+            raise ValueError("Cannot copy past checkpoints because no folder for new checkpoints is given")
 
         if folder is None:
             folder = Path()

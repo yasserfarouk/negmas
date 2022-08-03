@@ -66,7 +66,9 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
         self.min_value, self.max_value = min(values), max(values)
 
     def _to_xml_str(self, indx):
-        output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
+        output = (
+            f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
+        )
 
         for i, v in enumerate(self._values):
             output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'
@@ -106,8 +108,5 @@ class DiscreteOrdinalIssue(DiscreteIssue, OrdinalIssue):
 
         """
         yield from (
-            self._values[_]
-            for _ in sample(
-                self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints
-            )
+            self._values[_] for _ in sample(self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints)
         )

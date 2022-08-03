@@ -31,9 +31,7 @@ class SessionDependentUFunMixin:
     """
 
     @abstractmethod
-    def eval_on_session(
-        self, offer: Outcome, nmi: NegotiatorMechanismInterface | None = None
-    ):
+    def eval_on_session(self, offer: Outcome, nmi: NegotiatorMechanismInterface | None = None):
         """Evaluates the offer given a session"""
 
     def eval(self, offer: Outcome):

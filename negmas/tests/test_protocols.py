@@ -211,9 +211,7 @@ def test_mechanism_fails_on_less_than_two_agents_dynamic(dynamic_mechanism):
     assert not dynamic_mechanism.run().broken
     dynamic_mechanism.add(RandomNegotiator(), ufun=lambda x: 5.0)
     dynamic_mechanism.run()
-    assert (
-        len(dynamic_mechanism.history) > 0 and dynamic_mechanism.state.broken is False
-    )
+    assert len(dynamic_mechanism.history) > 0 and dynamic_mechanism.state.broken is False
 
 
 def test_mechanisms_get_some_rounds():

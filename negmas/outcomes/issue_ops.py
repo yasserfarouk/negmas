@@ -145,11 +145,7 @@ def sample_outcomes(
         for i, issue in enumerate(continuous):
             issues[indx[i]] = make_issue(
                 name=issue.name,
-                values=list(
-                    np.linspace(
-                        issue.min_value, issue.max_value, num=n_per_issue, endpoint=True
-                    ).tolist()
-                ),
+                values=list(np.linspace(issue.min_value, issue.max_value, num=n_per_issue, endpoint=True).tolist()),
             )
 
     cardinality = 1
@@ -224,11 +220,7 @@ def _sample_issues(
     samples = []
 
     for issue in issues:
-        samples.append(
-            issue.rand_outcomes(
-                n=remaining, with_replacement=True, fail_if_not_enough=True
-            )
-        )
+        samples.append(issue.rand_outcomes(n=remaining, with_replacement=True, fail_if_not_enough=True))
 
     _v = []
 
@@ -303,19 +295,13 @@ def sample_issues(
         and fail_if_not_enough
         and not with_replacement
     ):
-        raise ValueError(
-            f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes"
-        )
+        raise ValueError(f"Cannot sample {n_outcomes} from a total of possible {n_total} outcomes")
 
     if n_total is not None and n_total != float("inf") and n_outcomes is None:
         return enumerate_discrete_issues(issues=issues)  # type: ignore I know that these issues are discrete
     if n_total is None and n_outcomes is None:
-        raise ValueError(
-            f"Cannot sample unknown number of outcomes from continuous outcome spaces"
-        )
-    return list(
-        _sample_issues(issues, n_outcomes, with_replacement, n_total, set(), 0, 10)
-    )
+        raise ValueError(f"Cannot sample unknown number of outcomes from continuous outcome spaces")
+    return list(_sample_issues(issues, n_outcomes, with_replacement, n_total, set(), 0, 10))
 
 
 def enumerate_issues(
@@ -335,9 +321,7 @@ def enumerate_issues(
 
     if n is None or n == float("inf"):
         if max_cardinality is None:
-            raise ValueError(
-                "Cannot enumerate continuous issues without specifying `max_cardinality`"
-            )
+            raise ValueError("Cannot enumerate continuous issues without specifying `max_cardinality`")
         return list(
             sample_issues(
                 issues=issues,
@@ -416,15 +400,11 @@ def issues_from_outcomes(
                 issue_names = [f"i{_}" for _ in range(len(o))]
 
         if n_issues is not None and len(o) != n_issues:
-            raise ValueError(
-                f"Outcome {o} at {i} has {len(o)} issues but an earlier outcome had {n_issues} issues"
-            )
+            raise ValueError(f"Outcome {o} at {i} has {len(o)} issues but an earlier outcome had {n_issues} issues")
 
         n_issues = len(o)
         if len(issue_names) != n_issues:
-            raise ValueError(
-                f"Outcome {i} ({o}) has {len(o)} values but we have {len(issue_names)} issue names"
-            )
+            raise ValueError(f"Outcome {i} ({o}) has {len(o)} values but we have {len(issue_names)} issue names")
 
         o_dict = outcome2dict(o, issue_names)
 
@@ -451,9 +431,7 @@ def issues_from_outcomes(
     if numeric_as_ranges:
         return tuple(  # type: ignore (seems  ok but not sure)
             make_issue(values=(v[0], v[-1]), name=n)
-            if len(v) > 0
-            and (isinstance(v[0], int))
-            and all(a == b + 1 for a, b in zip(v[1:], v[:-1]))
+            if len(v) > 0 and (isinstance(v[0], int)) and all(a == b + 1 for a, b in zip(v[1:], v[:-1]))
             else make_issue(values=v, name=n)
             for n, v in values.items()
         )
@@ -668,9 +646,7 @@ def issues_from_xml_str(
                     if item.tag == "item":
                         item_name = item.attrib.get("value", None)
 
-                        if (
-                            item_name not in issues_dict[issue_name]
-                        ):  # ignore repeated items
+                        if item_name not in issues_dict[issue_name]:  # ignore repeated items
                             issues_dict[issue_name].append(item_name)
 
             elif mytype in ("integer", "real"):
@@ -687,17 +663,11 @@ def issues_from_xml_str(
                         )
                 if lower_ is None:
                     if upper_ is not None and float(upper_) < 0:
-                        lower_ = str(
-                            -(sys.maxsize // 2)
-                            if mytype == "integer"
-                            else float("-inf")
-                        )
+                        lower_ = str(-(sys.maxsize // 2) if mytype == "integer" else float("-inf"))
                     else:
                         lower_ = "0"
                 if upper_ is None:
-                    upper_ = str(
-                        (sys.maxsize // 2) if mytype == "integer" else float("-inf")
-                    )
+                    upper_ = str((sys.maxsize // 2) if mytype == "integer" else float("-inf"))
                 if mytype == "integer":
                     lower, upper = int(lower_), int(upper_)
                     issues_dict[issue_name] = lower, upper
@@ -722,9 +692,7 @@ def issues_from_xml_str(
     for i in range(n_issues):
         if i not in issues_by_index.keys():
             if safe_parsing:
-                raise ValueError(
-                    f"No issue with index {i} is found even though we have issues with higher indices"
-                )
+                raise ValueError(f"No issue with index {i} is found even though we have issues with higher indices")
             issues.append(ContiguousIssue((1, 1), name=DUMMY_ISSUE_NAME))
             continue
         issues.append(issues_by_index[i])
@@ -777,9 +745,7 @@ def issues_from_genius(
 
 
 def generate_issues(
-    params: Sequence[
-        int | list[str] | tuple[int, int] | Callable | tuple[float, float]
-    ],
+    params: Sequence[int | list[str] | tuple[int, int] | Callable | tuple[float, float]],
     counts: list[int] | None = None,
     names: list[str] | None = None,
 ) -> tuple[Issue, ...]:
@@ -830,9 +796,7 @@ def discretize_and_enumerate_issues(
         list of outcomes of the given type.
     """
     issues = [
-        _
-        if _.is_finite()
-        else make_issue(values=list(_.value_generator(n_discretization)), name=_.name)
+        _ if _.is_finite() else make_issue(values=list(_.value_generator(n_discretization)), name=_.name)
         for _ in issues
     ]
     return enumerate_issues(issues, max_cardinality=max_cardinality)
@@ -867,10 +831,7 @@ def combine_issues(
         return None
     name = issue_sep.join([_.name for _ in issues]) if name is None else name
     if keep_value_names:
-        values = [
-            value_sep.join([str(_) for _ in outcomes])
-            for outcomes in enumerate_issues(issues)
-        ]
+        values = [value_sep.join([str(_) for _ in outcomes]) for outcomes in enumerate_issues(issues)]
     else:
         values = n_outcomes
     return make_issue(name=name, values=values)

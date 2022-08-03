@@ -59,16 +59,11 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         distributions = (
             list(distributions)
             if distributions is not None
-            else [
-                ScipyDistribution(type="uniform", loc=0.0, scale=1.0)
-                for _ in range(len(outcomes))
-            ]
+            else [ScipyDistribution(type="uniform", loc=0.0, scale=1.0) for _ in range(len(outcomes))]
         )
 
         if len(outcomes) < 1:
-            raise ValueError(
-                "IPUtilityFunction cannot be initialized with zero outcomes"
-            )
+            raise ValueError("IPUtilityFunction cannot be initialized with zero outcomes")
         self.tupelized = False
 
         self.n_issues = len(outcomes[0])
@@ -80,9 +75,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         self.issue_keys = dict(zip(range(self.n_issues), self.issue_names))
 
         if not isinstance(outcomes[0], tuple):
-            outcomes = [
-                tuple(iget(_, key, None) for key in self.issue_names) for _ in outcomes
-            ]
+            outcomes = [tuple(iget(_, key, None) for key in self.issue_names) for _ in outcomes]
             self.tupelized = True
         self.distributions = dict(zip(outcomes, distributions))
 
@@ -171,10 +164,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         elif variability <= 0.0:
             uncertainties = [uncertainty] * len(outcomes)
         else:
-            uncertainties = (
-                uncertainty
-                + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty
-            ).tolist()
+            uncertainties = (uncertainty + (np.random.rand(len(outcomes)) - 0.5) * variability * uncertainty).tolist()
 
         return IPUtilityFunction(
             outcomes=outcomes,
@@ -237,9 +227,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
         if not u.outcome_space:
             raise ValueError("Unknown outcome space")
         if not u.outcome_space.is_discrete():
-            raise ValueError(
-                "Cannot be constructed from a ufun with an infinite outcome space"
-            )
+            raise ValueError("Cannot be constructed from a ufun with an infinite outcome space")
         outcomes = u.outcome_space.enumerate()  # type: ignore (I know that it is a discrete space)
         d = dict(zip(outcomes, (u(_) for _ in outcomes)))
         return cls.from_mapping(
@@ -271,9 +259,7 @@ class IPUtilityFunction(StationaryMixin, ProbUtilityFunction):
 
             MappingUtilityFunction
         """
-        return MappingUtilityFunction(
-            mapping={o: d.sample(1)[0] for o, d in self.distributions.items()}
-        )
+        return MappingUtilityFunction(mapping={o: d.sample(1)[0] for o, d in self.distributions.items()})
 
     def eval(self, offer: Outcome) -> Distribution:
         """Calculate the utility_function value for a given outcome.

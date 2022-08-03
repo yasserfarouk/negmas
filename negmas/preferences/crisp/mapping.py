@@ -86,9 +86,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
     ) -> None:
         super().__init__(*args, **kwargs)
         if self.outcome_space is None and isinstance(mapping, dict):
-            self.outcome_space = os_or_none(
-                None, None, list((_,) for _ in mapping.keys())
-            )
+            self.outcome_space = os_or_none(None, None, list((_,) for _ in mapping.keys()))
         self.mapping = mapping
         self.default = default
 
@@ -142,14 +140,10 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
             <BLANKLINE>
         """
         if len(issues) > 1:
-            raise ValueError(
-                "Cannot call xml() on a mapping utility function with more than one issue"
-            )
+            raise ValueError("Cannot call xml() on a mapping utility function with more than one issue")
         issue = issues[0]  # type: ignore We will raise an exception if the type is not discrete anyway
         if issue.is_continuous():
-            raise ValueError(
-                "Cannot call xml() on a mapping utility function with a continuous issue"
-            )
+            raise ValueError("Cannot call xml() on a mapping utility function with a continuous issue")
         issue: DiscreteIssue
         output = f'<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="{issue.name}">\n'
         if isinstance(self.mapping, Callable):
@@ -179,9 +173,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
         # todo: corrrect this for continuous outcome-spaces
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)
-        os = outcome_space.to_largest_discrete(
-            levels=10, max_cardinality=max_cardinality
-        )
+        os = outcome_space.to_largest_discrete(levels=10, max_cardinality=max_cardinality)
         mn, rng = 0.0, 1.0
         if not normalized:
             mn = 4 * random.random()

@@ -46,9 +46,7 @@ def test_do_nothing_never_gets_agreements(opp, start, rejector, avoid_ultimatum)
     assert session.run().agreement is None
 
 
-@mark.parametrize(
-    ["factory", "name", "short_name"], [(make_boa, "BOANegotiator", "BOA")]
-)
+@mark.parametrize(["factory", "name", "short_name"], [(make_boa, "BOANegotiator", "BOA")])
 def test_has_correct_type_name(factory, name, short_name):
     x = factory()
     assert x.type_name == name

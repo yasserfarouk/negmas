@@ -86,9 +86,7 @@ class DiscreteAcceptanceModel(ABC):
         return self.update_offered(outcome=outcome)
 
     def acceptance_probabilities(self) -> np.ndarray:
-        return np.array(
-            [self.probability_of_acceptance_indx(_) for _ in range(len(self.outcomes))]
-        )
+        return np.array([self.probability_of_acceptance_indx(_) for _ in range(len(self.outcomes))])
 
 
 class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
@@ -108,8 +106,7 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         outcomes = self.outcomes
         if isinstance(prob, list) and len(outcomes) != len(prob):
             raise ValueError(
-                f"{len(outcomes)} outcomes but {len(prob)} probabilities. Cannot initialize simple "
-                f"opponents model"
+                f"{len(outcomes)} outcomes but {len(prob)} probabilities. Cannot initialize simple " f"opponents model"
             )
         self.n_agents = n_negotiators
         if not isinstance(prob, Collection):
@@ -124,9 +121,7 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
         self.first = True
         self.not_offered = set(list(range(len(self.outcomes))))
         self.not_offering_rejection_ratio = not_offering_rejection_ratio
-        self.not_offering_discount = self.discount + (
-            1.0 - self.not_offering_rejection_ratio
-        ) * (1.0 - self.discount)
+        self.not_offering_discount = self.discount + (1.0 - self.not_offering_rejection_ratio) * (1.0 - self.discount)
 
     @classmethod
     def from_negotiation(
@@ -159,16 +154,13 @@ class AdaptiveDiscreteAcceptanceModel(DiscreteAcceptanceModel):
 
     def _update(self, p: float, real_rejection: bool) -> float:
         if real_rejection:
-            return min(
-                self.p_accept_after_reject, min(1.0, (p - self.delta) * self.discount)
-            )
+            return min(self.p_accept_after_reject, min(1.0, (p - self.delta) * self.discount))
         else:
             return max(
                 self.p_accept_after_reject,
                 min(
                     1.0,
-                    (p - self.delta * self.not_offering_rejection_ratio)
-                    * self.not_offering_discount,
+                    (p - self.delta * self.not_offering_rejection_ratio) * self.not_offering_discount,
                 ),
             )
 
@@ -340,19 +332,13 @@ class UncertainOpponentModel(AggregatingDiscreteAcceptanceModel):
         else:
             randomizing_model = RandomDiscreteAcceptanceModel(outcomes=outcomes)
         if accesses_real_acceptance:
-            peaking_model = PeekingDiscreteAcceptanceModel(
-                opponents=opponents, outcomes=outcomes
-            )
+            peaking_model = PeekingDiscreteAcceptanceModel(opponents=opponents, outcomes=outcomes)
         else:
-            peaking_model = PeekingProbabilisticDiscreteAcceptanceModel(
-                opponents=opponents, outcomes=outcomes
-            )
+            peaking_model = PeekingProbabilisticDiscreteAcceptanceModel(opponents=opponents, outcomes=outcomes)
         if uncertainty < 1e-7:
             super().__init__(outcomes=outcomes, models=[peaking_model], weights=[1.0])
         elif uncertainty > 1.0 - 1e-7:
-            super().__init__(
-                outcomes=outcomes, models=[randomizing_model], weights=[1.0]
-            )
+            super().__init__(outcomes=outcomes, models=[randomizing_model], weights=[1.0])
         else:
             super().__init__(
                 outcomes=outcomes,

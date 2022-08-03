@@ -38,11 +38,7 @@ class ModularNegotiator(Negotiator):
         """
         Adds a component at the given index. If a negative number is given, appends at the end
         """
-        if (
-            component.negotiator is not None
-            and id(component.negotiator) != id(self)
-            and not override
-        ):
+        if component.negotiator is not None and id(component.negotiator) != id(self) and not override:
             raise ValueError(
                 f"Component {component} already has as parent {component.negotiator.id} that is not the same as this negotiator {self.id}. Cannot add it. To override pass `overrride=True`"
             )
@@ -64,9 +60,7 @@ class ModularNegotiator(Negotiator):
         super().__init__(*args, **kwargs)
         self._components: list[Component] = []
         self.__component_map: dict[str, int] = dict()
-        for c, n in zip(
-            components, component_names if component_names else itertools.repeat(None)
-        ):
+        for c, n in zip(components, component_names if component_names else itertools.repeat(None)):
             self.insert_component(c, name=n)
 
     @property
@@ -101,10 +95,7 @@ class ModularNegotiator(Negotiator):
         ufun: BaseUtilityFunction | None = None,
         role: str = "negotiator",
     ) -> bool:
-        if not all(
-            _.can_join(nmi, state, preferences=preferences, ufun=ufun, role=role)
-            for _ in self._components
-        ):
+        if not all(_.can_join(nmi, state, preferences=preferences, ufun=ufun, role=role) for _ in self._components):
             return False
         joined = super().join(nmi, state, preferences=preferences, ufun=ufun, role=role)
         if not joined:

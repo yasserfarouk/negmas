@@ -92,9 +92,7 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
         # todo: corrrect this for continuous outcome-spaces
         if not isinstance(reserved_value, Iterable):
             reserved_value = (reserved_value, reserved_value)
-        os = outcome_space.to_largest_discrete(
-            levels=10, max_cardinality=max_cardinality
-        )
+        os = outcome_space.to_largest_discrete(levels=10, max_cardinality=max_cardinality)
         mn, rng = 0.0, 1.0
         if not normalized:
             mn = 4 * random.random()
@@ -105,10 +103,7 @@ class ProbMappingUtilityFunction(StationaryMixin, ProbUtilityFunction):
             dict(
                 zip(
                     os.enumerate(),
-                    (
-                        ScipyDistribution(type=type, loc=l, scale=s)
-                        for l, s in zip(locs, scales)
-                    ),
+                    (ScipyDistribution(type=type, loc=l, scale=s) for l, s in zip(locs, scales)),
                 )
             ),
             reserved_value=reserved_value[0]  # type: ignore

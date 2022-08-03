@@ -91,9 +91,7 @@ class BaseElicitor(SAONegotiator):
         self.opponent_model = None
         self._elicitation_time = None
         self.asking_time = 0.0
-        self.offerable_outcomes = (
-            []
-        )  # will contain outcomes with known or at least elicited utilities
+        self.offerable_outcomes = []  # will contain outcomes with known or at least elicited utilities
         self.indices = None
         self.initial_utility_priors = None
         self.user = user
@@ -105,8 +103,7 @@ class BaseElicitor(SAONegotiator):
 
     def init_elicitation(
         self,
-        preferences: None
-        | (IPUtilityFunction | ScipyDistribution | list[ScipyDistribution]),
+        preferences: None | (IPUtilityFunction | ScipyDistribution | list[ScipyDistribution]),
         **kwargs,
     ) -> None:
         """
@@ -140,25 +137,13 @@ class BaseElicitor(SAONegotiator):
             self.opponent_model = self.opponent_model_factory(nmi)
             self.base_negotiator.opponent_model = self.opponent_model
         if preferences is None:
-            dists = [
-                ScipyDistribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes
-            ]
-            preferences = IPUtilityFunction(
-                outcomes=outcomes, distributions=dists, reserved_value=0.0
-            )
+            dists = [ScipyDistribution(type="uniform", loc=0.0, scale=1.0) for _ in outcomes]
+            preferences = IPUtilityFunction(outcomes=outcomes, distributions=dists, reserved_value=0.0)
         elif isinstance(preferences, ScipyDistribution):
             preferences = [copy.copy(preferences) for _ in outcomes]
-            preferences = IPUtilityFunction(
-                outcomes=outcomes, distributions=preferences, reserved_value=0.0
-            )
-        elif (
-            isinstance(preferences, list)
-            and len(preferences) > 0
-            and isinstance(preferences[0], ScipyDistribution)
-        ):
-            preferences = IPUtilityFunction(
-                outcomes=outcomes, distributions=preferences, reserved_value=0.0
-            )
+            preferences = IPUtilityFunction(outcomes=outcomes, distributions=preferences, reserved_value=0.0)
+        elif isinstance(preferences, list) and len(preferences) > 0 and isinstance(preferences[0], ScipyDistribution):
+            preferences = IPUtilityFunction(outcomes=outcomes, distributions=preferences, reserved_value=0.0)
         self.set_preferences(preferences)
         self.initial_utility_priors = copy.copy(preferences)
 
@@ -225,11 +210,7 @@ class BaseElicitor(SAONegotiator):
             The total elicitation cost is *not* discounted from the reserved
             value when the input is None
         """
-        return (
-            self.user.ufun(outcome) - self.user.total_cost
-            if outcome is not None
-            else self.user.ufun(outcome)
-        )
+        return self.user.ufun(outcome) - self.user.total_cost if outcome is not None else self.user.ufun(outcome)
 
     @property
     def elicitation_cost(self) -> float:
@@ -257,9 +238,7 @@ class BaseElicitor(SAONegotiator):
         """
         return min(_locs(self.utility_distributions()))
 
-    def on_opponent_model_updated(
-        self, outcomes: list[Outcome], old: list[float], new: list[float]
-    ) -> None:
+    def on_opponent_model_updated(self, outcomes: list[Outcome], old: list[float], new: list[float]) -> None:
         """
         Called whenever an opponents model is updated.
 
@@ -269,9 +248,7 @@ class BaseElicitor(SAONegotiator):
             new: The new acceptance probability
         """
 
-    def on_partner_proposal(
-        self, state: MechanismState, partner_id: str, offer: Outcome
-    ):
+    def on_partner_proposal(self, state: MechanismState, partner_id: str, offer: Outcome):
         """
         Called when one of the partners propose (only if enable_callbacks is set
         in the `SAOMechanism`).
@@ -285,9 +262,7 @@ class BaseElicitor(SAONegotiator):
             - Used to update the opponent model by calling `update_offered` then
               `on_opponent_model_updated`.
         """
-        self.base_negotiator.on_partner_proposal(
-            partner_id=partner_id, offer=offer, state=state
-        )
+        self.base_negotiator.on_partner_proposal(partner_id=partner_id, offer=offer, state=state)
         old_prob = self.opponent_model.probability_of_acceptance(offer)
         self.opponent_model.update_offered(offer)
         new_prob = self.opponent_model.probability_of_acceptance(offer)
@@ -314,9 +289,7 @@ class BaseElicitor(SAONegotiator):
             - Used to update the opponent model by calling `update_rejected` or
               `update_accepted1 then `on_opponent_model_updated`.
         """
-        self.base_negotiator.on_partner_response(
-            state=state, partner_id=partner_id, outcome=outcome, response=response
-        )
+        self.base_negotiator.on_partner_response(state=state, partner_id=partner_id, outcome=outcome, response=response)
         if response == ResponseType.REJECT_OFFER:
             old_probs = [self.opponent_model.probability_of_acceptance(outcome)]
             self.opponent_model.update_rejected(outcome)
@@ -362,10 +335,7 @@ class BaseElicitor(SAONegotiator):
                 - The maximum attainable utility (minus elicitation cost) is less than
                   the reserved value.
         """
-        if (
-            self.maximum_attainable_utility() - self.elicitation_cost
-            <= self.reserved_value
-        ):
+        if self.maximum_attainable_utility() - self.elicitation_cost <= self.reserved_value:
             return
         start = time.perf_counter()
         self.before_eliciting()
@@ -374,8 +344,7 @@ class BaseElicitor(SAONegotiator):
         else:
             while self.elicit_single(state=state):
                 if (
-                    self.maximum_attainable_utility() - self.elicitation_cost
-                    <= self.reserved_value
+                    self.maximum_attainable_utility() - self.elicitation_cost <= self.reserved_value
                     or state.relative_time >= 1
                 ):
                     break
@@ -393,9 +362,7 @@ class BaseElicitor(SAONegotiator):
         Remarks:
             - MUST be implemented by any Elicitor.
         """
-        raise NotImplementedError(
-            f"Must override utility_on_rejection in {self.__class__.__name__}"
-        )
+        raise NotImplementedError(f"Must override utility_on_rejection in {self.__class__.__name__}")
 
     def offering_utility(self, outcome, state) -> Value:
         """
@@ -484,20 +451,13 @@ class BaseElicitor(SAONegotiator):
         my_offer, meu = self.best_offer(state=state)
         if my_offer is None:
             return self.base_negotiator.respond_(state=state, offer=offer)
-        if (
-            self.strategy
-            and self.offerable_outcomes is not None
-            and offer not in self.offerable_outcomes
-        ):
+        if self.strategy and self.offerable_outcomes is not None and offer not in self.offerable_outcomes:
             self.strategy.apply(user=self.user, outcome=offer)
         offered_utility = self.preferences(offer)
         if offered_utility is None:
             return self.base_negotiator.respond_(state=state, offer=offer)
         offered_utility = self.expect(offered_utility, state=state)
-        if (
-            self.maximum_attainable_utility() - self.user.total_cost
-            < self.reserved_value
-        ):
+        if self.maximum_attainable_utility() - self.user.total_cost < self.reserved_value:
             return ResponseType.END_NEGOTIATION
         if meu < offered_utility:
             return ResponseType.ACCEPT_OFFER
@@ -556,10 +516,7 @@ class BaseElicitor(SAONegotiator):
             - By default it calls `utility_on_rejection` repeatedly for all outcomes.
               Override this method if a faster versin can be implemented
         """
-        return [
-            self.utility_on_rejection(outcome=outcome, state=state)
-            for outcome in self._nmi.outcomes
-        ]
+        return [self.utility_on_rejection(outcome=outcome, state=state) for outcome in self._nmi.outcomes]
 
     def __getattr__(self, item):
         return getattr(self.base_negotiator, item)

@@ -147,10 +147,7 @@ class AcceptFinalOffer(AcceptanceStrategy):
             or self.negotiator.nmi.n_steps == float("inf")
             and state.relative_time > 0.999999
         )
-        if (
-            is_last
-            and self.negotiator.ufun(offer) >= self.negotiator.ufun.reserved_value
-        ):
+        if is_last and self.negotiator.ufun(offer) >= self.negotiator.ufun.reserved_value:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -256,9 +253,7 @@ class TFTAcceptanceStrategy(AcceptanceStrategy):
         partner_concession = 1.0 - partner_u
         my_concession = self.recommender(partner_concession, state)
         if not math.isfinite(my_concession):
-            warnings.warn(
-                f"Got {my_concession} for concession which is unacceptable. Will use no concession"
-            )
+            warnings.warn(f"Got {my_concession} for concession which is unacceptable. Will use no concession")
             my_concession = 0.0
         if not (-1e-6 <= my_concession <= 1.0000001):
             warnings.warn(f"{my_concession} is negative or above 1")
@@ -364,10 +359,7 @@ class AcceptAbove(AcceptanceStrategy):
     def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         if not self.negotiator or not self.negotiator.ufun:
             return ResponseType.REJECT_OFFER
-        if (
-            self.negotiator.ufun.eval_normalized(offer, self.above_reserve)
-            >= self.limit
-        ):
+        if self.negotiator.ufun.eval_normalized(offer, self.above_reserve) >= self.limit:
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
@@ -425,9 +417,7 @@ class LimitedOutcomesAcceptanceStrategy(AcceptanceStrategy):
     ):
         if not isinstance(prob, Iterable):
             prob = [prob] * len(outcomes)
-        return LimitedOutcomesAcceptanceStrategy(
-            prob=dict(zip(outcomes, prob)), p_ending=p_ending
-        )
+        return LimitedOutcomesAcceptanceStrategy(prob=dict(zip(outcomes, prob)), p_ending=p_ending)
 
     def __call__(self, state: SAOState, offer: Outcome) -> ResponseType:
         if random.random() < self.p_ending - 1e-12:

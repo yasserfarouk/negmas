@@ -30,9 +30,7 @@ __all__ = [
     "TraceElement",
 ]
 
-TraceElement = namedtuple(
-    "TraceElement", ["time", "relative_time", "step", "negotiator", "offer", "response"]
-)
+TraceElement = namedtuple("TraceElement", ["time", "relative_time", "step", "negotiator", "offer", "response"])
 """An element of the trace returned by `full_trace` representing the history of the negotiation"""
 
 
@@ -111,9 +109,7 @@ class SAOMechanism(Mechanism):
         )
         self._current_state: SAOState
         n_steps, time_limit = self.n_steps, self.time_limit
-        if (n_steps is None or n_steps == float("inf")) and (
-            time_limit is None or time_limit == float("inf")
-        ):
+        if (n_steps is None or n_steps == float("inf")) and (time_limit is None or time_limit == float("inf")):
             warnings.warn(
                 "You are passing no time_limit and no n_steps to an SAOMechanism. The mechanism may never finish!!",
                 warnings.NegmasInfiniteNegotiationWarning,
@@ -126,9 +122,7 @@ class SAOMechanism(Mechanism):
         self.params["offering_is_accepting"] = offering_is_accepting
         self.params["enforce_issue_types"] = enforce_issue_types
         self.params["cast_offers"] = cast_offers
-        self.params[
-            "allow_offering_just_rejected_outcome"
-        ] = allow_offering_just_rejected_outcome
+        self.params["allow_offering_just_rejected_outcome"] = allow_offering_just_rejected_outcome
         self._n_max_waits = max_wait if max_wait is not None else float("inf")
         self.params["max_wait"] = self._n_max_waits
         self.ignore_negotiator_exceptions = ignore_negotiator_exceptions
@@ -179,9 +173,7 @@ class SAOMechanism(Mechanism):
 
     def _agent_info(self):
         state = self._current_state
-        current_proposer_agent = (
-            self._current_proposer.owner if self._current_proposer else None
-        )
+        current_proposer_agent = self._current_proposer.owner if self._current_proposer else None
         if current_proposer_agent:
             current_proposer_agent = current_proposer_agent.id
         new_offerer_agents = []
@@ -209,13 +201,9 @@ class SAOMechanism(Mechanism):
         n_negotiators = len(negotiators)
         # times = dict(zip([_.id for _ in negotiators], itertools.repeat(0.0)))
         times = defaultdict(float, self._waiting_time)
-        exceptions = dict(
-            zip([_.id for _ in negotiators], [list() for _ in negotiators])
-        )
+        exceptions = dict(zip([_.id for _ in negotiators], [list() for _ in negotiators]))
 
-        def _safe_counter(
-            negotiator, *args, **kwargs
-        ) -> tuple[SAOResponse | None, bool]:
+        def _safe_counter(negotiator, *args, **kwargs) -> tuple[SAOResponse | None, bool]:
             assert (
                 not state.waiting or negotiator.id == state.current_proposer
             ), f"We are waiting with {state.current_proposer} as the last offerer but we are asking {negotiator.id} to offer\n{state}"
@@ -231,9 +219,7 @@ class SAOMechanism(Mechanism):
             if timeout is None or timeout == float("inf") or self._sync_calls:
                 __strt = time.perf_counter()
                 try:
-                    if (
-                        negotiator == self._current_proposer
-                    ) and self._offering_is_accepting:
+                    if (negotiator == self._current_proposer) and self._offering_is_accepting:
                         state.n_acceptances = 0
                         response = negotiator.counter(*args, **kwargs)
                     else:
@@ -262,9 +248,7 @@ class SAOMechanism(Mechanism):
                 fun = functools.partial(negotiator.counter, *args, **kwargs)
                 __strt = time.perf_counter()
                 try:
-                    if (
-                        negotiator == self._current_proposer
-                    ) and self._offering_is_accepting:
+                    if (negotiator == self._current_proposer) and self._offering_is_accepting:
                         state.n_acceptances = 0
                         response = TimeoutCaller.run(fun, timeout=timeout)
                     else:
@@ -285,26 +269,18 @@ class SAOMechanism(Mechanism):
                     else:
                         raise ex
                 times[negotiator.id] += time.perf_counter() - __strt
-            if (
-                self.check_offers
-                and response is not None
-                and response.outcome is not None
-            ):
+            if self.check_offers and response is not None and response.outcome is not None:
                 if not self.outcome_space.is_valid(response.outcome):
                     return SAOResponse(response.response, None), False
                 # todo: do not use .issues here as they are not guaranteed to exist (if it is not a cartesial outcome space)
                 if self._enforce_issue_types and hasattr(self.outcome_space, "issues"):
-                    if outcome_types_are_ok(
-                        response.outcome, self.outcome_space.issues  # type: ignore
-                    ):
+                    if outcome_types_are_ok(response.outcome, self.outcome_space.issues):  # type: ignore
                         return response, False
                     elif self._cast_offers:
                         return (
                             SAOResponse(
                                 response.response,
-                                cast_value_types(
-                                    response.outcome, self.outcome_space.issues  # type: ignore
-                                ),
+                                cast_value_types(response.outcome, self.outcome_space.issues),  # type: ignore
                             ),
                             False,
                         )
@@ -338,12 +314,7 @@ class SAOMechanism(Mechanism):
                     exceptions=exceptions,
                 )
         # if this is the first step (or no one has offered yet) which means that there is no _current_offer
-        if (
-            state.current_offer is None
-            and n_proposers > 1
-            and self._avoid_ultimatum
-            and not self._ultimatum_avoided
-        ):
+        if state.current_offer is None and n_proposers > 1 and self._avoid_ultimatum and not self._ultimatum_avoided:
             if not self.dynamic_entry and not self.state.step == 0:
                 if self.end_negotiation_on_refusal_to_propose:
                     return MechanismRoundResult(
@@ -404,9 +375,7 @@ class SAOMechanism(Mechanism):
                     self._frozen_neg_list = None
                 else:
                     self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
-                    self._waiting_time[neg.id] += (
-                        time.perf_counter() - self._waiting_start[neg.id]
-                    )
+                    self._waiting_time[neg.id] += time.perf_counter() - self._waiting_start[neg.id]
                 if resp is None:
                     return MechanismRoundResult(
                         broken=False,
@@ -474,9 +443,7 @@ class SAOMechanism(Mechanism):
             state.current_proposer = neg.id
             state.n_acceptances = 1 if self._offering_is_accepting else 0
             if self._last_checked_negotiator >= 0:
-                state.last_negotiator = self.negotiators[
-                    self._last_checked_negotiator
-                ].name
+                state.last_negotiator = self.negotiators[self._last_checked_negotiator].name
             else:
                 state.last_negotiator = ""
             (
@@ -498,18 +465,13 @@ class SAOMechanism(Mechanism):
         if self._frozen_neg_list is not None:
             ordered_indices = self._frozen_neg_list
         else:
-            ordered_indices = [
-                (_ + self._last_checked_negotiator + 1) % n_negotiators
-                for _ in range(n_negotiators)
-            ]
+            ordered_indices = [(_ + self._last_checked_negotiator + 1) % n_negotiators for _ in range(n_negotiators)]
 
         for _, neg_indx in enumerate(ordered_indices):
             self._last_checked_negotiator = neg_indx
             neg = self.negotiators[neg_indx]
             strt = time.perf_counter()
-            resp, has_exceptions = _safe_counter(
-                neg, state=self.state, offer=state.current_offer
-            )
+            resp, has_exceptions = _safe_counter(neg, state=self.state, offer=state.current_offer)
             if has_exceptions:
                 return MechanismRoundResult(
                     broken=True,
@@ -535,15 +497,10 @@ class SAOMechanism(Mechanism):
                 self._waiting_time[neg.id] += time.perf_counter() - strt
                 self._last_checked_negotiator = (neg_indx - 1) % n_negotiators
                 offered = {self._negotiator_index[_[0]] for _ in state.new_offers}
-                did_not_offer = sorted(
-                    list(set(range(n_negotiators)).difference(offered))
-                )
+                did_not_offer = sorted(list(set(range(n_negotiators)).difference(offered)))
                 assert neg_indx in did_not_offer
                 indx = did_not_offer.index(neg_indx)
-                assert (
-                    self._frozen_neg_list is None
-                    or self._frozen_neg_list[0] == neg_indx
-                )
+                assert self._frozen_neg_list is None or self._frozen_neg_list[0] == neg_indx
                 self._frozen_neg_list = did_not_offer[indx:] + did_not_offer[:indx]
                 self._n_waits += 1
             else:
@@ -616,16 +573,10 @@ class SAOMechanism(Mechanism):
                     )
             if resp.response == ResponseType.REJECT_OFFER:
                 proposal = resp.outcome
-                if (
-                    not self.allow_offering_just_rejected_outcome
-                    and proposal == state.current_offer
-                ):
+                if not self.allow_offering_just_rejected_outcome and proposal == state.current_offer:
                     proposal = None
                 if proposal is None:
-                    if (
-                        neg.capabilities.get("propose", True)
-                        and self.end_negotiation_on_refusal_to_propose
-                    ):
+                    if neg.capabilities.get("propose", True) and self.end_negotiation_on_refusal_to_propose:
                         return MechanismRoundResult(
                             broken=True,
                             timedout=False,
@@ -640,17 +591,13 @@ class SAOMechanism(Mechanism):
                         for other in self.negotiators:
                             if other is neg:
                                 continue
-                            other.on_partner_proposal(
-                                partner_id=neg.id, offer=proposal, state=self.state
-                            )
+                            other.on_partner_proposal(partner_id=neg.id, offer=proposal, state=self.state)
                 state.current_offer = proposal
                 self._current_proposer = neg
                 state.current_proposer = neg.id
                 state.new_offers.append((neg.id, proposal))
                 if self._last_checked_negotiator >= 0:
-                    state.last_negotiator = self.negotiators[
-                        self._last_checked_negotiator
-                    ].name
+                    state.last_negotiator = self.negotiators[self._last_checked_negotiator].name
                 else:
                     state.last_negotiator = ""
                 (
@@ -685,9 +632,7 @@ class SAOMechanism(Mechanism):
         for state in self._history:
             state: SAOState
             offers += [
-                TraceElement(
-                    state.time, state.relative_time, state.step, n, o, response(state)
-                )
+                TraceElement(state.time, state.relative_time, state.step, n, o, response(state))
                 for n, o in state.new_offers
             ]
 
@@ -697,11 +642,7 @@ class SAOMechanism(Mechanism):
         self._history: list[SAOState]
         # if the agreement does not appear as the last offer in the trace, add it.
         # this should not happen though!!
-        if (
-            self.agreement is not None
-            and offers
-            and not_equal(offers[-1][-1], self.agreement)
-        ):
+        if self.agreement is not None and offers and not_equal(offers[-1][-1], self.agreement):
             offers.append(
                 TraceElement(
                     self._history[-1].time,
@@ -729,11 +670,7 @@ class SAOMechanism(Mechanism):
         self._history: list[SAOState]
         # if the agreement does not appear as the last offer in the trace, add it.
         # this should not happen though!!
-        if (
-            self.agreement is not None
-            and offers
-            and not_equal(offers[-1][-1], self.agreement)
-        ):
+        if self.agreement is not None and offers and not_equal(offers[-1][-1], self.agreement):
             offers.append(
                 (
                     self._history[-1].step,
@@ -758,11 +695,7 @@ class SAOMechanism(Mechanism):
                 b = b.values()
             return any(x != y for x, y in zip(a, b))
 
-        if (
-            self.agreement is not None
-            and offers
-            and not_equal(offers[-1][-1], self.agreement)
-        ):
+        if self.agreement is not None and offers and not_equal(offers[-1][-1], self.agreement):
             offers.append(
                 (
                     self._history[-1].current_proposer,
@@ -776,15 +709,9 @@ class SAOMechanism(Mechanism):
         """Returns the offers given by a negotiator (in order)"""
         return [o for n, o in self.trace if n == negotiator_id]
 
-    def negotiator_full_trace(
-        self, negotiator_id: str
-    ) -> list[tuple[float, float, int, Outcome, str]]:
+    def negotiator_full_trace(self, negotiator_id: str) -> list[tuple[float, float, int, Outcome, str]]:
         """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
-        return [
-            (t, rt, s, o, r)
-            for t, rt, s, n, o, r in self.full_trace
-            if n == negotiator_id
-        ]
+        return [(t, rt, s, o, r) for t, rt, s, n, o, r in self.full_trace if n == negotiator_id]
 
     @property
     def offers(self) -> list[Outcome]:

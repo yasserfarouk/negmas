@@ -14,9 +14,7 @@ __all__ = [
 
 LOCAL_NEGMAS_CONFIG_FILENAME = "negmasconf.json"
 
-NEGMAS_DEFAULT_PATH = environ.get(
-    "NEGMAS_DEFAULT_PATH", Path.home() / "negmas" / "config.json"
-)
+NEGMAS_DEFAULT_PATH = environ.get("NEGMAS_DEFAULT_PATH", Path.home() / "negmas" / "config.json")
 """Default path for NegMAS configurations"""
 
 CONFIG_KEY_JNEGMAS_JAR = "jnegmas_jar"

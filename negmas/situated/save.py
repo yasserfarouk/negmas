@@ -60,8 +60,7 @@ def save_stats(
     if stats_file_name is None:
         stats_file_name = "stats"
     agents: dict[str, dict[str, Any]] = {
-        k: dict(id=a.id, name=a.name, type=a.type_name, short_type=a.short_type_name)
-        for k, a in world.agents.items()
+        k: dict(id=a.id, name=a.name, type=a.type_name, short_type=a.short_type_name) for k, a in world.agents.items()
     }
     for k, v in agents.items():
         agents[k]["neg_requests_sent"] = world.neg_requests_sent[k]

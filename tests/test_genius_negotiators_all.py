@@ -112,9 +112,7 @@ def do_run(
     domain = Scenario.from_genius_folder(base_folder)
     if not domain:
         raise ValueError(f"Cannot open domain {base_folder}")
-    neg = domain.make_session(
-        n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False
-    )
+    neg = domain.make_session(n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=False)
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     opponent = opponent_factory(preferences=domain.ufuns[opponent_preferences])
@@ -154,13 +152,9 @@ def do_test_same_ufun(agent_factory, base_folder, n_steps, time_limit, n_trials=
         ), f"failed to get an agreement in {n_trials} trials even using the same ufun\n{neg.trace}"  # type: ignore It makes not sense to have n_trials == 0 so we are safe
 
 
-def do_test_genius_agent(
-    AgentFactory, must_agree_if_same_preferences=True, java_class_name=None
-):
+def do_test_genius_agent(AgentFactory, must_agree_if_same_preferences=True, java_class_name=None):
     if java_class_name is not None:
-        AgentFactory = lambda *args, **kwargs: GeniusNegotiator(
-            *args, java_class_name=java_class_name, **kwargs
-        )
+        AgentFactory = lambda *args, **kwargs: GeniusNegotiator(*args, java_class_name=java_class_name, **kwargs)
         agent_class_name = java_class_name
     else:
         agent_class_name = AgentFactory.__name__
@@ -193,8 +187,7 @@ def do_test_genius_agent(
                             raise e
 
         if not must_agree_if_same_preferences or (
-            java_class_name is None
-            and AgentFactory in AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences
+            java_class_name is None and AgentFactory in AGENTS_WITH_NO_AGREEMENT_ON_SAME_preferences
         ):
             continue
         do_test_same_ufun(AgentFactory, base_folder, STEPLIMIT, None, 3)
@@ -216,9 +209,7 @@ def test_all_negotiators(negotiator):
     reason="Either no-genius or fast-run",
 )
 def test_boulware_party():
-    do_test_genius_agent(
-        None, java_class_name="negotiator.parties.BoulwareNegotiationParty"
-    )
+    do_test_genius_agent(None, java_class_name="negotiator.parties.BoulwareNegotiationParty")
 
 
 @pytest.mark.skipif(

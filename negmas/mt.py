@@ -57,19 +57,13 @@ class VetoMTMechanism(Mechanism):
         self._current_state: MTState
         state = self._current_state
 
-        self.add_requirements(
-            {"compare-binary": True}
-        )  # assert that all agents must have compare-binary capability
-        state.current_offers = (
-            initial_outcomes if initial_outcomes is not None else [None] * n_texts
-        )
+        self.add_requirements({"compare-binary": True})  # assert that all agents must have compare-binary capability
+        state.current_offers = initial_outcomes if initial_outcomes is not None else [None] * n_texts
         """The current offer"""
         self.initial_outcomes = deepcopy(state.current_offers)
         """The initial offer"""
         self.last_responses = (
-            [list(_) for _ in initial_responses]
-            if initial_responses is not None
-            else [None] * n_texts
+            [list(_) for _ in initial_responses] if initial_responses is not None else [None] * n_texts
         )
         """The responses of all negotiators for the last offer"""
         self.initial_responses = deepcopy(self.last_responses)
@@ -97,14 +91,9 @@ class VetoMTMechanism(Mechanism):
 
             for neg in self.negotiators:
                 strt = time.perf_counter()
-                responses.append(
-                    neg.is_better(new_offer, current_offer, epsilon=self.epsilon)
-                    is not False
-                )
+                responses.append(neg.is_better(new_offer, current_offer, epsilon=self.epsilon) is not False)
                 if time.perf_counter() - strt > self.nmi.step_time_limit:
-                    return MechanismRoundResult(
-                        broken=False, timedout=True, agreement=None
-                    )
+                    return MechanismRoundResult(broken=False, timedout=True, agreement=None)
 
             self.last_responses = responses
 

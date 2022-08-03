@@ -55,29 +55,19 @@ class TFTOfferingStrategy(OfferingStrategy):
     def __call__(self, state):
         if not self.negotiator or not self.negotiator.ufun:
             return None
-        partner_u = (
-            float(self.partner_ufun.eval_normalized(self._partner_offer, True))
-            if self._partner_offer
-            else 1.0
-        )
+        partner_u = float(self.partner_ufun.eval_normalized(self._partner_offer, True)) if self._partner_offer else 1.0
         partner_concession = 1.0 - partner_u
         my_concession = self.recommender(partner_concession, state)
         if not math.isfinite(my_concession):
-            warnings.warn(
-                f"Got {my_concession} for concession which is unacceptable. Will use no concession"
-            )
+            warnings.warn(f"Got {my_concession} for concession which is unacceptable. Will use no concession")
             my_concession = 0.0
         if not (-1e-6 <= my_concession <= 1.0000001):
             warnings.warn(f"{my_concession} is negative or above 1")
             my_concession = 0.0
         target_utility = 1.0 - float(my_concession)
         if self.stochastic:
-            return self.negotiator.ufun.invert().one_in(
-                (target_utility, 1.0), normalized=True
-            )
-        return self.negotiator.ufun.invert().worst_in(
-            (target_utility, 1.0), normalized=True
-        )
+            return self.negotiator.ufun.invert().one_in((target_utility, 1.0), normalized=True)
+        return self.negotiator.ufun.invert().worst_in((target_utility, 1.0), normalized=True)
 
 
 @define
@@ -173,11 +163,7 @@ class LimitedOutcomesOfferingStrategy(OfferingStrategy):
         if random.random() < self.p_ending - 1e-7:
             return None
         if not self.prob or not self.outcomes:
-            return random.choice(
-                self.outcomes
-                if self.outcomes
-                else list(self.negotiator.nmi.discrete_outcomes())
-            )
+            return random.choice(self.outcomes if self.outcomes else list(self.negotiator.nmi.discrete_outcomes()))
         r, s = random.random(), 0.0
         for w, p in zip(self.outcomes, self.prob):
             s += p
@@ -225,9 +211,7 @@ class ConcensusOfferingStrategy(OfferingStrategy, ABC):
         return FilterResult(True, True)
 
     @abstractmethod
-    def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+    def decide(self, indices: list[int], responses: list[Outcome | None]) -> Outcome | None:
         """
         Called to make a final decsision given the decisions of the stratgeis with indices `indices` (see `filter` for filtering rules)
         """
@@ -252,9 +236,7 @@ class UnanimousConcensusOfferingStrategy(ConcensusOfferingStrategy):
     Offers only if all offering strategies gave exactly the same outcome
     """
 
-    def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+    def decide(self, indices: list[int], responses: list[Outcome | None]) -> Outcome | None:
         outcomes = set(responses)
         if len(outcomes) != 1:
             return None
@@ -275,9 +257,7 @@ class RandomConcensusOfferingStrategy(ConcensusOfferingStrategy):
         s = sum(self.prob)
         self.prob = [_ / s for _ in self.prob]
 
-    def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+    def decide(self, indices: list[int], responses: list[Outcome | None]) -> Outcome | None:
         if not self.prob:
             return random.choice(responses)
 
@@ -303,14 +283,10 @@ class UtilBasedConcensusOfferingStrategy(ConcensusOfferingStrategy, ABC):
         Returns the index to chose based on utils
         """
 
-    def decide(
-        self, indices: list[int], responses: list[Outcome | None]
-    ) -> Outcome | None:
+    def decide(self, indices: list[int], responses: list[Outcome | None]) -> Outcome | None:
         if not self.negotiator.ufun:
             raise ValueError(f"Cannot decide because I have no ufun")
-        return responses[
-            self.decide_util([self.negotiator.ufun(_) for _ in set(responses)])
-        ]
+        return responses[self.decide_util([self.negotiator.ufun(_) for _ in set(responses)])]
 
 
 @define

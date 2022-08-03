@@ -58,10 +58,7 @@ def make_curve(
 
 def make_offer_selector(
     inverse_ufun: InverseUFun,
-    selector: Callable[[Sequence[Outcome]], Outcome]
-    | Literal["best"]
-    | Literal["worst"]
-    | None = None,
+    selector: Callable[[Sequence[Outcome]], Outcome] | Literal["best"] | Literal["worst"] | None = None,
 ) -> Callable[[tuple[float, float], bool], Outcome | None]:
     """
     Generates a callable that can be used to select a specific outcome in a range of utility values.
@@ -96,11 +93,7 @@ class TimeBasedNegotiator(UtilBasedNegotiator):
     def __init__(
         self,
         *args,
-        offering_curve: TimeCurve
-        | Literal["boulware"]
-        | Literal["conceder"]
-        | Literal["linear"]
-        | float = "boulware",
+        offering_curve: TimeCurve | Literal["boulware"] | Literal["conceder"] | Literal["linear"] | float = "boulware",
         accepting_curve: TimeCurve
         | Literal["boulware"]
         | Literal["conceder"]
@@ -139,11 +132,7 @@ class TimeBasedConcedingNegotiator(TimeBasedNegotiator):
     def __init__(
         self,
         *args,
-        offering_curve: Aspiration
-        | Literal["boulware"]
-        | Literal["conceder"]
-        | Literal["linear"]
-        | float = "boulware",
+        offering_curve: Aspiration | Literal["boulware"] | Literal["conceder"] | Literal["linear"] | float = "boulware",
         accepting_curve: Aspiration
         | Literal["boulware"]
         | Literal["conceder"]

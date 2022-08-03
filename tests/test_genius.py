@@ -53,9 +53,7 @@ def test_inclusion_of_sets_in_get_agents():
         winners = get_anac_agents(year=year, winners_only=True)
         finalists = get_anac_agents(year=year, finalists_only=True)
         # everyone = get_anac_agents(year=year)
-        assert not finalists or all([_ in finalists for _ in winners]), set(
-            winners
-        ).difference(set(finalists))
+        assert not finalists or all([_ in finalists for _ in winners]), set(winners).difference(set(finalists))
         # assert not everyone or all([_ in everyone for _ in winners]),set(winners).difference(set(everyone))
         # assert not everyone or all([_ in everyone for _ in finalists]), set(finalists).difference(set(everyone))
 
@@ -69,9 +67,7 @@ def test_genius_does_not_freeze():
 
     from negmas.genius import GeniusNegotiator
 
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/cameradomain"
-    )
+    folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
     domain = Scenario.from_genius_folder(Path(folder_name))
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -102,9 +98,7 @@ def test_old_agent():
 
     from negmas.genius import GeniusNegotiator
 
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/cameradomain"
-    )
+    folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
     domain = Scenario.from_genius_folder(folder_name)
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -136,9 +130,7 @@ def test_old_agent2():
 
     from negmas.genius import GeniusNegotiator
 
-    folder_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/cameradomain"
-    )
+    folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
     domain = Scenario.from_genius_folder(Path(folder_name))
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -209,9 +201,7 @@ def test_genius_agents_run_using_hypothesis(
     reason="No Genius Bridge, skipping genius-agent tests",
 )
 def test_genius_agent_gets_preferences():
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
     a1 = GeniusNegotiator(
@@ -251,9 +241,7 @@ def test_genius_agents_run_example():
         # print(f"{agent_name1} - {agent_name2}")
         utils = (1, 2)
 
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+        base_folder = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
         domain = Scenario.from_genius_folder(base_folder)
         assert domain is not None
         atlas = GeniusNegotiator(
@@ -282,9 +270,7 @@ def test_genius_agents_run_example():
 )
 def test_agentk_perceives_time():
     n_steps = 80
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
@@ -300,18 +286,14 @@ def test_agentk_perceives_time():
     current_time = 0
     for _ in range(n_steps):
         assert gagent.relative_time is not None
-        assert (
-            gagent.relative_time >= current_time
-        ), f"Failed to get time before step {_}"
+        assert gagent.relative_time >= current_time, f"Failed to get time before step {_}"
         neg.step()
         if neg.nmi.state.ended:
             break
         if _ == n_steps - 1:
             assert gagent.relative_time is None, f"Got a time after the last step"
         else:
-            assert (
-                gagent.relative_time > current_time
-            ), f"Failed to get time after step {_}"
+            assert gagent.relative_time > current_time, f"Failed to get time after step {_}"
         if neg.nmi.state.ended:
             break
         current_time = gagent.relative_time
@@ -381,17 +363,11 @@ def test_agentk_perceives_time():
     ],
 )
 def test_2genius_together(a1, a2, n_steps, time_limit):
-    base_folder = Path(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Car-A-domain"
-        )
-    )
+    base_folder = Path(pkg_resources.resource_filename("negmas", resource_name="tests/data/Car-A-domain"))
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
-    neg = domain.make_session(
-        n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=True
-    )
+    neg = domain.make_session(n_steps=n_steps, time_limit=time_limit, avoid_ultimatum=True)
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     neg.add(
@@ -409,17 +385,11 @@ def test_2genius_together(a1, a2, n_steps, time_limit):
 )
 def test_caudacius_caudacius():
     n_steps = 100
-    base_folder = Path(
-        pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Car-A-domain"
-        )
-    )
+    base_folder = Path(pkg_resources.resource_filename("negmas", resource_name="tests/data/Car-A-domain"))
 
     domain = Scenario.from_genius_folder(base_folder)
     assert domain is not None
-    neg = domain.make_session(
-        n_steps=n_steps, time_limit=float("inf"), avoid_ultimatum=True
-    )
+    neg = domain.make_session(n_steps=n_steps, time_limit=float("inf"), avoid_ultimatum=True)
     if neg is None:
         raise ValueError(f"Failed to load domain from {base_folder}")
     if not isinstance(neg, SAOMechanism):
@@ -432,9 +402,7 @@ def test_caudacius_caudacius():
         if state.agreement is not None:
             break
         new_offers = [_[1] for _ in state.new_offers]
-        assert all(
-            _ is not None for _ in new_offers
-        ), f"failed at {neg.current_step}: {new_offers}"
+        assert all(_ is not None for _ in new_offers), f"failed at {neg.current_step}: {new_offers}"
 
     assert not all(
         [len(set(neg.negotiator_offers(_))) == 1 for _ in neg.negotiator_ids]

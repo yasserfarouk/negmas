@@ -81,9 +81,7 @@ class SAOModularNegotiator(ModularNegotiator, SAONegotiator):
         for c in self._components:
             c.on_partner_ended(partner)
 
-    def on_partner_proposal(
-        self, state: SAOState, partner_id: str, offer: Outcome
-    ) -> None:
+    def on_partner_proposal(self, state: SAOState, partner_id: str, offer: Outcome) -> None:
         """
         A callback called by the mechanism when a partner proposes something
 
@@ -132,6 +130,4 @@ class SAOModularNegotiator(ModularNegotiator, SAONegotiator):
             - Will only be called if `enable_callbacks` is set for the mechanism
         """
         for c in self._components:
-            c.on_partner_response(
-                state=state, partner_id=partner_id, outcome=outcome, response=response
-            )
+            c.on_partner_response(state=state, partner_id=partner_id, outcome=outcome, response=response)

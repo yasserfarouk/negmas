@@ -61,21 +61,14 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
         self, n: int | float | None = 10, grid=True, compact=False, endpoints=True
     ) -> Generator[int, None, None]:
         yield from (
-            _ + self._values[0]
-            for _ in sample(
-                self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints
-            )
+            _ + self._values[0] for _ in sample(self.cardinality, n, grid=grid, compact=compact, endpoints=endpoints)
         )
 
-    def to_discrete(
-        self, n: int | None, grid=True, compact=False, endpoints=True
-    ) -> DiscreteIssue:
+    def to_discrete(self, n: int | None, grid=True, compact=False, endpoints=True) -> DiscreteIssue:
         if n is None or self.cardinality < n:
             return self
         if not compact:
-            return super().to_discrete(
-                n, grid=grid, compact=compact, endpoints=endpoints
-            )
+            return super().to_discrete(n, grid=grid, compact=compact, endpoints=endpoints)
 
         beg = (self.cardinality - n) // 2
         return ContiguousIssue((int(beg), int(beg + n)), name=self.name + f"{n}")
@@ -84,22 +77,16 @@ class ContiguousIssue(RangeIssue, DiscreteIssue):
         """Picks a random valid value."""
         return random.randint(*self._values)
 
-    def rand_outcomes(
-        self, n: int, with_replacement=False, fail_if_not_enough=False
-    ) -> list[int]:
+    def rand_outcomes(self, n: int, with_replacement=False, fail_if_not_enough=False) -> list[int]:
         """Picks a random valid value."""
 
         if n > self._n_values and not with_replacement:
             if fail_if_not_enough:
-                raise ValueError(
-                    f"Cannot sample {n} outcomes out of {self._values} without replacement"
-                )
+                raise ValueError(f"Cannot sample {n} outcomes out of {self._values} without replacement")
             return [_ for _ in range(self._values[0], self._values[1] + 1)]
 
         if with_replacement:
-            return np.random.randint(
-                low=self._values[0], high=self._values[1] + 1, size=n
-            ).tolist()
+            return np.random.randint(low=self._values[0], high=self._values[1] + 1, size=n).tolist()
         vals = [_ for _ in range(self._values[0], self._values[1] + 1)]
         random.shuffle(vals)
         return vals[:n]

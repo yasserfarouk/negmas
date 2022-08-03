@@ -95,11 +95,7 @@ class Preferences(NamedObject, ABC):
 
     def is_stationary(self) -> bool:
         """Are the preferences stationary (i.e. repeated calls return the same value for any preferences comparion or evaluaton method)?"""
-        return (
-            not self.is_state_dependent()
-            and not self.is_volatile()
-            and not self.is_session_dependent()
-        )
+        return not self.is_state_dependent() and not self.is_volatile() and not self.is_session_dependent()
 
     def changes(self) -> list[PreferencesChange]:
         if self.is_stationary():
@@ -124,9 +120,7 @@ class Preferences(NamedObject, ABC):
         Returns:
             str: utility_function type
         """
-        return snake_case(
-            self.__class__.__name__.replace("Function", "").replace("Utility", "")
-        )
+        return snake_case(self.__class__.__name__.replace("Function", "").replace("Utility", ""))
 
     @property
     def base_type(self) -> str:

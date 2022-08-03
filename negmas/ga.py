@@ -31,9 +31,7 @@ class GAMechanism(Mechanism):
     def generate(self, n: int) -> list[Outcome]:
         return self.random_outcomes(n)
 
-    def __init__(
-        self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
-    ):
+    def __init__(self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs):
         kwargs["state_factory"] = GAState
         super().__init__(*args, **kwargs)
         self._current_state: GAState
@@ -71,13 +69,9 @@ class GAMechanism(Mechanism):
         self.population = parents[:]
         for _ in range(self.n_population - len(self.dominant_outcomes)):
             if random.random() > self.mutate_rate and len(self.dominant_outcomes) >= 2:
-                self.population.append(
-                    self.crossover(*random.sample(self.dominant_outcomes, 2))
-                )
+                self.population.append(self.crossover(*random.sample(self.dominant_outcomes, 2)))
             else:
-                self.population.append(
-                    self.mutate(random.choice(self.dominant_outcomes))
-                )
+                self.population.append(self.mutate(random.choice(self.dominant_outcomes)))
         return self.population
 
     def update_ranks(self):

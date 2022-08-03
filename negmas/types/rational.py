@@ -78,9 +78,7 @@ class Rational(NamedObject):
             - The most general form of change is `PreferencesChange.General` which indicates that you cannot trust anything you knew about the ufun anymore
         """
 
-    def set_preferences(
-        self, value: Preferences | None, force=False
-    ) -> Preferences | None:
+    def set_preferences(self, value: Preferences | None, force=False) -> Preferences | None:
         """
         Sets tha utility function/Preferences.
 
@@ -128,11 +126,7 @@ class Rational(NamedObject):
         """Returns the preferences if it is a CrispUtilityFunction else None"""
         from negmas.preferences import UtilityFunction
 
-        return (
-            self._preferences
-            if isinstance(self._preferences, UtilityFunction)
-            else None
-        )
+        return self._preferences if isinstance(self._preferences, UtilityFunction) else None
 
     @crisp_ufun.setter
     def crisp_ufun(self, v: UtilityFunction):
@@ -147,11 +141,7 @@ class Rational(NamedObject):
         """Returns the preferences if it is a ProbUtilityFunction else None"""
         from negmas.preferences import ProbUtilityFunction
 
-        return (
-            self._preferences
-            if isinstance(self._preferences, ProbUtilityFunction)
-            else None
-        )
+        return self._preferences if isinstance(self._preferences, ProbUtilityFunction) else None
 
     @prob_ufun.setter
     def prob_ufun(self, v: ProbUtilityFunction):
@@ -170,9 +160,7 @@ class Rational(NamedObject):
             return None
         if isinstance(self._preferences, BaseUtilityFunction):
             return self._preferences
-        raise ValueError(
-            f"prefrences are not for type `BaseUtilityFunction` ({self._preferences.__class__.__name__})"
-        )
+        raise ValueError(f"prefrences are not for type `BaseUtilityFunction` ({self._preferences.__class__.__name__})")
 
     @ufun.setter
     def ufun(self, v: BaseUtilityFunction):
@@ -188,9 +176,7 @@ class Rational(NamedObject):
         """Does the entity has an associated ufun?"""
         from negmas.preferences.protocols import CardinalCrisp
 
-        return self._preferences is not None and isinstance(
-            self._preferences, CardinalCrisp
-        )
+        return self._preferences is not None and isinstance(self._preferences, CardinalCrisp)
 
     @property
     def reserved_outcome(self) -> Outcome | None:
@@ -207,9 +193,7 @@ class Rational(NamedObject):
         """
         from negmas.preferences import HasReservedOutcome
 
-        if self._preferences is None or not isinstance(
-            self._preferences, HasReservedOutcome
-        ):
+        if self._preferences is None or not isinstance(self._preferences, HasReservedOutcome):
             return None
         return self._preferences.reserved_outcome
 
@@ -224,8 +208,6 @@ class Rational(NamedObject):
         """
         from negmas.preferences import HasReservedValue
 
-        if self._preferences is None or not isinstance(
-            self._preferences, HasReservedValue
-        ):
+        if self._preferences is None or not isinstance(self._preferences, HasReservedValue):
             return float("nan")
         return self._preferences.reserved_value

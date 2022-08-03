@@ -97,20 +97,12 @@ class TableFun(BaseFun):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         issue_name = issue.name
         dtype = "discrete"
-        vtype = (
-            "integer"
-            if issue.is_integer()
-            else "real"
-            if issue.is_float()
-            else "discrete"
-        )
+        vtype = "integer" if issue.is_integer() else "real" if issue.is_float() else "discrete"
         output = f'<issue index="{indx+1}" etype="{dtype}" type="{dtype}" vtype="{vtype}" name="{issue_name}">\n'
         vals = issue.all  # type: ignore
         for i, issue_value in enumerate(vals):
             uu = self(issue_value) + bias
-            output += (
-                f'    <item index="{i+1}" value="{issue_value}" evaluation="{uu}" />\n'
-            )
+            output += f'    <item index="{i+1}" value="{issue_value}" evaluation="{uu}" />\n'
         output += "</issue>\n"
         return output
 
@@ -137,15 +129,15 @@ class AffineFun(BaseFun):
         issue_name = issue.name
         if issue.is_continuous():
             output = f'<issue index="{indx + 1}" etype="real" type="real" vtype="real" name="{issue_name}">\n'
-            output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
+            output += (
+                f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
+            )
         # elif isinstance(issue, ContiguousIssue) and issue.cardinality > 50_000:
         #     output = f'<issue index="{indx + 1}" etype="real" type="integer" vtype="integer" name="{issue_name}">\n'
         #     output += f'    <evaluator ftype="linear" parameter0="{bias+self.bias}" parameter1="{self.slope}"></evaluator>\n'
         else:
             vals = list(issue.all)
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -266,12 +258,8 @@ class LambdaFun(BaseFun):
     def xml(self, indx: int, issue: Issue, bias=0.0) -> str:
         if issue.is_discrete():
             values = list(issue.all)  # type: ignore (I know it is discrete)
-            return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(
-                indx, issue, bias
-            )
-        raise ValueError(
-            f"LambdaFun with a continuous issue cannot be converted to XML"
-        )
+            return TableFun(dict(zip(values, [self(_) for _ in values]))).xml(indx, issue, bias)
+        raise ValueError(f"LambdaFun with a continuous issue cannot be converted to XML")
 
     def __call__(self, x: Any) -> float:
         return self.f(x) + self.bias
@@ -303,9 +291,7 @@ class QuadraticFun(BaseFun):
         return QuadraticFun(bias=self.bias + offset, a1=self.a1, a2=self.a2)
 
     def scale_by(self, scale: float) -> QuadraticFun:
-        return QuadraticFun(
-            bias=self.bias * scale, a1=self.a1 * scale, a2=self.a2 * scale
-        )
+        return QuadraticFun(bias=self.bias * scale, a1=self.a1 * scale, a2=self.a2 * scale)
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
         issue_name = issue.name
@@ -317,9 +303,7 @@ class QuadraticFun(BaseFun):
             output += f'    <evaluator ftype="quadratic" parameter0="{bias+self.bias}" parameter1="{self.a1} parameter2={self.a2}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -361,9 +345,7 @@ class PolynomialFun(BaseFun):
             output += "></evaluator>\n"
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -379,9 +361,7 @@ class TriangularFun(BaseFun):
     bias: float = 0
 
     def shift_by(self, offset: float) -> TriangularFun:
-        return TriangularFun(
-            bias=self.bias + offset, start=self.start, middle=self.middle, end=self.end
-        )
+        return TriangularFun(bias=self.bias + offset, start=self.start, middle=self.middle, end=self.end)
 
     def scale_by(self, scale: float) -> TriangularFun:
         return TriangularFun(
@@ -408,18 +388,14 @@ class TriangularFun(BaseFun):
             output += f'    <evaluator ftype="triangular" parameter0="{self.start}" parameter1="{self.end} parameter2={self.middle}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
     def __call__(self, x: float):
         bias1, slope1 = self.start, (self.middle - self.start)
         bias2, slope2 = self.middle, (self.middle - self.end)
-        return self.bias + (
-            bias1 + slope1 * float(x) if x < self.middle else bias2 + slope2 * float(x)
-        )
+        return self.bias + (bias1 + slope1 * float(x) if x < self.middle else bias2 + slope2 * float(x))
 
 
 @define
@@ -437,9 +413,7 @@ class ExponentialFun(BaseFun):
         return ExponentialFun(bias=self.bias + offset, tau=self.tau)
 
     def scale_by(self, scale: float) -> ExponentialFun:
-        return ExponentialFun(
-            bias=self.bias * scale, tau=self.tau + math.log(scale, base=self.base)
-        )
+        return ExponentialFun(bias=self.bias * scale, tau=self.tau + math.log(scale, base=self.base))
 
     def xml(self, indx: int, issue: Issue, bias) -> str:
         issue_name = issue.name
@@ -451,9 +425,7 @@ class ExponentialFun(BaseFun):
             output += f'    <evaluator ftype="exponential" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -499,9 +471,7 @@ class CosFun(BaseFun):
             output += f'    <evaluator ftype="cos" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -547,9 +517,7 @@ class SinFun(BaseFun):
             output += f'    <evaluator ftype="sin" parameter0="{bias+self.bias}" parameter1="{self.amplitude} parameter2={self.multiplier} parameter3={self.phase}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -570,9 +538,7 @@ class LogFun(BaseFun):
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> LogFun:
-        return LogFun(
-            bias=self.bias + offset, tau=self.tau, scale=self.scale, base=self.base
-        )
+        return LogFun(bias=self.bias + offset, tau=self.tau, scale=self.scale, base=self.base)
 
     def scale_by(self, scale: float) -> LogFun:
         return LogFun(
@@ -592,9 +558,7 @@ class LogFun(BaseFun):
             output += f'    <evaluator ftype="log" parameter0="{bias+self.bias}" parameter1="{self.tau} parameter2={self.base} parameter3={self.scale}"></evaluator>\n'
         else:
             vals = list(issue.all)  # type: ignore
-            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(
-                indx, issue, bias
-            )
+            return TableFun(dict(zip(vals, [self(_) for _ in vals]))).xml(indx, issue, bias)
         output += "</issue>\n"
         return output
 
@@ -647,9 +611,7 @@ class AffineMultiFun(MultiIssueFun):
         return AffineMultiFun(slope=self.slope, bias=self.bias + offset)
 
     def scale_by(self, scale: float) -> AffineMultiFun:
-        return AffineMultiFun(
-            slope=tuple(scale * _ for _ in self.slope), bias=self.bias * scale
-        )
+        return AffineMultiFun(slope=tuple(scale * _ for _ in self.slope), bias=self.bias * scale)
 
     def dim(self) -> int:
         raise NotImplementedError()

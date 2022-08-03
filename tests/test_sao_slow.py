@@ -47,13 +47,9 @@ exception_str = "Custom Exception"
 NEGTYPES = all_negotiator_types()
 
 TIME_BASED_NEGOTIATORS = [
-    get_class(f"negmas.sao.negotiators.timebased.{x}")
-    for x in negmas.sao.negotiators.timebased.__all__
+    get_class(f"negmas.sao.negotiators.timebased.{x}") for x in negmas.sao.negotiators.timebased.__all__
 ]
-TFT_NEGOTIATORS = [
-    get_class(f"negmas.sao.negotiators.titfortat.{x}")
-    for x in negmas.sao.negotiators.titfortat.__all__
-]
+TFT_NEGOTIATORS = [get_class(f"negmas.sao.negotiators.titfortat.{x}") for x in negmas.sao.negotiators.titfortat.__all__]
 ALL_BUILTIN_NEGOTIATORS = [
     get_class(f"negmas.sao.negotiators.{x}")
     for x in negmas.sao.negotiators.__all__
@@ -89,21 +85,11 @@ class MySyncController(SAOSyncController):
         super().__init__(*args, **kwargs)
         self._sleep_seconds = sleep_seconds
         self.n_counter_all_calls = 0
-        self.countered_offers: dict[int, dict[str, list[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.received_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.sent_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.sent_responses: dict[str, dict[int, list[ResponseType]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.wait_states: dict[str, dict[int, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
+        self.countered_offers: dict[int, dict[str, list[Outcome | None]]] = defaultdict(lambda: defaultdict(list))
+        self.received_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(lambda: defaultdict(list))
+        self.sent_offers: dict[str, dict[int, list[Outcome | None]]] = defaultdict(lambda: defaultdict(list))
+        self.sent_responses: dict[str, dict[int, list[ResponseType]]] = defaultdict(lambda: defaultdict(list))
+        self.wait_states: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
         self.accept_after = accept_after
         self.end_after = end_after
         self.offer_none_after = offer_none_after
@@ -129,17 +115,12 @@ class MySyncController(SAOSyncController):
 
         if self._sleep_seconds:
             if isinstance(self._sleep_seconds, Sequence):
-                s = (
-                    random.random() * (self._sleep_seconds[1] - self._sleep_seconds[0])
-                    + self._sleep_seconds[0]
-                )
+                s = random.random() * (self._sleep_seconds[1] - self._sleep_seconds[0]) + self._sleep_seconds[0]
             else:
                 s = self._sleep_seconds
             sleep(s)
         self.n_counter_all_calls += 1
-        responses = [
-            self.negotiators[_][0].nmi.random_outcomes(1)[0] for _ in states.keys()
-        ]
+        responses = [self.negotiators[_][0].nmi.random_outcomes(1)[0] for _ in states.keys()]
         assert all(_ is not None for _ in responses)
         responses = dict(
             zip(
@@ -147,10 +128,7 @@ class MySyncController(SAOSyncController):
                 (SAOResponse(ResponseType.REJECT_OFFER, _) for _ in responses),
             )
         )
-        if (
-            self.offer_none_after <= self.end_after
-            and self.offer_none_after <= self.accept_after
-        ):
+        if self.offer_none_after <= self.end_after and self.offer_none_after <= self.accept_after:
             for k in responses.keys():
                 if states[k].step >= self.offer_none_after:
                     responses[k] = SAOResponse(ResponseType.REJECT_OFFER, None)
@@ -211,24 +189,16 @@ class TimeWaster(RandomNegotiator):
     def counter(self, state, offer):
         if not self.nmi:
             return None
-        if self.waited < self.n_waits and (
-            state.step > 0 or not self.nmi.params["avoid_ultimatum"]
-        ):
+        if self.waited < self.n_waits and (state.step > 0 or not self.nmi.params["avoid_ultimatum"]):
             self.waited += 1
             return SAOResponse(ResponseType.WAIT, None)
         if self._sleep_seconds:
             if isinstance(self._sleep_seconds, Sequence):
-                s = (
-                    random.random() * (self._sleep_seconds[1] - self._sleep_seconds[0])
-                    + self._sleep_seconds[0]
-                )
+                s = random.random() * (self._sleep_seconds[1] - self._sleep_seconds[0]) + self._sleep_seconds[0]
             else:
                 s = self._sleep_seconds
             sleep(s)
-        assert (
-            state.step not in self.received_offers
-            or self.received_offers[state.step] is None
-        )
+        assert state.step not in self.received_offers or self.received_offers[state.step] is None
         assert state.step not in self.my_offers
         assert state.step not in self.my_responses
         self.received_offers[state.step] = offer
@@ -249,9 +219,7 @@ def test_hidden_time_limit_words():
         hidden_time_limit=tlimit,
         step_time_limit=float("inf"),
     )
-    ufuns = MappingUtilityFunction.generate_random(
-        2, outcomes=mechanism.discrete_outcomes()
-    )
+    ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.discrete_outcomes())
     mechanism.add(InfiniteLoopNegotiator(name=f"agent{0}", preferences=ufuns[0]))
     mechanism.add(InfiniteLoopNegotiator(name=f"agent{1}", preferences=ufuns[1]))
     mechanism.run()
@@ -268,18 +236,10 @@ def test_hidden_time_limit_words():
 
 def test_neg_run_no_waiting():
     n_outcomes, n_steps, waste = 10, 10, 0.5
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes, n_steps=n_steps, ignore_negotiator_exceptions=True
-    )
-    ufuns = MappingUtilityFunction.generate_random(
-        2, outcomes=mechanism.discrete_outcomes()
-    )
-    mechanism.add(
-        TimeWaster(name=f"agent{0}", sleep_seconds=waste, preferences=ufuns[0])
-    )
-    mechanism.add(
-        TimeWaster(name=f"agent{1}", sleep_seconds=waste, preferences=ufuns[1])
-    )
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=n_steps, ignore_negotiator_exceptions=True)
+    ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.discrete_outcomes())
+    mechanism.add(TimeWaster(name=f"agent{0}", sleep_seconds=waste, preferences=ufuns[0]))
+    mechanism.add(TimeWaster(name=f"agent{1}", sleep_seconds=waste, preferences=ufuns[1]))
     mechanism.run()
     assert mechanism.state.agreement is None
     assert mechanism.state.started
@@ -308,9 +268,7 @@ def test_neg_sync_loop(keep_order):
             avoid_ultimatum=False,
             name=f"{m}",
         )
-        ufuns = MappingUtilityFunction.generate_random(
-            2, outcomes=mechanism.discrete_outcomes()
-        )
+        ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.discrete_outcomes())
         mechanism.add(
             c1.create_negotiator(preferences=ufuns[0], id=f"0-{m}", name=f"0-{m}")  # type: ignore It will be SAOControlled
         )
@@ -346,9 +304,7 @@ def test_neg_run_sync(n_negotiators):
             ignore_negotiator_exceptions=True,
             avoid_ultimatum=False,
         )
-        ufuns = MappingUtilityFunction.generate_random(
-            2, outcomes=mechanism.discrete_outcomes()
-        )
+        ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.discrete_outcomes())
         edge_names.append(f"f{0}")
         mechanism.add(
             TimeWaster(
@@ -383,12 +339,8 @@ def test_neg_run_sync(n_negotiators):
 
 def test_exceptions_are_saved():
     n_outcomes, n_negotiators = 10, 2
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes, n_steps=n_outcomes, ignore_negotiator_exceptions=True
-    )
-    ufuns = MappingUtilityFunction.generate_random(
-        n_negotiators, outcomes=mechanism.discrete_outcomes()
-    )
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=n_outcomes, ignore_negotiator_exceptions=True)
+    ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=mechanism.discrete_outcomes())
     mechanism.add(AspirationNegotiator(name=f"agent{0}"), preferences=ufuns[0])
     mechanism.add(MyRaisingNegotiator(name=f"agent{1}"), preferences=ufuns[1])
     assert mechanism.state.step == 0
@@ -442,9 +394,7 @@ def test_mechanism_can_run(n_negotiators):
 @mark.parametrize("n_negotiators,oia", [(2, True), (3, True), (2, False), (3, False)])
 def test_mechanism_runs_with_offering_not_accepting(n_negotiators, oia):
     n_outcomes = 5
-    mechanism = SAOMechanism(
-        outcomes=n_outcomes, n_steps=3, offering_is_accepting=oia, avoid_ultimatum=False
-    )
+    mechanism = SAOMechanism(outcomes=n_outcomes, n_steps=3, offering_is_accepting=oia, avoid_ultimatum=False)
     ufuns = MappingUtilityFunction.generate_random(1, outcomes=n_outcomes)
     for i in range(n_negotiators):
         mechanism.add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[0])
@@ -483,9 +433,7 @@ def test_mechanism_runall(n_negotiators, oia):
 
 
 class MySAOSync(SAOSyncController):
-    def counter_all(
-        self, offers: dict[str, Outcome], states: dict[str, SAOState]
-    ) -> dict[str, SAOResponse]:
+    def counter_all(self, offers: dict[str, Outcome], states: dict[str, SAOState]) -> dict[str, SAOResponse]:
         responses = {}
         for nid in offers.keys():
             _, state = offers[nid], states[nid]
@@ -513,13 +461,9 @@ def test_sync_controller(n_negotiations, n_negotiators, oia):
                 end_on_no_response=False,
             )
         )
-        ufuns = MappingUtilityFunction.generate_random(
-            n_negotiators, outcomes=n_outcomes
-        )
+        ufuns = MappingUtilityFunction.generate_random(n_negotiators, outcomes=n_outcomes)
         for i in range(n_negotiators):
-            mechanisms[-1].add(
-                AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[i]
-            )
+            mechanisms[-1].add(AspirationNegotiator(name=f"agent{i}"), preferences=ufuns[i])
 
         mechanisms[-1].add(controller.create_negotiator())
 
@@ -625,10 +569,7 @@ def test_sync_controller_gets_all_offers(n_negs):
             return responses
 
     c = MyController()
-    negs = [
-        SAOMechanism(issues=[make_issue((0.0, 1.0), "price")], n_steps=20)
-        for _ in range(n_negs)
-    ]
+    negs = [SAOMechanism(issues=[make_issue((0.0, 1.0), "price")], n_steps=20) for _ in range(n_negs)]
     for neg in negs:
         neg.add(RandomNegotiator())
         neg.add(c.create_negotiator())
@@ -637,9 +578,7 @@ def test_sync_controller_gets_all_offers(n_negs):
 
 
 # @given(n_negs=st.integers(1, 10), strict=st.booleans())
-@mark.parametrize(
-    ["n_negs", "strict"], [(_, s) for s in (True, False) for _ in range(1, 10)]
-)
+@mark.parametrize(["n_negs", "strict"], [(_, s) for s in (True, False) for _ in range(1, 10)])
 def test_single_agreement_gets_one_agreement(n_negs, strict):
     from negmas.mechanisms import Mechanism
     from negmas.sao import AspirationNegotiator, SAOSingleAgreementRandomController
@@ -674,8 +613,7 @@ def test_single_agreement_gets_one_agreement(n_negs, strict):
                 [
                     neg.state.agreement
                     for neg in negs
-                    if neg.state.agreement is not None
-                    and neg.state.current_proposer.startswith("opponent")
+                    if neg.state.agreement is not None and neg.state.current_proposer.startswith("opponent")
                 ]
             )
             < 2
@@ -741,11 +679,7 @@ def test_loops_are_broken(keep_order):
 )
 def test_can_create_all_negotiator_types(typ):
     issues = [make_issue((0.0, 1.0), name="price"), make_issue(10, name="quantity")]
-    params = dict(
-        preferences=LinearUtilityFunction(
-            issues=issues, weights=dict(price=1.0, quantity=1.0)
-        )
-    )
+    params = dict(preferences=LinearUtilityFunction(issues=issues, weights=dict(price=1.0, quantity=1.0)))
     assert typ(**params) is not None
 
 
@@ -785,12 +719,8 @@ def test_can_run_asp_tit():
 
 def test_acceptable_outcomes():
     p = SAOMechanism(outcomes=6, n_steps=10)
-    p.add(
-        LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)])
-    )
-    p.add(
-        LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)])
-    )
+    p.add(LimitedOutcomesNegotiator(name="seller", acceptable_outcomes=[(2,), (3,), (5,)]))
+    p.add(LimitedOutcomesNegotiator(name="buyer", acceptable_outcomes=[(1,), (4,), (3,)]))
     state = p.run()
     assert state.agreement == (3,), f"{p.extended_trace}"
 
@@ -868,16 +798,9 @@ def test_no_limits_raise_warning():
     from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning):
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
-        )
+        folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
 
-        d = (
-            load_genius_domain_from_folder(folder_name)
-            .normalize()
-            .to_single_issue()
-            .make_session()
-        )
+        d = load_genius_domain_from_folder(folder_name).normalize().to_single_issue().make_session()
 
 
 @given(
@@ -887,9 +810,7 @@ def test_no_limits_raise_warning():
     n_waits2=st.integers(0, 4),
 )
 @settings(deadline=20000, max_examples=100)
-def test_single_mechanism_history_with_waiting(
-    avoid_ultimatum, n_steps, n_waits, n_waits2
-):
+def test_single_mechanism_history_with_waiting(avoid_ultimatum, n_steps, n_waits, n_waits2):
     n_outcomes, waste = 5, (0.0, 0.3)
     mechanism = SAOMechanism(
         outcomes=n_outcomes,
@@ -898,11 +819,7 @@ def test_single_mechanism_history_with_waiting(
         avoid_ultimatum=avoid_ultimatum,
     )
     ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
-    mechanism.add(
-        TimeWaster(
-            name=f"agent{0}", sleep_seconds=waste, preferences=ufuns[0], n_waits=n_waits
-        )
-    )
+    mechanism.add(TimeWaster(name=f"agent{0}", sleep_seconds=waste, preferences=ufuns[0], n_waits=n_waits))
     mechanism.add(
         TimeWaster(
             name=f"agent{1}",
@@ -914,24 +831,16 @@ def test_single_mechanism_history_with_waiting(
     mechanism.run()
     first = mechanism._selected_first
     n_negotiators = len(mechanism.negotiators)
-    assert (not avoid_ultimatum and first == 0) or (
-        avoid_ultimatum and 0 <= first < n_negotiators
-    )
+    assert (not avoid_ultimatum and first == 0) or (avoid_ultimatum and 0 <= first < n_negotiators)
     assert mechanism.state.agreement is None
     assert mechanism.state.started
-    assert mechanism.state.timedout or (
-        n_waits + n_waits2 > 0 and mechanism.state.broken
-    )
+    assert mechanism.state.timedout or (n_waits + n_waits2 > 0 and mechanism.state.broken)
     assert mechanism.state.step == n_steps or (
-        n_waits + n_waits2 > 0
-        and mechanism.state.broken
-        and mechanism.state.step <= n_steps
+        n_waits + n_waits2 > 0 and mechanism.state.broken and mechanism.state.step <= n_steps
     )
     assert not mechanism.state.waiting
     assert len(mechanism.history) == n_steps or (
-        n_waits + n_waits2 > 0
-        and mechanism.state.broken
-        and len(mechanism.history) <= n_steps
+        n_waits + n_waits2 > 0 and mechanism.state.broken and len(mechanism.history) <= n_steps
     )
 
     # check history details is correct
@@ -969,9 +878,7 @@ def test_single_mechanism_history_with_waiting(
                 # if this is the first agent, its first thing recieved must be None
                 assert w is None
                 continue
-            assert (
-                w is not None
-            ), f"None outcome agent {i} @ {j} (avoid={avoid_ultimatum}) first is {first}"
+            assert w is not None, f"None outcome agent {i} @ {j} (avoid={avoid_ultimatum}) first is {first}"
             r[i][j] = w[0]
 
     # a single agent is asked to offer first if not avoid_ultimatum
@@ -1031,19 +938,13 @@ def test_single_mechanism_history_with_waiting(
     end_on_no_response=st.booleans(),
 )
 @settings(deadline=20000)
-def test_neg_sync_loop_receives_all_offers(
-    keep_order, n_first, n_second, avoid_ultimatum, end_on_no_response
-):
+def test_neg_sync_loop_receives_all_offers(keep_order, n_first, n_second, avoid_ultimatum, end_on_no_response):
     # from pprint import pprint
 
     n_outcomes, n_steps = 100, 10
     waste_center = 0.01
-    c1s = [
-        MySyncController(sleep_seconds=waste_center, name="c1") for _ in range(n_first)
-    ]
-    c2s = [
-        MySyncController(sleep_seconds=waste_center, name="c2") for _ in range(n_second)
-    ]
+    c1s = [MySyncController(sleep_seconds=waste_center, name="c1") for _ in range(n_first)]
+    c2s = [MySyncController(sleep_seconds=waste_center, name="c2") for _ in range(n_second)]
     mechanisms = [
         SAOMechanism(
             outcomes=n_outcomes,
@@ -1059,16 +960,8 @@ def test_neg_sync_loop_receives_all_offers(
     for mechanism in mechanisms:
         ufuns = MappingUtilityFunction.generate_random(2, outcomes=mechanism.outcomes)
         i, j = tuple(int(_) for _ in mechanism.name.split("v"))
-        mechanism.add(
-            c1s[i].create_negotiator(
-                preferences=ufuns[0], id=f"l{i}>{j}", name=f"l{i}>{j}"
-            )
-        )
-        mechanism.add(
-            c2s[j].create_negotiator(
-                preferences=ufuns[1], id=f"r{j}>{i}", name=f"r{j}>{i}"
-            )
-        )
+        mechanism.add(c1s[i].create_negotiator(preferences=ufuns[0], id=f"l{i}>{j}", name=f"l{i}>{j}"))
+        mechanism.add(c2s[j].create_negotiator(preferences=ufuns[1], id=f"r{j}>{i}", name=f"r{j}>{i}"))
 
     while True:
         states = SAOMechanism.stepall(mechanisms, keep_order=keep_order)
@@ -1089,9 +982,7 @@ def test_neg_sync_loop_receives_all_offers(
             for n in mechanism.negotiators:
                 check.equal(len(mechanism.negotiator_offers(n.id)), n_steps)
 
-    for c, n_partners in itertools.chain(
-        zip(c1s, itertools.repeat(n_second)), zip(c2s, itertools.repeat(n_first))
-    ):
+    for c, n_partners in itertools.chain(zip(c1s, itertools.repeat(n_second)), zip(c2s, itertools.repeat(n_first))):
         steps = set(range(1, n_steps))
         countered_steps = set(c.countered_offers.keys())
         missing_steps = steps.difference(countered_steps)
@@ -1203,9 +1094,7 @@ def test_aspiration_continuous_issues(n_negotiators, n_issues, presort, stochast
             utils = [neg.ufun(_) for _ in mechanism.negotiator_offers(neg_id)]
             if presort:
                 if stochastic:
-                    assert all(
-                        utils[_] <= utils[0] + neg.tolerance for _ in range(len(utils))
-                    ), f"{utils}"
+                    assert all(utils[_] <= utils[0] + neg.tolerance for _ in range(len(utils))), f"{utils}"
                 else:
                     assert all(
                         utils[i] <= utils[j] + neg.tolerance
@@ -1262,9 +1151,7 @@ def test_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, exist_ok
         if single_checkpoint:
             assert len(list(new_folder.glob("*"))) == 2
         else:
-            assert len(list(new_folder.glob("*"))) >= 2 * (
-                max(1, mechanism.state.step // checkpoint_every)
-            )
+            assert len(list(new_folder.glob("*"))) >= 2 * (max(1, mechanism.state.step // checkpoint_every))
     elif checkpoint_every > n_steps:
         assert len(list(new_folder.glob("*"))) == 2
     else:
@@ -1282,9 +1169,7 @@ def test_genius_in_sao_with_time_limit_and_nsteps_raises_warning():
     from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(UserWarning, match=".*has a .*"):
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
-        )
+        folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
 
         d = load_genius_domain_from_folder(folder_name)
         mechanism = d.make_session(n_steps=60, time_limit=180)
@@ -1307,9 +1192,7 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
     from negmas.inout import load_genius_domain_from_folder
 
     with pytest.warns(None) as record:
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
-        )
+        folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
         d = load_genius_domain_from_folder(folder_name)
         mechanism = d.make_session(n_steps=None, time_limit=180)
         a1 = GeniusNegotiator(
@@ -1322,9 +1205,7 @@ def test_genius_in_sao_with_time_limit_or_nsteps_raises_no_warning():
     assert len(record) == 0
 
     with pytest.warns(None) as record:
-        folder_name = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/cameradomain"
-        )
+        folder_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/cameradomain")
         d = load_genius_domain_from_folder(folder_name)
         mechanism = d.make_session(n_steps=60, time_limit=None)
         a1 = GeniusNegotiator(
@@ -1360,9 +1241,7 @@ def make_linear():
 
 
 def _run_neg(agents, utils, outcome_space):
-    neg = SAOMechanism(
-        outcome_space=outcome_space, n_steps=200, avoid_ultimatum=False, time_limit=None
-    )
+    neg = SAOMechanism(outcome_space=outcome_space, n_steps=200, avoid_ultimatum=False, time_limit=None)
     for a, u in zip(agents, utils):
         neg.add(a, preferences=u)
     neg.run()
@@ -1429,9 +1308,7 @@ def test_bilateral_timebased_example():
     _run_neg((a1, a2), (u1, u2), outcome_space)
 
 
-@given(
-    neg_types=st.lists(st.sampled_from(TIME_BASED_NEGOTIATORS), min_size=4, max_size=4)
-)
+@given(neg_types=st.lists(st.sampled_from(TIME_BASED_NEGOTIATORS), min_size=4, max_size=4))
 @settings(deadline=10_000, max_examples=20)
 def test_multilateral_timebased(neg_types):
     outcome_space = make_os([make_issue(10)])
@@ -1448,9 +1325,7 @@ def test_multilateral_timebased(neg_types):
     _run_neg(negotiators, utils, outcome_space)
 
 
-def try_negotiator(
-    cls, replace_buyer=True, replace_seller=True, plot=False, n_steps=20
-):
+def try_negotiator(cls, replace_buyer=True, replace_seller=True, plot=False, n_steps=20):
     if isinstance(cls, str):
         cls = get_class(cls)
     from negmas.preferences import LinearAdditiveUtilityFunction
@@ -1490,12 +1365,8 @@ def try_negotiator(
         reserved_value=0.0,
     )
 
-    session.add(
-        buyer_cls(name=f"buyer-{shorten(buyer_cls.__name__)}"), ufun=buyer_utility
-    )
-    session.add(
-        seller_cls(name=f"seller-{shorten(buyer_cls.__name__)}"), ufun=seller_utility
-    )
+    session.add(buyer_cls(name=f"buyer-{shorten(buyer_cls.__name__)}"), ufun=buyer_utility)
+    session.add(seller_cls(name=f"seller-{shorten(buyer_cls.__name__)}"), ufun=seller_utility)
     session.run()
     if plot:
         session.plot()

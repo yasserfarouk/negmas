@@ -45,9 +45,7 @@ class BulletinBoard(EventSource, ConfigReader):
         """
         self._data[name] = {}
 
-    def query(
-        self, section: str | list[str] | None, query: Any, query_keys=False
-    ) -> dict[str, Any] | None:
+    def query(self, section: str | list[str] | None, query: Any, query_keys=False) -> dict[str, Any] | None:
         """
         Returns all records in the given section/sections of the bulletin-board that satisfy the query
 
@@ -77,10 +75,7 @@ class BulletinBoard(EventSource, ConfigReader):
             )
 
         if isinstance(section, Iterable) and not isinstance(section, str):
-            results = [
-                self.query(section=_, query=query, query_keys=query_keys)
-                for _ in section
-            ]
+            results = [self.query(section=_, query=query, query_keys=query_keys) for _ in section]
             if len(results) == 0:
                 return dict()
             final: dict[str, Any] = {}
@@ -107,9 +102,7 @@ class BulletinBoard(EventSource, ConfigReader):
                 if value.get(k, None) != v:
                     return False
         else:
-            raise ValueError(
-                f"Cannot check satisfaction of {type(query)} against value {type(value)}"
-            )
+            raise ValueError(f"Cannot check satisfaction of {type(query)} against value {type(value)}")
         return True
 
     def read(self, section: str, key: str) -> Any:
@@ -148,9 +141,7 @@ class BulletinBoard(EventSource, ConfigReader):
         else:
             skey = key
         self._data[section][skey] = value
-        self.announce(
-            Event("new_record", data={"section": section, "key": skey, "value": value})
-        )
+        self.announce(Event("new_record", data={"section": section, "key": skey, "value": value}))
 
     def remove(
         self,
@@ -183,10 +174,7 @@ class BulletinBoard(EventSource, ConfigReader):
             )
 
         if isinstance(section, Iterable) and not isinstance(section, str):
-            return all(
-                self.remove(section=_, query=query, key=key, query_keys=query_keys)
-                for _ in section
-            )
+            return all(self.remove(section=_, query=query, key=key, query_keys=query_keys) for _ in section)
 
         sec = self._data.get(section, None)
         if sec is None:

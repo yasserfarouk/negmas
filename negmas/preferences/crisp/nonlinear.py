@@ -81,16 +81,8 @@ class NonLinearAggregationUtilityFunction(StationaryMixin, UtilityFunction):
                     f"Cannot create a {self.__class__.__name__} with an outcome-space that is not Cartesian while passing values as a dict"
                 )
             if not self.outcome_space.issues:
-                raise ValueError(
-                    "Cannot initializes with dict of values if you are not specifying issues"
-                )
-            values = [
-                values[_]
-                for _ in [
-                    i.name if isinstance(i, Issue) else i
-                    for i in self.outcome_space.issues
-                ]
-            ]
+                raise ValueError("Cannot initializes with dict of values if you are not specifying issues")
+            values = [values[_] for _ in [i.name if isinstance(i, Issue) else i for i in self.outcome_space.issues]]
         self.values = values
         self.f = f
 
@@ -276,9 +268,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         output += '<utility_function maxutility="-1.0">\n    <ufun type="PlainUfun" weight="1" aggregation="sum">\n'
         for rect, u, w in zip(self.outcome_ranges, self.mappings, self.weights):
             if not isinstance(u, float):
-                raise ValueError(
-                    f"Only hyper-rectangles with constant utility per rectangle can be convereted to xml"
-                )
+                raise ValueError(f"Only hyper-rectangles with constant utility per rectangle can be convereted to xml")
             output += f'        <hyperRectangle utility_function="{u * w}">\n'
             for key in rect.keys():
                 # indx = [i for i, _ in enumerate(issues) if _.name == key][0] + 1
@@ -292,9 +282,7 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
                     mn, mx = values
                 else:
                     mn, mx = min(values), max(values)
-                output += (
-                    f'            <INCLUDES index="{indx}" min="{mn}" max="{mx}" />\n'
-                )
+                output += f'            <INCLUDES index="{indx}" min="{mn}" max="{mx}" />\n'
             output += f"        </hyperRectangle>\n"
         output += "    </ufun>\n</utility_function>"
         return output
@@ -337,14 +325,9 @@ class HyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         if offer is None:
             return self.reserved_value
         u = self.bias
-        for weight, outcome_range, mapping in zip(
-            self.weights, self.outcome_ranges, self.mappings
-        ):  # type: ignore
+        for weight, outcome_range, mapping in zip(self.weights, self.outcome_ranges, self.mappings):  # type: ignore
             # fail on any outcome_range that constrains issues not in the presented outcome
-            if (
-                outcome_range is not None
-                and set(ikeys(outcome_range)) - set(ikeys(offer)) != set()
-            ):
+            if outcome_range is not None and set(ikeys(outcome_range)) - set(ikeys(offer)) != set():
                 if self.ignore_issues_not_in_input:
                     continue
 
@@ -420,9 +403,7 @@ class NonlinearHyperRectangleUtilityFunction(StationaryMixin, UtilityFunction):
         if offer is None:
             return self.reserved_value
         if not isinstance(self.hypervolumes, Iterable):
-            raise ValueError(
-                "Hypervolumes are not set. Call set_params() or pass them through the constructor."
-            )
+            raise ValueError("Hypervolumes are not set. Call set_params() or pass them through the constructor.")
 
         u = []
         for hypervolume, mapping in zip(self.hypervolumes, self.mappings):

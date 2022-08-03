@@ -247,16 +247,12 @@ def test_dict_conversion(utype):
 def test_inverse_genius_domain():
     issues, _ = issues_from_xml_str(
         open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ),
+            pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"),
         ).read(),
     )
     u, _ = UtilityFunction.from_xml_str(
         open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
+            pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"),
         ).read(),
         issues=issues,
     )
@@ -323,10 +319,7 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     u1 = [ufun(w) for w in outcomes]
 
     if (sum(weights) > 1e-6 and rng == (0.0, float("inf"))) or (
-        sum(weights) < 1e-6
-        and rng[1] > rng[0] + 1e-6
-        and rng[0] != float("-inf")
-        and rng[1] != float("inf")
+        sum(weights) < 1e-6 and rng[1] > rng[0] + 1e-6 and rng[0] != float("-inf") and rng[1] != float("inf")
     ):
         with pytest.raises(ValueError):
             nfun = ufun.normalize(rng)
@@ -347,9 +340,7 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     f"LinearUtilityFunction should generate an IndependentIssuesUFun but we got {type(nfun).__name__}"
     u2 = [nfun(w) for w in outcomes]
 
-    assert (
-        max(u2) < rng[1] + 1e-3 and min(u2) > rng[0] - 1e-3
-    ), f"Limits are not correct\n{u1}\n{u2}"
+    assert max(u2) < rng[1] + 1e-3 and min(u2) > rng[0] - 1e-3, f"Limits are not correct\n{u1}\n{u2}"
 
     if rng[0] == float("-inf") and rng[1] == float("inf"):
         assert ufun is nfun, "Normalizing with an infinite range should do nothing"
@@ -357,21 +348,13 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
     if bias == 0.0 and rng[0] == 0.0 and sum(weights) > 1e-5:
         scale = [a / b for a, b in zip(u1, u2) if b != 0 and a != 0]
         for a, b in zip(u1, u2):
-            assert (
-                abs(a - b) < 1e-5 or abs(b) > 1e-5
-            ), f"zero values are mapped to zero values"
-            assert (
-                abs(a - b) < 1e-5 or abs(a) > 1e-5
-            ), f"zero values are mapped to zero values"
+            assert abs(a - b) < 1e-5 or abs(b) > 1e-5, f"zero values are mapped to zero values"
+            assert abs(a - b) < 1e-5 or abs(a) > 1e-5, f"zero values are mapped to zero values"
         assert max(scale) - min(scale) < 1e-3, f"ufun did not scale uniformly"
     # order1, order2 = _order(u1), _order(u2)
     # assert order1 == order2, f"normalization changed the order of outcomes\n{u1[37:41]}\n{u2[37:41]}"
 
-    if (
-        (rng[1] == float("inf") or rng[0] == float("-inf"))
-        and abs(bias) < 1e-3
-        and sum(weights) > 1e-5
-    ):
+    if (rng[1] == float("inf") or rng[0] == float("-inf")) and abs(bias) < 1e-3 and sum(weights) > 1e-5:
         relative1 = _relative_fraction(u1)
         relative2 = _relative_fraction(u2)
         assert (
@@ -382,18 +365,14 @@ def test_can_normalize_affine_and_linear_ufun(weights, bias, rng):
 def test_normalization():
     os = CartesianOutcomeSpace.from_xml_str(
         open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"
-            ),
+            pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop/Laptop-C-domain.xml"),
         ).read(),
     )
     issues = os.issues
     outcomes = list(os.enumerate())
     u, _ = UtilityFunction.from_xml_str(
         open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
+            pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"),
         ).read(),
         issues=issues,
     )
@@ -401,16 +380,12 @@ def test_normalization():
     assert abs(u(("HP", "80 Gb", "20'' LCD")) - 22.68559475583014) < 0.000001
     utils = [u(_) for _ in outcomes]
     max_util, min_util = max(utils), min(utils)
-    gt_range = dict(
-        zip(outcomes, [(_ - min_util) / (max_util - min_util) for _ in utils])
-    )
+    gt_range = dict(zip(outcomes, [(_ - min_util) / (max_util - min_util) for _ in utils]))
     gt_max = dict(zip(outcomes, [_ / max_util for _ in utils]))
 
     u, _ = UtilityFunction.from_xml_str(
         open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
+            pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"),
         ).read(),
         issues=issues,
     )
@@ -425,9 +400,7 @@ def test_normalization():
 
     u, _ = UtilityFunction.from_xml_str(
         open(
-            pkg_resources.resource_filename(
-                "negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"
-            ),
+            pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop/Laptop-C-prof1.xml"),
         ).read(),
         issues=issues,
     )
@@ -446,24 +419,18 @@ def test_rank_only_ufun_randomize_no_reserve():
     issues = [make_issue((0, 9)), make_issue((1, 5))]
     outcomes = list(make_os(issues).enumerate_or_sample())
     assert len(outcomes) == 10 * 5
-    ufun = LinearUtilityFunction(
-        weights=[1, 1], issues=issues, reserved_value=float("-inf")
-    )
+    ufun = LinearUtilityFunction(weights=[1, 1], issues=issues, reserved_value=float("-inf"))
     ro = RankOnlyUtilityFunction(ufun, randomize_equal=True)
     assert isinstance(ro(None), float)
     assert isinstance(ro.reserved_value, float)
     assert ro.reserved_value == ro(None) == float("-inf")
     assert min(ro._mapping.values()) == 0
     assert max(ro._mapping.values()) == 10 * 5 - 1
-    assert any(
-        ro((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    assert any(ro((0, _)) == 0 for _ in range(1, 6)), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
     assert ro((9, 5)) == 10 * 5 - 1
     mapping = ro.to_mapping_ufun()
     assert mapping.reserved_value == ro(None)
-    assert any(
-        mapping((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    assert any(mapping((0, _)) == 0 for _ in range(1, 6)), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
     assert mapping((9, 5)) == 10 * 5 - 1
 
 
@@ -480,17 +447,13 @@ def test_rank_only_ufun_randomize():
     assert ro.reserved_value == ro(None)
     assert min(ro._mapping.values()) == 0
     assert max(ro._mapping.values()) == 10 * 5
-    assert any(
-        ro((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
+    assert any(ro((0, _)) == 0 for _ in range(1, 6)), f"{[(_, ro(_)) for _ in [None] + outcomes]}"
     assert ro((9, 5)) == 10 * 5
     mapping = ro.to_mapping_ufun()
     assert isinstance(mapping(None), int)
     assert isinstance(mapping.reserved_value, int)
     assert mapping.reserved_value == ro(None)
-    assert any(
-        mapping((0, _)) == 0 for _ in range(1, 6)
-    ), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
+    assert any(mapping((0, _)) == 0 for _ in range(1, 6)), f"{[(_, mapping(_)) for _ in [None] + outcomes]}"
     assert mapping((9, 5)) == 10 * 5
 
 
@@ -506,16 +469,12 @@ def test_rank_only_ufun_no_randomize():
     assert max(ro._mapping.values()) < 10 * 5
     assert ro((1, 1)) == ro((0, 2))
     assert ro((2, 1)) == ro((1, 2)) == ro((0, 3))
-    assert all(
-        ro((9, 5)) > ro(_) for _ in outcomes if _ != (9, 5)
-    ), f"{[(_, ro(_)) for _ in outcomes]}"
+    assert all(ro((9, 5)) > ro(_) for _ in outcomes if _ != (9, 5)), f"{[(_, ro(_)) for _ in outcomes]}"
     mapping = ro.to_mapping_ufun()
     assert isinstance(mapping(None), int)
     assert isinstance(mapping.reserved_value, int)
     assert mapping.reserved_value == ro(None)
-    assert all(
-        mapping((9, 5)) > mapping(_) for _ in outcomes if _ != (9, 5)
-    ), f"{[(_, mapping(_)) for _ in outcomes]}"
+    assert all(mapping((9, 5)) > mapping(_) for _ in outcomes if _ != (9, 5)), f"{[(_, mapping(_)) for _ in outcomes]}"
     assert mapping((1, 1)) == mapping((0, 2))
     assert mapping((2, 1)) == mapping((1, 2)) == mapping((0, 3))
 

@@ -49,9 +49,7 @@ class NegAgent(Agent):
     @property
     def short_type_name(self):
         """Returns a short name of the type of this entity"""
-        return self._negotiator_type.__name__.replace("Negotiator", "").replace(
-            "Agent", ""
-        )
+        return self._negotiator_type.__name__.replace("Negotiator", "").replace("Agent", "")
 
     @property
     def type_name(self):
@@ -64,9 +62,7 @@ class NegAgent(Agent):
 
     def make_negotiator(self, preferences: Preferences | None = None):
         """Makes a negotiator of the appropriate type passing it an optional ufun"""
-        return instantiate(
-            self._negotiator_type, preferences=preferences, **self._negotiator_params
-        )
+        return instantiate(self._negotiator_type, preferences=preferences, **self._negotiator_params)
 
     def _respond_to_negotiation_request(
         self,
@@ -90,9 +86,7 @@ class NegAgent(Agent):
     def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         """Called when a requested negotiation is rejected"""
 
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         """Called when a requested negotiation is accepted"""
 
     def on_negotiation_failure(
@@ -104,9 +98,7 @@ class NegAgent(Agent):
     ) -> None:
         """Called whenever a negotiation ends without agreement"""
 
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         """Called whenever a negotiation ends with agreement"""
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -125,16 +117,12 @@ class NegAgent(Agent):
         Called after successful contract execution for which the agent is one of the partners.
         """
 
-    def on_contract_breached(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
-    ) -> None:
+    def on_contract_breached(self, contract: Contract, breaches: list[Breach], resolution: Contract | None) -> None:
         """
         Called after complete processing of a contract that involved a breach.
         """
 
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: list[Breach]
-    ) -> RenegotiationRequest | None:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: list[Breach]) -> RenegotiationRequest | None:
         """
         Received by partners in ascending order of their total breach levels in order to set the
         renegotiation agenda when contract execution fails
@@ -187,9 +175,7 @@ def _wrap_in_agents(types, params, agent_types):
         if issubclass(t, NegAgent):
             continue
         name = p.get("name", None)
-        params[i] = dict(
-            negotiator_type=t, negotiator_params={k: v for k, v in p.items()}
-        )
+        params[i] = dict(negotiator_type=t, negotiator_params={k: v for k, v in p.items()})
         params[i]["name"] = name
         types[i] = w
     return types, params
@@ -325,9 +311,7 @@ class NegWorld(NoContractExecutionMixin, World):
         # if not all(isinstance(_, HasRange) for _ in domain.ufuns):
         #     raise ValueError(f"Not all ufuns has a range!!!")
         if self._normalize_scores:
-            self._preferences_ranges = [
-                u.minmax() for u in domain.ufuns  # type: ignore We already check just above
-            ]
+            self._preferences_ranges = [u.minmax() for u in domain.ufuns]  # type: ignore We already check just above
         partner_types = domain.partner_types
         partner_params = domain.partner_params
 
@@ -347,8 +331,7 @@ class NegWorld(NoContractExecutionMixin, World):
             types[i] = get_full_type_name(t)
 
         self.agent_unique_types = [
-            f"{t}:{hash(str(p)) if p else ''}" if len(p) > 0 else t
-            for t, p in zip(types, params)
+            f"{t}:{hash(str(p)) if p else ''}" if len(p) > 0 else t for t, p in zip(types, params)
         ]
 
         def add_agents(types, params, wrappers, target):
@@ -405,44 +388,29 @@ class NegWorld(NoContractExecutionMixin, World):
             self._n_agreements_per_cometitor[aid].append(int(mechanism is not None))
             self._received_advantage[aid].append(u - r)
             pufuns = [
-                (partners.index(pid), p.awi.get_preferences(partners.index(pid)))
-                for pid, p in self._partners.items()
+                (partners.index(pid), p.awi.get_preferences(partners.index(pid))) for pid, p in self._partners.items()
             ]
             pu = sum(unormalize(float(_(agreement)), i) for i, _ in pufuns)
-            pa = sum(
-                unormalize(float(_(agreement)), i)
-                - unormalize(float(_.reserved_value), i)
-                for i, _ in pufuns
-            )
+            pa = sum(unormalize(float(_(agreement)), i) - unormalize(float(_.reserved_value), i) for i, _ in pufuns)
             self._partner_utility[aid].append(pu)
             self._partner_advantage[aid].append(pa)
             partner_names = [self.agents[_].name for _ in partners]
             self.loginfo(f"{agent.name} : {partner_names} -> {agreement}")
 
     def received_utility(self, aid: str):
-        return sum(
-            self._received_utility.get(aid, [0])
-        ) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(self._received_utility.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def agreement_rate(self, aid: str):
-        return sum(
-            self._n_agreements_per_cometitor.get(aid, [0])
-        ) / self._n_negs_per_agent.get(aid, 0)
+        return sum(self._n_agreements_per_cometitor.get(aid, [0])) / self._n_negs_per_agent.get(aid, 0)
 
     def partner_utility(self, aid: str):
-        return sum(
-            self._partner_utility.get(aid, [0])
-        ) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(self._partner_utility.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def received_advantage(self, aid: str):
-        return sum(
-            self._received_advantage.get(aid, [0])
-        ) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(self._received_advantage.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     def partner_advantage(self, aid: str):
-        return sum(
-            self._partner_advantage.get(aid, [0])
-        ) / self._n_negs_per_copmetitor.get(aid, 0)
+        return sum(self._partner_advantage.get(aid, [0])) / self._n_negs_per_copmetitor.get(aid, 0)
 
     @property
     def competitors(self):
@@ -455,26 +423,16 @@ class NegWorld(NoContractExecutionMixin, World):
     def post_step_stats(self):
         for aid in self._competitors.keys():
             self._stats[f"has_agreement_{aid}"].append(self._success[aid])
-            self._stats[f"received_utility_{aid}"].append(
-                self._received_utility[aid][-1]
-            )
+            self._stats[f"received_utility_{aid}"].append(self._received_utility[aid][-1])
             self._stats[f"partner_utility_{aid}"].append(self._partner_utility[aid][-1])
-            self._stats[f"received_advantage_{aid}"].append(
-                self._received_advantage[aid][-1]
-            )
-            self._stats[f"agrement_rate_{aid}"].append(
-                self._n_agreements_per_cometitor[aid][-1]
-            )
-            self._stats[f"partner_advantage_{aid}"].append(
-                self._partner_advantage[aid][-1]
-            )
+            self._stats[f"received_advantage_{aid}"].append(self._received_advantage[aid][-1])
+            self._stats[f"agrement_rate_{aid}"].append(self._n_agreements_per_cometitor[aid][-1])
+            self._stats[f"partner_advantage_{aid}"].append(self._partner_advantage[aid][-1])
 
     def pre_step_stats(self):
         pass
 
-    def order_contracts_for_execution(
-        self, contracts: Collection[Contract]
-    ) -> Collection[Contract]:
+    def order_contracts_for_execution(self, contracts: Collection[Contract]) -> Collection[Contract]:
         return contracts
 
     def contract_record(self, contract: Contract) -> dict[str, Any]:
@@ -490,9 +448,7 @@ class NegWorld(NoContractExecutionMixin, World):
     def delete_executed_contracts(self) -> None:
         pass
 
-    def execute_action(
-        self, action: Action, agent: Agent, callback: Callable | None = None
-    ) -> bool:
+    def execute_action(self, action: Action, agent: Agent, callback: Callable | None = None) -> bool:
         """Executes the given action by the given agent"""
         ...
 
@@ -506,9 +462,7 @@ class NegWorld(NoContractExecutionMixin, World):
     def start_contract_execution(self, contract: Contract) -> set[Breach]:
         return set()
 
-    def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract
-    ) -> None:
+    def complete_contract_execution(self, contract: Contract, breaches: list[Breach], resolution: Contract) -> None:
         pass
 
 

@@ -57,9 +57,7 @@ class OutcomeSpace(Container, Protocol):
         """Checks whether all values in all outcomes are real"""
         ...
 
-    def to_discrete(
-        self, levels: int | float = 5, max_cardinality: int | float = float("inf")
-    ) -> DiscreteOutcomeSpace:
+    def to_discrete(self, levels: int | float = 5, max_cardinality: int | float = float("inf")) -> DiscreteOutcomeSpace:
         """
         Returns a **stable** finite outcome space. If the outcome-space is already finite. It shoud return itself.
 
@@ -152,9 +150,7 @@ class DiscreteOutcomeSpace(OutcomeSpace, Collection, Protocol):
         """
         ...
 
-    def to_single_issue(
-        self, numeric: bool = False, stringify: bool = True
-    ) -> CartesianOutcomeSpace:
+    def to_single_issue(self, numeric: bool = False, stringify: bool = True) -> CartesianOutcomeSpace:
         ...
 
     def sample(

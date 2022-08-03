@@ -54,15 +54,9 @@ class NaiveTitForTatNegotiator(MAPNegotiator):
         partner_model = ZeroSumModel(rank_only=rank_only, above_reserve=False)
         if isinstance(initial_concession, str):
             initial_concession = 0
-        recommender = KindConcessionRecommender(
-            initial_concession=initial_concession, kindness=kindness, punish=punish
-        )
-        acceptance = TFTAcceptanceStrategy(
-            recommender=recommender, partner_ufun=partner_model
-        )
-        offering = TFTOfferingStrategy(
-            recommender=recommender, partner_ufun=partner_model, stochastic=stochastic
-        )
+        recommender = KindConcessionRecommender(initial_concession=initial_concession, kindness=kindness, punish=punish)
+        acceptance = TFTAcceptanceStrategy(recommender=recommender, partner_ufun=partner_model)
+        offering = TFTOfferingStrategy(recommender=recommender, partner_ufun=partner_model, stochastic=stochastic)
         super().__init__(
             *args,
             models=[partner_model, recommender],

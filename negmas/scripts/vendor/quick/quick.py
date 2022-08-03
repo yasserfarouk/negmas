@@ -99,19 +99,14 @@ else:
         def __init__(self, opt):
             super().__init__()
             self.nargs = opt.nargs
-            self.model = GItemModel(
-                opt.nargs, parent=self, opt_type=opt.type, default=opt.default
-            )
+            self.model = GItemModel(opt.nargs, parent=self, opt_type=opt.type, default=opt.default)
             self.setModel(self.model)
             self.delegate = GEditDelegate(self)
             self.setItemDelegate(self.delegate)
             self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
             if self.nargs == -1:
                 self.keyPressEvent = self.key_press
-                self.setToolTip(
-                    "'a': add a new item blow the selected one\n"
-                    "'d': delete the selected item"
-                )
+                self.setToolTip("'a': add a new item blow the selected one\n" "'d': delete the selected item")
 
         def key_press(self, e):
             if self.nargs == -1:
@@ -232,20 +227,14 @@ else:
 
     class GIntLineEditor(GStringLineEditor):
         def to_widget(self, opt):
-            return GStringLineEditor.to_widget(
-                self, opt, validator=QtGui.QIntValidator()
-            )
+            return GStringLineEditor.to_widget(self, opt, validator=QtGui.QIntValidator())
 
     class GFloatLineEditor(GStringLineEditor):
         def to_widget(self, opt):
-            return GStringLineEditor.to_widget(
-                self, opt, validator=QtGui.QDoubleValidator()
-            )
+            return GStringLineEditor.to_widget(self, opt, validator=QtGui.QDoubleValidator())
 
     class GFileDialog(QtWidgets.QFileDialog):
-        def __init__(
-            self, *args, exists=False, file_okay=True, dir_okay=True, **kwargs
-        ):
+        def __init__(self, *args, exists=False, file_okay=True, dir_okay=True, **kwargs):
             super().__init__(*args, **kwargs)
             self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
             self.setLabelText(QtWidgets.QFileDialog.Accept, "Select")
@@ -300,9 +289,7 @@ else:
 
     class GPathGLindEidt_path(click.types.Path):
         def to_widget(self, opt):
-            value = GLineEdit_path(
-                exists=self.exists, file_okay=self.file_okay, dir_okay=self.dir_okay
-            )
+            value = GLineEdit_path(exists=self.exists, file_okay=self.file_okay, dir_okay=self.dir_okay)
             value.setPlaceholderText(self.name)
             if opt.default:
                 value.setText(str(opt.default))
@@ -324,10 +311,7 @@ else:
             self.label = self.__init_label()
 
         def __init_label(self):
-            l = max(
-                math.ceil(math.log10(abs(x))) if x != 0 else 1
-                for x in [self.min, self.max]
-            )
+            l = max(math.ceil(math.log10(abs(x))) if x != 0 else 1 for x in [self.min, self.max])
             l += 1
             return QtWidgets.QLabel("0" * l)
 
@@ -368,10 +352,7 @@ else:
             return slider
 
         def __init_label(self):
-            l = max(
-                math.ceil(math.log10(abs(x))) if x != 0 else 1
-                for x in [self.min, self.max]
-            )
+            l = max(math.ceil(math.log10(abs(x))) if x != 0 else 1 for x in [self.min, self.max])
             l += 1
             return QtWidgets.QLabel("0" * l)
 

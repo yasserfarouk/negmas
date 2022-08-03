@@ -109,9 +109,7 @@ class BinaryComparatorNegotiator(Negotiator):
         super().__init__(*args, **kwargs)
         self.capabilities["compare-binary"] = True
 
-    def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
-    ) -> bool | None:
+    def is_better(self, first: Outcome, second: Outcome, epsilon: float = 1e-10) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
@@ -200,11 +198,7 @@ class NLevelsComparatorNegotiator(Negotiator):
             n_samples: The number of samples to use during the process
 
         """
-        samples = list(
-            sample_issues(
-                issues, n_samples, with_replacement=False, fail_if_not_enough=False
-            )
-        )
+        samples = list(sample_issues(issues, n_samples, with_replacement=False, fail_if_not_enough=False))
         n_samples = len(samples)
         diffs = []
         for i, first in enumerate(samples):
@@ -224,9 +218,7 @@ class NLevelsComparatorNegotiator(Negotiator):
     def thresholds(self, thresholds: list[float]) -> None:
         self.__preferences_thresholds = thresholds
 
-    def compare_nlevels(
-        self, first: Outcome, second: Outcome, n: int = 2
-    ) -> int | None:
+    def compare_nlevels(self, first: Outcome, second: Outcome, n: int = 2) -> int | None:
         """
         Compares two offers using the `ufun` returning an integer in [-n, n] (i.e. 2n+1 possible values) which defines
         which outcome is better and the strength of the difference (discretized using internal thresholds)
@@ -271,9 +263,7 @@ class NLevelsComparatorNegotiator(Negotiator):
                 return sign * i
         return sign * n
 
-    def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
-    ) -> bool | None:
+    def is_better(self, first: Outcome, second: Outcome, epsilon: float = 1e-10) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
@@ -308,9 +298,7 @@ class RankerWithWeightsNegotiator(Negotiator):
         self.capabilities["rank-weighted"] = True
         self.capabilities["compare-binary"] = True
 
-    def rank_with_weights(
-        self, outcomes: list[Outcome] | None, descending=True
-    ) -> list[tuple[int, float]]:
+    def rank_with_weights(self, outcomes: list[Outcome] | None, descending=True) -> list[tuple[int, float]]:
         """Ranks the given list of outcomes with weights. None stands for the null outcome. Outcomes of equal utility
         are ordered arbitrarily.
 
@@ -326,9 +314,7 @@ class RankerWithWeightsNegotiator(Negotiator):
             raise ValueError(f"Has no preferences. Cannot rank")
         return self.preferences.rank_with_weights(outcomes, descending)
 
-    def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
-    ) -> bool | None:
+    def is_better(self, first: Outcome, second: Outcome, epsilon: float = 1e-10) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 
@@ -375,9 +361,7 @@ class RankerNegotiator(Negotiator):
             raise ValueError(f"Unknown preferences. Cannot rank")
         return self.preferences.rank(outcomes, descending)
 
-    def is_better(
-        self, first: Outcome, second: Outcome, epsilon: float = 1e-10
-    ) -> bool | None:
+    def is_better(self, first: Outcome, second: Outcome, epsilon: float = 1e-10) -> bool | None:
         """
         Compares two offers using the `ufun` returning whether the first is better than the second
 

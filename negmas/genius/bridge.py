@@ -66,9 +66,7 @@ __all__ = [
     "genius_bridge_is_installed",
 ]
 
-GENIUS_LOG_BASE = Path(
-    negmas_config("genius_log_base", Path.home() / "negmas" / "geniusbridge" / "logs")
-)
+GENIUS_LOG_BASE = Path(negmas_config("genius_log_base", Path.home() / "negmas" / "geniusbridge" / "logs"))
 
 
 def _kill_process(proc_pid):
@@ -99,9 +97,7 @@ def genius_bridge_is_running(port: int = DEFAULT_JAVA_PORT) -> bool:
         # we know someone is listening. Now we check that it is us
         gateway = JavaGateway(
             gateway_parameters=GatewayParameters(port=port, auto_close=True),
-            callback_server_parameters=CallbackServerParameters(
-                port=0, daemonize=True, daemonize_connections=True
-            ),
+            callback_server_parameters=CallbackServerParameters(port=0, daemonize=True, daemonize_connections=True),
         )
         gateway.jvm.System.currentTimeMillis()  # type: ignore
         return True
@@ -188,9 +184,7 @@ def init_genius_bridge(
     time.sleep(0.5)
     gateway = JavaGateway(
         gateway_parameters=GatewayParameters(port=port, auto_close=True),
-        callback_server_parameters=CallbackServerParameters(
-            port=0, daemonize=True, daemonize_connections=True
-        ),
+        callback_server_parameters=CallbackServerParameters(port=0, daemonize=True, daemonize_connections=True),
     )
     python_port = gateway.get_callback_server().get_listening_port()  # type: ignore
     gateway.java_gateway_server.resetCallbackClient(  # type: ignore
@@ -253,9 +247,7 @@ class GeniusBridge:
         try:
             gateway = JavaGateway(
                 gateway_parameters=GatewayParameters(port=port, auto_close=True),
-                callback_server_parameters=CallbackServerParameters(
-                    port=0, daemonize=True, daemonize_connections=True
-                ),
+                callback_server_parameters=CallbackServerParameters(port=0, daemonize=True, daemonize_connections=True),
             )
             python_port = gateway.get_callback_server().get_listening_port()  # type: ignore
             gateway.java_gateway_server.resetCallbackClient(  # type: ignore
@@ -290,9 +282,7 @@ class GeniusBridge:
         if genius_bridge_is_running(port):
             return True
         time.sleep(timeout)
-        return TimeoutCaller.run(
-            lambda: genius_bridge_is_running(port), timeout=timeout
-        )
+        return TimeoutCaller.run(lambda: genius_bridge_is_running(port), timeout=timeout)
 
     @classmethod
     def start(
@@ -357,8 +347,7 @@ class GeniusBridge:
         path = Path(path).expanduser().absolute()  # type: ignore
         if log_path is None or not log_path:
             log_path = (
-                GENIUS_LOG_BASE
-                / f"{unique_name(str(port), add_time=True, rand_digits=4, sep='.')}.txt"
+                GENIUS_LOG_BASE / f"{unique_name(str(port), add_time=True, rand_digits=4, sep='.')}.txt"
             ).absolute()
             log_path.parent.mkdir(parents=True, exist_ok=True)
         else:
@@ -544,8 +533,7 @@ class GeniusBridge:
         p = cls.java_processes.pop(port, None)
         if p is None:
             warnings.warn(
-                f"Attempting to force-kill a genius brdige we did not start "
-                "at port {port}",
+                f"Attempting to force-kill a genius brdige we did not start " "at port {port}",
                 warnings.NegmasBridgeProcessWarning,
             )
             return False
@@ -622,8 +610,7 @@ class GeniusBridge:
             gateway = cls.gateway(port, force=True)
         except Exception as e:
             warnings.warn(
-                f"Failed to kill threads at port {port} with error: {str(e)}\n"
-                f"{traceback.format_exc()}",
+                f"Failed to kill threads at port {port} with error: {str(e)}\n" f"{traceback.format_exc()}",
                 warnings.NegmasBridgeProcessWarning,
             )
             return False
@@ -645,8 +632,7 @@ class GeniusBridge:
             gateway = cls.gateway(port, force=True)
         except Exception as e:
             warnings.warn(
-                f"Failed to kill threads at port {port} with error: {str(e)}\n"
-                f"{traceback.format_exc()}",
+                f"Failed to kill threads at port {port} with error: {str(e)}\n" f"{traceback.format_exc()}",
                 warnings.NegmasBridgeProcessWarning,
             )
             return False
@@ -683,8 +669,7 @@ class GeniusBridge:
             gateway = cls.gateway(port, force=True)
         except Exception as e:
             warnings.warn(
-                f"Failed to kill threads at port {port} with error: {str(e)}\n"
-                f"{traceback.format_exc()}",
+                f"Failed to kill threads at port {port} with error: {str(e)}\n" f"{traceback.format_exc()}",
                 warnings.NegmasBridgeProcessWarning,
             )
             raise RuntimeError(e)

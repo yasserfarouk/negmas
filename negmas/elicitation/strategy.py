@@ -27,9 +27,7 @@ class EStrategy:
 
     """
 
-    def __init__(
-        self, strategy: str, resolution=1e-4, stop_at_cost: bool = True
-    ) -> None:
+    def __init__(self, strategy: str, resolution=1e-4, stop_at_cost: bool = True) -> None:
         super().__init__()
         self.lower = None
         self.upper = None
@@ -80,11 +78,7 @@ class EStrategy:
                 )
             elif "pingpong" in self.strategy:
                 nstrt = len("pingpong") + (self.strategy.startswith("d"))
-                step = (
-                    float(self.strategy[nstrt:])
-                    if len(self.strategy) > nstrt
-                    else self.resolution
-                )
+                step = float(self.strategy[nstrt:]) if len(self.strategy) > nstrt else self.resolution
                 if self.strategy.startswith("dpingpong") and (upper - lower) < step:
                     step = min(step, self.resolution)
                 if step == 0.0:
@@ -138,11 +132,7 @@ class EStrategy:
                 if "titration" in self.strategy:
                     nstrt = len("titration") + (self.strategy.startswith("d"))
                     try:
-                        step = (
-                            float(self.strategy[nstrt:])
-                            if len(self.strategy) > nstrt
-                            else self.resolution
-                        )
+                        step = float(self.strategy[nstrt:]) if len(self.strategy) > nstrt else self.resolution
                     except:
                         step = self.resolution
 
@@ -150,10 +140,7 @@ class EStrategy:
                         step = -abs(step)
                     elif "up" in self.strategy:
                         step = abs(step)
-                    if (
-                        self.strategy.startswith("dtitration")
-                        and (upper - lower) < step
-                    ):
+                    if self.strategy.startswith("dtitration") and (upper - lower) < step:
                         step = min(self.resolution, step)
                     if step == 0.0:
                         raise ValueError(f"Cannot do titration with a zero step")
@@ -205,9 +192,7 @@ class EStrategy:
 
         return query
 
-    def apply(
-        self, user: User, outcome: Outcome
-    ) -> tuple[Value | None, QResponse | None]:
+    def apply(self, user: User, outcome: Outcome) -> tuple[Value | None, QResponse | None]:
         """Do the elicitation and incur the cost.
 
         Remarks:
@@ -270,9 +255,7 @@ class EStrategy:
     ) -> Value:
         if isinstance(dist, list):
             targets = [
-                (_ - self.resolution, _ + self.resolution)
-                if isinstance(_, float)
-                else (_.loc, _.loc + _.scale)
+                (_ - self.resolution, _ + self.resolution) if isinstance(_, float) else (_.loc, _.loc + _.scale)
                 for _ in dist
             ]
         else:
@@ -286,9 +269,7 @@ class EStrategy:
 
         def within_a_target(u, targets=targets):
             for lower, upper in targets:
-                if (_loc(u) >= (lower - self.resolution)) and (
-                    (_upper(u)) <= upper + self.resolution
-                ):
+                if (_loc(u) >= (lower - self.resolution)) and ((_upper(u)) <= upper + self.resolution):
                     return True
             return False
 
@@ -298,9 +279,7 @@ class EStrategy:
                 break
         return u
 
-    def on_enter(
-        self, nmi: NegotiatorMechanismInterface, preferences: IPUtilityFunction = None
-    ) -> None:
+    def on_enter(self, nmi: NegotiatorMechanismInterface, preferences: IPUtilityFunction = None) -> None:
         self.lower = [0.0] * nmi.n_outcomes
         self.upper = [1.0] * nmi.n_outcomes
         self.indices = dict(zip(nmi.outcomes, range(nmi.n_outcomes)))

@@ -20,9 +20,7 @@ from negmas.sao import AspirationNegotiator
 
 @pytest.fixture
 def scenarios_folder():
-    return pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/scenarios"
-    )
+    return pkg_resources.resource_filename("negmas", resource_name="tests/data/scenarios")
 
 
 # todo: get these to work
@@ -84,9 +82,7 @@ def get_all_scenarios():
 def test_reading_writing_linear_preferences(tmp_path):
     from negmas.preferences import LinearAdditiveUtilityFunction, UtilityFunction
 
-    base_folder = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    base_folder = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     domain = load_genius_domain_from_folder(
         base_folder,
     )
@@ -112,9 +108,7 @@ def test_importing_file_without_exceptions(scenarios_folder):
 
 
 def test_simple_run_with_aspiration_agents():
-    file_name = pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/Laptop"
-    )
+    file_name = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
     assert os.path.exists(file_name)
     domain = Scenario.from_genius_folder(Path(file_name))
     assert domain
@@ -129,11 +123,7 @@ def compared_two_domains(domain, domain2):
 
     assert len(domain.issues) == len(domain2.issues)
     for i1, i2 in zip(domain.issues, domain2.issues):
-        assert (
-            i1.cardinality == i2.cardinality
-            and i1.type == i2.type
-            and i1.value_type == i2.value_type
-        )
+        assert i1.cardinality == i2.cardinality and i1.type == i2.type and i1.value_type == i2.value_type
 
     assert len(domain.ufuns) == len(domain2.ufuns)
 
@@ -142,9 +132,7 @@ def compared_two_domains(domain, domain2):
             u1 = u1.ufun
         while isinstance(u2, DiscountedUtilityFunction):
             u2 = u2.ufun
-        if isinstance(u1, HyperRectangleUtilityFunction) or isinstance(
-            u2, HyperRectangleUtilityFunction
-        ):
+        if isinstance(u1, HyperRectangleUtilityFunction) or isinstance(u2, HyperRectangleUtilityFunction):
             continue
         dm = domain.agenda.to_discrete(5)
         for i, w in enumerate(dm):
@@ -195,9 +183,7 @@ def do_enc_dec_trial(tmp, folder_name, with_discounting=True):
         pass
 
 
-@mark.xfail(
-    run=False, reason="Known to fail. It is the int/discrete issue ambiguity in Genius"
-)
+@mark.xfail(run=False, reason="Known to fail. It is the int/discrete issue ambiguity in Genius")
 @pytest.mark.parametrize("disc", [True, False])
 def test_encoding_decoding_example_AMPOvsCity(tmp_path, disc):
     folder_name = Path(__file__).parent / "data" / "scenarios" / "other" / "AMPOvsCity"
@@ -206,14 +192,7 @@ def test_encoding_decoding_example_AMPOvsCity(tmp_path, disc):
 
 @pytest.mark.parametrize("disc", [True, False])
 def test_encoding_decoding_example_group_8_holiday(tmp_path, disc):
-    folder_name = (
-        Path(__file__).parent
-        / "data"
-        / "scenarios"
-        / "anac"
-        / "y2015"
-        / "group8-holiday"
-    )
+    folder_name = Path(__file__).parent / "data" / "scenarios" / "anac" / "y2015" / "group8-holiday"
     do_enc_dec_trial(tmp_path / "tmp", folder_name, disc)
 
 

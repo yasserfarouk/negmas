@@ -23,9 +23,7 @@ def test_make_issue_generation():
     assert isinstance(make_issue((0, float("inf"))), CountableInfiniteIssue)
     assert isinstance(make_issue((float("-inf"), 0)), CountableInfiniteIssue)
     assert isinstance(make_issue((0.0, float("inf"))), ContinuousInfiniteIssue)
-    assert isinstance(
-        make_issue((float("-inf"), float("inf"))), ContinuousInfiniteIssue
-    )
+    assert isinstance(make_issue((float("-inf"), float("inf"))), ContinuousInfiniteIssue)
     assert isinstance(make_issue((float("-inf"), 5.0)), ContinuousInfiniteIssue)
 
 
@@ -72,9 +70,7 @@ def test_contains_continuous():
     assert "abc" not in issue
 
 
-@pytest.mark.parametrize(
-    "v", (10, (-1, 5), [1, 3, 4, 5], ["a", "b", "c", 5], [(0, 1), (8, 6)])
-)
+@pytest.mark.parametrize("v", (10, (-1, 5), [1, 3, 4, 5], ["a", "b", "c", 5], [(0, 1), (8, 6)]))
 def test_can_loop_over_discrete_issue(v):
     issue = make_issue(v)
     assert issue.is_discrete()

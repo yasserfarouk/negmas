@@ -28,9 +28,7 @@ class SimpleWorld(World, ABC):
     def pre_step_stats(self):
         pass
 
-    def order_contracts_for_execution(
-        self, contracts: Collection[Contract]
-    ) -> Collection[Contract]:
+    def order_contracts_for_execution(self, contracts: Collection[Contract]) -> Collection[Contract]:
         return contracts
 
     def contract_record(self, contract: Contract) -> dict[str, Any]:

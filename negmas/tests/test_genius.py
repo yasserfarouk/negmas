@@ -17,9 +17,7 @@ from negmas.genius import AgentX, Atlas3, Caduceus, GeniusBridge, YXAgent
 from negmas.genius.gnegotiators import AgentK
 
 DOMAIN_FOLDER = pathlib.Path(
-    pkg_resources.resource_filename(
-        "negmas", resource_name="tests/data/scenarios/anac/y2010/Travel"
-    )
+    pkg_resources.resource_filename("negmas", resource_name="tests/data/scenarios/anac/y2010/Travel")
 )
 DOMAIN_FILE = DOMAIN_FOLDER / "travel_domain.xml"
 UTIL1 = DOMAIN_FOLDER / "travel_chox.xml"
@@ -401,9 +399,7 @@ class TestGeniusAgentSessions:
         single_issue=True,
     ):
 
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+        base_folder = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
 
         domain = load_genius_domain_from_folder(base_folder).normalize()
         if single_issue:
@@ -426,14 +422,10 @@ class TestGeniusAgentSessions:
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
-    def test_genius_agents_can_run_on_converted_single_issue_preferences1(
-        self, init_genius
-    ):
+    def test_genius_agents_can_run_on_converted_single_issue_preferences1(self, init_genius):
         neg = self.prepare(utils=(0, 0), single_issue=True)
         best = neg.pareto_frontier(sort_by_welfare=True)[0][0]
-        assert isclose(best[0], 1.0, abs_tol=0.001) and isclose(
-            best[1], 1.0, abs_tol=0.001
-        )
+        assert isclose(best[0], 1.0, abs_tol=0.001) and isclose(best[1], 1.0, abs_tol=0.001)
         neg.run()
         assert neg.agreement is not None
         assert len(neg.history) <= 3
@@ -443,14 +435,10 @@ class TestGeniusAgentSessions:
         condition=SKIP_IF_NO_BRIDGE and not genius_bridge_is_running(),
         reason="No Genius Bridge, skipping genius-agent tests",
     )
-    def test_genius_agents_can_run_on_converted_single_issue_preferences2(
-        self, init_genius
-    ):
+    def test_genius_agents_can_run_on_converted_single_issue_preferences2(self, init_genius):
         neg = self.prepare(utils=(1, 1), single_issue=True)
         best = neg.pareto_frontier(sort_by_welfare=True)[0][0]
-        assert isclose(best[0], 1.0, abs_tol=0.001) and isclose(
-            best[1], 1.0, abs_tol=0.001
-        )
+        assert isclose(best[0], 1.0, abs_tol=0.001) and isclose(best[1], 1.0, abs_tol=0.001)
         neg.run()
         assert neg.agreement is not None
         assert len(neg.history) <= 3
@@ -533,9 +521,7 @@ class TestGeniusAgentSessions:
         agent_name2 = "agents.anac.y2015.Atlas3.Atlas3"
         single_issue = False
 
-        base_folder = pkg_resources.resource_filename(
-            "negmas", resource_name="tests/data/Laptop"
-        )
+        base_folder = pkg_resources.resource_filename("negmas", resource_name="tests/data/Laptop")
         domain = load_genius_domain_from_folder(base_folder)
         if single_issue:
             domain = domain.to_single_issue()

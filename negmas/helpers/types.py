@@ -62,9 +62,7 @@ def import_by_name(full_name: str) -> Any:
     module_name = ".".join(modules)
     item_name = parts[-1]
     if len(modules) < 1:
-        raise ValueError(
-            f"Cannot get the object {item_name} in module {module_name}  (modules {modules})"
-        )
+        raise ValueError(f"Cannot get the object {item_name} in module {module_name}  (modules {modules})")
     module = importlib.import_module(module_name)
     return getattr(module, item_name)
 
@@ -89,9 +87,7 @@ def get_class(
         modules = module_name.split(".")
     modules += class_name.split(".")
     if len(modules) < 1:
-        raise ValueError(
-            f"Cannot get the class {class_name} in module {module_name}  (modules {modules})"
-        )
+        raise ValueError(f"Cannot get the class {class_name} in module {module_name}  (modules {modules})")
     if not class_name.startswith("builtins") or allow_nonstandard_names:
         class_name = stringcase.pascalcase(modules[-1])
     else:
@@ -140,9 +136,7 @@ def is_not_type(obj):
 
 def is_not_lambda_nor_partial_function(obj):
     """Checks if the given object is not a lambda function"""
-    return isinstance(obj, FunctionType) and (
-        obj.__name__ != "<lambda>" and not isinstance(obj, functools.partial)
-    )
+    return isinstance(obj, FunctionType) and (obj.__name__ != "<lambda>" and not isinstance(obj, functools.partial))
 
 
 def is_jsonable(x):

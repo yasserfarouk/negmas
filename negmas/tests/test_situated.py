@@ -37,9 +37,7 @@ class DummyWorld(World):
         )
         self.the_agents = []
 
-    def complete_contract_execution(
-        self, contract: Contract, breaches: list[Breach], resolved: bool
-    ) -> None:
+    def complete_contract_execution(self, contract: Contract, breaches: list[Breach], resolved: bool) -> None:
         pass
 
     def get_contract_finalization_time(self, contract: Contract) -> int:
@@ -67,9 +65,7 @@ class DummyWorld(World):
     def pre_step_stats(self):
         pass
 
-    def order_contracts_for_execution(
-        self, contracts: Collection[Contract]
-    ) -> Collection[Contract]:
+    def order_contracts_for_execution(self, contracts: Collection[Contract]) -> Collection[Contract]:
         return contracts
 
     def contract_record(self, contract: Contract) -> dict[str, Any]:
@@ -86,9 +82,7 @@ class DummyWorld(World):
     def breach_record(self, breach: Breach):
         return breach.__dict__
 
-    def execute_action(
-        self, action: Action, agent: Agent, callback: Callable = None
-    ) -> bool:
+    def execute_action(self, action: Action, agent: Agent, callback: Callable = None) -> bool:
         return True
 
     def get_private_state(self, agent: Agent) -> Any:
@@ -119,18 +113,14 @@ class DummyAgent(Agent):
         req_id: str | None,
     ) -> Negotiator | None:
         negotiator = AspirationNegotiator(
-            preferences=MappingUtilityFunction(
-                mapping=lambda x: 1.0 - x[0] / 10.0, issues=issues
-            )
+            preferences=MappingUtilityFunction(mapping=lambda x: 1.0 - x[0] / 10.0, issues=issues)
         )
         return negotiator
 
     def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         pass
 
     def on_negotiation_failure(
@@ -142,9 +132,7 @@ class DummyAgent(Agent):
     ) -> None:
         pass
 
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         pass
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -159,14 +147,10 @@ class DummyAgent(Agent):
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
-    def on_contract_breached(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
-    ) -> None:
+    def on_contract_breached(self, contract: Contract, breaches: list[Breach], resolution: Contract | None) -> None:
         pass
 
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: list[Breach]
-    ) -> RenegotiationRequest | None:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: list[Breach]) -> RenegotiationRequest | None:
         return None
 
     def respond_to_renegotiation_request(
@@ -184,9 +168,7 @@ class DummyAgent(Agent):
         ):
             issues = [make_issue(10, name="i1")]
             partners = self.awi.state["partners"]
-            self._request_negotiation(
-                partners=[_.name for _ in partners] + [self.name], issues=issues
-            )
+            self._request_negotiation(partners=[_.name for _ in partners] + [self.name], issues=issues)
             results.append(f"{self.name} started negotiation with {partners[0].name}")
         results.append(f"{self.name}: step {self.__current_step}")
 
@@ -221,9 +203,7 @@ class ExceptionAgent(Agent):
     def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
-    def on_neg_request_accepted(
-        self, req_id: str, mechanism: NegotiatorMechanismInterface
-    ):
+    def on_neg_request_accepted(self, req_id: str, mechanism: NegotiatorMechanismInterface):
         pass
 
     def on_negotiation_failure(
@@ -235,9 +215,7 @@ class ExceptionAgent(Agent):
     ) -> None:
         pass
 
-    def on_negotiation_success(
-        self, contract: Contract, mechanism: NegotiatorMechanismInterface
-    ) -> None:
+    def on_negotiation_success(self, contract: Contract, mechanism: NegotiatorMechanismInterface) -> None:
         pass
 
     def on_contract_signed(self, contract: Contract) -> None:
@@ -252,14 +230,10 @@ class ExceptionAgent(Agent):
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
-    def on_contract_breached(
-        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
-    ) -> None:
+    def on_contract_breached(self, contract: Contract, breaches: list[Breach], resolution: Contract | None) -> None:
         pass
 
-    def set_renegotiation_agenda(
-        self, contract: Contract, breaches: list[Breach]
-    ) -> RenegotiationRequest | None:
+    def set_renegotiation_agenda(self, contract: Contract, breaches: list[Breach]) -> RenegotiationRequest | None:
         return None
 
     def respond_to_renegotiation_request(
@@ -277,9 +251,7 @@ class ExceptionAgent(Agent):
         ):
             issues = [make_issue(10, name="i1")]
             partners = self.awi.state["partners"]
-            self._request_negotiation(
-                partners=[_.name for _ in partners] + [self.name], issues=issues
-            )
+            self._request_negotiation(partners=[_.name for _ in partners] + [self.name], issues=issues)
             results.append(f"{self.name} started negotiation with {partners[0].name}")
         raise ValueError("error")
         results.append(f"{self.name}: step {self.__current_step}")
@@ -352,9 +324,7 @@ def test_config_reader_with_a_world_with_enum():
     assert world.bulletin_board is not None
     assert world.n_steps == 10000
 
-    world = DummyWorld.from_config(
-        scope=globals(), config={"n_steps": 10, "negotiation_speed": 2}
-    )
+    world = DummyWorld.from_config(scope=globals(), config={"n_steps": 10, "negotiation_speed": 2})
     assert world.bulletin_board is not None
     assert world.n_steps == 10
     assert world.negotiation_speed == 2
@@ -411,13 +381,9 @@ def test_world_auto_checkpoint(tmp_path, single_checkpoint, checkpoint_every, ex
 
     if 0 < checkpoint_every <= n_steps:
         if single_checkpoint:
-            assert len(list(new_folder.glob("*"))) == 2, print(
-                f"World ran for: {world.current_step}"
-            )
+            assert len(list(new_folder.glob("*"))) == 2, print(f"World ran for: {world.current_step}")
         else:
-            assert len(list(new_folder.glob("*"))) >= 2 * (
-                max(1, world.current_step // checkpoint_every)
-            )
+            assert len(list(new_folder.glob("*"))) >= 2 * (max(1, world.current_step // checkpoint_every))
     elif checkpoint_every > n_steps:
         assert len(list(new_folder.glob("*"))) == 2
     else:
@@ -529,9 +495,7 @@ def test_cannot_start_a_neg_with_no_outcomes():
     world.join(a)
     world.join(b)
     with pytest.raises(ValueError):
-        a.awi.request_negotiation_about(
-            issues=[make_issue((1, 0))], partners=[a.id, b.id], req_id="1234"
-        )
+        a.awi.request_negotiation_about(issues=[make_issue((1, 0))], partners=[a.id, b.id], req_id="1234")
 
 
 def test_world_monitor():

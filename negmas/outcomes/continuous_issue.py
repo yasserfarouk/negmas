@@ -53,9 +53,7 @@ class ContinuousIssue(RangeIssue):
     def rand(self) -> float:
         """Picks a random valid value."""
 
-        return (
-            random.random() * (self._values[1] - self._values[0]) + self._values[0]
-        )  # type: ignore
+        return random.random() * (self._values[1] - self._values[0]) + self._values[0]  # type: ignore
 
     def ordered_value_generator(
         self,
@@ -68,18 +66,13 @@ class ContinuousIssue(RangeIssue):
             raise ValueError(f"Cannot generate {n} values from issue: {self}")
         n = int(n)
         if grid:
-            yield from np.linspace(
-                self._values[0], self._values[1], num=n, endpoint=endpoints
-            ).tolist()
+            yield from np.linspace(self._values[0], self._values[1], num=n, endpoint=endpoints).tolist()
             return
         if endpoints:
             yield from [self._values[0]] + (
-                (self._values[1] - self._values[0]) * np.random.rand(n - 2)
-                + self._values[0]
+                (self._values[1] - self._values[0]) * np.random.rand(n - 2) + self._values[0]
             ).tolist() + [self._values[1]]
-        yield from (
-            (self._values[1] - self._values[0]) * np.random.rand(n) + self._values[0]
-        ).tolist()
+        yield from ((self._values[1] - self._values[0]) * np.random.rand(n) + self._values[0]).tolist()
 
     def value_generator(
         self,
@@ -90,24 +83,15 @@ class ContinuousIssue(RangeIssue):
     ) -> Generator[float, None, None]:
         return self.ordered_value_generator(n, grid, compact, endpoints)
 
-    def rand_outcomes(
-        self, n: int, with_replacement=False, fail_if_not_enough=False
-    ) -> list[float]:
+    def rand_outcomes(self, n: int, with_replacement=False, fail_if_not_enough=False) -> list[float]:
         if with_replacement:
-            return (
-                np.random.rand(n) * (self._values[1] - self._values[0])
-                + self._values[0]
-            ).tolist()
-        return np.linspace(
-            self._values[0], self._values[1], num=n, endpoint=True
-        ).tolist()
+            return (np.random.rand(n) * (self._values[1] - self._values[0]) + self._values[0]).tolist()
+        return np.linspace(self._values[0], self._values[1], num=n, endpoint=True).tolist()
 
     def rand_invalid(self):
         """Pick a random *invalid* value"""
 
-        return (
-            random.random() * (self.max_value - self.min_value) + self.max_value * 1.1
-        )
+        return random.random() * (self.max_value - self.min_value) + self.max_value * 1.1
 
     @property
     def all(self):

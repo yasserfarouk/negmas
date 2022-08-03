@@ -698,15 +698,11 @@ TESTED_NEGOTIATORS = list(
 )
 """Some of the most tested negotaitors"""
 
-ALL_NEGOTIATORS = list(
-    set(PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS + ALL_GENIUS_NEGOTIATORS)
-)
+ALL_NEGOTIATORS = list(set(PARTY_BASED_NEGOTIATORS + AGENT_BASED_NEGOTIATORS + ALL_GENIUS_NEGOTIATORS))
 """All Genius Negotiators accessible from NegMAS"""
 
 ALL_PASSING_NEGOTIATORS = list(
-    set(ALL_NEGOTIATORS)
-    - set(TEST_FAILING_NEGOTIATORS)
-    - set(ALL_GENIUS_INVALID_NEGOTIATORS)
+    set(ALL_NEGOTIATORS) - set(TEST_FAILING_NEGOTIATORS) - set(ALL_GENIUS_INVALID_NEGOTIATORS)
 )
 """All negotiators that passed simple tests showing they work on the bridge"""
 
@@ -800,24 +796,14 @@ def get_anac_agents(
         agents = agents.intersection(get_agents(year, d))
     if bilateral is None or (bilateral is not None and d["bilateral"] == bilateral):
         agents = agents.intersection(get_agents(year, d))
-    if multilateral is None or (
-        multilateral is not None and d["multilateral"] == multilateral
-    ):
+    if multilateral is None or (multilateral is not None and d["multilateral"] == multilateral):
         agents = agents.intersection(get_agents(year, d))
-    if discounting is None or (
-        discounting is not None and d["discounting"] == discounting
-    ):
+    if discounting is None or (discounting is not None and d["discounting"] == discounting):
         agents = agents.intersection(get_agents(year, d))
-    if reservation is None or (
-        reservation is not None and d["reservation"] == reservation
-    ):
+    if reservation is None or (reservation is not None and d["reservation"] == reservation):
         agents = agents.intersection(get_agents(year, d))
-    if uncertainty is None or (
-        uncertainty is not None and d["uncertainty"] == uncertainty
-    ):
+    if uncertainty is None or (uncertainty is not None and d["uncertainty"] == uncertainty):
         agents = agents.intersection(get_agents(year, d))
-    if elicitation is None or (
-        elicitation is not None and d["elicitation"] == elicitation
-    ):
+    if elicitation is None or (elicitation is not None and d["elicitation"] == elicitation):
         agents = agents.intersection(get_agents(year, d))
     return list(agents)

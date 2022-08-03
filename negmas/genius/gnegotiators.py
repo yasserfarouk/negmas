@@ -174,9 +174,7 @@ class OMACagent(GeniusNegotiator):
 
 class TheNegotiatorReloaded(GeniusNegotiator):
     def __init__(self, **kwargs):
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded"
+        kwargs["java_class_name"] = "agents.anac.y2012.TheNegotiatorReloaded.TheNegotiatorReloaded"
         super().__init__(**kwargs)
 
 
@@ -266,9 +264,7 @@ class Kawaii(GeniusNegotiator):
 
 class AgentBuyong(GeniusNegotiator):
     def __init__(self, **kwargs):
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong"
+        kwargs["java_class_name"] = "agents.anac.y2016.caduceus.agents.agentBuyong.agentBuyong"
         super().__init__(**kwargs)
 
 
@@ -346,9 +342,7 @@ class Rubick(GeniusNegotiator):
 
 class AgreeableAgent2018(GeniusNegotiator):
     def __init__(self, **kwargs):
-        kwargs[
-            "java_class_name"
-        ] = "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018"
+        kwargs["java_class_name"] = "agents.anac.y2018.agreeableagent2018.AgreeableAgent2018"
         super().__init__(**kwargs)
 
 
@@ -420,9 +414,7 @@ class SimpleAgent(GeniusNegotiator):
 
 class RandomCounterOfferNegotiationParty(GeniusNegotiator):
     def __init__(self, **kwargs):
-        kwargs[
-            "java_class_name"
-        ] = "negotiator.parties.RandomCounterOfferNegotiationParty"
+        kwargs["java_class_name"] = "negotiator.parties.RandomCounterOfferNegotiationParty"
         super().__init__(**kwargs)
 
 

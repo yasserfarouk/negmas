@@ -20,9 +20,7 @@ def test_a_session():
     for _ in range(4):
         p.add(
             LimitedOutcomesNegotiator(p_ending=0.01, name=f"agent {_}"),
-            preferences=HyperRectangleUtilityFunction(
-                [None], [lambda x: x[0]], outcomes=((_,) for _ in range(n))
-            ),
+            preferences=HyperRectangleUtilityFunction([None], [lambda x: x[0]], outcomes=((_,) for _ in range(n))),
         )
     p.run()
     # print(f'{len(p.negotiators)} negotiators')

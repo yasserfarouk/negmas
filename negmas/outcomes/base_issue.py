@@ -67,12 +67,8 @@ def make_issue(values, *args, **kwargs):
         return ContiguousIssue(int(values), *args, **kwargs)
     if isinstance(values, tuple):
         if len(values) != 2:
-            raise ValueError(
-                f"Passing {values} is illegal. Issues with ranges need 2-values tuples"
-            )
-        if isinstance(values[0], numbers.Integral) and isinstance(
-            values[1], numbers.Integral
-        ):
+            raise ValueError(f"Passing {values} is illegal. Issues with ranges need 2-values tuples")
+        if isinstance(values[0], numbers.Integral) and isinstance(values[1], numbers.Integral):
             return ContiguousIssue(values, *args, **kwargs)  # type: ignore (we know that the types are OK here)
         if (
             isinstance(values[0], numbers.Integral)
@@ -90,14 +86,10 @@ def make_issue(values, *args, **kwargs):
             return ContinuousInfiniteIssue(values, *args, **kwargs)
         if isinstance(values[0], numbers.Real) and isinstance(values[1], numbers.Real):
             return ContinuousIssue(values, *args, **kwargs)
-        raise ValueError(
-            f"Passing {values} with mixed types. Both values must be either integers or reals"
-        )
+        raise ValueError(f"Passing {values} with mixed types. Both values must be either integers or reals")
     if isinstance(values, Callable):
         return CallableIssue(values, *args, **kwargs)  # type: ignore
-    if isinstance(values, Iterable) and all(
-        isinstance(_, numbers.Integral) for _ in values
-    ):
+    if isinstance(values, Iterable) and all(isinstance(_, numbers.Integral) for _ in values):
         return DiscreteCardinalIssue(values, *args, **kwargs)
     if isinstance(values, Iterable):
         values = list(values)
@@ -163,10 +155,7 @@ class Issue(HasMinMax, Iterable, ABC):
         Checks whether the minimum and maximum values of the issue are known and are finite
         """
         return (
-            self.has_limits()
-            and self.is_numeric()
-            and math.isfinite(self.min_value)
-            and math.isfinite(self.max_value)
+            self.has_limits() and self.is_numeric() and math.isfinite(self.min_value) and math.isfinite(self.max_value)
         )
 
     def is_integer(self) -> bool:
@@ -179,9 +168,7 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         Checks that each value of this issue is a real number
         """
-        return issubclass(self._value_type, numbers.Real) and not issubclass(
-            self._value_type, numbers.Integral
-        )
+        return issubclass(self._value_type, numbers.Real) and not issubclass(self._value_type, numbers.Integral)
 
     @abstractmethod
     def is_continuous(self) -> bool:
@@ -321,9 +308,7 @@ class Issue(HasMinMax, Iterable, ABC):
 
         """
 
-    def to_discrete(
-        self, n: int | float | None = 10, grid=True, compact=True, endpoints=True
-    ) -> DiscreteIssue:
+    def to_discrete(self, n: int | float | None = 10, grid=True, compact=True, endpoints=True) -> DiscreteIssue:
         """
         Converts the issue to a discrete issue by samling from it.
 
@@ -358,9 +343,7 @@ class Issue(HasMinMax, Iterable, ABC):
         ...
 
     @abstractmethod
-    def rand_outcomes(
-        self, n: int, with_replacement=False, fail_if_not_enough=False
-    ) -> list:
+    def rand_outcomes(self, n: int, with_replacement=False, fail_if_not_enough=False) -> list:
         """
         Picks n random valid value (at most).
 
@@ -384,9 +367,7 @@ class Issue(HasMinMax, Iterable, ABC):
         """
         if self.is_discrete():
             return self.value_generator()
-        raise ValueError(
-            f"The issue ({self}) is not discrete and `all` cannot be called on it"
-        )
+        raise ValueError(f"The issue ({self}) is not discrete and `all` cannot be called on it")
 
     def __getitem__(self, indx):
         return self.value_at(indx)
@@ -466,10 +447,7 @@ class DiscreteIssue(Issue):
         m = self.cardinality
         n = m if n is None or not math.isfinite(n) else int(n)
 
-        yield from (
-            self._values[_]
-            for _ in sample(m, n, grid=grid, compact=compact, endpoints=endpoints)
-        )
+        yield from (self._values[_] for _ in sample(m, n, grid=grid, compact=compact, endpoints=endpoints))
 
     def value_at(self, index: int):
         if index < 0 or index > self.cardinality - 1:
@@ -480,16 +458,12 @@ class DiscreteIssue(Issue):
         """Picks a random valid value."""
         return random.choice(self._values)  # type: ignore
 
-    def rand_outcomes(
-        self, n: int, with_replacement=False, fail_if_not_enough=False
-    ) -> Iterable[Outcome]:
+    def rand_outcomes(self, n: int, with_replacement=False, fail_if_not_enough=False) -> Iterable[Outcome]:
         """Picks a random valid value."""
 
         if n > len(self._values) and not with_replacement:
             if fail_if_not_enough:
-                raise ValueError(
-                    f"Cannot sample {n} outcomes out of {self._values} without replacement"
-                )
+                raise ValueError(f"Cannot sample {n} outcomes out of {self._values} without replacement")
             else:
                 return self._values
 

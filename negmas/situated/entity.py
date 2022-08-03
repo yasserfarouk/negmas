@@ -12,18 +12,8 @@ class Entity:
         self.__current_step = 0
 
     def _shorten(self, long_name):
-        name = (
-            long_name.split(".")[-1]
-            .lower()
-            .replace("factory_manager", "")
-            .replace("manager", "")
-        )
-        name = (
-            name.replace("factory", "")
-            .replace("agent", "")
-            .replace("miner", "")
-            .replace("consumer", "")
-        )
+        name = long_name.split(".")[-1].lower().replace("factory_manager", "").replace("manager", "")
+        name = name.replace("factory", "").replace("agent", "").replace("miner", "").replace("consumer", "")
         if long_name.startswith("jnegmas"):
             name = f"j-{name}"
         name = name.strip("_")

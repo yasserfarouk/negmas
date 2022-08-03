@@ -69,11 +69,7 @@ class User(Rational):
     @property
     def ufun(self) -> UtilityFunction:
         """Gets a `UtilityFunction` representing the real utility_function of the user"""
-        return (
-            self._preferences
-            if self._preferences is not None
-            else MappingUtilityFunction(lambda x: None)
-        )
+        return self._preferences if self._preferences is not None else MappingUtilityFunction(lambda x: None)
 
     def ask(self, q: Query | None) -> QResponse:
         """Query the user and get a response."""
@@ -91,17 +87,11 @@ class User(Rational):
                         step=self.nmi.state.step if self.nmi else None,
                     )
                 )
-                return QResponse(
-                    answer=reply, indx=i, cost=CostEvaluator(self.cost)(q, reply)
-                )
-        warnings.warn(
-            f"No response for {q} (ufun={self.ufun})", warnings.NegmasNoResponseWarning
-        )
+                return QResponse(answer=reply, indx=i, cost=CostEvaluator(self.cost)(q, reply))
+        warnings.warn(f"No response for {q} (ufun={self.ufun})", warnings.NegmasNoResponseWarning)
         return QResponse(answer=None, indx=-1, cost=q.cost)
 
-    def cost_of_asking(
-        self, q: Query | None = None, answer_id: int = -1, estimate_answer_cost=True
-    ) -> float:
+    def cost_of_asking(self, q: Query | None = None, answer_id: int = -1, estimate_answer_cost=True) -> float:
         """
         Returns the cost of asking the given `Quers`.
 

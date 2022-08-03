@@ -44,9 +44,7 @@ def test_create_loggers_with_default_params(capsys):
 def disabled_test_create_loggers_with_file_params(capsys, tmpdir):
     file_name = tmpdir.join("log.txt")
 
-    log = create_loggers(
-        file_name=file_name, module_wide_log_file=True, app_wide_log_file=False
-    )
+    log = create_loggers(file_name=file_name, module_wide_log_file=True, app_wide_log_file=False)
 
     log.info("Test info")
     # _, captured = capsys.readouterr()
@@ -113,9 +111,7 @@ def test_config_reader():
             self.a = a
             self.b = b
 
-    test, _ = A.from_config(
-        config={"a": 10, "b": [1, 2, 3]}, ignore_children=False, scope=locals()
-    )
+    test, _ = A.from_config(config={"a": 10, "b": [1, 2, 3]}, ignore_children=False, scope=locals())
     assert isinstance(test, A)
     assert test.a == 10
     assert test.b == [1, 2, 3]

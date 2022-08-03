@@ -65,9 +65,7 @@ def neg_config_generator(
             f"Non-competitors are not supported for negotiation tournaments. (You provided {non_competitors})"
         )
     if n_agents_per_competitor != 1:
-        raise ValueError(
-            f"n_agents_per_competitor must be 1 ({n_agents_per_competitor} given)"
-        )
+        raise ValueError(f"n_agents_per_competitor must be 1 ({n_agents_per_competitor} given)")
 
     world_name = unique_name("", add_time=True, rand_digits=4)
     no_logs = compact
@@ -119,9 +117,7 @@ def neg_world_generator(**kwargs):
     Generates the world
     """
     config = kwargs.pop("world_params", dict())
-    config["types"], config["params"] = deepcopy(config["types"]), deepcopy(
-        config["params"]
-    )
+    config["types"], config["params"] = deepcopy(config["types"]), deepcopy(config["params"])
     config["types"] = [get_class(_) for _ in config["types"]]
     config["domain"] = deserialize(config["domain"])
     return NegWorld(**config)
@@ -159,9 +155,7 @@ def neg_score_calculator(
         partner_advantage=world.partner_advantage,
     )
 
-    result = WorldRunResults(
-        world_names=[world.name], log_file_names=[world.log_file_name]
-    )
+    result = WorldRunResults(world_names=[world.name], log_file_names=[world.log_file_name])
     extra = defaultdict(list)
     for aid, agent in world.competitors.items():
         agent_type = agent.type_name
@@ -355,13 +349,10 @@ def random_discrete_domains(
 
     while True:
         current_issues = [
-            _ if isinstance(_, Issue) else make_issue(values=intin(_), name=f"i{i}")
-            for i, _ in enumerate(issues)
+            _ if isinstance(_, Issue) else make_issue(values=intin(_), name=f"i{i}") for i, _ in enumerate(issues)
         ]
         ufuns = [
-            ufun_type.random(
-                current_issues, reserved_value=(0.0, 0.2), normalized=normalized
-            )
+            ufun_type.random(current_issues, reserved_value=(0.0, 0.2), normalized=normalized)
             for _ in range(n_negotiators)
         ]
 

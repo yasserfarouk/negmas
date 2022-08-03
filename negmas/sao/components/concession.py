@@ -82,9 +82,7 @@ class KindConcessionRecommender(ConcessionRecommender):
             return concession
         # I will try to make the smallest concession possible
         inv = self.negotiator.ufun.invert()
-        increment = (
-            0.5 * self.initial_concession if self.initial_concession > 1e-2 else 0.01
-        )
+        increment = 0.5 * self.initial_concession if self.initial_concession > 1e-2 else 0.01
         i = 0
         while concession < 1.0:
             concession += increment * (1 + i / 20)

@@ -24,12 +24,8 @@ def test_can_run_world():
                     name="d0",
                     issues=issues,
                     ufuns=(
-                        U.random(
-                            issues=issues, reserved_value=(0.0, 0.2), normalized=False
-                        ),
-                        U.random(
-                            issues=issues, reserved_value=(0.0, 0.2), normalized=False
-                        ),
+                        U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
+                        U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=False),
                     ),
                     partner_types=(partner,),
                     index=index,

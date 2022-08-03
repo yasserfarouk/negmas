@@ -70,10 +70,7 @@ def additive_score(
         scores = sorted(zip(utils, outcomes), reverse=True)
         return scores[0][1]
     dists = [(max_dist - _) / max_dist for _ in dists]
-    scores = [
-        (u * u_weight + (1 - u_weight) * d, w)
-        for (u, d, w) in zip(utils, dists, outcomes)
-    ]
+    scores = [(u * u_weight + (1 - u_weight) * d, w) for (u, d, w) in zip(utils, dists, outcomes)]
     return scores
 
 
@@ -138,9 +135,7 @@ class OfferFilterProtocol(Protocol):
     Can select *the best* offers in some  sense from a list of offers based on an inverter
     """
 
-    def __call__(
-        self, outcomes: Sequence[Outcome], state: SAOState
-    ) -> Sequence[Outcome]:
+    def __call__(self, outcomes: Sequence[Outcome], state: SAOState) -> Sequence[Outcome]:
         ...
 
 
@@ -198,9 +193,7 @@ class BestOfferSelector(OfferSelector):
             return None
         if not outcomes:
             return None
-        return sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=True)[
-            0
-        ][1]
+        return sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=True)[0][1]
 
 
 class MedianOfferSelector(OfferSelector):
@@ -219,9 +212,7 @@ class MedianOfferSelector(OfferSelector):
             return None
         if not outcomes:
             return None
-        ordered = sorted(
-            ((self._negotiator.ufun(_), _) for _ in outcomes), reverse=False
-        )
+        ordered = sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=False)
         return ordered[len(ordered) // 2][1]
 
 
@@ -241,9 +232,7 @@ class WorstOfferSelector(OfferSelector):
             return None
         if not outcomes:
             return None
-        return sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=False)[
-            0
-        ][1]
+        return sorted(((self._negotiator.ufun(_), _) for _ in outcomes), reverse=False)[0][1]
 
 
 class OfferOrientedSelector(OfferSelector):
@@ -251,9 +240,7 @@ class OfferOrientedSelector(OfferSelector):
     Selects the nearest outcome to the pivot outcome which is updated before responding
     """
 
-    def __init__(
-        self, distance_fun: DistanceFun = generalized_minkowski_distance, **kwargs
-    ):
+    def __init__(self, distance_fun: DistanceFun = generalized_minkowski_distance, **kwargs):
         self._pivot: Outcome | None = None
         self._distance_fun = distance_fun
         self._distance_fun_params = kwargs
@@ -281,9 +268,7 @@ class FirstOfferOrientedSelector(OfferOrientedSelector):
     Selects the offer nearest the partner's first offer
     """
 
-    def before_responding(
-        self, state: SAOState, offer: Outcome | None
-    ) -> Outcome | None:
+    def before_responding(self, state: SAOState, offer: Outcome | None) -> Outcome | None:
         if self._pivot or offer is None:
             return
         self._pivot = offer

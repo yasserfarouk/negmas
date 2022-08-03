@@ -52,17 +52,13 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         id=None,
         **kwargs,
     ):
-        super().__init__(
-            ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
-        )
+        super().__init__(ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs)
         self.ufun = ufun
         self.discount = discount
         self.factor = factor
         self.dynamic_reservation = dynamic_reservation
 
-    def minmax(
-        self, outcome_space=None, issues=None, outcomes=None, max_cardinality=10_000
-    ) -> tuple[float, float]:
+    def minmax(self, outcome_space=None, issues=None, outcomes=None, max_cardinality=10_000) -> tuple[float, float]:
         return self.ufun.minmax(outcome_space, issues, outcomes, max_cardinality)
 
     def shift_by(self, offset: float, shift_reserved: bool = True) -> ExpDiscountedUFun:
@@ -72,9 +68,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             discount=self.discount,
             factor=self.factor,
             name=self.name,
-            reserved_value=self.reserved_value + offset
-            if shift_reserved
-            else self.reserved_value,
+            reserved_value=self.reserved_value + offset if shift_reserved else self.reserved_value,
             dynamic_reservation=self.dynamic_reservation,
         )
 
@@ -85,9 +79,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
             discount=self.discount,
             factor=self.factor,
             name=self.name,
-            reserved_value=self.reserved_value + scale
-            if scale_reserved
-            else self.reserved_value,
+            reserved_value=self.reserved_value + scale if scale_reserved else self.reserved_value,
             dynamic_reservation=self.dynamic_reservation,
         )
 
@@ -114,22 +106,14 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
         reserved_value=(0.0, 1.0),
         normalized=True,
         discount_range=(0.8, 1.0),
-        base_preferences_type: (
-            str | type[BaseUtilityFunction]
-        ) = "negmas.LinearAdditiveUtilityFunction",
+        base_preferences_type: (str | type[BaseUtilityFunction]) = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
     ) -> ExpDiscountedUFun:
         """Generates a random ufun of the given type"""
         reserved_value = make_range(reserved_value)
         discount_range = make_range(discount_range)
-        kwargs["discount"] = (
-            random.random() * (discount_range[1] - discount_range[0])
-            + discount_range[0]
-        )
-        kwargs["reserved_value"] = (
-            random.random() * (reserved_value[1] - reserved_value[0])
-            + reserved_value[0]
-        )
+        kwargs["discount"] = random.random() * (discount_range[1] - discount_range[0]) + discount_range[0]
+        kwargs["reserved_value"] = random.random() * (reserved_value[1] - reserved_value[0]) + reserved_value[0]
         return cls(
             get_class(base_preferences_type).random(  # type: ignore
                 issues, reserved_value=reserved_value, normalized=normalized
@@ -163,9 +147,7 @@ class ExpDiscountedUFun(DiscountedUtilityFunction):
 
     def xml(self, issues: list[Issue]) -> str:
         if not hasattr(self.ufun, "xml"):
-            raise ValueError(
-                f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
-            )
+            raise ValueError(f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable")
         output = self.ufun.xml(issues)  # type: ignore
         output += "</objective>\n"
         factor = None
@@ -218,9 +200,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         id=None,
         **kwargs,
     ):
-        super().__init__(
-            ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs
-        )
+        super().__init__(ufun=ufun, name=name, reserved_value=reserved_value, id=id, **kwargs)
         if power is None:
             power = 1.0
         self.ufun = ufun
@@ -265,9 +245,7 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
 
     def xml(self, issues: list[Issue]) -> str:
         if not hasattr(self.ufun, "xml"):
-            raise ValueError(
-                f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable"
-            )
+            raise ValueError(f"Cannot serialize because my internal ufun of type {self.ufun.type} is not serializable")
         output = self.ufun.xml(issues)  # type: ignore
         output += "</objective>\n"
         factor = None
@@ -299,24 +277,16 @@ class LinDiscountedUFun(DiscountedUtilityFunction):
         normalized=True,
         cost_range=(0.8, 1.0),
         power_range=(0.0, 1.0),
-        base_preferences_type: type[BaseUtilityFunction]
-        | str = "negmas.LinearAdditiveUtilityFunction",
+        base_preferences_type: type[BaseUtilityFunction] | str = "negmas.LinearAdditiveUtilityFunction",
         **kwargs,
     ) -> LinDiscountedUFun:
         """Generates a random ufun of the given type"""
         reserved_value = make_range(reserved_value)
         cost_range = make_range(cost_range)
         power_range = make_range(power_range)
-        kwargs["cost"] = (
-            random.random() * (cost_range[1] - cost_range[0]) + cost_range[0]
-        )
-        kwargs["power"] = (
-            random.random() * (power_range[1] - power_range[0]) + power_range[0]
-        )
-        kwargs["reserved_value"] = (
-            random.random() * (reserved_value[1] - reserved_value[0])
-            + reserved_value[0]
-        )
+        kwargs["cost"] = random.random() * (cost_range[1] - cost_range[0]) + cost_range[0]
+        kwargs["power"] = random.random() * (power_range[1] - power_range[0]) + power_range[0]
+        kwargs["reserved_value"] = random.random() * (reserved_value[1] - reserved_value[0]) + reserved_value[0]
         return cls(
             get_class(base_preferences_type)._random(  # type: ignore
                 issues, reserved_value=kwargs["reserved_value"], normalized=normalized

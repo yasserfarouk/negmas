@@ -37,9 +37,7 @@ class MyEntity(NamedObject):
     with_info=st.booleans(),
     step_attribs=st.tuples(st.sampled_from(good_attribs + bad_attribs)),
 )
-def test_checkpoint(
-    tmp_path, exist_ok, with_name, with_info, single_checkpoint, step_attribs
-):
+def test_checkpoint(tmp_path, exist_ok, with_name, with_info, single_checkpoint, step_attribs):
     x = WithStep()
 
     fname = unique_name("abc", rand_digits=10, add_time=True, sep=".")

@@ -27,16 +27,9 @@ class CountableInfiniteIssue(ContiguousIssue, InfiniteIssue):
         - Actually, inifinties are replace with +- INFINITE_INT which is a very large number
     """
 
-    def __init__(
-        self, values: tuple[int | float, int | float], *args, **kwargs
-    ) -> None:
+    def __init__(self, values: tuple[int | float, int | float], *args, **kwargs) -> None:
         v: tuple[int, int] = tuple(  # type: ignore
-            int(_)
-            if isinstance(_, numbers.Integral)
-            else INFINITE_INT
-            if _ > 0
-            else -INFINITE_INT
-            for _ in values
+            int(_) if isinstance(_, numbers.Integral) else INFINITE_INT if _ > 0 else -INFINITE_INT for _ in values
         )
         super().__init__(v, *args, **kwargs)
         self._value_type = int

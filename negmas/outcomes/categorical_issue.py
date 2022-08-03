@@ -18,9 +18,7 @@ class CategoricalIssue(DiscreteIssue):
         super().__init__(values, name)
         values = list(values)
         self._n_values = len(values)
-        self._value_type = (
-            type(values[0]) if len({type(_) for _ in values}) == 1 else object
-        )
+        self._value_type = type(values[0]) if len({type(_) for _ in values}) == 1 else object
         if self.is_numeric():
             self.min_value, self.max_value = min(values), max(values)
 
@@ -29,7 +27,9 @@ class CategoricalIssue(DiscreteIssue):
         return "categorical"
 
     def _to_xml_str(self, indx):
-        output = f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
+        output = (
+            f'    <issue etype="discrete" index="{indx + 1}" name="{self.name}" type="discrete" vtype="discrete">\n'
+        )
 
         for i, v in enumerate(self._values):
             output += f'        <item index="{i + 1}" value="{v}" cost="0" description="{v}">\n        </item>\n'

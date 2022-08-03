@@ -42,8 +42,6 @@ class ControlledNegotiator(Negotiator):
         if isinstance(attr, Callable):
             return functools.partial(
                 attr,
-                negotiator_id=super().__getattribute__("__dict__")[
-                    "_NamedObject__uuid"
-                ],
+                negotiator_id=super().__getattribute__("__dict__")["_NamedObject__uuid"],
             )
         return super().__getattribute__(item)

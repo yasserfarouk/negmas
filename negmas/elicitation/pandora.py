@@ -41,9 +41,7 @@ __all__ = [
 ]
 
 
-def weitzman_index_uniform(
-    loc: float, scale: float, cost: float, time_discount: float = 1.0
-) -> float:
+def weitzman_index_uniform(loc: float, scale: float, cost: float, time_discount: float = 1.0) -> float:
     """Implements Weitzman's 1979 Bandora's Box index calculation.
 
     Args:
@@ -185,9 +183,7 @@ class BasePandoraElicitor(BaseElicitor):
         self.cutoff_utility = None
         self.opponent_model = None
         self._elicitation_time = None
-        self.offerable_outcomes = (
-            []
-        )  # will contain outcomes with known or at least elicited utilities
+        self.offerable_outcomes = []  # will contain outcomes with known or at least elicited utilities
         self.cutoff_utility = None
         self.unknown = None
         self.assume_uniform = assume_uniform
@@ -218,9 +214,7 @@ class BasePandoraElicitor(BaseElicitor):
               reserved value
         """
         self.cutoff_utility = self.reserved_value
-        expected_utilities = [
-            self.user_preferences(outcome) for outcome in self.offerable_outcomes
-        ]
+        expected_utilities = [self.user_preferences(outcome) for outcome in self.offerable_outcomes]
         if len(expected_utilities) > 0:
             self.cutoff_utility = max(expected_utilities)
 
@@ -294,9 +288,7 @@ class BasePandoraElicitor(BaseElicitor):
                     p = self.opponent_model.probability_of_acceptance(outcomes[i])
                     current_loc = loc
                     loc = p * loc + (1 - p) * self.reserved_value
-                    scale = (
-                        p * (current_loc + scale) + (1 - p) * self.reserved_value - loc
-                    )
+                    scale = p * (current_loc + scale) + (1 - p) * self.reserved_value - loc
                 cost = self.user.cost_of_asking()
                 z[j] = (-weitzman_index_uniform(loc, scale, cost=cost), i)
         else:
@@ -314,9 +306,7 @@ class BasePandoraElicitor(BaseElicitor):
                 cost = self.user.cost_of_asking()
                 f = functools.partial(qualityfun, distribution=xw[i], cost=cost)
                 z[j] = (
-                    -opt.minimize(
-                        f, x0=np.asarray([u]), bounds=[(0.0, 1.0)], method="L-BFGS-B"
-                    ).x[0],
+                    -opt.minimize(f, x0=np.asarray([u]), bounds=[(0.0, 1.0)], method="L-BFGS-B").x[0],
                     i,
                 )
                 # we always push the reserved value for the outcome None representing breaking
@@ -405,9 +395,7 @@ class BasePandoraElicitor(BaseElicitor):
             self.remove_best_offer_from_unknown_list()
         else:
             self.update_best_offer_utility(outcome, u)
-        self.cutoff_utility = max(
-            (self.cutoff_utility, self.expect(expected_value, state=state))
-        )
+        self.cutoff_utility = max((self.cutoff_utility, self.expect(expected_value, state=state)))
         self.elicitation_history.append((outcome, u, state.step))
         return True
 
@@ -447,9 +435,7 @@ class BasePandoraElicitor(BaseElicitor):
             self.init_unknowns()
         return self.unknown and len(self.unknown) != 0
 
-    def on_opponent_model_updated(
-        self, outcomes: list[Outcome], old: list[float], new: list[float]
-    ) -> None:
+    def on_opponent_model_updated(self, outcomes: list[Outcome], old: list[float], new: list[float]) -> None:
         """
         Called when the opponent model is updated.
 
@@ -462,9 +448,7 @@ class BasePandoraElicitor(BaseElicitor):
             Updates the unknown list only if precalculated_index was not set.
         """
         if not self.precalculated_index:
-            self.unknown = self.z_index(
-                updated_outcomes=outcomes if self.incremental else None
-            )
+            self.unknown = self.z_index(updated_outcomes=outcomes if self.incremental else None)
 
 
 class FullElicitor(BasePandoraElicitor):
@@ -509,8 +493,7 @@ class FullElicitor(BasePandoraElicitor):
         if not self.elicited:
             outcomes = self._nmi.outcomes
             utilities = [
-                self.expect(self.do_elicit(outcome, state=state), state=state)
-                for outcome in self._nmi.outcomes
+                self.expect(self.do_elicit(outcome, state=state), state=state) for outcome in self._nmi.outcomes
             ]
             self.offerable_outcomes = list(outcomes)
             self.elicitation_history = [zip(outcomes, utilities)]
@@ -554,9 +537,7 @@ class RandomElicitor(BasePandoraElicitor):
 
     def init_unknowns(self) -> None:
         n = self._nmi.n_outcomes
-        z: list[tuple[float, int | None]] = list(
-            zip((-random.random() for _ in range(n + 1)), range(n + 1))
-        )
+        z: list[tuple[float, int | None]] = list(zip((-random.random() for _ in range(n + 1)), range(n + 1)))
         z[-1] = (z[-1][0], None)
         heapify(z)
         self.unknown = z
@@ -592,9 +573,7 @@ class PandoraElicitor(BasePandoraElicitor):
         kwargs.update(
             dict(
                 base_negotiator=AspirationNegotiator(),
-                opponent_model_factory=lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(
-                    nmi=x
-                ),
+                opponent_model_factory=lambda x: AdaptiveDiscreteAcceptanceModel.from_negotiation(nmi=x),
                 expector_factory=MeanExpector,
                 deep_elicitation=True,
                 single_elicitation_per_round=False,

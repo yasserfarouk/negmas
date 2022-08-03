@@ -42,9 +42,7 @@ def _random_mapping(issue: Issue, normalized=False):
     r = random.random()
     if issue.is_numeric():
         return (
-            partial(
-                _rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value, r=r
-            )
+            partial(_rand_mapping_normalized, mx=issue.max_value, mn=issue.min_value, r=r)
             if normalized
             else partial(_rand_mapping, r=r)
         )
@@ -52,10 +50,7 @@ def _random_mapping(issue: Issue, normalized=False):
         return dict(
             zip(
                 issue.all,
-                [
-                    random.random() - (0.5 if not normalized else 0.0)
-                    for _ in range(issue.cardinality)
-                ],
+                [random.random() - (0.5 if not normalized else 0.0) for _ in range(issue.cardinality)],
             )
         )
     return (
@@ -126,9 +121,7 @@ class AffineUtilityFunction(
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        if self.outcome_space and not isinstance(
-            self.outcome_space, IndependentIssuesOS
-        ):
+        if self.outcome_space and not isinstance(self.outcome_space, IndependentIssuesOS):
             raise ValueError(
                 f"Cannot create {self.type} ufun with an outcomespace without indpendent issues"
                 f".\n Given OS: {self.outcome_space} of type {type(self.outcome_space)}\n"
@@ -139,20 +132,13 @@ class AffineUtilityFunction(
         )
         if weights is None:
             if not self.issues:
-                raise ValueError(
-                    "Cannot initializes with no weights if you are not specifying issues"
-                )
+                raise ValueError("Cannot initializes with no weights if you are not specifying issues")
             weights = [1.0 / len(self.issues)] * len(self.issues)
 
         if isinstance(weights, dict):
             if not self.issues:
-                raise ValueError(
-                    "Cannot initializes with dict of weights if you are not specifying issues"
-                )
-            weights = [
-                weights[_]
-                for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
-            ]
+                raise ValueError("Cannot initializes with dict of weights if you are not specifying issues")
+            weights = [weights[_] for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]]
 
         self._weights: list[float] = list(weights)
         self._bias = bias
@@ -216,13 +202,9 @@ class AffineUtilityFunction(
         output = ""
         if not issues:
             if not self.issues:
-                raise ValueError(
-                    "Cannot convert the ufn to xml as its outcome-space is unknown"
-                )
+                raise ValueError("Cannot convert the ufn to xml as its outcome-space is unknown")
             issues = list(self.issues)
-        for i, (issue, vfun, weight) in enumerate(
-            zip(issues, self._values, self._weights)
-        ):
+        for i, (issue, vfun, weight) in enumerate(zip(issues, self._values, self._weights)):
             if not issue.is_numeric():
                 raise ValueError(
                     f"Issue {issue} is not numeric. Cannot  use a LinearUtilityFunction. Try a LinearAdditiveUtilityFunction"
@@ -252,11 +234,7 @@ class AffineUtilityFunction(
 
         reserved_value = make_range(reserved_value)
         n_issues = len(issues)
-        reserved_value = (
-            reserved_value
-            if reserved_value is not None
-            else tuple([random.random()] * 2)
-        )
+        reserved_value = reserved_value if reserved_value is not None else tuple([random.random()] * 2)
         if normalized:
             weights = [random.random() for _ in range(n_issues)]
             m = sum(weights)
@@ -272,8 +250,7 @@ class AffineUtilityFunction(
             weights=weights,
             bias=bias,
             issues=issues,
-            reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
-            + reserved_value[0],
+            reserved_value=random.random() * (reserved_value[1] - reserved_value[0]) + reserved_value[0],
         )
         return ufun
 
@@ -295,22 +272,16 @@ class AffineUtilityFunction(
         d = deserialize(d, deep=True, remove_type_field=True)  # type: ignore
         return cls(**d)  # type: ignore I konw that d will be a dict with string keys
 
-    def shift_by(
-        self, offset: float, shift_reserved: bool = True
-    ) -> AffineUtilityFunction:
+    def shift_by(self, offset: float, shift_reserved: bool = True) -> AffineUtilityFunction:
         return AffineUtilityFunction(
             self._weights,
             self._bias + offset,
             outcome_space=self.outcome_space,
             name=self.name,
-            reserved_value=self.reserved_value
-            if not shift_reserved
-            else (self.reserved_value + offset),
+            reserved_value=self.reserved_value if not shift_reserved else (self.reserved_value + offset),
         )
 
-    def scale_by(
-        self, scale: float, scale_reserved: bool = True
-    ) -> AffineUtilityFunction:
+    def scale_by(self, scale: float, scale_reserved: bool = True) -> AffineUtilityFunction:
         if scale < 0:
             raise ValueError(f"Cannot have a negative scale: {scale}")
         weights = [_ * scale for _ in self._weights]
@@ -319,9 +290,7 @@ class AffineUtilityFunction(
             bias=self._bias * scale,
             outcome_space=self.outcome_space,
             name=self.name,
-            reserved_value=self.reserved_value
-            if not scale_reserved
-            else (self.reserved_value * scale),
+            reserved_value=self.reserved_value if not scale_reserved else (self.reserved_value * scale),
         )
 
     def normalize_for(
@@ -345,9 +314,7 @@ class AffineUtilityFunction(
         mn, mx = self.minmax(outcome_space)
 
         if sum(self._weights) < epsilon:
-            raise ValueError(
-                f"Cannot normalize a ufun with zero weights to have a non-zero range"
-            )
+            raise ValueError(f"Cannot normalize a ufun with zero weights to have a non-zero range")
 
         if abs(mx - to[1]) < epsilon and abs(mn - to[0]) < epsilon:
             return self
@@ -366,18 +333,12 @@ class AffineUtilityFunction(
         else:
             scale = (to[1] - to[0]) / (mx - mn)
         if scale < 0:
-            raise ValueError(
-                f"Cannot have a negative scale: max, min = ({mx}, {mn}) and rng  = {to}"
-            )
+            raise ValueError(f"Cannot have a negative scale: max, min = ({mx}, {mn}) and rng  = {to}")
         bias = to[1] - scale * mx + self._bias * scale
         weights = [_ * scale for _ in self._weights]
         if abs(bias) < epsilon:
-            return LinearUtilityFunction(
-                weights, outcome_space=outcome_space, name=self.name
-            )
-        return AffineUtilityFunction(
-            weights, bias, outcome_space=outcome_space, name=self.name
-        )
+            return LinearUtilityFunction(weights, outcome_space=outcome_space, name=self.name)
+        return AffineUtilityFunction(weights, bias, outcome_space=outcome_space, name=self.name)
 
     def normalize(
         self,
@@ -415,9 +376,7 @@ class AffineUtilityFunction(
 
         if outcome_space is not None:
             if not isinstance(outcome_space, IndependentIssuesOS):
-                return super().extreme_outcomes(
-                    original_os, issues, outcomes, max_cardinality
-                )
+                return super().extreme_outcomes(original_os, issues, outcomes, max_cardinality)
             if outcomes is not None:
                 warnings.warn(
                     f"Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
@@ -431,9 +390,7 @@ class AffineUtilityFunction(
                 )
             uranges = []
             if not self.issues:
-                raise ValueError(
-                    "Cannot find extreme outcomes of a ufun without knowing its outcome-space"
-                )
+                raise ValueError("Cannot find extreme outcomes of a ufun without knowing its outcome-space")
             issues = self.issues
             for issue in issues:
                 mx, mn = float("-inf"), float("inf")
@@ -557,9 +514,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     def __init__(
         self,
-        values: dict[str, SingleIssueFun]
-        | tuple[SingleIssueFun, ...]
-        | list[SingleIssueFun],
+        values: dict[str, SingleIssueFun] | tuple[SingleIssueFun, ...] | list[SingleIssueFun],
         weights: Mapping[Any, float] | list[float] | tuple[float, ...] | None = None,
         bias: float = 0.0,
         *args,
@@ -568,9 +523,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
         super().__init__(*args, **kwargs)
         self._bias = bias
-        if self.outcome_space and not isinstance(
-            self.outcome_space, IndependentIssuesOS
-        ):
+        if self.outcome_space and not isinstance(self.outcome_space, IndependentIssuesOS):
             raise ValueError(
                 f"Cannot create {self.type} ufun with an outcomespace without indpendent "
                 f"issues.\n Given OS: {self.outcome_space} of type "
@@ -581,9 +534,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         )
         if isinstance(values, dict):
             if self.issues is None:
-                raise ValueError(
-                    "Must specify issues when passing `values` or `weights` is a dict"
-                )
+                raise ValueError("Must specify issues when passing `values` or `weights` is a dict")
             values = [
                 values.get(_, IdentityFun())  # type: ignore
                 for _ in [i.name if isinstance(i, Issue) else i for i in self.issues]
@@ -594,9 +545,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             weights = [1.0] * len(values)
         if isinstance(weights, dict):
             if self.issues is None:
-                raise ValueError(
-                    "Must specify issues when passing `values` or `weights` is a dict"
-                )
+                raise ValueError("Must specify issues when passing `values` or `weights` is a dict")
             weights = [
                 weights.get(_, 1.0)
                 # weights[_]
@@ -611,14 +560,9 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             elif isinstance(v, Callable):
                 self.values.append(LambdaFun(v))
             elif isinstance(v, Iterable):
-                if (
-                    not self.issues
-                    or len(self.issues) < i + 1
-                    or not self.issues[i].is_discrete()
-                ):
+                if not self.issues or len(self.issues) < i + 1 or not self.issues[i].is_discrete():
                     raise TypeError(
-                        f"When passing an iterable as the value function for an issue, "
-                        f"the issue MUST be discrete"
+                        f"When passing an iterable as the value function for an issue, " f"the issue MUST be discrete"
                     )
                 d = dict(zip(self.issues[i].enumerate(), v))  # type: ignore We know the issue is discrete
                 self.values.append(TableFun(d))
@@ -699,9 +643,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         if not issues:
             issues = self.issues
         if not issues:
-            raise ValueError(
-                "Cannot convert a ufun to xml() without konwing its outcome-space"
-            )
+            raise ValueError("Cannot convert a ufun to xml() without konwing its outcome-space")
 
         # <issue vtype="integer" lowerbound="1" upperbound="17" name="Charging Speed" index="3" etype="integer" type="integer">
         # <evaluator ftype="linear" offset="0.4" slope="0.0375">
@@ -761,12 +703,8 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         outcome_space = os_or_none(outcome_space, issues, outcomes)
         if outcome_space is None:
             outcome_space = self.outcome_space
-        if outcome_space is None or not isinstance(
-            outcome_space, CartesianOutcomeSpace
-        ):
-            return super().extreme_outcomes(
-                original_os, issues, outcomes, max_cardinality
-            )
+        if outcome_space is None or not isinstance(outcome_space, CartesianOutcomeSpace):
+            return super().extreme_outcomes(original_os, issues, outcomes, max_cardinality)
         if outcomes is not None:
             warnings.warn(
                 f"Passing outcomes and issues (or having known issues) to linear ufuns is redundant. The outcomes passed will be used which is much slower than if you do not pass them",
@@ -810,9 +748,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
         return tuple(worst_outcome), tuple(best_outcome)
 
     @classmethod
-    def random(
-        cls, issues: list[Issue], reserved_value=(0.0, 1.0), normalized=True, **kwargs
-    ):
+    def random(cls, issues: list[Issue], reserved_value=(0.0, 1.0), normalized=True, **kwargs):
         # from negmas.preferences.ops import normalize
 
         reserved_value = make_range(reserved_value)
@@ -831,8 +767,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             weights=weights,
             values=values,  # type: ignore
             issues=issues,
-            reserved_value=random.random() * (reserved_value[1] - reserved_value[0])
-            + reserved_value[0],
+            reserved_value=random.random() * (reserved_value[1] - reserved_value[0]) + reserved_value[0],
             **kwargs,
         )
         return ufun
@@ -846,9 +781,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                 weights=self.weights,
                 name=self.name,
                 bias=self._bias + offset,
-                reserved_value=self.reserved_value
-                if not shift_reserved
-                else (self.reserved_value + offset),
+                reserved_value=self.reserved_value if not shift_reserved else (self.reserved_value + offset),
                 outcome_space=self.outcome_space,
             )
         values = [v.shift_by(offset) for v in self.values]
@@ -858,9 +791,7 @@ class LinearAdditiveUtilityFunction(  # type: ignore
             weights=self.weights,
             name=self.name,
             bias=self._bias,
-            reserved_value=self.reserved_value
-            if not shift_reserved
-            else (self.reserved_value + offset),
+            reserved_value=self.reserved_value if not shift_reserved else (self.reserved_value + offset),
             outcome_space=self.outcome_space,
         )
 
@@ -884,18 +815,14 @@ class LinearAdditiveUtilityFunction(  # type: ignore
                 values=self.values,  # type: ignore
                 weights=[wscale * _ for _ in self.weights],
                 outcome_space=self.outcome_space,
-                reserved_value=self.reserved_value
-                if not scale_reserved
-                else (self.reserved_value * wscale),
+                reserved_value=self.reserved_value if not scale_reserved else (self.reserved_value * wscale),
                 name=self.name,
             )
         return LinearAdditiveUtilityFunction(
             values=[_.scale_by(scale) for _ in self.values],
             weights=[wscale * _ for _ in self.weights],
             outcome_space=self.outcome_space,
-            reserved_value=self.reserved_value
-            if not scale_reserved
-            else (self.reserved_value * wscale * scale),
+            reserved_value=self.reserved_value if not scale_reserved else (self.reserved_value * wscale * scale),
             name=self.name,
         )
 

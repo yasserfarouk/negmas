@@ -51,9 +51,7 @@ class Constraint(ABC):
         self.full_range = full_range
 
     @abstractmethod
-    def is_satisfied(
-        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
-    ) -> bool:
+    def is_satisfied(self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None) -> bool:
         """
         Whether or not the constraint is satisfied.
         """
@@ -122,9 +120,7 @@ class RankConstraint(MarginalNeutralConstraint):
         super().__init__(full_range=full_range, outcomes=outcomes)
         self.rankings = rankings
 
-    def is_satisfied(
-        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
-    ) -> bool:
+    def is_satisfied(self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
@@ -149,9 +145,7 @@ class ComparisonConstraint(MarginalNeutralConstraint):
     ):
         super().__init__(full_range=full_range, outcomes=outcomes)
         if outcomes is not None and len(outcomes) != 2:
-            raise ValueError(
-                f"{len(outcomes)} outcomes were given to {self.__class__.__name__}"
-            )
+            raise ValueError(f"{len(outcomes)} outcomes were given to {self.__class__.__name__}")
         self.op_name = op
         if isinstance(op, str):
             if op in ("less", "l", "<"):
@@ -168,17 +162,13 @@ class ComparisonConstraint(MarginalNeutralConstraint):
                 raise ValueError(f"Unknown operation {op}")
         self.op = op
 
-    def is_satisfied(
-        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
-    ) -> bool:
+    def is_satisfied(self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
             raise ValueError("No outcomes are  given in construction or to the call")
         if len(outcomes) != 2:
-            raise ValueError(
-                f"{len(outcomes)} outcomes were given to {self.__class__.__name__}"
-            )
+            raise ValueError(f"{len(outcomes)} outcomes were given to {self.__class__.__name__}")
         u = [(preferences(o), i) for i, o in enumerate(outcomes)]
         return self.op(u[0], u[1])
 
@@ -221,9 +211,7 @@ class RangeConstraint(Constraint):
                 for r, f in zip(self.range, self.full_range)
             ]
 
-    def is_satisfied(
-        self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None
-    ) -> bool:
+    def is_satisfied(self, preferences: Preferences, outcomes: Iterable[Outcome] | None = None) -> bool:
         if outcomes is None:
             outcomes = self.outcomes
         if outcomes is None:
@@ -381,9 +369,7 @@ def possible_queries(
     return queries
 
 
-def next_query(
-    strategy: EStrategy, user: User, outcome: Outcome = None
-) -> list[tuple[Outcome, Query, float]]:
+def next_query(strategy: EStrategy, user: User, outcome: Outcome = None) -> list[tuple[Outcome, Query, float]]:
     """Gets the possible outcomes for the next ask with its cost.
 
     The following tuple is returned:

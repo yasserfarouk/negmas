@@ -65,11 +65,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
         ufun_inverter: Callable[[BaseUtilityFunction], InverseUFun] | None = None,
         max_cardinality: int | float = float("inf"),
         eps: float = 0.0001,
-        inversion_method: Literal["min"]
-        | Literal["max"]
-        | Literal["one"]
-        | Literal["some"]
-        | Literal["all"] = "some",
+        inversion_method: Literal["min"] | Literal["max"] | Literal["one"] | Literal["some"] | Literal["all"] = "some",
     ):
         super().__init__()
         self._rank_only = rank_only
@@ -97,9 +93,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
             self.inv = None
             self.min = self.max = self.best = None
             return
-        self.inv = make_inverter(
-            ufun, self._ufun_inverter, self._rank_only, self._max_cardinality
-        )
+        self.inv = make_inverter(ufun, self._ufun_inverter, self._rank_only, self._max_cardinality)
         if self._inversion_method == "one":
             self._inv_method = self.inv.one_in
             self._single_inv_return = True
@@ -134,9 +128,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
             # )
             self.on_preferences_changed([PreferencesChange()])
         if self.inv is None or self.max is None or self.min is None:
-            raise ValueError(
-                "Failed to find an invertor, a selector, or exreme outputs"
-            )
+            raise ValueError("Failed to find an invertor, a selector, or exreme outputs")
         if not self.inv.initialized:
             self.inv.init()
 
@@ -180,9 +172,7 @@ class UtilityBasedOutcomeSetRecommender(SAOComponent):
     def ufun_min(self):
         return self.min
 
-    def __call__(
-        self, urange: tuple[float, float], state: SAOState
-    ) -> Sequence[Outcome]:
+    def __call__(self, urange: tuple[float, float], state: SAOState) -> Sequence[Outcome]:
         """
         Receives a normalized [0-> 1] utility range and returns a utility range relative to the ufun taking the tolerance _eps into account
 
@@ -213,10 +203,7 @@ class UtilityInverter(SAOComponent):
     def __init__(
         self,
         *args,
-        offer_selector: OfferSelectorProtocol
-        | Literal["min"]
-        | Literal["max"]
-        | None = None,
+        offer_selector: OfferSelectorProtocol | Literal["min"] | Literal["max"] | None = None,
         **kwargs,
     ):
         if offer_selector is None:
@@ -225,13 +212,9 @@ class UtilityInverter(SAOComponent):
             type_ = "some"
         else:
             type_ = offer_selector
-        self.recommender = UtilityBasedOutcomeSetRecommender(
-            *args, inversion_method=type_, **kwargs
-        )
+        self.recommender = UtilityBasedOutcomeSetRecommender(*args, inversion_method=type_, **kwargs)
         self.selector: Callable[[Sequence[Outcome], SAOState], Outcome | None] | None
-        self.selector = (
-            None if not isinstance(offer_selector, Callable) else offer_selector
-        )
+        self.selector = None if not isinstance(offer_selector, Callable) else offer_selector
         self.set_negotiator(None)  # type: ignore (It is OK. We do not really need to pass this at all here.)
 
     def on_preferences_changed(self, changes: list[PreferencesChange]):

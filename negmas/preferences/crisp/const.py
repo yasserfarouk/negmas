@@ -77,13 +77,8 @@ class ConstUtilityFunction(StationaryMixin, UtilityFunction):
         if normalized:
             kwargs["value"] = 1.0
         else:
-            kwargs["value"] = (
-                random.random() * (value_range[1] - value_range[0]) + value_range[0]
-            )
-        kwargs["reserved_value"] = (
-            random.random() * (reserved_value[1] - reserved_value[0])
-            + reserved_value[0]
-        )
+            kwargs["value"] = random.random() * (value_range[1] - value_range[0]) + value_range[0]
+        kwargs["reserved_value"] = random.random() * (reserved_value[1] - reserved_value[0]) + reserved_value[0]
         return cls(**kwargs)
 
     def __str__(self):

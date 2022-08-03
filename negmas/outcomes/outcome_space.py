@@ -59,21 +59,15 @@ def make_os(
         - must pass one and exactly one of `issues` and `outcomes`
     """
     if issues and outcomes:
-        raise ValueError(
-            f"Cannot make an outcome space passing both issues and outcomes"
-        )
+        raise ValueError(f"Cannot make an outcome space passing both issues and outcomes")
     if not issues and not outcomes:
-        raise ValueError(
-            f"Cannot make an outcome space without passing issues or outcomes"
-        )
+        raise ValueError(f"Cannot make an outcome space without passing issues or outcomes")
     if not issues and outcomes:
         issues_ = issues_from_outcomes(outcomes)
     else:
         issues_ = issues
     if issues_ is None:
-        raise ValueError(
-            f"Cannot make an outcome space without passing issues or outcomes"
-        )
+        raise ValueError(f"Cannot make an outcome space without passing issues or outcomes")
 
     issues_ = tuple(issues_)
     if all(_.is_discrete() for _ in issues_):
@@ -112,9 +106,7 @@ class CartesianOutcomeSpace(XmlSerializable):
     def contains_os(self, x: OutcomeSpace) -> bool:
         """Checks whether an outcome-space is contained in this outcome-space"""
         if isinstance(x, CartesianOutcomeSpace):
-            return len(self.issues) == len(x.issues) and all(
-                b in a for a, b in zip(self.issues, x.issues)
-            )
+            return len(self.issues) == len(x.issues) and all(b in a for a, b in zip(self.issues, x.issues))
         if self.is_finite() and not x.is_finite():
             return False
         if not self.is_finite() and not x.is_finite():
@@ -203,9 +195,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         return DiscreteCartesianOutcomeSpace(issues=issues, name=self.name)
 
     @classmethod
-    def from_xml_str(
-        cls, xml_str: str, safe_parsing=True, name=None
-    ) -> CartesianOutcomeSpace:
+    def from_xml_str(cls, xml_str: str, safe_parsing=True, name=None) -> CartesianOutcomeSpace:
         issues, _ = issues_from_xml_str(
             xml_str,
             safe_parsing=safe_parsing,
@@ -225,9 +215,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         issue_names: list[str] | None = None,
         name: str | None = None,
     ) -> DiscreteCartesianOutcomeSpace:
-        return DiscreteCartesianOutcomeSpace(
-            issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name
-        )
+        return DiscreteCartesianOutcomeSpace(issues_from_outcomes(outcomes, numeric_as_ranges, issue_names), name=name)
 
     def to_xml_str(self) -> str:
         return issues_to_xml_str(self.issues)
@@ -246,13 +234,9 @@ class CartesianOutcomeSpace(XmlSerializable):
         with_replacement: bool = True,
         fail_if_not_enough=True,
     ) -> Iterable[Outcome]:
-        return sample_issues(
-            self.issues, n_outcomes, with_replacement, fail_if_not_enough
-        )
+        return sample_issues(self.issues, n_outcomes, with_replacement, fail_if_not_enough)
 
-    def cardinality_if_discretized(
-        self, levels: int, max_cardinality: int | float = float("inf")
-    ) -> int:
+    def cardinality_if_discretized(self, levels: int, max_cardinality: int | float = float("inf")) -> int:
         c = reduce(
             mul,
             [_.cardinality if _.is_discrete() else levels for _ in self.issues],
@@ -278,11 +262,7 @@ class CartesianOutcomeSpace(XmlSerializable):
         max_cardinality: int | float = float("inf"),
     ) -> Iterable[Outcome]:
         """Enumerates all outcomes if possible (i.e. discrete space) or returns `max_cardinality` different outcomes otherwise"""
-        if (
-            levels == float("inf")
-            and max_cardinality == float("inf")
-            and not self.is_discrete()
-        ):
+        if levels == float("inf") and max_cardinality == float("inf") and not self.is_discrete():
             raise ValueError(
                 "Cannot enumerate-or-sample an outcome space with infinite outcomes without specifying `levels` and/or `max_cardinality`"
             )
@@ -291,12 +271,8 @@ class CartesianOutcomeSpace(XmlSerializable):
         if isinstance(self, DiscreteCartesianOutcomeSpace):
             return self.enumerate()  # type: ignore We know the outcome space is correct
         if max_cardinality == float("inf"):
-            return self.to_discrete(
-                levels=levels, max_cardinality=max_cardinality
-            ).enumerate()
-        return self.sample(
-            int(max_cardinality), with_replacement=False, fail_if_not_enough=False
-        )
+            return self.to_discrete(levels=levels, max_cardinality=max_cardinality).enumerate()
+        return self.sample(int(max_cardinality), with_replacement=False, fail_if_not_enough=False)
 
     def to_single_issue(
         self,
@@ -333,13 +309,9 @@ class CartesianOutcomeSpace(XmlSerializable):
         if not item:
             return True
         if isinstance(item[0], Issue):
-            return len(self.issues) == len(item) and self.contains_os(
-                make_os(issues=item)
-            )
+            return len(self.issues) == len(item) and self.contains_os(make_os(issues=item))
         if isinstance(item[0], Outcome):
-            return len(self.issues) == len(item) and self.contains_os(
-                make_os(outcomes=item)
-            )
+            return len(self.issues) == len(item) and self.contains_os(make_os(outcomes=item))
         return False
 
 
@@ -360,9 +332,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     def cardinality(self) -> int:
         return reduce(mul, [_.cardinality for _ in self.issues], 1)
 
-    def cardinality_if_discretized(
-        self, levels: int, max_cardinality: int | float = float("inf")
-    ) -> int:
+    def cardinality_if_discretized(self, levels: int, max_cardinality: int | float = float("inf")) -> int:
         return self.cardinality
 
     def enumerate(self) -> Iterable[Outcome]:
@@ -382,9 +352,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             max_cardinality: The maximum number of outcomes in the resulting space
             levels: The maximum number of levels for each issue/subissue
         """
-        if self.cardinality <= max_cardinality or all(
-            _.cardinality < levels for _ in self.issues
-        ):
+        if self.cardinality <= max_cardinality or all(_.cardinality < levels for _ in self.issues):
             return self
         new_levels = [_.cardinality for _ in self.issues]  # type: ignore will be corrected the next line
         new_levels = [int(_) if _ < levels else int(levels) for _ in new_levels]
@@ -419,17 +387,11 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             return new_levels
 
         if new_cardinality > max_cardinality:
-            new_levels: list[int] = _reduce_total_cardinality(
-                new_levels, max_cardinality, new_cardinality
-            )
+            new_levels: list[int] = _reduce_total_cardinality(new_levels, max_cardinality, new_cardinality)
         issues: list[Issue] = []
-        for j, i, issue in zip(
-            new_levels, (_.cardinality for _ in self.issues), self.issues
-        ):
+        for j, i, issue in zip(new_levels, (_.cardinality for _ in self.issues), self.issues):
             issues.append(issue if j >= i else issue.to_discrete(j, compact=True))
-        return DiscreteCartesianOutcomeSpace(
-            tuple(issues), name=f"{self.name}-{max_cardinality}"
-        )
+        return DiscreteCartesianOutcomeSpace(tuple(issues), name=f"{self.name}-{max_cardinality}")
 
     def is_discrete(self) -> bool:
         """Checks whether there are no continua components of the space"""
@@ -438,9 +400,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
     def to_discrete(self, *args, **kwargs) -> DiscreteOutcomeSpace:
         return self
 
-    def to_single_issue(
-        self, numeric=False, stringify=True
-    ) -> DiscreteCartesianOutcomeSpace:
+    def to_single_issue(self, numeric=False, stringify=True) -> DiscreteCartesianOutcomeSpace:
         """
         Creates a new outcome space that is a single-issue version of this one
 
@@ -453,13 +413,7 @@ class DiscreteCartesianOutcomeSpace(CartesianOutcomeSpace):
             - Only works if the outcome space is finite
         """
         outcomes = list(self.enumerate())
-        values = (
-            range(len(outcomes))
-            if numeric
-            else [f"v{_}" for _ in range(len(outcomes))]
-            if stringify
-            else outcomes
-        )
+        values = range(len(outcomes)) if numeric else [f"v{_}" for _ in range(len(outcomes))] if stringify else outcomes
         issue = (
             ContiguousIssue(len(outcomes), name="-".join(self.issue_names))
             if numeric

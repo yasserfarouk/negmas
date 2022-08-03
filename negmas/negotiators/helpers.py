@@ -49,10 +49,7 @@ class ExpAspiration(Aspiration):
     def __init__(
         self,
         max_aspiration: float,
-        aspiration_type: Literal["boulware"]
-        | Literal["conceder"]
-        | Literal["linear"]
-        | float,
+        aspiration_type: Literal["boulware"] | Literal["conceder"] | Literal["linear"] | float,
     ):
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
@@ -82,14 +79,8 @@ class ExpAspiration(Aspiration):
             aspiration level
         """
         if t is None:
-            raise ValueError(
-                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
-            )
-        return (
-            self.max_aspiration
-            * (math.exp(math.pow(1 - t, self.exponent)) - 1)
-            / self._denominator
-        )
+            raise ValueError(f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!")
+        return self.max_aspiration * (math.exp(math.pow(1 - t, self.exponent)) - 1) / self._denominator
 
 
 class PolyAspiration(Aspiration):
@@ -104,11 +95,7 @@ class PolyAspiration(Aspiration):
     def __init__(
         self,
         max_aspiration: float,
-        aspiration_type: Literal["boulware"]
-        | Literal["conceder"]
-        | Literal["linear"]
-        | Literal["hardheaded"]
-        | float,
+        aspiration_type: Literal["boulware"] | Literal["conceder"] | Literal["linear"] | Literal["hardheaded"] | float,
     ):
         self.max_aspiration = max_aspiration
         self.aspiration_type = aspiration_type
@@ -139,7 +126,5 @@ class PolyAspiration(Aspiration):
             aspiration level
         """
         if t is None:
-            raise ValueError(
-                f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!"
-            )
+            raise ValueError(f"Aspiration negotiators cannot be used in negotiations with no time or #steps limit!!")
         return self.max_aspiration * (1.0 - math.pow(t, self.exponent))

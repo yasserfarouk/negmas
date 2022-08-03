@@ -130,9 +130,7 @@ def checkpoint_every(args):
         "/private/var/folders/zr/p1v4wpjn6cq7yz5y1x6wjydh0000gn/T/pytest-of-yasser/pytest-15/test_can_run_from_checkpoint0"
     ),
 )
-def test_can_run_from_checkpoint(
-    tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset
-):
+def test_can_run_from_checkpoint(tmp_path, checkpoint_every, exist_ok, copy, fork_after_reset):
     import shutil
 
     new_folder: Path = tmp_path / unique_name("empty", sep="")
@@ -170,9 +168,7 @@ def test_can_run_from_checkpoint(
     mechanism.run()
     files = list(new_folder.glob("*"))
     if 0 < checkpoint_every <= n_steps:
-        assert len(list(new_folder.glob("*"))) >= 2 * (
-            max(1, mechanism.state.step // checkpoint_every)
-        )
+        assert len(list(new_folder.glob("*"))) >= 2 * (max(1, mechanism.state.step // checkpoint_every))
     elif checkpoint_every > n_steps:
         assert len(list(new_folder.glob("*"))) == 2
     else:

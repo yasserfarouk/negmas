@@ -62,9 +62,7 @@ def show_edge_colors():
             verticalalignment="center",
         )
 
-        ax.hlines(
-            y + h * 0.1, xi_line, xf_line, color=colors[name], linewidth=(h * 0.6)
-        )
+        ax.hlines(y + h * 0.1, xi_line, xf_line, color=colors[name], linewidth=(h * 0.6))
 
     ax.set_xlim(0, X)
     ax.set_ylim(0, Y)

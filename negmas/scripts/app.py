@@ -79,10 +79,7 @@ def print_progress(_, i, n) -> None:
 def print_world_progress(world) -> None:
     """Prints the progress of a world"""
     step = world.current_step + 1
-    s = (
-        f"World# {n_completed:04}: {step:04}  of {world.n_steps:04} "
-        f"steps completed ({step / world.n_steps:0.2f}) "
-    )
+    s = f"World# {n_completed:04}: {step:04}  of {world.n_steps:04} " f"steps completed ({step / world.n_steps:0.2f}) "
 
     if n_total > 0:
         s += f"TOTAL: ({n_completed + step / world.n_steps / n_total:0.2f})"
@@ -200,8 +197,7 @@ def tournament(ctx, ignore_warnings):
 @click.option(
     "--compact/--debug",
     default=True,
-    help="If True, effort is exerted to reduce the memory footprint which"
-    "includes reducing logs dramatically.",
+    help="If True, effort is exerted to reduce the memory footprint which" "includes reducing logs dramatically.",
 )
 @click.option(
     "--raise-exceptions/--ignore-exceptions",
@@ -334,16 +330,11 @@ def create(
 
     if not compact:
         if not reveal_names:
-            print(
-                "You are running the tournament with --debug. Will reveal "
-                "agent types in their names"
-            )
+            print("You are running the tournament with --debug. Will reveal " "agent types in their names")
         reveal_names = True
         verbosity = max(1, verbosity)
 
-    worlds_per_config = (
-        None if max_runs is None else int(round(max_runs / (configs * runs)))
-    )
+    worlds_per_config = None if max_runs is None else int(round(max_runs / (configs * runs)))
 
     all_competitors = competitors.split(";")
     all_competitors_params = [dict() for _ in range(len(all_competitors))]
@@ -397,9 +388,7 @@ def create(
 
             if max_runs is not None and max_runs < 0:
                 exit(0)
-            worlds_per_config = (
-                None if max_runs is None else int(round(max_runs / (configs * runs)))
-            )
+            worlds_per_config = None if max_runs is None else int(round(max_runs / (configs * runs)))
 
     non_competitor_params = None
 
@@ -534,21 +523,18 @@ def display_results(results, metric, significance):
 @click.option(
     "--ip",
     default="127.0.0.1",
-    help="The IP address for a dask scheduler to run the distributed tournament."
-    " Effective only if --distributed",
+    help="The IP address for a dask scheduler to run the distributed tournament." " Effective only if --distributed",
 )
 @click.option(
     "--port",
     default=8786,
     type=int,
-    help="The IP port number a dask scheduler to run the distributed tournament."
-    " Effective only if --distributed",
+    help="The IP port number a dask scheduler to run the distributed tournament." " Effective only if --distributed",
 )
 @click.option(
     "--compact/--debug",
     default=True,
-    help="If True, effort is exerted to reduce the memory footprint which"
-    "includes reducing logs dramatically.",
+    help="If True, effort is exerted to reduce the memory footprint which" "includes reducing logs dramatically.",
 )
 @click.option(
     "--path",
@@ -593,9 +579,7 @@ def run(
         name = ctx.obj.get("tournament_name", "")
 
     if len(name) == 0:
-        print(
-            "Name is not given to run command and was not stored during a create command call"
-        )
+        print("Name is not given to run command and was not stored during a create command call")
         exit(1)
 
     if len(path) > 0:
@@ -620,9 +604,7 @@ def run(
     )
     end_time = humanize_time(perf_counter() - start)
     if eval:
-        results = evaluate_tournament(
-            tournament_path=tpath, verbose=verbosity > 0, metric=metric, compile=True
-        )
+        results = evaluate_tournament(tournament_path=tpath, verbose=verbosity > 0, metric=metric, compile=True)
         display_results(results, metric, significance)
     print(f"Finished in {end_time}")
 
@@ -656,15 +638,11 @@ def run(
 @click_config_file.configuration_option()
 @click.pass_context
 def eval(ctx, path, metric, significance, compile, verbose):
-    results = evaluate_tournament(
-        tournament_path=path, metric=metric, compile=compile, verbose=verbose
-    )
+    results = evaluate_tournament(tournament_path=path, metric=metric, compile=compile, verbose=verbose)
     display_results(results, metric, significance)
 
 
-@tournament.command(
-    help="Finds winners of a tournament or a set of tournaments sharing a root"
-)
+@tournament.command(help="Finds winners of a tournament or a set of tournaments sharing a root")
 @click.option(
     "--name",
     "-n",
@@ -714,9 +692,7 @@ def winners(ctx, name, log, recursive, metric, significance, compile, verbose):
             name = None
 
     if (name is None or len(name) == 0) and not recursive:
-        print(
-            "Name is not given to run command and was not stored during a create command call"
-        )
+        print("Name is not given to run command and was not stored during a create command call")
         exit(1)
     saved_log_folder = ctx.obj.get("tournament_log_folder", None)
 
@@ -819,9 +795,7 @@ def combine_results(path, dest, metric, significance, compile, verbose):
         print("No paths are given to combine")
     scores = combine_tournament_results(sources=tpath, dest=None, verbose=verbose)
     stats = combine_tournament_stats(sources=tpath, dest=None, verbose=verbose)
-    results = evaluate_tournament(
-        dest, scores, stats, verbose=verbose, metric=metric, compile=compile
-    )
+    results = evaluate_tournament(dest, scores, stats, verbose=verbose, metric=metric, compile=compile)
     display_results(results, metric, significance)
 
 

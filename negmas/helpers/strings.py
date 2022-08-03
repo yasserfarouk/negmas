@@ -105,9 +105,7 @@ def unique_name(
     _time, rand_part = "", ""
     host_part = socket.gethostname() if add_host else ""
     if rand_digits > 0:
-        rand_part = "".join(
-            random.choices(string.digits + string.ascii_letters, k=rand_digits)
-        )
+        rand_part = "".join(random.choices(string.digits + string.ascii_letters, k=rand_digits))
     if add_time:
         _time = datetime.datetime.now().strftime("%Y%m%dH%H%M%S%f")
     sub = _time + host_part + rand_part
@@ -118,9 +116,7 @@ def unique_name(
     return f"{str(base)}{sep}{sub}"
 
 
-def shortest_unique_names(
-    strs: list[str], sep=".", max_compression=False, guarantee_unique=False
-):
+def shortest_unique_names(strs: list[str], sep=".", max_compression=False, guarantee_unique=False):
     """
     Finds the shortest unique strings starting from the end of each input
     string based on the separator.
@@ -169,9 +165,7 @@ def shortest_unique_names(
                 mapping[strs[l[0]]] = s
                 continue
             strs_new = [sep.join(lsts[_][:-1]) for _ in l]
-            prefixes = shortest_unique_names(
-                strs_new, sep, max_compression, guarantee_unique
-            )
+            prefixes = shortest_unique_names(strs_new, sep, max_compression, guarantee_unique)
             for loc, prefix in zip(l, prefixes):
                 x = sep.join([prefix, s])
                 if x.startswith(sep):
@@ -209,14 +203,10 @@ def snake_case(s: str) -> str:
     Returns:
         str: converted string
     """
-    return (
-        re.sub("(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))", "_\\1", s).lower().strip("_")
-    )
+    return re.sub("(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))", "_\\1", s).lower().strip("_")
 
 
-def camel_case(
-    s: str, capitalize_first: bool = False, lower_first: bool = False
-) -> str:
+def camel_case(s: str, capitalize_first: bool = False, lower_first: bool = False) -> str:
     """Converts a string from snake_case to CamelCase
 
     Example:

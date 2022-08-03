@@ -63,9 +63,7 @@ class Negotiator(Rational, Notifiable, ABC):
         self._initial_state = None
         self._role = None
         self.__owner = owner
-        super().__init__(
-            name=name, ufun=None, preferences=None, id=id, type_name=type_name
-        )
+        super().__init__(name=name, ufun=None, preferences=None, id=id, type_name=type_name)
         self._preferences = preferences
         self.__saved_pref_os = None
         self.__saved_prefs = None
@@ -103,8 +101,7 @@ class Negotiator(Rational, Notifiable, ABC):
             return
         if self._nmi.state.started:
             warnings.deprecated(
-                "Changing the utility function by direct assignment after the negotiation is "
-                "started is deprecated."
+                "Changing the utility function by direct assignment after the negotiation is " "started is deprecated."
             )
         self._set_pref_os()
         super().set_preferences(value, force=force)
@@ -400,11 +397,7 @@ class Negotiator(Rational, Notifiable, ABC):
         elif notification.type == "negotiation_end":
             self.on_negotiation_end(state=notification.data)
         elif notification.type == "ufun_modified":
-            self.on_preferences_changed(
-                changes=notification.data
-                if notification.data
-                else [PreferencesChange()]
-            )
+            self.on_preferences_changed(changes=notification.data if notification.data else [PreferencesChange()])
 
     def cancel(self, reason=None) -> None:
         """

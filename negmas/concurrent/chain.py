@@ -111,9 +111,7 @@ class ChainNegotiator(Negotiator, ABC):
         """
 
     @abstractmethod
-    def respond(
-        self, state: MechanismState, outcome: Outcome, from_left: bool, temp: bool
-    ) -> ResponseType:
+    def respond(self, state: MechanismState, outcome: Outcome, from_left: bool, temp: bool) -> ResponseType:
         """
         Called to respond to an offer
 
@@ -219,9 +217,7 @@ class ChainNegotiationsMechanism(Mechanism):
         self.__agreements: dict[int, Outcome] = defaultdict(lambda: None)
         self.__temp_agreements: dict[int, Outcome] = defaultdict(lambda: None)
 
-    def _get_ami(
-        self, negotiator: Negotiator, role: str
-    ) -> NegotiatorMechanismInterface:
+    def _get_ami(self, negotiator: Negotiator, role: str) -> NegotiatorMechanismInterface:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -258,8 +254,7 @@ class ChainNegotiationsMechanism(Mechanism):
     ) -> bool | None:
         if role is None:
             raise ValueError(
-                "You cannot join this protocol without specifying the role. "
-                "Possible roles are integers >= -1 "
+                "You cannot join this protocol without specifying the role. " "Possible roles are integers >= -1 "
             )
         added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
         if not added:
@@ -284,12 +279,8 @@ class ChainNegotiationsMechanism(Mechanism):
         # check that the chain is complete
         if not all(self.__chain):
             if self.dynamic_entry:
-                return MechanismRoundResult(
-                    error=True, error_details="The chain is not complete"
-                )
-            raise ValueError(
-                "The chain is not complete and dynamic entry is not allowed"
-            )
+                return MechanismRoundResult(error=True, error_details="The chain is not complete")
+            raise ValueError("The chain is not complete and dynamic entry is not allowed")
 
         # find the next negotiator to ask
         negotiator = self.__chain[self.__next_agent]
@@ -302,11 +293,7 @@ class ChainNegotiationsMechanism(Mechanism):
             return MechanismRoundResult()
 
         # if all agreements are finalized end the mechanism session with success
-        agreements = [
-            self.__agreements[l]
-            for l in range(len(self.__chain))
-            if self.__agreements[l] is not None
-        ]
+        agreements = [self.__agreements[l] for l in range(len(self.__chain)) if self.__agreements[l] is not None]
 
         if len(agreements) == len(self.__chain) - 1:
             return MechanismRoundResult(agreement=agreements)
@@ -323,37 +310,30 @@ class ChainNegotiationsMechanism(Mechanism):
             ResponseType.REJECT_OFFER,
             ResponseType.END_NEGOTIATION,
         ):
-            return MechanismRoundResult(
-                error=True, error_details="An unacceptable response was returned"
-            )
+            return MechanismRoundResult(error=True, error_details="An unacceptable response was returned")
 
         # If the response is to end the negotiation, end it but only if there are not partial negotiations
         if response == ResponseType.END_NEGOTIATION:
             if len(self.__agreements) > 0:
                 return MechanismRoundResult(
                     error=True,
-                    error_details="Cannot end a negotiation chain with some "
-                    "agreements",
+                    error_details="Cannot end a negotiation chain with some " "agreements",
                 )
             return MechanismRoundResult(broken=True)
 
         # if the response is an acceptance then either register an agreement or a temporary agreement depending on
         # proposal
         if response == ResponseType.ACCEPT_OFFER:
-            agreement_index = (
-                self.__next_agent
-                if self.__last_proposal.left
-                else self.__next_agent - 1
-            )
+            agreement_index = self.__next_agent if self.__last_proposal.left else self.__next_agent - 1
             if not self.__last_proposal.temp:
                 assert agreement_index >= 0
                 self.__agreements[agreement_index] = self.__last_proposal.outcome
             else:
                 assert self.__temp_agreements[agreement_index] is None
                 self.__temp_agreements[agreement_index] = self.__last_proposal.outcome
-            self.__last_proposal = self.__chain[
-                self.__last_proposer_index
-            ].on_acceptance(self.state, self.__last_proposal)
+            self.__last_proposal = self.__chain[self.__last_proposer_index].on_acceptance(
+                self.state, self.__last_proposal
+            )
             self.__last_proposer_index = self.__next_agent
             self._update_next()
             return MechanismRoundResult()
@@ -398,9 +378,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
         self.__level: dict[str, int] = {}
         self.__number: dict[str, int] = {}
 
-    def _get_ami(
-        self, negotiator: Negotiator, role: str
-    ) -> NegotiatorMechanismInterface:
+    def _get_ami(self, negotiator: Negotiator, role: str) -> NegotiatorMechanismInterface:
         """
         Returns a chain AMI instead of the standard AMI.
 
@@ -437,8 +415,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
     ) -> bool | None:
         if role is None:
             raise ValueError(
-                "You cannot join this protocol without specifying the role. "
-                "Possible roles are integers >= -1 "
+                "You cannot join this protocol without specifying the role. " "Possible roles are integers >= -1 "
             )
         added = super().add(negotiator, preferences=preferences, role=role, **kwargs)
         if not added:
@@ -456,13 +433,9 @@ class MultiChainNegotiationsMechanism(Mechanism):
 
     def _update_next(self) -> None:
         if self.__last_proposal.left:
-            self.__next_agent_level = (self.__last_proposer_level - 1) % len(
-                self.__chain
-            )
+            self.__next_agent_level = (self.__last_proposer_level - 1) % len(self.__chain)
         else:
-            self.__next_agent_level = (self.__last_proposer_level + 1) % len(
-                self.__chain
-            )
+            self.__next_agent_level = (self.__last_proposer_level + 1) % len(self.__chain)
         self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
     def round(self) -> MechanismRoundResult:
@@ -470,12 +443,8 @@ class MultiChainNegotiationsMechanism(Mechanism):
         # check that the chain is complete
         if not all(len(_) > 0 for _ in self.__chain):
             if self.dynamic_entry:
-                return MechanismRoundResult(
-                    error=True, error_details="The chain is not complete"
-                )
-            raise ValueError(
-                "The chain is not complete and dynamic entry is not allowed"
-            )
+                return MechanismRoundResult(error=True, error_details="The chain is not complete")
+            raise ValueError("The chain is not complete and dynamic entry is not allowed")
 
         # find the next negotiator to ask
         negotiator = self.__chain[self.__next_agent_level][self.__next_agent_number]
@@ -488,11 +457,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
             return MechanismRoundResult()
 
         # if all agreements are finalized end the mechanism session with success
-        agreements = [
-            self.__agreements[l]
-            for l in range(len(self.__chain))
-            if self.__agreements[l] is not None
-        ]
+        agreements = [self.__agreements[l] for l in range(len(self.__chain)) if self.__agreements[l] is not None]
 
         if len(agreements) == len(self.__chain) - 1:
             return MechanismRoundResult(agreement=agreements)
@@ -510,46 +475,37 @@ class MultiChainNegotiationsMechanism(Mechanism):
             ResponseType.REJECT_OFFER,
             ResponseType.END_NEGOTIATION,
         ):
-            return MechanismRoundResult(
-                error=True, error_details="An unacceptable response was returned"
-            )
+            return MechanismRoundResult(error=True, error_details="An unacceptable response was returned")
 
         # If the response is to end the negotiation, end it but only if there are not partial negotiations
         if response == ResponseType.END_NEGOTIATION:
             if len(self.__agreements) > 0:
                 return MechanismRoundResult(
                     error=True,
-                    error_details="Cannot end a negotiation chain with some "
-                    "agreements",
+                    error_details="Cannot end a negotiation chain with some " "agreements",
                 )
             return MechanismRoundResult(broken=True)
 
         # if the response is an acceptance then either register an agreement or a temporary agreement depending on
         # proposal
         if response == ResponseType.ACCEPT_OFFER:
-            agreement_index = (
-                self.__next_agent_level
-                if self.__last_proposal.left
-                else self.__next_agent_level - 1
-            )
+            agreement_index = self.__next_agent_level if self.__last_proposal.left else self.__next_agent_level - 1
             if not self.__last_proposal.temp:
                 assert agreement_index >= 0
                 self.__agreements[agreement_index] = self.__last_proposal.outcome
             else:
                 assert self.__temp_agreements[agreement_index] is None
                 self.__temp_agreements[agreement_index] = self.__last_proposal.outcome
-            self.__last_proposal = self.__chain[self.__last_proposer_level][
-                self.__last_proposer_number
-            ].on_acceptance(self.state, self.__last_proposal)
+            self.__last_proposal = self.__chain[self.__last_proposer_level][self.__last_proposer_number].on_acceptance(
+                self.state, self.__last_proposal
+            )
             self.__last_proposer_level = self.__next_agent_level
             self.__last_proposer_number = self.__next_agent_number
             self._update_next()
             return MechanismRoundResult()
 
         # now it must be a rejection, ask the one who rejected to propose (in either direction)
-        self.__last_proposal = self.__chain[self.__next_agent_level][
-            self.__next_agent_number
-        ].propose(self.state)
+        self.__last_proposal = self.__chain[self.__next_agent_level][self.__next_agent_number].propose(self.state)
         self.__last_proposer_level = self.__next_agent_level
         self.__last_proposer_number = self.__next_agent_number
         self._update_next()

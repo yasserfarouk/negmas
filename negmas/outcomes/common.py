@@ -99,7 +99,5 @@ def ensure_os(outcome_space, issues, outcomes) -> OutcomeSpace:
     if issues:
         return make_os(issues)
     if not outcomes:
-        raise ValueError(
-            "No way to create an outcome-space: outcome_space, issses, and outcomes are all None or empty"
-        )
+        raise ValueError("No way to create an outcome-space: outcome_space, issses, and outcomes are all None or empty")
     return make_os(issues_from_outcomes(outcomes))
