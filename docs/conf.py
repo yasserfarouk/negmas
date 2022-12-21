@@ -96,7 +96,7 @@ author = "Yasser Mohammad"
 # the built documents.
 #
 # The short X.Y version.
-version = "0.9.5"
+version = "0.10.0"
 # The full version, including alpha/cost/rc tags.
 release = version
 
