@@ -3,3 +3,5 @@ hypothesis
 pytest_check
 pytest-sugar
 papermill
+bumpversion
+coverage

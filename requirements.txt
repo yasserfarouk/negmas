@@ -1,11 +1,9 @@
 Click (>=6.0)
 MarkupSafe
 PyYAML
-bumpversion
 click-config-file (>=0.4.5)
 codacy-coverage
 colorlog
-coverage
 dataclasses; python_version < "3.7"
 docopt
 docutils
@@ -37,7 +35,7 @@ twine
 wheel
 dill
 seaborn
-sklearn
+scikit-learn
 nose
 networkx
 # pyqt5
@@ -49,3 +47,4 @@ papermill
 rich
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
 numba
+typer
