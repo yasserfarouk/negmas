@@ -393,9 +393,9 @@ def test_exceptions_are_saved():
     mechanism.add(MyRaisingNegotiator(name=f"agent{1}"), preferences=ufuns[1])
     assert mechanism.state.step == 0
     mechanism.step()
-    mechanism.step()
-    mechanism.step()
     assert mechanism.state.step == 1
+    mechanism.step()
+    mechanism.step()
     assert mechanism.state.current_offer is not None
     assert len(mechanism.stats) == 3
     stats = mechanism.stats
