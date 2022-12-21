@@ -2471,6 +2471,7 @@ def evaluate_tournament(
         )
     total_scores = total_scores.sort_values(ascending=False).reset_index()  # type: ignore
     score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
+    score_stats.rename(columns={"50%": "median"}, inplace=True)
     assert total_scores is not None
     winner_table = total_scores.loc[
         total_scores["score"] == total_scores["score"].max(), :
