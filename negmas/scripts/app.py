@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-"""The NegMAS universal command line tool"""
 from __future__ import annotations
+
+"""The NegMAS universal command line tool"""
 
 import json
 import os
