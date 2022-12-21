@@ -11,21 +11,33 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from os import PathLike
-from typing import TYPE_CHECKING, Any, Callable, Collection, Iterable, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 from attrs import define
+from rich.progress import Progress, track
 
 from negmas import warnings
 from negmas.checkpoints import CheckpointMixin
-from negmas.common import MechanismState, NegotiatorInfo, NegotiatorMechanismInterface
+from negmas.common import (
+    DEFAULT_JAVA_PORT,
+    MechanismState,
+    NegotiatorInfo,
+    NegotiatorMechanismInterface,
+)
 from negmas.events import Event, EventSource
-from negmas.genius import DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import snake_case
+from negmas.helpers.misc import get_free_tcp_port
 from negmas.negotiators import Negotiator
 from negmas.outcomes import Outcome
 from negmas.outcomes.common import check_one_and_only, ensure_os
 from negmas.outcomes.protocols import OutcomeSpace
-from negmas.preferences import nash_point, pareto_frontier
+from negmas.preferences import (
+    kalai_points,
+    nash_points,
+    pareto_frontier_active,
+    pareto_frontier_bf,
+)
+from negmas.preferences.ops import max_relative_welfare_points, max_welfare_points
 from negmas.types import NamedObject
 
 if TYPE_CHECKING:
@@ -43,6 +55,10 @@ class MechanismRoundResult:
     Represents the results of a negotiation round (step). This is what `round()` should return.
     """
 
+    state: MechanismState
+    """The returned state"""
+    completed: bool = True
+    """Whether the current round is completed or not"""
     broken: bool = False
     """True only if END_NEGOTIATION was selected by one agent"""
     timedout: bool = False
@@ -80,8 +96,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         cache_outcomes: If true, a list of all possible outcomes will be cached
         max_cardinality: The maximum allowed number of outcomes in the cached set
         annotation: Arbitrary annotation
-        state_factory: A callable that receives an arbitrary set of key-value pairs and return a MechanismState
-                      descendant object
         checkpoint_every: The number of steps to checkpoint after. Set to <= 0 to disable
         checkpoint_folder: The folder to save checkpoints into. Set to None to disable
         checkpoint_filename: The base filename to use for checkpoints (multiple checkpoints will be prefixed with
@@ -100,6 +114,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
     def __init__(
         self,
+        initial_state: MechanismState | None = None,
         outcome_space: OutcomeSpace | None = None,
         issues: list[Issue] | None = None,
         outcomes: list[Outcome] | int | None = None,
@@ -111,7 +126,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         max_n_agents: int | None = None,
         dynamic_entry=False,
         annotation: dict[str, Any] | None = None,
-        state_factory: type[MechanismState] = MechanismState,
+        nmi_factory=NegotiatorMechanismInterface,
         extra_callbacks=False,
         checkpoint_every: int = 1,
         checkpoint_folder: PathLike | None = None,
@@ -149,7 +164,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         # parameters fixed for all runs
 
         self.id = str(uuid.uuid4())
-        self.nmi = NegotiatorMechanismInterface(
+        self.nmi = nmi_factory(
             id=self.id,
             n_outcomes=outcome_space.cardinality,
             outcome_space=outcome_space,
@@ -163,6 +178,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             mechanism=self,
         )
 
+        self._current_state = initial_state if initial_state else MechanismState()
+
         self._history: list[MechanismState] = []
         self._stats: dict[str, Any] = dict()
         self._stats["round_times"] = list()
@@ -172,21 +189,6 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         #     self.nmi.issues = tuple(self.nmi.issues)
         # if self.nmi.outcomes is not None:
         #     self.nmi.outcomes = tuple(self.nmi.outcomes)
-        self._state_factory = state_factory
-        self._current_state = state_factory(
-            running=False,
-            broken=False,
-            timedout=False,
-            started=False,
-            has_error=False,
-            error_details="",
-            waiting=False,
-            agreement=None,
-            n_negotiators=0,
-            step=0,
-            time=0.0,
-            relative_time=0.0,
-        )
 
         self._requirements = {}
         self._negotiators = []
@@ -229,7 +231,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return outcome in self.nmi.outcome_space
 
     @property
-    def outcome_space(self):
+    def outcome_space(self) -> OutcomeSpace:
         return self.nmi.outcome_space
 
     def discrete_outcome_space(
@@ -489,28 +491,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     def state(self) -> MechanismState:
         """Returns the current state. Override `extra_state` if you want to keep extra state"""
         return self._current_state
-        # d = dict(
-        #     running=self._current_state.running,
-        #     step=self._current_state.step,
-        #     time=self.time,
-        #     relative_time=self.relative_time,
-        #     broken=self._current_state.broken,
-        #     timedout=self._current_state.timedout,
-        #     started=self._current_state.started,
-        #     agreement=self._current_state.agreement,
-        #     n_negotiators=len(self.negotiators),
-        #     has_error=self._current_state.has_error,
-        #     error_details=self._current_state.error_details,
-        #     waiting=self._current_state.waiting,
-        # )
-        # d2 = self.extra_state()
-        # if d2:
-        #     d.update(d2)
-        # return self._state_factory(
-        #     **d,
-        # )
 
-    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
+    def _get_nmi(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
         return self.nmi
 
     def add(
@@ -596,9 +578,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             return True
         return None
 
-    def get_negotiator(self, nid: str) -> Negotiator | None:
+    def get_negotiator(self, source: str) -> Negotiator | None:
         """Returns the negotiator with the given ID if present in the negotiation"""
-        return self._negotiator_map.get(nid, None)
+        return self._negotiator_map.get(source, None)
 
     def can_leave(self, agent: Negotiator) -> bool:
         """Can the agent leave now?"""
@@ -647,17 +629,17 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             if r in self._requirements.keys():
                 self._requirements.pop(r, None)
 
-    def negotiator_index(self, nid: str) -> int | None:
+    def negotiator_index(self, source: str) -> int | None:
         """Gets the negotiator index
 
         Args:
-            nid (str): nid
+            source (str): source
 
         Returns:
             int | None:
         """
 
-        return self._negotiator_index.get(nid, None)
+        return self._negotiator_index.get(source, None)
 
     @property
     def negotiator_ids(self) -> list[str]:
@@ -768,16 +750,15 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         return True
 
     @abstractmethod
-    def round(self) -> MechanismRoundResult:
-        """Implements a single step of the mechanism. Override this!
+    def __call__(self, state: MechanismState) -> MechanismRoundResult:
+        """
+        Implements a single step of the mechanism. Override this!
 
         Returns:
             MechanismRoundResult giving whether the negotiation was broken or timedout and the agreement if any.
 
         """
-        raise NotImplementedError(
-            "You must inherit from Mechanism and override its round() function"
-        )
+        ...
 
     def step(self) -> MechanismState:
         """Runs a single step of the mechanism.
@@ -882,7 +863,8 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
         )
         self._last_start = step_start
         self._current_state.waiting = False
-        result = self.round()
+        result = self(self._current_state)
+        self._current_state = result.state
         step_time = time.perf_counter() - step_start
         self._stats["round_times"].append(step_time)
 
@@ -903,9 +885,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             self._current_state.error_details,
             self._current_state.waiting,
         ) = (
-            result.error,
-            result.error_details,
-            result.waiting,
+            result.state.has_error,
+            result.state.error_details,
+            result.state.waiting,
         )
         if self._current_state.has_error:
             self.on_mechanism_error()
@@ -924,9 +906,9 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
                 self._current_state.timedout,
                 self._current_state.agreement,
             ) = (
-                result.broken,
-                result.timedout,
-                result.agreement,
+                result.state.broken,
+                result.state.timedout,
+                result.state.agreement,
             )
         if (
             (self._current_state.agreement is not None)
@@ -937,7 +919,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
 
         # now switch to the new state
         state = self.state
-        if not self._current_state.waiting:
+        if not self._current_state.waiting and result.completed:
             state4history = self.state4history
             if self._extra_callbacks:
                 for agent in self._negotiators:
@@ -1066,6 +1048,28 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             completed[i] = True
         return [_.state for _ in mechanisms]
 
+    def run_with_progress(self, timeout=None) -> MechanismState:
+        if timeout is None:
+            with Progress() as progress:
+                task = progress.add_task("Running ...", total=100)
+                for _ in track(self):
+                    progress.update(task, completed=int(self.relative_time * 100))
+        else:
+            start_time = time.perf_counter()
+            with Progress() as progress:
+                task = progress.add_task("Running ...", total=100)
+                for _ in self:
+                    progress.update(task, completed=int(self.relative_time * 100))
+                    if time.perf_counter() - start_time > timeout:
+                        (
+                            self._current_state.running,
+                            self._current_state.timedout,
+                            self._current_state.broken,
+                        ) = (False, True, False)
+                        self.on_negotiation_end()
+                        break
+        return self.state
+
     def run(self, timeout=None) -> MechanismState:
         if timeout is None:
             for _ in self:
@@ -1101,42 +1105,113 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
             preferences.append(a.preferences)
         return preferences
 
-    def pareto_frontier(
-        self, max_cardinality=None, sort_by_welfare=True
-    ) -> tuple[list[tuple[float]], list[Outcome]]:
-        ufuns = self._get_preferencess()
+    def pareto_frontier_bf(
+        self, max_cardinality: float = float("inf"), sort_by_welfare=True
+    ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
+        ufuns = tuple(self._get_preferencess())
         if any(_ is None for _ in ufuns):
             raise ValueError(
                 "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
             )
-        frontier, indices = pareto_frontier(
-            ufuns=ufuns,
-            n_discretization=None,
+        outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
+        points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
+        indices = pareto_frontier_bf(
+            points,
             sort_by_welfare=sort_by_welfare,
-            outcomes=self.discrete_outcomes(max_cardinality=max_cardinality),
         )
+        frontier = [points[_] for _ in indices]
         if frontier is None:
             raise ValueError("Cound not find the pareto-frontier")
-        return frontier, [
-            self.discrete_outcomes(max_cardinality=max_cardinality)[_] for _ in indices
-        ]
+        return frontier, [outcomes[_] for _ in indices]
 
-    def nash_point(
-        self, max_cardinality=None, frontier: list[tuple[float]] | None = None
-    ) -> tuple[tuple[float], Outcome]:
+    def pareto_frontier(
+        self, max_cardinality: float = float("inf"), sort_by_welfare=True
+    ) -> tuple[list[tuple[float, ...]], list[Outcome]]:
+        ufuns = tuple(self._get_preferencess())
+        if any(_ is None for _ in ufuns):
+            raise ValueError(
+                "Some negotiators have no ufuns. Cannot calcualate the pareto frontier"
+            )
+
+        outcomes = self.discrete_outcomes(max_cardinality=max_cardinality)
+        points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
+        indices = pareto_frontier_active(
+            points,
+            sort_by_welfare=sort_by_welfare,
+        )
+        frontier = [points[_] for _ in indices]
+        if frontier is None:
+            raise ValueError("Cound not find the pareto-frontier")
+        return frontier, [outcomes[_] for _ in indices]
+
+    def max_welfare_points(
+        self,
+        max_cardinality: float = float("inf"),
+        frontier: list[tuple[float]] | None = None,
+        frontier_outcomes: list[Outcome] | None = None,
+    ) -> tuple[tuple[tuple[float], Outcome]]:
+        ufuns = self._get_preferencess()
+        if not frontier:
+            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+        assert frontier_outcomes is not None
+        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        kalai_pts = max_welfare_points(ufuns, frontier, outcomes=outcomes)
+        return tuple(
+            (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
+        )
+
+    def max_relative_welfare_points(
+        self,
+        max_cardinality: float = float("inf"),
+        frontier: list[tuple[float]] | None = None,
+        frontier_outcomes: list[Outcome] | None = None,
+    ) -> tuple[tuple[tuple[float], Outcome]]:
+        ufuns = self._get_preferencess()
+        if not frontier:
+            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+        assert frontier_outcomes is not None
+        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        kalai_pts = max_relative_welfare_points(ufuns, frontier, outcomes=outcomes)
+        return tuple(
+            (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
+        )
+
+    def kalai_points(
+        self,
+        max_cardinality: float = float("inf"),
+        frontier: list[tuple[float]] | None = None,
+        frontier_outcomes: list[Outcome] | None = None,
+    ) -> tuple[tuple[tuple[float], Outcome]]:
+        ufuns = self._get_preferencess()
+        if not frontier:
+            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
+        assert frontier_outcomes is not None
+        outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
+        kalai_pts = kalai_points(ufuns, frontier, outcomes=outcomes)
+        return tuple(
+            (kalai_utils, frontier_outcomes[indx]) for kalai_utils, indx in kalai_pts
+        )
+
+    def nash_points(
+        self,
+        max_cardinality: float = float("inf"),
+        frontier: list[tuple[float]] | None = None,
+        frontier_outcomes: list[Outcome] | None = None,
+    ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferencess()
         if not frontier:
             frontier, _ = self.pareto_frontier(max_cardinality)
+        assert frontier_outcomes is not None
         outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
-        nash_utils, indx = nash_point(ufuns, frontier, outcomes=outcomes)
-        if not nash_utils or indx is None:
-            raise ValueError("Cannot find the nash-point")
-        return nash_utils, frontier[indx]
+        nash_pts = nash_points(ufuns, frontier, outcomes=outcomes)
+        return tuple(
+            (nash_utils, frontier_outcomes[indx]) for nash_utils, indx in nash_pts
+        )
 
     def plot(self, **kwargs):
         """A method for plotting a negotiation session"""
 
-    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:
+    def _get_ami(self, negotiator: Negotiator) -> NegotiatorMechanismInterface:  # type: ignore
         warnings.deprecated(f"_get_ami is depricated. Use `get_nmi` instead of it")
         return self.nmi
 

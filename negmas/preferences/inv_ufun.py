@@ -209,9 +209,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
             outcomes = list(os.sample(self.max_cache_size, False, False))
         else:
             outcomes = list(os.enumerate())[: self.max_cache_size]
-        utils = [
-            float(self._ufun.eval_normalized(_, above_reserve=False)) for _ in outcomes
-        ]
+        utils = [float(self._ufun.eval(_)) for _ in outcomes]
         self._ordered_outcomes = sorted(zip(utils, outcomes), key=lambda x: -x[0])
         self._initialized = True
 
@@ -222,13 +220,13 @@ class PresortingInverseUtilityFunction(InverseUFun):
     ) -> tuple[float, float]:
         if not isinstance(rng, Iterable):
             rng = (rng - 1e-5, rng + 1e-5)
-        if normalized:
+        if not normalized:
             return rng
         mn, mx = self._min, self._max
         d = mx - mn
         if d < 1e-8:
             return tuple(1.0 for _ in rng)
-        return tuple((_ - mn) / d for _ in rng)
+        return tuple(_ * d + mn for _ in rng)
 
     def some(
         self,
@@ -241,6 +239,7 @@ class PresortingInverseUtilityFunction(InverseUFun):
 
         Args:
             rng: The range. If a value, outcome utilities must match it exactly
+            normalized: if given, consider the range as a normalized range betwwen 0 and 1 representing lowest and highest utilities.
             n: The maximum number of outcomes to return
 
         Remarks:
@@ -418,3 +417,13 @@ class PresortingInverseUtilityFunction(InverseUFun):
         Calling an inverse ufun directly is equivalent to calling `one_in()`
         """
         return self.one_in(rng, normalized)
+
+    def outcome_at(self, indx: int) -> Outcome | None:
+        if indx >= len(self._ordered_outcomes):
+            return None
+        return self._ordered_outcomes[indx][1]
+
+    def utility_at(self, indx: int) -> float:
+        if indx >= len(self._ordered_outcomes):
+            return float("-inf")
+        return self._ordered_outcomes[indx][0]

@@ -281,8 +281,8 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         neg_time_limit=3 * 60,
         neg_step_time_limit=60,
         shuffle_negotiations=True,
-        negotiation_quota_per_step=float("inf"),
-        negotiation_quota_per_simulation=float("inf"),
+        negotiation_quota_per_step: int = sys.maxsize,
+        negotiation_quota_per_simulation: int = sys.maxsize,
         default_signing_delay=1,
         force_signing=False,
         batch_signing=True,
@@ -1482,13 +1482,13 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
                 namap[neg.id] = neg.owner
 
             if mechanism.stats["times"]:
-                for nid, t in mechanism.stats["times"].items():
-                    self.times[namap[nid].id if namap[nid] else "Unknown"] += t
+                for source, t in mechanism.stats["times"].items():
+                    self.times[namap[source].id if namap[source] else "Unknown"] += t
 
             if mechanism.stats["exceptions"]:
-                for nid, exceptions in mechanism.stats["exceptions"].items():
+                for source, exceptions in mechanism.stats["exceptions"].items():
                     self.negotiator_exceptions[
-                        namap[nid].id if namap[nid] else "Unknown"
+                        namap[source].id if namap[source] else "Unknown"
                     ].append(
                         list(zip(itertools.repeat(self._current_step), exceptions))
                     )

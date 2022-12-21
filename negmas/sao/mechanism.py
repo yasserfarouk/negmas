@@ -7,11 +7,12 @@ import functools
 import random
 import sys
 import time
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from negmas import warnings
 
+from ..common import TraceElement
 from ..events import Event
 from ..helpers import TimeoutCaller, TimeoutError, exception2str
 from ..mechanisms import Mechanism, MechanismRoundResult
@@ -29,11 +30,6 @@ __all__ = [
     "SAOProtocol",
     "TraceElement",
 ]
-
-TraceElement = namedtuple(
-    "TraceElement", ["time", "relative_time", "step", "negotiator", "offer", "response"]
-)
-"""An element of the trace returned by `full_trace` representing the history of the negotiation"""
 
 
 class SAOMechanism(Mechanism):
@@ -100,12 +96,13 @@ class SAOMechanism(Mechanism):
         name: str | None = None,
         max_wait: int = sys.maxsize,
         sync_calls: bool = False,
+        initial_state: SAOState | None = None,
         **kwargs,
     ):
-        kwargs["state_factory"] = SAOState
         super().__init__(
             dynamic_entry=dynamic_entry,
             extra_callbacks=extra_callbacks,
+            initial_state=SAOState() if not initial_state else initial_state,
             name=name,
             **kwargs,
         )
@@ -121,6 +118,7 @@ class SAOMechanism(Mechanism):
         self._sync_calls = sync_calls
         self.params["end_on_no_response"] = end_on_no_response
         self.params["enable_callbacks"] = extra_callbacks
+        self.params["sync_calls"] = sync_calls
         self.params["avoid_ultimatum"] = avoid_ultimatum
         self.params["check_offers"] = check_offers
         self.params["offering_is_accepting"] = offering_is_accepting
@@ -200,7 +198,7 @@ class SAOMechanism(Mechanism):
         self._n_waits = 0
         self._frozen_neg_list = None
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state: SAOState) -> MechanismRoundResult:
         """implements a round of the Stacked Alternating Offers Protocol."""
         state = self._current_state
         if self._frozen_neg_list is None:
@@ -234,10 +232,10 @@ class SAOMechanism(Mechanism):
                     if (
                         negotiator == self._current_proposer
                     ) and self._offering_is_accepting:
-                        state.n_acceptances = 0
-                        response = negotiator.counter(*args, **kwargs)
+                        self._current_state.n_acceptances = 0
+                        response = negotiator(*args, **kwargs)
                     else:
-                        response = negotiator.counter(*args, **kwargs)
+                        response = negotiator(*args, **kwargs)
                 except TimeoutError:
                     response = None
                     try:
@@ -259,7 +257,7 @@ class SAOMechanism(Mechanism):
                         raise ex
                 times[negotiator.id] += time.perf_counter() - __strt
             else:
-                fun = functools.partial(negotiator.counter, *args, **kwargs)
+                fun = functools.partial(negotiator, *args, **kwargs)
                 __strt = time.perf_counter()
                 try:
                     if (
@@ -320,23 +318,12 @@ class SAOMechanism(Mechanism):
         n_proposers = len(proposers)
         if n_proposers < 1:
             if not self.dynamic_entry:
-                return MechanismRoundResult(
-                    broken=True,
-                    timedout=False,
-                    agreement=None,
-                    error=True,
-                    error_details="No proposers and no dynamic entry",
-                    times=times,
-                    exceptions=exceptions,
-                )
+                state.broken = True
+                state.has_error = True
+                state.error_details = "No proposers and no dynamic entry"
+                return MechanismRoundResult(state, times=times, exceptions=exceptions)
             else:
-                return MechanismRoundResult(
-                    broken=False,
-                    timedout=False,
-                    agreement=None,
-                    times=times,
-                    exceptions=exceptions,
-                )
+                return MechanismRoundResult(state, times=times, exceptions=exceptions)
         # if this is the first step (or no one has offered yet) which means that there is no _current_offer
         if (
             state.current_offer is None
@@ -346,8 +333,9 @@ class SAOMechanism(Mechanism):
         ):
             if not self.dynamic_entry and not self.state.step == 0:
                 if self.end_negotiation_on_refusal_to_propose:
+                    state.broken = True
                     return MechanismRoundResult(
-                        broken=True,
+                        state,
                         times=times,
                         exceptions=exceptions,
                     )
@@ -379,24 +367,20 @@ class SAOMechanism(Mechanism):
                 strt = time.perf_counter()
                 resp, has_exceptions = _safe_counter(neg, state=self.state, offer=None)
                 if has_exceptions:
+                    state.broken = True
+                    state.has_error = True
+                    state.error_details = str(exceptions[neg.id])
                     return MechanismRoundResult(
-                        broken=True,
-                        timedout=False,
-                        agreement=None,
+                        state,
                         times=times,
                         exceptions=exceptions,
-                        error=True,
-                        error_details=str(exceptions[neg.id]),
                     )
                 if resp is None:
+                    state.timedout = True
                     return MechanismRoundResult(
-                        broken=False,
-                        timedout=True,
-                        agreement=None,
+                        state,
                         times=times,
                         exceptions=exceptions,
-                        error=False,
-                        error_details="",
                     )
                 if resp.response != ResponseType.WAIT:
                     self._waiting_time[neg.id] = 0.0
@@ -407,27 +391,20 @@ class SAOMechanism(Mechanism):
                     self._waiting_time[neg.id] += (
                         time.perf_counter() - self._waiting_start[neg.id]
                     )
-                if resp is None:
+                if (
+                    resp is None
+                    or time.perf_counter() - strt > self.nmi.step_time_limit
+                ):
+                    state.timedout = True
                     return MechanismRoundResult(
-                        broken=False,
-                        timedout=True,
-                        agreement=None,
-                        times=times,
-                        exceptions=exceptions,
-                    )
-                if time.perf_counter() - strt > self.nmi.step_time_limit:
-                    return MechanismRoundResult(
-                        broken=False,
-                        timedout=True,
-                        agreement=None,
+                        state,
                         times=times,
                         exceptions=exceptions,
                     )
                 if resp.response == ResponseType.END_NEGOTIATION:
+                    state.broken = True
                     return MechanismRoundResult(
-                        broken=True,
-                        timedout=False,
-                        agreement=None,
+                        state,
                         times=times,
                         exceptions=exceptions,
                     )
@@ -443,20 +420,17 @@ class SAOMechanism(Mechanism):
                 responders.append(i)
             if len(responses) < 1:
                 if not self.dynamic_entry:
+                    state.broken = True
+                    state.has_error = True
+                    state.error_details = "No proposers and no dynamic entry. This may happen if no negotiators responded to their first proposal request with an offer"
                     return MechanismRoundResult(
-                        broken=True,
-                        timedout=False,
-                        agreement=None,
-                        error=True,
-                        error_details="No proposers and no dynamic entry. This may happen if no negotiators responded to their first proposal request with an offer",
+                        state,
                         times=times,
                         exceptions=exceptions,
                     )
                 else:
                     return MechanismRoundResult(
-                        broken=False,
-                        timedout=False,
-                        agreement=None,
+                        state,
                         times=times,
                         exceptions=exceptions,
                     )
@@ -487,9 +461,7 @@ class SAOMechanism(Mechanism):
             # current_proposer_agent=current_proposer_agent,
             # new_offerer_agents=new_offerer_agents,
             return MechanismRoundResult(
-                broken=False,
-                timedout=False,
-                agreement=None,
+                state,
                 times=times,
                 exceptions=exceptions,
             )
@@ -511,24 +483,20 @@ class SAOMechanism(Mechanism):
                 neg, state=self.state, offer=state.current_offer
             )
             if has_exceptions:
+                state.broken = True
+                state.has_error = True
+                state.error_details = str(exceptions[neg.id])
                 return MechanismRoundResult(
-                    broken=True,
-                    timedout=False,
-                    agreement=None,
+                    state,
                     times=times,
                     exceptions=exceptions,
-                    error=True,
-                    error_details=str(exceptions[neg.id]),
                 )
             if resp is None:
+                state.timedout = True
                 return MechanismRoundResult(
-                    broken=False,
-                    timedout=True,
-                    agreement=None,
+                    state,
                     times=times,
                     exceptions=exceptions,
-                    error=False,
-                    error_details="",
                 )
             if resp.response == ResponseType.WAIT:
                 self._waiting_start[neg.id] = min(self._waiting_start[neg.id], strt)
@@ -549,19 +517,10 @@ class SAOMechanism(Mechanism):
             else:
                 self._stop_waiting(neg.id)
 
-            if resp is None:
+            if resp is None or time.perf_counter() - strt > self.nmi.step_time_limit:
+                state.timedout = True
                 return MechanismRoundResult(
-                    broken=False,
-                    timedout=True,
-                    agreement=None,
-                    times=times,
-                    exceptions=exceptions,
-                )
-            if time.perf_counter() - strt > self.nmi.step_time_limit:
-                return MechanismRoundResult(
-                    broken=False,
-                    timedout=True,
-                    agreement=None,
+                    state,
                     times=times,
                     exceptions=exceptions,
                 )
@@ -580,39 +539,37 @@ class SAOMechanism(Mechanism):
             if resp.response == ResponseType.WAIT:
                 if self._n_waits > self._n_max_waits:
                     self._stop_waiting(neg.id)
+                    state.timedout = True
+                    state.waiting = False
                     return MechanismRoundResult(
-                        broken=False,
-                        timedout=True,
-                        agreement=None,
-                        waiting=False,
+                        state,
                         times=times,
                         exceptions=exceptions,
                     )
+                state.waiting = True
                 return MechanismRoundResult(
-                    broken=False,
-                    timedout=False,
-                    agreement=None,
-                    waiting=True,
+                    state,
                     times=times,
                     exceptions=exceptions,
                 )
             if resp.response == ResponseType.END_NEGOTIATION:
+                state.broken = True
                 return MechanismRoundResult(
-                    broken=True,
-                    timedout=False,
-                    agreement=None,
+                    state,
                     times=times,
                     exceptions=exceptions,
                 )
             if resp.response == ResponseType.ACCEPT_OFFER:
                 state.n_acceptances += 1
                 if state.n_acceptances == n_negotiators:
+                    state.agreement = self._current_state.current_offer
                     return MechanismRoundResult(
-                        broken=False,
+                        state,
                         timedout=False,
                         agreement=state.current_offer,
                         times=times,
                         exceptions=exceptions,
+                        broken=False,
                     )
             if resp.response == ResponseType.REJECT_OFFER:
                 proposal = resp.outcome
@@ -626,10 +583,9 @@ class SAOMechanism(Mechanism):
                         neg.capabilities.get("propose", True)
                         and self.end_negotiation_on_refusal_to_propose
                     ):
+                        state.broken = True
                         return MechanismRoundResult(
-                            broken=True,
-                            timedout=False,
-                            agreement=None,
+                            state,
                             times=times,
                             exceptions=exceptions,
                         )
@@ -659,9 +615,7 @@ class SAOMechanism(Mechanism):
                 ) = self._agent_info()
 
         return MechanismRoundResult(
-            broken=False,
-            timedout=False,
-            agreement=None,
+            state,
             times=times,
             exceptions=exceptions,
         )
@@ -681,12 +635,27 @@ class SAOMechanism(Mechanism):
                 return "accepted"
             return "rejected"
 
+        def asint(state: SAOState):
+            if state.ended:
+                return int(ResponseType.END_NEGOTIATION)
+            if state.timedout or state.has_error:
+                return int(ResponseType.NO_RESPONSE)
+            if state.agreement:
+                return int(ResponseType.ACCEPT_OFFER)
+            return int(ResponseType.REJECT_OFFER)
+
         offers = []
         for state in self._history:
             state: SAOState
             offers += [
                 TraceElement(
-                    state.time, state.relative_time, state.step, n, o, response(state)
+                    state.time,
+                    state.relative_time,
+                    state.step,
+                    n,
+                    o,
+                    (asint(state),),
+                    response(state),
                 )
                 for n, o in state.new_offers
             ]
@@ -709,6 +678,7 @@ class SAOMechanism(Mechanism):
                     self._history[-1].step,
                     self._history[-1].current_proposer,
                     self.agreement,
+                    (asint(self._history[-1]),),
                     response(self._history[-1]),
                 )
             )
@@ -781,8 +751,8 @@ class SAOMechanism(Mechanism):
     ) -> list[tuple[float, float, int, Outcome, str]]:
         """Returns the (time/relative-time/step/outcome/response) given by a negotiator (in order)"""
         return [
-            (t, rt, s, o, r)
-            for t, rt, s, n, o, r in self.full_trace
+            (t, rt, s, o, a)
+            for t, rt, s, n, o, _, a in self.full_trace
             if n == negotiator_id
         ]
 
@@ -813,15 +783,25 @@ class SAOMechanism(Mechanism):
         show_last_negotiator: bool = True,
         show_annotations: bool = False,
         show_reserved: bool = True,
+        show_total_time=True,
+        show_relative_time=True,
+        show_n_steps=True,
         colors: list | None = None,
         markers: list[str] | None = None,
         colormap: str = "jet",
         ylimits: tuple[float, float] | None = None,
+        common_legend: bool = True,
+        xdim: str = "relative_time",
     ):
-        from negmas.sao.plots import plot_mechanism_run
+        from negmas.plots.util import plot_mechanism_run
 
+        extra_annotation = (
+            f"Last: {self._current_state.last_negotiator}"
+            if show_last_negotiator
+            else ""
+        )
         return plot_mechanism_run(
-            self,
+            mechanism=self,
             negotiators=plotting_negotiators,
             save_fig=save_fig,
             path=path,
@@ -832,13 +812,19 @@ class SAOMechanism(Mechanism):
             show_pareto_distance=show_pareto_distance,
             show_nash_distance=show_nash_distance,
             show_end_reason=show_end_reason,
-            show_last_negotiator=show_last_negotiator,
             show_annotations=show_annotations,
             show_reserved=show_reserved,
             colors=colors,
             markers=markers,
             colormap=colormap,
             ylimits=ylimits,
+            common_legend=common_legend,
+            extra_annotation=extra_annotation,
+            xdim=xdim,
+            colorizer=lambda _: 1.0,
+            show_total_time=show_total_time,
+            show_relative_time=show_relative_time,
+            show_n_steps=show_n_steps,
         )
 
 

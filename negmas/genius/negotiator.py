@@ -16,7 +16,7 @@ from negmas.outcomes.base_issue import Issue
 
 from ..common import MechanismState, NegotiatorMechanismInterface
 from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
-from ..inout import get_domain_issues
+from ..gb.common import GBState
 from ..negotiators import Controller
 from ..outcomes import CartesianOutcomeSpace, Outcome, issues_to_xml_str
 from ..preferences import UtilityFunction, make_discounted_ufun
@@ -75,12 +75,14 @@ class GeniusNegotiator(SAONegotiator):
         port: int = DEFAULT_JAVA_PORT,
         genius_bridge_path: str | None = None,
         strict: bool | None = None,
+        id: str | None = None,
     ):
         super().__init__(
             name=name,
             preferences=None,
             parent=parent,
             owner=owner,
+            id=id,
         )
         self.__frozen_relative_time = None
         self.__destroyed = False
@@ -104,11 +106,16 @@ class GeniusNegotiator(SAONegotiator):
         self._port = port
         self.domain_file_name = str(domain_file_name) if domain_file_name else None
         self.utility_file_name = str(utility_file_name) if utility_file_name else None
-        self._my_last_offer = None
+        self.__my_last_offer = None
+        self.__my_last_response = ResponseType.REJECT_OFFER
+        self.__my_last_offer_step = -1000
         self._preferences, self.discount = None, None
         self.issue_names = self.issues = self.issue_index = None
         self.auto_load_java = auto_load_java
         if domain_file_name is not None:
+
+            from ..inout import get_domain_issues
+
             # we keep original issues details so that we can create appropriate answers to Java
             self.issues = get_domain_issues(
                 domain_file_name=domain_file_name,
@@ -527,7 +534,7 @@ class GeniusNegotiator(SAONegotiator):
                 f"{self._me()} sent an action that cannot be parsed ({action})"
             )
         elif typ_ == TIMEOUT:
-            if nmi.state.relative_time < 1.0:
+            if nmi.state.relative_time < 1.0 - 1e-2:
                 raise ValueError(
                     f"{self._me()} indicated that it timedout at relative time ({nmi.state.relative_time})"
                 )
@@ -578,21 +585,36 @@ class GeniusNegotiator(SAONegotiator):
             )
         return response, tuple(outcome) if outcome else None
 
-    def counter(self, state: SAOState, offer: Outcome | None):
-        if offer is None and self._my_last_offer is not None and self._strict:
+    def __call__(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
+        self.respond_sao(state, offer)
+        return SAOResponse(self.__my_last_response, self.__my_last_offer)
+
+    def respond_sao(
+        self,
+        state: SAOState,
+        offer: Outcome | None,
+    ) -> None:
+        if offer is None and self.__my_last_offer is not None and self._strict:
             raise ValueError(f"{self._me()} got counter with a None offer.")
-        if offer is not None:
-            received = self.java.receive_message(  # type: ignore
-                self.java_uuid,
-                state.current_proposer,
-                "Offer",
-                self._outcome2str(offer),
-                state.step,
+        if offer is None:
+            self.propose_sao(state)
+            return
+        received = self.java.receive_message(  # type: ignore
+            self.java_uuid,
+            state.current_proposer,
+            "Offer",
+            self._outcome2str(offer),
+            state.step,
+        )
+        if self._strict and received == FAILED:
+            raise ValueError(
+                f"{self._me()} failed to receive message in step {state.step}"
             )
-            if self._strict and received == FAILED:
-                raise ValueError(
-                    f"{self._me()} failed to receive message in step {state.step}"
-                )
+        self.propose_sao(state)
+
+    def propose_sao(self, state: SAOState) -> SAOResponse:
+        if state.step == self.__my_last_offer_step:
+            return SAOResponse(self.__my_last_response, self.__my_last_offer)
         response, outcome = self.parse(
             self.java.choose_action(self.java_uuid, state.step)  # type: ignore
         )
@@ -612,14 +634,75 @@ class GeniusNegotiator(SAONegotiator):
                 f"{self._me()} returned a None counter offer in step {state.step}"
             )
 
-        self._my_last_offer = outcome
-        return SAOResponse(response, outcome)
-
-    def propose(self, state):
-        raise ValueError(
-            f"{self._me()}: propose should never be called directly on GeniusNegotiator"
+        self.__my_last_offer, self.__my_last_response, self.__my_last_offer_step = (
+            outcome,
+            response,
+            state.step,
         )
+        return SAOResponse(response, outcome)
 
     def __str__(self):
         name = super().__str__().split("/")
         return "/".join(name[:-1]) + f"/{self.java_class_name}/" + name[-1]
+
+    # compatibility with GAO
+
+    def respond(
+        self,
+        state: GBState,
+        offer: Outcome | None,
+        source: str | None = None,
+    ) -> ResponseType:
+        if source is None:
+            raise ValueError(
+                f"Respond is not supposed to be called directly for GeniusNegotiator"
+            )
+        if state.step == self.__my_last_offer_step:
+            return self.__my_last_response
+        if offer is None and self.__my_last_offer is not None and self._strict:
+            raise ValueError(f"{self._me()} got counter with a None offer.")
+        if offer is None:
+            return ResponseType.REJECT_OFFER
+        received = self.java.receive_message(  # type: ignore
+            self.java_uuid,
+            source,
+            "Offer",
+            self._outcome2str(offer),
+            state.step,
+        )
+        if self._strict and received == FAILED:
+            raise ValueError(
+                f"{self._me()} failed to receive message in step {state.step}"
+            )
+        self.propose(state)
+        return self.__my_last_response
+
+    def propose(self, state: GBState) -> Outcome | None:
+        # saves one new offer/response every step
+        if state.step == self.__my_last_offer_step:
+            return self.__my_last_offer
+        response, outcome = self.parse(
+            self.java.choose_action(self.java_uuid, state.step)  # type: ignore
+        )
+        if response is None or (
+            self._strict
+            and (
+                response
+                not in (
+                    ResponseType.REJECT_OFFER,
+                    ResponseType.ACCEPT_OFFER,
+                    ResponseType.END_NEGOTIATION,
+                )
+                or (response == ResponseType.REJECT_OFFER and outcome is None)
+            )
+        ):
+            raise ValueError(
+                f"{self._me()} returned a None counter offer in step {state.step}"
+            )
+
+        self.__my_last_offer, self.__my_last_response, self.__my_last_offer_step = (
+            outcome,
+            response,
+            state.step,
+        )
+        return outcome

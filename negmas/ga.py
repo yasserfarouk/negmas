@@ -34,7 +34,7 @@ class GAMechanism(Mechanism):
     def __init__(
         self, *args, n_population: int = 100, mutate_rate: float = 0.1, **kwargs
     ):
-        kwargs["state_factory"] = GAState
+        kwargs["initial_state"] = GAState()
         super().__init__(*args, **kwargs)
         self._current_state: GAState
 
@@ -45,7 +45,7 @@ class GAMechanism(Mechanism):
         self.population = self.generate(self.n_population)
 
         self.dominant_outcomes = self.population[:]
-        self._current_state.dominant_outcomes = self.dominant_outcomes
+        self._current_state.dominant_outcomes = self.dominant_outcomes  # type: ignore
 
         self.ranks = {}
 
@@ -66,7 +66,7 @@ class GAMechanism(Mechanism):
         """Select Pareto optimal outcomes"""
         return self.dominant_outcomes
 
-    def next_generation(self, parents: list[Outcome]) -> list[Outcome]:
+    def next_generation(self, parents: list[Outcome]) -> None:
         """Generate the next generation from parents"""
         self.population = parents[:]
         for _ in range(self.n_population - len(self.dominant_outcomes)):
@@ -114,11 +114,10 @@ class GAMechanism(Mechanism):
                     break
             else:
                 self.dominant_outcomes.append(outcomes[target])
-        self._current_state.dominant_outcomes = self.dominant_outcomes
+        self._current_state.dominant_outcomes = self.dominant_outcomes  # type: ignore
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state: GAState) -> MechanismRoundResult:
         self.update_ranks()
         self.update_dominant_outcomes()
         self.next_generation(self.select(self.population))
-
-        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+        return MechanismRoundResult(state=state)

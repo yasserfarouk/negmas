@@ -248,7 +248,7 @@ class NamedObject:
 
     @classmethod
     def from_checkpoint(
-        cls, file_name: Path | str, return_info=False
+        cls, file_name: Path | str, return_info: bool = False
     ) -> NamedObject | tuple[NamedObject, dict[str, Any]]:
         """
         Creates an object from a saved checkpoint

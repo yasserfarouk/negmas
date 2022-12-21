@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 from negmas import NaiveTitForTatNegotiator, SAOMechanism, make_issue
+from negmas.gb.negotiators.micro import MiCRONegotiator
 from negmas.preferences import LinearAdditiveUtilityFunction as LUFun
 from negmas.preferences.value_fun import AffineFun, IdentityFun, LinearFun, TableFun
 from negmas.sao.negotiators.timebased import BoulwareTBNegotiator
@@ -11,7 +12,7 @@ from .switches import NEGMAS_RUN_TEMP_FAILING
 SHOW_PLOTS = False
 
 
-def run_buyer_seller(buyer, seller, normalized=False):
+def run_buyer_seller(buyer, seller, normalized=False, callbacks=False, n_steps=100):
     # create negotiation agenda (issues)
     issues = [
         make_issue(name="price", values=10),
@@ -20,7 +21,9 @@ def run_buyer_seller(buyer, seller, normalized=False):
     ]
 
     # create the mechanism
-    session = SAOMechanism(issues=issues, n_steps=100)
+    session = SAOMechanism(
+        issues=issues, n_steps=n_steps, time_limit=None, extra_callbacks=callbacks
+    )
 
     # define buyer and seller utilities
     seller_utility = LUFun(
@@ -84,6 +87,13 @@ def test_buy_sell_tft_tft():
 
 def test_buy_sell_asp_tft():
     session = run_buyer_seller(BoulwareTBNegotiator, NaiveTitForTatNegotiator)
+    assert session.agreement
+
+
+def test_buy_sell_micro():
+    session = run_buyer_seller(
+        MiCRONegotiator, MiCRONegotiator, callbacks=True, n_steps=10000
+    )
     assert session.agreement
 
 

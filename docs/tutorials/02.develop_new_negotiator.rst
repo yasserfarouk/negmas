@@ -297,7 +297,7 @@ following signature:
 
 .. code:: python
 
-   def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+   def respond(self, state: SAOState, offer: Outcome, source: str = "") -> ResponseType:
        ...
 
 The ``ResponseType`` returned is an enum with different possible
@@ -312,7 +312,7 @@ Here is how we can add our acceptance strategy:
 .. code:: ipython3
 
     class BetterRandomNegotiator(RandomNegotiator):
-        def respond(self, state, offer):
+        def respond(self, state, offer, source: str):
             if self.ufun(offer) > 0.9:
                 return ResponseType.ACCEPT_OFFER
             return ResponseType.REJECT_OFFER
@@ -448,7 +448,7 @@ default parameters of all negotiators as follows:
             super().__init__(*args, **kwargs)
             self._th = acceptance_threshold
 
-        def respond(self, state, offer):
+        def respond(self, state, offer, source: str):
             if self.ufun(offer) > self._th:
                 return ResponseType.ACCEPT_OFFER
             return ResponseType.REJECT_OFFER
@@ -511,13 +511,13 @@ explain it:
             # MUST call parent to avoid being called again for no reason
             super().on_preferences_changed(changes)
 
-        def respond(self, state, offer):
+        def respond(self, state, offer, source: str):
             # set the partner's first offer when I receive it
             if not self._partner_first:
                 self._partner_first = offer
 
             # accept if the offer is not worse for me than what I would have offered
-            return super().respond(state, offer)
+            return super().respond(state, offer, source)
 
         def propose(self, state):
             # calculate my current aspiration level (utility level at which I will offer and accept)

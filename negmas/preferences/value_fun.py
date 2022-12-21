@@ -201,7 +201,6 @@ class LinearFun(BaseFun):
 
 @define
 class IdentityFun(BaseFun):
-    @lru_cache
     def minmax(self, input: Issue) -> tuple[float, float]:
         return (input.min_value, input.max_value)
 
@@ -232,7 +231,6 @@ class LambdaFun(BaseFun):
             f = self.f
             self.f = lambda x: f(x)
 
-    @lru_cache
     def minmax(self, input) -> tuple[float, float]:
         if self.min_value is not None and self.max_value is not None:
             return self.min_value, self.max_value
@@ -430,7 +428,6 @@ class ExponentialFun(BaseFun):
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
-        # todo: implement this exactly without sampling
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> ExponentialFun:
@@ -566,7 +563,6 @@ class LogFun(BaseFun):
 
     @lru_cache
     def minmax(self, input) -> tuple[float, float]:
-        # todo: implement this exactly without sampling
         return monotonic_minmax(input, self)
 
     def shift_by(self, offset: float) -> LogFun:

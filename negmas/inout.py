@@ -6,6 +6,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from os import PathLike, listdir
 from pathlib import Path
+from random import random, shuffle
 from typing import Callable, Iterable, Sequence
 
 from attr import define
@@ -15,14 +16,18 @@ from negmas.preferences.crisp.linear import LinearAdditiveUtilityFunction
 
 from .mechanisms import Mechanism
 from .negotiators import Negotiator
-from .outcomes import CartesianOutcomeSpace, Issue, issues_from_genius
+from .outcomes import (
+    CartesianOutcomeSpace,
+    DiscreteCartesianOutcomeSpace,
+    Issue,
+    issues_from_genius,
+)
 from .preferences import (
     DiscountedUtilityFunction,
     UtilityFunction,
     make_discounted_ufun,
 )
 from .preferences.value_fun import TableFun
-from .sao import SAOMechanism
 
 __all__ = [
     "Scenario",
@@ -97,20 +102,30 @@ class Scenario:
         """
         raise NotImplementedError()
 
-    def to_single_issue(self, numeric=False, stringify=True) -> Scenario:
+    def _randomize(self) -> Scenario:
+        """
+        Randomizes the outcomes in a single issue scneario
+        """
+        shuffle(self.agenda.issues[0].values)
+        return self
+
+    def to_single_issue(
+        self, numeric=False, stringify=True, randomize=False
+    ) -> Scenario:
         """
         Forces the domain to have a single issue with all possible outcomes
 
         Args:
             numeric: If given, the output issue will be a `ContiguousIssue` otherwise it will be a `DiscreteCategoricalIssue`
             stringify:  If given, the output issue will have string values. Checked only if `numeric` is `False`
+            randomize: Randomize outcome order when creating the single issue
 
         Remarks:
             - maps the agenda and ufuns to work correctly together
             - Only works if the outcome space is finite
         """
         if hasattr(self.agenda, "issues") and len(self.agenda.issues) == 1:
-            return self
+            return self if not randomize else self._randomize()
         outcomes = list(self.agenda.enumerate_or_sample())
         sos = self.agenda.to_single_issue(numeric, stringify)
         ufuns = []
@@ -122,7 +137,7 @@ class Scenario:
                 while isinstance(v, DiscountedUtilityFunction):
                     u, v = v, v.ufun
                 u.ufun = LinearAdditiveUtilityFunction(
-                    values=(TableFun(dict(zip(souts, [v(_) for _ in outcomes]))),),
+                    values=(TableFun(dict(zip(souts, [v(_) for _ in outcomes]))),),  # type: ignore (The error comes from having LRU cach for table ufun's minmax which should be OK)
                     bias=0.0,
                     reserved_value=v.reserved_value,
                     name=v.name,
@@ -132,7 +147,7 @@ class Scenario:
                 continue
             ufuns.append(
                 LinearAdditiveUtilityFunction(
-                    values=(TableFun(dict(zip(souts, [u(_) for _ in outcomes]))),),
+                    values=(TableFun(dict(zip(souts, [u(_) for _ in outcomes]))),),  # type: ignore (The error comes from having LRU cach for table ufun's minmax which should be OK)
                     bias=0.0,
                     reserved_value=u.reserved_value,
                     name=u.name,
@@ -141,12 +156,15 @@ class Scenario:
             )
         self.ufuns = tuple(ufuns)
         self.agenda = sos
-        return self
+        return self if not randomize else self._randomize()
 
     def make_session(
         self,
-        negotiators: Callable[[], Negotiator] | list[Negotiator] | None = None,
-        n_steps: int | None = None,
+        negotiators: Callable[[], Negotiator]
+        | list[Negotiator]
+        | tuple[Negotiator]
+        | None = None,
+        n_steps: int | float | None = None,
         time_limit: float | None = None,
         roles: list[str] | None = None,
         **kwargs,
@@ -330,6 +348,7 @@ def load_genius_domain(
         A `Domain` ready to run
 
     """
+    from .sao import SAOMechanism
 
     issues = None
     if domain_file_name is not None:
@@ -361,7 +380,6 @@ def load_genius_domain(
             }
         )
     if domain_file_name is not None:
-        kwargs["avoid_ultimatum"] = False
         kwargs["dynamic_entry"] = False
         kwargs["max_n_agents"] = None
         if not ignore_discount:

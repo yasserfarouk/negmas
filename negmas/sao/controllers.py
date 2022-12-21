@@ -9,14 +9,17 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
+from negmas.gb.negotiators import AspirationNegotiator
 from negmas.preferences.protocols import UFun
 
 from ..common import MechanismState, NegotiatorMechanismInterface
+from ..gb.negotiators.base import GBNegotiator
 from ..negotiators import Controller
 from ..negotiators.helpers import PolyAspiration
 from ..outcomes import Outcome, outcome_is_valid
 from .common import ResponseType, SAOResponse, SAOState
-from .negotiators import AspirationNegotiator, ControlledSAONegotiator, SAONegotiator
+from .negotiators.base import SAONegotiator
+from .negotiators.controlled import ControlledSAONegotiator
 
 if TYPE_CHECKING:
     from negmas.preferences import Preferences
@@ -51,8 +54,8 @@ class SAOController(Controller):
 
     def __init__(
         self,
-        default_negotiator_type=ControlledSAONegotiator,
-        default_negotiator_params=None,
+        default_negotiator_type: str | type[ControlledSAONegotiator] | None = None,
+        default_negotiator_params: dict[str, Any] | None = None,
         auto_kill=True,
         name=None,
         preferences=None,
@@ -61,7 +64,7 @@ class SAOController(Controller):
         if ufun is not None:
             preferences = ufun
         super().__init__(
-            default_negotiator_type=default_negotiator_type,
+            default_negotiator_type=default_negotiator_type,  # type: ignore
             default_negotiator_params=default_negotiator_params,
             auto_kill=auto_kill,
             name=name,
@@ -127,12 +130,12 @@ class SAOController(Controller):
         return self.call(negotiator, "propose", state=state)
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome
+        self, negotiator_id: str, state: MechanismState, offer: Outcome, source: str
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
-        return self.call(negotiator, "respond", state=state, offer=offer)
+        return self.call(negotiator, "respond", state=state, offer=offer, source=source)
 
     def on_negotiation_end(self, negotiator_id: str, state: MechanismState) -> None:
         if self._auto_kill:
@@ -165,7 +168,7 @@ class SAORandomController(SAOController):
         return negotiator.nmi.random_outcomes(1)[0]
 
     def respond(
-        self, negotiator_id: str, state: MechanismState, offer: Outcome
+        self, negotiator_id: str, state: MechanismState, offer: Outcome, source: str
     ) -> ResponseType:
         negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
@@ -287,7 +290,7 @@ class SAOSyncController(SAOController):
         """
 
     def respond(
-        self, negotiator_id: str, state: SAOState, offer: Outcome
+        self, negotiator_id: str, state: SAOState, offer: Outcome, source: str
     ) -> ResponseType:
         # get the saved response to this negotiator if any
         response = self.__responses.pop(negotiator_id, ResponseType.WAIT)
@@ -622,24 +625,24 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
                 selected = random.sample(partners, 1)[0]
                 current_offers = [
                     self.make_offer(
-                        negotiator=nid,
-                        state=states[nid],
+                        negotiator=source,
+                        state=states[source],
                         best_offer=None,
                         best_from=None,
                     )
-                    if nid == selected
+                    if source == selected
                     else None
-                    for nid in partners
+                    for source in partners
                 ]
             else:
                 current_offers = [
                     self.make_offer(
-                        negotiator=nid,
-                        state=states[nid],
+                        negotiator=source,
+                        state=states[source],
                         best_offer=None,
                         best_from=None,
                     )
-                    for nid in partners
+                    for source in partners
                 ]
             return dict(
                 zip(
@@ -664,25 +667,25 @@ class SAOSingleAgreementController(SAOSyncController, ABC):
             selected = random.sample(partners, 1)[0]
             current_offers = [
                 self.make_offer(
-                    negotiator=nid,
-                    state=states[nid],
+                    negotiator=source,
+                    state=states[source],
                     best_offer=offers[partner],
                     best_from=partner,
                 )
-                if nid == selected
+                if source == selected
                 else None
-                for nid in partners
+                for source in partners
             ]
         else:
             # if not strict, make an offer to each partner including the best one.
             current_offers = [
                 self.make_offer(
-                    negotiator=nid,
-                    state=states[nid],
+                    negotiator=source,
+                    state=states[source],
                     best_offer=offers[partner],
                     best_from=partner,
                 )
-                for nid in partners
+                for source in partners
             ]
         return dict(
             zip(
@@ -753,7 +756,7 @@ class SAOMetaNegotiatorController(SAOController):
 
     """
 
-    def __init__(self, *args, meta_negotiator: SAONegotiator | None = None, **kwargs):
+    def __init__(self, *args, meta_negotiator: GBNegotiator | None = None, **kwargs):
         super().__init__(*args, **kwargs)
         if meta_negotiator is None:
             meta_negotiator = AspirationNegotiator(
@@ -770,14 +773,14 @@ class SAOMetaNegotiatorController(SAOController):
         return self.meta_negotiator.propose(state)
 
     def respond(
-        self, negotiator_id: str, state: SAOState, offer: Outcome
+        self, negotiator_id: str, state: SAOState, offer: Outcome, source: str
     ) -> ResponseType:
         """Uses the meta negotiator to respond"""
-        negotiator, cntxt = self._negotiators.get(negotiator_id, (None, None))
+        negotiator, _ = self._negotiators.get(negotiator_id, (None, None))
         if negotiator is None:
             raise ValueError(f"Unknown negotiator {negotiator_id}")
         self.meta_negotiator._nmi = negotiator.nmi
-        return self.meta_negotiator.respond(state=state, offer=offer)
+        return self.meta_negotiator.respond(state=state, offer=offer, source=source)
 
 
 class SAOSingleAgreementRandomController(SAOSingleAgreementController):
@@ -830,7 +833,7 @@ class SAOSingleAgreementAspirationController(SAOSingleAgreementController):
         self,
         *args,
         max_aspiration: float = 1.0,
-        aspiration_type: Literal["boulware", "linear", "conceder"]
+        aspiration_type: Literal["boulware", "conceder", "linear"]
         | int
         | float = "boulware",
         **kwargs,

@@ -527,8 +527,8 @@ if __name__ == "__main__":
         name="d0",
         issues=issues,
         ufuns=[
-            U.random(issues, reserved_value=(0.0, 0.2), normalized=True),
-            U.random(issues, reserved_value=(0.0, 0.2), normalized=True),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=True),
+            U.random(issues=issues, reserved_value=(0.0, 0.2), normalized=True),
         ],
         partner_types=[AspirationNegotiator],
         index=0,

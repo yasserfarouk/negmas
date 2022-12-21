@@ -49,15 +49,17 @@ class VetoSTMechanism(Mechanism):
         epsilon: float = 1e-6,
         initial_outcome=None,
         initial_responses: tuple[bool] = tuple(),
+        initial_state: STState | None = None,
         **kwargs,
     ):
-        kwargs["state_factory"] = STState
         super().__init__(*args, **kwargs)
+        self._current_state = initial_state if initial_state else STState()
+        state = self._current_state
 
         self.add_requirements(
             {"compare-binary": True}
         )  # assert that all agents must have compare-binary capability
-        self._current_state.current_offer = initial_outcome
+        state.current_offer = initial_outcome
         """The current offer"""
         self.initial_outcome = deepcopy(initial_outcome)
         """The initial offer"""
@@ -66,7 +68,7 @@ class VetoSTMechanism(Mechanism):
         self.initial_responses = deepcopy(self.last_responses)
         """The initial set of responses. See the remarks of this class to understand its role."""
         self.epsilon = epsilon
-        self._current_state.new_offer = initial_outcome
+        state.new_offer = initial_outcome
         """The new offer generated in this step"""
 
     def next_outcome(self, outcome: Outcome | None) -> Outcome | None:
@@ -81,33 +83,35 @@ class VetoSTMechanism(Mechanism):
         """
         return self.random_outcomes(1)[0]
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state: STState) -> MechanismRoundResult:
         """Single round of the protocol"""
-        new_offer = self.next_outcome(self._current_state.current_offer)
+
+        new_offer = self.next_outcome(state.current_offer)
         responses = []
 
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(
-                neg.is_better(new_offer, self._current_state.current_offer) is not False
-            )
+            responses.append(neg.is_better(new_offer, state.current_offer) is not False)
             if time.perf_counter() - strt > self.nmi.step_time_limit:
-                return MechanismRoundResult(broken=False, timedout=True, agreement=None)
+                state.timedout = True
+                return MechanismRoundResult(state)
 
         self.last_responses = responses
-        self._current_state.new_offer = new_offer
+        state.new_offer = new_offer
         if all(responses):
-            self._current_state.current_offer = new_offer
+            state.current_offer = new_offer
 
-        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+        return MechanismRoundResult(state)
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
-        if self._current_state.current_offer is not None and all(
-            neg.is_acceptable_as_agreement(self._current_state.current_offer)
+
+        state: STState = self._current_state  # type: ignore
+        if state.current_offer is not None and all(
+            neg.is_acceptable_as_agreement(state.current_offer)
             for neg in self.negotiators
         ):
-            self._current_state.agreement = self._current_state.current_offer
+            state.agreement = state.current_offer
 
         super().on_negotiation_end()
 
@@ -140,7 +144,8 @@ class VetoSTMechanism(Mechanism):
             ]
         # indx = dict(zip([_.id for _ in self.negotiators], range(len(self.negotiators))))
         history = []
-        for state in self.history:
+        for state in self.history:  # type: ignore
+            state: STState
             offer = state.new_offer if show_all_offers else state.current_offer
             history.append(
                 {
@@ -258,7 +263,7 @@ class VetoSTMechanism(Mechanism):
 
     @property
     def current_offer(self):
-        return self.state.current_offer
+        return self._current_state.current_offer
 
 
 class HillClimbingSTMechanism(VetoSTMechanism):
@@ -312,7 +317,7 @@ class HillClimbingSTMechanism(VetoSTMechanism):
         self._current_state.current_offer = self.initial_outcome
         self.possible_offers = self.neighbors(self._current_state.current_offer)
 
-    def next_outcome(self, outcome: Outcome) -> Outcome | None:
+    def next_outcome(self, outcome: Outcome | None) -> Outcome | None:
         """Generate the next outcome given some outcome.
 
         Args:
@@ -329,34 +334,29 @@ class HillClimbingSTMechanism(VetoSTMechanism):
             random.randint(0, len(self.possible_offers)) - 1
         )
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state: STState) -> MechanismRoundResult:
         """Single round of the protocol"""
 
-        new_offer = self.next_outcome(self._current_state.current_offer)
+        new_offer = self.next_outcome(state.current_offer)
         if new_offer is None:
-            return MechanismRoundResult(
-                broken=False,
-                timedout=False,
-                agreement=self._current_state.current_offer,
-            )
+            state.agreement = (state.current_offer,)
+            return MechanismRoundResult(state)
 
         responses = []
         for neg in self.negotiators:
             strt = time.perf_counter()
-            responses.append(
-                neg.is_better(new_offer, self._current_state.current_offer) is not False
-            )
+            responses.append(neg.is_better(new_offer, state.current_offer) is not False)
             if time.perf_counter() - strt > self.nmi.step_time_limit:
-                return MechanismRoundResult(broken=False, timedout=True, agreement=None)
+                return MechanismRoundResult(state)
 
         self.last_responses = responses
 
         if all(responses):
-            self._current_state.current_offer = new_offer
-            self.possible_offers = self.neighbors(self._current_state.current_offer)
+            state.current_offer = new_offer
+            self.possible_offers = self.neighbors(state.current_offer)
 
-        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+        return MechanismRoundResult(state)
 
     @property
     def current_offer(self):
-        return self.state.current_offer
+        return self._current_state.current_offer

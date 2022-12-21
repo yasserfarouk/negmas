@@ -84,20 +84,19 @@ negotiators is less than or equal to one:
             """
             return sum(u(outcome) for u in self.ufuns) <= (1.0 + 1e-3)
 
-        def round(self) -> MechanismRoundResult:
+        def __state__(self, state) -> MechanismRoundResult:
             """One round of the mechanism"""
             if len(self.negotiators) != 2:
-                return MechanismRoundResult(
-                    error=True,
-                    error_details=f"Got {len(self.negotiators)} negotiators!!",
-                    broken=True,
-                )
+                state.error=True,
+                state.error_details=f"Got {len(self.negotiators)} negotiators!!",
+                state.broken=True,
+                return MechanismRoundResult(state=staet)
             outcome = tuple(
                 n.propose_for_self(self.ufuns, i) for i, n in enumerate(self.negotiators)
             )
             if self.is_feasible(outcome):
-                return MechanismRoundResult(agreement=outcome)
-            return MechanismRoundResult()
+                state.agreement = outcome
+            return MechanismRoundResult(state=state)
 
 The implementation is straight forward. We need to define what a round
 of the algorithm does (``round()`` ). In this case we used
@@ -363,41 +362,37 @@ We can then define the mechanism class itself:
             if added:
                 self.state.discounts.append(discount)
 
-        def round(self) -> MechanismRoundResult:
+        def __call__(self, state) -> MechanismRoundResult:
             """One round of the mechanism"""
-            if self.current_step == 0:
+            if state.step == 0:
                 if len(self.negotiators) != 2:
-                    return MechanismRoundResult(
-                        error=True,
-                        error_details=f"Got {len(self.negotiators)} negotiators!!",
-                        broken=True,
-                    )
+                    state.error=True,
+                    state.error_details=f"Got {len(self.negotiators)} negotiators!!",
+                    state.broken=True,
+                    return MechanismRoundResult(state=state)
                 for i, n in enumerate(self.negotiators):
                     n.set_index(i)
             outcomes = list(n.propose(self.state) for n in self.negotiators)
             self.proposals.append(outcomes)
             if any(o is None for o in outcomes):
-                return MechanismRoundResult(broken=True)
+                state.broken = True
+                return MechanismRoundResult(state=state)
             if sum(outcomes[0]) <= 1 + 1e-3:
                 if self.extended:
                     if (
                         outcomes[0][0] <= outcomes[1][0] + 1e-5
                         and outcomes[1][1] <= outcomes[0][1] + 1e-5
                     ):
-                        return MechanismRoundResult(
-                            agreement=(
+                        state.agreement=(
                                 min(outcomes[0][0], outcomes[1][0]),
                                 min(outcomes[0][1], outcomes[1][1]),
                             )
-                        )
                 elif max(abs(outcomes[0][i] - outcomes[1][i]) for i in range(2)) < 1e-3:
-                    return MechanismRoundResult(
-                        agreement=tuple(
+                    state.agreement=tuple(
                             0.5 * (outcomes[0][i] + outcomes[1][i]) for i in range(2)
                         )
                     )
-
-            return MechanismRoundResult()
+            return MechanismRoundResult(state=state)
 
 
 The mechanism is very similar to the Nash Bargaining Game with few

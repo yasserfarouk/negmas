@@ -3,33 +3,174 @@ from __future__ import annotations
 import math
 import pathlib
 import uuid
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Protocol
 
+from negmas.common import MechanismState, NegotiatorMechanismInterface, TraceElement
+from negmas.gb import ResponseType
 from negmas.helpers.misc import make_callable
+from negmas.helpers.strings import humanize_time
+from negmas.negotiators import Negotiator
 from negmas.outcomes.base_issue import Issue
 from negmas.outcomes.common import Outcome, os_or_none
 from negmas.outcomes.outcome_space import make_os
 from negmas.outcomes.protocols import OutcomeSpace
+from negmas.preferences import BaseUtilityFunction
 from negmas.preferences.crisp_ufun import UtilityFunction
-from negmas.preferences.ops import nash_point, pareto_frontier
-from negmas.sao.mechanism import TraceElement
+from negmas.preferences.ops import (
+    kalai_points,
+    max_relative_welfare_points,
+    max_welfare_points,
+    nash_points,
+    pareto_frontier,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-__all__ = ["plot_offer_utilities", "plot_mechanism_run", "plot_2dutils"]
+__all__ = [
+    "plot_offer_utilities",
+    "plot_mechanism_run",
+    "plot_2dutils",
+    "opacity_colorizer",
+    "default_colorizer",
+    "Colorizer",
+]
+
+
+Colorizer = Callable[[TraceElement], float]
+
+
+def opacity_colorizer(t: TraceElement, alpha: float = 1.0):
+    return alpha
+
+
+def default_colorizer(t: TraceElement):
+    if not t.responses:
+        return 1.0
+    return (
+        0.9
+        * len([_ for _ in t.responses.values() if _ == ResponseType.ACCEPT_OFFER])
+        / len(t.responses)
+        + 0.1
+    )
+
+
+def scatter_with_transparency(x, y, color, alpha_arr, ax, **kwarg):
+    from matplotlib.colors import to_rgb  # , to_rgba
+
+    r, g, b = to_rgb(color)
+    # r, g, b, _ = to_rgba(color)
+    color = [(r, g, b, alpha) for alpha in alpha_arr]
+    ax.scatter(x, y, c=color, **kwarg)
+
+
+def make_transparent(color, alpha):
+    if alpha is None:
+        return color
+    from matplotlib.colors import to_rgb  # , to_rgba
+
+    r, g, b = to_rgb(color)
+    # r, g, b, _ = to_rgba(color)
+    return (r, g, b, alpha)
+
+
+def plot_with_trancparency(
+    x,
+    y,
+    alpha,
+    color,
+    marker,
+    ax,
+    label,
+    with_lines=False,
+    alpha_global=None,
+    linewidth: float | int = 1,
+    linestyle="solid",
+):
+    # a.plot(
+    #     xx,
+    #     y,
+    #     label=f"{name} ({i})",
+    #     color=thecolor,
+    #     linestyle="solid" if neg == negotiator else "dotted",
+    #     linewidth=2 if neg == negotiator else 1,
+    #     marker=None,
+    # )
+    if alpha_global is not None:
+        alpha = [alpha_global * _ for _ in alpha]
+    scatter_with_transparency(
+        x,
+        y,
+        label=label,
+        color=color,
+        alpha_arr=alpha,
+        ax=ax,
+        marker=marker,
+    )
+    if with_lines:
+        ax.plot(
+            x,
+            y,
+            color=make_transparent(color, alpha_global),
+            marker=None,
+            linewidth=linewidth,
+            linestyle=linestyle,
+        )
+
 
 ALL_MARKERS = ["s", "o", "v", "^", "<", ">", "p", "P", "h", "H", "1", "2", "3", "4"]
 PROPOSALS_ALPHA = 0.9
 AGREEMENT_ALPHA = 0.9
 NASH_ALPHA = 0.6
+KALAI_ALPHA = 0.6
 RESERVED_ALPHA = 0.08
 WELFARE_ALPHA = 0.6
 AGREEMENT_SCALE = 10
 NASH_SCALE = 4
+KALAI_SCALE = 4
 WELFARE_SCALE = 2
 OUTCOMES_SCALE = 0.5
 PARETO_SCALE = 1.5
+
+
+class PlottableMechanism(Protocol):
+    @property
+    def outcome_space(self) -> OutcomeSpace:
+        ...
+
+    @property
+    def negotiators(self) -> list[Negotiator]:
+        ...
+
+    @property
+    def negotiator_ids(self) -> list[str]:
+        ...
+
+    @property
+    def negotiator_names(self) -> list[str]:
+        ...
+
+    @property
+    def nmi(self) -> NegotiatorMechanismInterface:
+        ...
+
+    @property
+    def agreement(self) -> Outcome | None:
+        ...
+
+    @property
+    def state(self) -> MechanismState:
+        ...
+
+    @property
+    def full_trace(self) -> list[TraceElement]:
+        ...
+
+    def discrete_outcomes(self) -> list[Outcome]:
+        ...
+
+    def negotiator_index(self, source: str) -> int | None:
+        ...
 
 
 def get_cmap(n, name="jet"):
@@ -52,7 +193,7 @@ def make_colors_and_markers(colors, markers, n: int, colormap="jet"):
 def plot_offer_utilities(
     trace: list[TraceElement],
     negotiator: str,
-    plotting_ufuns: list[UtilityFunction],
+    plotting_ufuns: list[BaseUtilityFunction | None],
     plotting_negotiators: list[str],
     ignore_none_offers: bool = True,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
@@ -67,12 +208,16 @@ def plot_offer_utilities(
     show_x_label=True,
     ignore_markers_limit=50,
     show_reserved=True,
+    colorizer: Colorizer | None = None,
 ):
     import matplotlib.pyplot as plt
 
+    if colorizer is None:
+        colorizer = default_colorizer
+
     map_ = make_callable(name_map)
     if ax is None:
-        _, ax = plt.subplots()
+        _, ax = plt.subplots()  # type: ignore
     ax: Axes
     one_y = True
     axes = [ax] * len(plotting_negotiators)
@@ -85,38 +230,53 @@ def plot_offer_utilities(
     )
 
     if xdim.startswith("step") or xdim.startswith("round"):
-        trace_info = [(_.offer, _.step) for _ in trace if _.negotiator == negotiator]
+        trace_info = [(_, _.step) for _ in trace if _.negotiator == negotiator]
     elif xdim.startswith("time") or xdim.startswith("real"):
-        trace_info = [(_.offer, _.time) for _ in trace if _.negotiator == negotiator]
+        trace_info = [(_, _.time) for _ in trace if _.negotiator == negotiator]
     else:
-        trace_info = [
-            (_.offer, _.relative_time) for _ in trace if _.negotiator == negotiator
-        ]
+        trace_info = [(_, _.relative_time) for _ in trace if _.negotiator == negotiator]
     x = [_[-1] for _ in trace_info]
     for i, (u, neg, a) in enumerate(zip(plotting_ufuns, plotting_negotiators, axes)):
+        if u is None:
+            continue
         name = map_(neg)
-        y = [u(_[0]) for _ in trace_info]
+        alphas = [colorizer(_[0]) for _ in trace_info]
+        y = [u(_[0].offer) for _ in trace_info]
         reserved = None
         if show_reserved:
             r = u.reserved_value
             if r is not None and math.isfinite(r):
                 reserved = [r] * len(y)
         if not ignore_none_offers:
-            xx = x
+            xx, aa = x, alphas
         else:
             good_indices = [i for i, _ in enumerate(y) if _ is not None]
             xx = [x[_] for _ in good_indices]
+            aa = [alphas[_] for _ in good_indices]
             y = [y[_] for _ in good_indices]
-        a.plot(
-            xx,
-            y,
-            label=f"{name} ({i})",
-            color=colors[i % len(colors)],
-            linestyle="solid" if neg == negotiator else "dotted",
-            linewidth=2 if neg == negotiator else 1,
+        thecolor = colors[i % len(colors)]
+        # a.plot(
+        #     xx,
+        #     y,
+        #     label=f"{name} ({i})",
+        #     color=thecolor,
+        #     linestyle="solid" if neg == negotiator else "dotted",
+        #     linewidth=2 if neg == negotiator else 1,
+        #     marker=None,
+        # )
+        plot_with_trancparency(
+            x=xx,
+            y=y,
+            alpha=aa,
+            color=thecolor,
             marker=markers[i % len(markers)]
-            if len(trace_info) < ignore_markers_limit
-            else None,
+            if len(trace_info) < ignore_markers_limit and neg == negotiator
+            else ".",
+            label=f"{name} ({i})",
+            ax=a,
+            with_lines=True,
+            linestyle="solid" if neg == negotiator else ":",
+            linewidth=1 if neg == negotiator else 0.25,
         )
         if reserved:
             a.plot(
@@ -126,7 +286,6 @@ def plot_offer_utilities(
                 color=colors[i % len(colors)],
                 linestyle="solid" if neg == negotiator else "dotted",
                 linewidth=0.5,
-                marker=None,
             )
         if ylimits is not None:
             a.set_ylim(ylimits)
@@ -161,20 +320,30 @@ def plot_2dutils(
     show_agreement: bool = False,
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
+    show_kalai_distance: bool = True,
+    show_max_welfare_distance: bool = True,
+    show_max_relative_welfare_distance: bool = True,
     show_reserved: bool = True,
+    show_total_time=True,
+    show_relative_time=True,
+    show_n_steps=True,
     end_reason: str | None = None,
-    last_negotiator: str | None = None,
+    extra_annotation: str | None = None,
     name_map: dict[str, str] | Callable[[str], str] | None = None,
     colors: list | None = None,
     markers: list[str] | None = None,
     colormap: str = "jet",
     ax: Axes | None = None,  # type: ignore
+    colorizer: Colorizer | None = None,
 ):
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
 
+    if not colorizer:
+        colorizer = default_colorizer
+
     if ax is None:
-        _, ax = plt.subplots()
+        _, ax = plt.subplots()  # type: ignore
     ax: Axes
     map_ = make_callable(name_map)
     if not outcomes:
@@ -189,17 +358,13 @@ def plot_2dutils(
         offering_negotiators = list({_.negotiator for _ in trace})
 
     utils = [tuple(f(o) for f in plotting_ufuns) for o in outcomes]
-    max(_[0] for _ in utils) - min(_[0] for _ in utils)
     yrange = max(_[1] for _ in utils) - min(_[1] for _ in utils)
     frontier, frontier_outcome = pareto_frontier(
         ufuns=plotting_ufuns,
-        issues=issues,
-        outcomes=outcomes if not issues else None,
+        issues=outcome_space.issues,  # type: ignore
+        outcomes=outcomes if not issues else None,  # type: ignore
         sort_by_welfare=True,
     )
-    nash, _ = nash_point(plotting_ufuns, frontier, outcome_space=outcome_space)
-    if not nash:
-        show_nash_distance = False
     frontier_indices = [
         i
         for i, _ in enumerate(frontier)
@@ -211,6 +376,22 @@ def plot_2dutils(
     frontier = [frontier[i] for i in frontier_indices]
     frontier_outcome = [frontier_outcome[i] for i in frontier_indices]
 
+    nash_pts = nash_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+    kalai_pts = kalai_points(plotting_ufuns, frontier, outcome_space=outcome_space)
+    mwelfare_pts = max_welfare_points(
+        plotting_ufuns, frontier, outcome_space=outcome_space
+    )
+    mrwelfare_pts = max_relative_welfare_points(
+        plotting_ufuns, frontier, outcome_space=outcome_space
+    )
+    if not nash_pts:
+        show_nash_distance = False
+    if not kalai_pts:
+        show_kalai_distance = False
+    if not mwelfare_pts:
+        show_max_welfare_distance = False
+    if not mrwelfare_pts:
+        show_max_relative_welfare_distance = False
     colors, markers = make_colors_and_markers(
         colors, markers, len(offering_negotiators), colormap
     )
@@ -229,7 +410,8 @@ def plot_2dutils(
     )
     agent_names = [map_(_) for _ in plotting_negotiators]
     pareto_distance = float("inf")
-    nash_distance = float("inf")
+    nash_distance, kalai_distance = float("inf"), float("inf")
+    max_welfare_distance, max_relative_welfare_distance = float("inf"), float("inf")
     f1, f2 = [_[0] for _ in frontier], [_[1] for _ in frontier]
     ax.scatter(
         f1, f2, color="red", marker="x", s=int(default_marker_size * PARETO_SCALE)
@@ -238,12 +420,36 @@ def plot_2dutils(
     ax.set_ylabel(agent_names[1] + f"(1) utility")
     cu = agreement_utility
     if not unknown_agreement_utility:
-        if nash:
-            nash_distance = math.sqrt((nash[0] - cu[0]) ** 2 + (nash[1] - cu[1]) ** 2)
+        for nash, _ in nash_pts:
+            nash_distance = min(
+                nash_distance,
+                math.sqrt((nash[0] - cu[0]) ** 2 + (nash[1] - cu[1]) ** 2),
+            )
+        for kalai, _ in kalai_pts:
+            kalai_distance = min(
+                kalai_distance,
+                math.sqrt((kalai[0] - cu[0]) ** 2 + (kalai[1] - cu[1]) ** 2),
+            )
+        for pt, _ in mwelfare_pts:
+            max_welfare_distance = min(
+                max_welfare_distance,
+                math.sqrt((pt[0] - cu[0]) ** 2 + (pt[1] - cu[1]) ** 2),
+            )
+        for pt, _ in mrwelfare_pts:
+            max_relative_welfare_distance = min(
+                max_relative_welfare_distance,
+                math.sqrt((pt[0] - cu[0]) ** 2 + (pt[1] - cu[1]) ** 2),
+            )
         for pu in frontier:
             dist = math.sqrt((pu[0] - cu[0]) ** 2 + (pu[1] - cu[1]) ** 2)
             if dist < pareto_distance:
                 pareto_distance = dist
+    if trace:
+        n_steps = trace[-1].step
+        relative_time = trace[-1].relative_time
+        total_time = trace[-1].time
+    else:
+        n_steps = relative_time = total_time = 0
     txt = ""
     if show_agreement:
         txt += f"Agreement:{agreement}\n"
@@ -251,10 +457,22 @@ def plot_2dutils(
         txt += f"Pareto-distance={pareto_distance:5.2}\n"
     if show_nash_distance and agreement is not None:
         txt += f"Nash-distance={nash_distance:5.2}\n"
+    if show_kalai_distance and agreement is not None:
+        txt += f"Kalai-distance={kalai_distance:5.2}\n"
+    if show_max_welfare_distance and agreement is not None:
+        txt += f"MaxWelfare-distance={max_welfare_distance:5.2}\n"
+    if show_max_relative_welfare_distance and agreement is not None:
+        txt += f"MaxRelativeWelfare-distance={max_relative_welfare_distance:5.2}\n"
+    if show_relative_time and relative_time:
+        txt += f"Relative Time={relative_time:5.2}\n"
+    if show_total_time:
+        txt += f"Total Time={humanize_time(total_time, show_ms=True)}\n"
+    if show_n_steps:
+        txt += f"N. Steps={n_steps}\n"
     if end_reason:
         txt += f"{end_reason}\n"
-    if last_negotiator:
-        txt += f"Last: {last_negotiator}\n"
+    if extra_annotation:
+        txt += f"{extra_annotation}\n"
 
     ax.text(
         0.05,
@@ -262,6 +480,7 @@ def plot_2dutils(
         txt,
         verticalalignment="bottom",
         transform=ax.transAxes,
+        weight="bold",
     )
 
     if show_reserved:
@@ -304,18 +523,29 @@ def plot_2dutils(
         negtrace = [_ for _ in trace if _.negotiator == neg]
         x = [plotting_ufuns[0](_.offer) for _ in negtrace]
         y = [plotting_ufuns[1](_.offer) for _ in negtrace]
-        (ax.scatter if not with_lines else ax.plot)(
-            x,
-            y,
+        alphas = [colorizer(_) for _ in negtrace]
+        # (ax.scatter if not with_lines else ax.plot)(
+        plot_with_trancparency(
+            x=x,
+            y=y,
+            alpha=alphas,
             color=colors[a % len(colors)],
-            alpha=PROPOSALS_ALPHA,
+            alpha_global=PROPOSALS_ALPHA,
             label=f"{map_(neg)}",
+            ax=ax,
             marker=markers[a % len(markers)],
+            with_lines=with_lines,
+            linestyle=":",
         )
     if frontier:
+        welfare, mx = [frontier[0]], sum(frontier[0])
+        for u in frontier[1:]:
+            if sum(u) < mx - 1e-12:
+                break
+            welfare.append(u)
         ax.scatter(
-            [frontier[0][0]],
-            [frontier[0][1]],
+            [_[0] for _ in welfare],
+            [_[1] for _ in welfare],
             color="magenta",
             label=f"Max. Welfare",
             marker="s",
@@ -323,37 +553,18 @@ def plot_2dutils(
             s=int(default_marker_size * WELFARE_SCALE),
         )
         if show_annotations:
-            ax.annotate(
-                "Max. Welfare",
-                xy=frontier[0],  # theta, radius
-                xytext=(
-                    frontier[0][0] + 0.02,
-                    frontier[0][1] + 0.02 * yrange,
-                ),  # fraction, fraction
-                horizontalalignment="left",
-                verticalalignment="bottom",
-            )
-    if nash:
-        ax.scatter(
-            [nash[0]],
-            [nash[1]],
-            color="cyan",
-            label=f"Nash Point",
-            marker="x",
-            alpha=NASH_ALPHA,
-            s=int(default_marker_size * NASH_SCALE),
-        )
-        if show_annotations:
-            ax.annotate(
-                "Nash Point",
-                xy=nash,  # theta, radius
-                xytext=(
-                    nash[0] + 0.02,
-                    nash[1] - 0.02 * yrange,
-                ),  # fraction, fraction
-                horizontalalignment="left",
-                verticalalignment="bottom",
-            )
+            for f in welfare:
+                ax.annotate(
+                    "Max. Welfare",
+                    xy=f,  # theta, radius
+                    xytext=(
+                        f[0] + 0.02,
+                        f[1] + 0.02 * yrange,
+                    ),
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                )
+
     if agreement is not None:
         ax.scatter(
             [plotting_ufuns[0](agreement)],
@@ -367,7 +578,7 @@ def plot_2dutils(
         if show_annotations:
             ax.annotate(
                 "Agreement",
-                xy=nash,  # theta, radius
+                xy=agreement_utility,  # theta, radius
                 xytext=(
                     agreement_utility[0] + 0.02,
                     agreement_utility[1] + 0.02,
@@ -375,6 +586,96 @@ def plot_2dutils(
                 horizontalalignment="left",
                 verticalalignment="bottom",
             )
+    if kalai_pts:
+        ax.scatter(
+            [kalai[0] for kalai, _ in kalai_pts],
+            [kalai[1] for kalai, _ in kalai_pts],
+            color="green",
+            label=f"Kalai Point",
+            marker="P",
+            alpha=KALAI_ALPHA,
+            s=int(default_marker_size * KALAI_SCALE),
+        )
+        if show_annotations:
+            for kalai, _ in kalai_pts:
+                ax.annotate(
+                    "Kalai Point",
+                    xy=kalai,  # theta, radius
+                    xytext=(
+                        kalai[0] + 0.02,
+                        kalai[1] - 0.02 * yrange,
+                    ),  # fraction, fraction
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                )
+    if mrwelfare_pts:
+        ax.scatter(
+            [mrwelfare[0] for mrwelfare, _ in mrwelfare_pts],
+            [mrwelfare[1] for mrwelfare, _ in mrwelfare_pts],
+            color="cyan",
+            label=f"Max Relative Welfare Points",
+            marker="X",
+            alpha=NASH_ALPHA,
+            s=int(default_marker_size * NASH_SCALE),
+        )
+        if show_annotations:
+            for mrwelfare, _ in mrwelfare_pts:
+                ax.annotate(
+                    "Max Relative Welfare Point",
+                    xy=mrwelfare,  # theta, radius
+                    xytext=(
+                        mrwelfare[0] + 0.02,
+                        mrwelfare[1] - 0.02 * yrange,
+                    ),  # fraction, fraction
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                )
+
+    if nash_pts:
+        ax.scatter(
+            [nash[0] for nash, _ in nash_pts],
+            [nash[1] for nash, _ in nash_pts],
+            color="brown",
+            label=f"Nash Point",
+            marker="^",
+            alpha=NASH_ALPHA,
+            s=int(default_marker_size * NASH_SCALE),
+        )
+        if show_annotations:
+            for nash, _ in nash_pts:
+                ax.annotate(
+                    "Nash Point",
+                    xy=nash,  # theta, radius
+                    xytext=(
+                        nash[0] + 0.02,
+                        nash[1] - 0.02 * yrange,
+                    ),  # fraction, fraction
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                )
+
+    if mwelfare_pts:
+        ax.scatter(
+            [mwelfare[0] for mwelfare, _ in mwelfare_pts],
+            [mwelfare[1] for mwelfare, _ in mwelfare_pts],
+            color="brown",
+            label=f"Max Welfare Points",
+            marker="p",
+            alpha=NASH_ALPHA,
+            s=int(default_marker_size * NASH_SCALE),
+        )
+        if show_annotations:
+            for mwelfare, _ in mwelfare_pts:
+                ax.annotate(
+                    "Max Welfare Point",
+                    xy=mwelfare,  # theta, radius
+                    xytext=(
+                        mwelfare[0] + 0.02,
+                        mwelfare[1] - 0.02 * yrange,
+                    ),  # fraction, fraction
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                )
     ax.legend(
         bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
         loc="lower left",
@@ -385,7 +686,7 @@ def plot_2dutils(
 
 
 def plot_mechanism_run(
-    mechanism,
+    mechanism: PlottableMechanism,
     negotiators: tuple[int, int] | tuple[str, str] | None = (0, 1),
     save_fig: bool = False,
     path: str | None = None,
@@ -396,14 +697,19 @@ def plot_mechanism_run(
     show_pareto_distance: bool = True,
     show_nash_distance: bool = True,
     show_end_reason: bool = True,
-    show_last_negotiator: bool = True,
     show_annotations: bool = False,
     show_reserved: bool = True,
+    show_total_time=True,
+    show_relative_time=True,
+    show_n_steps=True,
     colors: list | None = None,
     markers: list[str] | None = None,
     colormap: str = "jet",
     ylimits: tuple[float, float] | None = None,
     common_legend=True,
+    extra_annotation: str = "",
+    xdim: str = "relative_time",
+    colorizer: Colorizer | None = None,
 ):
     import matplotlib.gridspec as gridspec
     import matplotlib.pyplot as plt
@@ -454,14 +760,12 @@ def plot_mechanism_run(
             show_legend=not common_legend or a == 0,
             show_x_label=a == len(mechanism.negotiator_ids) - 1,
             show_reserved=show_reserved,
+            xdim=xdim,
+            colorizer=colorizer,
         )
     axu = fig.add_subplot(gs[:, 0])
     agreement = mechanism.agreement
     state = mechanism.state
-    if not show_last_negotiator:
-        last_negotiator = None
-    else:
-        last_negotiator = state.last_negotiator
     if not show_end_reason:
         reason = None
     else:
@@ -497,9 +801,13 @@ def plot_mechanism_run(
         show_reserved=show_reserved,
         colors=colors,
         markers=markers,
-        agreement=mechanism.state.agreement,
+        agreement=mechanism.agreement,
         end_reason=reason,
-        last_negotiator=last_negotiator,
+        extra_annotation=extra_annotation,
+        colorizer=colorizer,
+        show_total_time=show_total_time,
+        show_relative_time=show_relative_time,
+        show_n_steps=show_n_steps,
     )
     if save_fig:
         if fig_name is None:

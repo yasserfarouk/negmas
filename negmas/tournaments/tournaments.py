@@ -401,7 +401,7 @@ class WorldSetRunStats:
 
     @classmethod
     def from_records(cls, records: list[dict[str, Any]]):
-        a = cls(name="", planned_n_steps=0, executed_n_steps=0, execution_time=0.0)
+        a = cls(name="", planned_n_steps=0, executed_n_steps=0, execution_time=0)
         if len(records) < 1:
             return a
         worlds = ""
@@ -1211,8 +1211,8 @@ def _get_executor(
             print(f"Will use DASK on {address}")
         print(f"Will use DASK on {address}")
         return (
-            distributed.Client(address=address),
-            partial(distributed.as_completed, raise_errors=True, with_results=False),
+            distributed.Client(address=address),  # type: ignore
+            partial(distributed.as_completed, raise_errors=True, with_results=False),  # type: ignore
         )
 
     fraction = None

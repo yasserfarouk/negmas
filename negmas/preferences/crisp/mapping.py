@@ -195,6 +195,7 @@ class MappingUtilityFunction(StationaryMixin, UtilityFunction):
             ),
             reserved_value=reserved_value[0]  # type: ignore
             + random.random() * (reserved_value[1] - reserved_value[0]),  # type: ignore
+            outcome_space=os,
         )
 
     def __str__(self) -> str:

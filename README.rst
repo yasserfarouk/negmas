@@ -169,14 +169,14 @@ Developing a novel negotiation protocol is actually even simpler:
 
 .. code-block:: python
 
-    from negmas.mechanisms import Mechanism
+    from negmas import Mechanism, MechanismState
 
 
     class MyNovelProtocol(Mechanism):
-        def round(self):
+        def __call__(self, state: MechanismState):
             """One round of the protocol"""
 
-By implementing the single `round()` function, a new protocol is created. New negotiators can be added to the
+By implementing the single `__call__()` function, a new protocol is created. New negotiators can be added to the
 negotiation using `add()` and removed using `remove()`. See the documentation for a full description of
 `Mechanism` available functionality out of the box.
 

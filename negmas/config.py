@@ -28,4 +28,7 @@ __conf_path = pathlib.Path(NEGMAS_DEFAULT_PATH).expanduser().absolute()
 
 if __conf_path.exists():
     with open(__conf_path) as f:
-        NEGMAS_CONFIG = json.load(f)
+        try:
+            NEGMAS_CONFIG = json.load(f)
+        except:
+            pass

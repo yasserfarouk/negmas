@@ -225,6 +225,64 @@ def test_encoding_decoding_all_with_discounting(tmp_path, folder_name):
     do_enc_dec_trial(tmp_path / "tmp", folder_name, True)
 
 
+@pytest.mark.parametrize(
+    ("r0", "r1", "n_above"),
+    (
+        (0.0, 0.0, 11),
+        (-0.1, -0.1, 11),
+        (0.9, 0.9, 0),
+        (0.0, 0.9, 2),
+        (0.9, 0.0, 2),
+        (0.0, 0.95, 1),
+        (0.95, 0.0, 1),
+    ),
+)
+def test_enumerate_discrete_rational(tmp_path, r0, r1, n_above):
+    domain = Scenario.from_genius_folder(  # type: ignore
+        Path(__file__).parent / "data" / "scenarios" / "anac" / "y2013" / "Fifty2013",
+        safe_parsing=False,
+        ignore_discount=True,
+    )
+    assert domain
+    domain.scale_max()
+    domain: Scenario
+    ufuns = domain.ufuns
+    ufuns[0].reserved_value = r0
+    ufuns[1].reserved_value = r1
+    outcomes = list(domain.agenda.enumerate_or_sample())
+    assert len(outcomes) == 11
+    assert (
+        len(
+            list(
+                domain.agenda.enumerate_or_sample_rational(
+                    preferences=domain.ufuns, aggregator=lambda x: True  # type: ignore
+                )
+            )
+        )
+        == 0
+    )
+    assert (
+        len(
+            list(
+                domain.agenda.enumerate_or_sample_rational(
+                    preferences=domain.ufuns, aggregator=lambda x: False  # type: ignore
+                )
+            )
+        )
+        == 11
+    )
+    assert (
+        len(
+            list(
+                domain.agenda.enumerate_or_sample_rational(
+                    preferences=domain.ufuns, aggregator=any
+                )
+            )
+        )
+        == n_above
+    )
+
+
 # @pytest.mark.parametrize("folder_name", get_all_scenarios())
 # def test_importing_all_single_issue_without_exceptions(folder_name):
 #     # def test_encoding_decoding_all_without_discounting():
