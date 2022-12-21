@@ -7,15 +7,15 @@ from __future__ import annotations
 
 import math
 import os
-import pathlib
 import random
 import tempfile
+from pathlib import Path
 
 from negmas import warnings
 from negmas.outcomes.base_issue import Issue
 
 from ..common import MechanismState, NegotiatorMechanismInterface
-from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
+from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, negmas_config
 from ..gb.common import GBState
 from ..negotiators import Controller
 from ..outcomes import CartesianOutcomeSpace, Outcome, issues_to_xml_str
@@ -68,8 +68,8 @@ class GeniusNegotiator(SAONegotiator):
         parent: Controller | None = None,
         owner: Agent = None,  # type: ignore
         java_class_name: str | None = None,
-        domain_file_name: str | pathlib.Path | None = None,
-        utility_file_name: str | pathlib.Path | None = None,
+        domain_file_name: str | Path | None = None,
+        utility_file_name: str | Path | None = None,
         can_propose=True,
         auto_load_java: bool = True,
         port: int = DEFAULT_JAVA_PORT,
@@ -93,8 +93,11 @@ class GeniusNegotiator(SAONegotiator):
         self.genius_bridge_path = (
             genius_bridge_path
             if genius_bridge_path is not None
-            else NEGMAS_CONFIG.get(
-                CONFIG_KEY_GENIUS_BRIDGE_JAR, "~/negmas/files/geniusbridge.jar"
+            else str(
+                negmas_config(
+                    CONFIG_KEY_GENIUS_BRIDGE_JAR,
+                    Path.home() / "negmas" / "files" / "geniusbridge.jar",
+                )
             )
         )
         self.java = None

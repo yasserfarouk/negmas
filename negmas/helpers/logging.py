@@ -11,19 +11,22 @@ import datetime
 import logging
 import os
 import sys
+from pathlib import Path
 
 import colorlog
+
+from negmas.config import negmas_config
 
 __all__ = [
     "create_loggers",
 ]
-COMMON_LOG_FILE_NAME = "./logs/{}_{}.txt".format(
-    "log", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+LOGS_BASE_DIR = Path(negmas_config("log_base", Path.home() / "negmas" / "logs"))
+COMMON_LOG_FILE_NAME = str(
+    Path(LOGS_BASE_DIR)
+    / "{}_{}.txt".format("log", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 )
 
 MODULE_LOG_FILE_NAME: dict[str, str] = dict()
-
-LOGS_BASE_DIR = "./logs"
 
 
 def create_loggers(

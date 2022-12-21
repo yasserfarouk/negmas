@@ -49,6 +49,7 @@ def serialize(
     keep_private=False,
     ignore_methods=True,
     ignore_lambda=False,
+    shorten_type_field=False,
     objmem=None,
 ):
     """
@@ -63,6 +64,7 @@ def serialize(
         add_type_field: Whether to add a type field. If True, A field named `PYTHON_CLASS_IDENTIFIER` will be added
         giving the type of `value`
         keep_private: Keeps fields starting with "_"
+        shorten_type_field: IF given, the type will be shortened to class name only if it starts with "negmas."
 
     Remarks:
 
@@ -113,6 +115,11 @@ def serialize(
     if value is None:
         return None
 
+    def get_type_field(value):
+        if shorten_type_field and t.startswith("negmas."):
+            return value.__class__.__name__
+        return value.__class__.__module__ + "." + value.__class__.__name__
+
     if isinstance(value, dict):
         if not deep:
             return adjust_dict({k: v for k, v in value.items()})
@@ -144,9 +151,7 @@ def serialize(
         converted = value.to_dict()
         if isinstance(converted, dict):
             if add_type_field and (PYTHON_CLASS_IDENTIFIER not in converted.keys()):
-                converted[PYTHON_CLASS_IDENTIFIER] = (
-                    value.__class__.__module__ + "." + value.__class__.__name__
-                )
+                converted[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
             return adjust_dict({k: v for k, v in converted.items()})
         else:
             return adjust_dict(converted)
@@ -183,9 +188,7 @@ def serialize(
         else:
             d = {k: v for k, v in value.__dict__.items() if good_field(k, v, objmem)}
         if add_type_field:
-            d[PYTHON_CLASS_IDENTIFIER] = (
-                value.__class__.__module__ + "." + value.__class__.__name__
-            )
+            d[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
         return adjust_dict(d)
 
     if hasattr(value, "__slots__"):
@@ -213,9 +216,7 @@ def serialize(
                 )
             )
         if add_type_field:
-            d[PYTHON_CLASS_IDENTIFIER] = (
-                value.__class__.__module__ + "." + value.__class__.__name__
-            )
+            d[PYTHON_CLASS_IDENTIFIER] = get_type_field(value)
         return adjust_dict(d)
     if isinstance(value, np.int64):
         return int(value)
@@ -234,7 +235,9 @@ def serialize(
     return value
 
 
-def to_flat_dict(value, deep=True, add_type_field=False) -> dict[str, Any]:
+def to_flat_dict(
+    value, deep=True, add_type_field=False, shorten_type_field=False
+) -> dict[str, Any]:
     """
     Encodes the given value as a flat dictionary
 
@@ -242,11 +245,17 @@ def to_flat_dict(value, deep=True, add_type_field=False) -> dict[str, Any]:
         value: The value to be converted to a flat dictionary
         deep: Converting all sub-objects
         add_type_field: If true, a special field for the object type will be added
+        shorten_type_field: If true, the type field will be shortened to just class name if it is defined in NegMAS
 
     Returns:
 
     """
-    d = serialize(value, add_type_field=add_type_field, deep=deep)
+    d = serialize(
+        value,
+        add_type_field=add_type_field,
+        shorten_type_field=shorten_type_field,
+        deep=deep,
+    )
     if d is None:
         return {}
     if not isinstance(d, dict):

@@ -1,3 +1,3 @@
-.. automodapi:: negmas.modeling.acceptance
+.. automodapi:: negmas.models.acceptance
           :members:
           :show-inheritance:

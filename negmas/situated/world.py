@@ -20,6 +20,7 @@ import yaml
 
 from negmas.checkpoints import CheckpointMixin
 from negmas.common import NegotiatorMechanismInterface
+from negmas.config import negmas_config
 from negmas.events import Event, EventLogger, EventSink, EventSource
 from negmas.genius import ANY_JAVA_PORT, DEFAULT_JAVA_PORT, get_free_tcp_port
 from negmas.helpers import (
@@ -65,6 +66,8 @@ except ImportError:
     nx = None
 
 __all__ = ["World"]
+
+LOG_BASE = negmas_config("log_base", Path.home() / "negmas" / "logs")
 
 
 def _path(path) -> Path:
@@ -363,7 +366,7 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
         if log_folder is not None:
             self._log_folder = Path(log_folder).absolute()
         else:
-            self._log_folder = Path.home() / "negmas" / "logs"
+            self._log_folder = Path(LOG_BASE)
             if name is not None:
                 for n in name.split("/"):
                     self._log_folder /= n
@@ -1987,10 +1990,10 @@ class World(EventSink, EventSource, ConfigReader, NamedObject, CheckpointMixin, 
 
     def run_with_progress(self, callback: Callable[[int], None] | None = None) -> None:
         """Runs the simulation showing progress, with optional callback"""
-        from tqdm import tqdm
+        from rich.progress import track
 
         self._start_time = time.perf_counter()
-        for _ in tqdm(range(self.n_steps)):
+        for _ in track(range(self.n_steps)):
             if self.time >= self.time_limit:
                 break
             if not self.step():

@@ -9,15 +9,16 @@ import sys
 import urllib.request
 from functools import partial
 from pathlib import Path
-from pprint import pprint
 from time import perf_counter
 
 import click
 import click_config_file
 import yaml
+from rich import print
 from tabulate import tabulate
 
 import negmas
+from negmas.config import negmas_config
 from negmas.genius.common import DEFAULT_JAVA_PORT
 from negmas.helpers import humanize_time, unique_name
 from negmas.helpers.inout import load
@@ -55,7 +56,7 @@ DEFAULT_NEGOTIATOR = "negmas.sao.AspirationNegotiator"
 def default_log_path():
     """Default location for all logs"""
 
-    return Path.home() / "negmas" / "logs"
+    return Path(negmas_config("log_base", Path.home() / "negmas" / "logs"))
 
 
 def default_tournament_path():
@@ -408,9 +409,9 @@ def create(
         non_competitors = non_competitors.split(";")
 
     print(f"Tournament will be run between {len(all_competitors)} agents: ")
-    pprint(all_competitors)
+    print(all_competitors)
     print("Non-competitors are: ")
-    pprint(non_competitors)
+    print(non_competitors)
     results = create_tournament(
         competitors=all_competitors,
         competitor_params=all_competitors_params,

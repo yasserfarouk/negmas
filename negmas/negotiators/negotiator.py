@@ -249,11 +249,11 @@ class Negotiator(Rational, Notifiable, ABC):
             preferences = ufun
         if preferences is None:
             preferences = self._preferences
-        elif self.preferences and preferences != self.preferences:
-            warnings.warn(
-                f"Setting preferenes to {preferences} but the agent already has preferences {self.preferences}",
-                warnings.NegmasDoubleAssignmentWarning,
-            )
+        # elif self.preferences and preferences != self.preferences:
+        #     warnings.warn(
+        #         f"Setting preferenes to {preferences} but the agent already has preferences {self.preferences}",
+        #         warnings.NegmasDoubleAssignmentWarning,
+        #     )
         self._role = role
         self._nmi = nmi
         self._initial_state = state

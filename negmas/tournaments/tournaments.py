@@ -19,7 +19,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import partial
 from multiprocessing import cpu_count, current_process
-from os import PathLike
 from pathlib import Path
 from socket import gethostname
 from typing import Any, Callable, Iterable, Sequence
@@ -31,6 +30,7 @@ from scipy.stats import ks_2samp, ttest_ind
 from typing_extensions import Protocol
 
 from negmas import warnings
+from negmas.config import negmas_config
 from negmas.helpers import (
     get_class,
     get_full_type_name,
@@ -78,6 +78,9 @@ def from_file(f):
     # return deserialize(eval(s))
 
 
+TOURNAMENTS_BASE_PATH = Path(
+    negmas_config("tournaments_base", Path.home() / "negmas" / "tournaments")
+)
 PROTOCOL_CLASS_NAME_FIELD = "__mechanism_class_name"
 # files created before running worlds
 PARAMS_FILE = "params.json"
@@ -498,7 +501,7 @@ def combine_partially_run_worlds(
     ...
 
 
-def _path(path: str | PathLike) -> Path:
+def _path(path: str | Path) -> Path:
     """Creates an absolute path from given path which can be a string"""
     if isinstance(path, str):
         if path.startswith("~"):
@@ -1016,9 +1019,7 @@ def run_world(
     default_name = unique_name(base="")
     world_params["name"] = world_params.get("name", default_name)
     world_name = world_params["name"]
-    default_dir = (
-        Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
-    ).absolute()
+    default_dir = (TOURNAMENTS_BASE_PATH / tournament_name / world_name).absolute()
     world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
     world_params["log_folder"] = world_params.get("__dir_name", str(default_dir))
     world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
@@ -1098,9 +1099,7 @@ def run_worlds(
         default_name = unique_name(base="")
         world_params["name"] = world_params.get("name", default_name)
         world_name = world_params["name"]
-        default_dir = (
-            Path(f"~") / "negmas" / "tournaments" / tournament_name / world_name
-        ).absolute()
+        default_dir = (TOURNAMENTS_BASE_PATH / tournament_name / world_name).absolute()
         world_params["log_file_name"] = world_params.get("log_file_name", "log.txt")
         world_params["__dir_name"] = world_params.get("__dir_name", str(default_dir))
         # delete the parameters not used by _run_worlds
@@ -1487,7 +1486,7 @@ def get_world_paths(
 
 
 def run_tournament(
-    tournament_path: str | PathLike,
+    tournament_path: str | Path,
     world_generator: WorldGenerator | None = None,
     score_calculator: Callable[[list[World], dict[str, Any], bool], WorldRunResults]
     | None = None,
@@ -1538,16 +1537,28 @@ def run_tournament(
     name = params.get("name", tournament_path.name)
     if world_generator is None:
         world_generator = import_by_name(params.get("world_generator_name", None))
+        if world_generator is None:
+            raise ValueError(
+                f"world_generator Not found in the arguments on {str(tournament_path)}"
+            )
     if score_calculator is None:
         score_calculator = import_by_name(params.get("score_calculator_name", None))
+        if score_calculator is None:
+            raise ValueError(
+                f"score_calculator Not found in the arguments on {str(tournament_path)}"
+            )
     if total_timeout is None:
         total_timeout = params.get("total_timeout", None)
+
     if parallelism is None:
         parallelism = params.get("parallelism", "parallel")
+
     if scheduler_port is None:
         scheduler_port = params.get("scheduler_port", None)
+
     if scheduler_ip is None:
         scheduler_ip = params.get("scheduler_ip", None)
+
     if compact is None:
         compact = params.get("compact", False)
 
@@ -1765,7 +1776,7 @@ def create_tournament(
     n_runs_per_world: int = 5,
     max_n_configs: int | None = None,
     n_runs_per_config: int | None = None,
-    base_tournament_path: str | None = None,
+    base_tournament_path: Path | str | None = None,
     total_timeout: int | None = None,
     parallelism="parallel",
     scheduler_ip: str | None = None,
@@ -1783,7 +1794,7 @@ def create_tournament(
     video_params=None,
     video_saver=None,
     **kwargs,
-) -> PathLike:
+) -> Path:
     """
     Creates a tournament
 
@@ -1851,7 +1862,7 @@ def create_tournament(
         The path at which tournament configs are stored
 
     """
-    if max_n_configs is not None or n_runs_per_config is not None:
+    if max_n_configs is not None and n_runs_per_config is not None:
         n_runs_per_world = (
             n_runs_per_config if n_runs_per_config is not None else n_runs_per_world
         )
@@ -1886,7 +1897,7 @@ def create_tournament(
     #         f"later does not divide the former. You have to set all_competitor_combinations to True"
     #     )
     if base_tournament_path is None:
-        base_tournament_path = str(pathlib.Path.home() / "negmas" / "tournaments")
+        base_tournament_path = str(TOURNAMENTS_BASE_PATH)
 
     # original_tournament_path = base_tournament_path
     base_tournament_path = _path(base_tournament_path)
@@ -2243,8 +2254,8 @@ def _combine_stats(stats: pd.DataFrame | None) -> pd.DataFrame | None:
 
 
 def combine_tournament_stats(
-    sources: Iterable[str | PathLike],
-    dest: str | PathLike | None = None,
+    sources: Iterable[str | Path],
+    dest: str | Path | None = None,
     verbose=False,
 ) -> pd.DataFrame:
     """Combines statistical results of several tournament runs in the destination path."""
@@ -2271,7 +2282,7 @@ def combine_tournament_stats(
 
 
 def compile_results(
-    path: str | PathLike | Path,
+    path: str | Path | Path,
 ):
     path = _path(path)
     if not path.exists():
@@ -2307,8 +2318,8 @@ def compile_results(
 
 
 def combine_tournament_results(
-    sources: Iterable[str | PathLike],
-    dest: str | PathLike | None = None,
+    sources: Iterable[str | Path],
+    dest: str | Path | None = None,
     verbose=False,
 ) -> pd.DataFrame:
     """Combines results of several tournament runs in the destination path."""
@@ -2335,7 +2346,7 @@ def combine_tournament_results(
 
 
 def evaluate_tournament(
-    tournament_path: str | PathLike | Path | None,
+    tournament_path: str | Path | Path | None,
     scores: pd.DataFrame | None = None,
     stats: pd.DataFrame | None = None,
     world_stats: pd.DataFrame | None = None,
@@ -2460,6 +2471,7 @@ def evaluate_tournament(
         )
     total_scores = total_scores.sort_values(ascending=False).reset_index()  # type: ignore
     score_stats = scores.groupby(["agent_type"])["score"].describe().reset_index()
+    score_stats.rename(columns={"50%": "median"}, inplace=True)
     assert total_scores is not None
     winner_table = total_scores.loc[
         total_scores["score"] == total_scores["score"].max(), :
@@ -2602,7 +2614,7 @@ def tournament(
     max_attempts: int = sys.maxsize,
     extra_scores_to_use: str | None = None,
     **kwargs,
-) -> TournamentResults | PathLike:
+) -> TournamentResults | Path:
     """
     Runs a tournament
 
@@ -2677,7 +2689,7 @@ def tournament(
         kwargs: Arguments to pass to the `config_generator` function
 
     Returns:
-        `TournamentResults` The results of the tournament or a `PathLike` giving the location where configs were saved
+        `TournamentResults` The results of the tournament or a `Path` giving the location where configs were saved
 
     """
     competitors = list(competitors)
@@ -2815,13 +2827,17 @@ def is_already_run(world_params) -> bool:
 
 
 def combine_tournaments(
-    sources: Iterable[str | PathLike],
-    dest: str | PathLike | None = None,
+    sources: Iterable[str | Path],
+    dest: str | Path,
     verbose=False,
 ) -> tuple[int, int]:
     """
     Combines contents of several tournament runs in the destination path
     allowing for continuation of the tournament
+
+    Args:
+        sources: The sources of tournaments in the filesystem
+        dest: where to store the combined tournament.
 
     Returns:
         Tuple[int, int] The number of base configs and assigned configs combined
