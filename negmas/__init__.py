@@ -4,7 +4,7 @@ from __future__ import annotations
 
 __author__ = """Yasser Mohammad"""
 __email__ = "yasserfarouk@gmail.com"
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 
 
 from .config import *
