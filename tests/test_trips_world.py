@@ -38,7 +38,7 @@ class AWI(AgentWorldInterface):
         return list(_ for _ in self._world.agents.keys() if _ != self.agent.id)
 
     def request_negotiation(
-        self, partners: list[str], negotiator: GBNegotiator
+        self, partners: list[str], negotiator: SAONegotiator
     ) -> bool:
         """A convenient way to request negotiations"""
         _world: TripsWorld = self._world  # type: ignore
