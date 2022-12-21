@@ -58,7 +58,7 @@ extensions = [
     "sphinx_automodapi.automodapi",
     "sphinx.ext.intersphinx",
     "sphinx_automodapi.smart_resolver",
-    "nb2plots",
+    # "nb2plots",
     "sphinx.ext.mathjax",
     "sphinx_autodoc_typehints",
     "sphinx_autodoc_annotation",
@@ -96,7 +96,7 @@ author = "Yasser Mohammad"
 # the built documents.
 #
 # The short X.Y version.
-version = "0.9.2"
+version = "0.9.5"
 # The full version, including alpha/cost/rc tags.
 release = version
 

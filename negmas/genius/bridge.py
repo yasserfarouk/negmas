@@ -55,7 +55,7 @@ from py4j.protocol import Py4JNetworkError
 
 import negmas.warnings as warnings
 
-from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, NEGMAS_CONFIG
+from ..config import CONFIG_KEY_GENIUS_BRIDGE_JAR, negmas_config
 from ..helpers import TimeoutCaller, TimeoutError, unique_name
 from .common import DEFAULT_JAVA_PORT, get_free_tcp_port
 
@@ -65,6 +65,10 @@ __all__ = [
     "genius_bridge_is_running",
     "genius_bridge_is_installed",
 ]
+
+GENIUS_LOG_BASE = Path(
+    negmas_config("genius_log_base", Path.home() / "negmas" / "geniusbridge" / "logs")
+)
 
 
 def _kill_process(proc_pid):
@@ -153,7 +157,10 @@ def init_genius_bridge(
     #     return True
 
     if not path:
-        path = NEGMAS_CONFIG.get(CONFIG_KEY_GENIUS_BRIDGE_JAR, None)
+        path = negmas_config(
+            CONFIG_KEY_GENIUS_BRIDGE_JAR,
+            pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar",
+        )
     if path is None:
         warnings.warn(
             "Cannot find the path to genius bridge jar. Download the jar somewhere in your machine and add its path"
@@ -330,7 +337,10 @@ class GeniusBridge:
         if cls.is_running(port):
             return 0 if cls.gateway(port) is None else port
         path = (
-            NEGMAS_CONFIG.get(CONFIG_KEY_GENIUS_BRIDGE_JAR, None)
+            negmas_config(
+                CONFIG_KEY_GENIUS_BRIDGE_JAR,
+                pathlib.Path.home() / "negmas" / "files" / "geniusbridge.jar",
+            )
             if path is None or not path
             else path
         )
@@ -347,10 +357,7 @@ class GeniusBridge:
         path = Path(path).expanduser().absolute()  # type: ignore
         if log_path is None or not log_path:
             log_path = (
-                Path.home()
-                / "negmas"
-                / "geniusbridge"
-                / "logs"
+                GENIUS_LOG_BASE
                 / f"{unique_name(str(port), add_time=True, rand_digits=4, sep='.')}.txt"
             ).absolute()
             log_path.parent.mkdir(parents=True, exist_ok=True)

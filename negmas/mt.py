@@ -6,7 +6,7 @@ from __future__ import annotations
 import time
 from copy import deepcopy
 
-from attrs import define, field
+from attr import define, field
 
 from .mechanisms import Mechanism, MechanismRoundResult, MechanismState
 from .outcomes import Outcome

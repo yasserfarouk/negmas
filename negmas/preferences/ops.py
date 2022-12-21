@@ -735,9 +735,9 @@ def minmax(
 
 
 def opposition_level(
-    ufuns: list[UtilityFunction],
+    ufuns: list[UtilityFunction] | tuple[UtilityFunction, ...],
     max_utils: float | tuple[float, float] = 1.0,  # type: ignore
-    outcomes: int | list[Outcome] | None = None,
+    outcomes: int | list[Outcome] | tuple[Outcome, ...] | None = None,
     issues: list[Issue] | None = None,
     max_tests: int = 10000,
 ) -> float:
@@ -804,7 +804,7 @@ def opposition_level(
 def conflict_level(
     u1: UtilityFunction,
     u2: UtilityFunction,
-    outcomes: int | list[Outcome],
+    outcomes: int | list[Outcome] | tuple[Outcome],
     max_tests: int = 10000,
 ) -> float:
     """
@@ -871,7 +871,7 @@ def conflict_level(
 def winwin_level(
     u1: UtilityFunction,
     u2: UtilityFunction,
-    outcomes: int | list[Outcome],
+    outcomes: int | list[Outcome] | tuple[Outcome],
     max_tests: int = 10000,
 ) -> float:
     """

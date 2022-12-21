@@ -1,3 +1,3 @@
-.. automodapi:: negmas.modeling.strategy
+.. automodapi:: negmas.models.strategy
           :members:
           :show-inheritance:
