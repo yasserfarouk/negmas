@@ -771,7 +771,7 @@ def get_anac_agents(
         #     return set(itertools.chain(*lst))
         return set(lst)
 
-    agents: set[tuple[str, str]] = set()
+    agents: set[tuple[str, ...]] = set()
     if year is None:
         for y in GENIUS_INFO.keys():
             agents = agents.union(

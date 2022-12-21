@@ -7,6 +7,7 @@ import numpy as np
 from numpy.ma.core import sqrt
 
 from negmas import warnings
+from negmas.helpers.numba_checks import jit
 from negmas.outcomes import Issue, Outcome, discretize_and_enumerate_issues
 from negmas.outcomes.common import os_or_none
 from negmas.outcomes.issue_ops import enumerate_issues
@@ -26,7 +27,13 @@ if TYPE_CHECKING:
 
 __all__ = [
     "pareto_frontier",
-    "nash_point",
+    "pareto_frontier_of",
+    "pareto_frontier_bf",
+    "pareto_frontier_active",
+    "nash_points",
+    "kalai_points",
+    "max_welfare_points",
+    "max_relative_welfare_points",
     "make_discounted_ufun",
     "scale_max",
     "normalize",
@@ -114,74 +121,179 @@ def make_discounted_ufun(
     return ufun
 
 
-def _pareto_frontier(
-    points, eps=-1e-18, sort_by_welfare=False
-) -> tuple[list[tuple[float]], list[int]]:
-    """Finds the pareto-frontier of a set of points
+def pareto_frontier_bf(
+    points: np.ndarray | Iterable[Iterable[float]],
+    eps=-1e-18,
+    sort_by_welfare=False,
+    unique_utility_values=False,
+) -> np.ndarray:
+    points = np.asarray(points, dtype=np.float32)
+    return _pareto_frontier_bf(points, eps, sort_by_welfare, unique_utility_values)
+
+
+@jit(nopython=True)
+def _pareto_frontier_bf(
+    points: np.ndarray | Iterable[Iterable[float]],
+    eps=-1e-18,
+    sort_by_welfare=False,
+    unique_utility_values=False,
+) -> np.ndarray:
+    """
+    Finds the pareto-frontier of a set of points using brute-force. This is extremely slow but is guaranteed to be correct
 
     Args:
         points: list of points
         eps: A (usually negative) small number to treat as zero during calculations
         sort_by_welfare: If True, the results are sorted descindingly by total welfare
+        unique_utility_values: If true, only one outcome from any set with the same utility values will be returned.
+
+    Returns:
+        indices of pareto optimal outcomes
+
+    """
+
+    frontier, indices = [], []
+    for i, current in enumerate(points):
+        for j, test in enumerate(points):
+            if j == i:
+                continue
+            has_best = has_worst = False
+            for a, b in zip(current, test):
+                if a > b:
+                    has_best = True
+                    continue
+                if a < b:
+                    has_worst = True
+
+            if not has_best and has_worst:
+                # current is dominated, break
+                break
+        else:
+            indices.append(i)
+            frontier.append(current)
+
+    indices = np.asarray(indices)
+    # frontier = np.vstack(tuple(frontier))
+    if sort_by_welfare or unique_utility_values:
+        n = len(frontier)
+        # welfare = frontier.sum(axis=1)
+        welfare = np.zeros(n, dtype=np.float32)
+        for i, f in enumerate(frontier):
+            welfare[i] = f.sum()
+        welfare_sort_order = welfare.argsort()[::-1]
+        if unique_utility_values:
+            welfare = welfare[welfare_sort_order]
+            for i, (a, b) in enumerate(zip(welfare[:-1], welfare[1:])):
+                if a != b:
+                    continue
+                f, g = (
+                    frontier[welfare_sort_order[i]],
+                    frontier[welfare_sort_order[i + 1]],
+                )
+                if (f == g).all():
+                    welfare_sort_order = (
+                        welfare_sort_order[:i] + welfare_sort_order[i + 1 :]
+                    )
+        indices = indices[welfare_sort_order]
+        # welfare = [(np.sum(_[0]), i) for i, _ in enumerate(frontier)]
+        # indx = sorted(welfare, reverse=True)
+        # indices = [frontier[_] for _ in indx]
+    return indices
+
+
+def pareto_frontier_of(
+    points: Iterable[Iterable[float]],
+    eps=-1e-18,
+    sort_by_welfare=False,
+    unique_utility_values=False,
+) -> list[int]:
+    """
+    Finds the pareto-frontier of a set of utils (i.e. utility values). Uses a fast algorithm
+
+    Args:
+        points: list of utils
+        eps: A (usually negative) small number to treat as zero during calculations
+        sort_by_welfare: If True, the results are sorted descindingly by total welfare
+        unique_utility_values: If True, a single outcome will be sampled from outcomes with the same utilities for everyone
 
     Returns:
 
     """
-    points = np.asarray(points)
-    n = len(points)
-    indices = np.array(range(n))
-    for j in range(points.shape[1]):
-        order = points[:, 0].argsort()[-1::-1]
-        points = points[order]
-        indices = indices[order]
+    utils = np.asarray(points)
+    n = len(utils)
+    # for j in range(utils.shape[1]):
+    #     order = utils[:, 0].argsort()[::-1]
+    #     utils = utils[order]
+    #     indices = order
 
-    frontier = [(indices[0], points[0, :])]
-    for p in range(1, n):
-        current = points[p, :]
-        for i, (_, f) in enumerate(frontier):
+    frontier = []
+    found = []
+    for p in range(0, n):
+        if p in found:
+            continue
+        current = utils[p, :]
+        to_remove = []
+        for i, f in enumerate(frontier):
             current_better, current_worse = current > f, current < f
-            if np.all(current == f):
-                break
-            if not np.any(current_better) and np.any(current_worse):
+            if (current == f).all():
+                if unique_utility_values:
+                    break
+                else:
+                    frontier.append(current)
+                    found.append(p)
+            if not current_better.any() and current_worse.any():
                 # current is dominated, break
                 break
-            if np.any(current_better):
-                if not np.any(current_worse):
+            if current_better.any():
+                if not current_worse.any():
                     # current dominates f, append it, remove f and scan for anything else dominated by current
-                    for j, (_, g) in enumerate(frontier[i + 1 :]):
-                        if np.all(current == g):
-                            frontier = frontier[:i] + frontier[i + 1 :]
+                    for j, g in enumerate(frontier[i + 1 :]):
+                        if (current == g).all():
+                            to_remove.append(i)
                             break
-                        if np.any(current > g) and not np.any(current < g):
-                            frontier = frontier[:j] + frontier[j + 1 :]
+                        if (current > g).any() and not (current < g).any():
+                            to_remove.append(j)
                     else:
-                        frontier[i] = (indices[p], current)
+                        frontier[i] = current
+                        found[i] = p
+                    for i in sorted(to_remove, reverse=True):
+                        frontier = frontier[:i] + frontier[i + 1 :]
+                        found = found[:i] + found[i + 1 :]
                 else:
                     # neither current nor f dominate each other, append current only if it is not
                     # dominated by anything in frontier
-                    for j, (_, g) in enumerate(frontier[i + 1 :]):
-                        if np.all(current == g) or (
-                            np.any(g > current) and not np.any(current > g)
+                    for j, g in enumerate(frontier[i + 1 :]):
+                        if (current == g).all() or (
+                            (g > current).any() and not (current > g).any()
                         ):
                             break
                     else:
-                        frontier.append((indices[p], current))
+                        if p not in found:
+                            frontier.append(current)
+                            found.append(p)
+        else:
+            if p not in found:
+                frontier.append(current)
+                found.append(p)
+
     if sort_by_welfare:
-        welfare = [np.sum(_[1]) for _ in frontier]
+        welfare = [_.sum() for _ in frontier]
         indx = sorted(range(len(welfare)), key=lambda x: welfare[x], reverse=True)
-        frontier = [frontier[_] for _ in indx]
-    return [tuple(_[1]) for _ in frontier], [_[0] for _ in frontier]
+        found = [found[_] for _ in indx]
+    return [_ for _ in found]
 
 
-def nash_point(
+def kalai_points(
     ufuns: Iterable[UtilityFunction],
     frontier: Iterable[tuple[float]],
     outcome_space: OutcomeSpace | None = None,
-    issues: tuple[Issue] | None = None,
-    outcomes: tuple[Outcome] | None = None,
-) -> tuple[tuple[float, ...] | None, int | None]:
+    issues: tuple[Issue, ...] | None = None,
+    outcomes: tuple[Outcome, ...] | None = None,
+    eps: float = 1e-12,
+) -> tuple[tuple[tuple[float, ...], int], ...]:
     """
-    Calculates the nash point on the pareto frontier of a negotiation
+    Calculates the all Kalai bargaining solutions on the pareto frontier of a negotiation which is the most Egaliterian solution
+    ref:  Kalai, Ehud (1977). "Proportional solutions to bargaining situations: Intertemporal utility comparisons" (PDF). Econometrica. 45 (7): 1623–1630. doi:10.2307/1913954. JSTOR 1913954.
 
     Args:
         ufuns: A list of ufuns to use
@@ -202,29 +314,241 @@ def nash_point(
         - The function searches within the given frontier only.
 
     """
-    nash_val = float("-inf")
-    u_vals = None
-    nash_indx = None
-    ranges = [_.minmax(outcome_space, issues, outcomes) for _ in ufuns]
-    for i, (rng, ufun) in enumerate(zip(ranges, ufuns)):
+    kalai_val = float("-inf")
+    kalai_indx = None
+    ranges = [
+        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
+        for _ in ufuns
+    ]
+    rs = tuple(_.reserved_value for _ in ufuns)
+    for i, (rng, ufun, r) in enumerate(zip(ranges, ufuns, rs)):
         if any(_ is None or not math.isfinite(_) for _ in rng):
-            return None, None
-        r = ufun.reserved_value
+            return tuple()
         if r is None or r < rng[0]:
             continue
         ranges[i] = (r, rng[1])
-    if any([_[1] <= 1.0e-9 for _ in ranges]):
-        return None, None
-    diffs = [float(b) - float(r) for r, b in ranges]
+    if any([_[1] <= eps for _ in ranges]):
+        return tuple()
+    results, vals = [], []
     for indx, us in enumerate(frontier):
-        val = 0.0
+        if any(u < r for u, r in zip(us, rs)):
+            vals.append(float("-inf"))
+            continue
+        vv = []
+        for u, (r, _) in zip(us, ranges):
+            vv.append(float(u) - float(r))
+        val = min(vv)
+        vals.append(val)
+        if val > kalai_val:
+            kalai_val = val
+            kalai_indx = indx
+    if kalai_indx is None:
+        return tuple()
+
+    for indx, (val, us) in enumerate(zip(vals, frontier)):
+        if val >= kalai_val - eps:
+            results.append((us, indx))
+    return tuple(results)
+
+
+def nash_points(
+    ufuns: Iterable[UtilityFunction],
+    frontier: Iterable[tuple[float]],
+    outcome_space: OutcomeSpace | None = None,
+    issues: tuple[Issue, ...] | None = None,
+    outcomes: tuple[Outcome, ...] | None = None,
+    eps=1e-12,
+) -> tuple[tuple[tuple[float, ...], int], ...]:
+    """
+    Calculates all the Nash Bargaining Solutions on the Pareto frontier of a negotiation
+
+    Args:
+        ufuns: A list of ufuns to use
+        frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        outcome_space: The outcome-space to consider
+        issues: The issues on which the ufun is defined (outcomes may be passed instead)
+        outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
+
+    Returns:
+
+        A list of tuples (empty if cannot be calculated) each consists of:
+        - A tuple of utility values at the Nash point
+        - The index of the given frontier corresponding to the Nash point
+
+    Remarks:
+
+        - The function searches within the given frontier only.
+
+    """
+    nash_val = float("-inf")
+    nash_indx = None
+    ranges = [
+        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
+        for _ in ufuns
+    ]
+    rs = tuple(_.reserved_value for _ in ufuns)
+    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            return tuple()
+        if r is None or r < rng[0]:
+            continue
+        ranges[i] = (r, rng[1])
+    if any([_[1] <= eps for _ in ranges]):
+        return tuple()
+    diffs = [float(b) - float(r) for r, b in ranges]
+    vals = []
+    results = []
+    for indx, us in enumerate(frontier):
+        if any(u < r for u, r in zip(us, rs)):
+            vals.append(float("-inf"))
+            continue
+        val = 1.0
         for u, (r, _), d in zip(us, ranges, diffs):
-            val *= (float(u) - float(r)) / d
+            val *= (float(u) - float(r)) / (d if d else 1.0)
+        vals.append(val)
         if val > nash_val:
             nash_val = val
-            u_vals = us
             nash_indx = indx
-    return u_vals, nash_indx
+    if nash_indx is None:
+        return tuple()
+
+    for indx, (val, us) in enumerate(zip(vals, frontier)):
+        if val >= nash_val - eps:
+            results.append((us, indx))
+    return tuple(results)
+
+
+def max_welfare_points(
+    ufuns: Iterable[UtilityFunction],
+    frontier: Iterable[tuple[float]],
+    outcome_space: OutcomeSpace | None = None,
+    issues: tuple[Issue, ...] | None = None,
+    outcomes: tuple[Outcome, ...] | None = None,
+    eps=1e-12,
+) -> tuple[tuple[tuple[float, ...], int], ...]:
+    """
+    Calculates all the points with maximum relative welfare (i.e. sum of improvements above reserved value) on the Pareto frontier of a negotiation
+
+    Args:
+        ufuns: A list of ufuns to use
+        frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        outcome_space: The outcome-space to consider
+        issues: The issues on which the ufun is defined (outcomes may be passed instead)
+        outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
+
+    Returns:
+
+        A list of tuples (empty if cannot be calculated) each consists of:
+        - A tuple of utility values at the Nash point
+        - The index of the given frontier corresponding to the Nash point
+
+    Remarks:
+
+        - The function searches within the given frontier only.
+
+    """
+    nash_val = float("-inf")
+    nash_indx = None
+    ranges = [
+        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
+        for _ in ufuns
+    ]
+    rs = tuple(_.reserved_value for _ in ufuns)
+    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            return tuple()
+        if r is None or r < rng[0]:
+            continue
+        ranges[i] = (r, rng[1])
+    if any([_[1] <= eps for _ in ranges]):
+        return tuple()
+    vals = []
+    results = []
+    for indx, us in enumerate(frontier):
+        if any(u < r for u, r in zip(us, rs)):
+            vals.append(float("-inf"))
+            continue
+        val = 0.0
+        for u, (r, _) in zip(us, ranges):
+            val += float(u)
+        vals.append(val)
+        if val > nash_val:
+            nash_val = val
+            nash_indx = indx
+    if nash_indx is None:
+        return tuple()
+
+    for indx, (val, us) in enumerate(zip(vals, frontier)):
+        if val >= nash_val - eps:
+            results.append((us, indx))
+    return tuple(results)
+
+
+def max_relative_welfare_points(
+    ufuns: Iterable[UtilityFunction],
+    frontier: Iterable[tuple[float]],
+    outcome_space: OutcomeSpace | None = None,
+    issues: tuple[Issue, ...] | None = None,
+    outcomes: tuple[Outcome, ...] | None = None,
+    eps=1e-12,
+) -> tuple[tuple[tuple[float, ...], int], ...]:
+    """
+    Calculates all the points with maximum relative welfare (i.e. sum of improvements above reserved value) on the Pareto frontier of a negotiation
+
+    Args:
+        ufuns: A list of ufuns to use
+        frontier: a list of tuples each giving the utility values at some outcome on the frontier (usually found by `pareto_frontier`) to search within
+        outcome_space: The outcome-space to consider
+        issues: The issues on which the ufun is defined (outcomes may be passed instead)
+        outcomes: The outcomes on which the ufun is defined (outcomes may be passed instead)
+
+    Returns:
+
+        A list of tuples (empty if cannot be calculated) each consists of:
+        - A tuple of utility values at the Nash point
+        - The index of the given frontier corresponding to the Nash point
+
+    Remarks:
+
+        - The function searches within the given frontier only.
+
+    """
+    nash_val = float("-inf")
+    nash_indx = None
+    ranges = [
+        _.minmax(outcome_space, issues=issues, outcomes=outcomes, above_reserve=False)
+        for _ in ufuns
+    ]
+    rs = tuple(_.reserved_value for _ in ufuns)
+    for i, (rng, _, r) in enumerate(zip(ranges, ufuns, rs)):
+        if any(_ is None or not math.isfinite(_) for _ in rng):
+            return tuple()
+        if r is None or r < rng[0]:
+            continue
+        ranges[i] = (r, rng[1])
+    if any([_[1] <= eps for _ in ranges]):
+        return tuple()
+    diffs = [float(b) - float(r) for r, b in ranges]
+    vals = []
+    results = []
+    for indx, us in enumerate(frontier):
+        if any(u < r for u, r in zip(us, rs)):
+            vals.append(float("-inf"))
+            continue
+        val = 0.0
+        for u, (r, _), d in zip(us, ranges, diffs):
+            val += (float(u) - float(r)) / (d if d else 1.0)
+        vals.append(val)
+        if val > nash_val:
+            nash_val = val
+            nash_indx = indx
+    if nash_indx is None:
+        return tuple()
+
+    for indx, (val, us) in enumerate(zip(vals, frontier)):
+        if val >= nash_val - eps:
+            results.append((us, indx))
+    return tuple(results)
 
 
 def pareto_frontier(
@@ -233,6 +557,7 @@ def pareto_frontier(
     issues: Iterable[Issue] | None = None,
     n_discretization: int | None = 10,
     sort_by_welfare=False,
+    unique_utility_values=False,
 ) -> tuple[list[tuple[float, ...]], list[int]]:
     """Finds all pareto-optimal outcomes in the list
 
@@ -243,6 +568,7 @@ def pareto_frontier(
         issues: The set of issues (only used when outcomes is None)
         n_discretization: The number of items to discretize each real-dimension into
         sort_by_welfare: If True, the resutls are sorted descendingly by total welfare
+        unique_utility_values: If true, only one outcome from any set with the same utility values will be returned.
 
     Returns:
         Two lists of the same length. First list gives the utilities at pareto frontier points and second list gives their indices
@@ -263,8 +589,15 @@ def pareto_frontier(
         # outcomes = itertools.product(
         #     *[issue.value_generator(n=n_discretization) for issue in issues]
         # )
-    points = [[ufun(outcome) for ufun in ufuns] for outcome in outcomes]
-    return _pareto_frontier(points, sort_by_welfare=sort_by_welfare)
+    points = [tuple(ufun(outcome) for ufun in ufuns) for outcome in outcomes]
+    indices = list(
+        pareto_frontier_active(
+            points,
+            sort_by_welfare=sort_by_welfare,
+            unique_utility_values=unique_utility_values,
+        )
+    )
+    return [points[_] for _ in indices], indices
 
 
 def scale_max(
@@ -376,8 +709,8 @@ def extreme_outcomes(
 def minmax(
     ufun: UtilityFunction,
     outcome_space: OutcomeSpace | None = None,
-    issues: list[Issue] | None = None,
-    outcomes: list[Outcome] | None = None,
+    issues: list[Issue] | tuple[Issue, ...] | None = None,
+    outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
     max_cardinality=1000,
 ) -> tuple[float, float]:
     """Finds the range of the given utility function for the given outcomes
@@ -598,3 +931,8 @@ def winwin_level(
     if len(signed_diffs) == 0:
         raise ValueError("Could not calculate any signs")
     return signed_diffs.mean()
+
+
+# pareto_frontier_active = pareto_frontier_bf if NUMBA_OK else pareto_frontier_of
+pareto_frontier_active = pareto_frontier_bf
+pareto_frontier_of = pareto_frontier_bf

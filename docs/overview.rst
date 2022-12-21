@@ -1671,23 +1671,23 @@ respond to every offer in parallel.
             self.current_offer = None
             self.current_offerer = -1
 
-        def round(self):
+        def __call__(self, state):
             n_agents = len(self.negotiators)
             current = self.negotiators[(self.current_offerer + 1) % n_agents]
             self.current_offer = current.propose(self.state)
 
             def get_response(negotiator, offer=self.current_offer,
                              state=self.state):
-                return negotiator.respond(state, offer)
+                return negotiator.respond(state, offer, self.current_offerer)
 
             with ThreadPoolExecutor(4) as executor:
                 responses = executor.map(get_response, self.negotiators)
             self.current_offerer = (self.current_offerer + 1) % n_agents
             if all(_== ResponseType.ACCEPT_OFFER for _ in responses):
-                return MechanismRoundResult(agreement=self.current_offer)
+                state.agreement=self.current_offer
             if any(_== ResponseType.END_NEGOTIATION for _ in responses):
-                return MechanismRoundResult(broken=True)
-            return MechanismRoundResult()
+                state.broken=True
+            return MechanismRoundResult(state)
 
 
 We needed only to override the ``round`` method which defines one round

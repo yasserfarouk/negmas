@@ -6,7 +6,7 @@ import negmas
 from negmas import all_negotiator_types
 from negmas.outcomes import Issue, make_issue
 from negmas.preferences import LinearAdditiveUtilityFunction
-from negmas.sao import EndImmediately, NoneOfferingStrategy, RejectAlways, SAOMechanism
+from negmas.sao import EndImmediately, NoneOfferingPolicy, RejectAlways, SAOMechanism
 from negmas.sao.negotiators.modular.boa import make_boa
 
 NEGTYPES = all_negotiator_types()
@@ -26,7 +26,7 @@ NEGTYPES = all_negotiator_types()
 )
 @settings(deadline=500000)
 def test_do_nothing_never_gets_agreements(opp, start, rejector, avoid_ultimatum):
-    agent = make_boa(acceptance=rejector(), offering=NoneOfferingStrategy())
+    agent = make_boa(acceptance=rejector(), offering=NoneOfferingPolicy())
     issues: list[Issue] = [
         make_issue(10, "price"),
         make_issue(10, "quantity"),

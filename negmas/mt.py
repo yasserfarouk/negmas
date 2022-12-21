@@ -50,12 +50,11 @@ class VetoMTMechanism(Mechanism):
         n_texts: int = 10,
         initial_outcomes: list[Outcome | None] | None = None,
         initial_responses: tuple[tuple[bool]] | None = None,
+        initial_state: MTState | None = None,
         **kwargs,
     ):
-        kwargs["state_factory"] = MTState
         super().__init__(*args, **kwargs)
-        self._current_state: MTState
-        state = self._current_state
+        state = self._current_state = initial_state if initial_state else MTState()
 
         self.add_requirements(
             {"compare-binary": True}
@@ -88,9 +87,8 @@ class VetoMTMechanism(Mechanism):
         """
         return self.random_outcomes(1)[0]
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state: MTState) -> MechanismRoundResult:
         """Single round of the protocol"""
-        state: SAOState = self._current_state  # type: ignore
         for i, current_offer in enumerate(state.current_offers):
             new_offer = self.next_outcome(current_offer)
             responses = []
@@ -102,19 +100,18 @@ class VetoMTMechanism(Mechanism):
                     is not False
                 )
                 if time.perf_counter() - strt > self.nmi.step_time_limit:
-                    return MechanismRoundResult(
-                        broken=False, timedout=True, agreement=None
-                    )
+                    state.timedout = True
+                    return MechanismRoundResult(state)
 
             self.last_responses = responses
 
             if all(responses):
-                state.current_offers[i] = new_offer
+                self._current_state.current_offers[i] = new_offer
 
-        return MechanismRoundResult(broken=False, timedout=False, agreement=None)
+        return MechanismRoundResult(state)
 
     def on_negotiation_end(self) -> None:
         """Used to pass the final offer for agreement between all negotiators"""
-        self._agreement = self._current_state.current_offers
+        self._agreement = self._current_state.current_offers  # type: ignore
 
         super().on_negotiation_end()

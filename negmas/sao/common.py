@@ -3,13 +3,15 @@ Common data-structures for supporting the Stacked Alternating Offers Protocol
 """
 from __future__ import annotations
 
+from collections import namedtuple
 from enum import Enum
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from attr import define, field
 
-from negmas.common import MechanismState, NegotiatorMechanismInterface
+from negmas.common import NegotiatorMechanismInterface
+from negmas.gb.common import GBState, ResponseType
 
 if TYPE_CHECKING:
     from negmas.outcomes import Outcome
@@ -24,16 +26,6 @@ __all__ = [
 ]
 
 
-class ResponseType(Enum):
-    """Possible responses to offers during negotiation."""
-
-    ACCEPT_OFFER = 0
-    REJECT_OFFER = 1
-    END_NEGOTIATION = 2
-    NO_RESPONSE = 3
-    WAIT = 4
-
-
 @define
 class SAOResponse:
     """A response to an offer given by an agent in the alternating offers protocol"""
@@ -43,7 +35,7 @@ class SAOResponse:
 
 
 @define
-class SAOState(MechanismState):
+class SAOState(GBState):
     current_offer: Outcome | None = None
     current_proposer: str | None = None
     current_proposer_agent: str | None = None

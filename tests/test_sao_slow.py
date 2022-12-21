@@ -37,8 +37,7 @@ from negmas.sao import (
     SAOState,
     all_negotiator_types,
 )
-from negmas.sao.negotiators.nice import NiceNegotiator
-from negmas.sao.negotiators.titfortat import NaiveTitForTatNegotiator
+from negmas.sao.negotiators import NaiveTitForTatNegotiator, NiceNegotiator
 
 exception_str = "Custom Exception"
 
@@ -70,7 +69,7 @@ ALL_BUILTIN_NEGOTIATORS = [
 
 
 class MyRaisingNegotiator(AspirationNegotiator):
-    def counter(self, state, offer):
+    def __call___(self, state, offer):
         raise ValueError(exception_str)
 
 
@@ -106,8 +105,8 @@ class MySyncController(SAOSyncController):
         self.end_after = end_after
         self.offer_none_after = offer_none_after
 
-    def respond(self, negotiator_id, state, offer):
-        response = super().respond(negotiator_id, state, offer)
+    def respond(self, negotiator_id, state, offer, source: str):
+        response = super().respond(negotiator_id, state, offer, source)
         self.received_offers[negotiator_id][state.step].append(offer)
         if response == ResponseType.WAIT:
             self.wait_states[negotiator_id][state.step] += 1
@@ -180,7 +179,7 @@ class InfiniteLoopNegotiator(RandomNegotiator):
         super().__init__(*args, **kwargs)
         self.__stop = False
 
-    def counter(self, state, offer):
+    def __call__(self, state, offer):
         while not self.__stop:
             pass
 
@@ -206,7 +205,7 @@ class TimeWaster(RandomNegotiator):
             self.n_waits = random.randint(0, n_waits)
         self.waited = 0
 
-    def counter(self, state, offer):
+    def __call__(self, state, offer):
         if not self.nmi:
             return None
         if self.waited < self.n_waits and (
@@ -485,12 +484,12 @@ class MySAOSync(SAOSyncController):
         self, offers: Dict[str, "Outcome"], states: Dict[str, SAOState]
     ) -> Dict[str, SAOResponse]:
         responses = {}
-        for nid in offers.keys():
-            _, state = offers[nid], states[nid]
+        for source in offers.keys():
+            _, state = offers[source], states[source]
             if state.step < 2:
-                responses[nid] = SAOResponse(ResponseType.REJECT_OFFER, None)
+                responses[source] = SAOResponse(ResponseType.REJECT_OFFER, None)
             else:
-                responses[nid] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
+                responses[source] = SAOResponse(ResponseType.ACCEPT_OFFER, None)
         return responses
 
 
@@ -797,7 +796,7 @@ class MyNegotiator(SAONegotiator):
     def propose(self, state):
         return (3.0, 2, 1.0)
 
-    def respond(self, offer, state):
+    def respond(self, state, offer, source):
         if state.step < 5:
             return ResponseType.REJECT_OFFER
         return ResponseType.ACCEPT_OFFER
@@ -1373,7 +1372,7 @@ def _run_neg(agents, utils, outcome_space):
             or isinstance(a, AdditiveParetoFollowingTBNegotiator)
             or isinstance(a, MultiplicativeParetoFollowingTBNegotiator)
             or u(offers[0]) >= (u(best) - 1e-4)
-        ), f"Did not start with its best offer {best} but used {offers[0]}"
+        ), f"Did not start with its best offer {best} (u = {u(best)}) but used {offers[0]} (u = {u(offers[0])})"
         if isinstance(a, AspirationNegotiator):
             for i, offer in enumerate(_ for _ in offers):
                 assert i == 0 or u(offer) <= u(offers[i - 1]), f"Not always conceding"

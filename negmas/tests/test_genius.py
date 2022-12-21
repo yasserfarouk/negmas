@@ -462,7 +462,7 @@ class TestGeniusAgentSessions:
     )
     def test_genius_agents_can_run_on_converted_single_issue(self, init_genius):
         neg = self.prepare(utils=(0, 1), single_issue=True)
-        front = neg.pareto_frontier(sort_by_welfare=True)[0]
+        front, _ = neg.pareto_frontier(sort_by_welfare=True)
         assert_almost_equal(
             front,
             [

@@ -1,48 +1,48 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
-    hooks:
-    -   id: debug-statements
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-    -   id: fix-byte-order-marker  # Forbid UTF-8 byte-order markers
-    # -   id: check-docstring-first
-    -   id: check-case-conflict
-    -   id: check-json
-    -   id: end-of-file-fixer
-    -   id: mixed-line-ending
-    -   id: check-added-large-files
-    # -   id: fix-encoding-pragma
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.0.1
+  hooks:
+  - id: debug-statements
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: fix-byte-order-marker  # Forbid UTF-8 byte-order markers
+  #   id: check-docstring-first
+  - id: check-case-conflict
+  - id: check-json
+  - id: end-of-file-fixer
+  - id: mixed-line-ending
+  - id: check-added-large-files
+  #   id: fix-encoding-pragma
 
--   repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.0
-    hooks:
-    -   id: pyupgrade
-        args: [--py38-plus]
-        exclude: __init__.py
-# -   repo: https://github.com/bwhmather/ssort
-#     rev: v0.10.2
-#     hooks:
-#     -   id: ssort
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
-    hooks:
-    -   id: isort
-        args: ["--profile", "black"]
-        exclude: __init__.py
+- repo: https://github.com/asottile/pyupgrade
+  rev: v2.31.0
+  hooks:
+  - id: pyupgrade
+    args: [--py38-plus]
+    exclude: __init__.py
+#   repo: https://github.com/bwhmather/ssort
+#   rev: v0.10.2
+#   hooks:
+#   -   id: ssort
+- repo: https://github.com/pre-commit/mirrors-isort
+  rev: v5.10.1
+  hooks:
+  - id: isort
+    args: ["--profile", "black"]
+    exclude: __init__.py
 
--   repo: https://github.com/psf/black
-    rev: 22.3.0
-    hooks:
-    -   id: black
+- repo: https://github.com/psf/black
+  rev: 22.3.0
+  hooks:
+  - id: black
 
--   repo: https://github.com/asottile/blacken-docs
-    rev: v1.11.0
-    hooks:
-    -   id: blacken-docs
-        exclude: __init__.py
-        additional_dependencies: [black==20.8b1]
+- repo: https://github.com/asottile/blacken-docs
+  rev: v1.11.0
+  hooks:
+  - id: blacken-docs
+    exclude: __init__.py
+    additional_dependencies: [black==20.8b1]
 
 - repo: https://github.com/Lucas-C/pre-commit-hooks-markup
   rev: v1.0.1

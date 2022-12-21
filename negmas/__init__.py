@@ -10,19 +10,16 @@ __version__ = "0.9.2"
 from .config import *
 from .types import *
 from .common import *
-from .genius import *
 from .inout import *
 from .mechanisms import *
-
-# from .modeling import *
 from .negotiators import *
 from .outcomes import *
+from .gb import *
 from .sao import *
 from .situated import *
 from .st import *
 from .preferences import *
-
-# from .helpers import *
+from .genius import *
 
 
 __all__ = (
@@ -33,6 +30,7 @@ __all__ = (
     + preferences.__all__
     + negotiators.__all__
     + mechanisms.__all__
+    + gb.__all__
     + sao.__all__
     + st.__all__
     + inout.__all__

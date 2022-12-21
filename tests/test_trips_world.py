@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from random import randint, random, sample, shuffle
@@ -6,7 +8,9 @@ from typing import Any, Callable, Collection, Dict, List, Optional, Set
 import numpy as np
 
 from negmas import MechanismState, Negotiator, NegotiatorMechanismInterface
+from negmas.gb.negotiators.base import GBNegotiator
 from negmas.outcomes import Issue, dict2outcome, make_issue
+from negmas.outcomes.common import Outcome
 from negmas.preferences import LinearUtilityFunction, UtilityFunction
 from negmas.sao.negotiators import RandomNegotiator, SAONegotiator
 from negmas.serialization import to_flat_dict
@@ -24,7 +28,7 @@ from negmas.situated import (
 # just repeating the code from the previous tutorial
 class AWI(AgentWorldInterface):
     @property
-    def n_negs(self):
+    def n_negs(self) -> int:
         """Number of negotiations an agent can start in a step (holiday season)"""
         return self._world.neg_quota_step
 
@@ -34,21 +38,21 @@ class AWI(AgentWorldInterface):
         return list(_ for _ in self._world.agents.keys() if _ != self.agent.id)
 
     def request_negotiation(
-        self, partners: List[str], negotiator: SAONegotiator
+        self, partners: list[str], negotiator: GBNegotiator
     ) -> bool:
         """A convenient way to request negotiations"""
-        self._world: TripsWorld
+        _world: TripsWorld = self._world  # type: ignore
         if self.agent.id not in partners:
             partners.append(self.agent.id)
         req_id = self.agent.create_negotiation_request(
-            issues=self._world.ISSUES,
+            issues=_world.ISSUES,
             partners=partners,
             negotiator=negotiator,
             annotation=dict(),
             extra=dict(negotiator_id=negotiator.id),
         )
         return self.request_negotiation_about(
-            issues=self._world.ISSUES, partners=partners, req_id=req_id
+            issues=_world.ISSUES, partners=partners, req_id=req_id
         )
 
 
@@ -68,10 +72,10 @@ class TripsWorld(World):
         kwargs["force_signing"] = True
         kwargs["default_signing_delay"] = 0
         super().__init__(*args, **kwargs)
-        self._contracts: Dict[int, List[Contract]] = defaultdict(list)
-        self._total_utility: Dict[str, float] = defaultdict(float)
-        self._ufuns: Dict[str, UtilityFunction] = dict()
-        self._breach_prob: Dict[str, float] = dict()
+        self._contracts: dict[int, list[Contract]] = defaultdict(list)
+        self._total_utility: dict[str, float] = defaultdict(float)
+        self._ufuns: dict[str, UtilityFunction] = dict()
+        self._breach_prob: dict[str, float] = dict()
 
     def join(self, x, ufun=None, breach_prob=None, **kwargs):
         """Define the ufun and breach-probability for each agent"""
@@ -91,15 +95,15 @@ class TripsWorld(World):
         """What happens in this world? Nothing"""
         pass
 
-    def get_private_state(self, agent: "Agent") -> dict:
+    def get_private_state(self, agent: Agent) -> dict:
         """What is the information available to agents? total utility points"""
         return dict(total_utility=self._total_utility[agent.id])
 
     def execute_action(
-        self, action: Action, agent: "Agent", callback: Callable | None = None
+        self, action: Action, agent: Agent, callback: Callable | None = None
     ) -> bool:
         """Executing actions by agents? No actions available"""
-        pass
+        ...
 
     def on_contract_signed(self, contract: Contract) -> None:
         """Save the contract to be executed in the following hoiday season (step)"""
@@ -115,10 +119,11 @@ class TripsWorld(World):
         self, contracts: Collection[Contract]
     ) -> Collection[Contract]:
         """What should be the order of contract execution? Random"""
+        contracts = list(contracts)
         shuffle(contracts)
         return contracts
 
-    def start_contract_execution(self, contract: Contract) -> Optional[Set[Breach]]:
+    def start_contract_execution(self, contract: Contract) -> set[Breach] | None:
         """What should happen when a contract comes due?
         1. Find out if it will be breached
         2. If not, add to each agent its utility from the trip
@@ -137,13 +142,15 @@ class TripsWorld(World):
         if len(breaches) > 0:
             return set(breaches)
         for aid in contract.partners:
+            if not isinstance(contract.agreement, dict):
+                continue
             self._total_utility[aid] += self._ufuns[aid](
                 dict2outcome(contract.agreement, issues=self.ISSUES)
             )
         return set()
 
     def complete_contract_execution(
-        self, contract: Contract, breaches: List[Breach], resolution: Contract
+        self, contract: Contract, breaches: list[Breach], resolution: Contract
     ) -> None:
         """What happens if a breach was resolved? Nothing. They cannot"""
         pass
@@ -153,11 +160,11 @@ class TripsWorld(World):
         if self._current_step in self._contracts.keys():
             del self._contracts[self.current_step]
 
-    def contract_record(self, contract: Contract) -> Dict[str, Any]:
+    def contract_record(self, contract: Contract) -> dict[str, Any]:
         """Convert the contract into a dictionary for saving"""
         return to_flat_dict(contract)
 
-    def breach_record(self, breach: Breach) -> Dict[str, Any]:
+    def breach_record(self, breach: Breach) -> dict[str, Any]:
         """Convert the breach into a dictionary for saving"""
         return to_flat_dict(breach)
 
@@ -168,6 +175,7 @@ class TripsWorld(World):
         return sum(
             self._ufuns[aid](dict2outcome(contract.agreement, issues=self.ISSUES))
             for aid in contract.partners
+            if isinstance(contract.agreement, dict)
         )
 
     def post_step_stats(self):
@@ -188,24 +196,24 @@ class Person(Agent, ABC):
     def respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
+        partners: list[str],
         mechanism: NegotiatorMechanismInterface,
-    ) -> Optional[Negotiator]:
+    ) -> Negotiator | None:
         ...
 
     def _respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
-        issues: List[Issue],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        issues: list[Issue],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
-        role: Optional[str],
-        req_id: Optional[str],
-    ) -> Optional[Negotiator]:
+        role: str | None,
+        req_id: str | None,
+    ) -> Negotiator | None:
         return self.respond_to_negotiation_request(initiator, partners, mechanism)
 
-    def on_neg_request_rejected(self, req_id: str, by: Optional[List[str]]):
+    def on_neg_request_rejected(self, req_id: str, by: list[str] | None):
         pass
 
     def on_neg_request_accepted(
@@ -215,8 +223,8 @@ class Person(Agent, ABC):
 
     def on_negotiation_failure(
         self,
-        partners: List[str],
-        annotation: Dict[str, Any],
+        partners: list[str],
+        annotation: dict[str, Any],
         mechanism: NegotiatorMechanismInterface,
         state: MechanismState,
     ) -> None:
@@ -228,32 +236,33 @@ class Person(Agent, ABC):
         pass
 
     def set_renegotiation_agenda(
-        self, contract: Contract, breaches: List[Breach]
-    ) -> Optional[RenegotiationRequest]:
+        self, contract: Contract, breaches: list[Breach]
+    ) -> RenegotiationRequest | None:
         pass
 
     def respond_to_renegotiation_request(
-        self, contract: Contract, breaches: List[Breach], agenda: RenegotiationRequest
-    ) -> Optional[Negotiator]:
+        self, contract: Contract, breaches: list[Breach], agenda: RenegotiationRequest
+    ) -> Negotiator | None:
         pass
 
     def on_contract_executed(self, contract: Contract) -> None:
         pass
 
     def on_contract_breached(
-        self, contract: Contract, breaches: List[Breach], resolution: Optional[Contract]
+        self, contract: Contract, breaches: list[Breach], resolution: Contract | None
     ) -> None:
         pass
 
 
 class RandomPerson(Person):
     def step(self):
+        awi: AWI = self.awi  # type: ignore
         # get IDs of all ogher agents from the AWI
-        agents = self.awi.agents
+        agents = awi.agents
         # request the maximum number of negotiations possible
-        for _ in range(self.awi.n_negs):
+        for _ in range(awi.n_negs):
             # for each negotiation, use a random subset of partners and a random negotiator
-            self.awi.request_negotiation(
+            awi.request_negotiation(
                 partners=sample(agents, k=randint(1, len(agents) - 1)),
                 negotiator=RandomNegotiator(),
             )
@@ -265,9 +274,9 @@ class RandomPerson(Person):
     def respond_to_negotiation_request(
         self,
         initiator: str,
-        partners: List[str],
+        partners: list[str],
         mechanism: NegotiatorMechanismInterface,
-    ) -> Optional[Negotiator]:
+    ) -> Negotiator | None:
         # just us a random negotiator for everything
         return RandomNegotiator()
 

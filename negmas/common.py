@@ -5,6 +5,7 @@ This module does not import anything from the library except during type checkin
 """
 from __future__ import annotations
 
+from collections import namedtuple
 from enum import Enum, auto, unique
 from typing import TYPE_CHECKING, Any, Iterable, Protocol, Union, runtime_checkable
 
@@ -30,7 +31,12 @@ __all__ = [
     "PreferencesChange",
     "PreferencesChangeType",
     "AgentMechanismInterface",
+    "TraceElement",
+    "DEFAULT_JAVA_PORT",
 ]
+
+DEFAULT_JAVA_PORT = 25337
+"""Default port to use for connecting to GENIUS"""
 
 
 @runtime_checkable
@@ -418,6 +424,13 @@ class NegotiatorMechanismInterface:
         """Gets the IDs of all negotiators"""
         return self.mechanism.negotiator_ids
 
+    def negotiator_index(self, source: str) -> int:
+        """Returns the negotiator index for the given negotiator. Raises an exception if not found"""
+        indx = self.mechanism.negotiator_index(source)
+        if indx is None:
+            raise ValueError(f"No known index for negotiator {source}")
+        return indx
+
     @property
     def negotiator_names(self) -> list[str]:
         """Gets the namess of all negotiators"""
@@ -447,6 +460,12 @@ class NegotiatorMechanismInterface:
         """Makes the outcome type behave like a dict"""
         return getattr(self, item)
 
+
+TraceElement = namedtuple(
+    "TraceElement",
+    ["time", "relative_time", "step", "negotiator", "offer", "responses", "state"],
+)
+"""An element of the trace returned by `full_trace` representing the history of the negotiation"""
 
 AgentMechanismInterface = NegotiatorMechanismInterface
 """A **depricated** alias for `NegotiatorMechanismInterface`"""

@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from multiprocessing.process import current_process
 from typing import TYPE_CHECKING
 
 from negmas import Value
+from negmas.gb.negotiators.base import GBNegotiator
 from negmas.preferences.base_ufun import BaseUtilityFunction
 from negmas.preferences.preferences import Preferences
 from negmas.warnings import NegmasUnexpectedValueWarning, warn
 
 from ...events import Notification
-from ...negotiators import Controller, Negotiator
+from ...negotiators import Controller
 from ...outcomes import Outcome
 from ..common import ResponseType, SAOResponse
 
@@ -22,7 +24,7 @@ __all__ = [
 ]
 
 
-class SAONegotiator(Negotiator):
+class SAONegotiator(GBNegotiator):
     """
     Base class for all SAO negotiators.
 
@@ -81,21 +83,6 @@ class SAONegotiator(Negotiator):
         if notification.type == "end_negotiation":
             self.__end_negotiation = True
 
-    @abstractmethod
-    def propose(self, state: SAOState) -> Outcome | None:
-        """Propose an offer or None to refuse.
-
-        Args:
-            state: `SAOState` giving current state of the negotiation.
-
-        Returns:
-            The outcome being proposed or None to refuse to propose
-
-        Remarks:
-            - This function guarantees that no agents can propose something with a utility value
-
-        """
-
     def propose_(self, state: SAOState) -> Outcome | None:
         """
         The method directly called by the mechanism (through `counter` ) to ask for a proposal
@@ -120,7 +107,11 @@ class SAONegotiator(Negotiator):
             return None
         return self.propose(state=state)
 
-    def respond(self, state: SAOState, offer: Outcome) -> ResponseType:
+    @abstractmethod
+    def propose(self, state: SAOState) -> Outcome | None:
+        ...
+
+    def respond(self, state: SAOState, offer: Outcome, source: str) -> ResponseType:
         """Called to respond to an offer. This is the method that should be overriden to provide an acceptance strategy.
 
         Args:
@@ -163,7 +154,7 @@ class SAONegotiator(Negotiator):
             return ResponseType.ACCEPT_OFFER
         return ResponseType.REJECT_OFFER
 
-    def respond_(self, state: SAOState, offer: Outcome) -> ResponseType:
+    def respond_(self, state: SAOState, offer: Outcome, source: str) -> ResponseType:
         """The method to be called directly by the mechanism (through `counter` ) to respond to an offer.
 
         Args:
@@ -196,9 +187,9 @@ class SAONegotiator(Negotiator):
             return ResponseType.END_NEGOTIATION
         if self.__end_negotiation:
             return ResponseType.END_NEGOTIATION
-        return self.respond(state=state, offer=offer)
+        return self.respond(state=state, offer=offer, source=source)
 
-    def counter(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
+    def __call__(self, state: SAOState, offer: Outcome | None) -> SAOResponse:
         """
         Called by the mechanism to counter the offer. It just calls `respond_` and `propose_` as needed.
 
@@ -218,54 +209,11 @@ class SAONegotiator(Negotiator):
                 self.on_preferences_changed(changes)
         if offer is None:
             return SAOResponse(ResponseType.REJECT_OFFER, self.propose_(state=state))
-        response = self.respond_(state=state, offer=offer)
+        response = self.respond_(
+            state=state,
+            offer=offer,
+            source=state.current_proposer if state.current_proposer else "",
+        )
         if response != ResponseType.REJECT_OFFER:
             return SAOResponse(response, None)
         return SAOResponse(response, self.propose_(state=state))
-
-    def on_partner_proposal(
-        self, state: SAOState, partner_id: str, offer: Outcome
-    ) -> None:
-        """
-        A callback called by the mechanism when a partner proposes something
-
-        Args:
-            state: `SAOState` giving the state of the negotiation when the offer was porposed.
-            partner_id: The ID of the agent who proposed
-            offer: The proposal.
-
-        Remarks:
-            - Will only be called if `enable_callbacks` is set for the mechanism
-        """
-
-    def on_partner_refused_to_propose(self, state: SAOState, partner_id: str) -> None:
-        """
-        A callback called by the mechanism when a partner refuses to propose
-
-        Args:
-            state: `SAOState` giving the state of the negotiation when the partner refused to offer.
-            partner_id: The ID of the agent who refused to propose
-
-        Remarks:
-            - Will only be called if `enable_callbacks` is set for the mechanism
-        """
-
-    def on_partner_response(
-        self,
-        state: SAOState,
-        partner_id: str,
-        outcome: Outcome,
-        response: ResponseType,
-    ) -> None:
-        """
-        A callback called by the mechanism when a partner responds to some offer
-
-        Args:
-            state: `SAOState` giving the state of the negotiation when the partner responded.
-            partner_id: The ID of the agent who responded
-            outcome: The proposal being responded to.
-            response: The response
-
-        Remarks:
-            - Will only be called if `enable_callbacks` is set for the mechanism
-        """

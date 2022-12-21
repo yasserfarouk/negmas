@@ -161,7 +161,7 @@ class UtilityFunction(_General, BaseUtilityFunction):
         return ufuns
 
     def is_not_worse(self, first: Outcome, second: Outcome) -> bool:
-        return self.difference(first, second) > 0
+        return self.difference(first, second) >= 0
 
     def difference_prob(self, first: Outcome, second: Outcome) -> Distribution:
         """
@@ -174,8 +174,8 @@ class UtilityFunction(_General, BaseUtilityFunction):
     def minmax(
         self,
         outcome_space: OutcomeSpace | None = None,
-        issues: list[Issue] | tuple[Issue] | None = None,
-        outcomes: list[Outcome] | tuple[Outcome] | None = None,
+        issues: list[Issue] | tuple[Issue, ...] | None = None,
+        outcomes: list[Outcome] | tuple[Outcome, ...] | None = None,
         max_cardinality=1000,
         above_reserve=False,
     ) -> tuple[float, float]:

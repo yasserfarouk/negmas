@@ -279,14 +279,14 @@ class ChainNegotiationsMechanism(Mechanism):
         else:
             self.__next_agent = (self.__last_proposer_index + 1) % len(self.__chain)
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state) -> MechanismRoundResult:
 
         # check that the chain is complete
         if not all(self.__chain):
             if self.dynamic_entry:
-                return MechanismRoundResult(
-                    error=True, error_details="The chain is not complete"
-                )
+                state.has_error = True
+                state.error_details = "The chain is not complete"
+                return MechanismRoundResult(state=state)
             raise ValueError(
                 "The chain is not complete and dynamic entry is not allowed"
             )
@@ -299,7 +299,7 @@ class ChainNegotiationsMechanism(Mechanism):
             self.__last_proposal = negotiator.propose(self.state)
             self._update_next()
             assert self.__next_agent == 1
-            return MechanismRoundResult()
+            return MechanismRoundResult(state)
 
         # if all agreements are finalized end the mechanism session with success
         agreements = [
@@ -309,7 +309,8 @@ class ChainNegotiationsMechanism(Mechanism):
         ]
 
         if len(agreements) == len(self.__chain) - 1:
-            return MechanismRoundResult(agreement=agreements)
+            state.agreement = agreements
+            return MechanismRoundResult(state)
         response = negotiator.respond(
             self.state,
             self.__last_proposal.outcome,
@@ -323,19 +324,20 @@ class ChainNegotiationsMechanism(Mechanism):
             ResponseType.REJECT_OFFER,
             ResponseType.END_NEGOTIATION,
         ):
-            return MechanismRoundResult(
-                error=True, error_details="An unacceptable response was returned"
-            )
+            state.has_error = True
+            state.error_details = "An unacceptable response was returned"
+            return MechanismRoundResult(state)
 
         # If the response is to end the negotiation, end it but only if there are not partial negotiations
         if response == ResponseType.END_NEGOTIATION:
             if len(self.__agreements) > 0:
-                return MechanismRoundResult(
-                    error=True,
-                    error_details="Cannot end a negotiation chain with some "
-                    "agreements",
+                state.has_error = True
+                state.error_details = (
+                    "Cannot end a negotiation chain with some agreements"
                 )
-            return MechanismRoundResult(broken=True)
+                return MechanismRoundResult(state)
+            state.broken = True
+            return MechanismRoundResult(state)
 
         # if the response is an acceptance then either register an agreement or a temporary agreement depending on
         # proposal
@@ -356,7 +358,7 @@ class ChainNegotiationsMechanism(Mechanism):
             ].on_acceptance(self.state, self.__last_proposal)
             self.__last_proposer_index = self.__next_agent
             self._update_next()
-            return MechanismRoundResult()
+            return MechanismRoundResult(state)
 
         # now it must be a rejection, ask the one who rejected to propose (in either direction)
         self.__last_proposal = self.__chain[self.__next_agent].propose(self.state)
@@ -465,14 +467,14 @@ class MultiChainNegotiationsMechanism(Mechanism):
             )
         self.__next_agent_number = self.__number[self.__last_proposal.partner]
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state) -> MechanismRoundResult:
 
         # check that the chain is complete
         if not all(len(_) > 0 for _ in self.__chain):
             if self.dynamic_entry:
-                return MechanismRoundResult(
-                    error=True, error_details="The chain is not complete"
-                )
+                state.has_error = True
+                state.error_details = "The chain is not complete"
+                return MechanismRoundResult(state)
             raise ValueError(
                 "The chain is not complete and dynamic entry is not allowed"
             )
@@ -485,7 +487,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
             self.__last_proposal = negotiator.propose(self.state)
             self._update_next()
             assert self.__next_agent_level == 1
-            return MechanismRoundResult()
+            return MechanismRoundResult(state)
 
         # if all agreements are finalized end the mechanism session with success
         agreements = [
@@ -495,7 +497,8 @@ class MultiChainNegotiationsMechanism(Mechanism):
         ]
 
         if len(agreements) == len(self.__chain) - 1:
-            return MechanismRoundResult(agreement=agreements)
+            state.agreement = agreements
+            return MechanismRoundResult(state)
         response = negotiator.respond(
             self.state,
             self.__last_proposal.outcome,
@@ -510,19 +513,20 @@ class MultiChainNegotiationsMechanism(Mechanism):
             ResponseType.REJECT_OFFER,
             ResponseType.END_NEGOTIATION,
         ):
-            return MechanismRoundResult(
-                error=True, error_details="An unacceptable response was returned"
-            )
+            state.has_error = True
+            error_details = "An unacceptable response was returned"
+            return MechanismRoundResult(state)
 
         # If the response is to end the negotiation, end it but only if there are not partial negotiations
         if response == ResponseType.END_NEGOTIATION:
             if len(self.__agreements) > 0:
-                return MechanismRoundResult(
-                    error=True,
-                    error_details="Cannot end a negotiation chain with some "
-                    "agreements",
+                state.has_error = True
+                stae.error_details = (
+                    "Cannot end a negotiation chain with some agreements",
                 )
-            return MechanismRoundResult(broken=True)
+                return MechanismRoundResult(stae)
+            state.broken = True
+            return MechanismRoundResult(state)
 
         # if the response is an acceptance then either register an agreement or a temporary agreement depending on
         # proposal
@@ -544,7 +548,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
             self.__last_proposer_level = self.__next_agent_level
             self.__last_proposer_number = self.__next_agent_number
             self._update_next()
-            return MechanismRoundResult()
+            return MechanismRoundResult(state)
 
         # now it must be a rejection, ask the one who rejected to propose (in either direction)
         self.__last_proposal = self.__chain[self.__next_agent_level][
@@ -553,7 +557,7 @@ class MultiChainNegotiationsMechanism(Mechanism):
         self.__last_proposer_level = self.__next_agent_level
         self.__last_proposer_number = self.__next_agent_number
         self._update_next()
-        return MechanismRoundResult()
+        return MechanismRoundResult(state)
 
     def on_confirm(self, level: int, left: bool) -> None:
         """

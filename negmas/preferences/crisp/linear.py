@@ -811,9 +811,18 @@ class LinearAdditiveUtilityFunction(  # type: ignore
 
     @classmethod
     def random(
-        cls, issues: list[Issue], reserved_value=(0.0, 1.0), normalized=True, **kwargs
+        cls,
+        outcome_space: CartesianOutcomeSpace | None = None,
+        issues: list[Issue] | tuple[Issue, ...] | None = None,
+        reserved_value=(0.0, 1.0),
+        normalized=True,
+        **kwargs,
     ):
         # from negmas.preferences.ops import normalize
+        if not issues and outcome_space:
+            issues = outcome_space.issues
+        if not issues:
+            raise ValueError(f"Cannot generate a random ufun withot knowing the issues")
 
         reserved_value = make_range(reserved_value)
 

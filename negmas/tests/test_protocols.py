@@ -23,14 +23,15 @@ class MyMechanism(Mechanism):
         super().__init__(outcomes=20, n_steps=10, dynamic_entry=dynamic_entry, **kwargs)
         self.current = 0
 
-    def round(self) -> MechanismRoundResult:
+    def __call__(self, state) -> MechanismRoundResult:
         # r = random.random()
         # if r > 1.0 / self.n_steps:
         #    return None, False, None
         self.current += 1
         if self.current < 6:
-            return MechanismRoundResult(agreement=None)
-        return MechanismRoundResult(agreement=self.random_outcomes(1)[0])
+            return MechanismRoundResult(state)
+        state.agreement = self.random_outcomes(1)[0]
+        return MechanismRoundResult(state)
 
 
 @pytest.fixture

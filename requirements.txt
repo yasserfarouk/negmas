@@ -41,7 +41,7 @@ seaborn
 sklearn
 nose
 networkx
-pyqt5
+# pyqt5
 gif
 pytest-repeat
 dask[complete]
@@ -49,3 +49,4 @@ psutil
 papermill
 rich
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
+numba

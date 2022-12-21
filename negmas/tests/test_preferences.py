@@ -6,7 +6,8 @@ import hypothesis.strategies as st
 import numpy as np
 import pkg_resources
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
+from hypothesis.core import example
 from pytest import mark
 
 from negmas.outcomes import enumerate_issues, issues_from_xml_str, make_issue
@@ -22,7 +23,12 @@ from negmas.preferences import (
 )
 from negmas.preferences.crisp.const import ConstUtilityFunction
 from negmas.preferences.inv_ufun import PresortingInverseUtilityFunction
-from negmas.preferences.ops import normalize, scale_max
+from negmas.preferences.ops import (
+    normalize,
+    pareto_frontier_bf,
+    pareto_frontier_of,
+    scale_max,
+)
 
 
 @mark.parametrize(["n_issues"], [(2,), (3,)])
@@ -63,6 +69,34 @@ def test_preferences_range_general(n_issues):
     assert rng[1] <= sum(rs)
 
 
+@given(
+    n_outcomes=st.integers(2, 1000),
+    n_negotiators=st.integers(2, 5),
+    unique=st.booleans(),
+    sort=st.booleans(),
+)
+@settings(deadline=60_000)
+@example(n_outcomes=4, n_negotiators=2, unique=False, sort=False)
+@example(n_outcomes=2, n_negotiators=2, unique=False, sort=False)
+def test_pareto_frontier_matches_bf(n_outcomes, n_negotiators, unique, sort):
+
+    np.random.seed(0)
+    utils = np.random.rand(n_outcomes, n_negotiators)
+    bf = list(
+        pareto_frontier_bf(utils, sort_by_welfare=sort, unique_utility_values=unique)
+    )
+    x = list(
+        pareto_frontier_of(utils, sort_by_welfare=sort, unique_utility_values=unique)
+    )
+    assert len(x) == len(bf), f"bf:{bf}\nfast:{x}"
+    assert len(bf) == len(set(bf)), f"bf:{bf}\nfast:{x}"
+    assert len(x) == len(set(x)), f"bf:{bf}\nfast:{x}"
+    if sort:
+        assert all(list(a == b for a, b in zip(x, bf))), f"bf:{bf}\nfast:{x}"
+    else:
+        assert set(x) == set(bf), f"bf:{bf}\nfast:{x}"
+
+
 def test_pareto_frontier_does_not_depend_on_order():
     u1 = [
         0.5337723805661662,
@@ -84,14 +118,24 @@ def test_pareto_frontier_does_not_depend_on_order():
     f2 = MappingUtilityFunction(lambda o: u2[o[0]])
     assert all(f1((i,)) == u1[i] for i in range(10))
     assert all(f2((i,)) == u2[i] for i in range(10))
-    p1, l1 = pareto_frontier([f1, f2], outcomes=[(_,) for _ in range(10)])
-    p2, l2 = pareto_frontier([f2, f1], outcomes=[(_,) for _ in range(10)])
+    p1, l1 = pareto_frontier(
+        [f1, f2],
+        sort_by_welfare=True,
+        unique_utility_values=False,
+        outcomes=[(_,) for _ in range(10)],
+    )
+    p2, l2 = pareto_frontier(
+        [f2, f1],
+        sort_by_welfare=True,
+        unique_utility_values=False,
+        outcomes=[(_,) for _ in range(10)],
+    )
 
-    assert p1 == [(0.9419131964655383, 0.0), (0.7242899747791032, 1.0)]
-    assert p2 == [(1.0, 0.7242899747791032), (0.0, 0.9419131964655383)]
-    assert l1 == [6, 3]
-    assert l2 == list(reversed(l1))
+    assert set(p1) == {(0.9419131964655383, 0.0), (0.7242899747791032, 1.0)}
+    assert set(p2) == {(1.0, 0.7242899747791032), (0.0, 0.9419131964655383)}
+    assert set(l1) == {6, 3}
     assert len(p1) == len(p2)
+    # assert l2 == list(reversed(l1))
 
     # reverse order of p2
     p2 = [(_[1], _[0]) for _ in p2]
