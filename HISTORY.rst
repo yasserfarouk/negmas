@@ -1,6 +1,20 @@
 History
 =======
 
+Release 0.9.6
+-------------
+
+* [python] Supporting 3.11 and dropping support for 3.8
+* [test] Adding 3.11 to tests
+* [major] Adding Generalized Bargaining Protocols
+* [buffix] testing saving exceptions in SAO
+* [bugfix] Avoid failure if a config folder for negmas does not exist
+* [minor] avoid a warning when setting preferences explicitly
+* [minor] Moving shortest_unique_names to strings.py from misc.py
+* [cli] renaming the 50% column to median in scores
+* [feature] Adjustable config paths. Now all paths and configs are adjustable using environement variables, a global json file or a local json file. See `negmas_config` under `negmas.config` for more details.
+* [feature] Adding calculation of Kalai-points, max-welfare-points and max-relative-welfare points and making nash_points return all nash points (previously we had nash_point() which returned just one)
+
 Release 0.9.5
 -------------
 

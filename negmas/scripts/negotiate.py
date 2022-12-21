@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from time import perf_counter
 from typing import Optional
@@ -76,10 +78,10 @@ def run(
         "-a",
         help="Negotiator (agent) type",
     ),
-    reserved: Optional[list[float]] = typer.Option(None, "--reserved", "-r"),
+    reserved: list[float] | None = typer.Option(None, "--reserved", "-r"),
     normalize: bool = True,
-    steps: Optional[int] = typer.Option(None, "--steps", "-s"),  # type: ignore
-    timelimit: Optional[int] = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
+    steps: int | None = typer.Option(None, "--steps", "-s"),  # type: ignore
+    timelimit: int | None = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
     plot: bool = True,
     verbose: bool = typer.Option(False, "--verbose", "-v"),
     progress: bool = False,
