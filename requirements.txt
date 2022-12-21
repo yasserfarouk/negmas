@@ -46,5 +46,5 @@ psutil
 papermill
 rich
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
-numba
+numba (<3.11)
 typer
