@@ -78,10 +78,10 @@ def run(
         "-a",
         help="Negotiator (agent) type",
     ),
-    reserved: list[float] | None = typer.Option(None, "--reserved", "-r"),
+    reserved: list[float] = typer.Option(None, "--reserved", "-r"),
     normalize: bool = True,
-    steps: int | None = typer.Option(None, "--steps", "-s"),  # type: ignore
-    timelimit: int | None = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
+    steps: int = typer.Option(None, "--steps", "-s"),  # type: ignore
+    timelimit: int = typer.Option(None, "--time", "--timelimit", "-t"),  # type: ignore
     plot: bool = True,
     verbose: bool = typer.Option(False, "--verbose", "-v"),
     progress: bool = False,
