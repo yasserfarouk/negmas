@@ -9,8 +9,7 @@ from rich import print
 from stringcase import titlecase
 
 from negmas.helpers import get_class
-from negmas.helpers.misc import shortest_unique_names
-from negmas.helpers.strings import camel_case, humanize_time
+from negmas.helpers.strings import camel_case, humanize_time, shortest_unique_names
 from negmas.helpers.types import get_full_type_name
 from negmas.inout import Scenario
 from negmas.mechanisms import Mechanism

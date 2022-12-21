@@ -54,7 +54,9 @@ class SAOController(Controller):
 
     def __init__(
         self,
-        default_negotiator_type: str | type[ControlledSAONegotiator] | None = None,
+        default_negotiator_type: str
+        | type[SAONegotiator]
+        | None = ControlledSAONegotiator,
         default_negotiator_params: dict[str, Any] | None = None,
         auto_kill=True,
         name=None,
