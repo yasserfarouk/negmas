@@ -4,7 +4,7 @@ History
 Release 0.9.6
 -------------
 
-* [python] Supporting 3.11 and dropping support for 3.8
+* [python] Supporting 3.11 and dropping support for 3.8 and 3.9
 * [test] Adding 3.11 to tests
 * [major] Adding Generalized Bargaining Protocols
 * [buffix] testing saving exceptions in SAO
