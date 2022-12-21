@@ -5,7 +5,11 @@ from __future__ import annotations
 
 __all__ = ["FutureUtilityRegressor"]
 import numpy as np
-from sklearn.gaussian_process import GaussianProcessRegressor
+
+try:
+    from sklearn.gaussian_process import GaussianProcessRegressor
+except:
+    pass
 
 
 class FutureUtilityRegressor:
