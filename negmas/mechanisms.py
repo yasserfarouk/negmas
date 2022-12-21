@@ -1200,7 +1200,7 @@ class Mechanism(NamedObject, EventSource, CheckpointMixin, ABC):
     ) -> tuple[tuple[tuple[float], Outcome]]:
         ufuns = self._get_preferencess()
         if not frontier:
-            frontier, _ = self.pareto_frontier(max_cardinality)
+            frontier, frontier_outcomes = self.pareto_frontier(max_cardinality)
         assert frontier_outcomes is not None
         outcomes = tuple(self.discrete_outcomes(max_cardinality=max_cardinality))
         nash_pts = nash_points(ufuns, frontier, outcomes=outcomes)

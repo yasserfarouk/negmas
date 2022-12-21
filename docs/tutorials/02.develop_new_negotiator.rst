@@ -620,7 +620,7 @@ with ``AspriationNegotiator`` on multiple negotiations:
 
     # find the pareto-frontier (it is the same for all negotiations)
     frontier_utils, frontier_outcomes = s.pareto_frontier()
-    nash_utils, nash_outcome = s.nash_point()
+    nash_utils, nash_outcome = s.nash_points()[0]
     nash_welfare = sum(nash_utils)
 
     # define the distance (Euclidean) to pareto frontier
