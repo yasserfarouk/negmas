@@ -34,13 +34,19 @@ NEGMAS_CONFIG = {
 __conf_path = Path(NEGMAS_DEFAULT_PATH).expanduser().absolute()
 
 if __conf_path.exists():
-    with open(__conf_path) as f:
-        NEGMAS_CONFIG = json.load(f)
+    try:
+        with open(__conf_path) as f:
+            NEGMAS_CONFIG.update(json.load(f))
+    except:
+        pass
 
 local_path = Path.cwd() / LOCAL_NEGMAS_CONFIG_FILENAME
 if local_path.exists():
-    with open(local_path) as f:
-        NEGMAS_CONFIG.update(json.load(f))
+    try:
+        with open(local_path) as f:
+            NEGMAS_CONFIG.update(json.load(f))
+    except:
+        pass
 
 
 def negmas_config(key: str, default):
