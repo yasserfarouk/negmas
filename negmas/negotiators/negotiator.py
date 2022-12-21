@@ -249,7 +249,6 @@ class Negotiator(Rational, Notifiable, ABC):
             preferences = ufun
         if preferences is None:
             preferences = self._preferences
-        # todo: re-enable this after making scml avoid it
         # elif self.preferences and preferences != self.preferences:
         #     warnings.warn(
         #         f"Setting preferenes to {preferences} but the agent already has preferences {self.preferences}",
